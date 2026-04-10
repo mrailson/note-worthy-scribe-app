@@ -4,7 +4,7 @@ import { Resend } from "npm:resend@2.0.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface ModuleAccess {
@@ -38,88 +38,23 @@ interface WelcomeEmailRequest {
   test_email?: string;
 }
 
-// Module information for the email
-const moduleInfo: Record<string, { label: string; description: string; category: string }> = {
-  ai4gp_access: {
-    label: 'Ask AI',
-    description: 'AI-powered GP practice support and clinical guidance',
-    category: 'Core Features'
-  },
-  meeting_notes_access: {
-    label: 'Meeting Manager',
-    description: 'Record meetings and automatically generate professional notes',
-    category: 'Core Features'
-  },
-  survey_manager_access: {
-    label: 'Survey Tool',
-    description: 'Create and manage patient and staff surveys',
-    category: 'Core Features'
-  },
-  policy_service_access: {
-    label: 'Practice Policy Service',
-    description: 'Generate and manage CQC-compliant practice policies',
-    category: 'Compliance & Governance'
-  },
-  complaints_manager_access: {
-    label: 'Complaints Service',
-    description: 'View and manage patient complaints with AI assistance',
-    category: 'Compliance & Governance'
-  },
-  shared_drive_access: {
-    label: 'Shared Drive',
-    description: 'Access shared file storage and team collaboration tools',
-    category: 'Core Features'
-  },
-  translation_service_access: {
-    label: 'Translation Service',
-    description: 'Translate patient communications into multiple languages',
-    category: 'Core Features'
-  },
-  gp_scribe_access: {
-    label: 'GP Scribe',
-    description: 'AI-powered consultation transcription and note generation',
-    category: 'Clinical Tools'
-  },
-  bp_service_access: {
-    label: 'BP Average Service',
-    description: 'Calculate and analyse blood pressure readings',
-    category: 'Clinical Tools'
-  },
-  cqc_compliance_access: {
-    label: 'CQC Compliance',
-    description: 'CQC compliance monitoring and assessment tools',
-    category: 'Compliance & Governance'
-  },
-  cso_governance_access: {
-    label: 'CSO Governance',
-    description: 'Clinical Safety Officer reports and documentation',
-    category: 'Compliance & Governance'
-  },
-  enhanced_access: {
-    label: 'Enhanced Access',
-    description: 'Extended hours appointment booking and patient services',
-    category: 'Practice Management'
-  },
-  fridge_monitoring_access: {
-    label: 'Fridge Monitoring',
-    description: 'Practice fridge temperature monitoring and alerts',
-    category: 'Practice Management'
-  },
-  lg_capture_access: {
-    label: 'LG Capture',
-    description: 'Lloyd George record scanning and digitisation',
-    category: 'Practice Management'
-  },
-  mic_test_service_access: {
-    label: 'Mic Test Service',
-    description: 'Microphone testing and audio configuration',
-    category: 'Developer & Testing'
-  },
-  api_testing_service_access: {
-    label: 'API Testing Service',
-    description: 'AI model comparison and API testing tools',
-    category: 'Developer & Testing'
-  }
+const moduleInfo: Record<string, { label: string; description: string }> = {
+  ai4gp_access: { label: 'Ask AI', description: 'AI-powered practice support and clinical guidance' },
+  meeting_notes_access: { label: 'Meeting Notes', description: 'Meeting recording and note-taking features' },
+  survey_manager_access: { label: 'Survey Manager', description: 'Create and manage patient and staff surveys' },
+  policy_service_access: { label: 'Policy Service', description: 'Generate and manage CQC-compliant practice policies' },
+  complaints_manager_access: { label: 'Complaints Manager', description: 'Log, investigate, and resolve patient complaints with AI' },
+  shared_drive_access: { label: 'Shared Drive', description: 'Shared file storage and collaboration' },
+  translation_service_access: { label: 'Translation Service', description: 'Multilingual patient communication tool' },
+  gp_scribe_access: { label: 'GP Scribe', description: 'AI-powered consultation transcription and note generation' },
+  bp_service_access: { label: 'BP Average Service', description: 'Calculate and analyse blood pressure readings' },
+  cqc_compliance_access: { label: 'CQC Compliance', description: 'CQC compliance monitoring and assessment tools' },
+  cso_governance_access: { label: 'CSO Governance', description: 'Clinical Safety Officer reports and documentation' },
+  enhanced_access: { label: 'Enhanced Access', description: 'Extended hours appointment booking and patient services' },
+  fridge_monitoring_access: { label: 'Fridge Monitoring', description: 'Practice fridge temperature monitoring and alerts' },
+  lg_capture_access: { label: 'LG Capture', description: 'Lloyd George record scanning and digitisation' },
+  mic_test_service_access: { label: 'Mic Test Service', description: 'Microphone testing and audio configuration' },
+  api_testing_service_access: { label: 'API Testing Service', description: 'AI model comparison and API testing tools' },
 };
 
 const getRoleDisplayName = (role: string): string => {
@@ -131,167 +66,151 @@ const getRoleDisplayName = (role: string): string => {
     'gp': 'GP',
     'nurse': 'Nurse',
     'admin_staff': 'Admin Staff',
-    'icb_user': 'ICB User'
+    'icb_user': 'ICB User',
   };
   return roleNames[role] || role;
 };
 
 const generateEmailHTML = (data: WelcomeEmailRequest): string => {
-  // Group enabled modules by category
-  const enabledModules: Record<string, Array<{ label: string; description: string }>> = {};
-  
+  const practiceName = data.practice_name || 'your practice';
+  const roleDisplay = getRoleDisplayName(data.user_role);
+  const isPracticeManager = data.user_role === 'practice_manager';
+
+  // Build enabled modules list
+  const enabledModules: Array<{ label: string; description: string }> = [];
   for (const [key, enabled] of Object.entries(data.module_access)) {
     if (enabled && moduleInfo[key]) {
-      const info = moduleInfo[key];
-      if (!enabledModules[info.category]) {
-        enabledModules[info.category] = [];
-      }
-      enabledModules[info.category].push({
-        label: info.label,
-        description: info.description
-      });
+      enabledModules.push(moduleInfo[key]);
     }
   }
 
-  // Generate modules HTML - simple list format
-  let modulesHTML = '';
-  const categoryOrder = ['Core Features', 'Clinical Tools', 'Compliance & Governance', 'Practice Management', 'Developer & Testing'];
-  
-  for (const category of categoryOrder) {
-    const modules = enabledModules[category];
-    if (modules && modules.length > 0) {
-      modulesHTML += `
+  const modulesHTML = enabledModules.length > 0
+    ? enabledModules.map(m => `
         <tr>
-          <td style="padding: 0 0 15px 0;">
-            <div style="color: #005EB8; font-size: 13px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">
-              ${category}
-            </div>
-            ${modules.map(m => `
-              <div style="padding: 8px 12px; margin-bottom: 6px; background: #F0F4F5; border-left: 3px solid #005EB8;">
-                <div style="font-weight: 600; color: #212B32; font-size: 14px;">${m.label}</div>
-                <div style="color: #4C6272; font-size: 12px;">${m.description}</div>
-              </div>
-            `).join('')}
+          <td style="padding:8px 0;font-size:14px;color:#212B32;line-height:1.5;">
+            <span style="color:#00703C;font-size:16px;vertical-align:middle;">&#10003;</span>&nbsp;&nbsp;
+            <strong>${m.label}</strong> &mdash; ${m.description}
           </td>
-        </tr>
-      `;
-    }
-  }
+        </tr>`).join('')
+    : `<tr><td style="padding:10px;background:#FFF9C4;border-left:3px solid #FFB300;color:#7A4A00;font-size:14px;">No modules have been enabled yet. Please contact your administrator.</td></tr>`;
 
-  if (!modulesHTML) {
-    modulesHTML = `
-      <tr>
-        <td style="padding: 15px; background: #FFF9C4; border-left: 3px solid #FFB300;">
-          <div style="color: #7A4A00; font-size: 14px;">No modules have been enabled for your account yet. Please contact your administrator.</div>
-        </td>
-      </tr>
-    `;
-  }
+  // Practice Manager section
+  const pmSection = isPracticeManager ? `
+          <!-- Managing Your Practice Users -->
+          <tr>
+            <td style="padding:0 40px 30px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:2px solid #003087;">
+                <tr>
+                  <td style="padding:20px 0 0;">
+                    <h2 style="margin:0 0 12px;font-size:18px;color:#003087;">Managing Your Practice Users</h2>
+                    <p style="margin:0 0 15px;font-size:14px;color:#4C6272;line-height:1.6;">
+                      As the assigned Practice Manager for <strong>${practiceName}</strong>, you can add and manage users within your own practice:
+                    </p>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f0f4f5;border-radius:6px;">
+                      <tr>
+                        <td style="padding:18px 22px;">
+                          <ol style="margin:0;padding:0 0 0 20px;color:#212B32;font-size:14px;line-height:2;">
+                            <li>Log in at <a href="https://gpnotewell.co.uk" style="color:#0072CE;text-decoration:underline;">gpnotewell.co.uk</a></li>
+                            <li>Click your name (top right) &rarr; <strong>My Team/User Management</strong></li>
+                            <li>Click <strong>Add User</strong> and enter their NHS email address and full name</li>
+                            <li>A password will be auto-generated &mdash; share it with them or they can use the Magic Link to log in</li>
+                            <li>Select their role and toggle the modules they need</li>
+                            <li>Click <strong>Create User</strong></li>
+                          </ol>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:15px 0 0;font-size:13px;color:#4C6272;line-height:1.5;">
+                      You are responsible for maintaining your practice&rsquo;s user list &mdash; including removing access promptly when staff leave or change role.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>` : '';
 
-  return `
-<!DOCTYPE html>
-<html>
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to GP Notewell AI</title>
+  <title>Welcome to Notewell AI</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #E8EDEE;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #E8EDEE;">
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#E8EDEE;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#E8EDEE;">
     <tr>
-      <td align="center" style="padding: 30px 15px;">
-        <table role="presentation" width="800" cellspacing="0" cellpadding="0" style="max-width: 800px; width: 100%; background-color: #FFFFFF;">
-          
-          <!-- NHS Blue Header -->
+      <td align="center" style="padding:30px 15px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- Header Banner -->
           <tr>
-            <td style="background-color: #005EB8; padding: 25px 40px; text-align: left;">
-              <h1 style="margin: 0; color: #FFFFFF; font-size: 24px; font-weight: 600;">
-                GP Notewell AI
+            <td style="background-color:#003087;padding:28px 40px;text-align:left;">
+              <h1 style="margin:0;color:#FFFFFF;font-size:26px;font-weight:700;letter-spacing:-0.5px;">
+                Notewell AI
               </h1>
-              <p style="margin: 5px 0 0; color: #AED6F1; font-size: 14px;">
-                Your AI-powered practice management platform
+              <p style="margin:8px 0 0;color:#8BB8E8;font-size:14px;font-weight:400;">
+                Welcome to Notewell AI &mdash; ${practiceName}
               </p>
             </td>
           </tr>
 
           <!-- Greeting -->
           <tr>
-            <td style="padding: 30px 40px 20px;">
-              <p style="margin: 0; color: #212B32; font-size: 16px;">
-                Hello <strong>${data.user_name}</strong>,
+            <td style="padding:30px 40px 20px;">
+              <p style="margin:0;color:#212B32;font-size:16px;">
+                Hi <strong>${data.user_name}</strong>,
               </p>
-              <p style="margin: 12px 0 0; color: #4C6272; font-size: 14px; line-height: 1.5;">
-                Your account has been created for GP Notewell AI. Below you will find your login details and a summary of the features available to you.
+              <p style="margin:14px 0 0;color:#4C6272;font-size:14px;line-height:1.6;">
+                Welcome to Notewell AI &mdash; your practice&rsquo;s intelligent programme assistant, powered by AI and grounded in NHS guidance. Your account has been created and is ready to use.
               </p>
             </td>
           </tr>
 
-          <!-- Login Details -->
+          <!-- Login Details Card -->
           <tr>
-            <td style="padding: 0 40px 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #F0F4F5; border-left: 3px solid #005EB8;">
+            <td style="padding:0 40px 25px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f0f4f5;border:2px solid #003087;border-radius:8px;">
                 <tr>
-                  <td style="padding: 20px 25px;">
-                    <div style="color: #005EB8; font-size: 14px; font-weight: 600; margin-bottom: 15px; text-transform: uppercase;">
-                      Your Login Details
-                    </div>
-                    
+                  <td style="background:#003087;padding:12px 22px;">
+                    <span style="color:#FFFFFF;font-size:15px;font-weight:600;">&#128274;&nbsp; Your Login Details</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:22px 22px 18px;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Login URL</div>
-                          <a href="https://gpnotewell.co.uk" style="color: #005EB8; font-size: 15px; font-weight: 600; text-decoration: underline;">
-                            https://gpnotewell.co.uk
-                          </a>
+                        <td style="padding-bottom:14px;">
+                          <div style="color:#4C6272;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Login URL</div>
+                          <a href="https://gpnotewell.co.uk" style="color:#0072CE;font-size:15px;font-weight:600;text-decoration:underline;">https://gpnotewell.co.uk</a>
                         </td>
                       </tr>
                       <tr>
-                        <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Email Address</div>
-                          <div style="color: #212B32; font-size: 15px;">${data.user_email}</div>
+                        <td style="padding-bottom:14px;">
+                          <div style="color:#4C6272;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Username</div>
+                          <div style="color:#212B32;font-size:15px;">${data.user_email}</div>
                         </td>
                       </tr>
                       ${data.user_password ? `
                       <tr>
-                        <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Password</div>
-                          <div style="color: #212B32; font-size: 15px; font-family: 'Courier New', monospace; background: #FFFFFF; border: 1px solid #D8DDE0; padding: 8px 12px; border-radius: 4px; letter-spacing: 0.5px;">
+                        <td style="padding-bottom:14px;">
+                          <div style="color:#4C6272;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Password</div>
+                          <div style="color:#212B32;font-size:16px;font-family:'Courier New',Courier,monospace;background:#FFFFFF;border:1px solid #D8DDE0;padding:10px 14px;border-radius:4px;letter-spacing:1px;font-weight:600;">
                             ${data.user_password}
                           </div>
-                          <div style="color: #768692; font-size: 11px; margin-top: 6px;">
-                            We recommend changing your password after your first login.
-                          </div>
                         </td>
-                      </tr>
-                      ` : ''}
-                      ${data.password_reset_link ? `
+                      </tr>` : ''}
                       <tr>
-                        <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 8px;">Or Set a New Password</div>
-                          <a href="${data.password_reset_link}" 
-                             style="display: inline-block; background: #005EB8; color: #FFFFFF; text-decoration: none; padding: 10px 20px; font-weight: 600; font-size: 13px; border-radius: 4px;">
-                            Create Your Own Password
-                          </a>
-                          <div style="color: #768692; font-size: 11px; margin-top: 8px;">
-                            This link expires in 48 hours. If it expires, you can use the "Magic Link" option on the login page.
-                          </div>
+                        <td style="padding-bottom:14px;">
+                          <div style="color:#4C6272;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Practice</div>
+                          <div style="color:#212B32;font-size:15px;">${practiceName}</div>
                         </td>
                       </tr>
-                      ` : ''}
                       <tr>
-                        <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Your Role</div>
-                          <div style="color: #212B32; font-size: 15px;">${getRoleDisplayName(data.user_role)}</div>
+                        <td>
+                          <div style="color:#4C6272;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Role</div>
+                          <div style="color:#212B32;font-size:15px;">${roleDisplay}</div>
                         </td>
                       </tr>
-                      ${data.practice_name ? `
-                      <tr>
-                        <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Your Practice/Organisation</div>
-                          <div style="color: #212B32; font-size: 15px;">${data.practice_name}</div>
-                        </td>
-                      </tr>
-                      ` : ''}
                     </table>
                   </td>
                 </tr>
@@ -299,71 +218,197 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
             </td>
           </tr>
 
-          <!-- Enabled Features Section -->
+          <!-- Password note -->
           <tr>
-            <td style="padding: 0 40px 25px;">
-              <div style="font-size: 16px; font-weight: 600; color: #212B32; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #005EB8;">
-                Your Enabled Features
-              </div>
+            <td style="padding:0 40px 20px;">
+              <p style="margin:0;font-size:13px;color:#4C6272;line-height:1.5;">
+                Your password was auto-generated and is yours to keep. If you&rsquo;d ever like to change it, you can do so anytime by clicking your name (top right) &rarr; <strong>My Profile</strong> &rarr; <strong>Password</strong> tab.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Magic Link info box -->
+          <tr>
+            <td style="padding:0 40px 25px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f9fa;border:1px solid #D8DDE0;border-radius:6px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0 0 6px;font-size:14px;color:#003087;font-weight:600;">
+                      &#128279; Forgotten your password?
+                    </p>
+                    <p style="margin:0;font-size:13px;color:#4C6272;line-height:1.5;">
+                      No problem. On the login page, click &lsquo;<strong>Magic Link</strong>&rsquo; and enter your email address. We&rsquo;ll send you a secure one-time link that logs you straight into Notewell as your account &mdash; no password needed. The link expires after use for security.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr><td style="padding:0 40px;"><hr style="border:none;border-top:1px solid #D8DDE0;margin:0;"></td></tr>
+
+          <!-- Activated Services -->
+          <tr>
+            <td style="padding:25px 40px 25px;">
+              <h2 style="margin:0 0 10px;font-size:18px;color:#003087;">Activated Services</h2>
+              <p style="margin:0 0 15px;font-size:14px;color:#4C6272;line-height:1.5;">
+                The following modules have been enabled for your account:
+              </p>
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 ${modulesHTML}
               </table>
+              <p style="margin:15px 0 0;font-size:12px;color:#768692;">
+                If you need additional modules activated, please contact your administrator.
+              </p>
             </td>
           </tr>
 
-          ${data.module_access.complaints_manager_access ? `
-          <!-- Complaints Manager Training Section -->
+          <!-- Divider -->
+          <tr><td style="padding:0 40px;"><hr style="border:none;border-top:1px solid #D8DDE0;margin:0;"></td></tr>
+
+          ${pmSection}
+
+          <!-- Getting Started -->
           <tr>
-            <td style="padding: 0 40px 25px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%); border-left: 4px solid #7B1FA2;">
+            <td style="padding:25px 40px 25px;">
+              <h2 style="margin:0 0 10px;font-size:18px;color:#003087;">Getting Started</h2>
+              <p style="margin:0 0 15px;font-size:14px;color:#4C6272;">Here are a few things to try first:</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td style="padding: 20px 25px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 12px;">
-                      <span style="font-size: 24px; margin-right: 10px;">🎬</span>
-                      <span style="color: #7B1FA2; font-size: 15px; font-weight: 600; text-transform: uppercase;">
-                        Complaints Manager Training
-                      </span>
-                    </div>
-                    <p style="margin: 0 0 15px; color: #4C6272; font-size: 14px; line-height: 1.5;">
-                      Get started with a demonstration video showing you how to use the Complaints Manager effectively. Learn how to log, investigate, and resolve patient complaints with AI assistance.
+                  <td style="padding:10px 14px;background:#f0f4f5;border-radius:4px;margin-bottom:6px;">
+                    <span style="font-size:18px;vertical-align:middle;">&#128172;</span>&nbsp;&nbsp;
+                    <strong style="color:#212B32;font-size:14px;">Ask AI</strong>
+                    <span style="color:#4C6272;font-size:13px;"> &mdash; type any question in the Ask AI box on the home screen</span>
+                  </td>
+                </tr>
+                <tr><td style="height:6px;"></td></tr>
+                <tr>
+                  <td style="padding:10px 14px;background:#f0f4f5;border-radius:4px;">
+                    <span style="font-size:18px;vertical-align:middle;">&#128196;</span>&nbsp;&nbsp;
+                    <strong style="color:#212B32;font-size:14px;">Document Studio</strong>
+                    <span style="color:#4C6272;font-size:13px;"> &mdash; generate practice documents, policies, and templates</span>
+                  </td>
+                </tr>
+                <tr><td style="height:6px;"></td></tr>
+                <tr>
+                  <td style="padding:10px 14px;background:#f0f4f5;border-radius:4px;">
+                    <span style="font-size:18px;vertical-align:middle;">&#127908;</span>&nbsp;&nbsp;
+                    <strong style="color:#212B32;font-size:14px;">Meeting Notes</strong>
+                    <span style="color:#4C6272;font-size:13px;"> &mdash; record and transcribe your next practice meeting</span>
+                  </td>
+                </tr>
+                <tr><td style="height:6px;"></td></tr>
+                <tr>
+                  <td style="padding:10px 14px;background:#f0f4f5;border-radius:4px;">
+                    <span style="font-size:18px;vertical-align:middle;">&#127760;</span>&nbsp;&nbsp;
+                    <strong style="color:#212B32;font-size:14px;">Translation Service</strong>
+                    <span style="color:#4C6272;font-size:13px;"> &mdash; try the live translate tool with a colleague</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr><td style="padding:0 40px;"><hr style="border:none;border-top:1px solid #D8DDE0;margin:0;"></td></tr>
+
+          <!-- Support -->
+          <tr>
+            <td style="padding:25px 40px 25px;">
+              <h2 style="margin:0 0 12px;font-size:18px;color:#003087;">Support</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#212B32;">
+                    &#127909; <strong>Training Videos</strong> &mdash; available via your name menu &rarr; Training Videos
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#212B32;">
+                    &#128214; <strong>User Guide &amp; Help</strong> &mdash; available from the left-hand menu
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#212B32;">
+                    &#128231; <strong>Support</strong> &mdash; <a href="mailto:malcolm.railson@nhs.net" style="color:#0072CE;text-decoration:none;">malcolm.railson@nhs.net</a> / 07740 812180
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Data & Security -->
+          <tr>
+            <td style="padding:0 40px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f0f4f5;border-radius:6px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0;font-size:12px;color:#4C6272;line-height:1.5;">
+                      <strong style="color:#003087;">Data &amp; Security</strong><br>
+                      Notewell AI is an MHRA-registered Class I medical device with clinical safety sign-off (DCB0129/DCB0160) and ICB DDaT board approval. All data is processed in accordance with UK GDPR. For any data protection queries, please contact your practice&rsquo;s Data Protection Officer.
                     </p>
-                    <a href="https://www.loom.com/share/58d3d16963224dddac2ea8211bd2b90d" 
-                       target="_blank"
-                       style="display: inline-block; background: #7B1FA2; color: #FFFFFF; text-decoration: none; padding: 10px 20px; font-weight: 600; font-size: 13px; border-radius: 4px;">
-                      ▶ Watch Training Video
-                    </a>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
-          ` : ''}
 
-          <!-- Login Button -->
+          <!-- Pilot & Community Spirit -->
           <tr>
-            <td style="padding: 0 40px 30px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #F0F4F5;">
+            <td style="padding:20px 40px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#FFF8E1;border-left:4px solid #ED8B00;border-radius:0 6px 6px 0;">
                 <tr>
-                  <td style="padding: 20px; text-align: center;">
-                    <div style="color: #212B32; font-size: 14px; margin-bottom: 12px;">Ready to get started?</div>
-                    <a href="https://gpnotewell.co.uk" style="display: inline-block; background: #005EB8; color: #FFFFFF; text-decoration: none; padding: 12px 30px; font-weight: 600; font-size: 14px;">
-                      Login to GP Notewell AI
-                    </a>
+                  <td style="padding:20px 22px;">
+                    <p style="margin:0 0 10px;font-size:15px;font-weight:700;color:#003087;">
+                      &#128640; A pioneering journey from analogue to digital
+                    </p>
+                    <p style="margin:0 0 12px;font-size:13px;color:#4C6272;line-height:1.6;">
+                      Notewell AI is an unfunded tool developed on a best-efforts basis to support NHS primary care&rsquo;s transition from analogue to digital. There is no dedicated support team or engineering department behind it &mdash; it is built, maintained, and improved by me alongside my day job because I believe in what it can do for practices and patients.
+                    </p>
+                    <p style="margin:0 0 12px;font-size:13px;color:#4C6272;line-height:1.6;">
+                      As a pilot platform, Notewell AI should not be relied upon for critical or business-essential functions. Features may change, improve, or occasionally break as I develop. I ask that you approach it in the spirit in which it&rsquo;s offered &mdash; as a pioneering step forward, not a finished product.
+                    </p>
+                    <p style="margin:0;font-size:13px;color:#4C6272;line-height:1.6;">
+                      By using Notewell AI, you&rsquo;re part of a small group of practices helping to shape what digital primary care could look like. Your patience, feedback, and willingness to try something new is what makes this possible. Thank you for being part of the journey.
+                    </p>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
+
+          <!-- Feedback -->
+          <tr>
+            <td style="padding:20px 40px 25px;">
+              <p style="margin:0;font-size:13px;color:#4C6272;line-height:1.5;font-style:italic;">
+                We&rsquo;re continuously improving Notewell AI based on your feedback. If you have suggestions, spot issues, or want to request a feature, I&rsquo;d love to hear from you.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Sign-off -->
+          <tr>
+            <td style="padding:0 40px 25px;">
+              <p style="margin:0;font-size:14px;color:#212B32;line-height:1.6;">
+                Kind regards,<br>
+                <strong>Malcolm Railson</strong><br>
+                <span style="color:#4C6272;font-size:13px;">Digital &amp; Transformation Lead, NRES</span><br>
+                <span style="color:#4C6272;font-size:13px;">
+                  <a href="mailto:malcolm.railson@nhs.net" style="color:#0072CE;text-decoration:none;">malcolm.railson@nhs.net</a> | 07740 812180
+                </span>
+              </p>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="background: #F0F4F5; padding: 20px 40px; border-top: 1px solid #D8DDE0;">
-              <p style="margin: 0; color: #4C6272; font-size: 12px; text-align: center;">
-                Need help? Contact your system administrator or email
-                <a href="mailto:malcolm.railson@nhs.net" style="color: #005EB8; text-decoration: none;">malcolm.railson@nhs.net</a>
+            <td style="background:#f0f4f5;padding:18px 40px;border-top:1px solid #D8DDE0;">
+              <p style="margin:0;color:#768692;font-size:11px;text-align:center;line-height:1.5;">
+                &copy; ${new Date().getFullYear()} Notewell AI | <a href="https://gpnotewell.co.uk" style="color:#0072CE;text-decoration:none;">gpnotewell.co.uk</a>
               </p>
-              <p style="margin: 8px 0 0; color: #768692; font-size: 11px; text-align: center;">
-                &copy; ${new Date().getFullYear()} GP Notewell AI. All rights reserved.
+              <p style="margin:8px 0 0;color:#999;font-size:10px;text-align:center;line-height:1.4;">
+                This email was sent because an account was created for you on Notewell AI.<br>
+                If you believe this was sent in error, please contact your practice administrator.
               </p>
             </td>
           </tr>
@@ -373,12 +418,10 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
     </tr>
   </table>
 </body>
-</html>
-  `;
+</html>`;
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -399,7 +442,6 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending welcome email for user:", data.user_email);
     console.log("Test mode:", data.test_mode);
 
-    // Validate required fields
     if (!data.user_email || !data.user_name) {
       console.error("Missing required fields");
       return new Response(
@@ -408,21 +450,17 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Determine recipient email
     const recipientEmail = data.test_mode && data.test_email ? data.test_email : data.user_email;
     console.log("Sending to:", recipientEmail);
 
-    // Generate the email HTML
     const htmlContent = generateEmailHTML(data);
 
-    // Build subject line
-    const subject = data.test_mode 
-      ? `[TEST] Welcome to GP Notewell AI - Account Created for ${data.user_name}`
-      : `Welcome to GP Notewell AI - Your Account Details`;
+    const subject = data.test_mode
+      ? `[TEST] Welcome to Notewell AI — Account Created for ${data.user_name}`
+      : `Welcome to Notewell AI — Your Account Details`;
 
-    // Send email via Resend
     const { data: emailResult, error } = await resend.emails.send({
-      from: "\"Notewell AI\" <noreply@bluepcn.co.uk>",
+      from: '"Notewell AI" <noreply@bluepcn.co.uk>',
       to: [recipientEmail],
       subject: subject,
       html: htmlContent,
@@ -437,22 +475,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log("Welcome email sent successfully:", emailResult);
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        messageId: emailResult?.id,
-        recipient: recipientEmail,
-        test_mode: data.test_mode || false
-      }),
+      JSON.stringify({ success: true, message: "Welcome email sent", id: emailResult?.id }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
 
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Error in send-user-welcome-email function:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     return new Response(
-      JSON.stringify({ error: errorMessage, success: false }),
+      JSON.stringify({ error: error.message || "Internal server error", success: false }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
