@@ -174,6 +174,12 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
               <Users className="w-4 h-4" />
               Workforce
             </TabsTrigger>
+            {neighbourhoodName === 'NRES' && (
+              <TabsTrigger value="dpia" className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                DPIA Generator
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="finance-governance">
@@ -288,6 +294,14 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
           <TabsContent value="workforce">
             <SDAWorkforceInnovation />
           </TabsContent>
+
+          {neighbourhoodName === 'NRES' && (
+            <TabsContent value="dpia">
+              <Suspense fallback={<div className="py-8 text-center text-sm text-slate-500">Loading DPIA Generator…</div>}>
+                <DPIAGenerator />
+              </Suspense>
+            </TabsContent>
+          )}
         </Tabs>
       </TabsContent>
 
