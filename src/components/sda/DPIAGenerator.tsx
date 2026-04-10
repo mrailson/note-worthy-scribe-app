@@ -82,8 +82,9 @@ const FORM_SECTIONS = [
 async function callAI(prompt: string, maxTokens = 4096): Promise<string> {
   const { data, error } = await supabase.functions.invoke("gpt5-fast-clinical", {
     body: {
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "system", content: "You are a data extraction assistant. Return only what is asked, no web search needed." }, { role: "user", content: prompt }],
       max_tokens: maxTokens,
+      skipWebSearch: true,
     },
   });
   if (error) throw new Error(error.message || "AI request failed");
