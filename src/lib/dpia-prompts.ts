@@ -138,6 +138,19 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
    - Reference the Data Protection Act 2018 Schedule 1 Part 1 Condition 2
    - State the assessment covers all processing activities undertaken by Notewell AI at ${practice.practice_name}
 
+   2.1 CONTEXT AND APPROACH
+   Include the following subsection verbatim (do not paraphrase or shorten — reproduce this text in full as a distinct subsection):
+
+   "Notewell AI is an unfunded, not-for-profit tool developed to support NHS primary care's transition from analogue to digital ways of working. It is built and maintained on a best-efforts basis by Malcolm Railson (Digital & Transformation Lead, Blue PCN) alongside his substantive NHS role, driven by a belief in what technology can do for practices and patients when developed responsibly.
+
+   Despite being unfunded, Notewell AI has been developed with the same rigour expected of any digital health tool deployed in NHS settings. It holds MHRA Class I medical device registration, has completed clinical safety cases under both DCB0129 (manufacture) and DCB0160 (deployment) signed off by Dr Simon Ellis as Clinical Safety Officer, has undergone DTAC self-assessment, and has received formal approval from the NHS Northamptonshire ICB Digital, Data and Technology (DDaT) Board for a 30-practice pilot commencing Q1 2026. Data Sharing Agreements, Data Processing Agreements, and this DPIA are in place for every deploying practice. These governance milestones have been achieved voluntarily and at the developer's own cost and time, in order to meet the standards that NHS patients and staff deserve.
+
+   Notewell AI is currently operating as a pilot platform. As such, it should not be relied upon as the sole tool for critical or business-essential clinical functions. Features may evolve, improve, or occasionally require maintenance as the platform develops. Practices are asked to approach the pilot in the spirit in which it is offered — as a pioneering and collaborative step forward in digital primary care, not a finished commercial product.
+
+   This DPIA should be read in that context. The controls, mitigations, and safeguards described in this document are genuine and actively maintained. Practices participating in the pilot are partners in shaping what responsible, clinician-led digital innovation looks like in NHS primary care, and their engagement, patience, and feedback is valued and essential.
+
+   For any concerns about this DPIA or the processing it describes, practices should contact their own Data Protection Officer in the first instance, or Malcolm Railson (malcolm.railson@nhs.net) for platform-specific queries."
+
 3. SYSTEM COMPLIANCE AND ASSURANCE
    Write a detailed section covering:
 
