@@ -197,6 +197,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     return () => { hasFetchedRef.current = false; };
   }, [user?.id]);
 
+  // Re-fetch when elevated access is detected (initial fetch may have been user-scoped)
+  useEffect(() => {
+    if (hasElevatedAccess && user?.id) {
+      hasFetchedRef.current = false;
+      fetchClaims(true);
+    }
+  }, [hasElevatedAccess]);
+
   const createClaim = async (
     claimMonth: string,
     staffMembers: BuyBackStaffMember[],
