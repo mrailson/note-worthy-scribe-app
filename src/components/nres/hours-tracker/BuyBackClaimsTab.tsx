@@ -1590,7 +1590,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                     </tr>
                   );
                 })()}
-              </>
+              </React.Fragment>
             );
           })}
           {/* Total row */}
