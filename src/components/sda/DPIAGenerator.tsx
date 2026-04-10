@@ -55,7 +55,7 @@ const EMPTY_PRACTICE: Omit<DPIAPractice, "id"> = {
   cg_name: "", cg_role: "", cg_email: "",
   dpo_name: "", dpo_org: "", dpo_email: "", dpo_tel: "",
   source_file: null, completed_by: "", completed_role: "", completed_date: "",
-  dpia_generated: false, dpia_date: null, dpia_html: null,
+  dpia_generated: false, dpia_date: null, dpia_html: null, onboarded_at: null,
 };
 
 const FORM_SECTIONS = [
