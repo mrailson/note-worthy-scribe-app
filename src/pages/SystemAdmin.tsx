@@ -84,6 +84,8 @@ import { EdgeFunctionAudit } from '@/components/admin/EdgeFunctionAudit';
 import { PageRouteAudit } from '@/components/admin/PageRouteAudit';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
+const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
+
 // Word lists for memorable password generation
 const PASSWORD_WORDS = [
   'apple', 'brave', 'charm', 'dance', 'eagle', 'flame', 'grace', 'happy',
