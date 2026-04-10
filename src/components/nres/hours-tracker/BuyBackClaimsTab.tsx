@@ -370,19 +370,21 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   });
 
   // Fetch bank holidays for working-weeks calculation (management claims)
-  const [bankHolidayDates, setBankHolidayDates] = useState<string[]>([]);
+  const [bankHolidayData, setBankHolidayData] = useState<{ date: string; name: string }[]>([]);
   useEffect(() => {
     const fetchBH = async () => {
       try {
         const { data } = await (supabase as any)
           .from('bank_holidays_closed_days')
-          .select('date')
+          .select('date, name')
           .eq('type', 'bank_holiday');
-        if (data) setBankHolidayDates(data.map((r: any) => r.date));
+        if (data) setBankHolidayData(data.map((r: any) => ({ date: r.date, name: r.name })));
       } catch { /* ignore */ }
     };
     fetchBH();
   }, []);
+
+  const bankHolidayDates = useMemo(() => bankHolidayData.map(b => b.date), [bankHolidayData]);
 
   const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays } = useMemo(() => {
     // Inline helpers using fetched bank holidays
@@ -406,7 +408,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     return { getWorkingWeeksInMonth, getWorkingDaysInMonth };
   }, [bankHolidayDates]);
 
-  // Count bank holidays in a specific month
+  // Get bank holidays in a specific month with names and formatted dates
   const getBankHolidaysInMonth = useCallback((claimMonth: string): number => {
     const start = new Date(claimMonth);
     const year = start.getFullYear();
@@ -417,10 +419,35 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     }).length;
   }, [bankHolidayDates]);
 
+  const getBankHolidayDetailsInMonth = useCallback((claimMonth: string): { date: string; name: string; formatted: string }[] => {
+    const start = new Date(claimMonth);
+    const year = start.getFullYear();
+    const month = start.getMonth();
+    const ordinal = (n: number) => {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+    return bankHolidayData
+      .filter(b => {
+        const bh = new Date(b.date);
+        return bh.getFullYear() === year && bh.getMonth() === month && bh.getDay() !== 0 && bh.getDay() !== 6;
+      })
+      .map(b => {
+        const d = new Date(b.date);
+        const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
+        const dayNum = d.getDate();
+        const monthName = d.toLocaleDateString('en-GB', { month: 'long' });
+        return { date: b.date, name: b.name, formatted: `${dayName} ${ordinal(dayNum)} ${monthName}` };
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [bankHolidayData]);
+
   // Build rateParams with working weeks for the current claim month
   const claimMonthDate = `${claimMonth}-01`;
   const workingWeeksForMonth = calcWorkingWeeks(claimMonthDate);
   const bankHolidaysForMonth = getBankHolidaysInMonth(claimMonthDate);
+  const bankHolidayDetailsForMonth = getBankHolidayDetailsInMonth(claimMonthDate);
 
   const rateParams: RateParams = {
     onCostMultiplier,
@@ -429,6 +456,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     employerPensionPct: rateSettings.employer_pension_pct,
     workingWeeksInMonth: workingWeeksForMonth,
     bankHolidaysInMonth: bankHolidaysForMonth,
+    bankHolidayDetails: bankHolidayDetailsForMonth,
   };
 
   const { isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
@@ -906,6 +934,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       workingWeeks,
       totalHours,
       bankHolidaysExcluded: bhCount,
+      bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
@@ -991,7 +1020,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
             <>
               {/* Management: hourly rate with on-costs breakdown */}
               <div>
-                <p className="text-muted-foreground font-medium mb-0.5">Gross Hourly Rate</p>
+                <p className="text-muted-foreground font-medium mb-0.5">Gross Hourly Rate (inclusive of on-costs)</p>
                 <p className="font-semibold">{fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
               </div>
               <Separator />
@@ -1013,7 +1042,12 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <p className="text-muted-foreground font-medium mb-0.5">Working Weeks in Month</p>
                 <p className="text-foreground">{(breakdown.workingWeeks ?? 0).toFixed(1)} weeks (working days ÷ 5)</p>
                 {(breakdown.bankHolidaysExcluded ?? 0) > 0 && (
-                  <p className="text-muted-foreground italic">{breakdown.bankHolidaysExcluded} bank holiday{(breakdown.bankHolidaysExcluded ?? 0) > 1 ? 's' : ''} excluded</p>
+                  <div className="mt-1">
+                    <p className="text-muted-foreground italic mb-0.5">{breakdown.bankHolidaysExcluded} bank holiday{(breakdown.bankHolidaysExcluded ?? 0) > 1 ? 's' : ''} excluded:</p>
+                    {(breakdown.bankHolidayDetails ?? []).map((bh: any, i: number) => (
+                      <p key={i} className="text-muted-foreground italic pl-2">• {bh.formatted} — {bh.name}</p>
+                    ))}
+                  </div>
                 )}
               </div>
               <Separator />
