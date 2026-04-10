@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
@@ -83,6 +83,8 @@ import { ICBTrafficLightManager } from '@/components/admin/ICBTrafficLightManage
 import { EdgeFunctionAudit } from '@/components/admin/EdgeFunctionAudit';
 import { PageRouteAudit } from '@/components/admin/PageRouteAudit';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
+
+const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
 
 // Word lists for memorable password generation
 const PASSWORD_WORDS = [
@@ -2001,6 +2003,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">Pilot Usage Report</span>
               <span className="sm:hidden">Pilot</span>
             </TabsTrigger>
+            <TabsTrigger value="dpia-generator" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">DPIA Generator</span>
+              <span className="sm:hidden">DPIA</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -2358,6 +2365,13 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* AI4GP Services Tab */}
           <TabsContent value="ai4gp-services" className="space-y-6">
             <AI4GPServicesOverview />
+          </TabsContent>
+
+          {/* DPIA Generator Tab */}
+          <TabsContent value="dpia-generator" className="space-y-6">
+            <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading DPIA Generator…</div>}>
+              <DPIAGenerator />
+            </Suspense>
           </TabsContent>
 
 
