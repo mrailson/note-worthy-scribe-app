@@ -64,12 +64,13 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check caller is sda
+    // Check caller is super_admin or management_lead
     const { data: roleData, error: roleError } = await adminClient
       .from("nres_system_roles")
       .select("role")
       .eq("user_email", caller.email)
-      .eq("role", "sda")
+      .in("role", ["super_admin", "management_lead"])
+      .limit(1)
       .maybeSingle();
     
     if (roleError) {
