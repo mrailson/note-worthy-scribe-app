@@ -630,6 +630,7 @@ export const PracticeUserManagement = () => {
       console.error('Error updating ENN access:', error);
       toast.error('Failed to update ENN access');
     }
+  };
 
   const resetForm = () => {
     setUserFormData({
@@ -661,7 +662,10 @@ export const PracticeUserManagement = () => {
     setShowPassword(true);
     setPasswordError('');
     setEditingUserNRESAccess(false);
+    setEditingUserENNAccess(false);
     setEditingUserPolicyAccess(false);
+    setNewUserNRESAccess(false);
+    setNewUserENNAccess(false);
     setSearchQuery('');
   };
 
