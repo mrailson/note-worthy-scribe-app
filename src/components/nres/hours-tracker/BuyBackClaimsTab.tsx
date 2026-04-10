@@ -307,8 +307,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     : filterPractice;
   const effectiveFilterStatus = testActive
     ? (testMode.role === 'mgmt_lead' ? 'submitted'
-      : testMode.role === 'pml_director' ? 'all'
-      : testMode.role === 'pml_finance' ? 'approved'
+      : testMode.role === 'pml_director' ? filterStatus
+      : testMode.role === 'pml_finance' ? filterStatus
       : filterStatus)
     : filterStatus;
   const effectiveCanCreateClaim = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
@@ -577,7 +577,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               <Badge variant="secondary" className="ml-auto text-xs">{filteredClaims.length}</Badge>
             </button>
           </CollapsibleTrigger>
-          {claimsHistoryOpen && effectiveIsAdmin && !testActive && (
+          {claimsHistoryOpen && effectiveIsAdmin && (!testActive || testMode.role === 'pml_finance' || testMode.role === 'pml_director') && (
             <div className="flex flex-wrap gap-2 mt-2 items-center">
               {([
                 { key: 'all', label: 'All' },
@@ -661,7 +661,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     claimCategory={claimCategory}
                     userId={user?.id}
                     userEmail={user?.email}
-                    isAdmin={testActive ? (testMode.role !== 'practice' && testMode.role !== 'pml_finance') : isAdmin}
+                    isAdmin={testActive ? (testMode.role !== 'practice') : isAdmin}
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
