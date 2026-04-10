@@ -506,6 +506,7 @@ export const PracticeUserManagement = () => {
   const openEditModal = (user: PracticeUser) => {
     setEditingUser(user);
     setEditingUserNRESAccess(user.nres_access || false);
+    setEditingUserENNAccess(user.enn_access || false);
     setEditingUserPolicyAccess(user.policy_service_access || false);
     setUserFormData({
       email: user.email,
