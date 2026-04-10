@@ -84,8 +84,10 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { pmEmail, pmName, practiceName, practiceId: dpiaRecordId, odsCode, dpiaBase64, dpiaFileName } = body;
-    console.log("Onboarding:", pmEmail, practiceName, "ODS:", odsCode);
+    const { pmEmail, pmName, practiceName, practiceId: dpiaRecordId, odsCode, dpiaBase64, dpiaFileName, testMode } = body;
+    const TEST_RECIPIENT = "malcolm.railson@nhs.net";
+    const isTest = testMode === true;
+    console.log("Onboarding:", pmEmail, practiceName, "ODS:", odsCode, "testMode:", isTest);
 
     if (!pmEmail || !pmName || !practiceName || !dpiaBase64) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
