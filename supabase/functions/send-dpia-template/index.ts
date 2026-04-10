@@ -99,7 +99,7 @@ Following formal approval from the NHS Northamptonshire ICB DDaT Delivery Group,
 </p>
 
 <p style="color:#333;font-size:14px;line-height:1.7;margin:0 0 16px;">
-To prepare a custom <strong>Data Protection Impact Assessment (DPIA)</strong>${practiceLabel}, along with a suggested Privacy Notice update, we need to collect some key information from you.
+To prepare a custom <strong>Data Protection Impact Assessment (DPIA)</strong>${practiceFullLabel}, along with a suggested Privacy Notice update, we need to collect some key information from you.
 </p>
 
 <!-- Action Card -->
