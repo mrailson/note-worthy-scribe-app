@@ -290,9 +290,10 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
     - Include a review trigger list: change of processor, new data category, security incident, regulatory change, ICO guidance update
 
 14. SIGN-OFF
-    Present as a TABLE:
+    Present as a TABLE with explicit column widths using colgroup: Role 20%, Name 25%, Signature 35%, Date 20%. Use <colgroup><col style="width:20%"><col style="width:25%"><col style="width:35%"><col style="width:20%"></colgroup>.
     | Role | Name | Signature | Date |
     | Practice Manager | ${practice.pm_name} | _________________ | __________ |
+    | Caldicott Guardian | ${practice.cg_name} | _________________ | __________ |
     | Digital & Transformation Lead | Malcolm Railson | _________________ | __________ |
 
     Include a declaration statement above the table: "We, the undersigned, confirm that we have reviewed this Data Protection Impact Assessment and are satisfied that the risks identified have been appropriately assessed and mitigated. We approve the deployment of Notewell AI at ${practice.practice_name} subject to the conditions stated in Section 12."

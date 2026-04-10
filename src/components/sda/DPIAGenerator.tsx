@@ -167,7 +167,7 @@ function downloadAsWord(html: string, practiceName: string, odsCode?: string) {
   h2 { color: #003087; font-size: 14pt; margin-top: 20px; }
   h3 { color: #005EB8; font-size: 12pt; }
   table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-  th, td { border: 1px solid #999; padding: 6px 10px; font-size: 10pt; vertical-align: top; }
+  th, td { border: 1px solid #999; padding: 6px 10px; font-size: 10pt; vertical-align: top; word-wrap: break-word; }
   th { background: #005EB8; color: white; text-align: left; font-weight: bold; }
   tr:nth-child(even) { background: #f5f7fa; }
 </style>
@@ -646,7 +646,7 @@ export default function DPIAGenerator() {
                     body { font-family: Arial, sans-serif; font-size: 11pt; color: #212b32; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 2cm; }
                     h1 { color: #005EB8; } h2 { color: #003087; } h3 { color: #005EB8; }
                     table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-                    th, td { border: 1px solid #999; padding: 6px 10px; font-size: 10pt; }
+                    th, td { border: 1px solid #999; padding: 6px 10px; font-size: 10pt; word-wrap: break-word; }
                     th { background: #005EB8; color: white; }
                     @media print { body { padding: 0; } }
                   </style>
