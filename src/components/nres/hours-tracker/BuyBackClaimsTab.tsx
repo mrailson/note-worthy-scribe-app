@@ -572,6 +572,14 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     draft: practiceFilteredClaims.filter(c => c.status === 'draft').length,
   };
 
+  // Auto-expand claims section when there are claims to show
+  useEffect(() => {
+    if (!hasAutoExpanded && filteredClaims.length > 0) {
+      setClaimsHistoryOpen(true);
+      setHasAutoExpanded(true);
+    }
+  }, [filteredClaims.length, hasAutoExpanded]);
+
   const categoryBadge = (cat: string) => {
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
     if (cat === 'management') return <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>;
