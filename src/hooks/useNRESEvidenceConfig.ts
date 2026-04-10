@@ -9,15 +9,15 @@ export interface EvidenceConfigRow {
   label: string;
   description: string | null;
   is_mandatory: boolean;
-  applies_to: 'all' | 'buyback' | 'new_sda';
+  applies_to: 'all' | 'buyback' | 'new_sda' | 'management';
   sort_order: number;
   updated_by: string | null;
   updated_at: string;
 }
 
-export type StaffEvidenceCategory = 'buyback' | 'new_sda' | 'mixed';
+export type StaffEvidenceCategory = 'buyback' | 'new_sda' | 'management' | 'mixed';
 
-export type AppliesToValue = 'all' | 'buyback' | 'new_sda';
+export type AppliesToValue = 'all' | 'buyback' | 'new_sda' | 'management';
 
 export function useNRESEvidenceConfig() {
   const { user } = useAuth();
@@ -149,6 +149,9 @@ export function useNRESEvidenceConfig() {
     }
     if (category === 'buyback') {
       return config.filter(c => c.applies_to === 'all' || c.applies_to === 'buyback');
+    }
+    if (category === 'management') {
+      return config.filter(c => c.applies_to === 'all' || c.applies_to === 'management');
     }
     return config.filter(c => c.applies_to === 'all' || c.applies_to === 'new_sda');
   }, [config]);
