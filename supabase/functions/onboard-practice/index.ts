@@ -252,16 +252,18 @@ serve(async (req) => {
         </div>`;
 
     let dpiaEmailSent = false;
+    const dpiaRecipient = isTest ? TEST_RECIPIENT : pmEmail;
+    const dpiaSubjectPrefix = isTest ? "[TEST] " : "";
     try {
       const dpiaResp = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendApiKey}` },
         body: JSON.stringify({
           from: "Notewell AI <noreply@bluepcn.co.uk>",
-          to: [pmEmail],
-          bcc: ["malcolm.railson@nhs.net"],
-          subject: `Notewell AI – DPIA for ${practiceName}`,
-          html: dpiaEmailBody,
+          to: [dpiaRecipient],
+          ...(isTest ? {} : { bcc: ["malcolm.railson@nhs.net"] }),
+          subject: `${dpiaSubjectPrefix}Notewell AI – DPIA for ${practiceName}`,
+          html: (isTest ? `<div style="background:#fff3cd;padding:12px 16px;border:2px solid #ffc107;border-radius:8px;margin-bottom:16px;font-family:Arial,sans-serif;"><strong>🧪 TEST MODE</strong> — This would be sent to <strong>${pmEmail}</strong> (${pmName}). No account was created.</div>` : "") + dpiaEmailBody,
           attachments: [{
             filename: dpiaFileName || `DPIA_Notewell_AI_${practiceName.replace(/\s+/g, "_")}.doc`,
             content: dpiaBase64,
@@ -293,11 +295,13 @@ serve(async (req) => {
               apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
             },
             body: JSON.stringify({
-              user_email: pmEmail,
+              user_email: isTest ? TEST_RECIPIENT : pmEmail,
               user_name: pmName,
               user_password: tempPassword,
               user_role: "practice_manager",
               practice_name: practiceName,
+              test_mode: isTest,
+              original_email: isTest ? pmEmail : undefined,
               module_access: {
                 ai4gp_access: true,
                 complaints_manager_access: true,
@@ -306,7 +310,7 @@ serve(async (req) => {
                 survey_manager_access: true,
                 gp_scribe_access: false,
                 enhanced_access: false,
-                cqc_compliance_access: false,
+                cqc_compliance_access: true,
                 shared_drive_access: false,
                 mic_test_service_access: false,
                 api_testing_service_access: false,
