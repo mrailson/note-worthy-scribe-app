@@ -630,17 +630,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 let canApproveThisClaim: boolean;
 
                 if (testActive) {
-                  canVerifyClaim = testMode.role === 'mgmt_lead' && isBuyBack && c.status === 'submitted';
-                  const canApproveBB = isBuyBack && c.status === 'verified';
-                  const canApproveNS = !isBuyBack && c.status === 'submitted';
-                  canApproveThisClaim = testMode.role === 'pml_director' && (canApproveBB || canApproveNS);
+                  canVerifyClaim = testMode.role === 'mgmt_lead' && c.status === 'submitted';
+                  canApproveThisClaim = testMode.role === 'pml_director' && c.status === 'verified';
                 } else {
-                  canVerifyClaim = isAdmin && isBuyBack && c.status === 'submitted' && (
+                  canVerifyClaim = isAdmin && c.status === 'submitted' && (
                     (!hasAnyAssignment) || myVerifierPractices.includes(c.practice_key || '')
                   );
-                  const canApproveBuyBack = isBuyBack && c.status === 'verified';
-                  const canApproveNewSda = !isBuyBack && c.status === 'submitted';
-                  canApproveThisClaim = isAdmin && (canApproveBuyBack || canApproveNewSda) && (
+                  canApproveThisClaim = isAdmin && c.status === 'verified' && (
                     (!hasAnyAssignment) || myApproverPractices.includes(c.practice_key || '')
                   );
                 }
