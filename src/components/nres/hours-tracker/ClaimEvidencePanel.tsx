@@ -231,22 +231,22 @@ export function StaffLineEvidence({
               .filter(([key]) => key === 'other_supporting')
               .map(([, f]) => f);
             return (
-              <div key={`${staffIndex}-${cfg.evidence_type}`} className="px-3 py-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium text-xs">{cfg.label}</span>
-                    {cfg.description && (
-                      <p className="text-muted-foreground text-[10px]">{cfg.description}</p>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">{otherFiles.length > 0 ? `${otherFiles.length} file${otherFiles.length > 1 ? 's' : ''}` : ''}</span>
+              <div key={`${staffIndex}-${cfg.evidence_type}`} className="px-3 py-2 flex items-center gap-3 text-xs">
+                <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium">{cfg.label}</span>
+                  {cfg.description && (
+                    <p className="text-muted-foreground text-[10px] truncate">{cfg.description}</p>
+                  )}
                 </div>
-                <SmartUploadZone
-                  onFilesSelected={handleSmartUpload}
-                  uploading={uploading}
-                  multiple
-                />
+                <div className="shrink-0">
+                  <SmartUploadZone
+                    onFilesSelected={handleSmartUpload}
+                    uploading={uploading}
+                    multiple
+                    compact
+                  />
+                </div>
               </div>
             );
           }
