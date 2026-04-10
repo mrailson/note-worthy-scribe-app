@@ -1,50 +1,56 @@
 
-What I found
 
-- The normal desktop auto-email flow lives in `src/components/PostMeetingActionsModal.tsx`.
-- Offline iPhone sync does not use that flow at all. It uses a separate mobile-only path in `src/components/recorder/NoteWellRecorderMobile.jsx`:
-  - `generateNotesForMeeting()`
-  - `pollAndEmailIfReady()`
-  - `triggerPostNoteActions()`
-- That means earlier fixes in the desktop/modal path would not have fixed this issue.
+## Plan: Calculate Management Hours Based on Actual Working Days per Month
 
-Most likely reasons it is failing
+### Problem
+Currently, all claim amounts are calculated by dividing the annual rate by 12 (flat monthly). For management claims, the user wants the monthly hours to be based on the actual number of working weeks in the claim month — excluding weekends **and** bank holidays from the `bank_holidays_closed_days` table.
 
-1. `pollAndEmailIfReady()` only waits about 2 minutes. If note generation finishes later, the email is never attempted.
-2. `triggerPostNoteActions()` fetches the current user again after a long sync. On iPhone, that session can be stale by then, so it can exit before sending.
-3. The mobile path does not properly validate the result from `send-meeting-email-resend`, so a failed send can be silently treated like success.
+**Example**: If a management role has `max_hours_per_week = 8` and the claim month has 20 working days (4 exact weeks), the total hours for that month = 8 × 4 = 32 hours.
 
-Plan to fix it safely
+### What changes
 
-1. Extract a shared “send meeting notes email” helper from the existing working logic so mobile, desktop, and manual email use the same send code.
-2. Update the offline iPhone/mobile sync path to use that helper instead of its own separate send sequence.
-3. In the mobile flow, capture the recipient email earlier, refresh auth again before post-note actions, and only mark success if the email function really returns success.
-4. Replace the short fixed poll with a longer, bounded retry that checks both `meetings.notes_generation_status` and `meeting_summaries`.
-5. Add a meeting-level dedupe/retry guard so failed mobile auto-sends can retry safely without creating duplicate emails.
-6. Keep the desktop modal flow and manual “Email notes to me” action functionally unchanged, apart from reusing the same helper.
+**1. New utility function: `getWorkingDaysInMonth`** (`src/utils/workingDays.ts`)
+- Takes a `claimMonth` string (e.g. `2026-04-01`)
+- Counts weekdays (Mon-Fri) in that month
+- Fetches bank holidays from `bank_holidays_closed_days` that fall in that month and subtracts them
+- Returns the number of working days
 
-Technical details
+**2. New helper: `getWorkingWeeksInMonth`** (`src/utils/workingDays.ts`)
+- Divides working days by 5 to get the precise number of working weeks (e.g. 20 days = 4.0 weeks, 22 days = 4.4 weeks)
 
-- Main file to change: `src/components/recorder/NoteWellRecorderMobile.jsx`
-- Likely shared/reused files:
-  - `src/components/PostMeetingActionsModal.tsx`
-  - `src/components/mobile-meetings/MobileExportSheet.tsx`
-  - existing builders such as `src/utils/meetingEmailBuilder.ts`
-- I would avoid changing the email edge function first, because the same send function is already used elsewhere; the weaker point is the mobile caller.
+**3. Update `calculateStaffMonthlyAmount`** (`src/hooks/useNRESBuyBackClaims.ts`)
+- For management category staff (detected via `staff_category === 'management'` or `staff_role === 'NRES Management'`):
+  - Instead of `÷ 12`, calculate as: `hourly_rate × max_hours_per_week × working_weeks_in_month`
+  - This replaces the annual-rate-divided-by-12 approach for management lines only
+- Non-management claims continue using `÷ 12` as before
+- The function signature will accept an optional `workingWeeks` parameter (pre-calculated and passed in)
 
-Risk control
+**4. Update `calcBreakdown` display** (`src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`)
+- For management lines, show: `8 hrs/wk × 4.0 working weeks × £30/hr = £960.00` (or similar)
+- Include a note about bank holidays excluded if any fall in the month
 
-- Scope the behavioural change to the mobile/offline path first.
-- Reuse the current HTML and Word attachment builders so the email output stays the same.
-- Add explicit success/error handling and dedupe guards so we fix the silent failure without breaking the existing desktop behaviour.
+**5. Fetch bank holidays at claim creation/display time**
+- In the claims tab component, fetch bank holidays once and pass working-weeks data down to the calculation functions
+- Use the existing `bank_holidays_closed_days` table (already populated in the system)
 
-Checks after implementation
+### Technical detail
 
-- Desktop recording still auto-emails exactly as before.
-- Mobile live recording still behaves as before.
-- Offline iPhone sync sends automatically after both short and long note-generation runs.
-- If sending genuinely fails, the app shows a real failure and can retry, instead of quietly doing nothing.
+```text
+Monthly hours = max_hours_per_week × (working_days_in_month / 5)
 
-Confidence note
+working_days_in_month = weekdays_in_month - bank_holidays_in_month
 
-- I could not verify the exact failing runtime from logs in this session, but the code makes the root issue area clear: the offline iPhone sync uses a separate, more brittle auto-email path than the desktop flow. That is the safest place to fix first without breaking existing functionality.
+Example: April 2026
+  Total weekdays: 22
+  Bank holidays: 1 (Good Friday 3rd April? or Easter Monday 6th)
+  Working days: 21
+  Working weeks: 21 / 5 = 4.2
+  Hours at 8 hrs/wk: 8 × 4.2 = 33.6 hours
+  Amount at £30/hr: £30 × 33.6 = £1,008.00
+```
+
+### Files to modify
+- `src/utils/workingDays.ts` — add `getWorkingDaysInMonth` and `getWorkingWeeksInMonth`
+- `src/hooks/useNRESBuyBackClaims.ts` — update `calculateStaffMonthlyAmount` for management category
+- `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — update breakdown display, fetch bank holidays, pass working weeks
+
