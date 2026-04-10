@@ -337,7 +337,7 @@ serve(async (req) => {
     return sseError("Bad JSON in request body.", 400);
   }
 
-  let { messages = [], model, systemPrompt, max_tokens } = body;
+  let { messages = [], model, systemPrompt, max_tokens, skipWebSearch } = body;
   
   // Check if we have a large document that needs chunking
   const totalTokens = calculateMessageTokens(messages);
@@ -377,15 +377,17 @@ serve(async (req) => {
     }
   }
   
-  // Check if web search is needed
-  const { needed: needsSearch, query: searchQuery } = needsWebSearch(messages);
+  // Check if web search is needed (skip if caller explicitly opts out)
   let webSearchContext = '';
   let searchPerformed = false;
   
-  if (needsSearch) {
-    console.log('[gpt5-fast-clinical] Query needs real-time info, performing web search...');
-    webSearchContext = await performWebSearch(searchQuery);
-    searchPerformed = webSearchContext.length > 0;
+  if (!skipWebSearch) {
+    const { needed: needsSearch, query: searchQuery } = needsWebSearch(messages);
+    if (needsSearch) {
+      console.log('[gpt5-fast-clinical] Query needs real-time info, performing web search...');
+      webSearchContext = await performWebSearch(searchQuery);
+      searchPerformed = webSearchContext.length > 0;
+    }
   }
 
   // Sanitise multimodal messages: convert invalid image_url entries (non-base64 text) to text parts
