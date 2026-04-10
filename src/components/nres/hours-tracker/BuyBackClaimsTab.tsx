@@ -433,7 +433,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="w-5 h-5" />
-            {neighbourhoodLabel} SDA Staff
+            {neighbourhoodLabel} SDA Staff Claim &amp; Buy-Back Staff Claim
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -654,6 +654,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     userId={user?.id}
                     userEmail={user?.email}
                     isAdmin={testActive ? (testMode.role !== 'practice') : isAdmin}
+                    isSuperAdmin={isSuperAdmin}
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
@@ -830,12 +831,13 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'mixed';
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
   canApproveClaim?: boolean;
   canVerifyClaim?: boolean;
   rateParams?: RateParams;
@@ -949,20 +951,20 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, canApprov
               <Trash2 className="w-3 h-3 text-destructive" />
             </Button>
           )}
-          {/* Testing-only: allow malcolm.railson to delete approved/rejected claims */}
-          {!canEdit && (claim.status === 'approved' || claim.status === 'rejected' || claim.status === 'submitted') && userEmail?.toLowerCase() === 'malcolm.railson@nhs.net' && (
+          {/* Super admins can delete any claim regardless of status */}
+          {!canEdit && isSuperAdmin && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button size="sm" variant="ghost" onClick={() => {
-                    if (window.confirm('Delete this ' + claim.status + ' claim? This is a testing function.')) {
+                    if (window.confirm('Delete this ' + claim.status + ' claim? This action cannot be undone.')) {
                       onDelete(claim.id);
                     }
                   }}>
                     <Trash2 className="w-3 h-3 text-destructive" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">Testing: Delete {claim.status} claim</TooltipContent>
+                <TooltipContent side="top" className="text-xs">Admin: Delete {claim.status} claim</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
