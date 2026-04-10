@@ -84,7 +84,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [category, setCategory] = useState<'buyback' | 'new_sda'>('buyback');
+  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
   const [practice, setPractice] = useState<string>('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
 
@@ -145,11 +145,12 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">Category</Label>
-          <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda')}>
+          <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda' | 'management')}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="buyback">Buy-Back</SelectItem>
               <SelectItem value="new_sda">New SDA</SelectItem>
+              <SelectItem value="management">Management</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -385,6 +386,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   const categoryBadge = (cat: string) => {
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
+    if (cat === 'management') return <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>;
     return <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>;
   };
 
@@ -625,8 +627,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               {filteredClaims.map(c => {
                 const staffDets = c.staff_details as any[];
                 const categories = [...new Set(staffDets.map((s: any) => s.staff_category).filter(Boolean))];
-                const claimCategory: 'buyback' | 'new_sda' | 'mixed' = categories.length === 0 ? 'buyback'
-                  : categories.length === 1 ? (categories[0] as 'buyback' | 'new_sda')
+                const claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed' = categories.length === 0 ? 'buyback'
+                  : categories.length === 1 ? (categories[0] as 'buyback' | 'new_sda' | 'management')
                   : 'mixed';
                 const isBuyBack = claimCategory === 'buyback' || claimCategory === 'mixed';
                 
@@ -833,7 +835,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
 
 function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
   claim: BuyBackClaim;
-  claimCategory: 'buyback' | 'new_sda' | 'mixed';
+  claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
@@ -1000,6 +1002,8 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                   <td className="p-2">
                     {(s.staff_category || 'buyback') === 'new_sda'
                       ? <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>
+                      : (s.staff_category || 'buyback') === 'management'
+                      ? <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>
                       : <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>}
                   </td>
                   <td className="p-2">{s.staff_role}</td>
@@ -1205,7 +1209,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                 <tr key={`evidence-${idx}`} className="border-b">
                   <td colSpan={canEdit ? 9 : 8} className="p-0">
                     <StaffLineEvidence
-                      staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda'}
+                      staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management'}
                       staffIndex={idx}
                       staffName={s.staff_name}
                       staffRole={s.staff_role}
