@@ -158,9 +158,28 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
             )}
           </div>
         )}
+      </div>
+
+      {/* Claims User Guide Modal */}
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-primary" />
+              Claims Scheme Guide
+            </DialogTitle>
+          </DialogHeader>
+          <ClaimsUserGuide
+            neighbourhoodName={isENN ? 'ENN' : 'NRES'}
+            rateSettings={rateSettings}
+            onCostMultiplier={onCostMultiplier}
+            staffRoles={staffRoles}
+            isENN={isENN}
+          />
+        </DialogContent>
+      </Dialog>
 
 
-      <TabsContent value="buy-back">
         <BuyBackClaimsTab neighbourhoodName={neighbourhoodName} />
       </TabsContent>
 
