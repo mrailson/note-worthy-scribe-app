@@ -48,6 +48,7 @@ interface PracticeUser {
   fridge_monitoring_access: boolean;
   survey_manager_access?: boolean;
   nres_access?: boolean;
+  enn_access?: boolean;
   policy_service_access?: boolean;
   document_signoff_access?: boolean;
 }
