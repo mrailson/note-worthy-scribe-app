@@ -283,13 +283,12 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
 14. SIGN-OFF
     Present as a TABLE:
     | Role | Name | Signature | Date |
-    | Practice Data Protection Officer | ${practice.dpo_name} | _________________ | __________ |
-    | Caldicott Guardian | ${practice.cg_name} | _________________ | __________ |
     | Practice Manager | ${practice.pm_name} | _________________ | __________ |
-    | Clinical Safety Officer (CSO) | Dr Simon Ellis | _________________ | __________ |
     | Digital & Transformation Lead | Malcolm Railson | _________________ | __________ |
 
     Include a declaration statement above the table: "We, the undersigned, confirm that we have reviewed this Data Protection Impact Assessment and are satisfied that the risks identified have been appropriately assessed and mitigated. We approve the deployment of Notewell AI at ${practice.practice_name} subject to the conditions stated in Section 12."
+
+    Below the sign-off table, add a note: "For any data protection queries or concerns relating to this DPIA, please contact your Practice Data Protection Officer in the first instance. A list of practice DPOs is available from the NRES Programme Office."
 
 FORMAT INSTRUCTIONS:
 - Output clean HTML only — no markdown fences, no preamble, no explanation
