@@ -2367,8 +2367,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             <AI4GPServicesOverview />
           </TabsContent>
 
-          {/* DPIA Generator Tab */}
+          {/* Onboard Service Tab */}
           <TabsContent value="dpia-generator" className="space-y-6">
+            <SendDPIATemplateCard />
             <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading DPIA Generator…</div>}>
               <DPIAGenerator />
             </Suspense>
