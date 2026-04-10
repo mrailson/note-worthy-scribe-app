@@ -161,7 +161,7 @@ function downloadAsWord(html: string, practiceName: string, odsCode?: string) {
 <head><meta charset="utf-8">
 <title>DPIA - Notewell AI - ${practiceName}</title>
 <style>
-  @page { size: A4; margin: 2cm; }
+  @page { size: A4; margin: 1.5cm 1.5cm 1.5cm 1.5cm; }
   body { font-family: Arial, sans-serif; font-size: 11pt; color: #212b32; line-height: 1.6; }
   h1 { color: #005EB8; font-size: 18pt; border-bottom: 2px solid #005EB8; padding-bottom: 6px; }
   h2 { color: #003087; font-size: 14pt; margin-top: 20px; }
