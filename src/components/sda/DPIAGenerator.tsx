@@ -153,7 +153,7 @@ async function extractTextFromDocx(file: File): Promise<string> {
 }
 
 // ---- Word download helper ----
-function downloadAsWord(html: string, practiceName: string) {
+function downloadAsWord(html: string, practiceName: string, odsCode?: string) {
   const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
     xmlns:w="urn:schemas-microsoft-com:office:word"
     xmlns="http://www.w3.org/TR/REC-html40">
@@ -176,7 +176,10 @@ function downloadAsWord(html: string, practiceName: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `DPIA_Notewell_AI_${practiceName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.doc`;
+  const namePart = practiceName.replace(/\s+/g, "_");
+  const codePart = odsCode ? `_${odsCode}` : "";
+  const datePart = new Date().toISOString().slice(0, 10);
+  a.download = `DPIA_Notewell_AI_${namePart}${codePart}_${datePart}.doc`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
