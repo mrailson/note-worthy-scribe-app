@@ -40,6 +40,7 @@ export interface ManagementRoleConfig {
   max_hours_per_week: number;
   billing_entity: string;
   billing_org_code: string;
+  gl_code: string;
   is_active: boolean;
 }
 
