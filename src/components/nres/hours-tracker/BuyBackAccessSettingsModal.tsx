@@ -38,11 +38,6 @@ interface Props {
   revokeByKey: (userId: string, practiceKey: string, role: BuyBackAccessRole) => Promise<void>;
 }
 
-/** Format a number as £X,XXX.XX */
-function fmtGBP(n: number): string {
-  return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 /* ── Practice-First Access Panel ── */
 
 function PracticeFirstAccessPanel({ users, hasAccess, grantAccess, revokeByKey }: {
