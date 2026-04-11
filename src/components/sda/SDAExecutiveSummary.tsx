@@ -102,6 +102,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
   const [aiCardTab, setAiCardTab] = useState<string>(neighbourhoodName);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
+  const [showNresWidget, setShowNresWidget] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
   const handleDownloadBidRequirements = () => {
@@ -294,7 +295,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                        )}
                      </div>
 
-                    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && (
+                    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== neighbourhoodName && (
                       <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
                         👋 Click <strong>Start a Consultation</strong> in the bottom-right corner to get started
                       </p>
