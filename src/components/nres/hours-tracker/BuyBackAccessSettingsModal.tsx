@@ -578,7 +578,14 @@ function RatesAndRolesPanel() {
             <tbody>
               {mgmtRoles.map((role, i) => (
                 <tr key={role.key} className="border-t">
-                  <td className="px-3 py-2.5 text-xs font-medium">{role.label}</td>
+                  <td className="px-3 py-2.5">
+                    <Input
+                      className="h-8 text-xs w-44 bg-white dark:bg-slate-900"
+                      value={role.label}
+                      onChange={e => handleMgmtFieldChange(i, 'label', e.target.value)}
+                      placeholder="Role title"
+                    />
+                  </td>
                   <td className="px-3 py-2.5">
                     <Input
                       className="h-8 text-xs w-36 bg-white dark:bg-slate-900"
