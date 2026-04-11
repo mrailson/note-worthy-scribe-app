@@ -269,11 +269,6 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                        )}
                      </div>
 
-                    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== neighbourhoodName && (
-                      <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
-                        👋 Click <strong>Start a Consultation</strong> in the bottom-right corner to get started
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
                 </div>
