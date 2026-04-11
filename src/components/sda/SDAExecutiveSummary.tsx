@@ -103,7 +103,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
   const [aiCardTab, setAiCardTab] = useState<string>(neighbourhoodName);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
-  const [showNresWidget, setShowNresWidget] = useState(false);
+  
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
   const handleDownloadBidRequirements = () => {
@@ -722,7 +722,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && !(aiCardTab === neighbourhoodName && showNresWidget) && <NRESWidgetEmbed />}
+    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== neighbourhoodName && <NRESWidgetEmbed />}
     </>
   );
 };
