@@ -16,6 +16,7 @@ import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { SystemRolesTab } from './SystemRolesTab';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, NRES_ODS_CODES } from '@/data/nresPractices';
+import { MEMBER_PRACTICES } from '@/hooks/useNRESClaimants';
 import { useNRESUserAccess } from '@/hooks/useNRESUserAccess';
 import { useNRESBuyBackRateSettings, type RoleConfig, type ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { useAuth } from '@/contexts/AuthContext';
