@@ -1,4 +1,5 @@
 import { useConversation, ConversationProvider } from "@elevenlabs/react";
+import { useEffect, useRef } from "react";
 import { MessageSquare, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -6,8 +7,12 @@ import { Button } from "@/components/ui/button";
 const NRES_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
 const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const conversation = useConversation({
-    onConnect: () => console.log("✅ NRES agent connected"),
+    onConnect: () => {
+      console.log("✅ NRES agent connected");
+    },
     onError: (error) => {
       console.error("❌ NRES agent error:", error);
     },
@@ -16,8 +21,36 @@ const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
     },
     onDisconnect: () => {
       console.log("🔌 NRES agent disconnected");
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
     },
   });
+
+  // Keep-alive: send activity pings every 1.5s while connected to prevent silence timeout
+  useEffect(() => {
+    if (conversation.status === "connected") {
+      keepAliveRef.current = setInterval(() => {
+        try {
+          conversation.sendUserActivity();
+        } catch (e) {
+          console.warn("Keep-alive ping failed:", e);
+        }
+      }, 1500);
+    } else {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    }
+    return () => {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    };
+  }, [conversation.status]);
 
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";
