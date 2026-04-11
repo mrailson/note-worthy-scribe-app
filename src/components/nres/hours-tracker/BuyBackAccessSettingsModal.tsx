@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { GroundRulesEditor, getDefaultGroundRules } from './GroundRulesEditor';
+import { CostBreakdownSection } from './CostBreakdownSection';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2, ArrowUpDown, ArrowUp, ArrowDown, FileDown } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2 } from 'lucide-react';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { SystemRolesTab } from './SystemRolesTab';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
