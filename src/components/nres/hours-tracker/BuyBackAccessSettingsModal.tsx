@@ -344,8 +344,7 @@ function RatesAndRolesPanel() {
   const [mgmtRoles, setMgmtRoles] = useState<ManagementRoleConfig[]>([]);
   const [initialised, setInitialised] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
-
-  // Initialise local state from fetched settings
+  const [editingMgmtIndex, setEditingMgmtIndex] = useState<number | null>(null);
   if (!loading && !initialised) {
     setNiPct(String(settings.employer_ni_pct));
     setPensionPct(String(settings.employer_pension_pct));
