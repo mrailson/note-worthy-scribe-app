@@ -7,8 +7,15 @@ const NRES_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
 const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
   const conversation = useConversation({
+    onConnect: () => console.log("✅ NRES agent connected"),
     onError: (error) => {
       console.error("❌ NRES agent error:", error);
+    },
+    onMessage: (message) => {
+      console.log("📝 NRES onMessage:", message);
+    },
+    onDisconnect: () => {
+      console.log("🔌 NRES agent disconnected");
     },
   });
 
