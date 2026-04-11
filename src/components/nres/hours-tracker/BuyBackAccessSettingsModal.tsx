@@ -565,14 +565,16 @@ function RatesAndRolesPanel() {
       <div>
         <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">NRES Management Rates</h3>
         <p className="text-xs text-muted-foreground mb-3">
-          Management time is billed at a simple hourly rate — no annual salary, on-costs, or allocation type.
+          Management time and meeting attendance are billed at a simple hourly rate — no annual salary, on-costs, or allocation type.
         </p>
         <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-slate-100 dark:bg-slate-800">
               <tr>
+                <th className="text-left px-3 py-2.5 font-medium">Type</th>
                 <th className="text-left px-3 py-2.5 font-medium">Role</th>
                 <th className="text-left px-3 py-2.5 font-medium">Person</th>
+                <th className="text-left px-3 py-2.5 font-medium">Practice</th>
                 <th className="text-left px-3 py-2.5 font-medium">Hourly Rate (£)</th>
                 <th className="text-left px-3 py-2.5 font-medium">Max Hrs/Week</th>
                 <th className="text-left px-3 py-2.5 font-medium">Billing Entity</th>
@@ -584,6 +586,11 @@ function RatesAndRolesPanel() {
             <tbody>
               {mgmtRoles.map((role, i) => (
                 <tr key={role.key} className="border-t">
+                  <td className="px-3 py-2.5">
+                    <Badge variant={role.role_type === 'attending_meeting' ? 'default' : 'secondary'} className="text-[10px] whitespace-nowrap">
+                      {role.role_type === 'attending_meeting' ? 'Meeting' : 'Mgmt'}
+                    </Badge>
+                  </td>
                   <td className="px-3 py-2.5">
                     <Input
                       className="h-8 text-xs w-44 bg-white dark:bg-slate-900"
@@ -598,6 +605,22 @@ function RatesAndRolesPanel() {
                       value={role.person_name}
                       onChange={e => handleMgmtFieldChange(i, 'person_name', e.target.value)}
                     />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <Select
+                      value={role.member_practice || '_none'}
+                      onValueChange={v => handleMgmtFieldChange(i, 'member_practice', v === '_none' ? '' : v)}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-44 bg-white dark:bg-slate-900">
+                        <SelectValue placeholder="Select practice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">— None —</SelectItem>
+                        {MEMBER_PRACTICES.map(p => (
+                          <SelectItem key={p} value={p}>{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-3 py-2.5">
                     <Input
@@ -650,7 +673,7 @@ function RatesAndRolesPanel() {
                 </tr>
               ))}
               {mgmtRoles.length === 0 && (
-                <tr><td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">No management roles configured</td></tr>
+                <tr><td colSpan={10} className="px-3 py-4 text-center text-muted-foreground">No management roles configured</td></tr>
               )}
             </tbody>
           </table>
@@ -669,10 +692,51 @@ function RatesAndRolesPanel() {
               billing_org_code: '',
               gl_code: '',
               is_active: true,
+              role_type: 'management',
             }]);
           }}>
             <Plus className="w-3.5 h-3.5 mr-1" />
             Add Management Role
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
+            const key = `nres_attend_gp_${Date.now()}`;
+            setMgmtRoles(prev => [...prev, {
+              key,
+              label: 'Attending Meeting — GP',
+              person_name: '',
+              person_email: '',
+              hourly_rate: 100,
+              max_hours_per_week: 8,
+              billing_entity: '',
+              billing_org_code: '',
+              gl_code: '',
+              is_active: true,
+              role_type: 'attending_meeting',
+              member_practice: '',
+            }]);
+          }}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add Attending GP
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
+            const key = `nres_attend_pm_${Date.now()}`;
+            setMgmtRoles(prev => [...prev, {
+              key,
+              label: 'Attending Meeting — PM',
+              person_name: '',
+              person_email: '',
+              hourly_rate: 50,
+              max_hours_per_week: 8,
+              billing_entity: '',
+              billing_org_code: '',
+              gl_code: '',
+              is_active: true,
+              role_type: 'attending_meeting',
+              member_practice: '',
+            }]);
+          }}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add Attending PM
           </Button>
         </div>
       </div>
