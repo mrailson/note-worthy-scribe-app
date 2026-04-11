@@ -31,6 +31,8 @@ export interface ManagementRoleConfig {
   billing_org_code: string;
   gl_code: string;
   is_active: boolean;
+  role_type?: 'management' | 'attending_meeting';
+  member_practice?: string;
 }
 
 export interface RateSettings {
