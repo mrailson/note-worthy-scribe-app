@@ -566,19 +566,19 @@ function RatesAndRolesPanel() {
         <p className="text-xs text-muted-foreground mb-3">
           Management time and meeting attendance are billed at a simple hourly rate — no annual salary, on-costs, or allocation type.
         </p>
-        <div className="bg-background border rounded-lg overflow-hidden overflow-x-auto">
+        <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-muted/50">
+            <thead className="bg-slate-100 dark:bg-slate-800">
               <tr>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Type</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Role</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Person</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Practice</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Rate (£/hr)</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Max Hrs/Wk</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Billing Entity</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Org Code</th>
-                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">GL Code</th>
+                <th className="text-left px-3 py-2.5 font-medium">Type</th>
+                <th className="text-left px-3 py-2.5 font-medium">Role</th>
+                <th className="text-left px-3 py-2.5 font-medium">Person</th>
+                <th className="text-left px-3 py-2.5 font-medium">Practice</th>
+                <th className="text-left px-3 py-2.5 font-medium">Rate (£/hr)</th>
+                <th className="text-left px-3 py-2.5 font-medium">Max Hrs/Wk</th>
+                <th className="text-left px-3 py-2.5 font-medium">Billing Entity</th>
+                <th className="text-left px-3 py-2.5 font-medium">Org Code</th>
+                <th className="text-left px-3 py-2.5 font-medium">GL Code</th>
                 <th className="px-3 py-2.5 w-20"></th>
               </tr>
             </thead>
