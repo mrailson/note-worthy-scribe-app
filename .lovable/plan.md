@@ -1,56 +1,35 @@
 
 
-## Plan: Calculate Management Hours Based on Actual Working Days per Month
+## Plan: Add "Attending Meeting" GP/PM Roles to Management Rates
 
-### Problem
-Currently, all claim amounts are calculated by dividing the annual rate by 12 (flat monthly). For management claims, the user wants the monthly hours to be based on the actual number of working weeks in the claim month — excluding weekends **and** bank holidays from the `bank_holidays_closed_days` table.
+### What This Does
 
-**Example**: If a management role has `max_hours_per_week = 8` and the claim month has 20 working days (4 exact weeks), the total hours for that month = 8 × 4 = 32 hours.
+Extends the NRES Management Rates system so that individual GP Partners and Practice Managers can be added as management roles with their practice assignment. These people will then appear as selectable options in the "Add Time Entry" form on the Management Time tab, allowing meeting attendance to be claimed.
 
-### What changes
+### Changes
 
-**1. New utility function: `getWorkingDaysInMonth`** (`src/utils/workingDays.ts`)
-- Takes a `claimMonth` string (e.g. `2026-04-01`)
-- Counts weekdays (Mon-Fri) in that month
-- Fetches bank holidays from `bank_holidays_closed_days` that fall in that month and subtracts them
-- Returns the number of working days
+**1. Extend `ManagementRoleConfig` interface** (both `useNRESBuyBackRateSettings.ts` and `useNRESManagementTime.ts`)
+- Add `member_practice?: string` field to assign each person to a specific practice from the existing `MEMBER_PRACTICES` list
+- Add `role_type?: 'management' | 'attending_meeting'` field to distinguish regular management roles from attending-meeting GP/PM entries
 
-**2. New helper: `getWorkingWeeksInMonth`** (`src/utils/workingDays.ts`)
-- Divides working days by 5 to get the precise number of working weeks (e.g. 20 days = 4.0 weeks, 22 days = 4.4 weeks)
+**2. Update Settings Modal — Management Rates table** (`BuyBackAccessSettingsModal.tsx`)
+- Add a "Practice" column with a `Select` dropdown populated from `MEMBER_PRACTICES`
+- Add a "Type" column or integrate it into the existing Role column (e.g. pre-populated with "Attending Meeting — GP" or "Attending Meeting — PM")
+- When clicking "Add Management Role", offer a second button or extend the existing one: "Add Attending Meeting Role" which pre-fills:
+  - Role label: "Attending Meeting — GP" or "Attending Meeting — PM"
+  - Hourly rate: £100 (GP) or £50 (PM)
+  - Requires selecting a practice from the dropdown
+- Keep full inline edit/delete capability as already exists
 
-**3. Update `calculateStaffMonthlyAmount`** (`src/hooks/useNRESBuyBackClaims.ts`)
-- For management category staff (detected via `staff_category === 'management'` or `staff_role === 'NRES Management'`):
-  - Instead of `÷ 12`, calculate as: `hourly_rate × max_hours_per_week × working_weeks_in_month`
-  - This replaces the annual-rate-divided-by-12 approach for management lines only
-- Non-management claims continue using `÷ 12` as before
-- The function signature will accept an optional `workingWeeks` parameter (pre-calculated and passed in)
+**3. Update Management Time Tab create form** (`ManagementTimeTab.tsx`)
+- The existing "Person" dropdown already shows all `activeRoles` — no structural change needed
+- The new attending-meeting roles will automatically appear since they use the same `management_roles_config` array
+- The display will show: `{person_name} — Attending Meeting — GP ({practice_name})`
 
-**4. Update `calcBreakdown` display** (`src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`)
-- For management lines, show: `8 hrs/wk × 4.0 working weeks × £30/hr = £960.00` (or similar)
-- Include a note about bank holidays excluded if any fall in the month
+### Technical Details
 
-**5. Fetch bank holidays at claim creation/display time**
-- In the claims tab component, fetch bank holidays once and pass working-weeks data down to the calculation functions
-- Use the existing `bank_holidays_closed_days` table (already populated in the system)
-
-### Technical detail
-
-```text
-Monthly hours = max_hours_per_week × (working_days_in_month / 5)
-
-working_days_in_month = weekdays_in_month - bank_holidays_in_month
-
-Example: April 2026
-  Total weekdays: 22
-  Bank holidays: 1 (Good Friday 3rd April? or Easter Monday 6th)
-  Working days: 21
-  Working weeks: 21 / 5 = 4.2
-  Hours at 8 hrs/wk: 8 × 4.2 = 33.6 hours
-  Amount at £30/hr: £30 × 33.6 = £1,008.00
-```
-
-### Files to modify
-- `src/utils/workingDays.ts` — add `getWorkingDaysInMonth` and `getWorkingWeeksInMonth`
-- `src/hooks/useNRESBuyBackClaims.ts` — update `calculateStaffMonthlyAmount` for management category
-- `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — update breakdown display, fetch bank holidays, pass working weeks
+- No database schema changes required — `management_roles_config` is a JSONB column that already stores the full config array
+- Practice assignment stored as a string matching `MEMBER_PRACTICES` values
+- `role_type` field allows filtering/grouping in future if needed
+- The "Add Attending Meeting Role" button will prompt for GP or PM type and pre-fill the rate accordingly
 
