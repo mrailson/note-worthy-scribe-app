@@ -484,6 +484,7 @@ function RatesAndRolesPanel() {
                 <th className="text-left px-3 py-2.5 font-medium">Role</th>
                 <th className="text-left px-3 py-2.5 font-medium">Base Annual Rate (£)</th>
                 <th className="text-left px-3 py-2.5 font-medium">Default Allocation</th>
+                <th className="text-left px-3 py-2.5 font-medium">GL Code</th>
                 <th className="px-3 py-2.5 w-10"></th>
               </tr>
             </thead>
@@ -522,6 +523,14 @@ function RatesAndRolesPanel() {
                         </SelectContent>
                       </Select>
                     </td>
+                    <td className="px-3 py-2.5">
+                      <Input
+                        className="h-8 text-xs w-28 bg-white dark:bg-slate-900"
+                        value={role.gl_code || ''}
+                        onChange={e => handleRoleFieldChange(i, 'gl_code', e.target.value)}
+                        placeholder="e.g. 4100"
+                      />
+                    </td>
                     <td className="px-3 py-2.5 text-center">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRole(i)}>
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -529,7 +538,7 @@ function RatesAndRolesPanel() {
                     </td>
                   </tr>
                   <tr>
-                    <td colSpan={4} className="px-3 pb-2">
+                    <td colSpan={5} className="px-3 pb-2">
                       <GroundRulesEditor role={role} onRulesChange={(rules) => handleGroundRulesChange(i, rules)} />
                     </td>
                   </tr>
