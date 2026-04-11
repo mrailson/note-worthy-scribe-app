@@ -3,6 +3,8 @@ import { NRESWidgetEmbed } from "@/components/nres/NRESWidgetLoader";
 import { NRESProgrammeAgent } from "@/components/nres/NRESProgrammeAgent";
 import { NRESTranslateAgent } from "@/components/nres/NRESTranslateAgent";
 import { NRESPatientAgent } from "@/components/nres/NRESPatientAgent";
+import { NRESGPAgent } from "@/components/nres/NRESGPAgent";
+import { NRESPMAgent } from "@/components/nres/NRESPMAgent";
 
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
