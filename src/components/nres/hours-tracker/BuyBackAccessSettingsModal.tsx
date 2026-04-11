@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { GroundRulesEditor, getDefaultGroundRules } from './GroundRulesEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2 } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2, ArrowUpDown, ArrowUp, ArrowDown, FileDown } from 'lucide-react';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { SystemRolesTab } from './SystemRolesTab';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
@@ -682,75 +682,7 @@ function RatesAndRolesPanel() {
 
       <Separator />
 
-      {/* Section C: Cost Breakdown */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Cost Breakdown</h3>
-        <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-800">
-              <tr>
-                <th className="text-left px-3 py-2.5 font-medium">Role</th>
-                <th className="text-right px-3 py-2.5 font-medium">Base Annual</th>
-                <th className="text-right px-3 py-2.5 font-medium">Staff Pay Rate (Hourly)</th>
-                <th className="text-right px-3 py-2.5 font-medium">Employer NI ({niPctNum}%)</th>
-                <th className="text-right px-3 py-2.5 font-medium">Employer Pension ({pensionPctNum}%)</th>
-                <th className="text-right px-3 py-2.5 font-medium">Total On-Costs</th>
-                <th className="text-right px-3 py-2.5 font-medium">Total Annual</th>
-                <th className="text-right px-3 py-2.5 font-medium">Equiv. Hourly (incl. On-Costs)</th>
-                <th className="text-right px-3 py-2.5 font-medium">Max Monthly Claim</th>
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map(role => {
-                const workingHrs = role.working_hours_per_year || 1950;
-                const fullAnnualBase = role.allocation_default === 'sessions'
-                  ? role.annual_rate * 9
-                  : role.annual_rate;
-                const staffHourlyRate = workingHrs > 0 ? fullAnnualBase / workingHrs : 0;
-                const niAmt = role.annual_rate * (niPctNum / 100);
-                const pensionAmt = role.annual_rate * (pensionPctNum / 100);
-                const totalOnCosts = niAmt + pensionAmt;
-                const totalAnnual = role.annual_rate + totalOnCosts;
-                const fullAnnualWithOnCosts = role.allocation_default === 'sessions'
-                  ? totalAnnual * 9
-                  : totalAnnual;
-                const hourlyEquivWithOnCosts = workingHrs > 0 ? fullAnnualWithOnCosts / workingHrs : 0;
-                // Max monthly = full allocation at 1.0 WTE / 9 sessions / 37.5 hrs
-                const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
-                const maxMonthly = role.allocation_default === 'sessions'
-                  ? (maxAlloc * totalAnnual) / 12
-                  : role.allocation_default === 'hours'
-                  ? ((maxAlloc / 37.5) * totalAnnual) / 12
-                  : (maxAlloc * totalAnnual) / 12;
-                return (
-                  <tr key={role.key} className="border-t">
-                    <td className="px-3 py-2.5">
-                      {role.label}
-                      {role.allocation_default === 'sessions' && (
-                        <span className="text-muted-foreground ml-1">(per session/yr)</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-right">{fmtGBP(role.annual_rate)}</td>
-                    <td className="px-3 py-2.5 text-right">{fmtGBP(staffHourlyRate)}/hr</td>
-                    <td className="px-3 py-2.5 text-right">{fmtGBP(niAmt)}</td>
-                    <td className="px-3 py-2.5 text-right">{fmtGBP(pensionAmt)}</td>
-                    <td className="px-3 py-2.5 text-right">{fmtGBP(totalOnCosts)}</td>
-                    <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(totalAnnual)}</td>
-                    <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(hourlyEquivWithOnCosts)}/hr</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-primary">{fmtGBP(maxMonthly)}/mo</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-start gap-2 mt-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2">
-          <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
-          <p className="text-[10px] text-muted-foreground">
-            On-costs = Employer NI ({niPctNum}%) + Employer Pension ({pensionPctNum}%) = {onCostsPctNum.toFixed(2)}% total. Staff Pay Rate = Base Annual ÷ {roles[0]?.working_hours_per_year || 1950} hrs/yr. GP rates shown per session — hourly equivalents based on 9 sessions/wk. Max Monthly = full allocation at maximum capacity.
-          </p>
-        </div>
-      </div>
+      <CostBreakdownSection roles={roles} niPctNum={niPctNum} pensionPctNum={pensionPctNum} onCostsPctNum={onCostsPctNum} />
 
       {/* Save Button */}
       <div className="flex justify-end">
