@@ -152,7 +152,9 @@ export function ManagementTimeTab({ isAdmin }: { isAdmin: boolean }) {
                       <SelectTrigger><SelectValue placeholder="Select person" /></SelectTrigger>
                       <SelectContent>
                         {activeRoles.map(r => (
-                          <SelectItem key={r.key} value={r.key}>{r.person_name} — {r.label}</SelectItem>
+                          <SelectItem key={r.key} value={r.key}>
+                            {r.person_name} — {r.label}{r.member_practice ? ` (${r.member_practice})` : ''}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
