@@ -100,7 +100,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(false);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
-  const [aiCardTab, setAiCardTab] = useState<string>("Overview");
+  const [aiCardTab, setAiCardTab] = useState<string>(neighbourhoodName);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
@@ -172,7 +172,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
 
                      {/* Audience tabs */}
                      <div className="flex flex-wrap gap-1 mt-3">
-                       {(["Overview", neighbourhoodName, "GP", "Practice Manager", "Patient", "Translate"] as const).map((tab) => (
+                       {([neighbourhoodName, "GP", "Practice Manager", "Patient", "Translate"] as const).map((tab) => (
                          <button
                            key={tab}
                            onClick={() => setAiCardTab(tab)}
@@ -189,17 +189,6 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
 
                     {/* Tab content */}
                     <div className="mt-3 flex-1">
-                      {aiCardTab === "Overview" && (
-                        <>
-                          <ul className="space-y-2 text-xs text-slate-700">
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">🩺</span><span>Ask clinical questions — get GP-level guidance instantly</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📊</span><span>{neighbourhoodName} programme knowledge — targets, funding, buy-back, practices</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📋</span><span>Practice management — CQC, HR, complaints, NHS contracts</span></li>
-                            <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">❤️</span><span>Patient support — plain English health advice</span></li>
-                          </ul>
-                          <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Powered by AI, grounded in NHS guidance. Try it now.</p>
-                        </>
-                      )}
                       {aiCardTab === "Patient" && (
                         <>
                           <p className="text-xs font-semibold text-slate-800 italic mb-2">"Your GP Practice in your pocket"</p>
