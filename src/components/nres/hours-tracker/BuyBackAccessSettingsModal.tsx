@@ -571,6 +571,8 @@ function RatesAndRolesPanel() {
                 <th className="text-left px-3 py-2.5 font-medium">Max Hrs/Week</th>
                 <th className="text-left px-3 py-2.5 font-medium">Billing Entity</th>
                 <th className="text-left px-3 py-2.5 font-medium">Org Code</th>
+                <th className="text-left px-3 py-2.5 font-medium">GL Code</th>
+                <th className="px-3 py-2.5 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -619,13 +621,46 @@ function RatesAndRolesPanel() {
                       onChange={e => handleMgmtFieldChange(i, 'billing_org_code', e.target.value)}
                     />
                   </td>
+                  <td className="px-3 py-2.5">
+                    <Input
+                      className="h-8 text-xs w-28 bg-white dark:bg-slate-900"
+                      value={role.gl_code || ''}
+                      onChange={e => handleMgmtFieldChange(i, 'gl_code', e.target.value)}
+                      placeholder="e.g. 4100"
+                    />
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMgmtRoles(prev => prev.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  </td>
                 </tr>
               ))}
               {mgmtRoles.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-4 text-center text-muted-foreground">No management roles configured</td></tr>
+                <tr><td colSpan={8} className="px-3 py-4 text-center text-muted-foreground">No management roles configured</td></tr>
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
+            const key = `nres_mgmt_${Date.now()}`;
+            setMgmtRoles(prev => [...prev, {
+              key,
+              label: '',
+              person_name: '',
+              person_email: '',
+              hourly_rate: 0,
+              max_hours_per_week: 8,
+              billing_entity: '',
+              billing_org_code: '',
+              gl_code: '',
+              is_active: true,
+            }]);
+          }}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            Add Management Role
+          </Button>
         </div>
       </div>
 
