@@ -112,7 +112,7 @@ const GPAgentInner = () => {
           className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold shadow-md hover:shadow-lg hover:from-indigo-700 hover:to-violet-700 transition-all"
         >
           {isConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stethoscope className="h-4 w-4" />}
-          {isConnecting ? "Connecting…" : "Talk to Your GP Assistant"}
+          {isConnecting ? "Connecting…" : "🩺 Let's Talk GP Stuff — Press to Chat"}
         </Button>
       )}
     </div>
