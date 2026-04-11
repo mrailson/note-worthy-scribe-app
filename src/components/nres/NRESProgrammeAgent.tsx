@@ -50,7 +50,7 @@ const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
         keepAliveRef.current = null;
       }
     };
-  }, [conversation.status]);
+  }, [conversation.status, conversation]);
 
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";

@@ -1,15 +1,49 @@
 import { useConversation, ConversationProvider } from "@elevenlabs/react";
+import { useEffect, useRef } from "react";
 import { ClipboardList, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const PM_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
 const PMInner = () => {
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const conversation = useConversation({
     onError: (error) => {
       console.error("❌ PM agent error:", error);
     },
+    onDisconnect: () => {
+      console.log("🔌 PM agent disconnected");
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    },
   });
+
+  // Keep-alive: send activity pings every 1.5s while connected to prevent silence timeout
+  useEffect(() => {
+    if (conversation.status === "connected") {
+      keepAliveRef.current = setInterval(() => {
+        try {
+          conversation.sendUserActivity();
+        } catch (e) {
+          console.warn("Keep-alive ping failed:", e);
+        }
+      }, 1500);
+    } else {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    }
+    return () => {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    };
+  }, [conversation.status, conversation]);
 
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";

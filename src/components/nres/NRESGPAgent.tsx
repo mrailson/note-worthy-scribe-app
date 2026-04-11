@@ -1,4 +1,5 @@
 import { useConversation, ConversationProvider } from "@elevenlabs/react";
+import { useEffect } from "react";
 import { Stethoscope, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGPSummaryEmail } from "@/hooks/useGPSummaryEmail";
@@ -16,6 +17,7 @@ const GPAgentInner = () => {
   const { sendGPSummaryEmail } = useGPSummaryEmail();
   const messagesRef = useRef<MessageEntry[]>([]);
   const sessionStartRef = useRef<Date | null>(null);
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const conversation = useConversation({
     onMessage: (payload) => {
@@ -28,6 +30,10 @@ const GPAgentInner = () => {
     },
     onDisconnect: () => {
       console.log("📤 GP session disconnected, messages:", messagesRef.current.length);
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
       const startTime = sessionStartRef.current || new Date();
       const endTime = new Date();
       const messages = [...messagesRef.current];
@@ -59,6 +65,30 @@ const GPAgentInner = () => {
       }
     },
   });
+
+  // Keep-alive: send activity pings every 1.5s while connected to prevent silence timeout
+  useEffect(() => {
+    if (conversation.status === "connected") {
+      keepAliveRef.current = setInterval(() => {
+        try {
+          conversation.sendUserActivity();
+        } catch (e) {
+          console.warn("Keep-alive ping failed:", e);
+        }
+      }, 1500);
+    } else {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    }
+    return () => {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    };
+  }, [conversation.status, conversation]);
 
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";
