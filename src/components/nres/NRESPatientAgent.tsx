@@ -2,7 +2,7 @@ import { useConversation, ConversationProvider } from "@elevenlabs/react";
 import { HeartPulse, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePatientSummaryEmail } from "@/hooks/usePatientSummaryEmail";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 
 const PATIENT_AGENT_ID = "agent_3501knsz3wj8f0frkttr1yd90k72";
 
@@ -16,6 +16,7 @@ const PatientInner = () => {
   const { sendPatientSummaryEmail } = usePatientSummaryEmail();
   const messagesRef = useRef<MessageEntry[]>([]);
   const sessionStartRef = useRef<Date | null>(null);
+  const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const conversation = useConversation({
     onError: (error) => {
@@ -31,6 +32,10 @@ const PatientInner = () => {
     },
     onDisconnect: () => {
       console.log("📤 Patient session disconnected, messages:", messagesRef.current.length);
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
       const startTime = sessionStartRef.current || new Date();
       const endTime = new Date();
       const messages = [...messagesRef.current];
@@ -63,6 +68,30 @@ const PatientInner = () => {
       }
     },
   });
+
+  // Keep-alive: send activity pings every 1.5s while connected to prevent silence timeout
+  useEffect(() => {
+    if (conversation.status === "connected") {
+      keepAliveRef.current = setInterval(() => {
+        try {
+          conversation.sendUserActivity();
+        } catch (e) {
+          console.warn("Keep-alive ping failed:", e);
+        }
+      }, 1500);
+    } else {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    }
+    return () => {
+      if (keepAliveRef.current) {
+        clearInterval(keepAliveRef.current);
+        keepAliveRef.current = null;
+      }
+    };
+  }, [conversation.status, conversation]);
 
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";
