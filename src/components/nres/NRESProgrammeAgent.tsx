@@ -4,7 +4,7 @@ import { MessageSquare, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 
-const NRES_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
+const NRES_AGENT_ID = "agent_7801knyxsxcxehsr8kynxgxz6xyr";
 
 const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
   const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
