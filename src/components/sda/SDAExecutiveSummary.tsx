@@ -100,7 +100,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [requirementsOpen, setRequirementsOpen] = useState(false);
   
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
-  const [aiCardTab, setAiCardTab] = useState<string>("Overview");
+  const [aiCardTab, setAiCardTab] = useState<string>(neighbourhoodName);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
