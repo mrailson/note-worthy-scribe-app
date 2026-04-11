@@ -16,6 +16,7 @@ export interface RoleConfig {
   annual_rate: number;
   allocation_default: 'sessions' | 'hours' | 'wte';
   working_hours_per_year: number;
+  gl_code?: string;
   ground_rules?: GroundRule[];
 }
 
