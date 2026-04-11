@@ -220,6 +220,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Evidence-based. Source-cited. Verify before you prescribe.</p>
                           <NRESGPAgent />
+                        </>
                       )}
                       {aiCardTab === "Practice Manager" && (
                         <>
@@ -232,6 +233,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Practical, actionable, grounded in regulation.</p>
                           <NRESPMAgent />
+                        </>
                       )}
                       {aiCardTab === neighbourhoodName && (
                         <>
