@@ -102,6 +102,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
   const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
   const [aiCardTab, setAiCardTab] = useState<string>(neighbourhoodName);
   const [showReportingPreview, setShowReportingPreview] = useState(false);
+  const [showNresWidget, setShowNresWidget] = useState(false);
   const [showContractAskAI, setShowContractAskAI] = useState(false);
 
   const handleDownloadBidRequirements = () => {
@@ -241,6 +242,38 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">👤</span><span>Key contacts — ICB, {neighbourhoodName === 'ENN' ? '3Sixty' : 'PML'}, programme team</span></li>
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Everything about the pilot, instantly.</p>
+                          <div className="mt-3">
+                            {showNresWidget ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="relative flex h-2.5 w-2.5">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500" />
+                                    </span>
+                                    <span className="text-xs font-medium text-blue-700">Active — use the chat widget in the corner</span>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowNresWidget(false)}
+                                    className="h-7 gap-1.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+                                  >
+                                    <X className="h-3 w-3" />
+                                    Close
+                                  </Button>
+                                </div>
+                                <NRESWidgetEmbed />
+                              </div>
+                            ) : (
+                              <Button
+                                onClick={() => setShowNresWidget(true)}
+                                className="w-full gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all"
+                              >
+                                💬 Let's Talk {neighbourhoodName} — Press to Chat
+                              </Button>
+                            )}
+                          </div>
                         </>
                       )}
                        {aiCardTab === "Translate" && (
@@ -262,7 +295,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                        )}
                      </div>
 
-                    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && (
+                    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== neighbourhoodName && (
                       <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
                         👋 Click <strong>Start a Consultation</strong> in the bottom-right corner to get started
                       </p>
@@ -719,7 +752,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && <NRESWidgetEmbed />}
+    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && !(aiCardTab === neighbourhoodName && showNresWidget) && <NRESWidgetEmbed />}
     </>
   );
 };
