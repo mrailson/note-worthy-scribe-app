@@ -3,6 +3,8 @@ import { NRESWidgetEmbed } from "@/components/nres/NRESWidgetLoader";
 import { NRESProgrammeAgent } from "@/components/nres/NRESProgrammeAgent";
 import { NRESTranslateAgent } from "@/components/nres/NRESTranslateAgent";
 import { NRESPatientAgent } from "@/components/nres/NRESPatientAgent";
+import { NRESGPAgent } from "@/components/nres/NRESGPAgent";
+import { NRESPMAgent } from "@/components/nres/NRESPMAgent";
 
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -219,6 +221,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📋</span><span>2WW referral criteria and red flag screening</span></li>
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Evidence-based. Source-cited. Verify before you prescribe.</p>
+                          <NRESGPAgent />
                         </>
                       )}
                       {aiCardTab === "Practice Manager" && (
@@ -231,6 +234,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">📝</span><span>Complaints handling — process, templates, PHSO escalation</span></li>
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Practical, actionable, grounded in regulation.</p>
+                          <NRESPMAgent />
                         </>
                       )}
                       {aiCardTab === neighbourhoodName && (
@@ -265,11 +269,6 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                        )}
                      </div>
 
-                    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== neighbourhoodName && (
-                      <p className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-200 text-center">
-                        👋 Click <strong>Start a Consultation</strong> in the bottom-right corner to get started
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
                 </div>
@@ -722,7 +721,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== neighbourhoodName && <NRESWidgetEmbed />}
+    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== neighbourhoodName && aiCardTab !== "GP" && aiCardTab !== "Practice Manager" && <NRESWidgetEmbed />}
     </>
   );
 };
