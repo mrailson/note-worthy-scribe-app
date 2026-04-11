@@ -1,7 +1,7 @@
 import { useConversation, ConversationProvider } from "@elevenlabs/react";
 import { MessageSquare, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRef } from "react";
+
 
 const NRES_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
