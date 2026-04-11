@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2 } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2, Pencil } from 'lucide-react';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { SystemRolesTab } from './SystemRolesTab';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
@@ -344,8 +344,7 @@ function RatesAndRolesPanel() {
   const [mgmtRoles, setMgmtRoles] = useState<ManagementRoleConfig[]>([]);
   const [initialised, setInitialised] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
-
-  // Initialise local state from fetched settings
+  const [editingMgmtIndex, setEditingMgmtIndex] = useState<number | null>(null);
   if (!loading && !initialised) {
     setNiPct(String(settings.employer_ni_pct));
     setPensionPct(String(settings.employer_pension_pct));
@@ -567,111 +566,101 @@ function RatesAndRolesPanel() {
         <p className="text-xs text-muted-foreground mb-3">
           Management time and meeting attendance are billed at a simple hourly rate — no annual salary, on-costs, or allocation type.
         </p>
-        <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden overflow-x-auto">
+        <div className="bg-background border rounded-lg overflow-hidden overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-800">
+            <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-3 py-2.5 font-medium">Type</th>
-                <th className="text-left px-3 py-2.5 font-medium">Role</th>
-                <th className="text-left px-3 py-2.5 font-medium">Person</th>
-                <th className="text-left px-3 py-2.5 font-medium">Practice</th>
-                <th className="text-left px-3 py-2.5 font-medium">Hourly Rate (£)</th>
-                <th className="text-left px-3 py-2.5 font-medium">Max Hrs/Week</th>
-                <th className="text-left px-3 py-2.5 font-medium">Billing Entity</th>
-                <th className="text-left px-3 py-2.5 font-medium">Org Code</th>
-                <th className="text-left px-3 py-2.5 font-medium">GL Code</th>
-                <th className="px-3 py-2.5 w-10"></th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Type</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Role</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Person</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Practice</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Rate (£/hr)</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Max Hrs/Wk</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Billing Entity</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">Org Code</th>
+                <th className="text-left px-3 py-2.5 font-medium text-muted-foreground">GL Code</th>
+                <th className="px-3 py-2.5 w-20"></th>
               </tr>
             </thead>
             <tbody>
-              {mgmtRoles.map((role, i) => (
-                <tr key={role.key} className="border-t">
-                  <td className="px-3 py-2.5">
-                    <Badge variant={role.role_type === 'attending_meeting' ? 'default' : 'secondary'} className="text-[10px] whitespace-nowrap">
-                      {role.role_type === 'attending_meeting' ? 'Meeting' : 'Mgmt'}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      className="h-8 text-xs w-44 bg-white dark:bg-slate-900"
-                      value={role.label}
-                      onChange={e => handleMgmtFieldChange(i, 'label', e.target.value)}
-                      placeholder="Role title"
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      className="h-8 text-xs w-36 bg-white dark:bg-slate-900"
-                      value={role.person_name}
-                      onChange={e => handleMgmtFieldChange(i, 'person_name', e.target.value)}
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Select
-                      value={role.member_practice || '_none'}
-                      onValueChange={v => handleMgmtFieldChange(i, 'member_practice', v === '_none' ? '' : v)}
-                    >
-                      <SelectTrigger className="h-8 text-xs w-44 bg-white dark:bg-slate-900">
-                        <SelectValue placeholder="Select practice" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">— None —</SelectItem>
-                        {MEMBER_PRACTICES.map(p => (
-                          <SelectItem key={p} value={p}>{p}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      type="number"
-                      className="h-8 text-xs w-24 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                      value={role.hourly_rate}
-                      onChange={e => handleMgmtFieldChange(i, 'hourly_rate', parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      type="number"
-                      className="h-8 text-xs w-20 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                      value={role.max_hours_per_week ?? 8}
-                      onChange={e => handleMgmtFieldChange(i, 'max_hours_per_week', parseFloat(e.target.value) || 0)}
-                      min="0"
-                      max="40"
-                      step="0.5"
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      className="h-8 text-xs w-44 bg-white dark:bg-slate-900"
-                      value={role.billing_entity}
-                      onChange={e => handleMgmtFieldChange(i, 'billing_entity', e.target.value)}
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      className="h-8 text-xs w-20 bg-white dark:bg-slate-900"
-                      value={role.billing_org_code}
-                      onChange={e => handleMgmtFieldChange(i, 'billing_org_code', e.target.value)}
-                    />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Input
-                      className="h-8 text-xs w-28 bg-white dark:bg-slate-900"
-                      value={role.gl_code || ''}
-                      onChange={e => handleMgmtFieldChange(i, 'gl_code', e.target.value)}
-                      placeholder="e.g. 4100"
-                    />
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMgmtRoles(prev => prev.filter((_, idx) => idx !== i))}>
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {mgmtRoles.map((role, i) => {
+                const isEditing = editingMgmtIndex === i;
+                
+                if (isEditing) {
+                  return (
+                    <tr key={role.key} className="border-t bg-muted/20">
+                      <td className="px-3 py-2">
+                        <Badge variant={role.role_type === 'attending_meeting' ? 'default' : 'secondary'} className="text-[10px] whitespace-nowrap">
+                          {role.role_type === 'attending_meeting' ? 'Meeting' : 'Mgmt'}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input className="h-7 text-xs w-40" value={role.label} onChange={e => handleMgmtFieldChange(i, 'label', e.target.value)} placeholder="Role title" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input className="h-7 text-xs w-32" value={role.person_name} onChange={e => handleMgmtFieldChange(i, 'person_name', e.target.value)} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Select value={role.member_practice || '_none'} onValueChange={v => handleMgmtFieldChange(i, 'member_practice', v === '_none' ? '' : v)}>
+                          <SelectTrigger className="h-7 text-xs w-40"><SelectValue placeholder="Select practice" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="_none">— None —</SelectItem>
+                            {MEMBER_PRACTICES.map(p => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input type="number" className="h-7 text-xs w-20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" value={role.hourly_rate} onChange={e => handleMgmtFieldChange(i, 'hourly_rate', parseFloat(e.target.value) || 0)} min="0" step="0.01" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input type="number" className="h-7 text-xs w-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" value={role.max_hours_per_week ?? 8} onChange={e => handleMgmtFieldChange(i, 'max_hours_per_week', parseFloat(e.target.value) || 0)} min="0" max="40" step="0.5" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input className="h-7 text-xs w-40" value={role.billing_entity} onChange={e => handleMgmtFieldChange(i, 'billing_entity', e.target.value)} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input className="h-7 text-xs w-20" value={role.billing_org_code} onChange={e => handleMgmtFieldChange(i, 'billing_org_code', e.target.value)} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input className="h-7 text-xs w-24" value={role.gl_code || ''} onChange={e => handleMgmtFieldChange(i, 'gl_code', e.target.value)} placeholder="e.g. 4100" />
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <Button variant="outline" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setEditingMgmtIndex(null)}>
+                          Done
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return (
+                  <tr key={role.key} className="border-t hover:bg-muted/30 transition-colors">
+                    <td className="px-3 py-2.5">
+                      <Badge variant={role.role_type === 'attending_meeting' ? 'default' : 'secondary'} className="text-[10px] whitespace-nowrap">
+                        {role.role_type === 'attending_meeting' ? 'Meeting' : 'Mgmt'}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2.5 font-medium">{role.label || <span className="text-muted-foreground italic">Untitled</span>}</td>
+                    <td className="px-3 py-2.5">{role.person_name || <span className="text-muted-foreground">—</span>}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{role.member_practice || '—'}</td>
+                    <td className="px-3 py-2.5 font-medium">£{Number(role.hourly_rate).toFixed(2)}</td>
+                    <td className="px-3 py-2.5">{role.max_hours_per_week ?? 8}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground truncate max-w-[160px]">{role.billing_entity || '—'}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{role.billing_org_code || '—'}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{role.gl_code || '—'}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingMgmtIndex(i)}>
+                          <Pencil className="w-3 h-3 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setMgmtRoles(prev => prev.filter((_, idx) => idx !== i)); if (editingMgmtIndex === i) setEditingMgmtIndex(null); }}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {mgmtRoles.length === 0 && (
                 <tr><td colSpan={10} className="px-3 py-4 text-center text-muted-foreground">No management roles configured</td></tr>
               )}
@@ -681,59 +670,36 @@ function RatesAndRolesPanel() {
         <div className="flex items-center gap-2 mt-2">
           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
             const key = `nres_mgmt_${Date.now()}`;
+            const newIndex = mgmtRoles.length;
             setMgmtRoles(prev => [...prev, {
-              key,
-              label: '',
-              person_name: '',
-              person_email: '',
-              hourly_rate: 0,
-              max_hours_per_week: 8,
-              billing_entity: '',
-              billing_org_code: '',
-              gl_code: '',
-              is_active: true,
-              role_type: 'management',
+              key, label: '', person_name: '', person_email: '', hourly_rate: 0, max_hours_per_week: 8,
+              billing_entity: '', billing_org_code: '', gl_code: '', is_active: true, role_type: 'management',
             }]);
+            setEditingMgmtIndex(newIndex);
           }}>
             <Plus className="w-3.5 h-3.5 mr-1" />
             Add Management Role
           </Button>
           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
             const key = `nres_attend_gp_${Date.now()}`;
+            const newIndex = mgmtRoles.length;
             setMgmtRoles(prev => [...prev, {
-              key,
-              label: 'Attending Meeting — GP',
-              person_name: '',
-              person_email: '',
-              hourly_rate: 100,
-              max_hours_per_week: 8,
-              billing_entity: '',
-              billing_org_code: '',
-              gl_code: '',
-              is_active: true,
-              role_type: 'attending_meeting',
-              member_practice: '',
+              key, label: 'Attending Meeting — GP', person_name: '', person_email: '', hourly_rate: 100, max_hours_per_week: 8,
+              billing_entity: '', billing_org_code: '', gl_code: '', is_active: true, role_type: 'attending_meeting', member_practice: '',
             }]);
+            setEditingMgmtIndex(newIndex);
           }}>
             <Plus className="w-3.5 h-3.5 mr-1" />
             Add Attending GP
           </Button>
           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
             const key = `nres_attend_pm_${Date.now()}`;
+            const newIndex = mgmtRoles.length;
             setMgmtRoles(prev => [...prev, {
-              key,
-              label: 'Attending Meeting — PM',
-              person_name: '',
-              person_email: '',
-              hourly_rate: 50,
-              max_hours_per_week: 8,
-              billing_entity: '',
-              billing_org_code: '',
-              gl_code: '',
-              is_active: true,
-              role_type: 'attending_meeting',
-              member_practice: '',
+              key, label: 'Attending Meeting — PM', person_name: '', person_email: '', hourly_rate: 50, max_hours_per_week: 8,
+              billing_entity: '', billing_org_code: '', gl_code: '', is_active: true, role_type: 'attending_meeting', member_practice: '',
             }]);
+            setEditingMgmtIndex(newIndex);
           }}>
             <Plus className="w-3.5 h-3.5 mr-1" />
             Add Attending PM
