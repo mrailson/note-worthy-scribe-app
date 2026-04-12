@@ -291,7 +291,8 @@ export function useStaffLineEvidenceComplete(
 
   for (let i = 0; i < staffDetails.length; i++) {
     const s = staffDetails[i];
-    const cat = s.staff_category || 'buyback';
+    const rawCategory = s.staff_category || 'buyback';
+    const cat = rawCategory === 'gp_locum' ? 'buyback' : rawCategory;
     const uploaded = getUploadedTypesForStaff(i);
 
     const mandatoryTypes = getConfigForCategory(cat).filter(t => t.is_mandatory);
