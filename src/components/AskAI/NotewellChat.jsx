@@ -7,6 +7,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useConversation } from "@elevenlabs/react";
 
 const NHS = {
   blue:"#005EB8", darkBlue:"#003087", brightBlue:"#0072CE",
@@ -949,8 +950,65 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [interimText,setInterimText]=useState("");
   const [speechError,setSpeechError]=useState(null);
   const [showVoiceMode,setShowVoiceMode]=useState(false);
+  const [nresStatus,setNresStatus]=useState("idle"); // idle | connecting | listening | speaking | ended | error
   const speechRef=useRef(null);
-  const voiceWidgetRef=useRef(null);
+  const nresKeepAliveRef=useRef(null);
+  const nresAudioCtxRef=useRef(null);
+
+  // NRES ElevenLabs Conversational AI agent
+  const NRES_AGENT_ID="agent_7801knyxsxcxehsr8kynxgxz6xyr";
+  const nresConversation=useConversation({
+    onConnect:()=>{setNresStatus("listening");},
+    onDisconnect:()=>{setNresStatus("ended");if(nresKeepAliveRef.current){clearInterval(nresKeepAliveRef.current);nresKeepAliveRef.current=null;}setTimeout(()=>setNresStatus("idle"),2000);},
+    onMessage:(msg)=>{console.log("NRES Agent:",msg);},
+    onError:(err)=>{console.error("NRES ElevenLabs error:",err);setNresStatus("error");},
+  });
+
+  // Track speaking state
+  useEffect(()=>{
+    if(nresConversation.isSpeaking&&nresStatus==="listening")setNresStatus("speaking");
+    else if(!nresConversation.isSpeaking&&nresStatus==="speaking")setNresStatus("listening");
+  },[nresConversation.isSpeaking]);
+
+  const startNresSession=useCallback(async()=>{
+    try{
+      setNresStatus("connecting");
+      // Pre-warm AudioContext on user gesture
+      const AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(AudioCtx){
+        const ctx=new AudioCtx();
+        nresAudioCtxRef.current=ctx;
+        if(ctx.state==="suspended")await ctx.resume();
+      }
+      // Request mic permission
+      await navigator.mediaDevices.getUserMedia({audio:true});
+      // 400ms delay for audio stream stabilisation
+      await new Promise(r=>setTimeout(r,400));
+      // Start ElevenLabs session
+      await nresConversation.startSession({agentId:NRES_AGENT_ID,connectionType:"websocket"});
+      // Keep-alive ping every 1.5s
+      nresKeepAliveRef.current=setInterval(()=>{try{nresConversation.sendUserActivity();}catch{}},1500);
+      setShowVoiceMode(true);
+    }catch(err){
+      console.error("Failed to start NRES session:",err);
+      setNresStatus("error");
+      setTimeout(()=>setNresStatus("idle"),3000);
+    }
+  },[nresConversation]);
+
+  const endNresSession=useCallback(async()=>{
+    try{await nresConversation.endSession();}catch{}
+    if(nresKeepAliveRef.current){clearInterval(nresKeepAliveRef.current);nresKeepAliveRef.current=null;}
+    if(nresAudioCtxRef.current){try{nresAudioCtxRef.current.close();}catch{}nresAudioCtxRef.current=null;}
+    setShowVoiceMode(false);
+    setNresStatus("idle");
+  },[nresConversation]);
+
+  // Cleanup on unmount
+  useEffect(()=>()=>{
+    if(nresKeepAliveRef.current)clearInterval(nresKeepAliveRef.current);
+    if(nresAudioCtxRef.current)try{nresAudioCtxRef.current.close();}catch{}
+  },[]);
   const startListening=useCallback(()=>{
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){setSpeechError("Speech recognition requires Chrome or Safari 17+");return;}
@@ -1166,8 +1224,31 @@ export default function NotewellChat({ user, onNavigateHome }) {
           </div>
         </div>
 
+        {/* NRES Voice Assistant banner — mobile only */}
+        {vp==="mobile"&&<div style={{padding:"6px 12px 0",background:"#fff",borderTop:`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:nresStatus!=="idle"?"linear-gradient(135deg,#001845,#003087)":"linear-gradient(135deg,#F0F8F0,#E8F5E9)",border:`1.5px solid ${nresStatus!=="idle"?"rgba(255,255,255,.2)":"#00963944"}`,borderRadius:10,transition:"all .2s"}}>
+            <span style={{fontSize:"1.2rem",flexShrink:0}}>{nresStatus==="connecting"?"⏳":"🎙"}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:"0.82rem",color:nresStatus!=="idle"?"#fff":NHS.darkBlue}}>NRES Voice Assistant</div>
+              <div style={{fontSize:"0.7rem",color:nresStatus!=="idle"?"rgba(255,255,255,.6)":NHS.midGrey,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{
+                nresStatus==="connecting"?"Connecting…":
+                nresStatus==="listening"?"Listening…":
+                nresStatus==="speaking"?"Speaking…":
+                nresStatus==="error"?"Connection error — tap to retry":
+                nresStatus==="ended"?"Session ended":
+                "Speak with the NRES Agent"
+              }</div>
+            </div>
+            {nresStatus!=="idle"&&nresStatus!=="ended"&&nresStatus!=="error"?(
+              <button onClick={endNresSession} style={{background:NHS.red,border:"none",borderRadius:20,padding:"8px 16px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.78rem",minWidth:44,minHeight:44,flexShrink:0,animation:"nwPulseRed 1.5s ease-in-out infinite"}}>End</button>
+            ):(
+              <button onClick={startNresSession} disabled={nresStatus==="connecting"} style={{background:NHS.green,border:"none",borderRadius:20,padding:"8px 16px",cursor:nresStatus==="connecting"?"wait":"pointer",color:"#fff",fontWeight:700,fontSize:"0.78rem",minWidth:44,minHeight:44,flexShrink:0}}>Start</button>
+            )}
+          </div>
+        </div>}
+
         {/* Input */}
-        <div style={{padding:vp==="mobile"?"8px 12px calc(12px + env(safe-area-inset-bottom, 0px))":(vp==="compact"?"9px 11px 12px":"11px 16px 14px"),background:"#fff",borderTop:`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
+        <div style={{padding:vp==="mobile"?"8px 12px calc(12px + env(safe-area-inset-bottom, 0px))":(vp==="compact"?"9px 11px 12px":"11px 16px 14px"),background:"#fff",borderTop:vp==="mobile"?"none":`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
             {guardrailAlert&&<div style={{background:"#FFF5F5",border:`1.5px solid ${NHS.red}`,borderRadius:9,padding:"7px 13px",display:"flex",gap:7,alignItems:"flex-start",marginBottom:7,fontSize:"0.79rem",animation:"nwFadeIn .2s ease"}}><span style={{flexShrink:0}}>⚠️</span><div style={{flex:1,color:"#7a1010"}}><strong style={{color:NHS.red}}>Patient Data Warning</strong><p style={{margin:"2px 0 0"}}>{guardrailAlert}</p></div><button onClick={()=>setGuardrailAlert(null)} style={{background:"none",border:"none",cursor:"pointer",color:NHS.red,fontSize:".88rem",padding:0,flexShrink:0}}>✕</button></div>}
             {fileError&&<div style={{background:"#FFF5EC",border:`1px solid ${NHS.warmYellow}`,borderRadius:7,padding:"4px 11px",fontSize:"0.75rem",color:"#7a4a00",marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>⚠️ {fileError}</span><button onClick={()=>setFileError(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#7a4a00"}}>✕</button></div>}
@@ -1206,49 +1287,44 @@ export default function NotewellChat({ user, onNavigateHome }) {
 
       {activeArtifact&&<div style={{display:"flex",animation:"nwSlideIn .22s ease"}}><ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp}/></div>}
 
-      {/* Live Voice Mode — mobile only floating button */}
-      {vp==="mobile"&&!showVoiceMode&&<button onClick={()=>setShowVoiceMode(true)} style={{position:"fixed",bottom:"calc(90px + env(safe-area-inset-bottom, 0px))",right:16,width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg, ${NHS.blue}, ${NHS.darkBlue})`,border:"none",color:"#fff",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,48,135,.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,transition:"transform .15s"}} title="Live Voice Mode" aria-label="Live Voice Mode"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>}
-
-      {/* Live Voice Mode fullscreen overlay */}
+      {/* NRES Voice fullscreen overlay — SDK-powered */}
       {showVoiceMode&&<div style={{position:"fixed",inset:0,zIndex:9999,background:"linear-gradient(180deg, #001845 0%, #003087 50%, #005EB8 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"nwFadeIn .25s ease"}}>
         {/* Close button */}
-        <button onClick={()=>setShowVoiceMode(false)} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top, 0px))",right:12,width:48,height:48,borderRadius:"50%",background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",zIndex:10}} aria-label="Close voice mode">✕</button>
+        <button onClick={endNresSession} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top, 0px))",right:12,width:48,height:48,borderRadius:"50%",background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",zIndex:10}} aria-label="Close voice mode">✕</button>
 
         {/* Title */}
         <div style={{position:"absolute",top:"calc(20px + env(safe-area-inset-top, 0px))",left:20,display:"flex",alignItems:"center",gap:8}}>
           <img src="/favicon-option1.png" alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
-          <span style={{color:"#fff",fontWeight:700,fontSize:"0.9rem",opacity:.9}}>Notewell Voice</span>
+          <span style={{color:"#fff",fontWeight:700,fontSize:"0.9rem",opacity:.9}}>NRES Voice Assistant</span>
         </div>
 
-        {/* Pulsing circle */}
-        <div style={{position:"relative",width:160,height:160,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:32}}>
-          <div style={{position:"absolute",width:160,height:160,borderRadius:"50%",background:"rgba(65,182,230,.15)",animation:"nwVoicePulse 2s ease-in-out infinite"}}/>
-          <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(65,182,230,.2)",animation:"nwVoicePulse 2s ease-in-out .3s infinite"}}/>
-          <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",background:"rgba(65,182,230,.3)",animation:"nwVoicePulse 2s ease-in-out .6s infinite"}}/>
-          <div style={{width:56,height:56,borderRadius:"50%",background:NHS.lightBlue,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1}}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        {/* Animated pulsing circle — adapts to state */}
+        <div style={{position:"relative",width:180,height:180,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24}}>
+          {/* Outer rings — fast blue when speaking, slow white when listening */}
+          <div style={{position:"absolute",width:180,height:180,borderRadius:"50%",background:nresStatus==="speaking"?"rgba(65,182,230,.2)":"rgba(255,255,255,.08)",animation:nresStatus==="speaking"?"nwVoicePulse 0.8s ease-in-out infinite":"nwVoicePulse 2.5s ease-in-out infinite"}}/>
+          <div style={{position:"absolute",width:140,height:140,borderRadius:"50%",background:nresStatus==="speaking"?"rgba(65,182,230,.25)":"rgba(255,255,255,.1)",animation:nresStatus==="speaking"?"nwVoicePulse 0.8s ease-in-out .15s infinite":"nwVoicePulse 2.5s ease-in-out .4s infinite"}}/>
+          <div style={{position:"absolute",width:100,height:100,borderRadius:"50%",background:nresStatus==="speaking"?"rgba(65,182,230,.3)":"rgba(255,255,255,.12)",animation:nresStatus==="speaking"?"nwVoicePulse 0.8s ease-in-out .3s infinite":"nwVoicePulse 2.5s ease-in-out .8s infinite"}}/>
+          {/* Centre orb */}
+          <div style={{width:64,height:64,borderRadius:"50%",background:nresStatus==="speaking"?`linear-gradient(135deg,${NHS.lightBlue},${NHS.brightBlue})`:nresStatus==="connecting"?`linear-gradient(135deg,${NHS.warmYellow},#E89C0C)`:`linear-gradient(135deg,${NHS.green},#007A2F)`,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1,boxShadow:"0 0 30px rgba(65,182,230,.3)"}}>
+            {nresStatus==="connecting"?<div style={{width:24,height:24,border:"3px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>:
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>}
           </div>
         </div>
 
-        {/* ElevenLabs widget container */}
-        <div ref={el=>{
-          if(el&&!el.dataset.loaded){
-            el.dataset.loaded="1";
-            const loadWidget=async()=>{
-              try{
-                if(!document.querySelector('script[src*="elevenlabs.io/convai-widget"]')){
-                  await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://elevenlabs.io/convai-widget/index.js";s.async=true;s.onload=res;s.onerror=rej;document.head.appendChild(s);});
-                }
-                const w=document.createElement("elevenlabs-convai");
-                w.setAttribute("agent-id","agent_01jwry2fzme7xsb2mwzatxseyt");
-                el.appendChild(w);
-              }catch(e){console.error("ElevenLabs widget error:",e);}
-            };
-            loadWidget();
-          }
-        }} style={{width:"100%",maxWidth:360,minHeight:80,display:"flex",justifyContent:"center"}}/>
+        {/* Status text */}
+        <div style={{color:"#fff",fontSize:"1rem",fontWeight:600,marginBottom:8,opacity:.9}}>{
+          nresStatus==="connecting"?"Connecting…":
+          nresStatus==="listening"?"Listening…":
+          nresStatus==="speaking"?"Speaking…":
+          nresStatus==="error"?"Connection error":
+          "Ready"
+        }</div>
+        <p style={{color:"rgba(255,255,255,.45)",fontSize:"0.74rem",maxWidth:260,textAlign:"center",lineHeight:1.5,marginBottom:40}}>
+          {nresStatus==="listening"?"Speak naturally — the agent is listening":"The NRES programme agent can answer questions about the New Models programme"}
+        </p>
 
-        <p style={{color:"rgba(255,255,255,.5)",fontSize:"0.72rem",marginTop:24,textAlign:"center",padding:"0 32px",paddingBottom:"env(safe-area-inset-bottom, 16px)"}}>Tap the widget above to start talking · Powered by ElevenLabs</p>
+        {/* Large END button */}
+        <button onClick={endNresSession} style={{background:NHS.red,border:"none",borderRadius:28,padding:"16px 48px",cursor:"pointer",color:"#fff",fontWeight:800,fontSize:"1rem",minHeight:56,boxShadow:"0 4px 20px rgba(218,41,28,.35)",letterSpacing:".03em",marginBottom:"env(safe-area-inset-bottom, 16px)"}}>End Session</button>
       </div>}
     </div>
   );
