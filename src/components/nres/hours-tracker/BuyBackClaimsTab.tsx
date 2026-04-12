@@ -46,8 +46,26 @@ function fmtGBP(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** GP Locum constants */
+const GP_LOCUM_MAX_DAILY_RATE = 750;
+const GP_LOCUM_SESSION_RATE = 375;
+
 /** Build a human-readable calculation breakdown for the live preview */
 function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
+  // GP Locum: fixed rates, no on-costs
+  if (category === 'gp_locum') {
+    if (allocType === 'daily') {
+      const rate = Math.min(allocValue, GP_LOCUM_MAX_DAILY_RATE);
+      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+      return `${fmtGBP(rate)}/day × ${workingDays} working days — excl. on-costs (Locum)`;
+    }
+    if (allocType === 'sessions') {
+      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+      const workingWeeks = workingDays / 5;
+      return `${allocValue} session${allocValue !== 1 ? 's' : ''}/wk × ${fmtGBP(GP_LOCUM_SESSION_RATE)}/session × ${workingWeeks.toFixed(1)} working weeks — excl. on-costs (Locum)`;
+    }
+  }
+
   // Management: hourly_rate × weekly_hours × working_weeks
   if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
     const ww = rateParams.workingWeeksInMonth;
@@ -104,7 +122,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
+  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum'>('buyback');
   const [practice, setPractice] = useState<string>('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [selectedMgmtKey, setSelectedMgmtKey] = useState('');
@@ -150,7 +168,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   };
 
   // When category changes
-  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management') => {
+  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management' | 'gp_locum') => {
     setCategory(newCat);
     if (newCat === 'management') {
       setRole('NRES Management');
@@ -158,9 +176,15 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       setAllocValue('');
       setName('');
       setSelectedMgmtKey('');
+    } else if (newCat === 'gp_locum') {
+      setRole('GP Locum');
+      setAllocType('daily');
+      setAllocValue('');
+      setName('');
+      setSelectedMgmtKey('');
     } else {
       setSelectedMgmtKey('');
-      if (role === 'NRES Management') {
+      if (role === 'NRES Management' || role === 'GP Locum') {
         setRole('GP');
         setAllocType('sessions');
         setAllocValue('');
