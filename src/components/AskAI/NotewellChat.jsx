@@ -641,28 +641,6 @@ const ROLE_SUGGESTIONS = {
     "Draft a patient letter about changes to repeat prescribing",
     "What QOF disease registers do I need to maintain?"
   ],
-  "Salaried GP": [
-    "What are my contractual rights regarding study leave?",
-    "How do I raise a concern about patient safety at my practice?",
-    "What are the BMA model terms for salaried GPs?",
-    "Summarise the latest NICE guidance on hypertension management",
-    "Write a referral letter to dermatology for a suspected melanoma",
-    "What vaccinations are in the NHS childhood immunisation schedule?",
-    "How do I complete an eRS referral for a 2-week-wait pathway?",
-    "What are the red flag symptoms for headache I must not miss?",
-    "Explain the NICE CKD staging and monitoring requirements",
-    "What is the latest guidance on HRT prescribing in primary care?",
-    "How should I manage a new diagnosis of Type 2 diabetes?",
-    "What are the DVLA notification rules for seizures?",
-    "Write a med3 fit note for a patient with moderate depression",
-    "What are my indemnity requirements as a salaried GP?",
-    "Summarise the safeguarding referral process for children",
-    "What blood tests should I order for unexplained weight loss?",
-    "How do I manage an acute exacerbation of asthma in primary care?",
-    "What are the criteria for a social care referral?",
-    "Draft a clinical letter to a patient about their blood results",
-    "What CPD requirements do I need for appraisal and revalidation?"
-  ],
   "Admin / Reception": [
     "How do I process a subject access request (SAR) under GDPR?",
     "What is the correct procedure for deducting a deceased patient?",
@@ -718,7 +696,7 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
     if(s.includes("pcn manager")||s.includes("pcn"))return"PCN Manager";
     if(s.includes("practice manager")||s.includes("manager"))return"Practice Manager";
     if(s.includes("gp partner")||s.includes("partner"))return"GP Partner";
-    if(s.includes("salaried")||s.includes("salaried gp"))return"Salaried GP";
+    if(s.includes("salaried")||s.includes("salaried gp"))return"GP Partner";
     if(s.includes("admin")||s.includes("reception")||s.includes("practice user"))return"Admin / Reception";
     return"Practice Manager";
   };
@@ -749,7 +727,6 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
   const ROLE_ICONS={
     "Practice Manager":"🗂️",
     "GP Partner":"🩺",
-    "Salaried GP":"💊",
     "Admin / Reception":"📋",
     "PCN Manager":"🏥",
   };
@@ -789,30 +766,6 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
           Set up my profile →
         </button>
       </p>
-      {/* Document type quick buttons */}
-      <div style={{display:"flex",gap:6,marginBottom:20,
-        flexWrap:"wrap",justifyContent:"center"}}>
-        {Object.entries(ARTIFACT_TYPES).map(([k,v])=>(
-          <button key={k}
-            onClick={()=>onPopulateInput("Create a "+v.label)}
-            style={{display:"flex",alignItems:"center",gap:5,
-              padding:"5px 12px",background:v.colour+"11",
-              border:`1.5px solid ${v.colour}33`,
-              borderRadius:20,fontSize:"0.72rem",
-              color:v.colour,fontWeight:600,cursor:"pointer",
-              transition:"all .15s"}}
-            onMouseEnter={e=>{
-              e.currentTarget.style.background=v.colour+"25";
-              e.currentTarget.style.transform="translateY(-1px)";
-            }}
-            onMouseLeave={e=>{
-              e.currentTarget.style.background=v.colour+"11";
-              e.currentTarget.style.transform="translateY(0)";
-            }}>
-            {v.icon} {v.label}
-          </button>
-        ))}
-      </div>
       {/* Role pills */}
       <div style={{display:"flex",gap:6,marginBottom:12,
         flexWrap:"wrap",justifyContent:"center",
@@ -922,7 +875,7 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
                 background:"#fff",
                 border:`1.5px solid ${NHS.paleGrey}`,
                 borderRadius:12,
-                padding:"10px 12px",
+                padding:"10px 30px 10px 12px",
                 cursor:"pointer",
                 textAlign:"left",
                 fontSize:"0.76rem",
