@@ -1211,7 +1211,55 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
     return sum + required.filter(r => !acked.includes(r.id)).length;
   }, 0);
 
-  const statusBadge = (status: string) => {
+  // Test auto-fill: acknowledge all rules, confirm declaration, upload dummy evidence
+  const handleTestAutoFill = async () => {
+    if (autoFilling) return;
+    setAutoFilling(true);
+    try {
+      // 1. Acknowledge all ground rules for every staff member
+      for (let idx = 0; idx < staffDetails.length; idx++) {
+        const s = staffDetails[idx];
+        const rules = getRulesForRole(s.staff_role);
+        const requiredRules = rules.filter((r: any) => r.requires_acknowledgement);
+        if (requiredRules.length > 0) {
+          const allIds = requiredRules.map((r: any) => r.id);
+          onUpdateStaffLine(claim.id, idx, { acknowledged_rules: allIds });
+        }
+      }
+
+      // 2. Confirm declaration
+      if (!claim.declaration_confirmed) {
+        onConfirmDeclaration(claim.id, true);
+      }
+
+      // 3. Upload a dummy test PDF to all mandatory evidence slots for each staff member
+      const dummyContent = 'Test evidence file — auto-generated for testing purposes.';
+      const dummyBlob = new Blob([dummyContent], { type: 'application/pdf' });
+
+      for (let idx = 0; idx < staffDetails.length; idx++) {
+        const s = staffDetails[idx];
+        const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management';
+        const configItems = getConfigForCategory(cat);
+        const mandatoryItems = configItems.filter((c: any) => c.is_mandatory);
+        const uploadedForStaff = getUploadedTypesForStaff(idx);
+
+        for (const cfg of mandatoryItems) {
+          if (!uploadedForStaff[cfg.evidence_type]) {
+            const file = new File([dummyBlob], `test-evidence-${cfg.evidence_type}.pdf`, { type: 'application/pdf' });
+            await uploadEvidence(cfg.evidence_type, file, idx);
+          }
+        }
+      }
+
+      toast.success('Test auto-fill complete — all requirements ticked and dummy evidence uploaded');
+    } catch (err) {
+      console.error('Test auto-fill error:', err);
+      toast.error('Auto-fill failed');
+    } finally {
+      setAutoFilling(false);
+    }
+  };
+
     const variants: Record<string, string> = {
       draft: 'bg-muted text-muted-foreground',
       submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
