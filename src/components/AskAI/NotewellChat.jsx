@@ -450,7 +450,7 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}
   const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
   const isMobile=vp==="mobile";
   return(<div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
-    {isUser?<UserAvatar user={user} size={compact?27:33}/>:<img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>}
+    {isUser?<UserAvatar user={user} size={compact?27:33}/>:<img src="/favicon-robot-white.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>}
     <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
       <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3,textAlign:isUser?"right":"left"}}>{isUser?user.name:"Notewell AI"} · {fmt(msg.timestamp)}</div>
       {msg.files?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:5,justifyContent:isUser?"flex-end":"flex-start"}}>{msg.files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name}{f.size&&<span style={{color:NHS.midGrey}}> {fmtSize(f.size)}</span>}</div>)}</div>}
@@ -480,7 +480,7 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
   const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
   const suggestions=[{icon:"📚",text:"What's the current semaglutide guidance?"},{icon:"📧",text:"Summarise this week's ICB update"},{icon:"💼",text:"What are the ARRS roles available?"},{icon:"📄",text:"What does the PCN DES say about access?"},{icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},{icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"}];
   return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
-    <div style={{width:58,height:58,borderRadius:"50%",marginBottom:13,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.65rem",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}>🏥</div>
+    <img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:58,height:58,borderRadius:"50%",marginBottom:13,objectFit:"cover",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}/>
     <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
     <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
     <p style={{color:NHS.midGrey,marginBottom:18,maxWidth:390,lineHeight:1.6,fontSize:"0.83rem"}}>
@@ -778,7 +778,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
               title="Back to Notewell"
               aria-label="Back to Notewell"
             >
-              <img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:24,height:24,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
+              <img src="/favicon-robot-white.png" alt="Notewell AI" style={{width:24,height:24,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
               {vp !== "mobile" && <span style={{fontWeight:800,letterSpacing:"-.01em"}}>Notewell AI</span>}
             </button>
 
@@ -835,7 +835,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
             {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} onPopulateInput={t=>setInput(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
-            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
+            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/favicon-robot-white.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
         </div>
