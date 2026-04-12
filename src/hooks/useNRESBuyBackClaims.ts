@@ -61,10 +61,13 @@ const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
 export interface RateParams {
   onCostMultiplier: number;
   getRoleAnnualRate?: (roleLabel: string) => number | undefined;
+  getRoleConfig?: (roleLabel: string) => import('@/hooks/useNRESBuyBackRateSettings').RoleConfig | undefined;
   employerNiPct?: number;
   employerPensionPct?: number;
   /** Pre-calculated working weeks for a given claim month (used for management billing) */
   workingWeeksInMonth?: number;
+  /** Working days in the claim month */
+  workingDaysInMonth?: number;
   /** Number of bank holidays excluded from the month */
   bankHolidaysInMonth?: number;
   /** Detailed bank holiday info for display */
