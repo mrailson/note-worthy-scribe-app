@@ -40,6 +40,10 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const practiceNameRef = useRef<string | undefined>(undefined);
   const profileLoadedRef = useRef(false);
 
+  // Conversation buffer for transcript emails on disconnect
+  const conversationBufferRef = useRef<Array<{ role: string; message: string; timestamp: string }>>([]);
+  const conversationIdRef = useRef<string | null>(null);
+  const voiceCtxDataRef = useRef(contextData);
   const extractImageUrlFromText = (text?: string): string | null => {
     if (!text) return null;
 
