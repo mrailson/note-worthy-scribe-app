@@ -1314,7 +1314,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, isPMLDirector, pmlFinanceEmails, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid, testActive }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, isPMLDirector, pmlFinanceEmails, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onUpdatePayment, savingPayment, testActive }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
   userId?: string;
@@ -1338,7 +1338,8 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
   onReject: (id: string, notes: string) => void;
   onVerify?: (id: string, notes?: string) => void;
   onQuery?: (id: string, notes: string) => void;
-  onMarkPaid?: (id: string) => void;
+  onUpdatePayment?: (claimId: string, updates: any) => Promise<void>;
+  savingPayment?: boolean;
   testActive?: boolean;
 }) {
   const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
