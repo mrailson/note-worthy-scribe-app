@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { NRESWidgetEmbed } from "@/components/nres/NRESWidgetLoader";
-import { NRESProgrammeAgent } from "@/components/nres/NRESProgrammeAgent";
+
 import { NRESTranslateAgent } from "@/components/nres/NRESTranslateAgent";
 import { NRESPatientAgent } from "@/components/nres/NRESPatientAgent";
 import { NRESGPAgent } from "@/components/nres/NRESGPAgent";
