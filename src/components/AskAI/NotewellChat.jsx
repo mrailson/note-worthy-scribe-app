@@ -508,7 +508,7 @@ async function callClaude(messages, systemPrompt, onChunk) {
 }
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
-export default function NotewellChat({ user }) {
+export default function NotewellChat({ user, onNavigateHome }) {
   const vp=useViewport();
   const [settings]=useState(()=>{try{const s=localStorage.getItem("nw_ai_settings");return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
   const [conversations,setConversations]=useState(()=>loadHistory());
@@ -592,27 +592,57 @@ export default function NotewellChat({ user }) {
         .nw-wrap ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px}
       `}</style>
 
-      {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}}/>}
-      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved}/>}
+      {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}} vp={vp}/>}
+      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp}/>}
 
-      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)}/>
+      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)} onNavigateHome={onNavigateHome}/>
 
       <div className="nw-wrap" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}} onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles(Array.from(e.dataTransfer.files));}}>
         {dragOver&&<div style={{position:"absolute",inset:0,background:"rgba(0,114,206,.08)",border:`3px dashed ${NHS.brightBlue}`,zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",color:NHS.blue,fontWeight:700}}>📎 Drop to attach</div>}
 
         {/* Status bar */}
         <div style={{padding:vp==="mobile"?"7px 10px":(vp==="compact"?"7px 13px":"9px 18px"),background:"#fff",borderBottom:`1px solid ${NHS.paleGrey}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            {vp==="mobile"&&(
-              <button onClick={()=>setSidebarForceOpen(o=>!o)}
-                style={{background:"transparent",border:"none",cursor:"pointer",color:NHS.midGrey,fontSize:"1.2rem",padding:"6px 8px",marginRight:2,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}
-                aria-label="Open conversation history"
-              >☰</button>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            {/* Notewell home button */}
+            <button
+              onClick={() => onNavigateHome?.()}
+              style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",padding:"5px 8px",borderRadius:8,color:NHS.darkBlue,fontSize:"0.82rem",fontWeight:700,minHeight:44,minWidth:44,transition:"background .13s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#E8EDEE"}
+              onMouseLeave={e=>e.currentTarget.style.background="none"}
+              title="Back to Notewell"
+              aria-label="Back to Notewell"
+            >
+              <span style={{fontSize:"1.1rem"}}>←</span>
+              {vp !== "mobile" && <span style={{fontWeight:800,color:NHS.darkBlue,letterSpacing:"-.01em"}}>Notewell</span>}
+            </button>
+            {/* Hamburger — mobile only */}
+            {vp === "mobile" && (
+              <button onClick={() => setSidebarForceOpen(o => !o)}
+                style={{background:"transparent",border:"none",cursor:"pointer",color:NHS.midGrey,fontSize:"1.2rem",padding:"6px 4px",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}
+                aria-label="Open conversation history">☰</button>
             )}
-            <div style={{width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem",flexShrink:0}}>🤖</div>
-            <div>
-              <div style={{fontWeight:700,fontSize:vp==="mobile"?"0.78rem":"0.84rem",color:NHS.darkBlue}}>{vp==="mobile"?"Notewell AI":"Notewell AI Assistant"}</div>
-              <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>Ready · {user.practice.shortName}{vp!=="mobile"&&" · Word · Excel · PowerPoint · Diagrams"}{profileActive&&<span style={{color:NHS.blue,marginLeft:2}}>· Profile ✓</span>}</div>
+            {/* AI identity */}
+            <div style={{display:"flex",alignItems:"center",gap:7}}>
+              <div style={{width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem",flexShrink:0}}>🤖</div>
+              {vp !== "mobile" && (
+                <div>
+                  <div style={{fontWeight:700,fontSize:"0.84rem",color:NHS.darkBlue}}>Notewell AI Assistant</div>
+                  <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}>
+                    <span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>
+                    Ready · {user.practice.shortName} · Word · Excel · PowerPoint · Diagrams
+                    {profileActive && <span style={{color:NHS.blue,marginLeft:2}}>· Profile active</span>}
+                  </div>
+                </div>
+              )}
+              {vp === "mobile" && (
+                <div>
+                  <div style={{fontWeight:700,fontSize:"0.82rem",color:NHS.darkBlue,lineHeight:1.2}}>Notewell AI</div>
+                  <div style={{fontSize:"0.6rem",color:NHS.green,display:"flex",alignItems:"center",gap:2}}>
+                    <span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>
+                    Ready{profileActive && " · Profile ✓"}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
