@@ -273,7 +273,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         onClick={() => navigate('/ask-ai')}
                         className="cursor-pointer py-3"
                       >
-                        <Brain className="h-4 w-4 mr-2" />
+                        <Sparkles className="h-4 w-4 mr-2" />
                         Ask AI V2 (Beta)
                       </DropdownMenuItem>
                        {hasModuleAccess('survey_manager_access') && isServiceVisible('survey_manager') && (
@@ -634,7 +634,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </DrawerClose>
                               <DrawerClose asChild>
                                 <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ask-ai')}>
-                                  <Brain className="h-4 w-4 mr-2" />
+                                  <Sparkles className="h-4 w-4 mr-2" />
                                   Ask AI V2 (Beta)
                                 </Button>
                               </DrawerClose>
