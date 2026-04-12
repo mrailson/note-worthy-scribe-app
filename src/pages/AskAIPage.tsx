@@ -19,6 +19,7 @@ interface UserProfile {
   };
   neighbourhood: string;
   icb: string;
+  pcn: string;
 }
 
 const getInitials = (name: string) =>
@@ -48,6 +49,7 @@ const buildFallbackUser = (authUser: { email?: string | null; user_metadata?: Re
     },
     neighbourhood: "",
     icb: "",
+    pcn: "",
   };
 };
 
@@ -74,10 +76,19 @@ export default function AskAIPage() {
       const fallbackUser = buildFallbackUser(authUser);
       setProfileLoading(true);
 
+      // Load profile + practice_details (authoritative for user's practice)
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("full_name, role, title, gp_practices(name, short_name, ods_code, clinical_system, logo_url, primary_colour)")
+        .select("full_name, role, title")
         .eq("user_id", authUser.id)
+        .maybeSingle();
+
+      // Load practice from practice_details (user's own practice config)
+      const { data: practiceDetail } = await supabase
+        .from("practice_details")
+        .select("practice_name, ods_code, clinical_system, logo_url, pcn_code")
+        .eq("user_id", authUser.id)
+        .eq("is_default", true)
         .maybeSingle();
 
       if (!isActive) return;
@@ -91,25 +102,52 @@ export default function AskAIPage() {
         return;
       }
 
-      const profileData = profile as any;
-      const practice = profileData.gp_practices;
-      const name = profileData.full_name || fallbackUser.name;
+      const name = profile.full_name || fallbackUser.name;
+      const practiceName = practiceDetail?.practice_name || fallbackUser.practice.name;
+      const odsCode = practiceDetail?.ods_code || "";
+
+      // Try to resolve neighbourhood and ICB from gp_practices via ODS code
+      let neighbourhood = "";
+      let icb = "";
+      let pcn = "";
+      if (odsCode) {
+        const { data: gpMatch } = await supabase
+          .from("gp_practices")
+          .select("pcn_code, ics_name, neighbourhood_id, neighbourhoods(name)")
+          .eq("practice_code", odsCode)
+          .maybeSingle();
+
+        if (gpMatch) {
+          const gpData = gpMatch as any;
+          pcn = gpData.pcn_code || practiceDetail?.pcn_code || "";
+          icb = gpData.ics_name || "";
+          neighbourhood = gpData.neighbourhoods?.name || "";
+        }
+      }
+
+      if (!isActive) return;
+
+      // Generate short name from practice name
+      const shortName = practiceName.length > 20
+        ? practiceName.split(/\s+/).map((w: string) => w[0]).join("").slice(0, 4).toUpperCase()
+        : practiceName;
 
       setUser({
         name,
         initials: getInitials(name),
-        role: profileData.role || fallbackUser.role,
-        jobTitle: profileData.title || fallbackUser.jobTitle,
+        role: profile.role || fallbackUser.role,
+        jobTitle: profile.title || fallbackUser.jobTitle,
         practice: {
-          name: practice?.name || fallbackUser.practice.name,
-          shortName: practice?.short_name || fallbackUser.practice.shortName,
-          odsCode: practice?.ods_code || fallbackUser.practice.odsCode,
-          clinicalSystem: practice?.clinical_system || fallbackUser.practice.clinicalSystem,
-          logoUrl: practice?.logo_url || fallbackUser.practice.logoUrl,
-          primaryColour: practice?.primary_colour || fallbackUser.practice.primaryColour,
+          name: practiceName,
+          shortName,
+          odsCode,
+          clinicalSystem: practiceDetail?.clinical_system || fallbackUser.practice.clinicalSystem,
+          logoUrl: practiceDetail?.logo_url || fallbackUser.practice.logoUrl,
+          primaryColour: fallbackUser.practice.primaryColour,
         },
-        neighbourhood: fallbackUser.neighbourhood,
-        icb: fallbackUser.icb,
+        neighbourhood,
+        icb,
+        pcn,
       });
       setProfileLoading(false);
     };
