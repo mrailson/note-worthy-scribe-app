@@ -276,6 +276,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         <Brain className="h-4 w-4 mr-2" />
                         Ask Claude AI
                       </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/knowledge-base')}
+                        className="cursor-pointer py-3"
+                      >
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Knowledge Base
+                      </DropdownMenuItem>
                        {hasModuleAccess('survey_manager_access') && isServiceVisible('survey_manager') && (
                          <DropdownMenuItem 
                            onClick={() => navigate('/surveys')}
@@ -636,6 +643,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ask-ai')}>
                                   <Brain className="h-4 w-4 mr-2" />
                                   Ask Claude AI
+                                </Button>
+                              </DrawerClose>
+                              <DrawerClose asChild>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/knowledge-base')}>
+                                  <BookOpen className="h-4 w-4 mr-2" />
+                                  Knowledge Base
                                 </Button>
                               </DrawerClose>
                               <DrawerClose asChild>

@@ -3,6 +3,8 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS });
@@ -11,6 +13,67 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
+    // Extract user query from last message for KB search
+    let kbContext = "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    if (supabaseUrl && supabaseServiceKey && body.messages?.length > 0) {
+      const lastMsg = body.messages[body.messages.length - 1];
+      const query = typeof lastMsg.content === "string"
+        ? lastMsg.content
+        : lastMsg.content?.find?.((c: any) => c.type === "text")?.text || "";
+
+      if (query.length > 3) {
+        try {
+          const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
+          // Search kb_documents by keyword match
+          const searchTerms = query
+            .toLowerCase()
+            .replace(/[^\w\s]/g, "")
+            .split(/\s+/)
+            .filter((w: string) => w.length > 3)
+            .slice(0, 5);
+
+          if (searchTerms.length > 0) {
+            // Build OR conditions for ILIKE search
+            let queryBuilder = serviceClient
+              .from("kb_documents")
+              .select("title, summary, key_points, source, effective_date")
+              .eq("is_active", true)
+              .eq("status", "indexed")
+              .limit(3);
+
+            // Use or() with ilike for each search term
+            const orConditions = searchTerms
+              .map((term: string) => `title.ilike.%${term}%,summary.ilike.%${term}%`)
+              .join(",");
+
+            const { data: kbDocs } = await queryBuilder.or(orConditions);
+
+            if (kbDocs && kbDocs.length > 0) {
+              const entries = kbDocs.map((doc: any) => {
+                const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("; ") : "";
+                return `SOURCE: ${doc.source || "Unknown"} (${doc.effective_date || "No date"})\n${doc.summary || ""}\nKey points: ${keyPts}`;
+              });
+
+              kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE (use this in preference to general knowledge):\n\n${entries.join("\n---\n")}\n---`;
+            }
+          }
+        } catch (kbErr) {
+          console.error("KB search error (non-fatal):", kbErr);
+        }
+      }
+    }
+
+    // Augment system prompt with KB context if found
+    let systemPrompt = body.system || "";
+    if (kbContext) {
+      systemPrompt += kbContext;
+    }
+    systemPrompt += "\n\nWhen using knowledge base content, always cite the source and effective date. If content may be outdated (effective date more than 6 months ago), note this.";
+
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -18,7 +81,10 @@ Deno.serve(async (req) => {
         "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") ?? "",
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        system: systemPrompt,
+      }),
     });
 
     if (!upstream.ok) {
