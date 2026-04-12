@@ -477,7 +477,7 @@ function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
   </div>);
 }
 
-function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome}){
+function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome,onOpenKB}){
   const isMobile=vp==="mobile";
   const autoCollapse=(settings.sidebarMode==="auto"&&(vp==="compact"||isMobile));
   const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
