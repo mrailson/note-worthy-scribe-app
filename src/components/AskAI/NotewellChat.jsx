@@ -641,6 +641,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [sidebarForceOpen,setSidebarForceOpen]=useState(false);
   const [showGuide,setShowGuide]=useState(()=>localStorage.getItem("nw_ai_welcomed")!=="1");
   const [showProfile,setShowProfile]=useState(false);
+  const [profileInitialTab,setProfileInitialTab]=useState("profile");
   const [userProfile,setUserProfile]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [customInstructions,setCustomInstructions]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const bottomRef=useRef(null);const textareaRef=useRef(null);const fileInputRef=useRef(null);
