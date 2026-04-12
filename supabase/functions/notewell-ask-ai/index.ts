@@ -24,7 +24,7 @@ const NHS_DOMAINS = [
   'rcgp.org.uk',
   'nhsbsa.nhs.uk',
   'icnorthamptonshire.org.uk',
-  'northamptonformulary.nhs.uk',
+  'icnorthamptonshire.org.uk/primarycareportal',
   'cqrs.nhs.uk',
   'digital.nhs.uk'
 ];
@@ -41,6 +41,10 @@ const NHS_DIRECT_URLS: Record<string, string[]> = {
   ],
   qof: [
     'https://www.england.nhs.uk/wp-content/uploads/2023/03/qof-2023-24-guidance.pdf',
+  ],
+  formulary: [
+    'https://www.icnorthamptonshire.org.uk/primarycareportal/',
+    'https://www.icnorthamptonshire.org.uk/documents/',
   ],
 };
 
@@ -67,7 +71,7 @@ function buildQuery(message: string): string {
   if (m.includes('caip') || m.includes('access improvement'))
     return 'CAIP capacity access improvement payment 2025 2026 NHS England primary care';
   if (m.includes('formulary') || m.includes('prescribing'))
-    return 'Northamptonshire formulary prescribing guidance primary care 2025';
+    return 'Northamptonshire ICB primary care formulary prescribing guidance 2025 2026 site:icnorthamptonshire.org.uk';
   if (m.includes('les') || m.includes('local enhanced'))
     return 'NHS local enhanced services LES Northamptonshire primary care 2025 2026';
   return `NHS primary care ${message} 2025 2026`;
@@ -191,6 +195,8 @@ serve(async (req) => {
       directContent = await fetchDirectContent(NHS_DIRECT_URLS.arrs);
     } else if (msg.includes('qof')) {
       directContent = await fetchDirectContent(NHS_DIRECT_URLS.qof);
+    } else if (msg.includes('formulary') || msg.includes('prescribing')) {
+      directContent = await fetchDirectContent(NHS_DIRECT_URLS.formulary);
     }
 
     if (directContent) {

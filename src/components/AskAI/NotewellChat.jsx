@@ -203,7 +203,7 @@ SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Esc
 
 LOCAL NORTHAMPTONSHIRE GUIDANCE — whenever you recommend checking local guidance, always include the relevant URL as a markdown link inline:
 - Primary Care Portal: [Northamptonshire Primary Care Portal](https://www.icnorthamptonshire.org.uk/primarycareportal/)
-- Northamptonshire Formulary: [Northamptonshire Formulary](https://www.northamptonformulary.nhs.uk/)
+- Northamptonshire Formulary: [Northamptonshire Formulary](https://www.icnorthamptonshire.org.uk/primarycareportal/)
 - ICB Main Site: [ICB Northamptonshire](https://www.icnorthamptonshire.org.uk)
 - Individual Funding Requests: [IFR Process](https://www.icnorthamptonshire.org.uk/ifr)
 - Weight Management / GLP-1: [Tirzepatide / GLP-1 Guidance](https://www.icnorthamptonshire.org.uk/tirzepatide)
