@@ -109,6 +109,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const userEmail = contextData.email || profile?.email || user?.email;
   const practiceName = contextData.practiceName || practiceContext?.pcnName;
   const userTitle = contextData.role;
+  const voiceCtxDataRef = useRef(contextData);
 
   // Keep refs in sync so ElevenLabs client tool closures always see current values
   useEffect(() => {
