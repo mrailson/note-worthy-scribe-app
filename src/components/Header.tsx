@@ -233,13 +233,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Ask AI
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/ask-ai')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Ask AI V2 (Beta)
-                        </DropdownMenuItem>
+                        {isServiceVisible('ai4pm_service') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/ask-ai')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Ask AI V2 (Beta)
+                          </DropdownMenuItem>
+                        )}
                         {hasServiceAccess('bp_service') && isServiceVisible('bp_service') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/bp-calculator')}
@@ -625,12 +627,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   Ask AI
                                 </Button>
                               </DrawerClose>
-                              <DrawerClose asChild>
-                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ask-ai')}>
-                                  <Sparkles className="h-4 w-4 mr-2" />
-                                  Ask AI V2 (Beta)
-                                </Button>
-                              </DrawerClose>
+                              {isServiceVisible('ai4pm_service') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ask-ai')}>
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    Ask AI V2 (Beta)
+                                  </Button>
+                                </DrawerClose>
+                              )}
                               <DrawerClose asChild>
                                 <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => {
                                   if (location.pathname === '/ai4gp') {
