@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
             const { data: kbDocs } = await serviceClient
               .from("kb_documents")
-              .select("title, summary, key_points, keywords, source, effective_date")
+              .select("title, summary, key_points, keywords, source, effective_date, full_text")
               .eq("is_active", true)
               .eq("status", "indexed")
               .or(orConditions)
@@ -60,12 +60,21 @@ Deno.serve(async (req) => {
               }));
 
               const entries = kbDocs.map((doc: any) => {
-                const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("; ") : "";
+                const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("\n- ") : "";
                 const kws = Array.isArray(doc.keywords) ? doc.keywords.join(", ") : "";
-                return `SOURCE: ${doc.source || "Unknown"} (${doc.effective_date || "No date"})\n${doc.summary || ""}\nKey points: ${keyPts}${kws ? `\nKeywords: ${kws}` : ""}`;
+                const fullText = doc.full_text ? `\n\nFULL CONTENT:\n${doc.full_text.slice(0, 3000)}` : "";
+                return [
+                  `SOURCE: ${doc.title || "Unknown"}`,
+                  `Date: ${doc.effective_date || "No date"}`,
+                  `From: ${doc.source || ""}`,
+                  `Summary: ${doc.summary || ""}`,
+                  keyPts ? `Key points:\n- ${keyPts}` : "",
+                  kws ? `Keywords: ${kws}` : "",
+                  fullText,
+                ].filter(Boolean).join("\n");
               });
 
-              kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE (use this in preference to general knowledge):\n\n${entries.join("\n---\n")}\n---`;
+              kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE — AUTHORITATIVE LOCAL SOURCE. Use this data in preference to general knowledge for all Northamptonshire prescribing questions:\n\n${entries.join("\n\n---\n\n")}\n---`;
             }
 
             // If no results from structured search, try keyword array text search via RPC-like approach
@@ -75,7 +84,7 @@ Deno.serve(async (req) => {
                 if (term.length < 2) continue;
                 const { data: fallbackDocs } = await serviceClient
                   .from("kb_documents")
-                  .select("title, summary, key_points, keywords, source, effective_date")
+                  .select("title, summary, key_points, keywords, source, effective_date, full_text")
                   .eq("is_active", true)
                   .eq("status", "indexed")
                   .or(`title.ilike.%${term}%,summary.ilike.%${term}%`)
@@ -89,11 +98,21 @@ Deno.serve(async (req) => {
                   }));
 
                   const entries = fallbackDocs.map((doc: any) => {
-                    const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("; ") : "";
-                    return `SOURCE: ${doc.source || "Unknown"} (${doc.effective_date || "No date"})\n${doc.summary || ""}\nKey points: ${keyPts}`;
+                    const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("\n- ") : "";
+                    const kws = Array.isArray(doc.keywords) ? doc.keywords.join(", ") : "";
+                    const fullText = doc.full_text ? `\n\nFULL CONTENT:\n${doc.full_text.slice(0, 3000)}` : "";
+                    return [
+                      `SOURCE: ${doc.title || "Unknown"}`,
+                      `Date: ${doc.effective_date || "No date"}`,
+                      `From: ${doc.source || ""}`,
+                      `Summary: ${doc.summary || ""}`,
+                      keyPts ? `Key points:\n- ${keyPts}` : "",
+                      kws ? `Keywords: ${kws}` : "",
+                      fullText,
+                    ].filter(Boolean).join("\n");
                   });
 
-                  kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE (use this in preference to general knowledge):\n\n${entries.join("\n---\n")}\n---`;
+                  kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE — AUTHORITATIVE LOCAL SOURCE. Use this data in preference to general knowledge for all Northamptonshire prescribing questions:\n\n${entries.join("\n\n---\n\n")}\n---`;
                   break;
                 }
               }
@@ -110,7 +129,30 @@ Deno.serve(async (req) => {
     if (kbContext) {
       systemPrompt += kbContext;
     }
-    systemPrompt += "\n\nWhen using knowledge base content, always cite the source and effective date. If content may be outdated (effective date more than 6 months ago), note this.";
+    systemPrompt += `\n\nFORMULARY RESPONSE RULES — MANDATORY when answering any prescribing, drug, or medication question:
+1. ALWAYS lead with the Northamptonshire traffic light status if found in the knowledge base. Format it prominently like this:
+   🔴🔴 DOUBLE RED — [drug name]: [reason/action]
+   🔴 RED — hospital/specialist prescribing only
+   🟡 AMBER — specialist initiation or recommendation required
+   🟢 GREEN — suitable for primary care prescribing
+   ⚫ GREY — not recommended by ICB
+2. If the KB contains a specific local position (e.g. preferred brand, switching advice, carbon footprint guidance) STATE IT EXPLICITLY — do not just link to the formulary. The GP needs the answer, not a signpost.
+3. Format prescribing answers like this:
+   **Northamptonshire Formulary Position**
+   [Traffic light badge + one-line position]
+   **Preferred choice(s)**
+   [Named drug/brand + brief reason]
+   **What NOT to prescribe**
+   [Any double red / red items with reason]
+   **Local context**
+   [Any specific local guidance, carbon footprint notes, shared care requirements]
+   **National guidance**
+   [NICE/BNF reference for context]
+4. When the KB contains the answer, prioritise it over general knowledge. Only fall back to BNF/NICE if the KB has no relevant entry.
+5. Always end prescribing answers with:
+   Source: [KB document title] · [effective date]
+   Verify at: icnorthamptonshire.org.uk/mo-formulary
+6. If asked about a drug and no local data found, say so explicitly: "I don't have a specific Northamptonshire formulary entry for this drug — check icnorthamptonshire.org.uk/trafficlightdrugs for the current traffic light classification."`;
 
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
