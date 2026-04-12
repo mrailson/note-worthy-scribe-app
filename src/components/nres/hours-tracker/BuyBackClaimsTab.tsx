@@ -45,7 +45,7 @@ function fmtGBP(n: number): string {
 }
 
 /** Build a human-readable calculation breakdown for the live preview */
-function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
+function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
   // Management: hourly_rate × weekly_hours × working_weeks
   if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
     const ww = rateParams.workingWeeksInMonth;
@@ -53,10 +53,14 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: numb
     return `${allocValue} hrs/wk × ${ww.toFixed(1)} working weeks${bhNote} × ${fmtGBP(hourlyRate)}/hr`;
   }
 
+  const roleConfig = rateParams?.getRoleConfig?.(role ?? '');
+  const includesOnCosts = roleConfig?.includes_on_costs !== false;
   const niPct = rateParams?.employerNiPct ?? 15;
   const penPct = rateParams?.employerPensionPct ?? 14.38;
   const totalPct = niPct + penPct;
-  const onCostsLabel = `${totalPct.toFixed(2)}% on-costs (NI ${niPct}% + Pension ${penPct}%)`;
+  const onCostsLabel = includesOnCosts 
+    ? `inc. ${totalPct.toFixed(2)}% on-costs (NI ${niPct}% + Pension ${penPct}%)`
+    : 'excl. on-costs (Locum)';
 
   let baseRate = '£11,000';
   if (rateParams?.getRoleAnnualRate && role) {
@@ -64,14 +68,19 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: numb
     if (r !== undefined) baseRate = fmtGBP(r);
   }
 
+  if (allocType === 'daily') {
+    const dailyRate = roleConfig?.daily_rate ?? allocValue;
+    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+    return `${fmtGBP(dailyRate)}/day × ${workingDays} working days — excl. on-costs (Locum)`;
+  }
   if (allocType === 'sessions') {
-    return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
+    return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
   }
   if (allocType === 'hours') {
     const wteRatio = (allocValue / 37.5).toFixed(2);
-    return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
+    return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
   }
-  return `${allocValue} WTE × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
+  return `${allocValue} WTE × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
 }
 
 const DECLARATION_TEXT =
