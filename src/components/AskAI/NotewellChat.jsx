@@ -1409,8 +1409,6 @@ export default function NotewellChat({ user, onNavigateHome }) {
               👤{vp!=="compact"&&" My Profile"}{profileActive&&<span style={{width:6,height:6,borderRadius:"50%",background:"#00A499",display:"inline-block",flexShrink:0}}/>}
             </button>
 
-            {/* Voice Hub button — desktop only */}
-            {vp!=="mobile"&&<button id="voice-hub-toggle" onClick={()=>setVoicePanelOpen(o=>!o)} style={{background:voicePanelOpen?"#005EB8":"transparent",border:voicePanelOpen?"1.5px solid #005EB8":"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4,boxShadow:voicePanelOpen?"0 0 0 3px rgba(0,94,184,0.12)":"none"}} onMouseEnter={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.5)";e.currentTarget.style.boxShadow="0 0 0 3px rgba(0,94,184,0.12)";}}} onMouseLeave={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.25)";e.currentTarget.style.boxShadow="none";}}} title="Voice Assistant">🎙{vp!=="compact"&&" Voice"}</button>}
 
             {/* Guide button */}
             <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>? {vp!=="compact"&&"Guide"}</button>
