@@ -1247,11 +1247,26 @@ export default function NotewellChat({ user, onNavigateHome }) {
               👤{vp!=="compact"&&" My Profile"}{profileActive&&<span style={{width:6,height:6,borderRadius:"50%",background:"#00A499",display:"inline-block",flexShrink:0}}/>}
             </button>
 
+            {/* Voice Hub button — desktop only */}
+            {vp!=="mobile"&&<button id="voice-hub-toggle" onClick={()=>setVoicePanelOpen(o=>!o)} style={{background:voicePanelOpen?"#005EB8":"transparent",border:voicePanelOpen?"1.5px solid #005EB8":"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4,boxShadow:voicePanelOpen?"0 0 0 3px rgba(0,94,184,0.12)":"none"}} onMouseEnter={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.5)";e.currentTarget.style.boxShadow="0 0 0 3px rgba(0,94,184,0.12)";}}} onMouseLeave={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.25)";e.currentTarget.style.boxShadow="none";}}} title="Voice Services">🎙{vp!=="compact"&&" Voice"}{activeVoiceService&&<span style={{width:6,height:6,borderRadius:"50%",background:"#00A499",display:"inline-block",flexShrink:0,animation:"nwBlink 1s ease-in-out infinite"}}/>}</button>}
+
             {/* Guide button */}
             <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>? {vp!=="compact"&&"Guide"}</button>
             
           </div>
         </div>
+
+        {/* Active voice session banner — desktop only */}
+        {vp!=="mobile"&&activeVoiceService&&(
+          <div style={{background:activeVoiceService.accentColor,color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:10,fontSize:"0.81rem",flexShrink:0}}>
+            <span>🎙</span>
+            <span style={{fontWeight:700}}>{activeVoiceService.name}</span>
+            <span style={{opacity:.75}}>— {voiceGetStatus(activeVoiceService.id)==="connecting"?"Connecting…":"Live session"}</span>
+            <div style={{flex:1}}/>
+            <button onClick={()=>{setVoicePanelOpen(true);}} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"3px 10px",cursor:"pointer",color:"#fff",fontSize:"0.74rem",fontWeight:600}}>Open panel ↗</button>
+            <button onClick={()=>voiceEndSession(activeVoiceService.id)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"3px 10px",cursor:"pointer",color:"#fff",fontSize:"0.74rem",fontWeight:600}}>End ✕</button>
+          </div>
+        )}
 
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
@@ -1324,6 +1339,9 @@ export default function NotewellChat({ user, onNavigateHome }) {
       </div>
 
       {activeArtifact&&<div style={{display:"flex",animation:"nwSlideIn .22s ease"}}><ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp}/></div>}
+
+      {/* Voice Panel — desktop only */}
+      {vp!=="mobile"&&<VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)} sessionStatus={voiceSessionStatus} onStartSession={voiceStartSession} onEndSession={voiceEndSession}/>}
 
       {/* NRES Voice fullscreen overlay — SDK-powered */}
       {showVoiceMode&&<div style={{position:"fixed",inset:0,zIndex:9999,background:"linear-gradient(180deg, #001845 0%, #003087 50%, #005EB8 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"nwFadeIn .25s ease"}}>
