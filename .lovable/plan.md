@@ -1,36 +1,63 @@
 
 
-## Plan: PML Director Post-Approval Confirmation View
+## Plan: Add On-Costs Toggle and Daily Rate Allocation Type
 
-### Problem
-When the PML Director approves a claim, they currently still see the "Mark as Paid" button, which is not their responsibility. Instead, they should see a confirmation panel summarising what happened upon approval.
+### What This Does
+1. **Inc/Excl On-Costs per role** — Each staff role gets a flag indicating whether on-costs (Employer NI + Pension) apply. Employed staff include on-costs; locums exclude them. This carries through all calculations, hover tooltips, invoices, and cost breakdowns.
+2. **Daily Rate allocation type** — A new "daily" allocation option alongside sessions/hours/WTE, with a max daily rate value. GPs default to this.
 
-### What Changes
+### Changes Required
 
-**1. Hide "Mark as Paid" from PML Director view**
-- In `BuyBackClaimsTab.tsx`, pass `isPMLDirector` (or via `rolesConfig`) down to `ClaimCard`
-- Update the "Mark as Paid" section (line ~2013) to exclude PML Director — only show for PML Finance and super_admin
+**1. Update `RoleConfig` interface** (`src/hooks/useNRESBuyBackRateSettings.ts`)
+- Add `includes_on_costs: boolean` (default `true`) to `RoleConfig`
+- Add `'daily'` to the `allocation_default` union type
+- Add optional `daily_rate?: number` field for roles using daily allocation
+- Update `DEFAULT_ROLES`: GP gets `allocation_default: 'daily'`, `daily_rate: 800` (or similar max), `includes_on_costs: false` for locum-type roles
+- Add new roles like "GP Locum" with `includes_on_costs: false` if needed, or keep it per-role configurable
 
-**2. Show post-approval confirmation panel for PML Director**
-- When a claim is `approved` and the viewer is PML Director, render a new confirmation section replacing the payment processing area
-- Content:
-  - **Green success banner** with checkmark: "Claim Approved Successfully"
-  - **Invoice details**: Invoice number, generated date, total amount, with a download PDF link
-  - **Notifications sent**: 
-    - "Practice notified: [practice manager name] — invoice attached"
-    - "PML Finance notified: [pml_finance email from nres_system_roles]" — list the actual email(s) of users with the `pml_finance` role from the `roles` array already available via `useNRESSystemRoles`
-  - Styled as a read-only confirmation card (no action buttons)
+**2. Update `BuyBackStaffMember` interface** (`src/hooks/useNRESBuyBackStaff.ts`)
+- Add `'daily'` to the `allocation_type` union: `'sessions' | 'wte' | 'hours' | 'daily'`
 
-**3. Pass additional props to ClaimCard**
-- Add `isPMLDirector` boolean prop
-- Add `pmlFinanceEmails` string array prop (derived from `roles.filter(r => r.role === 'pml_finance' && r.is_active).map(r => r.user_email)` — already available in the parent component via `useNRESSystemRoles`)
+**3. Update rate settings admin UI** (`src/components/nres/hours-tracker/CostBreakdownSection.tsx` and rates config UI)
+- Add an "Inc. On-Costs" toggle/checkbox column per role in the rates table
+- Show/hide the on-costs columns based on each role's setting
+- Add "Daily" as an allocation default option
+- Add a "Max Daily Rate (£)" input when daily is selected
+
+**4. Update calculation logic** (`src/hooks/useNRESBuyBackClaims.ts`)
+- In `calculateStaffMonthlyAmount`: when `allocation_type === 'daily'`, calculate as `daily_rate × working_days_in_month`
+- Check role's `includes_on_costs` flag — if `false`, skip the `onCostMultiplier` (use multiplier of 1.0)
+- Pass `includes_on_costs` through `rateParams` or derive from role config
+
+**5. Update hover tooltip** (`BuyBackClaimsTab.tsx` — `buildCalcTooltip`)
+- For daily rate: show "X days × £Y/day = £Z/month"
+- When on-costs excluded: show "On-costs: Excluded (Locum)" instead of the NI/Pension breakdown
+- When included: show as current with "On-costs: Included (Employed Staff)"
+
+**6. Update staff add/edit forms** (`BuyBackClaimsTab.tsx`, `EditStaffDialog.tsx`)
+- Add "Daily" option to the allocation type dropdown
+- When "daily" selected, max value = max daily rate from role config
+- Step = 1 for daily
+
+**7. Update claim line display** (`BuyBackClaimsTab.tsx`)
+- Show "X daily" alongside existing "X sessions", "X hrs/wk", "X WTE" labels
+- Display "(excl. on-costs)" or "(inc. on-costs)" indicator on the amount
+
+**8. Update CostBreakdownSection** (`CostBreakdownSection.tsx`)
+- Add column or indicator showing which roles include/exclude on-costs
+- Calculate hourly equiv differently for excluded roles (no on-costs added)
+- Handle daily rate rows appropriately
 
 ### Files Modified
-- `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — add props, add confirmation UI, restrict "Mark as Paid" visibility
+- `src/hooks/useNRESBuyBackRateSettings.ts` — types, defaults
+- `src/hooks/useNRESBuyBackStaff.ts` — interface update
+- `src/hooks/useNRESBuyBackClaims.ts` — calculation logic
+- `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — UI, tooltips, forms
+- `src/components/nres/hours-tracker/EditStaffDialog.tsx` — daily option
+- `src/components/nres/hours-tracker/CostBreakdownSection.tsx` — on-costs column
 
-### Technical Details
-- The `useNRESSystemRoles` hook is already called in the parent; extract PML Finance emails from `roles` array
-- Invoice download uses existing `supabase.storage.from('nres-claim-evidence').createSignedUrl()` pattern
-- The confirmation panel reuses existing invoice/approval metadata already on the claim object (`invoice_number`, `invoice_pdf_path`, `invoice_generated_at`, `approved_by_email`, `reviewed_at`)
-- In test mode with `pml_director` role, the confirmation panel will also display correctly
+### Technical Notes
+- The `includes_on_costs` flag is stored on the `RoleConfig` in `nres_buyback_rate_settings` (JSONB), so no database migration needed
+- Daily rate calculation: `daily_rate × working_days_per_month` (approx 21.67 days or derived from the specific month)
+- Existing claims with sessions/hours/WTE continue to work unchanged
 
