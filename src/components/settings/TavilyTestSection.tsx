@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -22,27 +23,18 @@ export const TavilyTestSection = () => {
     setError(null);
 
     try {
-      const apiKey = import.meta.env.VITE_TAVILY_API_KEY;
-      if (!apiKey) {
-        throw new Error("VITE_TAVILY_API_KEY is not set. Add it as a build secret or VITE_ environment variable.");
-      }
-
-      const res = await fetch("https://api.tavily.com/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: apiKey,
-          query: "NHS primary care news",
-          max_results: 3,
-        }),
+      const { data, error: fnError } = await supabase.functions.invoke("smart-web-search", {
+        body: { query: "NHS primary care news", maxResults: 3 },
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Tavily API returned ${res.status}: ${text}`);
+      if (fnError) {
+        throw new Error(`Edge function error: ${fnError.message}`);
       }
 
-      const data = await res.json();
+      if (!data?.searchPerformed) {
+        throw new Error(data?.error || "Web search not configured on server");
+      }
+
       const items: SearchResult[] = (data.results || []).slice(0, 3).map((r: any) => ({
         title: r.title || "Untitled",
         url: r.url || "",
