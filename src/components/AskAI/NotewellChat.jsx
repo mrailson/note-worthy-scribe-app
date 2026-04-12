@@ -15,7 +15,7 @@ const NHS = {
 };
 const DEFAULT_SETTINGS = {
   responseLength:"balanced", tone:"professional", includeUserContext:true,
-  fontSize:"medium", sidebarMode:"auto", compactMessages:false, showClinicalCaveats:true,
+  fontSize:"medium", sidebarMode:"collapsed", compactMessages:false, showClinicalCaveats:true,
 };
 const FONT_SCALE = { small:0.84, medium:0.91, large:0.98 };
 
@@ -38,7 +38,7 @@ const fmtDate=d=>d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",mon
 const fmtSize=b=>b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";
 const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp"];
 function readBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
-function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function loadScript(url,g){if(window[g])return window[g];await new Promise((res,rej)=>{const s=document.createElement("script");s.src=url;s.onload=res;s.onerror=rej;document.head.appendChild(s);});return window[g];}
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
