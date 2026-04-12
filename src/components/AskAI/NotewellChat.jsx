@@ -204,8 +204,8 @@ const INSTRUCTION_SUGGESTIONS=[
   "Start every response with a one-sentence summary before the detail.",
 ];
 
-function UserProfileModal({user,onClose,vp,onNavigateHome}){
-  const [tab,setTab]=useState("profile");
+function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"}){
+  const [tab,setTab]=useState(initialTab);
   const [pt,setPt]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [it,setIt]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const [saved,setSaved]=useState(false);
@@ -477,7 +477,7 @@ function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
   </div>);
 }
 
-function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome}){
+function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome,onOpenKB}){
   const isMobile=vp==="mobile";
   const autoCollapse=(settings.sidebarMode==="auto"&&(vp==="compact"||isMobile));
   const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
@@ -530,7 +530,7 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
           </button>
         </div>
         {!collapsed&&<div style={{padding:"0 12px 10px",flexShrink:0}}>
-          <button onClick={()=>{onNavigateHome?.();setTimeout(()=>window.location.href="/knowledge-base",100);}} style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",color:"rgba(255,255,255,.65)",width:"100%",fontSize:"0.76rem",display:"flex",alignItems:"center",gap:7,minHeight:38}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.12)";e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.05)";e.currentTarget.style.color="rgba(255,255,255,.65)";}}>
+          <button onClick={()=>{onOpenKB?.();if(isMobile)onToggle();}} style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",color:"rgba(255,255,255,.65)",width:"100%",fontSize:"0.76rem",display:"flex",alignItems:"center",gap:7,minHeight:38}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.12)";e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.05)";e.currentTarget.style.color="rgba(255,255,255,.65)";}}>
             <span>📚</span>Knowledge Base
           </button>
         </div>}
@@ -641,6 +641,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [sidebarForceOpen,setSidebarForceOpen]=useState(false);
   const [showGuide,setShowGuide]=useState(()=>localStorage.getItem("nw_ai_welcomed")!=="1");
   const [showProfile,setShowProfile]=useState(false);
+  const [profileInitialTab,setProfileInitialTab]=useState("profile");
   const [userProfile,setUserProfile]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [customInstructions,setCustomInstructions]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const bottomRef=useRef(null);const textareaRef=useRef(null);const fileInputRef=useRef(null);
@@ -729,9 +730,9 @@ export default function NotewellChat({ user, onNavigateHome }) {
       `}</style>
 
       {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}} vp={vp}/>}
-      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp} onNavigateHome={onNavigateHome}/>}
+      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp} onNavigateHome={onNavigateHome} initialTab={profileInitialTab}/>}
 
-      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)} onNavigateHome={onNavigateHome}/>
+      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)} onNavigateHome={onNavigateHome} onOpenKB={()=>{setProfileInitialTab("kb");setShowProfile(true);}}/>
 
       <div className="nw-wrap" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}} onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles(Array.from(e.dataTransfer.files));}}>
         {dragOver&&<div style={{position:"absolute",inset:0,background:"rgba(0,114,206,.08)",border:`3px dashed ${NHS.brightBlue}`,zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",color:NHS.blue,fontWeight:700}}>📎 Drop to attach</div>}
@@ -785,7 +786,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
             {activeArtifact&&vp!=="compact"&&<button onClick={()=>setActiveArtifact(null)} style={{background:ARTIFACT_TYPES[activeArtifact.type]?.colour+"14",border:`1px solid ${ARTIFACT_TYPES[activeArtifact.type]?.colour}44`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:ARTIFACT_TYPES[activeArtifact.type]?.colour,display:"flex",alignItems:"center",gap:4}}>{ARTIFACT_TYPES[activeArtifact.type]?.icon} {(activeArtifact.title||"").slice(0,20)}{(activeArtifact.title||"").length>20?"…":""}</button>}
 
             {/* My Profile button */}
-            <button onClick={()=>setShowProfile(true)} style={{background:profileActive?NHS.blue+"11":"transparent",border:`1.5px solid ${profileActive?NHS.blue+"44":NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:profileActive?NHS.blue:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=profileActive?NHS.blue+"44":NHS.paleGrey;e.currentTarget.style.color=profileActive?NHS.blue:NHS.midGrey;}} title="My Profile & Custom Instructions">
+            <button onClick={()=>{setProfileInitialTab("profile");setShowProfile(true);}} style={{background:profileActive?NHS.blue+"11":"transparent",border:`1.5px solid ${profileActive?NHS.blue+"44":NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:profileActive?NHS.blue:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=profileActive?NHS.blue+"44":NHS.paleGrey;e.currentTarget.style.color=profileActive?NHS.blue:NHS.midGrey;}} title="My Profile & Custom Instructions">
               👤{vp!=="compact"&&" My Profile"}{profileActive&&<span style={{width:6,height:6,borderRadius:"50%",background:NHS.green,display:"inline-block",flexShrink:0}}/>}
             </button>
 
@@ -798,7 +799,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>setShowProfile(true)}/>:messages.map(m=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp}/></div>)}
+            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map(m=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",color:"#fff",fontWeight:700}}>N</div><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
