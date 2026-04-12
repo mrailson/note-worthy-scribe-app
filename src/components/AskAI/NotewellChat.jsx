@@ -1011,6 +1011,42 @@ export default function NotewellChat({ user, onNavigateHome }) {
     if(nresKeepAliveRef.current)clearInterval(nresKeepAliveRef.current);
     if(nresAudioCtxRef.current)try{nresAudioCtxRef.current.close();}catch{}
   },[]);
+
+  // ── Voice Hub Panel state (desktop only) ─────────────────────────────────────
+  const [voicePanelOpen,setVoicePanelOpen]=useState(false);
+  const [voiceSessionStatus,setVoiceSessionStatus]=useState({});
+  const voiceAudioCtxRef=useRef(null);
+
+  const voiceGetStatus=(id)=>voiceSessionStatus[id]||"idle";
+  const voiceSetStatus=(id,s)=>setVoiceSessionStatus(p=>({...p,[id]:s}));
+
+  // Find any active voice service for banner
+  const activeVoiceService=VOICE_SERVICES.find(s=>voiceGetStatus(s.id)==="active"||voiceGetStatus(s.id)==="connecting");
+
+  const voiceStartSession=useCallback(async(service)=>{
+    voiceSetStatus(service.id,"connecting");
+    try{
+      const AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(AudioCtx){
+        if(!voiceAudioCtxRef.current)voiceAudioCtxRef.current=new AudioCtx();
+        if(voiceAudioCtxRef.current.state==="suspended")await voiceAudioCtxRef.current.resume();
+      }
+      await navigator.mediaDevices.getUserMedia({audio:true});
+      await new Promise(r=>setTimeout(r,400));
+      // TODO: wire real ElevenLabs SDK session per service.agentId
+      // Simulation for now:
+      setTimeout(()=>voiceSetStatus(service.id,"active"),1200);
+    }catch(err){
+      console.error("Voice panel start error:",err);
+      voiceSetStatus(service.id,"error");
+      setTimeout(()=>voiceSetStatus(service.id,"idle"),3000);
+    }
+  },[]);
+
+  const voiceEndSession=useCallback((id)=>{
+    voiceSetStatus(id,"ended");
+    setTimeout(()=>voiceSetStatus(id,"idle"),1500);
+  },[]);
   const startListening=useCallback(()=>{
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){setSpeechError("Speech recognition requires Chrome or Safari 17+");return;}
