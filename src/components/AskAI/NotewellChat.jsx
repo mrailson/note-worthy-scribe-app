@@ -1488,7 +1488,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
 
       {/* Floating Voice Panel + FAB */}
       <VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)}/>
-      {!voicePanelOpen&&<button onClick={()=>setVoicePanelOpen(true)} style={{position:"fixed",bottom:20,right:20,width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#003087,#005EB8)",border:"none",cursor:"pointer",color:"#fff",fontSize:"1.4rem",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(0,48,135,.35)",zIndex:8999,transition:"transform .15s"}} onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.08)";}} onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";}} title="AI Voice Assistant" aria-label="Open AI Voice Assistant">🎙</button>}
+      {!voicePanelOpen&&<button onClick={()=>setVoicePanelOpen(true)} style={{position:"fixed",bottom:80,right:16,width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#003087,#005EB8)",border:"none",cursor:"pointer",color:"#fff",fontSize:"1.4rem",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(0,48,135,.35)",zIndex:8999,transition:"transform .15s"}} onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.08)";}} onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";}} title="AI Voice Assistant" aria-label="Open AI Voice Assistant">🎙</button>}
 
     </div>
   );
