@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, Upload, Loader2, Trash2, RefreshCw, CalendarIcon, BookOpen, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Trash2, RefreshCw, CalendarIcon, BookOpen, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Helmet } from "react-helmet-async";
@@ -58,6 +58,7 @@ export default function KnowledgeBaseAdmin() {
   const [uploading, setUploading] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
   const [reprocessProgress, setReprocessProgress] = useState({ done: 0, total: 0 });
+  const [rowProcessing, setRowProcessing] = useState<Record<string, 'idle' | 'processing' | 'done' | 'error'>>({});
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
@@ -243,12 +244,13 @@ export default function KnowledgeBaseAdmin() {
       toast.error("No file URL available for this document. Please re-upload.");
       return;
     }
-    toast.info(`Re-processing "${doc.title}"…`);
+    setRowProcessing(prev => ({ ...prev, [doc.id]: 'processing' }));
     try {
       const resp = await fetch(doc.file_url);
       const text = await resp.text();
       if (text.length < 50) {
         toast.error("Could not extract sufficient text from the file.");
+        setRowProcessing(prev => ({ ...prev, [doc.id]: 'error' }));
         return;
       }
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -263,12 +265,16 @@ export default function KnowledgeBaseAdmin() {
         body: JSON.stringify({ document_id: doc.id, document_text: text }),
       });
       if (res.ok) {
+        setRowProcessing(prev => ({ ...prev, [doc.id]: 'done' }));
         toast.success(`"${doc.title}" re-processed successfully`);
         loadData();
+        setTimeout(() => setRowProcessing(prev => ({ ...prev, [doc.id]: 'idle' })), 3000);
       } else {
+        setRowProcessing(prev => ({ ...prev, [doc.id]: 'error' }));
         toast.error(`Failed to re-process "${doc.title}"`);
       }
     } catch (err: any) {
+      setRowProcessing(prev => ({ ...prev, [doc.id]: 'error' }));
       toast.error(err.message || "Re-processing failed");
     }
   };
@@ -584,14 +590,25 @@ export default function KnowledgeBaseAdmin() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleReprocess(doc)}
-                                  title="Re-process"
-                                >
-                                  <RefreshCw className="h-3.5 w-3.5" />
-                                </Button>
+                                {rowProcessing[doc.id] === 'processing' ? (
+                                  <Button variant="ghost" size="icon" disabled title="Processing…">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                                  </Button>
+                                ) : rowProcessing[doc.id] === 'done' ? (
+                                  <Button variant="ghost" size="icon" disabled title="Done">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleReprocess(doc)}
+                                    disabled={reprocessing}
+                                    title="Re-process"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="icon"
