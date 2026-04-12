@@ -17,6 +17,11 @@ interface UserProfile {
     clinicalSystem: string;
     logoUrl: string | null;
     primaryColour: string;
+    address: string | null;
+    phone: string | null;
+    email: string | null;
+    website: string | null;
+    footerText: string | null;
   };
   neighbourhood: string;
   icb: string;
@@ -47,6 +52,11 @@ const buildFallbackUser = (authUser: { email?: string | null; user_metadata?: Re
       clinicalSystem: "",
       logoUrl: null,
       primaryColour: "#005EB8",
+      address: null,
+      phone: null,
+      email: null,
+      website: null,
+      footerText: null,
     },
     neighbourhood: "",
     icb: "",
@@ -87,7 +97,7 @@ export default function AskAIPage() {
       // Load practice from practice_details (user's own practice config)
       const { data: practiceDetail } = await supabase
         .from("practice_details")
-        .select("practice_name, ods_code, clinical_system, logo_url, pcn_code")
+        .select("practice_name, ods_code, clinical_system, logo_url, pcn_code, address, phone, email, website, footer_text")
         .eq("user_id", authUser.id)
         .eq("is_default", true)
         .maybeSingle();
@@ -150,6 +160,11 @@ export default function AskAIPage() {
           clinicalSystem: practiceDetail?.clinical_system || fallbackUser.practice.clinicalSystem,
           logoUrl: practiceDetail?.logo_url || fallbackUser.practice.logoUrl,
           primaryColour: fallbackUser.practice.primaryColour,
+          address: practiceDetail?.address || null,
+          phone: practiceDetail?.phone || null,
+          email: practiceDetail?.email || null,
+          website: practiceDetail?.website || null,
+          footerText: practiceDetail?.footer_text || null,
         },
         neighbourhood,
         icb,
