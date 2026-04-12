@@ -734,6 +734,17 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       </Card>
       )}
 
+      <EditStaffDialog
+        open={!!editingStaff}
+        onOpenChange={(open) => { if (!open) setEditingStaff(null); }}
+        staff={editingStaff}
+        saving={savingStaff}
+        onSave={updateStaff}
+        staffRoles={staffRoles}
+        practiceKeys={effectivePracticeKeys}
+        practiceNames={ALL_PRACTICES}
+      />
+
       {effectiveCanCreateClaim && <Separator />}
 
       {/* Create Claim — hidden in mgmt_lead, pml_director, pml_finance test modes */}
