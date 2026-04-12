@@ -86,6 +86,7 @@ import { PageRouteAudit } from '@/components/admin/PageRouteAudit';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
 const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
+const KnowledgeBaseEmbed = lazy(() => import("@/pages/KnowledgeBase"));
 
 // Word lists for memorable password generation
 const PASSWORD_WORDS = [
