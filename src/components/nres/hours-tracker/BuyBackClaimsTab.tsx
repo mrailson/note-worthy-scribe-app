@@ -1813,6 +1813,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         <div className="px-3 py-2 border-t bg-blue-50/50 dark:bg-blue-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           <span>Submitted by: <strong className="text-foreground">{claim.submitted_by_email || '—'}</strong></span>
           <span>on <strong className="text-foreground">{format(new Date(claim.submitted_at), 'dd/MM/yyyy')} at {format(new Date(claim.submitted_at), 'HH:mm')}</strong></span>
+          {!canEdit && (
+            <span className="ml-auto">Declaration: {claim.declaration_confirmed ? '✓ Confirmed' : '✗ Not confirmed'}</span>
+          )}
         </div>
       )}
 
@@ -1931,11 +1934,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              Declaration: {claim.declaration_confirmed ? '✓ Confirmed' : '✗ Not confirmed'}
-            </span>
-          )}
+          ) : null}
         </div>
         {canEdit && (
           <div className="flex items-center gap-2">
