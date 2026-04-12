@@ -204,76 +204,79 @@ const INSTRUCTION_SUGGESTIONS=[
   "Start every response with a one-sentence summary before the detail.",
 ];
 
-function UserProfileModal({user,onClose}){
+function UserProfileModal({user,onClose,vp}){
   const [tab,setTab]=useState("profile");
-  const [profileText,setProfileText]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
-  const [instructionsText,setInstructionsText]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
+  const [pt,setPt]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
+  const [it,setIt]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const [saved,setSaved]=useState(false);
-
-  const handleSave=()=>{
-    try{localStorage.setItem(PROFILE_KEY,profileText);localStorage.setItem(INSTRUCTIONS_KEY,instructionsText);setSaved(true);setTimeout(()=>{setSaved(false);onClose();},900);}
-    catch{alert("Could not save — localStorage may be full.");}
-  };
-  const append=(setter,current,text)=>{setter(current+(current.trim()?"\n":"")+text);};
-  const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.jobTitle&&`Job title: ${user.jobTitle}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`Clinical system: ${user.practice.clinicalSystem}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
-
+  const isMobile=vp==="mobile";
+  const save=()=>{try{localStorage.setItem(PROFILE_KEY,pt);localStorage.setItem(INSTRUCTIONS_KEY,it);setSaved(true);setTimeout(()=>{setSaved(false);onClose();},900);}catch{alert("Could not save — storage may be full.");}};
+  const append=(setter,cur,text)=>setter(cur+(cur.trim()?"\n":"")+text);
+  const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.jobTitle&&`Job title: ${user.jobTitle}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`System: ${user.practice.clinicalSystem}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{width:"100%",maxWidth:600,maxHeight:"88vh",background:"#fff",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 32px 80px rgba(0,0,0,0.22)",animation:"nwSlideUp .22s ease"}}>
-        <div style={{padding:"18px 22px 14px",background:"linear-gradient(135deg,#003087,#005EB8)",color:"#fff"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center",padding:isMobile?0:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{width:"100%",maxWidth:isMobile?"100%":600,maxHeight:isMobile?"92dvh":"88vh",background:"#fff",borderRadius:isMobile?"20px 20px 0 0":16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 -4px 40px rgba(0,0,0,0.18)",animation:"nwSlideUp .25s ease"}}>
+        {isMobile&&<div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",background:"#fff",flexShrink:0}}><div style={{width:40,height:4,borderRadius:2,background:"#D1D5DB"}}/></div>}
+        <div style={{padding:"14px 20px 12px",background:"linear-gradient(135deg,#003087,#005EB8)",color:"#fff",flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <div><h2 style={{margin:0,fontSize:"1.1rem",fontWeight:700}}>My Profile &amp; Instructions</h2><p style={{margin:"3px 0 0",fontSize:"0.74rem",opacity:.7}}>Personalise every conversation · saved to this browser</p></div>
-            <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"6px 10px",fontSize:"1rem"}}>✕</button>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontWeight:900,fontSize:"1rem",color:"#fff",letterSpacing:"-.01em"}}>Notewell</div>
+              <div style={{width:1,height:16,background:"rgba(255,255,255,.3)"}}/>
+              <div>
+                <div style={{fontWeight:700,fontSize:"1rem"}}>My Profile &amp; Instructions</div>
+                <div style={{fontSize:"0.72rem",opacity:.7}}>Saved to this browser · {user.practice.shortName}</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"8px 12px",fontSize:"1rem",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           </div>
           <div style={{display:"flex",gap:4}}>
-            {[["profile","👤 My Profile"],["instructions","⚙️ Custom Instructions"]].map(([t,l])=>(
-              <button key={t} onClick={()=>setTab(t)} style={{padding:"5px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff"}}>{l}</button>
+            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"]].map(([t,l])=>(
+              <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",minHeight:36}}>{l}</button>
             ))}
           </div>
         </div>
-
-        <div style={{overflowY:"auto",flex:1,padding:"18px 22px"}}>
+        <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}>
           {tab==="profile"&&(
             <div>
-              <div style={{background:"#F0F4F8",borderRadius:10,padding:"11px 14px",marginBottom:16}}>
+              <div style={{background:"#F0F4F8",borderRadius:10,padding:"11px 14px",marginBottom:14}}>
                 <div style={{fontWeight:700,fontSize:"0.79rem",color:"#003087",marginBottom:7,display:"flex",alignItems:"center",gap:5}}>
-                  <span style={{background:"#005EB8",color:"#fff",borderRadius:4,padding:"1px 6px",fontSize:"0.66rem"}}>AUTO</span>Loaded from your Notewell account
+                  <span style={{background:"#005EB8",color:"#fff",borderRadius:4,padding:"1px 7px",fontSize:"0.66rem"}}>AUTO</span>
+                  Loaded from your Notewell account
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:"3px 14px"}}>
-                  {autoSummary.map((line,i)=><span key={i} style={{fontSize:"0.76rem",color:"#425563",lineHeight:1.7}}>✓ {line}</span>)}
+                  {autoSummary.map((l,i)=><span key={i} style={{fontSize:"0.76rem",color:"#425563",lineHeight:1.7}}>✓ {l}</span>)}
                 </div>
                 <p style={{fontSize:"0.7rem",color:"#425563",margin:"8px 0 0",fontStyle:"italic"}}>To update these, edit your Notewell account profile.</p>
               </div>
               <label style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",display:"block",marginBottom:5}}>Additional context</label>
-              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>Tell the AI anything extra about your role, focus areas, or working context. Added to every conversation.</p>
-              <textarea value={profileText} onChange={e=>setProfileText(e.target.value.slice(0,1000))} placeholder={"Examples:\n• I primarily focus on Enhanced Access and ARRS workforce planning\n• I have a clinical background — include clinical detail where relevant\n• I work closely with community nursing and social prescribing teams"} rows={5} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"0.83rem",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
-              <div style={{textAlign:"right",fontSize:"0.66rem",color:profileText.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:12}}>{profileText.length} / 1000</div>
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>Tell the AI anything extra about your role or focus areas.</p>
+              <textarea value={pt} onChange={e=>setPt(e.target.value.slice(0,1000))} placeholder={"• I primarily focus on Enhanced Access and ARRS workforce planning\n• I have a clinical background — include clinical detail where relevant"} rows={4} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"16px",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              <div style={{textAlign:"right",fontSize:"0.66rem",color:pt.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:12}}>{pt.length} / 1000</div>
               <div style={{fontWeight:700,fontSize:"0.77rem",color:"#003087",marginBottom:7}}>💡 Quick-add</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {PROFILE_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setProfileText,profileText,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>50?s.slice(0,50)+"…":s}</button>)}
+                {PROFILE_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setPt,pt,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"6px 11px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>46?s.slice(0,46)+"…":s}</button>)}
               </div>
             </div>
           )}
           {tab==="instructions"&&(
             <div>
               <label style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",display:"block",marginBottom:5}}>Custom instructions</label>
-              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>How should the AI respond? Formatting preferences, structural requirements, things it should always or never do.</p>
-              <textarea value={instructionsText} onChange={e=>setInstructionsText(e.target.value.slice(0,1000))} placeholder={"Examples:\n• Always end documents with a 'Next Steps / Actions' section\n• Keep responses concise — I prefer bullet points over paragraphs\n• Format letters with a reference number at the top\n• Always include relevant NHS policy references"} rows={6} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"0.83rem",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
-              <div style={{textAlign:"right",fontSize:"0.66rem",color:instructionsText.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:instructionsText.trim()?8:12}}>{instructionsText.length} / 1000</div>
-              {instructionsText.trim()&&<div style={{background:"#F0F8F0",border:"1.5px solid #00963944",borderRadius:9,padding:"8px 13px",marginBottom:14,fontSize:"0.76rem",color:"#003087"}}><strong style={{color:"#009639"}}>✓ Active</strong> — these instructions apply to every new conversation.</div>}
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>How should the AI respond? Formatting, structure, always/never rules.</p>
+              <textarea value={it} onChange={e=>setIt(e.target.value.slice(0,1000))} placeholder={"• Always end documents with a 'Next Steps / Actions' section\n• Keep responses concise — bullet points over paragraphs\n• Format letters with a reference number at the top"} rows={5} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"16px",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              <div style={{textAlign:"right",fontSize:"0.66rem",color:it.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:it.trim()?8:12}}>{it.length} / 1000</div>
+              {it.trim()&&<div style={{background:"#F0F8F0",border:"1.5px solid #00963944",borderRadius:9,padding:"8px 13px",marginBottom:14,fontSize:"0.76rem",color:"#003087"}}><strong style={{color:"#009639"}}>✓ Active</strong> — these instructions apply to every new conversation.</div>}
               <div style={{fontWeight:700,fontSize:"0.77rem",color:"#003087",marginBottom:7}}>💡 Quick-add</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {INSTRUCTION_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setInstructionsText,instructionsText,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>50?s.slice(0,50)+"…":s}</button>)}
+                {INSTRUCTION_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setIt,it,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"6px 11px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>46?s.slice(0,46)+"…":s}</button>)}
               </div>
             </div>
           )}
         </div>
-
-        <div style={{padding:"12px 22px",borderTop:"1px solid #E8EDEE",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc"}}>
-          <div>{(profileText.trim()||instructionsText.trim())&&<button onClick={()=>{setProfileText("");setInstructionsText("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#DA291C",fontSize:"0.77rem",padding:0}}>🗑 Clear all</button>}</div>
+        <div style={{padding:"12px 20px",borderTop:"1px solid #E8EDEE",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc",flexShrink:0}}>
+          <div>{(pt.trim()||it.trim())&&<button onClick={()=>{setPt("");setIt("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#DA291C",fontSize:"0.77rem",padding:0,minHeight:44}}>🗑 Clear all</button>}</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={onClose} style={{background:"#F0F4F8",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",color:"#425563",fontWeight:600,fontSize:"0.87rem"}}>Cancel</button>
-            <button onClick={handleSave} style={{background:saved?"#009639":"#005EB8",border:"none",borderRadius:8,padding:"8px 22px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",transition:"background .2s",minWidth:90}}>{saved?"✓ Saved!":"Save"}</button>
+            <button onClick={onClose} style={{background:"#F0F4F8",border:"none",borderRadius:8,padding:"10px 18px",cursor:"pointer",color:"#425563",fontWeight:600,fontSize:"0.87rem",minHeight:44}}>Cancel</button>
+            <button onClick={save} style={{background:saved?"#009639":"#005EB8",border:"none",borderRadius:8,padding:"10px 24px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",minWidth:90,minHeight:44,transition:"background .2s"}}>{saved?"✓ Saved!":"Save"}</button>
           </div>
         </div>
       </div>
