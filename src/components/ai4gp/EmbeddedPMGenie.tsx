@@ -9,6 +9,7 @@ import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useVoiceAgentContext } from '@/hooks/useVoiceAgentContext';
 import wakeRing from '@/assets/sounds/uk_phone_ring_two_rings.wav';
 
 interface EmbeddedPMGenieProps {
