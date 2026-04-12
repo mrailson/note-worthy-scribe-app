@@ -8,6 +8,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useConversation } from "@elevenlabs/react";
+import VoicePanel from "@/components/AskAI/VoicePanel";
+import { VOICE_SERVICES } from "@/components/voice/NotewellVoiceHub";
 
 const NHS = {
   blue:"#005EB8", darkBlue:"#003087", brightBlue:"#0072CE",
