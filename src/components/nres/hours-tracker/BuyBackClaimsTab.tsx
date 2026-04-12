@@ -1576,7 +1576,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         const s = staffDetails[idx];
         const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum';
         const evidenceCat = cat === 'gp_locum' ? 'buyback' : cat; // GP Locum uses buyback evidence config
-        const configItems = getConfigForCategory(cat);
+        const configItems = getConfigForCategory(evidenceCat);
         const mandatoryItems = configItems.filter((c: any) => c.is_mandatory);
         const uploadedForStaff = getUploadedTypesForStaff(idx);
 
@@ -1923,7 +1923,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <StaffLineEvidence
-                          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
+                          staffCategory={((s.staff_category === 'gp_locum' ? 'buyback' : s.staff_category) || 'buyback') as 'buyback' | 'new_sda' | 'management'}
                           staffIndex={idx}
                           staffName={s.staff_name}
                           staffRole={s.staff_role}
