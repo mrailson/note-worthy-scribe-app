@@ -116,7 +116,7 @@ const GPAgentInner = () => {
       }
       messagesRef.current = [];
       sessionStartRef.current = new Date();
-      await conversation.startSession({
+      await (conversation as any).startSession({
         agentId: GP_AGENT_ID,
         signedUrl,
       });

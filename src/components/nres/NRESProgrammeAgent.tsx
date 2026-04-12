@@ -76,7 +76,7 @@ const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
         console.error("Could not get signed URL");
         return;
       }
-      await conversation.startSession({
+      await (conversation as any).startSession({
         agentId: NRES_AGENT_ID,
         signedUrl,
       });

@@ -120,7 +120,7 @@ const PatientInner = () => {
       }
       messagesRef.current = [];
       sessionStartRef.current = new Date();
-      await conversation.startSession({
+      await (conversation as any).startSession({
         agentId: PATIENT_AGENT_ID,
         signedUrl,
       });

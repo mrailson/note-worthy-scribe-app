@@ -70,7 +70,7 @@ const PMInner = () => {
         console.error("Could not get signed URL");
         return;
       }
-      await conversation.startSession({
+      await (conversation as any).startSession({
         agentId: PM_AGENT_ID,
         signedUrl,
       });

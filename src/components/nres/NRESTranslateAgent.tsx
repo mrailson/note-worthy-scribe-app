@@ -31,7 +31,7 @@ const TranslateInner = () => {
         console.error("Could not get signed URL");
         return;
       }
-      await conversation.startSession({
+      await (conversation as any).startSession({
         agentId: TRANSLATE_AGENT_ID,
         signedUrl,
       });
