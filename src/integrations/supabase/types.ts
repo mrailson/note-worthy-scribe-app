@@ -7955,12 +7955,15 @@ export type Database = {
       }
       nres_buyback_claims: {
         Row: {
+          actual_payment_date: string | null
           approved_by_email: string | null
+          bacs_reference: string | null
           calculated_amount: number
           claim_month: string
           claimed_amount: number
           created_at: string
           declaration_confirmed: boolean
+          expected_payment_date: string | null
           gl_summary: Json | null
           id: string
           invoice_generated_at: string | null
@@ -7968,6 +7971,11 @@ export type Database = {
           invoice_pdf_path: string | null
           paid_at: string | null
           paid_by: string | null
+          payment_audit_trail: Json | null
+          payment_method: string | null
+          payment_notes: string | null
+          payment_status: string | null
+          pml_po_reference: string | null
           practice_id: string | null
           practice_key: string | null
           queried_at: string | null
@@ -7987,12 +7995,15 @@ export type Database = {
           verified_notes: string | null
         }
         Insert: {
+          actual_payment_date?: string | null
           approved_by_email?: string | null
+          bacs_reference?: string | null
           calculated_amount?: number
           claim_month: string
           claimed_amount?: number
           created_at?: string
           declaration_confirmed?: boolean
+          expected_payment_date?: string | null
           gl_summary?: Json | null
           id?: string
           invoice_generated_at?: string | null
@@ -8000,6 +8011,11 @@ export type Database = {
           invoice_pdf_path?: string | null
           paid_at?: string | null
           paid_by?: string | null
+          payment_audit_trail?: Json | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
+          pml_po_reference?: string | null
           practice_id?: string | null
           practice_key?: string | null
           queried_at?: string | null
@@ -8019,12 +8035,15 @@ export type Database = {
           verified_notes?: string | null
         }
         Update: {
+          actual_payment_date?: string | null
           approved_by_email?: string | null
+          bacs_reference?: string | null
           calculated_amount?: number
           claim_month?: string
           claimed_amount?: number
           created_at?: string
           declaration_confirmed?: boolean
+          expected_payment_date?: string | null
           gl_summary?: Json | null
           id?: string
           invoice_generated_at?: string | null
@@ -8032,6 +8051,11 @@ export type Database = {
           invoice_pdf_path?: string | null
           paid_at?: string | null
           paid_by?: string | null
+          payment_audit_trail?: Json | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
+          pml_po_reference?: string | null
           practice_id?: string | null
           practice_key?: string | null
           queried_at?: string | null
