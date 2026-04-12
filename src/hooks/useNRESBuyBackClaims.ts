@@ -963,27 +963,68 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   };
 
-  /** Mark a claim as paid (Invoiced → Paid) */
-  const markPaid = async (id: string) => {
+  /** Update payment workflow status and fields */
+  const updatePaymentStatus = async (id: string, updates: {
+    payment_status?: string;
+    pml_po_reference?: string;
+    payment_method?: string;
+    bacs_reference?: string;
+    expected_payment_date?: string;
+    actual_payment_date?: string;
+    payment_notes?: string;
+  }) => {
     if (!user?.id || !admin) return;
     try {
       setSaving(true);
+      const claim = claims.find(c => c.id === id);
+      const existingTrail = (claim as any)?.payment_audit_trail || [];
+
+      const dbUpdates: any = { ...updates };
+
+      // If status is changing, append to audit trail
+      if (updates.payment_status) {
+        dbUpdates.payment_audit_trail = [
+          ...existingTrail,
+          {
+            status: updates.payment_status,
+            user_email: user.email || '',
+            timestamp: new Date().toISOString(),
+            notes: updates.payment_notes || undefined,
+          },
+        ];
+
+        // If final status, also mark as paid
+        if (updates.payment_status === 'payment_sent') {
+          dbUpdates.status = 'paid';
+          dbUpdates.paid_at = new Date().toISOString();
+          dbUpdates.paid_by = user.email || null;
+        }
+      }
+
       const { data, error } = await supabase
         .from('nres_buyback_claims')
-        .update({
-          status: 'paid',
-          paid_at: new Date().toISOString(),
-          paid_by: user.email || null,
-        })
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
-      toast.success('Claim marked as paid');
+
+      if (updates.payment_status) {
+        const labels: Record<string, string> = {
+          received: 'Received',
+          entered_on_system: 'Entered on System',
+          scheduled: 'Scheduled for Payment',
+          payment_sent: 'Payment Sent',
+          queried: 'Queried',
+        };
+        toast.success(`Payment status updated: ${labels[updates.payment_status] || updates.payment_status}`);
+      } else {
+        toast.success('Payment details saved');
+      }
     } catch (error) {
-      console.error('Error marking claim as paid:', error);
-      toast.error('Failed to mark as paid');
+      console.error('Error updating payment:', error);
+      toast.error('Failed to update payment');
     } finally {
       setSaving(false);
     }
@@ -1000,7 +1041,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     queryClaim,
     approveClaim,
     rejectClaim,
-    markPaid,
+    updatePaymentStatus,
     updateClaimAmount,
     updateStaffClaimedAmount,
     removeStaffFromClaim,
