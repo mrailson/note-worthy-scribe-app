@@ -1,18 +1,10 @@
 /**
- * Notewell AI Chat — Embedded Component v4
- * Drop into Notewell app as src/components/AskAI/NotewellChat.jsx
- *
- * Props:
- *   user: {
- *     name: string, initials: string, role: string, jobTitle: string,
- *     practice: { name, shortName, odsCode, clinicalSystem, logoUrl, primaryColour },
- *     neighbourhood: string, icb: string
- *   }
- *
- * No standalone top-bar — designed to sit below the existing Notewell nav bar.
- * Height fills 100% of the parent container.
+ * Notewell AI Chat — Complete Component
+ * Includes: streaming chat, Word/Excel/PowerPoint/diagram generation,
+ * file upload, PII guardrails, 7-day history, paste fix, PNG fix,
+ * My Profile & Custom Instructions modal, FRED guide
+ * Props: user { name, initials, role, jobTitle, practice{...}, neighbourhood, icb }
  */
-
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const NHS = {
@@ -21,26 +13,20 @@ const NHS = {
   warmYellow:"#FFB81C", red:"#DA291C", purple:"#7C2855",
   darkGrey:"#231F20", midGrey:"#425563", paleGrey:"#E8EDEE",
 };
-
 const DEFAULT_SETTINGS = {
-  responseLength:"balanced", tone:"professional",
-  includeUserContext:true, fontSize:"medium",
-  sidebarMode:"auto", compactMessages:false, showClinicalCaveats:true,
+  responseLength:"balanced", tone:"professional", includeUserContext:true,
+  fontSize:"medium", sidebarMode:"auto", compactMessages:false, showClinicalCaveats:true,
 };
 const FONT_SCALE = { small:0.84, medium:0.91, large:0.98 };
 
-function useViewport() {
-  const [vp, setVp] = useState(()=>classify(window.innerWidth));
-  useEffect(()=>{
-    const ro=new ResizeObserver(()=>setVp(classify(window.innerWidth)));
-    ro.observe(document.documentElement);
-    return()=>ro.disconnect();
-  },[]);
+function useViewport(){
+  const [vp,setVp]=useState(()=>classify(window.innerWidth));
+  useEffect(()=>{const ro=new ResizeObserver(()=>setVp(classify(window.innerWidth)));ro.observe(document.documentElement);return()=>ro.disconnect();},[]);
   return vp;
 }
 function classify(w){ return w<1100?"compact":w<1600?"standard":"wide"; }
 
-const PII_PATTERNS = [
+const PII_PATTERNS=[
   {pattern:/\b(NHS\s*n(o|umber)\.?)\s*[:=]?\s*\d{3}\s?\d{3}\s?\d{4}/i,label:"NHS Number"},
   {pattern:/\bDOB\s*[:=]\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}/i,label:"Date of Birth"},
 ];
@@ -48,76 +34,69 @@ function detectPII(t){ return PII_PATTERNS.find(p=>p.pattern.test(t)); }
 
 const uid=()=>Math.random().toString(36).slice(2,10);
 const fmt=d=>d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+const fmtDate=d=>d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
 const fmtSize=b=>b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";
 const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp"];
-function readBase64(f){ return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);}); }
-function triggerDownload(blob,filename){ const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000); }
-async function loadScript(url,g){ if(window[g])return window[g]; await new Promise((res,rej)=>{const s=document.createElement("script");s.src=url;s.onload=res;s.onerror=rej;document.head.appendChild(s);}); return window[g]; }
+function readBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
+function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function loadScript(url,g){if(window[g])return window[g];await new Promise((res,rej)=>{const s=document.createElement("script");s.src=url;s.onload=res;s.onerror=rej;document.head.appendChild(s);});return window[g];}
 
-// ── Artifact types ────────────────────────────────────────────────────────────
-const ARTIFACT_TYPES = {
-  docx:{ label:"Word Document",  icon:"📝", ext:".doc",  colour:"#2B579A" },
-  xlsx:{ label:"Excel Report",   icon:"📊", ext:".xlsx", colour:"#217346" },
-  pptx:{ label:"Presentation",   icon:"🖥️", ext:".pptx", colour:"#D24726" },
-  image:{ label:"Diagram / Image",icon:"🎨", ext:".svg",  colour:"#7C2855" },
+// ── localStorage keys ─────────────────────────────────────────────────────────
+const HIST_KEY         = "nw_ai_conv_list";
+const msgKey           = id=>`nw_ai_msgs_${id}`;
+const PROFILE_KEY      = "nw_ai_user_profile";
+const INSTRUCTIONS_KEY = "nw_ai_instructions";
+const RETENTION        = 7*24*60*60*1000;
+const MAX_CONVS        = 60;
+
+function pruneOld(arr,field="updatedAt"){const c=Date.now()-RETENTION;return arr.filter(i=>new Date(i[field]).getTime()>c);}
+function saveHistory(conversations){try{const p=pruneOld(conversations).slice(0,MAX_CONVS);localStorage.setItem(HIST_KEY,JSON.stringify(p));const live=new Set(p.map(c=>c.id));Object.keys(localStorage).filter(k=>k.startsWith("nw_ai_msgs_")).forEach(k=>{if(!live.has(k.replace("nw_ai_msgs_","")))localStorage.removeItem(k);});}catch{}}
+function loadHistory(){try{const s=localStorage.getItem(HIST_KEY);if(!s)return[];return pruneOld(JSON.parse(s)).map(c=>({...c,updatedAt:new Date(c.updatedAt)}));}catch{return[];}}
+function saveMsgs(convId,msgs){try{const t=msgs.filter(m=>!m.streaming).map(m=>({...m,timestamp:m.timestamp instanceof Date?m.timestamp.toISOString():m.timestamp,files:(m.files||[]).map(f=>({name:f.name,mediaType:f.mediaType,size:f.size})),artifact:m.artifact||null}));localStorage.setItem(msgKey(convId),JSON.stringify(t));}catch{}}
+function loadMsgs(convId){try{const s=localStorage.getItem(msgKey(convId));if(!s)return[];return JSON.parse(s).map(m=>({...m,timestamp:new Date(m.timestamp)}));}catch{return[];}}
+function groupByDate(convs){
+  const today=new Date();today.setHours(0,0,0,0);
+  const yesterday=new Date(today);yesterday.setDate(today.getDate()-1);
+  const thisWeek=new Date(today);thisWeek.setDate(today.getDate()-7);
+  const g={"Today":[],"Yesterday":[],"Earlier this week":[],"Last 7 days":[]};
+  convs.forEach(c=>{const d=new Date(c.updatedAt);d.setHours(0,0,0,0);if(d>=today)g.Today.push(c);else if(d>=yesterday)g.Yesterday.push(c);else if(d>=thisWeek)g["Earlier this week"].push(c);else g["Last 7 days"].push(c);});
+  return g;
+}
+
+// ── Artifacts ─────────────────────────────────────────────────────────────────
+const ARTIFACT_TYPES={
+  docx:{label:"Word Document",icon:"📝",ext:".doc",colour:"#2B579A"},
+  xlsx:{label:"Excel Report",icon:"📊",ext:".xlsx",colour:"#217346"},
+  pptx:{label:"Presentation",icon:"🖥️",ext:".pptx",colour:"#D24726"},
+  image:{label:"Diagram / Image",icon:"🎨",ext:".svg",colour:"#7C2855"},
 };
-
-function parseArtifact(text) {
-  const m=text.match(/<<ARTIFACT_START>>([\s\S]*?)<<ARTIFACT_END>>/);
-  if(!m)return null;
-  let raw=m[1].trim();
-  const svgMatch=raw.match(/"svg"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/);
-  if(svgMatch){
-    try{return JSON.parse(raw);}catch{
-      try{
-        const without=raw.replace(/"svg"\s*:\s*"[\s\S]*?"(?=\s*[,}])/,'"svg":"__SVG__"');
-        const obj=JSON.parse(without);
-        obj.svg=svgMatch[1].replace(/\\n/g,"\n").replace(/\\t/g,"\t").replace(/\\"/g,'"');
-        return obj;
-      }catch{return null;}
-    }
-  }
+function parseArtifact(text){
+  const m=text.match(/<<ARTIFACT_START>>([\s\S]*?)<<ARTIFACT_END>>/);if(!m)return null;
+  const raw=m[1].trim();const svgMatch=raw.match(/"svg"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/);
+  if(svgMatch){try{return JSON.parse(raw);}catch{try{const w=raw.replace(/"svg"\s*:\s*"[\s\S]*?"(?=\s*[,}])/,'"svg":"__SVG__"');const obj=JSON.parse(w);obj.svg=svgMatch[1].replace(/\\n/g,"\n").replace(/\\t/g,"\t").replace(/\\"/g,'"');return obj;}catch{return null;}}}
   try{return JSON.parse(raw);}catch{return null;}
 }
-function stripArtifact(t){ return t.replace(/\n?<<ARTIFACT_START>>[\s\S]*?<<ARTIFACT_END>>\n?/g,"").trim(); }
+function stripArtifact(t){return t.replace(/\n?<<ARTIFACT_START>>[\s\S]*?<<ARTIFACT_END>>\n?/g,"").trim();}
 
-// ── File generators ───────────────────────────────────────────────────────────
-function generateDocxBlob(a) {
+function generateDocxBlob(a){
   const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const body=(a.sections||[]).map(s=>{
-    switch(s.type){
-      case"h1":return`<h1>${esc(s.text)}</h1>`;
-      case"h2":return`<h2>${esc(s.text)}</h2>`;
-      case"h3":return`<h3>${esc(s.text)}</h3>`;
-      case"p":return`<p>${esc(s.text)}</p>`;
-      case"bullets":return`<ul>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`;
-      case"numbered":return`<ol>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ol>`;
-      case"callout":return`<div style="background:#EDF4FF;border-left:4px solid #005EB8;padding:8pt 12pt;margin:10pt 0"><p style="margin:0">${esc(s.text)}</p></div>`;
-      case"table":return`<table><thead><tr>${(s.headers||[]).map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${(s.rows||[]).map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
-      case"pagebreak":return`<br style="page-break-before:always">`;
-      default:return"";
-    }
-  }).join("\n");
+  const body=(a.sections||[]).map(s=>{switch(s.type){case"h1":return`<h1>${esc(s.text)}</h1>`;case"h2":return`<h2>${esc(s.text)}</h2>`;case"h3":return`<h3>${esc(s.text)}</h3>`;case"p":return`<p>${esc(s.text)}</p>`;case"bullets":return`<ul>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`;case"numbered":return`<ol>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ol>`;case"callout":return`<div style="background:#EDF4FF;border-left:4px solid #005EB8;padding:8pt 12pt;margin:10pt 0"><p style="margin:0">${esc(s.text)}</p></div>`;case"table":return`<table><thead><tr>${(s.headers||[]).map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${(s.rows||[]).map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;case"pagebreak":return`<br style="page-break-before:always">`;default:return"";}}).join("\n");
   const m=a.meta||{};
   const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>@page{margin:2cm}body{font-family:Arial,sans-serif;font-size:11pt;color:#231F20}h1{font-size:18pt;color:#003087;border-bottom:2px solid #005EB8;padding-bottom:4pt;margin-top:0}h2{font-size:14pt;color:#003087;margin-top:16pt}h3{font-size:12pt;color:#005EB8;margin-top:12pt}p{line-height:1.6;margin:6pt 0}ul,ol{margin:6pt 0;padding-left:24pt}li{margin:3pt 0;line-height:1.5}table{border-collapse:collapse;width:100%;margin:12pt 0}th{background:#005EB8;color:#fff;padding:6pt 8pt;font-size:10pt;text-align:left}td{border:1px solid #C8D3DC;padding:5pt 8pt;font-size:10pt;vertical-align:top}tr:nth-child(even)td{background:#F0F4F8}.footer{font-size:8pt;color:#999;border-top:1px solid #ddd;margin-top:24pt;padding-top:6pt}</style></head><body><div style="background:#003087;color:#fff;padding:12pt;margin-bottom:16pt;border-radius:4pt"><h1 style="color:#fff;border:none;margin:0;padding:0;font-size:18pt">${esc(a.title||"Document")}</h1>${m.author?`<div style="font-size:9pt;opacity:.7;margin-top:4pt">${esc(m.author)} · ${esc(m.organisation||"")} · ${m.date||new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div>`:""}</div>${body}<div class="footer">Generated by Notewell AI · DCB0129/DCB0160 · MHRA Class I · ICO ZB226324 · Always apply professional judgement.</div></body></html>`;
   return new Blob([html],{type:"application/msword"});
 }
-async function generateXlsxBlob(a) {
+async function generateXlsxBlob(a){
   const XLSX=await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","XLSX");
   const wb=XLSX.utils.book_new();
-  for(const sheet of(a.sheets||[])){
-    const ws=XLSX.utils.aoa_to_sheet([sheet.headers||[],...(sheet.rows||[])]);
-    if(sheet.columnWidths)ws["!cols"]=sheet.columnWidths.map(w=>({wch:w}));
-    XLSX.utils.book_append_sheet(wb,ws,sheet.name||"Sheet1");
-  }
+  for(const sheet of(a.sheets||[])){const ws=XLSX.utils.aoa_to_sheet([sheet.headers||[],...(sheet.rows||[])]);if(sheet.columnWidths)ws["!cols"]=sheet.columnWidths.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,sheet.name||"Sheet1");}
   return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
-async function generatePptxBlob(a) {
+async function generatePptxBlob(a){
   const PptxGenJS=await loadScript("https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundled.js","PptxGenJS");
-  const pptx=new PptxGenJS(); pptx.layout="LAYOUT_WIDE";
+  const pptx=new PptxGenJS();pptx.layout="LAYOUT_WIDE";
   const DARK="003087",MID="005EB8",WHITE="FFFFFF",GREY="425563";
   (a.slides||[]).forEach((slide,idx)=>{
-    const s=pptx.addSlide(); const dark=idx===0||idx===(a.slides.length-1);
+    const s=pptx.addSlide();const dark=idx===0||idx===(a.slides.length-1);
     s.background={fill:dark?DARK:WHITE};
     s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:MID},line:{type:"none"}});
     s.addShape(pptx.ShapeType.rect,{x:0,y:6.9,w:"100%",h:0.25,fill:{color:dark?"002060":"F0F4F8"},line:{type:"none"}});
@@ -125,59 +104,46 @@ async function generatePptxBlob(a) {
     s.addText(`${idx+1}/${a.slides.length}`,{x:9.5,y:6.92,w:0.8,h:0.18,fontSize:7,color:dark?"6699CC":GREY,fontFace:"Arial",align:"right"});
     const TC=dark?WHITE:DARK;
     switch(slide.layout){
-      case"title":
-        s.addShape(pptx.ShapeType.rect,{x:0.5,y:1.5,w:9.3,h:3.8,fill:{color:"002060"},line:{color:"41B6E6",pt:1},rounding:true});
-        s.addText(slide.title||"",{x:0.8,y:1.9,w:8.7,h:1.8,fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true});
-        if(slide.subtitle)s.addText(slide.subtitle,{x:0.8,y:3.7,w:8.7,h:0.9,fontSize:16,color:"41B6E6",fontFace:"Arial",align:"center",wrap:true});
-        if(slide.meta)s.addText(slide.meta,{x:0.8,y:5.4,w:8.7,h:0.6,fontSize:11,color:"8899AA",fontFace:"Arial",align:"center"});
-        break;
-      case"stat":
-        s.addText(slide.title||"",{x:0.4,y:0.15,w:9.5,h:0.7,fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true});
-        s.addShape(pptx.ShapeType.rect,{x:0.4,y:0.9,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});
-        const stats=slide.stats||[];const cw=9.4/Math.max(stats.length,1);
-        stats.forEach((st,i)=>{const x=0.4+i*cw;s.addShape(pptx.ShapeType.rect,{x:x+0.1,y:1.1,w:cw-0.2,h:4.0,fill:{color:dark?"002060":"EDF4FF"},line:{color:MID,pt:1},rounding:true});s.addText(st.value||"",{x:x+0.1,y:1.5,w:cw-0.2,h:1.8,fontSize:52,bold:true,color:MID,fontFace:"Arial Black",align:"center",valign:"middle"});s.addText(st.label||"",{x:x+0.1,y:3.3,w:cw-0.2,h:0.8,fontSize:12,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true});});
-        break;
-      case"two-col":
-        s.addText(slide.title||"",{x:0.4,y:0.15,w:9.5,h:0.75,fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true});
-        s.addShape(pptx.ShapeType.rect,{x:0.4,y:0.95,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});
-        ["left","right"].forEach((side,i)=>{const col=slide[side]||{};const xOff=i===0?0.4:5.2;if(col.heading){s.addShape(pptx.ShapeType.rect,{x:xOff,y:1.1,w:4.4,h:0.4,fill:{color:MID},line:{type:"none"},rounding:true});s.addText(col.heading,{x:xOff+0.1,y:1.12,w:4.2,h:0.36,fontSize:12,bold:true,color:WHITE,fontFace:"Arial",valign:"middle"});}if(col.bullets?.length){s.addText(col.bullets.map(b=>({text:"  "+b,options:{bullet:{type:"bullet",code:"2022",color:MID},fontSize:12,color:dark?WHITE:DARK,fontFace:"Arial",paraSpaceAfter:5}})),{x:xOff,y:1.6,w:4.4,h:5,wrap:true,valign:"top"});}});
-        s.addShape(pptx.ShapeType.rect,{x:4.95,y:1.0,w:0.03,h:5.8,fill:{color:"DDDDDD"},line:{type:"none"}});
-        break;
-      default:
-        s.addText(slide.title||"",{x:0.4,y:0.2,w:9.5,h:0.8,fontSize:28,bold:true,color:TC,fontFace:"Arial Black",wrap:true});
-        s.addShape(pptx.ShapeType.rect,{x:0.4,y:1.05,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});
-        if(slide.bullets?.length){s.addText(slide.bullets.map(b=>({text:"  "+b,options:{bullet:{type:"bullet",code:"2022",color:MID},fontSize:14,color:dark?WHITE:DARK,fontFace:"Arial",paraSpaceAfter:6}})),{x:0.4,y:1.2,w:9.4,h:5.5,fontFace:"Arial",wrap:true,valign:"top"});}
-        else if(slide.body)s.addText(slide.body,{x:0.4,y:1.2,w:9.4,h:5.5,fontSize:14,color:dark?WHITE:DARK,fontFace:"Arial",wrap:true,valign:"top"});
+      case"title":s.addShape(pptx.ShapeType.rect,{x:0.5,y:1.5,w:9.3,h:3.8,fill:{color:"002060"},line:{color:"41B6E6",pt:1},rounding:true});s.addText(slide.title||"",{x:0.8,y:1.9,w:8.7,h:1.8,fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true});if(slide.subtitle)s.addText(slide.subtitle,{x:0.8,y:3.7,w:8.7,h:0.9,fontSize:16,color:"41B6E6",fontFace:"Arial",align:"center",wrap:true});if(slide.meta)s.addText(slide.meta,{x:0.8,y:5.4,w:8.7,h:0.6,fontSize:11,color:"8899AA",fontFace:"Arial",align:"center"});break;
+      case"stat":s.addText(slide.title||"",{x:0.4,y:0.15,w:9.5,h:0.7,fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true});s.addShape(pptx.ShapeType.rect,{x:0.4,y:0.9,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});const stats=slide.stats||[];const cw=9.4/Math.max(stats.length,1);stats.forEach((st,i)=>{const x=0.4+i*cw;s.addShape(pptx.ShapeType.rect,{x:x+0.1,y:1.1,w:cw-0.2,h:4.0,fill:{color:dark?"002060":"EDF4FF"},line:{color:MID,pt:1},rounding:true});s.addText(st.value||"",{x:x+0.1,y:1.5,w:cw-0.2,h:1.8,fontSize:52,bold:true,color:MID,fontFace:"Arial Black",align:"center",valign:"middle"});s.addText(st.label||"",{x:x+0.1,y:3.3,w:cw-0.2,h:0.8,fontSize:12,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true});});break;
+      case"two-col":s.addText(slide.title||"",{x:0.4,y:0.15,w:9.5,h:0.75,fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true});s.addShape(pptx.ShapeType.rect,{x:0.4,y:0.95,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});["left","right"].forEach((side,i)=>{const col=slide[side]||{};const xOff=i===0?0.4:5.2;if(col.heading){s.addShape(pptx.ShapeType.rect,{x:xOff,y:1.1,w:4.4,h:0.4,fill:{color:MID},line:{type:"none"},rounding:true});s.addText(col.heading,{x:xOff+0.1,y:1.12,w:4.2,h:0.36,fontSize:12,bold:true,color:WHITE,fontFace:"Arial",valign:"middle"});}if(col.bullets?.length){s.addText(col.bullets.map(b=>({text:"  "+b,options:{bullet:{type:"bullet",code:"2022",color:MID},fontSize:12,color:dark?WHITE:"231F20",fontFace:"Arial",paraSpaceAfter:5}})),{x:xOff,y:1.6,w:4.4,h:5,wrap:true,valign:"top"});}});s.addShape(pptx.ShapeType.rect,{x:4.95,y:1.0,w:0.03,h:5.8,fill:{color:"DDDDDD"},line:{type:"none"}});break;
+      default:s.addText(slide.title||"",{x:0.4,y:0.2,w:9.5,h:0.8,fontSize:28,bold:true,color:TC,fontFace:"Arial Black",wrap:true});s.addShape(pptx.ShapeType.rect,{x:0.4,y:1.05,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});if(slide.bullets?.length){s.addText(slide.bullets.map(b=>({text:"  "+b,options:{bullet:{type:"bullet",code:"2022",color:MID},fontSize:14,color:dark?WHITE:"231F20",fontFace:"Arial",paraSpaceAfter:6}})),{x:0.4,y:1.2,w:9.4,h:5.5,fontFace:"Arial",wrap:true,valign:"top"});}else if(slide.body)s.addText(slide.body,{x:0.4,y:1.2,w:9.4,h:5.5,fontSize:14,color:dark?WHITE:"231F20",fontFace:"Arial",wrap:true,valign:"top"});
     }
   });
   return new Blob([await pptx.write({outputType:"arraybuffer"})],{type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"});
 }
-function downloadSvg(a){ triggerDownload(new Blob([a.svg],{type:"image/svg+xml"}),(a.filename||"diagram")+".svg"); }
+function downloadSvg(a){triggerDownload(new Blob([a.svg],{type:"image/svg+xml"}),(a.filename||"diagram")+".svg");}
 async function downloadPng(a){
-  return new Promise((res,rej)=>{
-    const url=URL.createObjectURL(new Blob([a.svg],{type:"image/svg+xml;charset=utf-8"}));
+  const svgStr=a.svg||"";
+  let w=800,h=500;
+  const vb=svgStr.match(/viewBox=["']([^"']+)["']/);if(vb){const p=vb[1].trim().split(/[\s,]+/);if(p.length>=4){w=parseFloat(p[2])||800;h=parseFloat(p[3])||500;}}
+  const wM=svgStr.match(/\swidth=["'](\d+(?:\.\d+)?)["']/);const hM=svgStr.match(/\sheight=["'](\d+(?:\.\d+)?)["']/);
+  if(wM&&!svgStr.match(/width=["']100%["']/))w=parseFloat(wM[1])||w;
+  if(hM&&!svgStr.match(/height=["']100%["']/))h=parseFloat(hM[1])||h;
+  const svgE=svgStr.replace(/<svg([^>]*)>/,(_,attrs)=>{const c=attrs.replace(/\s+width=["'][^"']*["']/g,"").replace(/\s+height=["'][^"']*["']/g,"");return`<svg${c} width="${w}" height="${h}">`;});
+  return new Promise((resolve,reject)=>{
+    let encoded;try{encoded=btoa(unescape(encodeURIComponent(svgE)));}catch(e){try{encoded=btoa(svgE);}catch(e2){reject(new Error("SVG encoding failed"));return;}}
     const img=new Image();
-    img.onload=()=>{
-      const sc=2;const cv=document.createElement("canvas");cv.width=img.naturalWidth*sc;cv.height=img.naturalHeight*sc;
-      const ctx=cv.getContext("2d");ctx.scale(sc,sc);ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0);
-      cv.toBlob(blob=>{triggerDownload(blob,(a.filename||"diagram")+".png");URL.revokeObjectURL(url);res();},"image/png");
-    };
-    img.onerror=rej;img.src=url;
+    img.onload=()=>{const sc=2;const cv=document.createElement("canvas");cv.width=w*sc;cv.height=h*sc;const ctx=cv.getContext("2d");ctx.fillStyle="#ffffff";ctx.fillRect(0,0,cv.width,cv.height);ctx.scale(sc,sc);ctx.drawImage(img,0,0,w,h);cv.toBlob(blob=>{if(blob){triggerDownload(blob,(a.filename||"diagram")+".png");resolve();}else reject(new Error("PNG generation failed — try SVG instead"));},"image/png");};
+    img.onerror=()=>reject(new Error("Could not render SVG — try SVG download instead"));
+    img.src=`data:image/svg+xml;base64,${encoded}`;
   });
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────────
-function buildSystemPrompt(user,settings){
+function buildSystemPrompt(user,settings,userProfile,customInstructions){
   const ctx=settings.includeUserContext?`
 USER CONTEXT (personalise all responses with this):
 - Name: ${user.name} | Role: ${user.role}${user.jobTitle?` / ${user.jobTitle}`:""}
-- Practice/PCN: ${user.practice.name} (ODS: ${user.practice.odsCode})
+- Practice/PCN: ${user.practice.name} (ODS: ${user.practice.odsCode||""})
 - Neighbourhood: ${user.neighbourhood||""} | ICB: ${user.icb||""}
 - Clinical system: ${user.practice.clinicalSystem||""}
-Use this user's practice name in all drafted documents automatically.`:"";
-
+Use the practice name in drafted documents automatically.`:"";
+  const extraProfile=userProfile?.trim()?`\n\nADDITIONAL USER CONTEXT (user-provided — treat as authoritative):\n${userProfile.trim()}`:"";
+  const instructions=customInstructions?.trim()?`\n\nCUSTOM INSTRUCTIONS (follow in every response):\n${customInstructions.trim()}`:"";
   return `You are Notewell AI Assistant — an NHS-grade clinical AI for primary care professionals.
-${ctx}
+${ctx}${extraProfile}${instructions}
+
 TONE: ${settings.tone==="clinical"?"Precise clinical language.":settings.tone==="conversational"?"Plain conversational English.":"Clear professional NHS standard."}
 LENGTH: ${settings.responseLength==="concise"?"Brief, bullet-focused.":settings.responseLength==="detailed"?"Comprehensive with full context.":"Thorough but efficient."}
 
@@ -185,28 +151,22 @@ GUARDRAILS (mandatory — never override):
 - Never reproduce real patient PII/PHI. If detected, stop and ask the user to anonymise it.
 - Never give definitive clinical diagnoses — always caveat clinical thinking.
 - Always recommend clinical oversight for outputs used in patient care.
-- For safeguarding: always recommend immediate escalation to the appropriate authority.
-- For medication dosing: always recommend BNF/local formulary verification.
-- Be transparent about uncertainty.
+- Safeguarding: always recommend immediate escalation.
+- Medication dosing: always recommend BNF/local formulary verification.
 
-ARTIFACT GENERATION — when user requests a document, spreadsheet, presentation, or image:
-Give a brief 1-2 sentence confirmation, then append the artifact spec at the end:
-
+ARTIFACT GENERATION — Word docs, Excel, PowerPoint, diagrams:
+Give 1-2 sentence confirmation then append:
 <<ARTIFACT_START>>
 { ...valid JSON only... }
 <<ARTIFACT_END>>
 
-DOCX: {"type":"docx","title":"...","filename":"kebab-name","meta":{"author":"${user.name}","organisation":"${user.practice.name}","date":"${new Date().toLocaleDateString("en-GB")}"},"sections":[{"type":"h1","text":"..."},{"type":"h2","text":"..."},{"type":"p","text":"..."},{"type":"bullets","items":["..."]},{"type":"numbered","items":["..."]},{"type":"callout","text":"..."},{"type":"table","headers":["A","B"],"rows":[["val","val"]]},{"type":"pagebreak"}]}
-
-XLSX: {"type":"xlsx","title":"...","filename":"kebab-name","sheets":[{"name":"Sheet1","headers":["Col A","Col B"],"rows":[["data","data"]],"columnWidths":[25,20]}]}
-
-PPTX: {"type":"pptx","title":"...","filename":"kebab-name","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["...","..."]},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
-
-IMAGE: {"type":"image","title":"...","filename":"kebab-name","alt":"description","svg":"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'>...</svg>"}
-SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JavaScript in SVG. Escape all quotes as \\".`;
+DOCX: {"type":"docx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}","date":"${new Date().toLocaleDateString("en-GB")}"},"sections":[{"type":"h1","text":"..."},{"type":"h2","text":"..."},{"type":"p","text":"..."},{"type":"bullets","items":["..."]},{"type":"numbered","items":["..."]},{"type":"callout","text":"..."},{"type":"table","headers":["A","B"],"rows":[["val","val"]]},{"type":"pagebreak"}]}
+XLSX: {"type":"xlsx","title":"...","filename":"kebab","sheets":[{"name":"Sheet1","headers":["Col A","Col B"],"rows":[["data","data"]],"columnWidths":[25,20]}]}
+PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."]},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
+IMAGE: {"type":"image","title":"...","filename":"kebab","alt":"description","svg":"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'>...</svg>"}
+SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Escape quotes as \\".`;
 }
 
-// ── Markdown renderer ─────────────────────────────────────────────────────────
 function renderMd(t){
   return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*(.+?)\*/g,"<em>$1</em>")
@@ -220,21 +180,110 @@ function renderMd(t){
     .replace(/\n{2,}/g,"</p><p style='margin:6px 0'>").replace(/\n/g,"<br>");
 }
 
-// ── Capability / prompting guide modal ────────────────────────────────────────
-const CAPABILITIES=[
-  {icon:"💬",title:"Chat & Ask",colour:NHS.blue,desc:"NHS primary care, policies, contracts, ARRS, governance, clinical queries."},
-  {icon:"📝",title:"Word Documents",colour:"#2B579A",desc:"Letters, SOPs, policies, reports, complaints — formatted .doc files."},
-  {icon:"📊",title:"Excel Reports",colour:"#217346",desc:"Spreadsheets, trackers, dashboards — real .xlsx files you can edit."},
-  {icon:"🖥️",title:"Presentations",colour:"#D24726",desc:"PowerPoint decks for board meetings, programmes — NHS-styled .pptx."},
-  {icon:"🎨",title:"Diagrams",colour:NHS.purple,desc:"Process flows, pathway diagrams, infographics — SVG & PNG download."},
-  {icon:"📎",title:"File Upload",colour:NHS.aquaBlue,desc:"Attach PDFs, Word docs, images and ask Notewell AI to analyse them."},
+// ── Profile & Instructions Modal ──────────────────────────────────────────────
+const PROFILE_SUGGESTIONS=[
+  "I primarily focus on Enhanced Access and ARRS workforce planning.",
+  "I work mainly in SystmOne and prefer SystmOne-specific guidance.",
+  "I have a clinical background — include clinical detail where relevant.",
+  "I manage both EMIS and SystmOne practices across the PCN.",
+  "I'm the lead for digital transformation and prefer tech-forward solutions.",
+  "I work closely with community nursing and social prescribing teams.",
+  "I cover multiple PCNs and need responses applicable across practices.",
+  "I'm new to NHS primary care management — keep jargon to a minimum.",
 ];
-const FRED=[
-  {l:"F",w:"Frame the context",c:NHS.blue,d:"Who you are, what you need, and why. Even though the AI knows your name and practice, the more context you give, the better the output."},
-  {l:"R",w:"Role or format",c:NHS.green,d:"Letter? Table? Board report? Clinical or plain English? Tell it what format the output should take and who will read it."},
-  {l:"E",w:"Examples / expectations",c:NHS.purple,d:"Describe what 'good' looks like — 'professional tone', 'NHS letter format', '2 pages', 'summary box at the top'."},
-  {l:"D",w:"Detail and data",c:"#B07000",d:"Give it the raw material — clinical findings, staff names, dates, figures. Attach background documents. The AI writes best when it has the facts."},
+const INSTRUCTION_SUGGESTIONS=[
+  "Always end documents with a clear 'Next Steps / Actions' section.",
+  "Format letters with a reference number at the top (e.g. REF: BTL-2026-001).",
+  "Keep responses concise — I prefer bullet points over long paragraphs.",
+  "Always include a 'Key Risks' section in governance or board documents.",
+  "When drafting emails, include a brief subject line suggestion.",
+  "Use plain English — avoid jargon wherever possible.",
+  "Include relevant NHS policy or contract references where applicable.",
+  "Flag anything needing clinical sign-off with a ⚕️ symbol.",
+  "Present information in tables rather than prose where possible.",
+  "Start every response with a one-sentence summary before the detail.",
 ];
+
+function UserProfileModal({user,onClose}){
+  const [tab,setTab]=useState("profile");
+  const [profileText,setProfileText]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
+  const [instructionsText,setInstructionsText]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
+  const [saved,setSaved]=useState(false);
+
+  const handleSave=()=>{
+    try{localStorage.setItem(PROFILE_KEY,profileText);localStorage.setItem(INSTRUCTIONS_KEY,instructionsText);setSaved(true);setTimeout(()=>{setSaved(false);onClose();},900);}
+    catch{alert("Could not save — localStorage may be full.");}
+  };
+  const append=(setter,current,text)=>{setter(current+(current.trim()?"\n":"")+text);};
+  const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.jobTitle&&`Job title: ${user.jobTitle}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`Clinical system: ${user.practice.clinicalSystem}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{width:"100%",maxWidth:600,maxHeight:"88vh",background:"#fff",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 32px 80px rgba(0,0,0,0.22)",animation:"nwSlideUp .22s ease"}}>
+        <div style={{padding:"18px 22px 14px",background:"linear-gradient(135deg,#003087,#005EB8)",color:"#fff"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div><h2 style={{margin:0,fontSize:"1.1rem",fontWeight:700}}>My Profile &amp; Instructions</h2><p style={{margin:"3px 0 0",fontSize:"0.74rem",opacity:.7}}>Personalise every conversation · saved to this browser</p></div>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"6px 10px",fontSize:"1rem"}}>✕</button>
+          </div>
+          <div style={{display:"flex",gap:4}}>
+            {[["profile","👤 My Profile"],["instructions","⚙️ Custom Instructions"]].map(([t,l])=>(
+              <button key={t} onClick={()=>setTab(t)} style={{padding:"5px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff"}}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{overflowY:"auto",flex:1,padding:"18px 22px"}}>
+          {tab==="profile"&&(
+            <div>
+              <div style={{background:"#F0F4F8",borderRadius:10,padding:"11px 14px",marginBottom:16}}>
+                <div style={{fontWeight:700,fontSize:"0.79rem",color:"#003087",marginBottom:7,display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{background:"#005EB8",color:"#fff",borderRadius:4,padding:"1px 6px",fontSize:"0.66rem"}}>AUTO</span>Loaded from your Notewell account
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:"3px 14px"}}>
+                  {autoSummary.map((line,i)=><span key={i} style={{fontSize:"0.76rem",color:"#425563",lineHeight:1.7}}>✓ {line}</span>)}
+                </div>
+                <p style={{fontSize:"0.7rem",color:"#425563",margin:"8px 0 0",fontStyle:"italic"}}>To update these, edit your Notewell account profile.</p>
+              </div>
+              <label style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",display:"block",marginBottom:5}}>Additional context</label>
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>Tell the AI anything extra about your role, focus areas, or working context. Added to every conversation.</p>
+              <textarea value={profileText} onChange={e=>setProfileText(e.target.value.slice(0,1000))} placeholder={"Examples:\n• I primarily focus on Enhanced Access and ARRS workforce planning\n• I have a clinical background — include clinical detail where relevant\n• I work closely with community nursing and social prescribing teams"} rows={5} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"0.83rem",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              <div style={{textAlign:"right",fontSize:"0.66rem",color:profileText.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:12}}>{profileText.length} / 1000</div>
+              <div style={{fontWeight:700,fontSize:"0.77rem",color:"#003087",marginBottom:7}}>💡 Quick-add</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {PROFILE_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setProfileText,profileText,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>50?s.slice(0,50)+"…":s}</button>)}
+              </div>
+            </div>
+          )}
+          {tab==="instructions"&&(
+            <div>
+              <label style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",display:"block",marginBottom:5}}>Custom instructions</label>
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>How should the AI respond? Formatting preferences, structural requirements, things it should always or never do.</p>
+              <textarea value={instructionsText} onChange={e=>setInstructionsText(e.target.value.slice(0,1000))} placeholder={"Examples:\n• Always end documents with a 'Next Steps / Actions' section\n• Keep responses concise — I prefer bullet points over paragraphs\n• Format letters with a reference number at the top\n• Always include relevant NHS policy references"} rows={6} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"0.83rem",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              <div style={{textAlign:"right",fontSize:"0.66rem",color:instructionsText.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:instructionsText.trim()?8:12}}>{instructionsText.length} / 1000</div>
+              {instructionsText.trim()&&<div style={{background:"#F0F8F0",border:"1.5px solid #00963944",borderRadius:9,padding:"8px 13px",marginBottom:14,fontSize:"0.76rem",color:"#003087"}}><strong style={{color:"#009639"}}>✓ Active</strong> — these instructions apply to every new conversation.</div>}
+              <div style={{fontWeight:700,fontSize:"0.77rem",color:"#003087",marginBottom:7}}>💡 Quick-add</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                {INSTRUCTION_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setInstructionsText,instructionsText,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>50?s.slice(0,50)+"…":s}</button>)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{padding:"12px 22px",borderTop:"1px solid #E8EDEE",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc"}}>
+          <div>{(profileText.trim()||instructionsText.trim())&&<button onClick={()=>{setProfileText("");setInstructionsText("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#DA291C",fontSize:"0.77rem",padding:0}}>🗑 Clear all</button>}</div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={onClose} style={{background:"#F0F4F8",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",color:"#425563",fontWeight:600,fontSize:"0.87rem"}}>Cancel</button>
+            <button onClick={handleSave} style={{background:saved?"#009639":"#005EB8",border:"none",borderRadius:8,padding:"8px 22px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",transition:"background .2s",minWidth:90}}>{saved?"✓ Saved!":"Save"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Guide Modal ───────────────────────────────────────────────────────────────
+const CAPABILITIES=[{icon:"💬",title:"Chat & Ask",colour:NHS.blue,desc:"NHS primary care, policies, contracts, ARRS, governance, clinical queries."},{icon:"📝",title:"Word Documents",colour:"#2B579A",desc:"Letters, SOPs, policies, reports — formatted .doc files."},{icon:"📊",title:"Excel Reports",colour:"#217346",desc:"Spreadsheets, trackers, dashboards — real .xlsx files."},{icon:"🖥️",title:"Presentations",colour:"#D24726",desc:"NHS-styled PowerPoint decks for board meetings."},{icon:"🎨",title:"Diagrams",colour:NHS.purple,desc:"Process flows, pathway diagrams, infographics — SVG & PNG."},{icon:"📎",title:"File Upload",colour:NHS.aquaBlue,desc:"Attach PDFs, Word docs, images for analysis."}];
+const FRED=[{l:"F",w:"Frame the context",c:NHS.blue,d:"Who you are, what you need, why — extra context always helps."},{l:"R",w:"Role or format",c:NHS.green,d:"Letter? Table? Board report? Clinical or plain English?"},{l:"E",w:"Examples / expectations",c:NHS.purple,d:"'Professional tone', 'NHS letter format', '2 pages', 'summary box at top'."},{l:"D",w:"Detail and data",c:"#B07000",d:"Clinical findings, staff names, dates, figures. Attach documents."}];
 
 function GuideModal({user,onClose}){
   const [tab,setTab]=useState("capabilities");
@@ -242,68 +291,15 @@ function GuideModal({user,onClose}){
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{width:"100%",maxWidth:660,maxHeight:"88vh",background:"#fff",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 32px 80px rgba(0,0,0,0.22)",animation:"nwSlideUp .22s ease"}}>
         <div style={{padding:"18px 22px 14px",background:`linear-gradient(135deg,${NHS.darkBlue},${NHS.blue})`,color:"#fff"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <div>
-              <h2 style={{margin:0,fontSize:"1.1rem",fontWeight:700}}>Notewell AI — How to get the best results</h2>
-              <p style={{margin:"3px 0 0",fontSize:"0.74rem",opacity:.7}}>Hello {user.name.split(" ")[0]} — your NHS-grade AI assistant</p>
-            </div>
-            <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"6px 10px",fontSize:"1rem"}}>✕</button>
-          </div>
-          <div style={{display:"flex",gap:4}}>
-            {["capabilities","prompting","examples"].map(t=>(
-              <button key={t} onClick={()=>setTab(t)} style={{padding:"5px 13px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",transition:"background .15s"}}>
-                {t==="capabilities"?"What can it do?":t==="prompting"?"FRED framework":"See examples"}
-              </button>
-            ))}
-          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h2 style={{margin:0,fontSize:"1.1rem",fontWeight:700}}>Notewell AI — How to get the best results</h2><p style={{margin:"3px 0 0",fontSize:"0.74rem",opacity:.7}}>Hello {user.name.split(" ")[0]} · your NHS-grade AI</p></div><button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"6px 10px",fontSize:"1rem"}}>✕</button></div>
+          <div style={{display:"flex",gap:4}}>{["capabilities","prompting","examples"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"5px 13px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff"}}>{t==="capabilities"?"What can it do?":t==="prompting"?"FRED framework":"See examples"}</button>)}</div>
         </div>
         <div style={{overflowY:"auto",flex:1,padding:"18px 22px"}}>
-          {tab==="capabilities"&&(
-            <div>
-              <p style={{fontSize:"0.86rem",color:NHS.midGrey,margin:"0 0 16px",lineHeight:1.6}}>Notewell AI already knows you're <strong>{user.name}</strong>, {user.role} at <strong>{user.practice.name}</strong>. Every response is tailored to your role.</p>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>
-                {CAPABILITIES.map((c,i)=><div key={i} style={{border:`1.5px solid ${c.colour}33`,borderRadius:11,padding:"11px 13px",background:c.colour+"08"}}><div style={{fontSize:"1.2rem",marginBottom:4}}>{c.icon}</div><div style={{fontWeight:700,fontSize:"0.84rem",color:c.colour,marginBottom:3}}>{c.title}</div><div style={{fontSize:"0.77rem",color:NHS.midGrey,lineHeight:1.5}}>{c.desc}</div></div>)}
-              </div>
-              <div style={{background:"#F0F4F8",borderRadius:9,padding:"11px 13px",fontSize:"0.79rem",color:NHS.darkBlue}}><strong>🛡️ NHS Guardrails always active:</strong> PII detection, clinical caveats, safeguarding escalation, medication verification — mandatory and cannot be turned off.</div>
-            </div>
-          )}
-          {tab==="prompting"&&(
-            <div>
-              <div style={{background:`linear-gradient(135deg,${NHS.darkBlue}11,${NHS.blue}11)`,borderRadius:11,padding:"13px 15px",marginBottom:18,border:`1.5px solid ${NHS.blue}33`}}>
-                <p style={{fontSize:"0.9rem",fontWeight:700,color:NHS.darkBlue,margin:"0 0 5px"}}>💡 The golden rule: rubbish in, rubbish out.</p>
-                <p style={{fontSize:"0.83rem",color:NHS.midGrey,margin:0,lineHeight:1.6}}>Vague prompts produce vague answers. Think of Notewell AI as a capable new colleague who knows NHS primary care inside-out — but needs clear briefing to do their best work.</p>
-              </div>
-              <p style={{fontWeight:700,fontSize:"0.87rem",color:NHS.darkBlue,marginBottom:10}}>Use the FRED framework for best results:</p>
-              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>
-                {FRED.map((f,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"flex-start"}}><div style={{width:34,height:34,borderRadius:9,background:f.c,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:"1.05rem",color:"#fff",flexShrink:0}}>{f.l}</div><div><div style={{fontWeight:700,fontSize:"0.84rem",color:f.c,marginBottom:2}}>{f.w}</div><div style={{fontSize:"0.79rem",color:NHS.midGrey,lineHeight:1.55}}>{f.d}</div></div></div>)}
-              </div>
-              <div style={{background:"#FFF9EC",border:`1.5px solid ${NHS.warmYellow}`,borderRadius:9,padding:"11px 13px"}}><p style={{fontWeight:700,fontSize:"0.83rem",color:"#7a4a00",margin:"0 0 5px"}}>⚠️ Always anonymise patient information</p><p style={{fontSize:"0.78rem",color:"#7a4a00",margin:0,lineHeight:1.5}}>Never include real NHS numbers, full names, DOBs, or postcodes. Use 'the patient', age ranges, and generic identifiers. The AI will warn you if it detects apparent patient data.</p></div>
-            </div>
-          )}
-          {tab==="examples"&&(
-            <div>
-              <p style={{fontSize:"0.84rem",color:NHS.midGrey,margin:"0 0 14px",lineHeight:1.6}}>See exactly why a well-constructed prompt makes the difference.</p>
-              {[
-                {label:"❌ Weak",bad:true,text:"Write a letter",why:"No audience, no patient detail, no format, no context. The AI has nothing to work with."},
-                {label:"✅ Strong",bad:false,text:`Write a GP referral letter to cardiology for a patient (use 'the patient' throughout) with suspected atrial fibrillation. Findings: irregular pulse, palpitations for 3 months, ECG showing AF, BP 138/86. No contraindications to anticoagulation. Professional tone for secondary care. Practice: ${user.practice.name}.`,why:"Clear audience, specific clinical detail, anonymised, format and tone stated, practice context given."},
-                {label:"❌ Weak",bad:true,text:"Make a spreadsheet",why:"No columns, no data, no purpose stated."},
-                {label:"✅ Strong",bad:false,text:`Create an Excel spreadsheet to track ARRS staff for ${user.practice.name}. Columns: Role, Staff Name, WTE, Hours/Week, Reimbursement Rate (£/hr), Monthly Cost, Annual Cost, Funding Source, Contract End Date, Notes. Include a totals row. Add 3 example rows.`,why:"Every column specified, purpose clear, example rows requested, practice context given."},
-              ].map((ex,i)=>(
-                <div key={i} style={{marginBottom:12,border:`1.5px solid ${ex.bad?NHS.red+"44":NHS.green+"44"}`,borderRadius:11,overflow:"hidden"}}>
-                  <div style={{padding:"6px 11px",background:ex.bad?NHS.red+"10":NHS.green+"10"}}><span style={{fontWeight:700,fontSize:"0.79rem",color:ex.bad?NHS.red:NHS.green}}>{ex.label}</span></div>
-                  <div style={{padding:"9px 11px"}}>
-                    <div style={{fontFamily:"monospace",fontSize:"0.79rem",color:NHS.darkGrey,background:"#F8FAFC",borderRadius:6,padding:"7px 9px",marginBottom:7,lineHeight:1.55,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{ex.text}</div>
-                    <p style={{fontSize:"0.76rem",color:NHS.midGrey,margin:0,lineHeight:1.4}}><strong style={{color:ex.bad?NHS.red:NHS.green}}>{ex.bad?"Why this fails:":"Why this works:"}</strong> {ex.why}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {tab==="capabilities"&&(<div><p style={{fontSize:"0.86rem",color:NHS.midGrey,margin:"0 0 16px",lineHeight:1.6}}>Already knows you're <strong>{user.name}</strong>, {user.role} at <strong>{user.practice.name}</strong>.</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>{CAPABILITIES.map((c,i)=><div key={i} style={{border:`1.5px solid ${c.colour}33`,borderRadius:11,padding:"11px 13px",background:c.colour+"08"}}><div style={{fontSize:"1.2rem",marginBottom:4}}>{c.icon}</div><div style={{fontWeight:700,fontSize:"0.84rem",color:c.colour,marginBottom:3}}>{c.title}</div><div style={{fontSize:"0.77rem",color:NHS.midGrey,lineHeight:1.5}}>{c.desc}</div></div>)}</div><div style={{background:"#F0F4F8",borderRadius:9,padding:"11px 13px",fontSize:"0.79rem",color:NHS.darkBlue}}><strong>🛡️ NHS Guardrails always active:</strong> PII detection, clinical caveats, safeguarding escalation, medication verification.</div></div>)}
+          {tab==="prompting"&&(<div><div style={{background:`${NHS.blue}0D`,borderRadius:11,padding:"13px 15px",marginBottom:18,border:`1.5px solid ${NHS.blue}33`}}><p style={{fontSize:"0.9rem",fontWeight:700,color:NHS.darkBlue,margin:"0 0 5px"}}>💡 The golden rule: rubbish in, rubbish out.</p><p style={{fontSize:"0.83rem",color:NHS.midGrey,margin:0,lineHeight:1.6}}>Vague prompts produce vague answers.</p></div><p style={{fontWeight:700,fontSize:"0.87rem",color:NHS.darkBlue,marginBottom:10}}>The FRED framework:</p><div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>{FRED.map((f,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"flex-start"}}><div style={{width:34,height:34,borderRadius:9,background:f.c,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:"1.05rem",color:"#fff",flexShrink:0}}>{f.l}</div><div><div style={{fontWeight:700,fontSize:"0.84rem",color:f.c,marginBottom:2}}>{f.w}</div><div style={{fontSize:"0.79rem",color:NHS.midGrey,lineHeight:1.55}}>{f.d}</div></div></div>)}</div><div style={{background:"#FFF9EC",border:`1.5px solid ${NHS.warmYellow}`,borderRadius:9,padding:"11px 13px"}}><p style={{fontWeight:700,fontSize:"0.83rem",color:"#7a4a00",margin:"0 0 5px"}}>⚠️ Always anonymise patient information</p><p style={{fontSize:"0.78rem",color:"#7a4a00",margin:0,lineHeight:1.5}}>Never include real NHS numbers, full names, DOBs or postcodes.</p></div></div>)}
+          {tab==="examples"&&(<div><p style={{fontSize:"0.84rem",color:NHS.midGrey,margin:"0 0 14px"}}>The difference a well-constructed prompt makes.</p>{[{label:"❌ Weak",bad:true,text:"Write a letter",why:"No audience, no patient detail, no format, no context."},{label:"✅ Strong",bad:false,text:`Write a GP referral letter to cardiology for a patient (use 'the patient' throughout) with suspected atrial fibrillation. Findings: irregular pulse, palpitations for 3 months, ECG showing AF, BP 138/86. Professional tone for secondary care. Practice: ${user.practice.name}.`,why:"Clear audience, specific detail, anonymised, format and tone stated."},{label:"❌ Weak",bad:true,text:"Make a spreadsheet",why:"No columns, no data, no purpose."},{label:"✅ Strong",bad:false,text:`Create an Excel spreadsheet to track ARRS staff for ${user.practice.name}. Columns: Role, WTE, Hours/Week, Rate (£/hr), Annual Cost, Funding Source, Contract End Date. Include totals row and 3 example rows.`,why:"Every column specified, example rows requested."}].map((ex,i)=><div key={i} style={{marginBottom:12,border:`1.5px solid ${ex.bad?NHS.red+"44":NHS.green+"44"}`,borderRadius:11,overflow:"hidden"}}><div style={{padding:"6px 11px",background:ex.bad?NHS.red+"10":NHS.green+"10"}}><span style={{fontWeight:700,fontSize:"0.79rem",color:ex.bad?NHS.red:NHS.green}}>{ex.label}</span></div><div style={{padding:"9px 11px"}}><div style={{fontFamily:"monospace",fontSize:"0.79rem",color:NHS.darkGrey,background:"#F8FAFC",borderRadius:6,padding:"7px 9px",marginBottom:7,lineHeight:1.55,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{ex.text}</div><p style={{fontSize:"0.76rem",color:NHS.midGrey,margin:0}}><strong style={{color:ex.bad?NHS.red:NHS.green}}>{ex.bad?"Why this fails:":"Why this works:"}</strong> {ex.why}</p></div></div>)}</div>)}
         </div>
-        <div style={{padding:"12px 22px",borderTop:`1px solid ${NHS.paleGrey}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc"}}>
-          <span style={{fontSize:"0.72rem",color:NHS.midGrey}}>Always available via the <strong>?</strong> button</span>
-          <button onClick={onClose} style={{background:NHS.blue,border:"none",borderRadius:8,padding:"8px 22px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem"}}>Get started →</button>
-        </div>
+        <div style={{padding:"12px 22px",borderTop:`1px solid ${NHS.paleGrey}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc"}}><span style={{fontSize:"0.72rem",color:NHS.midGrey}}>Always available via the <strong>?</strong> button</span><button onClick={onClose} style={{background:NHS.blue,border:"none",borderRadius:8,padding:"8px 22px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem"}}>Get started →</button></div>
       </div>
     </div>
   );
@@ -312,221 +308,117 @@ function GuideModal({user,onClose}){
 // ── Artifact Panel ────────────────────────────────────────────────────────────
 function ArtifactPanel({artifact,onClose,vp}){
   const [gen,setGen]=useState(false);const [err,setErr]=useState(null);const [done,setDone]=useState(null);
-  const type=ARTIFACT_TYPES[artifact.type]||ARTIFACT_TYPES.docx;
-  const isImg=artifact.type==="image";
+  const type=ARTIFACT_TYPES[artifact.type]||ARTIFACT_TYPES.docx;const isImg=artifact.type==="image";
   const dl=useCallback(async(fmt="default")=>{
     setGen(true);setErr(null);setDone(null);
-    try{
-      if(artifact.type==="docx")triggerDownload(generateDocxBlob(artifact),(artifact.filename||"document")+".doc");
-      else if(artifact.type==="xlsx")triggerDownload(await generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");
-      else if(artifact.type==="pptx")triggerDownload(await generatePptxBlob(artifact),(artifact.filename||"presentation")+".pptx");
-      else if(isImg){if(fmt==="png")await downloadPng(artifact);else downloadSvg(artifact);}
-      setDone(fmt);setTimeout(()=>setDone(null),3000);
-    }catch(e){setErr(e.message);}
-    finally{setGen(false);}
+    try{if(artifact.type==="docx")triggerDownload(generateDocxBlob(artifact),(artifact.filename||"document")+".doc");else if(artifact.type==="xlsx")triggerDownload(await generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");else if(artifact.type==="pptx")triggerDownload(await generatePptxBlob(artifact),(artifact.filename||"presentation")+".pptx");else if(isImg){if(fmt==="png")await downloadPng(artifact);else downloadSvg(artifact);}setDone(fmt);setTimeout(()=>setDone(null),3000);}
+    catch(e){setErr(e.message);}finally{setGen(false);}
   },[artifact]);
-  return(
-    <div style={{width:vp==="wide"?430:vp==="standard"?380:undefined,minWidth:vp==="wide"?430:vp==="standard"?380:undefined,background:"#fff",borderLeft:`1px solid ${NHS.paleGrey}`,display:"flex",flexDirection:"column",boxShadow:"-4px 0 20px rgba(0,0,0,0.07)",animation:"nwSlideIn .22s ease",...(vp==="compact"?{position:"absolute",inset:0,zIndex:100}:{})}}>
-      <div style={{padding:"12px 14px",background:`linear-gradient(135deg,${type.colour},${type.colour}CC)`,display:"flex",alignItems:"center",gap:9,flexShrink:0}}>
-        <div style={{fontSize:"1.3rem"}}>{type.icon}</div>
-        <div style={{flex:1,overflow:"hidden"}}><div style={{fontWeight:700,fontSize:"0.87rem",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{artifact.title||type.label}</div><div style={{fontSize:"0.66rem",color:"rgba(255,255,255,.65)",marginTop:1}}>{type.label} · Notewell AI</div></div>
-        <button onClick={onClose} style={{background:"rgba(255,255,255,.2)",border:"none",cursor:"pointer",color:"#fff",borderRadius:7,padding:"5px 8px",fontSize:".87rem"}}>✕</button>
-      </div>
-      <div style={{flex:1,overflowY:"auto",padding:"13px 14px"}}>
-        {isImg&&artifact.svg?(<div><div style={{background:"#fafbfc",borderRadius:9,border:`1px solid ${NHS.paleGrey}`,padding:11,marginBottom:9,overflow:"auto"}}><div dangerouslySetInnerHTML={{__html:artifact.svg}} style={{display:"flex",justifyContent:"center"}}/></div>{artifact.alt&&<p style={{fontSize:"0.73rem",color:NHS.midGrey,margin:0,fontStyle:"italic"}}>↑ {artifact.alt}</p>}</div>)
-        :(<ArtifactPreview artifact={artifact}/>)}
-      </div>
-      <div style={{padding:"12px 14px",borderTop:`1px solid ${NHS.paleGrey}`,background:"#fafbfc",flexShrink:0}}>
-        {err&&<div style={{background:"#FFF5F5",border:`1px solid ${NHS.red}`,borderRadius:6,padding:"5px 9px",fontSize:"0.74rem",color:NHS.red,marginBottom:7}}>⚠️ {err}</div>}
-        {isImg?(
-          <div style={{display:"flex",gap:7}}>
-            <button onClick={()=>dl("svg")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="svg"?NHS.green:type.colour,color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>⬇ SVG</button>
-            <button onClick={()=>dl("png")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="png"?NHS.green:type.colour+"CC",color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>{gen?"⏳":"⬇"} PNG</button>
-          </div>
-        ):(
-          <button onClick={()=>dl()} disabled={gen} style={{width:"100%",padding:"10px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done?NHS.green:gen?NHS.midGrey:type.colour,color:"#fff",fontWeight:700,fontSize:"0.87rem",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            {gen?<><span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>Generating…</>:done?"✓ Downloaded!":<>{type.icon} Download {type.label}</>}
-          </button>
-        )}
-        <div style={{fontSize:"0.62rem",color:NHS.midGrey,textAlign:"center",marginTop:6}}>Generated locally — not stored on any server</div>
-      </div>
+  const ps={width:vp==="wide"?430:vp==="standard"?380:undefined,minWidth:vp==="wide"?430:vp==="standard"?380:undefined,background:"#fff",borderLeft:`1px solid ${NHS.paleGrey}`,display:"flex",flexDirection:"column",boxShadow:"-4px 0 20px rgba(0,0,0,0.07)",animation:"nwSlideIn .22s ease"};
+  if(vp==="compact")Object.assign(ps,{position:"absolute",inset:0,zIndex:100});
+  return(<div style={ps}>
+    <div style={{padding:"12px 14px",background:`linear-gradient(135deg,${type.colour},${type.colour}CC)`,display:"flex",alignItems:"center",gap:9,flexShrink:0}}><div style={{fontSize:"1.3rem"}}>{type.icon}</div><div style={{flex:1,overflow:"hidden"}}><div style={{fontWeight:700,fontSize:"0.87rem",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{artifact.title||type.label}</div><div style={{fontSize:"0.66rem",color:"rgba(255,255,255,.65)",marginTop:1}}>{type.label} · Notewell AI</div></div><button onClick={onClose} style={{background:"rgba(255,255,255,.2)",border:"none",cursor:"pointer",color:"#fff",borderRadius:7,padding:"5px 8px"}}>✕</button></div>
+    <div style={{flex:1,overflowY:"auto",padding:"13px 14px"}}>
+      {isImg&&artifact.svg?(<div><div style={{background:"#fafbfc",borderRadius:9,border:`1px solid ${NHS.paleGrey}`,padding:11,marginBottom:9,overflow:"auto"}}><div dangerouslySetInnerHTML={{__html:artifact.svg}} style={{display:"flex",justifyContent:"center"}}/></div>{artifact.alt&&<p style={{fontSize:"0.73rem",color:NHS.midGrey,margin:0,fontStyle:"italic"}}>↑ {artifact.alt}</p>}</div>)
+      :(<ArtifactPreview artifact={artifact}/>)}
     </div>
-  );
+    <div style={{padding:"12px 14px",borderTop:`1px solid ${NHS.paleGrey}`,background:"#fafbfc",flexShrink:0}}>
+      {err&&<div style={{background:"#FFF5F5",border:`1px solid ${NHS.red}`,borderRadius:6,padding:"5px 9px",fontSize:"0.74rem",color:NHS.red,marginBottom:7}}>⚠️ {err}</div>}
+      {isImg?(<div style={{display:"flex",gap:7}}><button onClick={()=>dl("svg")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="svg"?NHS.green:type.colour,color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>⬇ SVG</button><button onClick={()=>dl("png")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="png"?NHS.green:type.colour+"CC",color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>{gen?<span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>:"⬇"} PNG</button></div>)
+      :(<button onClick={()=>dl()} disabled={gen} style={{width:"100%",padding:"10px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done?NHS.green:gen?NHS.midGrey:type.colour,color:"#fff",fontWeight:700,fontSize:"0.87rem",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>{gen?<><span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>Generating…</>:done?"✓ Downloaded!":<>{type.icon} Download {type.label}</>}</button>)}
+      <div style={{fontSize:"0.62rem",color:NHS.midGrey,textAlign:"center",marginTop:6}}>Generated locally · not stored on any server</div>
+    </div>
+  </div>);
 }
 
 function ArtifactPreview({artifact}){
-  if(artifact.type==="docx"){
-    return(<div style={{fontFamily:"Georgia,serif",fontSize:"0.85rem",lineHeight:1.7,color:NHS.darkGrey}}>
-      <div style={{background:NHS.darkBlue,color:"#fff",padding:"9px 12px",borderRadius:7,marginBottom:11}}><div style={{fontWeight:700,fontSize:"0.98rem"}}>{artifact.title}</div>{artifact.meta&&<div style={{fontSize:"0.69rem",opacity:.65,marginTop:2}}>{artifact.meta.author} · {artifact.meta.organisation}</div>}</div>
-      {(artifact.sections||[]).map((s,i)=>{
-        switch(s.type){
-          case"h1":return<h2 key={i} style={{fontSize:"1.06rem",fontWeight:700,color:NHS.darkBlue,borderBottom:`2px solid ${NHS.blue}`,paddingBottom:3,marginTop:11}}>{s.text}</h2>;
-          case"h2":return<h3 key={i} style={{fontSize:"0.92rem",fontWeight:700,color:NHS.darkBlue,marginTop:9}}>{s.text}</h3>;
-          case"p":return<p key={i} style={{margin:"5px 0"}}>{s.text}</p>;
-          case"callout":return<div key={i} style={{background:"#EDF4FF",borderLeft:`3px solid ${NHS.blue}`,padding:"7px 10px",borderRadius:"0 5px 5px 0",margin:"7px 0",fontSize:"0.82rem"}}>{s.text}</div>;
-          case"bullets":return<ul key={i} style={{paddingLeft:16,margin:"5px 0"}}>{(s.items||[]).map((it,j)=><li key={j} style={{margin:"2px 0"}}>{it}</li>)}</ul>;
-          case"numbered":return<ol key={i} style={{paddingLeft:16,margin:"5px 0"}}>{(s.items||[]).map((it,j)=><li key={j} style={{margin:"2px 0"}}>{it}</li>)}</ol>;
-          case"table":return<table key={i} style={{width:"100%",borderCollapse:"collapse",margin:"8px 0",fontSize:"0.76rem"}}><thead><tr>{(s.headers||[]).map((h,j)=><th key={j} style={{background:NHS.blue,color:"#fff",padding:"4px 7px",textAlign:"left"}}>{h}</th>)}</tr></thead><tbody>{(s.rows||[]).map((r,j)=><tr key={j} style={{background:j%2===0?"#fff":NHS.paleGrey}}>{r.map((c,k)=><td key={k} style={{padding:"3px 7px",borderBottom:`1px solid ${NHS.paleGrey}`}}>{c}</td>)}</tr>)}</tbody></table>;
-          default:return null;
-        }
-      })}
-    </div>);
-  }
-  if(artifact.type==="xlsx"){
-    return(<div>
-      <div style={{background:"#217346",color:"#fff",padding:"9px 12px",borderRadius:7,marginBottom:10}}><div style={{fontWeight:700}}>{artifact.title}</div><div style={{fontSize:"0.69rem",opacity:.75,marginTop:1}}>{(artifact.sheets||[]).length} sheet(s)</div></div>
-      {(artifact.sheets||[]).map((sheet,i)=>(<div key={i} style={{marginBottom:13}}>
-        <div style={{fontWeight:700,fontSize:"0.79rem",color:NHS.darkBlue,marginBottom:5,display:"flex",alignItems:"center",gap:5}}><span style={{background:"#217346",color:"#fff",borderRadius:3,padding:"0 5px",fontSize:"0.69rem"}}>{sheet.name}</span><span style={{color:NHS.midGrey,fontWeight:400}}>{(sheet.rows||[]).length} rows</span></div>
-        <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.75rem"}}><thead><tr>{(sheet.headers||[]).map((h,j)=><th key={j} style={{background:"#217346",color:"#fff",padding:"4px 7px",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead><tbody>{(sheet.rows||[]).slice(0,8).map((r,j)=><tr key={j} style={{background:j%2===0?"#fff":"#F0F8F0"}}>{r.map((c,k)=><td key={k} style={{padding:"3px 7px",borderBottom:"1px solid #e0ede0"}}>{c}</td>)}</tr>)}</tbody></table></div>
-        {(sheet.rows||[]).length>8&&<div style={{fontSize:"0.68rem",color:NHS.midGrey,marginTop:3,textAlign:"center"}}>+{sheet.rows.length-8} more rows in file</div>}
-      </div>))}
-    </div>);
-  }
-  if(artifact.type==="pptx"){
-    return(<div>
-      <div style={{background:"#D24726",color:"#fff",padding:"9px 12px",borderRadius:7,marginBottom:10}}><div style={{fontWeight:700}}>{artifact.title}</div><div style={{fontSize:"0.69rem",opacity:.75,marginTop:1}}>{(artifact.slides||[]).length} slides</div></div>
-      {(artifact.slides||[]).map((slide,i)=>(
-        <div key={i} style={{border:`1px solid ${NHS.paleGrey}`,borderRadius:7,marginBottom:6,overflow:"hidden",background:i===0||i===(artifact.slides.length-1)?NHS.darkBlue:"#fff"}}>
-          <div style={{padding:"5px 9px",background:i===0||i===(artifact.slides.length-1)?NHS.darkBlue:NHS.paleGrey,display:"flex",alignItems:"center",gap:5}}>
-            <span style={{fontSize:"0.64rem",background:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.15)":NHS.blue+"22",color:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.5)":NHS.midGrey,borderRadius:3,padding:"0 5px",fontWeight:700}}>{i+1}</span>
-            <span style={{fontSize:"0.77rem",fontWeight:600,color:i===0||i===(artifact.slides.length-1)?"#fff":NHS.darkBlue,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slide.title}</span>
-            <span style={{fontSize:"0.63rem",color:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.4)":NHS.midGrey}}>{slide.layout}</span>
-          </div>
-          {(slide.subtitle||slide.body||slide.bullets?.length||slide.stats?.length)&&(<div style={{padding:"7px 9px"}}>
-            {slide.subtitle&&<p style={{fontSize:"0.74rem",color:i===0||i===(artifact.slides.length-1)?"#41B6E6":NHS.midGrey,margin:"0 0 3px",fontStyle:"italic"}}>{slide.subtitle}</p>}
-            {slide.bullets?.slice(0,3).map((b,j)=><div key={j} style={{fontSize:"0.72rem",color:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.7)":NHS.darkGrey,display:"flex",gap:4,marginBottom:2}}><span style={{color:NHS.brightBlue,flexShrink:0}}>•</span><span>{b.length>80?b.slice(0,80)+"…":b}</span></div>)}
-            {slide.stats&&<div style={{display:"flex",gap:6,marginTop:4}}>{slide.stats.slice(0,3).map((st,j)=><div key={j} style={{flex:1,textAlign:"center",background:NHS.blue+"22",borderRadius:5,padding:"3px 5px"}}><div style={{fontWeight:700,fontSize:"0.87rem",color:NHS.brightBlue}}>{st.value}</div><div style={{fontSize:"0.63rem",color:NHS.midGrey}}>{st.label}</div></div>)}</div>}
-          </div>)}
-        </div>
-      ))}
-    </div>);
-  }
+  if(artifact.type==="docx")return(<div style={{fontFamily:"Georgia,serif",fontSize:"0.85rem",lineHeight:1.7,color:NHS.darkGrey}}><div style={{background:NHS.darkBlue,color:"#fff",padding:"9px 12px",borderRadius:7,marginBottom:11}}><div style={{fontWeight:700,fontSize:"0.98rem"}}>{artifact.title}</div>{artifact.meta&&<div style={{fontSize:"0.69rem",opacity:.65,marginTop:2}}>{artifact.meta.author} · {artifact.meta.organisation}</div>}</div>{(artifact.sections||[]).map((s,i)=>{switch(s.type){case"h1":return<h2 key={i} style={{fontSize:"1.06rem",fontWeight:700,color:NHS.darkBlue,borderBottom:`2px solid ${NHS.blue}`,paddingBottom:3,marginTop:11}}>{s.text}</h2>;case"h2":return<h3 key={i} style={{fontSize:"0.92rem",fontWeight:700,color:NHS.darkBlue,marginTop:9}}>{s.text}</h3>;case"p":return<p key={i} style={{margin:"5px 0"}}>{s.text}</p>;case"callout":return<div key={i} style={{background:"#EDF4FF",borderLeft:`3px solid ${NHS.blue}`,padding:"7px 10px",borderRadius:"0 5px 5px 0",margin:"7px 0",fontSize:"0.82rem"}}>{s.text}</div>;case"bullets":return<ul key={i} style={{paddingLeft:16,margin:"5px 0"}}>{(s.items||[]).map((it,j)=><li key={j} style={{margin:"2px 0"}}>{it}</li>)}</ul>;case"numbered":return<ol key={i} style={{paddingLeft:16,margin:"5px 0"}}>{(s.items||[]).map((it,j)=><li key={j} style={{margin:"2px 0"}}>{it}</li>)}</ol>;case"table":return<table key={i} style={{width:"100%",borderCollapse:"collapse",margin:"8px 0",fontSize:"0.76rem"}}><thead><tr>{(s.headers||[]).map((h,j)=><th key={j} style={{background:NHS.blue,color:"#fff",padding:"4px 7px",textAlign:"left"}}>{h}</th>)}</tr></thead><tbody>{(s.rows||[]).map((r,j)=><tr key={j} style={{background:j%2===0?"#fff":NHS.paleGrey}}>{r.map((c,k)=><td key={k} style={{padding:"3px 7px",borderBottom:`1px solid ${NHS.paleGrey}`}}>{c}</td>)}</tr>)}</tbody></table>;default:return null;}})}</div>);
+  if(artifact.type==="xlsx")return(<div><div style={{background:"#217346",color:"#fff",padding:"9px 12px",borderRadius:7,marginBottom:10}}><div style={{fontWeight:700}}>{artifact.title}</div><div style={{fontSize:"0.69rem",opacity:.75,marginTop:1}}>{(artifact.sheets||[]).length} sheet(s)</div></div>{(artifact.sheets||[]).map((sheet,i)=><div key={i} style={{marginBottom:13}}><div style={{fontWeight:700,fontSize:"0.79rem",color:NHS.darkBlue,marginBottom:5,display:"flex",alignItems:"center",gap:5}}><span style={{background:"#217346",color:"#fff",borderRadius:3,padding:"0 5px",fontSize:"0.69rem"}}>{sheet.name}</span><span style={{color:NHS.midGrey,fontWeight:400}}>{(sheet.rows||[]).length} rows</span></div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:"0.75rem"}}><thead><tr>{(sheet.headers||[]).map((h,j)=><th key={j} style={{background:"#217346",color:"#fff",padding:"4px 7px",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead><tbody>{(sheet.rows||[]).slice(0,8).map((r,j)=><tr key={j} style={{background:j%2===0?"#fff":"#F0F8F0"}}>{r.map((c,k)=><td key={k} style={{padding:"3px 7px",borderBottom:"1px solid #e0ede0"}}>{c}</td>)}</tr>)}</tbody></table></div>{(sheet.rows||[]).length>8&&<div style={{fontSize:"0.68rem",color:NHS.midGrey,marginTop:3,textAlign:"center"}}>+{sheet.rows.length-8} more rows in downloaded file</div>}</div>)}</div>);
+  if(artifact.type==="pptx")return(<div><div style={{background:"#D24726",color:"#fff",padding:"9px 12px",borderRadius:7,marginBottom:10}}><div style={{fontWeight:700}}>{artifact.title}</div><div style={{fontSize:"0.69rem",opacity:.75,marginTop:1}}>{(artifact.slides||[]).length} slides</div></div>{(artifact.slides||[]).map((slide,i)=><div key={i} style={{border:`1px solid ${NHS.paleGrey}`,borderRadius:7,marginBottom:6,overflow:"hidden",background:i===0||i===(artifact.slides.length-1)?NHS.darkBlue:"#fff"}}><div style={{padding:"5px 9px",background:i===0||i===(artifact.slides.length-1)?NHS.darkBlue:NHS.paleGrey,display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:"0.64rem",background:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.15)":NHS.blue+"22",color:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.5)":NHS.midGrey,borderRadius:3,padding:"0 5px",fontWeight:700}}>{i+1}</span><span style={{fontSize:"0.77rem",fontWeight:600,color:i===0||i===(artifact.slides.length-1)?"#fff":NHS.darkBlue,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slide.title}</span><span style={{fontSize:"0.63rem",color:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.4)":NHS.midGrey}}>{slide.layout}</span></div>{(slide.subtitle||slide.bullets?.length||slide.stats?.length)&&<div style={{padding:"7px 9px"}}>{slide.subtitle&&<p style={{fontSize:"0.74rem",color:i===0||i===(artifact.slides.length-1)?"#41B6E6":NHS.midGrey,margin:"0 0 3px",fontStyle:"italic"}}>{slide.subtitle}</p>}{slide.bullets?.slice(0,3).map((b,j)=><div key={j} style={{fontSize:"0.72rem",color:i===0||i===(artifact.slides.length-1)?"rgba(255,255,255,.7)":NHS.darkGrey,display:"flex",gap:4,marginBottom:2}}><span style={{color:NHS.brightBlue,flexShrink:0}}>•</span><span>{b.length>80?b.slice(0,80)+"…":b}</span></div>)}{slide.stats&&<div style={{display:"flex",gap:6,marginTop:4}}>{slide.stats.slice(0,3).map((st,j)=><div key={j} style={{flex:1,textAlign:"center",background:NHS.blue+"22",borderRadius:5,padding:"3px 5px"}}><div style={{fontWeight:700,fontSize:"0.87rem",color:NHS.brightBlue}}>{st.value}</div><div style={{fontSize:"0.63rem",color:NHS.midGrey}}>{st.label}</div></div>)}</div>}</div>}</div>)}</div>);
   return null;
 }
 
-// ── Chat components ───────────────────────────────────────────────────────────
-function UserAvatar({user,size=32}){
-  return<div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.32,fontWeight:700,color:"#fff",border:"2px solid rgba(255,255,255,.22)"}}>{user.initials}</div>;
-}
-function PracticeLogo({practice,size=26}){
-  if(practice.logoUrl)return<img src={practice.logoUrl} alt={practice.name} style={{width:size,height:size,objectFit:"contain",borderRadius:5}}/>;
-  const init=(practice.shortName||practice.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,3);
-  return<div style={{width:size,height:size,borderRadius:6,background:`linear-gradient(135deg,${practice.primaryColour||NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.28,fontWeight:900,color:"#fff",flexShrink:0}}>{init}</div>;
-}
+function UserAvatar({user,size=32}){return<div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.32,fontWeight:700,color:"#fff",border:"2px solid rgba(255,255,255,.2)"}}>{user.initials}</div>;}
+function PracticeLogo({practice,size=26}){if(practice.logoUrl)return<img src={practice.logoUrl} alt={practice.name} style={{width:size,height:size,objectFit:"contain",borderRadius:5}}/>;const init=(practice.shortName||practice.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,3);return<div style={{width:size,height:size,borderRadius:6,background:`linear-gradient(135deg,${practice.primaryColour||NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.28,fontWeight:900,color:"#fff",flexShrink:0}}>{init}</div>;}
 
 function MessageBubble({msg,user,settings,compact,hasPanel}){
-  const isUser=msg.role==="user";
-  const [copied,setCopied]=useState(false);
-  const [feedback,setFeedback]=useState(null);
-  const display=stripArtifact(msg.content);
-  const fs=FONT_SCALE[settings.fontSize||"medium"];
-  return(
-    <div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
-      {isUser?<UserAvatar user={user} size={compact?27:33}/>:<div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>N</div>}
-      <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
-        <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3,textAlign:isUser?"right":"left"}}>{isUser?user.name:"Notewell AI"} · {fmt(msg.timestamp)}</div>
-        {msg.files?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:5,justifyContent:isUser?"flex-end":"flex-start"}}>{msg.files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name} <span style={{color:NHS.midGrey}}>{fmtSize(f.size)}</span></div>)}</div>}
-        {msg.artifact&&<div style={{display:"flex",alignItems:"center",gap:7,background:ARTIFACT_TYPES[msg.artifact.type]?.colour+"13",border:`1.5px solid ${ARTIFACT_TYPES[msg.artifact.type]?.colour}44`,borderRadius:8,padding:"6px 10px",marginBottom:5}}><span style={{fontSize:"1rem"}}>{ARTIFACT_TYPES[msg.artifact.type]?.icon}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.79rem",color:ARTIFACT_TYPES[msg.artifact.type]?.colour}}>{msg.artifact.title}</div><div style={{fontSize:"0.69rem",color:NHS.midGrey}}>{ARTIFACT_TYPES[msg.artifact.type]?.label} · see panel →</div></div></div>}
-        <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
-          {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/><span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/></>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
-        </div>
-        {!isUser&&!msg.streaming&&<div style={{display:"flex",gap:4,marginTop:4}}>{[{l:copied?"✓ Copied":"⎘ Copy",fn:()=>{navigator.clipboard.writeText(display);setCopied(true);setTimeout(()=>setCopied(false),1500)},a:copied},{l:"👍",fn:()=>setFeedback("up"),a:feedback==="up",ac:NHS.green},{l:"👎",fn:()=>setFeedback("down"),a:feedback==="down",ac:NHS.red}].map((b,i)=><button key={i} onClick={b.fn} style={{background:b.a?(b.ac||NHS.blue)+"22":"transparent",border:`1px solid ${b.a?(b.ac||NHS.blue):NHS.paleGrey}`,borderRadius:5,padding:"2px 7px",cursor:"pointer",fontSize:"0.71rem",color:b.a?(b.ac||NHS.blue):NHS.midGrey,transition:"all .14s"}}>{b.l}</button>)}</div>}
-        {!isUser&&!msg.streaming&&settings.showClinicalCaveats&&display.length>60&&<div style={{fontSize:"0.64rem",color:NHS.midGrey,marginTop:4,padding:"2px 7px",background:"#f8f9fa",borderRadius:4,borderLeft:`3px solid ${NHS.warmYellow}`}}>⚕️ Apply clinical judgement before acting on AI output in patient care.</div>}
+  const isUser=msg.role==="user";const [copied,setCopied]=useState(false);const [feedback,setFeedback]=useState(null);
+  const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
+  return(<div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
+    {isUser?<UserAvatar user={user} size={compact?27:33}/>:<div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>N</div>}
+    <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
+      <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3,textAlign:isUser?"right":"left"}}>{isUser?user.name:"Notewell AI"} · {fmt(msg.timestamp)}</div>
+      {msg.files?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:5,justifyContent:isUser?"flex-end":"flex-start"}}>{msg.files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name}{f.size&&<span style={{color:NHS.midGrey}}> {fmtSize(f.size)}</span>}</div>)}</div>}
+      {msg.artifact&&<div style={{display:"flex",alignItems:"center",gap:7,background:ARTIFACT_TYPES[msg.artifact.type]?.colour+"13",border:`1.5px solid ${ARTIFACT_TYPES[msg.artifact.type]?.colour}44`,borderRadius:8,padding:"6px 10px",marginBottom:5}}><span style={{fontSize:"1rem"}}>{ARTIFACT_TYPES[msg.artifact.type]?.icon}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.79rem",color:ARTIFACT_TYPES[msg.artifact.type]?.colour}}>{msg.artifact.title}</div><div style={{fontSize:"0.69rem",color:NHS.midGrey}}>{ARTIFACT_TYPES[msg.artifact.type]?.label} · see panel →</div></div></div>}
+      <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
+        {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/><span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/></>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
       </div>
+      {!isUser&&!msg.streaming&&<div style={{display:"flex",gap:4,marginTop:4}}>{[{l:copied?"✓ Copied":"⎘ Copy",fn:()=>{navigator.clipboard.writeText(display);setCopied(true);setTimeout(()=>setCopied(false),1500)},a:copied},{l:"👍",fn:()=>setFeedback("up"),a:feedback==="up",ac:NHS.green},{l:"👎",fn:()=>setFeedback("down"),a:feedback==="down",ac:NHS.red}].map((b,i)=><button key={i} onClick={b.fn} style={{background:b.a?(b.ac||NHS.blue)+"22":"transparent",border:`1px solid ${b.a?(b.ac||NHS.blue):NHS.paleGrey}`,borderRadius:5,padding:"2px 7px",cursor:"pointer",fontSize:"0.71rem",color:b.a?(b.ac||NHS.blue):NHS.midGrey}}>{b.l}</button>)}</div>}
+      {!isUser&&!msg.streaming&&settings.showClinicalCaveats&&display.length>60&&<div style={{fontSize:"0.64rem",color:NHS.midGrey,marginTop:4,padding:"2px 7px",background:"#f8f9fa",borderRadius:4,borderLeft:`3px solid ${NHS.warmYellow}`}}>⚕️ Apply clinical judgement before acting on AI output in patient care.</div>}
     </div>
-  );
+  </div>);
 }
 
-function EmptyState({user,onSuggestion,vp,onHelp}){
-  const h=new Date().getHours();
-  const g=h<12?"morning":h<17?"afternoon":"evening";
-  const suggestions=[
-    {icon:"🎨",text:"Create an NHS patient care pathway diagram for Type 2 diabetes management"},
-    {icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"},
-    {icon:"🖥️",text:"Build a PowerPoint presentation on the NRES New Models Programme for the ICB Board"},
-    {icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},
-    {icon:"💬",text:"Explain the ARRS roles available under the PCN contract and their eligibility criteria"},
-    {icon:"🎨",text:"Design an infographic showing NHS primary care integrated neighbourhood team structure"},
-  ];
-  return(
-    <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
-      <div style={{width:58,height:58,borderRadius:"50%",marginBottom:13,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.65rem",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}>🏥</div>
-      <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
-      <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
-      <p style={{color:NHS.midGrey,marginBottom:18,maxWidth:390,lineHeight:1.6,fontSize:"0.83rem"}}>
-        Your NHS-grade AI — chat, create Word docs, Excel reports, presentations, and diagrams.{" "}
-        <button onClick={onHelp} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>How to get best results →</button>
-      </p>
-      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>
-        {Object.entries(ARTIFACT_TYPES).map(([k,v])=><div key={k} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 10px",background:v.colour+"11",border:`1.5px solid ${v.colour}33`,borderRadius:20,fontSize:"0.72rem",color:v.colour,fontWeight:600}}>{v.icon} {v.label}</div>)}
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:vp==="wide"?"1fr 1fr 1fr":"1fr 1fr",gap:8,width:"100%",maxWidth:vp==="wide"?660:480}}>
-        {suggestions.slice(0,vp==="wide"?6:4).map((s,i)=>(
-          <button key={i} onClick={()=>onSuggestion(s.text)} style={{background:"#fff",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:10,padding:"10px 12px",cursor:"pointer",textAlign:"left",transition:"all .17s",fontSize:"0.78rem",color:NHS.darkGrey,lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)"}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,114,206,.12)`;}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
-            <span style={{fontSize:"0.92rem",display:"block",marginBottom:4}}>{s.icon}</span>{s.text}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
+  const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
+  const suggestions=[{icon:"🎨",text:"Create an NHS care pathway diagram for Type 2 diabetes management"},{icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"},{icon:"🖥️",text:"Build a PowerPoint presentation on the NRES New Models Programme for the ICB Board"},{icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},{icon:"💬",text:"Explain the ARRS roles available under the PCN contract and their eligibility"},{icon:"🎨",text:"Design an infographic showing NHS integrated neighbourhood team structure"}];
+  return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
+    <div style={{width:58,height:58,borderRadius:"50%",marginBottom:13,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.65rem",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}>🏥</div>
+    <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
+    <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
+    <p style={{color:NHS.midGrey,marginBottom:18,maxWidth:390,lineHeight:1.6,fontSize:"0.83rem"}}>
+      Your NHS-grade AI assistant.{" "}
+      <button onClick={onHelp} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>How to get best results →</button>
+      {" · "}
+      <button onClick={onProfile} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>Set up my profile →</button>
+    </p>
+    <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><div key={k} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 10px",background:v.colour+"11",border:`1.5px solid ${v.colour}33`,borderRadius:20,fontSize:"0.72rem",color:v.colour,fontWeight:600}}>{v.icon} {v.label}</div>)}</div>
+    <div style={{display:"grid",gridTemplateColumns:vp==="wide"?"1fr 1fr 1fr":"1fr 1fr",gap:8,width:"100%",maxWidth:vp==="wide"?660:480}}>{suggestions.slice(0,vp==="wide"?6:4).map((s,i)=><button key={i} onClick={()=>onSuggestion(s.text)} style={{background:"#fff",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:10,padding:"10px 12px",cursor:"pointer",textAlign:"left",transition:"all .17s",fontSize:"0.78rem",color:NHS.darkGrey,lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,114,206,.12)`;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
+      <span style={{fontSize:"0.92rem",display:"block",marginBottom:4}}>{s.icon}</span>{s.text}
+    </button>)}</div>
+  </div>);
 }
 
 function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle}){
   const autoCollapse=settings.sidebarMode==="auto"&&vp==="compact";
   const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
   const w=collapsed?50:vp==="wide"?255:230;
-  return(
-    <div style={{width:w,minWidth:w,background:NHS.darkBlue,display:"flex",flexDirection:"column",transition:"width .24s,min-width .24s",overflow:"hidden"}}>
-      <div style={{padding:collapsed?"11px 7px":"11px 10px",display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between",borderBottom:"1px solid rgba(255,255,255,.1)",minHeight:50}}>
-        {!collapsed&&<div style={{display:"flex",alignItems:"center",gap:7}}><PracticeLogo practice={user.practice} size={23}/><div><div style={{color:"#fff",fontWeight:700,fontSize:"0.83rem"}}>Ask AI</div><div style={{color:"rgba(255,255,255,.4)",fontSize:"0.61rem"}}>{user.practice.shortName}</div></div></div>}
-        <button onClick={onToggle} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:6,padding:"3px 6px",cursor:"pointer",color:"#fff",fontSize:".87rem"}}>{collapsed?"›":"‹"}</button>
-      </div>
-      <div style={{padding:collapsed?"7px":"7px 9px"}}>
-        <button onClick={onNew} style={{background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.17)",borderRadius:8,padding:collapsed?"6px":"6px 10px",cursor:"pointer",color:"#fff",width:"100%",fontSize:"0.79rem",display:"flex",alignItems:"center",justifyContent:collapsed?"center":"flex-start",gap:6}}
-          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}
-        ><span>✏️</span>{!collapsed&&"New conversation"}</button>
-      </div>
-      {!collapsed&&(
-        <div style={{flex:1,overflowY:"auto",padding:"0 7px 7px"}}>
-          <div style={{fontSize:"0.62rem",color:"rgba(255,255,255,.34)",padding:"4px 3px",letterSpacing:".07em",textTransform:"uppercase"}}>Recent</div>
-          {conversations.map(c=>(
-            <div key={c.id} style={{position:"relative",marginBottom:2}}>
-              <button onClick={()=>onSelect(c.id)} style={{background:c.id===activeId?"rgba(255,255,255,.15)":"transparent",border:"none",borderRadius:7,padding:"6px 24px 6px 8px",cursor:"pointer",width:"100%",textAlign:"left",color:"#fff",transition:"background .13s"}}
-                onMouseEnter={e=>{if(c.id!==activeId)e.currentTarget.style.background="rgba(255,255,255,.08)";}} onMouseLeave={e=>{if(c.id!==activeId)e.currentTarget.style.background="transparent";}}>
-                <div style={{fontSize:"0.77rem",fontWeight:c.id===activeId?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.hasArtifact&&<span style={{marginRight:4}}>{ARTIFACT_TYPES[c.artifactType]?.icon||"📎"}</span>}{c.title}</div>
-                <div style={{fontSize:"0.62rem",color:"rgba(255,255,255,.34)",marginTop:1}}>{fmt(c.updatedAt)}</div>
-              </button>
-              <button onClick={()=>onDelete(c.id)} style={{position:"absolute",right:3,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.2)",fontSize:"0.72rem",padding:"2px 3px",transition:"color .13s"}}
-                onMouseEnter={e=>e.currentTarget.style.color=NHS.red} onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,.2)"}>🗑</button>
-            </div>
-          ))}
-        </div>
-      )}
-      {!collapsed&&(
-        <div style={{padding:"8px 10px 9px",borderTop:"1px solid rgba(255,255,255,.07)",display:"flex",gap:6,alignItems:"center"}}>
-          <UserAvatar user={user} size={23}/><div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:"0.73rem",fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div><div style={{fontSize:"0.59rem",color:"rgba(255,255,255,.34)"}}>DCB0129/0160 · MHRA Class I</div></div>
-        </div>
-      )}
+  const groups=groupByDate(conversations);
+  return(<div style={{width:w,minWidth:w,background:NHS.darkBlue,display:"flex",flexDirection:"column",transition:"width .24s,min-width .24s",overflow:"hidden"}}>
+    <div style={{padding:collapsed?"11px 7px":"11px 10px",display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between",borderBottom:"1px solid rgba(255,255,255,.1)",minHeight:50}}>
+      {!collapsed&&<div style={{display:"flex",alignItems:"center",gap:7}}><PracticeLogo practice={user.practice} size={23}/><div><div style={{color:"#fff",fontWeight:700,fontSize:"0.83rem"}}>Ask AI</div><div style={{color:"rgba(255,255,255,.4)",fontSize:"0.61rem"}}>{user.practice.shortName} · last 7 days</div></div></div>}
+      <button onClick={onToggle} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:6,padding:"3px 6px",cursor:"pointer",color:"#fff",fontSize:".87rem"}}>{collapsed?"›":"‹"}</button>
     </div>
-  );
+    <div style={{padding:collapsed?"7px":"7px 9px"}}><button onClick={onNew} style={{background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.17)",borderRadius:8,padding:collapsed?"6px":"6px 10px",cursor:"pointer",color:"#fff",width:"100%",fontSize:"0.79rem",display:"flex",alignItems:"center",justifyContent:collapsed?"center":"flex-start",gap:6}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}><span>✏️</span>{!collapsed&&"New conversation"}</button></div>
+    {!collapsed&&(<div style={{flex:1,overflowY:"auto",padding:"0 7px 7px"}}>
+      {Object.entries(groups).map(([label,convs])=>convs.length===0?null:(<div key={label}>
+        <div style={{fontSize:"0.6rem",color:"rgba(255,255,255,.32)",padding:"8px 4px 4px",letterSpacing:".07em",textTransform:"uppercase"}}>{label}</div>
+        {convs.map(c=>(<div key={c.id} style={{position:"relative",marginBottom:2}}>
+          <button onClick={()=>onSelect(c.id)} style={{background:c.id===activeId?"rgba(255,255,255,.15)":"transparent",border:"none",borderRadius:7,padding:"6px 24px 6px 8px",cursor:"pointer",width:"100%",textAlign:"left",color:"#fff",transition:"background .13s"}} onMouseEnter={e=>{if(c.id!==activeId)e.currentTarget.style.background="rgba(255,255,255,.08)";}} onMouseLeave={e=>{if(c.id!==activeId)e.currentTarget.style.background="transparent";}}>
+            <div style={{fontSize:"0.77rem",fontWeight:c.id===activeId?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.hasArtifact&&<span style={{marginRight:4}}>{ARTIFACT_TYPES[c.artifactType]?.icon||"📎"}</span>}{c.title}</div>
+            <div style={{fontSize:"0.61rem",color:"rgba(255,255,255,.3)",marginTop:1}}>{fmtDate(c.updatedAt)}</div>
+          </button>
+          <button onClick={()=>onDelete(c.id)} style={{position:"absolute",right:3,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.2)",fontSize:"0.72rem",padding:"2px 3px",transition:"color .13s"}} onMouseEnter={e=>e.currentTarget.style.color=NHS.red} onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,.2)"}>🗑</button>
+        </div>))}
+      </div>))}
+      {conversations.length===0&&<div style={{fontSize:"0.74rem",color:"rgba(255,255,255,.28)",padding:"10px 4px",textAlign:"center"}}>No conversations yet</div>}
+    </div>)}
+    {!collapsed&&(<div style={{padding:"8px 10px 9px",borderTop:"1px solid rgba(255,255,255,.07)",display:"flex",gap:6,alignItems:"center"}}><UserAvatar user={user} size={23}/><div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:"0.73rem",fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div><div style={{fontSize:"0.59rem",color:"rgba(255,255,255,.34)"}}>DCB0129/0160 · MHRA Class I</div></div></div>)}
+  </div>);
 }
 
 async function callClaude(messages,systemPrompt,onChunk){
-  const SUPABASE_URL=import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_KEY=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const resp=await fetch(`${SUPABASE_URL}/functions/v1/ask-ai-chat`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({system:systemPrompt,messages:messages.map(m=>({role:m.role,content:m.files?.length?[...m.files.map(f=>({type:f.mediaType?.includes("image")?"image":"document",source:{type:"base64",media_type:f.mediaType,data:f.data}})),{type:"text",text:m.content}]:m.content}))})});
-  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||`API error ${resp.status}`);}
+  const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4096,system:systemPrompt,messages:messages.map(m=>({role:m.role,content:m.files?.length?[...m.files.map(f=>({type:f.mediaType?.includes("image")?"image":"document",source:{type:"base64",media_type:f.mediaType,data:f.data}})),{type:"text",text:m.content}]:m.content})),stream:true})});
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`API error ${resp.status}`);}
   const reader=resp.body.getReader();const decoder=new TextDecoder();let buf="";
   while(true){const{done,value}=await reader.read();if(done)break;buf+=decoder.decode(value,{stream:true});const lines=buf.split("\n");buf=lines.pop()||"";for(const line of lines){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")return;try{const d=JSON.parse(raw).delta?.text;if(d)onChunk(d);}catch{}}}
 }
 
-// ── MAIN COMPONENT (accepts user as prop) ─────────────────────────────────────
+// ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function NotewellChat({ user }) {
   const vp=useViewport();
   const [settings]=useState(()=>{try{const s=localStorage.getItem("nw_ai_settings");return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
-  const [conversations,setConversations]=useState([]);
+  const [conversations,setConversations]=useState(()=>loadHistory());
   const [activeConvId,setActiveConvId]=useState(null);
   const [messages,setMessages]=useState([]);
   const [input,setInput]=useState("");
@@ -538,52 +430,55 @@ export default function NotewellChat({ user }) {
   const [activeArtifact,setActiveArtifact]=useState(null);
   const [sidebarForceOpen,setSidebarForceOpen]=useState(false);
   const [showGuide,setShowGuide]=useState(()=>localStorage.getItem("nw_ai_welcomed")!=="1");
+  const [showProfile,setShowProfile]=useState(false);
+  const [userProfile,setUserProfile]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
+  const [customInstructions,setCustomInstructions]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const bottomRef=useRef(null);const textareaRef=useRef(null);const fileInputRef=useRef(null);
   const compact=settings.compactMessages||vp==="compact";
-  const systemPrompt=buildSystemPrompt(user,settings);
+  const systemPrompt=buildSystemPrompt(user,settings,userProfile,customInstructions);
+  const profileActive=!!(userProfile.trim()||customInstructions.trim());
 
+  useEffect(()=>{if(conversations.length>0)saveHistory(conversations);},[conversations]);
+  useEffect(()=>{if(activeConvId&&messages.length>0){const done=messages.filter(m=>!m.streaming);if(done.length>0)saveMsgs(activeConvId,done);}},[messages,activeConvId]);
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages,isLoading]);
   useEffect(()=>{if(textareaRef.current){textareaRef.current.style.height="auto";textareaRef.current.style.height=Math.min(textareaRef.current.scrollHeight,150)+"px";}},[input]);
 
-  const newConv=useCallback(()=>{
-    const id=uid();
-    setConversations(p=>[{id,title:"New conversation",updatedAt:new Date()},...p]);
-    setActiveConvId(id);setMessages([]);setFiles([]);setInput("");setGuardrailAlert(null);setActiveArtifact(null);setSidebarForceOpen(false);
-  },[]);
+  const newConv=useCallback(()=>{const id=uid();setConversations(p=>[{id,title:"New conversation",updatedAt:new Date()},...p]);setActiveConvId(id);setMessages([]);setFiles([]);setInput("");setGuardrailAlert(null);setActiveArtifact(null);setSidebarForceOpen(false);},[]);
   useEffect(()=>{newConv();},[]);
+
+  const handleProfileSaved=useCallback(()=>{
+    setUserProfile(localStorage.getItem(PROFILE_KEY)||"");
+    setCustomInstructions(localStorage.getItem(INSTRUCTIONS_KEY)||"");
+    setShowProfile(false);
+  },[]);
+
+  const selectConv=useCallback((id)=>{setActiveConvId(id);const saved=loadMsgs(id);setMessages(saved);setFiles([]);setInput("");setGuardrailAlert(null);const lastAI=[...saved].reverse().find(m=>m.role==="assistant"&&m.artifact);setActiveArtifact(lastAI?.artifact||null);setSidebarForceOpen(false);},[]);
+  const deleteConv=useCallback((id)=>{setConversations(p=>p.filter(c=>c.id!==id));localStorage.removeItem(msgKey(id));if(id===activeConvId)newConv();},[activeConvId,newConv]);
 
   const handleFiles=useCallback(async(nf)=>{
     setFileError(null);const valid=[];
-    for(const f of nf){
-      if(!ALLOWED_TYPES.includes(f.type)){setFileError(`"${f.name}" — unsupported type.`);continue;}
-      if(f.size>10485760){setFileError(`"${f.name}" exceeds 10 MB.`);continue;}
-      if(files.length+valid.length>=5){setFileError("Max 5 files per message.");break;}
-      valid.push({name:f.name,mediaType:f.type,size:f.size,data:await readBase64(f)});
-    }
+    for(const f of nf){if(!ALLOWED_TYPES.includes(f.type)){setFileError(`"${f.name}" — unsupported type.`);continue;}if(f.size>10485760){setFileError(`"${f.name}" exceeds 10 MB.`);continue;}if(files.length+valid.length>=5){setFileError("Max 5 files per message.");break;}valid.push({name:f.name,mediaType:f.type,size:f.size,data:await readBase64(f)});}
     setFiles(p=>[...p,...valid]);
   },[files]);
 
+  const handlePaste=useCallback((e)=>{
+    const text=e.clipboardData?.getData("text/plain");
+    if(text!==undefined){e.stopPropagation();const ta=textareaRef.current;if(ta){e.preventDefault();const start=ta.selectionStart;const end=ta.selectionEnd;const newVal=input.slice(0,start)+text+input.slice(end);setInput(newVal);requestAnimationFrame(()=>{if(textareaRef.current){textareaRef.current.selectionStart=start+text.length;textareaRef.current.selectionEnd=start+text.length;}});}}
+  },[input]);
+
   const send=useCallback(async(override)=>{
-    const text=(override??input).trim();
-    if(!text&&files.length===0)return;if(isLoading)return;
-    const pii=detectPII(text);
-    if(pii){setGuardrailAlert(`Possible ${pii.label} detected. Please anonymise patient data before submitting.`);return;}
+    const text=(override??input).trim();if(!text&&files.length===0)return;if(isLoading)return;
+    const pii=detectPII(text);if(pii){setGuardrailAlert(`Possible ${pii.label} detected. Please anonymise patient data before submitting.`);return;}
     const userMsg={id:uid(),role:"user",content:text,files:files.slice(),timestamp:new Date()};
-    const newMsgs=[...messages,userMsg];
-    setMessages(newMsgs);setInput("");setFiles([]);setIsLoading(true);
+    const newMsgs=[...messages,userMsg];setMessages(newMsgs);setInput("");setFiles([]);setIsLoading(true);
     if(messages.length===0){const title=text.length>44?text.slice(0,44)+"…":text;setConversations(p=>p.map(c=>c.id===activeConvId?{...c,title,updatedAt:new Date()}:c));}
     const aiId=uid();let accum="";
     setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true}]);
     try{
       await callClaude(newMsgs,systemPrompt,chunk=>{accum+=chunk;setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum}:m));});
       const artifact=parseArtifact(accum);
-      if(artifact){
-        setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact}:m));
-        setActiveArtifact(artifact);
-        setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));
-      }else{
-        setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false}:m));
-      }
+      if(artifact){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
+      else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
     }catch(e){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
     setIsLoading(false);
   },[input,files,messages,isLoading,activeConvId,systemPrompt]);
@@ -599,42 +494,38 @@ export default function NotewellChat({ user }) {
         @keyframes nwSpin{to{transform:rotate(360deg)}}
         @keyframes nwSlideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
         @keyframes nwSlideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-        .nw-root *{box-sizing:border-box}
-        .nw-root ::-webkit-scrollbar{width:5px}
-        .nw-root ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px}
-        .nw-root textarea:focus{outline:none}
+        .nw-wrap *{box-sizing:border-box}
+        .nw-wrap ::-webkit-scrollbar{width:5px}
+        .nw-wrap ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px}
       `}</style>
 
       {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}}/>}
+      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved}/>}
 
-      <Sidebar conversations={conversations} activeId={activeConvId}
-        onSelect={id=>{setActiveConvId(id);setMessages([]);setFiles([]);setInput("");setGuardrailAlert(null);setActiveArtifact(null);setSidebarForceOpen(false);}}
-        onNew={newConv}
-        onDelete={id=>{setConversations(p=>p.filter(c=>c.id!==id));if(id===activeConvId)newConv();}}
-        user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)}
-      />
+      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)}/>
 
-      <div className="nw-root" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}}
-        onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)}
-        onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles(Array.from(e.dataTransfer.files));}}>
-
+      <div className="nw-wrap" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}} onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles(Array.from(e.dataTransfer.files));}}>
         {dragOver&&<div style={{position:"absolute",inset:0,background:"rgba(0,114,206,.08)",border:`3px dashed ${NHS.brightBlue}`,zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",color:NHS.blue,fontWeight:700}}>📎 Drop to attach</div>}
 
-        {/* Slim AI status bar (sits below Notewell nav) */}
+        {/* Status bar */}
         <div style={{padding:vp==="compact"?"7px 13px":"9px 18px",background:"#fff",borderBottom:`1px solid ${NHS.paleGrey}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <div style={{width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem",flexShrink:0}}>🤖</div>
             <div>
               <div style={{fontWeight:700,fontSize:"0.84rem",color:NHS.darkBlue}}>Notewell AI Assistant</div>
-              <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>Ready · {user.practice.shortName} · Word · Excel · PowerPoint · Diagrams</div>
+              <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>Ready · {user.practice.shortName} · Word · Excel · PowerPoint · Diagrams{profileActive&&<span style={{color:NHS.blue,marginLeft:2}}>· Profile active</span>}</div>
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
             {activeArtifact&&vp!=="compact"&&<button onClick={()=>setActiveArtifact(null)} style={{background:ARTIFACT_TYPES[activeArtifact.type]?.colour+"14",border:`1px solid ${ARTIFACT_TYPES[activeArtifact.type]?.colour}44`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:ARTIFACT_TYPES[activeArtifact.type]?.colour,display:"flex",alignItems:"center",gap:4}}>{ARTIFACT_TYPES[activeArtifact.type]?.icon} {(activeArtifact.title||"").slice(0,20)}{(activeArtifact.title||"").length>20?"…":""}</button>}
-            <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}}>
-              ? {vp!=="compact"&&"Guide"}
+
+            {/* My Profile button */}
+            <button onClick={()=>setShowProfile(true)} style={{background:profileActive?NHS.blue+"11":"transparent",border:`1.5px solid ${profileActive?NHS.blue+"44":NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:profileActive?NHS.blue:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=profileActive?NHS.blue+"44":NHS.paleGrey;e.currentTarget.style.color=profileActive?NHS.blue:NHS.midGrey;}} title="My Profile & Custom Instructions">
+              👤{vp!=="compact"&&" My Profile"}{profileActive&&<span style={{width:6,height:6,borderRadius:"50%",background:NHS.green,display:"inline-block",flexShrink:0}}/>}
             </button>
+
+            {/* Guide button */}
+            <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}}>? {vp!=="compact"&&"Guide"}</button>
             {vp!=="compact"&&<div style={{display:"flex",alignItems:"center",gap:5,padding:"2px 8px 2px 5px",background:NHS.blue,borderRadius:20,fontSize:"0.62rem",fontWeight:700,color:"#fff",letterSpacing:".05em"}}><span style={{background:"#fff",color:NHS.blue,borderRadius:3,padding:"0 3px",fontWeight:900,fontSize:".58rem"}}>NHS</span>Clinical Grade</div>}
           </div>
         </div>
@@ -642,16 +533,8 @@ export default function NotewellChat({ user }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)}/>
-              :messages.map(m=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"}/></div>)}
-            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(
-              <div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}>
-                <div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",color:"#fff",fontWeight:700}}>N</div>
-                <div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>
-                  {[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}
-                </div>
-              </div>
-            )}
+            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>setShowProfile(true)}/>:messages.map(m=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"}/></div>)}
+            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",color:"#fff",fontWeight:700}}>N</div><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
         </div>
@@ -662,35 +545,19 @@ export default function NotewellChat({ user }) {
             {guardrailAlert&&<div style={{background:"#FFF5F5",border:`1.5px solid ${NHS.red}`,borderRadius:9,padding:"7px 13px",display:"flex",gap:7,alignItems:"flex-start",marginBottom:7,fontSize:"0.79rem",animation:"nwFadeIn .2s ease"}}><span style={{flexShrink:0}}>⚠️</span><div style={{flex:1,color:"#7a1010"}}><strong style={{color:NHS.red}}>Patient Data Warning</strong><p style={{margin:"2px 0 0"}}>{guardrailAlert}</p></div><button onClick={()=>setGuardrailAlert(null)} style={{background:"none",border:"none",cursor:"pointer",color:NHS.red,fontSize:".88rem",padding:0,flexShrink:0}}>✕</button></div>}
             {fileError&&<div style={{background:"#FFF5EC",border:`1px solid ${NHS.warmYellow}`,borderRadius:7,padding:"4px 11px",fontSize:"0.75rem",color:"#7a4a00",marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>⚠️ {fileError}</span><button onClick={()=>setFileError(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#7a4a00"}}>✕</button></div>}
             {files.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:6}}>{files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name} <span style={{color:NHS.midGrey}}>{fmtSize(f.size)}</span><button onClick={()=>setFiles(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:NHS.midGrey,padding:0,fontSize:".76rem"}}>✕</button></div>)}</div>}
-            {messages.length===0&&<div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><button key={k} onClick={()=>setInput(p=>(p?p+" ":"")+"Create a "+v.label)} style={{background:v.colour+"10",border:`1.5px solid ${v.colour}33`,borderRadius:20,padding:"2px 10px",cursor:"pointer",fontSize:"0.72rem",color:v.colour,fontWeight:600,display:"flex",alignItems:"center",gap:3,transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background=v.colour+"23"} onMouseLeave={e=>e.currentTarget.style.background=v.colour+"10"}>{v.icon} {v.label}</button>)}</div>}
-
-            <div style={{border:`1.5px solid ${NHS.paleGrey}`,borderRadius:12,background:"#F8FAFC",boxShadow:"0 2px 10px rgba(0,0,0,.05)",transition:"border-color .17s,box-shadow .17s"}}
-              onFocusCapture={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.boxShadow=`0 0 0 3px rgba(0,114,206,.08)`;}}
-              onBlurCapture={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.boxShadow="0 2px 10px rgba(0,0,0,.05)";}}>
-              <textarea ref={textareaRef} value={input} onChange={e=>setInput(e.target.value)}
-                onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
-                placeholder="Ask anything, or request a Word doc, Excel report, PowerPoint, or diagram… (Shift+Enter = new line)"
-                rows={1} disabled={isLoading}
-                style={{width:"100%",border:"none",background:"transparent",padding:compact?"9px 12px 6px":"12px 14px 6px",resize:"none",fontSize:`${FONT_SCALE[settings.fontSize||"medium"]}rem`,color:NHS.darkGrey,lineHeight:1.6,fontFamily:"inherit",overflow:"hidden"}}
-              />
+            {messages.length===0&&<div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><button key={k} onClick={()=>setInput(p=>(p?p+" ":"")+"Create a "+v.label)} style={{background:v.colour+"10",border:`1.5px solid ${v.colour}33`,borderRadius:20,padding:"2px 10px",cursor:"pointer",fontSize:"0.72rem",color:v.colour,fontWeight:600,display:"flex",alignItems:"center",gap:3}} onMouseEnter={e=>e.currentTarget.style.background=v.colour+"23"} onMouseLeave={e=>e.currentTarget.style.background=v.colour+"10"}>{v.icon} {v.label}</button>)}</div>}
+            <div style={{border:`1.5px solid ${NHS.paleGrey}`,borderRadius:12,background:"#F8FAFC",boxShadow:"0 2px 10px rgba(0,0,0,.05)",transition:"border-color .17s,box-shadow .17s"}} onFocusCapture={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.boxShadow=`0 0 0 3px rgba(0,114,206,.08)`;}} onBlurCapture={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.boxShadow="0 2px 10px rgba(0,0,0,.05)";}}>
+              <textarea ref={textareaRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} onPaste={handlePaste} placeholder="Ask anything, or request a Word doc, Excel report, PowerPoint, or diagram… (Shift+Enter = new line)" rows={1} disabled={isLoading} style={{width:"100%",border:"none",background:"transparent",padding:compact?"9px 12px 6px":"12px 14px 6px",resize:"none",overflowY:"auto",maxHeight:"150px",fontSize:`${FONT_SCALE[settings.fontSize||"medium"]}rem`,color:NHS.darkGrey,lineHeight:1.6,fontFamily:"inherit"}}/>
               <div style={{display:"flex",alignItems:"center",padding:"4px 8px 8px",gap:5}}>
-                <button onClick={()=>fileInputRef.current?.click()} disabled={isLoading||files.length>=5} title="Attach files"
-                  style={{background:"none",border:`1px solid ${NHS.paleGrey}`,borderRadius:7,padding:"3px 8px",cursor:files.length>=5?"not-allowed":"pointer",color:files.length>=5?"#ccc":NHS.midGrey,fontSize:"0.77rem",display:"flex",alignItems:"center",gap:3,transition:"all .12s"}}
-                  onMouseEnter={e=>{if(files.length<5)e.currentTarget.style.borderColor=NHS.brightBlue;}} onMouseLeave={e=>e.currentTarget.style.borderColor=NHS.paleGrey}
-                >📎 {vp!=="compact"&&"Attach"}{files.length>0&&<span style={{background:NHS.blue,color:"#fff",borderRadius:9,padding:"0 4px",fontSize:".6rem",fontWeight:700}}>{files.length}</span>}</button>
+                <button onClick={()=>fileInputRef.current?.click()} disabled={isLoading||files.length>=5} style={{background:"none",border:`1px solid ${NHS.paleGrey}`,borderRadius:7,padding:"3px 8px",cursor:files.length>=5?"not-allowed":"pointer",color:files.length>=5?"#ccc":NHS.midGrey,fontSize:"0.77rem",display:"flex",alignItems:"center",gap:3}} onMouseEnter={e=>{if(files.length<5)e.currentTarget.style.borderColor=NHS.brightBlue;}} onMouseLeave={e=>e.currentTarget.style.borderColor=NHS.paleGrey}>📎 {vp!=="compact"&&"Attach"}{files.length>0&&<span style={{background:NHS.blue,color:"#fff",borderRadius:9,padding:"0 4px",fontSize:".6rem",fontWeight:700}}>{files.length}</span>}</button>
                 <input ref={fileInputRef} type="file" multiple accept={ALLOWED_TYPES.join(",")} style={{display:"none"}} onChange={e=>{handleFiles(Array.from(e.target.files));e.target.value="";}}/>
-                {settings.includeUserContext&&vp==="wide"&&<div style={{fontSize:"0.64rem",color:NHS.midGrey,background:"#F0F4F8",padding:"2px 7px",borderRadius:5,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>{user.name} · {user.practice.shortName}</div>}
+                {settings.includeUserContext&&vp==="wide"&&<div style={{fontSize:"0.64rem",color:NHS.midGrey,background:"#F0F4F8",padding:"2px 7px",borderRadius:5,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>{user.name} · {user.practice.shortName}{profileActive&&" · Profile ✓"}</div>}
                 <div style={{flex:1}}/>
                 {input.length>180&&<span style={{fontSize:"0.64rem",color:NHS.midGrey}}>{input.length}</span>}
-                <button onClick={()=>send()} disabled={isLoading||(!input.trim()&&files.length===0)}
-                  style={{background:(isLoading||(!input.trim()&&files.length===0))?NHS.paleGrey:NHS.blue,border:"none",borderRadius:8,padding:compact?"5px 12px":"7px 16px",cursor:isLoading||(!input.trim()&&files.length===0)?"not-allowed":"pointer",color:"#fff",fontWeight:700,fontSize:"0.84rem",display:"flex",alignItems:"center",gap:4,transition:"all .17s",boxShadow:isLoading?"none":`0 2px 8px rgba(0,94,184,.26)`}}
-                  onMouseEnter={e=>{if(!isLoading&&(input.trim()||files.length>0))e.currentTarget.style.background=NHS.darkBlue;}} onMouseLeave={e=>{if(!isLoading&&(input.trim()||files.length>0))e.currentTarget.style.background=NHS.blue;}}
-                >{isLoading?[0,1,2].map(i=><span key={i} style={{width:4,height:4,borderRadius:"50%",background:"#fff",display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>):"Send ↑"}</button>
+                <button onClick={()=>send()} disabled={isLoading||(!input.trim()&&files.length===0)} style={{background:(isLoading||(!input.trim()&&files.length===0))?NHS.paleGrey:NHS.blue,border:"none",borderRadius:8,padding:compact?"5px 12px":"7px 16px",cursor:isLoading||(!input.trim()&&files.length===0)?"not-allowed":"pointer",color:"#fff",fontWeight:700,fontSize:"0.84rem",display:"flex",alignItems:"center",gap:4,transition:"all .17s",boxShadow:isLoading?"none":`0 2px 8px rgba(0,94,184,.26)`}} onMouseEnter={e=>{if(!isLoading&&(input.trim()||files.length>0))e.currentTarget.style.background=NHS.darkBlue;}} onMouseLeave={e=>{if(!isLoading&&(input.trim()||files.length>0))e.currentTarget.style.background=NHS.blue;}}>{isLoading?[0,1,2].map(i=><span key={i} style={{width:4,height:4,borderRadius:"50%",background:"#fff",display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>):"Send ↑"}</button>
               </div>
             </div>
-            <div style={{fontSize:"0.61rem",color:NHS.midGrey,textAlign:"center",marginTop:6}}>
-              Notewell AI may make mistakes — apply clinical judgement · <span style={{color:NHS.blue}}>DCB0129/DCB0160</span> · MHRA Class I · <span style={{color:NHS.blue}}>ICO ZB226324</span>
-            </div>
+            <div style={{fontSize:"0.61rem",color:NHS.midGrey,textAlign:"center",marginTop:6}}>Notewell AI may make mistakes — apply clinical judgement · <span style={{color:NHS.blue}}>DCB0129/DCB0160</span> · MHRA Class I · <span style={{color:NHS.blue}}>ICO ZB226324</span></div>
           </div>
         </div>
       </div>
