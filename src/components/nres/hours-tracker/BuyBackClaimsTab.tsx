@@ -290,6 +290,8 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           <Label className="text-xs">Role</Label>
           {isManagement ? (
             <Input className="h-9 bg-muted" value="NRES Management" disabled />
+          ) : isGpLocum ? (
+            <Input className="h-9 bg-muted" value="GP Locum" disabled />
           ) : (
             <Select value={role} onValueChange={handleRoleChange}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -303,6 +305,14 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           <Label className="text-xs">Allocation Type</Label>
           {isManagement ? (
             <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
+          ) : isGpLocum ? (
+            <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'daily'); setAllocValue(''); }}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily Rate</SelectItem>
+                <SelectItem value="sessions">Sessions/wk</SelectItem>
+              </SelectContent>
+            </Select>
           ) : (
              <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours' | 'daily'); setAllocValue(''); }}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
