@@ -724,7 +724,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       `}</style>
 
       {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}} vp={vp}/>}
-      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp}/>}
+      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp} onNavigateHome={onNavigateHome}/>}
 
       <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)} onNavigateHome={onNavigateHome}/>
 
