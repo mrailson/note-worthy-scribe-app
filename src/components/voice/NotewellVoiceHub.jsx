@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useConversation } from "@elevenlabs/react";
 
-const VOICE_SERVICES = [
+export const VOICE_SERVICES = [
   {
     id: "nres",
     name: "NRES Assistant",
@@ -111,7 +111,7 @@ function PulseRing({ color, size = 120, active }) {
   );
 }
 
-function StatusDot({ status, color }) {
+export function StatusDot({ status, color }) {
   const colors = {
     idle: "#94a3b8",
     connecting: "#f59e0b",
