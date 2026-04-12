@@ -1166,7 +1166,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
 
   useEffect(() => {
     profileEmailRef.current = profile?.email ?? null;
-  }, [profile?.email]);
+    voiceCtxDataRef.current = voiceCtxData;
+  }, [profile?.email, voiceCtxData]);
 
   useEffect(() => {
     // Check if microphone permission is already granted
