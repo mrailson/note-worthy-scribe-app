@@ -33,7 +33,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight, Pencil } from 'lucide-react';
+import { EditStaffDialog } from './EditStaffDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
@@ -477,6 +478,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [proposalOpen, setProposalOpen] = useState(false);
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
@@ -690,29 +692,32 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                           <td className="p-2 text-right font-medium">
                             <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
                           </td>
-                         <td className="p-2 text-right">
-                           <AlertDialog>
-                             <AlertDialogTrigger asChild>
-                               <Button variant="ghost" size="icon">
-                                 <Trash2 className="w-4 h-4 text-destructive" />
-                               </Button>
-                             </AlertDialogTrigger>
-                             <AlertDialogContent>
-                               <AlertDialogHeader>
-                                 <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
-                                 <AlertDialogDescription>
-                                   Are you sure you want to remove <span className="font-semibold">{displayName}</span> from the staff list? This action cannot be undone.
-                                 </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter>
-                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                 <AlertDialogAction onClick={() => removeStaff(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                   Remove
-                                 </AlertDialogAction>
-                               </AlertDialogFooter>
-                             </AlertDialogContent>
-                           </AlertDialog>
-                          </td>
+                          <td className="p-2 text-right space-x-1">
+                            <Button variant="ghost" size="icon" onClick={() => setEditingStaff(s)}>
+                              <Pencil className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove <span className="font-semibold">{displayName}</span> from the staff list? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => removeStaff(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                           </td>
                        </tr>
                      );
                    })}
@@ -728,6 +733,17 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </CardContent>
       </Card>
       )}
+
+      <EditStaffDialog
+        open={!!editingStaff}
+        onOpenChange={(open) => { if (!open) setEditingStaff(null); }}
+        staff={editingStaff}
+        saving={savingStaff}
+        onSave={updateStaff}
+        staffRoles={staffRoles}
+        practiceKeys={effectivePracticeKeys}
+        practiceNames={ALL_PRACTICES}
+      />
 
       {effectiveCanCreateClaim && <Separator />}
 
