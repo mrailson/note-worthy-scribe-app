@@ -700,6 +700,16 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       </table>
     </div>
 
+    <div style="background:#f0faf0;border-radius:6px;padding:20px;margin:0 0 20px;border-left:4px solid #16a34a;">
+      <h2 style="font-size:14px;color:#16a34a;margin:0 0 12px;font-weight:600;">Approval Trail</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr><td style="padding:6px 0;color:#666;width:40%;">Submitted by</td><td style="padding:6px 0;text-align:right;"><strong>${claim?.submitted_by_email || 'N/A'}</strong> — ${claim?.submitted_at ? new Date(claim.submitted_at).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) + ' at ' + new Date(claim.submitted_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : 'N/A'}</td></tr>
+        <tr style="border-top:1px solid #d1fae5;"><td style="padding:6px 0;color:#666;">Verified by</td><td style="padding:6px 0;text-align:right;"><strong>${claim?.verified_by || 'N/A'}</strong> — ${claim?.verified_at ? new Date(claim.verified_at).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) + ' at ' + new Date(claim.verified_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : 'N/A'}</td></tr>
+        <tr style="border-top:1px solid #d1fae5;"><td style="padding:6px 0;color:#666;">Approved by (SNO)</td><td style="padding:6px 0;text-align:right;"><strong>${user.email || 'N/A'}</strong> — ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} at ${new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'})}</td></tr>
+        <tr style="border-top:1px solid #d1fae5;"><td style="padding:6px 0;color:#666;">PML Director Approval</td><td style="padding:6px 0;text-align:right;font-style:italic;color:#888;">Confirmed</td></tr>
+      </table>
+    </div>
+
     <p style="margin:0 0 16px;line-height:1.6;">Please use invoice number <strong>${invoiceNum}</strong> as your payment reference to ensure correct allocation.</p>
     <p style="margin:0 0 0;line-height:1.6;">If you have any queries regarding this invoice or the associated claim, please contact the Neighbourhood Operations Manager: <strong>Amanda Palin</strong> (<a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;">amanda.palin2@nhs.net</a>).</p>
   </div>
