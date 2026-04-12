@@ -792,7 +792,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
                   <div style={{fontWeight:700,fontSize:"0.84rem",color:NHS.darkBlue}}>Notewell AI Assistant</div>
                   <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}>
                     <span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>
-                    Ready · {user.practice.shortName} · Word · Excel · PowerPoint · Diagrams
+                    Ready · {user.practice.shortName}
                     {profileActive && <span style={{color:NHS.blue,marginLeft:2}}>· Profile active</span>}
                   </div>
                 </div>
