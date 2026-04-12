@@ -27,8 +27,8 @@ export const NRES_ODS_CODES: Record<string, string> = {
   brook: 'K83620',
   denton: 'K83068',
   bt_pcn: 'N/A',
-  brackley_towcester_pcn: 'U57957',
-  nres_programme: 'U57957',
+  brackley_towcester_pcn: 'U57902',
+  nres_programme: 'U57902',
   blue_pcn: 'U45023',
 };
 
