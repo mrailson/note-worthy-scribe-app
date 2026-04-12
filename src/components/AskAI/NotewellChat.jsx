@@ -445,7 +445,7 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}
   const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
   const isMobile=vp==="mobile";
   return(<div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
-    {isUser?<UserAvatar user={user} size={compact?27:33}/>:<div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>N</div>}
+    {isUser?<UserAvatar user={user} size={compact?27:33}/>:<img src="/notewell-logo.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}/>}
     <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
       <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3,textAlign:isUser?"right":"left"}}>{isUser?user.name:"Notewell AI"} · {fmt(msg.timestamp)}</div>
       {msg.files?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:5,justifyContent:isUser?"flex-end":"flex-start"}}>{msg.files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name}{f.size&&<span style={{color:NHS.midGrey}}> {fmtSize(f.size)}</span>}</div>)}</div>}
@@ -495,7 +495,7 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
   const isMobile=vp==="mobile";
   const autoCollapse=(settings.sidebarMode==="auto"&&(vp==="compact"||isMobile));
   const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
-  const w=collapsed?(isMobile?0:50):vp==="wide"?255:230;
+  const w=collapsed?0:vp==="wide"?255:230;
   const sidebarStyle=isMobile?{
     position:"fixed",top:0,left:0,bottom:0,zIndex:200,
     width:forceOpen?260:0,overflow:"hidden",
@@ -786,7 +786,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
             )}
             {/* AI identity */}
             <div style={{display:"flex",alignItems:"center",gap:7}}>
-              <div style={{width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem",flexShrink:0}}>🤖</div>
+              <img src="/notewell-logo.png" alt="Notewell AI" style={{width:26,height:26,borderRadius:"50%",flexShrink:0,objectFit:"cover"}} onError={e=>{e.currentTarget.style.display="none";}}/>
               {vp !== "mobile" && (
                 <div>
                   <div style={{fontWeight:700,fontSize:"0.84rem",color:NHS.darkBlue}}>Notewell AI Assistant</div>
@@ -828,7 +828,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
             {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
-            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",color:"#fff",fontWeight:700}}>N</div><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
+            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/notewell-logo.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
         </div>
