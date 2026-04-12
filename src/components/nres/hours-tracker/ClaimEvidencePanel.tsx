@@ -164,6 +164,7 @@ export function StaffLineEvidence({
   onUpload,
   onDelete,
   onDownload,
+  hideHeader = false,
 }: {
   staffCategory: 'buyback' | 'new_sda' | 'management';
   staffIndex: number;
@@ -176,6 +177,7 @@ export function StaffLineEvidence({
   onUpload: (evidenceType: string, file: File, staffIndex: number) => Promise<any>;
   onDelete: (id: string) => Promise<void>;
   onDownload: (filePath: string) => Promise<string | null>;
+  hideHeader?: boolean;
 }) {
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const allTypes = getConfigForCategory(staffCategory);
@@ -213,6 +215,7 @@ export function StaffLineEvidence({
 
   return (
     <div className="bg-slate-50/80 dark:bg-slate-900/30">
+      {!hideHeader && (
       <div className="px-4 py-1.5 flex items-center gap-2">
         <FileText className="w-3.5 h-3.5 text-primary" />
         <span className="text-[11px] font-semibold text-primary">Evidence</span>
@@ -223,6 +226,7 @@ export function StaffLineEvidence({
           )}
         </Badge>
       </div>
+      )}
       <div className="divide-y">
         {visibleTypes.map(cfg => {
           // For 'other_supporting', render inline SmartUploadZone instead of separate section
