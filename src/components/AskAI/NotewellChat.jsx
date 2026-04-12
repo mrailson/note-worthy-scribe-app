@@ -676,27 +676,68 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
     </div>
 
     {/* Horizontally scrollable suggestion cards */}
-    <style>{`.nw-sugg-scroll::-webkit-scrollbar{display:none}`}</style>
-    <div ref={scrollRef} className="nw-sugg-scroll" style={{
-      display:"flex",flexDirection:"row",overflowX:"auto",overflowY:"hidden",
-      gap:10,paddingBottom:8,paddingTop:4,width:"100%",maxWidth:vp==="wide"?720:560,
-      scrollBehavior:"smooth",scrollbarWidth:"none",
-      WebkitOverflowScrolling:"touch",msOverflowStyle:"none"
-    }}>
-      {currentSuggestions.map((text,i)=>(
-        <button key={`${selectedRole}-${i}`} onClick={()=>onSuggestion(text)} style={{
-          flexShrink:0,minWidth:180,maxWidth:200,height:80,background:"#fff",
-          border:"1.5px solid #E8EDEE",borderRadius:10,padding:"10px 12px",
-          cursor:"pointer",textAlign:"left",transition:"all .15s",fontSize:"0.78rem",
-          color:"#231F20",lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)",
-          overflow:"hidden",display:"-webkit-box",
-          WebkitLineClamp:3,WebkitBoxOrient:"vertical",textOverflow:"ellipsis",
-        }}
-        onMouseEnter={e=>{e.currentTarget.style.borderColor="#0072CE";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 14px rgba(0,114,206,.12)";}}
-        onMouseLeave={e=>{e.currentTarget.style.borderColor="#E8EDEE";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
-          {text}
-        </button>
-      ))}
+    <style>{`
+      .nw-suggestions-scroll {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        flex-wrap: nowrap !important;
+        gap: 10px;
+        padding: 4px 2px 12px 2px;
+        width: 100%;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+      }
+      .nw-suggestions-scroll::-webkit-scrollbar {
+        height: 4px;
+      }
+      .nw-suggestions-scroll::-webkit-scrollbar-track {
+        background: #F0F4F8;
+        border-radius: 4px;
+      }
+      .nw-suggestions-scroll::-webkit-scrollbar-thumb {
+        background: #005EB8;
+        border-radius: 4px;
+      }
+      .nw-suggestion-card {
+        flex: 0 0 190px !important;
+        min-width: 190px !important;
+        max-width: 190px !important;
+        height: 85px;
+        background: #fff;
+        border: 1.5px solid #E8EDEE;
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-size: 0.78rem;
+        color: #231F20;
+        line-height: 1.45;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        transition: all 0.15s;
+        text-align: left;
+        word-break: break-word;
+      }
+      .nw-suggestion-card:hover {
+        border-color: #0072CE;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(0,114,206,0.12);
+      }
+    `}</style>
+    <div style={{width:'100%',maxWidth:vp==="wide"?720:560,overflow:'visible',position:'relative'}}>
+      <div ref={scrollRef} className="nw-suggestions-scroll">
+        {currentSuggestions.map((text,i)=>(
+          <button key={`${selectedRole}-${i}`} className="nw-suggestion-card" onClick={()=>onSuggestion(text)}>
+            {text}
+          </button>
+        ))}
+      </div>
     </div>
   </div>);
 }
