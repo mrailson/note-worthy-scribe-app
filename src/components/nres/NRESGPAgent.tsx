@@ -1,9 +1,9 @@
 import { useConversation } from "@11labs/react";
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
 import { Stethoscope, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGPSummaryEmail } from "@/hooks/useGPSummaryEmail";
-import { supabase } from "@/integrations/supabase/client";
 
 const GP_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
@@ -95,13 +95,13 @@ const GPAgentInner = () => {
 
   const generateSignedUrl = async (): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
-        body: { agentId: GP_AGENT_ID }
+      const { data, error } = await supabase.functions.invoke("elevenlabs-agent-url", {
+        body: { agentId: GP_AGENT_ID },
       });
       if (error) throw error;
       return data.signed_url;
     } catch (err) {
-      console.error('Failed to generate signed URL:', err);
+      console.error("Signed URL failed:", err);
       return null;
     }
   };
@@ -109,22 +109,19 @@ const GPAgentInner = () => {
   const handleStart = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
-
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
-        console.error('Could not get signed URL');
+        console.error("Could not get signed URL");
         return;
       }
-
       messagesRef.current = [];
       sessionStartRef.current = new Date();
-
-      await (conversation as any).startSession({
+      await conversation.startSession({
         agentId: GP_AGENT_ID,
         signedUrl,
       });
     } catch (error) {
-      console.error("Failed to start GP assistant:", error);
+      console.error("Failed to start:", error);
     }
   };
 
