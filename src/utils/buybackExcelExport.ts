@@ -41,7 +41,7 @@ export function exportClaimsDetail(claims: BuyBackClaim[], filterPractice?: stri
         claimMonthLabel(claim.claim_month),
         s.staff_name || '—',
         s.staff_role || '—',
-        s.staff_category === 'new_sda' ? 'New SDA' : 'Buy-Back',
+        s.staff_category === 'new_sda' ? 'New SDA' : s.staff_category === 'management' ? 'Management' : s.staff_category === 'gp_locum' ? 'GP Locum' : 'Buy-Back',
         s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical'),
         s.allocation_type || '—',
         s.allocation_value || 0,
