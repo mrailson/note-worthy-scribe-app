@@ -453,7 +453,7 @@ function GuideModal({user,onClose,vp}){
 
 // ── Artifact Panel ────────────────────────────────────────────────────────────
 // FIX 1: Enhanced PPTX download with spinner, error display, success confirmation, timeout
-function ArtifactPanel({artifact,onClose,vp}){
+function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth}){
   const [gen,setGen]=useState(false);const [err,setErr]=useState(null);const [done,setDone]=useState(null);
   const [genLabel,setGenLabel]=useState(null);
   const type=ARTIFACT_TYPES[artifact.type]||ARTIFACT_TYPES.docx;const isImg=artifact.type==="image";
@@ -472,10 +472,31 @@ function ArtifactPanel({artifact,onClose,vp}){
       setGenLabel(null);
     }finally{setGen(false);}
   },[artifact]);
-  const ps={width:vp==="wide"?430:vp==="standard"?380:undefined,minWidth:vp==="wide"?430:vp==="standard"?380:undefined,background:"#fff",borderLeft:`1px solid ${NHS.paleGrey}`,display:"flex",flexDirection:"column",boxShadow:"-4px 0 20px rgba(0,0,0,0.07)",animation:"nwSlideIn .22s ease"};
-  if(vp==="compact")Object.assign(ps,{position:"absolute",inset:0,zIndex:100});
-  return(<div style={ps}>
-    <div style={{padding:"12px 14px",background:`linear-gradient(135deg,${type.colour},${type.colour}CC)`,display:"flex",alignItems:"center",gap:9,flexShrink:0}}><div style={{fontSize:"1.3rem"}}>{type.icon}</div><div style={{flex:1,overflow:"hidden"}}><div style={{fontWeight:700,fontSize:"0.87rem",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{artifact.title||type.label}</div><div style={{fontSize:"0.66rem",color:"rgba(255,255,255,.65)",marginTop:1}}>{type.label} · Notewell AI</div></div><button onClick={onClose} style={{background:"rgba(255,255,255,.2)",border:"none",cursor:"pointer",color:"#fff",borderRadius:7,padding:"5px 8px"}}>✕</button></div>
+  return(<div style={{background:"#fff",borderLeft:`1px solid ${NHS.paleGrey}`,display:"flex",flexDirection:"column",boxShadow:"-4px 0 20px rgba(0,0,0,0.07)",height:"100%"}}>
+    <div style={{padding:"12px 14px",background:`linear-gradient(135deg,${type.colour},${type.colour}CC)`,display:"flex",alignItems:"center",gap:9,flexShrink:0}}>
+      <div style={{fontSize:"1.3rem"}}>{type.icon}</div>
+      <div style={{flex:1,overflow:"hidden"}}>
+        <div style={{fontWeight:700,fontSize:"0.87rem",color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{artifact.title||type.label}</div>
+        <div style={{fontSize:"0.66rem",color:"rgba(255,255,255,.65)",marginTop:1}}>{type.label} · Notewell AI</div>
+      </div>
+      {onSetWidth&&(
+        <div style={{display:"flex",gap:3,alignItems:"center",marginRight:6}}>
+          {[
+            {label:"S",w:320,title:"Narrow"},
+            {label:"M",w:460,title:"Medium"},
+            {label:"L",w:580,title:"Wide"},
+            {label:"XL",w:780,title:"Extra wide"},
+          ].map(({label,w,title})=>(
+            <button key={label} onClick={()=>onSetWidth(w)} title={title} style={{
+              background:panelWidth===w?"rgba(255,255,255,.35)":"rgba(255,255,255,.12)",
+              border:"1px solid rgba(255,255,255,.3)",borderRadius:4,color:"#fff",
+              fontSize:"0.62rem",fontWeight:700,padding:"2px 6px",cursor:"pointer",transition:"all .13s",
+            }}>{label}</button>
+          ))}
+        </div>
+      )}
+      <button onClick={onClose} style={{background:"rgba(255,255,255,.2)",border:"none",cursor:"pointer",color:"#fff",borderRadius:7,padding:"5px 8px"}}>✕</button>
+    </div>
     <div style={{flex:1,overflowY:"auto",padding:"13px 14px"}}>
       {isImg&&artifact.svg?(<div><div style={{background:"#fafbfc",borderRadius:9,border:`1px solid ${NHS.paleGrey}`,padding:11,marginBottom:9,overflow:"auto"}}><div dangerouslySetInnerHTML={{__html:artifact.svg}} style={{display:"flex",justifyContent:"center"}}/></div>{artifact.alt&&<p style={{fontSize:"0.73rem",color:NHS.midGrey,margin:0,fontStyle:"italic"}}>↑ {artifact.alt}</p>}</div>)
       :(<ArtifactPreview artifact={artifact}/>)}
@@ -503,7 +524,7 @@ function PracticeLogo({practice,size=26}){if(practice.logoUrl)return<img src={pr
 
 const FOLLOW_UP_SUGGESTIONS=["Tell me more","Summarise as bullet points","What's changed recently?"];
 
-function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}){
+function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp,onOpenArtifact}){
   const isUser=msg.role==="user";const [copied,setCopied]=useState(false);const [feedback,setFeedback]=useState(null);
   const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
   const isMobile=vp==="mobile";
@@ -546,7 +567,7 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}
     <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
       <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3,textAlign:isUser?"right":"left"}}>{isUser?user.name:"Notewell AI"} · {fmt(msg.timestamp)}</div>
       {msg.files?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:5,justifyContent:isUser?"flex-end":"flex-start"}}>{msg.files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name}{f.size&&<span style={{color:NHS.midGrey}}> {fmtSize(f.size)}</span>}</div>)}</div>}
-      {msg.artifact&&<div style={{display:"flex",alignItems:"center",gap:7,background:ARTIFACT_TYPES[msg.artifact.type]?.colour+"13",border:`1.5px solid ${ARTIFACT_TYPES[msg.artifact.type]?.colour}44`,borderRadius:8,padding:"6px 10px",marginBottom:5}}><span style={{fontSize:"1rem"}}>{ARTIFACT_TYPES[msg.artifact.type]?.icon}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.79rem",color:ARTIFACT_TYPES[msg.artifact.type]?.colour}}>{msg.artifact.title}</div><div style={{fontSize:"0.69rem",color:NHS.midGrey}}>{ARTIFACT_TYPES[msg.artifact.type]?.label} · see panel →</div></div></div>}
+      {msg.artifact&&<div onClick={()=>onOpenArtifact?.(msg.artifact)} style={{display:"flex",alignItems:"center",gap:7,background:ARTIFACT_TYPES[msg.artifact.type]?.colour+"13",border:`1.5px solid ${ARTIFACT_TYPES[msg.artifact.type]?.colour}44`,borderRadius:8,padding:"6px 10px",marginBottom:5,cursor:"pointer",transition:"all .17s"}} onMouseEnter={e=>{e.currentTarget.style.background=ARTIFACT_TYPES[msg.artifact.type]?.colour+"25";e.currentTarget.style.transform="translateY(-1px)";}} onMouseLeave={e=>{e.currentTarget.style.background=ARTIFACT_TYPES[msg.artifact.type]?.colour+"13";e.currentTarget.style.transform="translateY(0)";}}><span style={{fontSize:"1rem"}}>{ARTIFACT_TYPES[msg.artifact.type]?.icon}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.79rem",color:ARTIFACT_TYPES[msg.artifact.type]?.colour}}>{msg.artifact.title}</div><div style={{fontSize:"0.69rem",color:NHS.midGrey}}>{ARTIFACT_TYPES[msg.artifact.type]?.label} · click to view →</div></div></div>}
       <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
         {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/><span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/></>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
       </div>
