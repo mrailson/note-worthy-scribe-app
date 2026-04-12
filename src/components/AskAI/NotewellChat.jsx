@@ -811,6 +811,18 @@ export default function NotewellChat({ user, onNavigateHome }) {
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
             {activeArtifact&&vp!=="compact"&&<button onClick={()=>setActiveArtifact(null)} style={{background:ARTIFACT_TYPES[activeArtifact.type]?.colour+"14",border:`1px solid ${ARTIFACT_TYPES[activeArtifact.type]?.colour}44`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:ARTIFACT_TYPES[activeArtifact.type]?.colour,display:"flex",alignItems:"center",gap:4}}>{ARTIFACT_TYPES[activeArtifact.type]?.icon} {(activeArtifact.title||"").slice(0,20)}{(activeArtifact.title||"").length>20?"…":""}</button>}
 
+            {/* Chat History toggle */}
+            <button onClick={()=>setSidebarForceOpen(o=>!o)} style={{background:sidebarForceOpen?NHS.blue+"11":"transparent",border:`1.5px solid ${sidebarForceOpen?NHS.blue+"44":NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:sidebarForceOpen?NHS.blue:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=sidebarForceOpen?NHS.blue+"44":NHS.paleGrey;e.currentTarget.style.color=sidebarForceOpen?NHS.blue:NHS.midGrey;}} title="Toggle chat history">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+              {vp!=="compact"&&vp!=="mobile"&&" History"}
+            </button>
+
+            {/* + New Chat */}
+            <button onClick={()=>{newConv();}} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.green;e.currentTarget.style.color=NHS.green;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}} title="New conversation">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              {vp!=="compact"&&vp!=="mobile"&&" New Chat"}
+            </button>
+
             {/* My Profile button */}
             <button onClick={()=>{setProfileInitialTab("profile");setShowProfile(true);}} style={{background:profileActive?NHS.blue+"11":"transparent",border:`1.5px solid ${profileActive?NHS.blue+"44":NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:profileActive?NHS.blue:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=profileActive?NHS.blue+"44":NHS.paleGrey;e.currentTarget.style.color=profileActive?NHS.blue:NHS.midGrey;}} title="My Profile & Custom Instructions">
               👤{vp!=="compact"&&" My Profile"}{profileActive&&<span style={{width:6,height:6,borderRadius:"50%",background:NHS.green,display:"inline-block",flexShrink:0}}/>}
@@ -818,8 +830,6 @@ export default function NotewellChat({ user, onNavigateHome }) {
 
             {/* Guide button */}
             <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}}>? {vp!=="compact"&&"Guide"}</button>
-            {/* Clear conversation button */}
-            {messages.length>0&&<button onClick={()=>{if(confirm("Start a new conversation? This will clear the current thread."))newConv();}} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.red;e.currentTarget.style.color=NHS.red;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}} title="Clear conversation">🗑{vp!=="compact"&&" Clear"}</button>}
             {vp!=="compact"&&<div style={{display:"flex",alignItems:"center",gap:5,padding:"2px 8px 2px 5px",background:NHS.blue,borderRadius:20,fontSize:"0.62rem",fontWeight:700,color:"#fff",letterSpacing:".05em"}}><span style={{background:"#fff",color:NHS.blue,borderRadius:3,padding:"0 3px",fontWeight:900,fontSize:".58rem"}}>NHS</span>Clinical Grade</div>}
           </div>
         </div>
