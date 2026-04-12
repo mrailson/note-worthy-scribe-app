@@ -514,8 +514,10 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
 }
 
 async function callClaude(messages,systemPrompt,onChunk){
-  const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4096,system:systemPrompt,messages:messages.map(m=>({role:m.role,content:m.files?.length?[...m.files.map(f=>({type:f.mediaType?.includes("image")?"image":"document",source:{type:"base64",media_type:f.mediaType,data:f.data}})),{type:"text",text:m.content}]:m.content})),stream:true})});
-  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||`API error ${resp.status}`);}
+  const SUPABASE_URL=import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_KEY=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const resp=await fetch(`${SUPABASE_URL}/functions/v1/ask-ai-chat`,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({system:systemPrompt,messages:messages.map(m=>({role:m.role,content:m.files?.length?[...m.files.map(f=>({type:f.mediaType?.includes("image")?"image":"document",source:{type:"base64",media_type:f.mediaType,data:f.data}})),{type:"text",text:m.content}]:m.content}))})});
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||`API error ${resp.status}`);}
   const reader=resp.body.getReader();const decoder=new TextDecoder();let buf="";
   while(true){const{done,value}=await reader.read();if(done)break;buf+=decoder.decode(value,{stream:true});const lines=buf.split("\n");buf=lines.pop()||"";for(const line of lines){if(!line.startsWith("data: "))continue;const raw=line.slice(6).trim();if(raw==="[DONE]")return;try{const d=JSON.parse(raw).delta?.text;if(d)onChunk(d);}catch{}}}
 }

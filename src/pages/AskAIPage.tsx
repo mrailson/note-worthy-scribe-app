@@ -35,11 +35,12 @@ export default function AskAIPage() {
 
       if (profile) {
         const practice = (profile as any).gp_practices;
+        const name = profile.full_name || session.user.email || "User";
         setUser({
-          name: profile.full_name || session.user.email || "User",
-          initials: profile.initials || (profile.full_name || "U").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
+          name,
+          initials: name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
           role: profile.role || "NHS Staff",
-          jobTitle: profile.job_title || "",
+          jobTitle: profile.title || "",
           practice: {
             name: practice?.name || "NHS Primary Care",
             shortName: practice?.short_name || "NHS",
