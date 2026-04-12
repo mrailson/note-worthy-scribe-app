@@ -126,7 +126,7 @@ export default function KnowledgeBaseAdmin() {
 
       // Upload file if provided
       if (file) {
-        fileType = file.name.endsWith(".docx") ? "docx" : "pdf";
+        fileType = file.name.endsWith(".docx") ? "docx" : file.name.endsWith(".txt") ? "txt" : "pdf";
         const fileName = `kb-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 
         const { error: uploadError } = await supabase.storage
@@ -432,11 +432,11 @@ export default function KnowledgeBaseAdmin() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">
-                    Upload File (PDF or DOCX)
+                    Upload File (PDF, DOCX, or TXT)
                   </label>
                   <Input
                     type="file"
-                    accept=".pdf,.docx"
+                    accept=".pdf,.docx,.txt"
                     onChange={(e) => {
                       setFile(e.target.files?.[0] || null);
                       if (e.target.files?.[0]) setUrlInput("");
