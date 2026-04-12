@@ -73,7 +73,8 @@ interface ConversationMessage {
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
   const { profile } = useUserProfile();
   const { saveSession } = useGenieHistory();
-  const { dynamicVariables: voiceDynVars } = useVoiceAgentContext();
+  const { contextData: voiceCtxData, dynamicVariables: voiceDynVars } = useVoiceAgentContext();
+  const voiceCtxDataRef = useRef(voiceCtxData);
   const deviceInfo = useDeviceInfo();
   const conversationStartTime = useRef<Date | null>(null);
   const profileEmailRef = useRef<string | null>(null);
