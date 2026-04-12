@@ -933,7 +933,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     userId={user?.id}
                     userEmail={user?.email}
                     isAdmin={testActive ? (testMode.role !== 'practice') : isAdmin}
-                    isSuperAdmin={isSuperAdmin}
+                    isSuperAdmin={testActive ? false : isSuperAdmin}
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
