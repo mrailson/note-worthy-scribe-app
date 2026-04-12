@@ -470,7 +470,7 @@ function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth}){
     else setGenLabel("Generating...");
     try{
       if(artifact.type==="docx")triggerDownload(generateDocxBlob(artifact),(artifact.filename||"document")+".doc");
-      else if(artifact.type==="xlsx")triggerDownload(await generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");
+      else if(artifact.type==="xlsx")triggerDownload(generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");
       else if(artifact.type==="pptx")triggerDownload(await generatePptxBlob(artifact),(artifact.filename||"presentation")+".pptx");
       else if(isImg){if(fmt==="png")await downloadPng(artifact);else downloadSvg(artifact);}
       setDone(fmt);setGenLabel(null);setTimeout(()=>setDone(null),4000);
