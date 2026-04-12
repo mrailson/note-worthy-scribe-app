@@ -274,19 +274,20 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           {isManagement ? (
             <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
           ) : (
-            <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
+             <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours' | 'daily'); setAllocValue(''); }}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="sessions">Sessions</SelectItem>
                 <SelectItem value="hours">Hrs/wk</SelectItem>
                 <SelectItem value="wte">WTE</SelectItem>
+                <SelectItem value="daily">Daily Rate</SelectItem>
               </SelectContent>
             </Select>
           )}
         </div>
         <div>
           <Label className="text-xs">
-            {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : 'WTE Value'}
+            {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
           </Label>
           <Input
             type="number"
