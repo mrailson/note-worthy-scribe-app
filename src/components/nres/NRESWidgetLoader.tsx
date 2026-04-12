@@ -8,7 +8,7 @@ export const NRESWidgetEmbed = () => {
     if (!container) return;
 
     const el = document.createElement("elevenlabs-convai");
-    el.setAttribute("agent-id", "agent_01jwry2fzme7xsb2mwzatxseyt");
+    el.setAttribute("agent-id", "agent_7801knyxsxcxehsr8kynxgxz6xyr");
     container.appendChild(el);
 
     const existing = document.querySelector('script[src*="convai-widget-embed"]');
