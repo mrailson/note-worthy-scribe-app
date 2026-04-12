@@ -50,7 +50,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { document_id, document_text } = await req.json();
+    const body = await req.json();
+    const { document_id, document_text, extra_keywords } = body;
     if (!document_id || !document_text) {
       return new Response(JSON.stringify({ error: "Missing document_id or document_text" }), {
         status: 400,
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
     // Truncate to ~30k chars to stay within context limits
     const truncated = document_text.slice(0, 30000);
 
-    // Call Claude for summarisation
+    // Call Claude for summarisation with updated prompt including keywords extraction
     const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -71,8 +72,14 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
-        system: `You are a medical knowledge assistant. Extract from this NHS primary care document: a 2-3 sentence summary, and up to 6 key points as a JSON array. Return ONLY valid JSON: { "summary": "string", "key_points": ["string"] }`,
+        max_tokens: 1500,
+        system: `You are a medical knowledge assistant. Extract from this NHS primary care document:
+- A 2-3 sentence summary
+- Up to 8 key points as a JSON array
+- A keywords array: extract ALL acronyms, abbreviations, organisation names, drug names, role titles, and proper nouns mentioned in the document (e.g. if document mentions 'Principal Medical Limited (PML)', keywords should include both 'Principal Medical Limited' AND 'PML')
+
+Return ONLY valid JSON:
+{ "summary": "string", "key_points": ["string"], "keywords": ["string"] }`,
         messages: [{ role: "user", content: truncated }],
       }),
     });
@@ -80,7 +87,6 @@ Deno.serve(async (req) => {
     if (!claudeResp.ok) {
       const err = await claudeResp.text();
       console.error("Claude API error:", err);
-      // Update status to error
       await serviceClient
         .from("kb_documents")
         .update({ status: "error" })
@@ -97,25 +103,33 @@ Deno.serve(async (req) => {
     // Parse JSON from Claude response
     let summary = "";
     let keyPoints: string[] = [];
+    let keywords: string[] = [];
     try {
-      // Try to extract JSON from response (Claude sometimes wraps in markdown)
       const jsonMatch = aiText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         summary = parsed.summary || "";
         keyPoints = Array.isArray(parsed.key_points) ? parsed.key_points : [];
+        keywords = Array.isArray(parsed.keywords) ? parsed.keywords : [];
       }
     } catch (e) {
       console.error("Failed to parse Claude JSON:", e, aiText);
       summary = aiText.slice(0, 500);
     }
 
-    // Update kb_documents with summary and key_points
+    // Merge any manually entered extra keywords
+    if (extra_keywords && Array.isArray(extra_keywords)) {
+      const merged = new Set([...keywords, ...extra_keywords.filter((k: string) => k.trim())]);
+      keywords = [...merged];
+    }
+
+    // Update kb_documents with summary, key_points, and keywords
     const { error: updateError } = await serviceClient
       .from("kb_documents")
       .update({
         summary,
         key_points: keyPoints,
+        keywords,
         status: "indexed",
       })
       .eq("id", document_id);
@@ -140,16 +154,14 @@ Deno.serve(async (req) => {
     }
 
     if (chunks.length > 0) {
-      // Delete existing chunks first
       await serviceClient.from("kb_chunks").delete().eq("document_id", document_id);
-      // Insert new chunks
       const { error: chunkError } = await serviceClient.from("kb_chunks").insert(chunks);
       if (chunkError) {
         console.error("Chunk insert error:", chunkError);
       }
     }
 
-    return new Response(JSON.stringify({ success: true, summary, key_points: keyPoints }), {
+    return new Response(JSON.stringify({ success: true, summary, key_points: keyPoints, keywords }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
