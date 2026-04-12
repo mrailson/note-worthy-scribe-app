@@ -78,7 +78,7 @@ export const usePracticeContext = () => {
         // First, get the gp_practice info
         const { data: gpPractice } = await supabase
           .from('gp_practices')
-          .select('id, name, organisation_type, email, phone, address, website, pcn_code')
+          .select('id, name, organisation_type, email, phone, address, postcode, website, pcn_code, practice_code')
           .eq('id', practiceId)
           .maybeSingle();
 
@@ -128,11 +128,13 @@ export const usePracticeContext = () => {
           sharedPracticeDetails = {
             practice_name: gpPractice.name,
             address: gpPractice.address,
+            postcode: gpPractice.postcode,
             phone: gpPractice.phone,
             email: gpPractice.email,
             website: gpPractice.website,
             pcn_code: gpPractice.pcn_code,
-            organisation_type: gpPractice.organisation_type
+            organisation_type: gpPractice.organisation_type,
+            ods_code: gpPractice.practice_code
           };
         }
       }
