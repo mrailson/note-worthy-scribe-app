@@ -892,6 +892,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     onVerify={verifyClaim}
                     onQuery={queryClaim}
                     onMarkPaid={markPaid}
+                    testActive={testActive}
                   />
                 );
               })}
@@ -1155,7 +1156,7 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid, testActive }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
   userId?: string;
@@ -1178,10 +1179,12 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
   onVerify?: (id: string, notes?: string) => void;
   onQuery?: (id: string, notes: string) => void;
   onMarkPaid?: (id: string) => void;
+  testActive?: boolean;
 }) {
   const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
+  const [autoFilling, setAutoFilling] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -1232,6 +1235,55 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
     return sum + required.filter(r => !acked.includes(r.id)).length;
   }, 0);
 
+  // Test auto-fill: acknowledge all rules, confirm declaration, upload dummy evidence
+  const handleTestAutoFill = async () => {
+    if (autoFilling) return;
+    setAutoFilling(true);
+    try {
+      // 1. Acknowledge all ground rules for every staff member
+      for (let idx = 0; idx < staffDetails.length; idx++) {
+        const s = staffDetails[idx];
+        const rules = getRulesForRole(s.staff_role);
+        const requiredRules = rules.filter((r: any) => r.requires_acknowledgement);
+        if (requiredRules.length > 0) {
+          const allIds = requiredRules.map((r: any) => r.id);
+          onUpdateStaffLine(claim.id, idx, { acknowledged_rules: allIds });
+        }
+      }
+
+      // 2. Confirm declaration
+      if (!claim.declaration_confirmed) {
+        onConfirmDeclaration(claim.id, true);
+      }
+
+      // 3. Upload a dummy test PDF to all mandatory evidence slots for each staff member
+      const dummyContent = 'Test evidence file — auto-generated for testing purposes.';
+      const dummyBlob = new Blob([dummyContent], { type: 'application/pdf' });
+
+      for (let idx = 0; idx < staffDetails.length; idx++) {
+        const s = staffDetails[idx];
+        const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management';
+        const configItems = getConfigForCategory(cat);
+        const mandatoryItems = configItems.filter((c: any) => c.is_mandatory);
+        const uploadedForStaff = getUploadedTypesForStaff(idx);
+
+        for (const cfg of mandatoryItems) {
+          if (!uploadedForStaff[cfg.evidence_type]) {
+            const file = new File([dummyBlob], `test-evidence-${cfg.evidence_type}.pdf`, { type: 'application/pdf' });
+            await uploadEvidence(cfg.evidence_type, file, idx);
+          }
+        }
+      }
+
+      toast.success('Test auto-fill complete — all requirements ticked and dummy evidence uploaded');
+    } catch (err) {
+      console.error('Test auto-fill error:', err);
+      toast.error('Auto-fill failed');
+    } finally {
+      setAutoFilling(false);
+    }
+  };
+
   const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
       draft: 'bg-muted text-muted-foreground',
@@ -1270,6 +1322,12 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
           {statusBadge(claim.status)}
         </div>
         <div className="flex items-center gap-1">
+          {testActive && canEdit && (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-amber-400 text-amber-700 hover:bg-amber-50" onClick={handleTestAutoFill} disabled={autoFilling}>
+              {autoFilling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+              ⚡ Auto-Fill
+            </Button>
+          )}
           {canEdit && (
             <Button size="sm" variant="ghost" onClick={() => onDelete(claim.id)}>
               <Trash2 className="w-3 h-3 text-destructive" />
