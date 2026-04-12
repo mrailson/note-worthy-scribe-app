@@ -1,35 +1,32 @@
 
 
-## Plan: Add "Attending Meeting" GP/PM Roles to Management Rates
+## Current State
 
-### What This Does
+- **Ask AI** (`/ai4gp`): Shown in the navigation only when `isServiceVisible('ai4pm_service')` is true. No `requiredService` on the route — any logged-in user can access it directly via URL.
+- **Ask AI V2** (`/ask-ai`): Already shown to **all logged-in users** unconditionally in both desktop and mobile navigation. The route is protected only by authentication (no service activation or visibility check).
 
-Extends the NRES Management Rates system so that individual GP Partners and Practice Managers can be added as management roles with their practice assignment. These people will then appear as selectable options in the "Add Time Entry" form on the Management Time tab, allowing meeting attendance to be claimed.
+**In short: every Notewell user who can log in already has access to Ask AI V2. No users are blocked from it.**
 
-### Changes
+## Recommendation
 
-**1. Extend `ManagementRoleConfig` interface** (both `useNRESBuyBackRateSettings.ts` and `useNRESManagementTime.ts`)
-- Add `member_practice?: string` field to assign each person to a specific practice from the existing `MEMBER_PRACTICES` list
-- Add `role_type?: 'management' | 'attending_meeting'` field to distinguish regular management roles from attending-meeting GP/PM entries
+To make Ask AI V2 consistent with Ask AI (so it respects the same `ai4pm_service` visibility toggle), wrap the Ask AI V2 menu item with the same `isServiceVisible('ai4pm_service')` check. This is a single-line change in `src/components/Header.tsx` (and the mobile drawer equivalent if present).
 
-**2. Update Settings Modal — Management Rates table** (`BuyBackAccessSettingsModal.tsx`)
-- Add a "Practice" column with a `Select` dropdown populated from `MEMBER_PRACTICES`
-- Add a "Type" column or integrate it into the existing Role column (e.g. pre-populated with "Attending Meeting — GP" or "Attending Meeting — PM")
-- When clicking "Add Management Role", offer a second button or extend the existing one: "Add Attending Meeting Role" which pre-fills:
-  - Role label: "Attending Meeting — GP" or "Attending Meeting — PM"
-  - Hourly rate: £100 (GP) or £50 (PM)
-  - Requires selecting a practice from the dropdown
-- Keep full inline edit/delete capability as already exists
+### What this affects
+- **Zero database changes** required
+- **All users** who currently see "Ask AI" in the menu will also see "Ask AI V2 (Beta)"
+- Users who have hidden Ask AI via their service visibility settings will also not see Ask AI V2
 
-**3. Update Management Time Tab create form** (`ManagementTimeTab.tsx`)
-- The existing "Person" dropdown already shows all `activeRoles` — no structural change needed
-- The new attending-meeting roles will automatically appear since they use the same `management_roles_config` array
-- The display will show: `{person_name} — Attending Meeting — GP ({practice_name})`
+### Change
 
-### Technical Details
+**File: `src/components/Header.tsx`** — Wrap the Ask AI V2 `<DropdownMenuItem>` (line 236) with:
+```jsx
+{isServiceVisible('ai4pm_service') && (
+  <DropdownMenuItem onClick={() => navigate('/ask-ai')} className="cursor-pointer py-3">
+    <Sparkles className="h-4 w-4 mr-2" />
+    Ask AI V2 (Beta)
+  </DropdownMenuItem>
+)}
+```
 
-- No database schema changes required — `management_roles_config` is a JSONB column that already stores the full config array
-- Practice assignment stored as a string matching `MEMBER_PRACTICES` values
-- `role_type` field allows filtering/grouping in future if needed
-- The "Add Attending Meeting Role" button will prompt for GP or PM type and pre-fill the rate accordingly
+This is the only change needed. One line wrapper, one file.
 
