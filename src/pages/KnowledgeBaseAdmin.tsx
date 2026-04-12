@@ -31,6 +31,7 @@ interface KBDocument {
   uploaded_at: string;
   summary: string | null;
   key_points: string[] | null;
+  keywords: string[] | null;
   file_url: string | null;
   file_type: string | null;
   status: string;
@@ -53,7 +54,10 @@ export default function KnowledgeBaseAdmin() {
   const [effectiveDate, setEffectiveDate] = useState<Date | undefined>();
   const [file, setFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
+  const [keywordsInput, setKeywordsInput] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [reprocessing, setReprocessing] = useState(false);
+  const [reprocessProgress, setReprocessProgress] = useState({ done: 0, total: 0 });
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
@@ -166,6 +170,11 @@ export default function KnowledgeBaseAdmin() {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const { data: { session } } = await supabase.auth.getSession();
 
+        const extraKeywords = keywordsInput
+          .split(",")
+          .map((k: string) => k.trim())
+          .filter((k: string) => k.length > 0);
+
         fetch(`${supabaseUrl}/functions/v1/kb-summarise`, {
           method: "POST",
           headers: {
@@ -176,6 +185,7 @@ export default function KnowledgeBaseAdmin() {
           body: JSON.stringify({
             document_id: doc.id,
             document_text: documentText,
+            extra_keywords: extraKeywords,
           }),
         }).then(async (resp) => {
           if (resp.ok) {
@@ -204,6 +214,7 @@ export default function KnowledgeBaseAdmin() {
       setTitle("");
       setCategoryId("");
       setSource("");
+      setKeywordsInput("");
       setEffectiveDate(undefined);
       setFile(null);
       setUrlInput("");
