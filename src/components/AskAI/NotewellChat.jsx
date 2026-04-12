@@ -1477,17 +1477,8 @@ export default function NotewellChat({ user, onNavigateHome }) {
           </div>
         </div>
 
-        {/* Active voice session banner — desktop only */}
-        {vp!=="mobile"&&activeVoiceService&&(
-          <div style={{background:activeVoiceService.accentColor,color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:10,fontSize:"0.81rem",flexShrink:0}}>
-            <span>🎙</span>
-            <span style={{fontWeight:700}}>{activeVoiceService.name}</span>
-            <span style={{opacity:.75}}>— {voiceGetStatus(activeVoiceService.id)==="connecting"?"Connecting…":"Live session"}</span>
-            <div style={{flex:1}}/>
-            <button onClick={()=>{setVoicePanelOpen(true);}} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"3px 10px",cursor:"pointer",color:"#fff",fontSize:"0.74rem",fontWeight:600}}>Open panel ↗</button>
-            <button onClick={()=>voiceEndSession(activeVoiceService.id)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"3px 10px",cursor:"pointer",color:"#fff",fontSize:"0.74rem",fontWeight:600}}>End ✕</button>
-          </div>
-        )}
+
+
 
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
@@ -1580,7 +1571,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       )}
 
       {/* Voice Panel — desktop only */}
-      {vp!=="mobile"&&<VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)} sessionStatus={voiceSessionStatus} onStartSession={voiceStartSession} onEndSession={voiceEndSession}/>}
+      {vp!=="mobile"&&<VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)}/>}
 
       {/* NRES Voice fullscreen overlay — SDK-powered */}
       {showVoiceMode&&<div style={{position:"fixed",inset:0,zIndex:9999,background:"linear-gradient(180deg, #001845 0%, #003087 50%, #005EB8 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"nwFadeIn .25s ease"}}>
