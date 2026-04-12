@@ -1427,7 +1427,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
               ⚡ Auto-Fill
             </Button>
           )}
-          {canEdit && (
+          {canEdit && isDraft && (
             <Button size="sm" variant="ghost" onClick={() => onDelete(claim.id)}>
               <Trash2 className="w-3 h-3 text-destructive" />
             </Button>
