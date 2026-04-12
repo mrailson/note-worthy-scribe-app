@@ -537,15 +537,36 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
 
   const totalCalculated = filteredStaff.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, undefined, undefined, rateParams), 0);
 
+  const claimsHistoryRef = useRef<HTMLDivElement>(null);
+
   const handleCreateClaim = async () => {
-    if (filteredStaff.length === 0) return;
+    if (filteredStaff.length === 0) {
+      toast.error('No staff members found for this practice');
+      return;
+    }
     const practiceForClaim = effectiveClaimPractice || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : '');
-    if (!practiceForClaim) return;
+    if (!practiceForClaim) {
+      toast.error('Please select a practice');
+      return;
+    }
     const monthDate = `${claimMonth}-01`;
-    const staffForClaim = filteredStaff.filter(s => s.practice_key === practiceForClaim);
-    if (staffForClaim.length === 0) return;
+    // Use filteredStaff directly — already filtered by the effective practice
+    const staffForClaim = filteredStaff.filter(s => !s.practice_key || s.practice_key === practiceForClaim);
+    if (staffForClaim.length === 0) {
+      toast.error('No staff matched for the selected practice — check staff assignments');
+      console.warn('handleCreateClaim: staffForClaim empty. practiceForClaim:', practiceForClaim, 'filteredStaff practice_keys:', filteredStaff.map(s => s.practice_key));
+      return;
+    }
     const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date, rateParams), 0);
-    await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams);
+    const result = await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams);
+
+    // After successful creation, open claims history and scroll to it
+    if (result) {
+      setClaimsHistoryOpen(true);
+      setTimeout(() => {
+        claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+    }
   };
 
   // Filter claims by access then practice/status (use effective overrides for test mode)
@@ -756,6 +777,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       <Separator />
 
       {/* Claims */}
+      <div ref={claimsHistoryRef}>
       <Collapsible open={claimsHistoryOpen} onOpenChange={setClaimsHistoryOpen}>
       <Card>
         <CardHeader>
@@ -879,6 +901,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </CollapsibleContent>
       </Card>
       </Collapsible>
+      </div>
 
       {/* Management Time Section */}
       {effectiveIsAdmin && !isENN && (
