@@ -796,7 +796,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
               </span>
               <span style={{display:"flex",alignItems:"center",gap:3,fontSize:"0.65rem",color:"rgba(255,255,255,.7)"}}>
                 <span style={{width:5,height:5,borderRadius:"50%",background:"#00A499",display:"inline-block"}}/>
-                Ready · {user.practice.shortName}
+                Ready
                 {profileActive && <span style={{marginLeft:2}}>· Profile active</span>}
               </span>
             </div>
