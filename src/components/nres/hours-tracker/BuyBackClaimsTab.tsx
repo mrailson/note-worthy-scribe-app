@@ -870,6 +870,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     onVerify={verifyClaim}
                     onQuery={queryClaim}
                     onMarkPaid={markPaid}
+                    testActive={testActive}
                   />
                 );
               })}
