@@ -438,7 +438,9 @@ function ArtifactPreview({artifact}){
 function UserAvatar({user,size=32}){return<div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.32,fontWeight:700,color:"#fff",border:"2px solid rgba(255,255,255,.2)"}}>{user.initials}</div>;}
 function PracticeLogo({practice,size=26}){if(practice.logoUrl)return<img src={practice.logoUrl} alt={practice.name} style={{width:size,height:size,objectFit:"contain",borderRadius:5}}/>;const init=(practice.shortName||practice.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,3);return<div style={{width:size,height:size,borderRadius:6,background:`linear-gradient(135deg,${practice.primaryColour||NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.28,fontWeight:900,color:"#fff",flexShrink:0}}>{init}</div>;}
 
-function MessageBubble({msg,user,settings,compact,hasPanel,vp}){
+const FOLLOW_UP_SUGGESTIONS=["Tell me more","Summarise as bullet points","What's changed recently?"];
+
+function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}){
   const isUser=msg.role==="user";const [copied,setCopied]=useState(false);const [feedback,setFeedback]=useState(null);
   const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
   const isMobile=vp==="mobile";
@@ -451,8 +453,20 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp}){
       <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
         {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/><span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/></>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
       </div>
+      {/* KB source chips */}
+      {!isUser&&!msg.streaming&&msg.kbSources?.length>0&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:5}}>
+          {msg.kbSources.map((s,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,background:"#F0F4F8",border:`1px solid ${NHS.paleGrey}`,borderRadius:12,padding:"2px 8px",fontSize:"0.68rem",color:NHS.midGrey}}>📋 {s.title}{s.effective_date&&<span>· {new Date(s.effective_date).toLocaleDateString("en-GB",{month:"short",year:"numeric"})}</span>}</span>)}
+        </div>
+      )}
       {!isUser&&!msg.streaming&&<div style={{display:"flex",gap:4,marginTop:4}}>{[{l:copied?"✓ Copied":"⎘ Copy",fn:()=>{navigator.clipboard.writeText(display);setCopied(true);setTimeout(()=>setCopied(false),1500)},a:copied},{l:"👍",fn:()=>setFeedback("up"),a:feedback==="up",ac:NHS.green},{l:"👎",fn:()=>setFeedback("down"),a:feedback==="down",ac:NHS.red}].map((b,i)=><button key={i} onClick={b.fn} style={{background:b.a?(b.ac||NHS.blue)+"22":"transparent",border:`1px solid ${b.a?(b.ac||NHS.blue):NHS.paleGrey}`,borderRadius:5,padding:isMobile?"8px 12px":"2px 7px",cursor:"pointer",fontSize:"0.71rem",color:b.a?(b.ac||NHS.blue):NHS.midGrey,minHeight:isMobile?36:undefined}}>{b.l}</button>)}</div>}
       {!isUser&&!msg.streaming&&settings.showClinicalCaveats&&display.length>60&&<div style={{fontSize:"0.64rem",color:NHS.midGrey,marginTop:4,padding:"2px 7px",background:"#f8f9fa",borderRadius:4,borderLeft:`3px solid ${NHS.warmYellow}`}}>⚕️ Apply clinical judgement before acting on AI output in patient care.</div>}
+      {/* Follow-up suggestion chips — only on the last assistant message */}
+      {!isUser&&!msg.streaming&&isLast&&onFollowUp&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>
+          {FOLLOW_UP_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>onFollowUp(s)} style={{background:"#EDF4FF",border:`1.5px solid ${NHS.brightBlue}33`,borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:"0.73rem",color:NHS.blue,fontWeight:500,transition:"all .13s",minHeight:32}} onMouseEnter={e=>{e.currentTarget.style.background="#D5E8FF";e.currentTarget.style.borderColor=NHS.brightBlue;}} onMouseLeave={e=>{e.currentTarget.style.background="#EDF4FF";e.currentTarget.style.borderColor=NHS.brightBlue+"33";}}>{s}</button>)}
+        </div>
+      )}
     </div>
   </div>);
 }
