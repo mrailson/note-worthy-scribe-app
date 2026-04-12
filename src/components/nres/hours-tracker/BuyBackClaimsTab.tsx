@@ -460,7 +460,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     bankHolidayDetails: bankHolidayDetailsForMonth,
   };
 
-  const { isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
+  const { roles, isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
+  const pmlFinanceEmails = roles.filter(r => r.role === 'pml_finance' && r.is_active).map(r => r.user_email);
 
   // isAdmin = NRES_ADMIN_EMAILS check; elevate PML role holders to see all claims
   const isAdmin = admin || isPMLFinance || isPMLDirector || isManagementLead || isSuperAdmin;
@@ -934,6 +935,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     userEmail={user?.email}
                     isAdmin={testActive ? (testMode.role !== 'practice') : isAdmin}
                     isSuperAdmin={testActive ? false : isSuperAdmin}
+                    isPMLDirector={testActive ? (testMode.role === 'pml_director') : isPMLDirector}
+                    pmlFinanceEmails={pmlFinanceEmails}
                     canApproveClaim={canApproveThisClaim}
                     canVerifyClaim={canVerifyClaim}
                     rateParams={rateParams}
@@ -1214,13 +1217,15 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid, testActive }: {
+function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, isPMLDirector, pmlFinanceEmails, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onMarkPaid, testActive }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
   isSuperAdmin?: boolean;
+  isPMLDirector?: boolean;
+  pmlFinanceEmails?: string[];
   canApproveClaim?: boolean;
   canVerifyClaim?: boolean;
   rateParams?: RateParams;
@@ -2009,8 +2014,56 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* Mark as Paid action for approved/invoiced claims */}
-      {isAdmin && (claim.status === 'approved' || claim.status === 'invoiced') && onMarkPaid && (
+      {/* PML Director Approval Confirmation Panel */}
+      {isPMLDirector && !isSuperAdmin && (claim.status === 'approved' || claim.status === 'paid') && (
+        <div className="px-4 py-4 border-t bg-green-50 dark:bg-green-950/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <h4 className="text-sm font-semibold text-green-800 dark:text-green-200">Claim Approved Successfully</h4>
+          </div>
+
+          {claim.invoice_number && (
+            <div className="bg-white dark:bg-background rounded-md border p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Invoice Details</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <span>Invoice: <strong className="text-foreground">{claim.invoice_number}</strong></span>
+                {claim.invoice_generated_at && (
+                  <span>Generated: <strong className="text-foreground">{format(new Date(claim.invoice_generated_at), 'dd/MM/yyyy HH:mm')}</strong></span>
+                )}
+                <span>Total: <strong className="text-foreground">{fmtGBP(claim.claimed_amount || 0)}</strong></span>
+              </div>
+              {claim.invoice_pdf_path && (
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 mt-1" onClick={async () => {
+                  const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
+                  if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                }}>
+                  <Download className="w-3 h-3" /> Download Invoice PDF
+                </Button>
+              )}
+            </div>
+          )}
+
+          <div className="bg-white dark:bg-background rounded-md border p-3 space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">Notifications Sent</p>
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                <span>Practice notified — invoice attached</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0 mt-0.5" />
+                <span>PML Finance notified: {pmlFinanceEmails && pmlFinanceEmails.length > 0
+                  ? <strong className="text-foreground">{pmlFinanceEmails.join(', ')}</strong>
+                  : <em className="text-muted-foreground">No PML Finance users configured</em>
+                }</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark as Paid action for approved/invoiced claims — hidden for PML Director */}
+      {isAdmin && !isPMLDirector && (claim.status === 'approved' || claim.status === 'invoiced') && onMarkPaid && (
         <div className="px-3 py-3 border-t bg-green-50/50 dark:bg-green-950/20 flex items-center justify-between">
           <p className="text-xs font-medium text-green-800 dark:text-green-200">Payment Processing</p>
           <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => onMarkPaid(claim.id)}>
