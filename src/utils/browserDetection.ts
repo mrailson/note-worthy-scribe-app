@@ -24,12 +24,7 @@ export function parseBrowser(): string {
   return version ? `${browser} ${version}` : browser;
 }
 
-export async function getPublicIP(): Promise<string> {
-  try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    return data.ip || "Unknown";
-  } catch {
-    return "Unknown";
-  }
-}
+export const getPublicIP = async (): Promise<string> => {
+  // api.ipify.org is blocked by CSP — return empty string gracefully
+  return '';
+};
