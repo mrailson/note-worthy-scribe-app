@@ -49,7 +49,7 @@ export function useNRESClaimEvidence(claimId?: string) {
     if (claimId && user?.id) fetchEvidence();
   }, [claimId, user?.id]);
 
-  const uploadEvidence = useCallback(async (evidenceType: string, file: File, staffIndex?: number) => {
+  const uploadEvidence = useCallback(async (evidenceType: string, file: File, staffIndex?: number, silent?: boolean) => {
     if (!claimId || !user?.id) return null;
     try {
       setUploading(true);
