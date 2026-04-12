@@ -691,7 +691,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     <div style="background:#f5f8fc;border-radius:6px;padding:20px;margin:0 0 20px;">
       <h2 style="font-size:14px;color:#003087;margin:0 0 12px;font-weight:600;">Payment Details</h2>
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <tr><td style="padding:4px 0;color:#666;">Payable to</td><td style="padding:4px 0;text-align:right;">PML (Principal Medical Limited)</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Payable by</td><td style="padding:4px 0;text-align:right;">PML (Principal Medical Limited)</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Address</td><td style="padding:4px 0;text-align:right;">3 Barberry Place, Bicester, Oxfordshire, OX26 3HA</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Bank</td><td style="padding:4px 0;text-align:right;">Lloyds Bank</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Sort Code</td><td style="padding:4px 0;text-align:right;">30-11-08</td></tr>
@@ -701,7 +701,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     </div>
 
     <p style="margin:0 0 16px;line-height:1.6;">Please use invoice number <strong>${invoiceNum}</strong> as your payment reference to ensure correct allocation.</p>
-    <p style="margin:0 0 0;line-height:1.6;">If you have any queries regarding this invoice or the associated claim, please contact your Neighbourhood Manager: <strong>Amanda Palin</strong> (<a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;">amanda.palin2@nhs.net</a>).</p>
+    <p style="margin:0 0 0;line-height:1.6;">If you have any queries regarding this invoice or the associated claim, please contact the Neighbourhood Operations Manager: <strong>Amanda Palin</strong> (<a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;">amanda.palin2@nhs.net</a>).</p>
   </div>
 
   <div style="background:#f0f4f8;padding:16px 28px;font-size:11px;color:#666;line-height:1.5;">
