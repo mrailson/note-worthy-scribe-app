@@ -108,11 +108,11 @@ function generateDocxBlob(a){
   const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>@page{margin:2cm}body{font-family:Arial,sans-serif;font-size:11pt;color:#231F20}h1{font-size:18pt;color:#003087;border-bottom:2px solid #005EB8;padding-bottom:4pt;margin-top:0}h2{font-size:14pt;color:#003087;margin-top:16pt}h3{font-size:12pt;color:#005EB8;margin-top:12pt}p{line-height:1.6;margin:6pt 0}ul,ol{margin:6pt 0;padding-left:24pt}li{margin:3pt 0;line-height:1.5}table{border-collapse:collapse;width:100%;margin:12pt 0}th{background:#005EB8;color:#fff;padding:6pt 8pt;font-size:10pt;text-align:left}td{border:1px solid #C8D3DC;padding:5pt 8pt;font-size:10pt;vertical-align:top}tr:nth-child(even)td{background:#F0F4F8}.footer{font-size:8pt;color:#999;border-top:1px solid #ddd;margin-top:24pt;padding-top:6pt}</style></head><body>${header}${body}${footer}</body></html>`;
   return new Blob([html],{type:"application/msword"});
 }
-async function generateXlsxBlob(a){
-  const XLSX=await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","XLSX");
+function generateXlsxBlob(a){
   const wb=XLSX.utils.book_new();
   for(const sheet of(a.sheets||[])){const ws=XLSX.utils.aoa_to_sheet([sheet.headers||[],...(sheet.rows||[])]);if(sheet.columnWidths)ws["!cols"]=sheet.columnWidths.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,sheet.name||"Sheet1");}
   return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
 }
 async function generatePptxBlob(a){
   const PptxGenJS=await loadScript("https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundled.js","PptxGenJS");
