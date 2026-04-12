@@ -204,76 +204,79 @@ const INSTRUCTION_SUGGESTIONS=[
   "Start every response with a one-sentence summary before the detail.",
 ];
 
-function UserProfileModal({user,onClose}){
+function UserProfileModal({user,onClose,vp}){
   const [tab,setTab]=useState("profile");
-  const [profileText,setProfileText]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
-  const [instructionsText,setInstructionsText]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
+  const [pt,setPt]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
+  const [it,setIt]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const [saved,setSaved]=useState(false);
-
-  const handleSave=()=>{
-    try{localStorage.setItem(PROFILE_KEY,profileText);localStorage.setItem(INSTRUCTIONS_KEY,instructionsText);setSaved(true);setTimeout(()=>{setSaved(false);onClose();},900);}
-    catch{alert("Could not save — localStorage may be full.");}
-  };
-  const append=(setter,current,text)=>{setter(current+(current.trim()?"\n":"")+text);};
-  const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.jobTitle&&`Job title: ${user.jobTitle}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`Clinical system: ${user.practice.clinicalSystem}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
-
+  const isMobile=vp==="mobile";
+  const save=()=>{try{localStorage.setItem(PROFILE_KEY,pt);localStorage.setItem(INSTRUCTIONS_KEY,it);setSaved(true);setTimeout(()=>{setSaved(false);onClose();},900);}catch{alert("Could not save — storage may be full.");}};
+  const append=(setter,cur,text)=>setter(cur+(cur.trim()?"\n":"")+text);
+  const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.jobTitle&&`Job title: ${user.jobTitle}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`System: ${user.practice.clinicalSystem}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{width:"100%",maxWidth:600,maxHeight:"88vh",background:"#fff",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 32px 80px rgba(0,0,0,0.22)",animation:"nwSlideUp .22s ease"}}>
-        <div style={{padding:"18px 22px 14px",background:"linear-gradient(135deg,#003087,#005EB8)",color:"#fff"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center",padding:isMobile?0:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{width:"100%",maxWidth:isMobile?"100%":600,maxHeight:isMobile?"92dvh":"88vh",background:"#fff",borderRadius:isMobile?"20px 20px 0 0":16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 -4px 40px rgba(0,0,0,0.18)",animation:"nwSlideUp .25s ease"}}>
+        {isMobile&&<div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",background:"#fff",flexShrink:0}}><div style={{width:40,height:4,borderRadius:2,background:"#D1D5DB"}}/></div>}
+        <div style={{padding:"14px 20px 12px",background:"linear-gradient(135deg,#003087,#005EB8)",color:"#fff",flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <div><h2 style={{margin:0,fontSize:"1.1rem",fontWeight:700}}>My Profile &amp; Instructions</h2><p style={{margin:"3px 0 0",fontSize:"0.74rem",opacity:.7}}>Personalise every conversation · saved to this browser</p></div>
-            <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"6px 10px",fontSize:"1rem"}}>✕</button>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontWeight:900,fontSize:"1rem",color:"#fff",letterSpacing:"-.01em"}}>Notewell</div>
+              <div style={{width:1,height:16,background:"rgba(255,255,255,.3)"}}/>
+              <div>
+                <div style={{fontWeight:700,fontSize:"1rem"}}>My Profile &amp; Instructions</div>
+                <div style={{fontSize:"0.72rem",opacity:.7}}>Saved to this browser · {user.practice.shortName}</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"8px 12px",fontSize:"1rem",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           </div>
           <div style={{display:"flex",gap:4}}>
-            {[["profile","👤 My Profile"],["instructions","⚙️ Custom Instructions"]].map(([t,l])=>(
-              <button key={t} onClick={()=>setTab(t)} style={{padding:"5px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff"}}>{l}</button>
+            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"]].map(([t,l])=>(
+              <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",minHeight:36}}>{l}</button>
             ))}
           </div>
         </div>
-
-        <div style={{overflowY:"auto",flex:1,padding:"18px 22px"}}>
+        <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}>
           {tab==="profile"&&(
             <div>
-              <div style={{background:"#F0F4F8",borderRadius:10,padding:"11px 14px",marginBottom:16}}>
+              <div style={{background:"#F0F4F8",borderRadius:10,padding:"11px 14px",marginBottom:14}}>
                 <div style={{fontWeight:700,fontSize:"0.79rem",color:"#003087",marginBottom:7,display:"flex",alignItems:"center",gap:5}}>
-                  <span style={{background:"#005EB8",color:"#fff",borderRadius:4,padding:"1px 6px",fontSize:"0.66rem"}}>AUTO</span>Loaded from your Notewell account
+                  <span style={{background:"#005EB8",color:"#fff",borderRadius:4,padding:"1px 7px",fontSize:"0.66rem"}}>AUTO</span>
+                  Loaded from your Notewell account
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:"3px 14px"}}>
-                  {autoSummary.map((line,i)=><span key={i} style={{fontSize:"0.76rem",color:"#425563",lineHeight:1.7}}>✓ {line}</span>)}
+                  {autoSummary.map((l,i)=><span key={i} style={{fontSize:"0.76rem",color:"#425563",lineHeight:1.7}}>✓ {l}</span>)}
                 </div>
                 <p style={{fontSize:"0.7rem",color:"#425563",margin:"8px 0 0",fontStyle:"italic"}}>To update these, edit your Notewell account profile.</p>
               </div>
               <label style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",display:"block",marginBottom:5}}>Additional context</label>
-              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>Tell the AI anything extra about your role, focus areas, or working context. Added to every conversation.</p>
-              <textarea value={profileText} onChange={e=>setProfileText(e.target.value.slice(0,1000))} placeholder={"Examples:\n• I primarily focus on Enhanced Access and ARRS workforce planning\n• I have a clinical background — include clinical detail where relevant\n• I work closely with community nursing and social prescribing teams"} rows={5} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"0.83rem",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
-              <div style={{textAlign:"right",fontSize:"0.66rem",color:profileText.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:12}}>{profileText.length} / 1000</div>
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>Tell the AI anything extra about your role or focus areas.</p>
+              <textarea value={pt} onChange={e=>setPt(e.target.value.slice(0,1000))} placeholder={"• I primarily focus on Enhanced Access and ARRS workforce planning\n• I have a clinical background — include clinical detail where relevant"} rows={4} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"16px",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              <div style={{textAlign:"right",fontSize:"0.66rem",color:pt.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:12}}>{pt.length} / 1000</div>
               <div style={{fontWeight:700,fontSize:"0.77rem",color:"#003087",marginBottom:7}}>💡 Quick-add</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {PROFILE_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setProfileText,profileText,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>50?s.slice(0,50)+"…":s}</button>)}
+                {PROFILE_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setPt,pt,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"6px 11px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>46?s.slice(0,46)+"…":s}</button>)}
               </div>
             </div>
           )}
           {tab==="instructions"&&(
             <div>
               <label style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",display:"block",marginBottom:5}}>Custom instructions</label>
-              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>How should the AI respond? Formatting preferences, structural requirements, things it should always or never do.</p>
-              <textarea value={instructionsText} onChange={e=>setInstructionsText(e.target.value.slice(0,1000))} placeholder={"Examples:\n• Always end documents with a 'Next Steps / Actions' section\n• Keep responses concise — I prefer bullet points over paragraphs\n• Format letters with a reference number at the top\n• Always include relevant NHS policy references"} rows={6} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"0.83rem",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
-              <div style={{textAlign:"right",fontSize:"0.66rem",color:instructionsText.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:instructionsText.trim()?8:12}}>{instructionsText.length} / 1000</div>
-              {instructionsText.trim()&&<div style={{background:"#F0F8F0",border:"1.5px solid #00963944",borderRadius:9,padding:"8px 13px",marginBottom:14,fontSize:"0.76rem",color:"#003087"}}><strong style={{color:"#009639"}}>✓ Active</strong> — these instructions apply to every new conversation.</div>}
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 8px",lineHeight:1.55}}>How should the AI respond? Formatting, structure, always/never rules.</p>
+              <textarea value={it} onChange={e=>setIt(e.target.value.slice(0,1000))} placeholder={"• Always end documents with a 'Next Steps / Actions' section\n• Keep responses concise — bullet points over paragraphs\n• Format letters with a reference number at the top"} rows={5} style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"10px 12px",fontSize:"16px",color:"#231F20",lineHeight:1.6,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              <div style={{textAlign:"right",fontSize:"0.66rem",color:it.length>900?"#DA291C":"#425563",marginTop:3,marginBottom:it.trim()?8:12}}>{it.length} / 1000</div>
+              {it.trim()&&<div style={{background:"#F0F8F0",border:"1.5px solid #00963944",borderRadius:9,padding:"8px 13px",marginBottom:14,fontSize:"0.76rem",color:"#003087"}}><strong style={{color:"#009639"}}>✓ Active</strong> — these instructions apply to every new conversation.</div>}
               <div style={{fontWeight:700,fontSize:"0.77rem",color:"#003087",marginBottom:7}}>💡 Quick-add</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                {INSTRUCTION_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setInstructionsText,instructionsText,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"4px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,transition:"background .12s"}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>50?s.slice(0,50)+"…":s}</button>)}
+                {INSTRUCTION_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setIt,it,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"6px 11px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>46?s.slice(0,46)+"…":s}</button>)}
               </div>
             </div>
           )}
         </div>
-
-        <div style={{padding:"12px 22px",borderTop:"1px solid #E8EDEE",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc"}}>
-          <div>{(profileText.trim()||instructionsText.trim())&&<button onClick={()=>{setProfileText("");setInstructionsText("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#DA291C",fontSize:"0.77rem",padding:0}}>🗑 Clear all</button>}</div>
+        <div style={{padding:"12px 20px",borderTop:"1px solid #E8EDEE",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc",flexShrink:0}}>
+          <div>{(pt.trim()||it.trim())&&<button onClick={()=>{setPt("");setIt("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#DA291C",fontSize:"0.77rem",padding:0,minHeight:44}}>🗑 Clear all</button>}</div>
           <div style={{display:"flex",gap:8}}>
-            <button onClick={onClose} style={{background:"#F0F4F8",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",color:"#425563",fontWeight:600,fontSize:"0.87rem"}}>Cancel</button>
-            <button onClick={handleSave} style={{background:saved?"#009639":"#005EB8",border:"none",borderRadius:8,padding:"8px 22px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",transition:"background .2s",minWidth:90}}>{saved?"✓ Saved!":"Save"}</button>
+            <button onClick={onClose} style={{background:"#F0F4F8",border:"none",borderRadius:8,padding:"10px 18px",cursor:"pointer",color:"#425563",fontWeight:600,fontSize:"0.87rem",minHeight:44}}>Cancel</button>
+            <button onClick={save} style={{background:saved?"#009639":"#005EB8",border:"none",borderRadius:8,padding:"10px 24px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",minWidth:90,minHeight:44,transition:"background .2s"}}>{saved?"✓ Saved!":"Save"}</button>
           </div>
         </div>
       </div>
@@ -285,21 +288,41 @@ function UserProfileModal({user,onClose}){
 const CAPABILITIES=[{icon:"💬",title:"Chat & Ask",colour:NHS.blue,desc:"NHS primary care, policies, contracts, ARRS, governance, clinical queries."},{icon:"📝",title:"Word Documents",colour:"#2B579A",desc:"Letters, SOPs, policies, reports — formatted .doc files."},{icon:"📊",title:"Excel Reports",colour:"#217346",desc:"Spreadsheets, trackers, dashboards — real .xlsx files."},{icon:"🖥️",title:"Presentations",colour:"#D24726",desc:"NHS-styled PowerPoint decks for board meetings."},{icon:"🎨",title:"Diagrams",colour:NHS.purple,desc:"Process flows, pathway diagrams, infographics — SVG & PNG."},{icon:"📎",title:"File Upload",colour:NHS.aquaBlue,desc:"Attach PDFs, Word docs, images for analysis."}];
 const FRED=[{l:"F",w:"Frame the context",c:NHS.blue,d:"Who you are, what you need, why — extra context always helps."},{l:"R",w:"Role or format",c:NHS.green,d:"Letter? Table? Board report? Clinical or plain English?"},{l:"E",w:"Examples / expectations",c:NHS.purple,d:"'Professional tone', 'NHS letter format', '2 pages', 'summary box at top'."},{l:"D",w:"Detail and data",c:"#B07000",d:"Clinical findings, staff names, dates, figures. Attach documents."}];
 
-function GuideModal({user,onClose}){
+function GuideModal({user,onClose,vp}){
   const [tab,setTab]=useState("capabilities");
+  const isMobile=vp==="mobile";
+  const CAPS=CAPABILITIES;
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{width:"100%",maxWidth:660,maxHeight:"88vh",background:"#fff",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 32px 80px rgba(0,0,0,0.22)",animation:"nwSlideUp .22s ease"}}>
-        <div style={{padding:"18px 22px 14px",background:`linear-gradient(135deg,${NHS.darkBlue},${NHS.blue})`,color:"#fff"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><h2 style={{margin:0,fontSize:"1.1rem",fontWeight:700}}>Notewell AI — How to get the best results</h2><p style={{margin:"3px 0 0",fontSize:"0.74rem",opacity:.7}}>Hello {user.name.split(" ")[0]} · your NHS-grade AI</p></div><button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"6px 10px",fontSize:"1rem"}}>✕</button></div>
-          <div style={{display:"flex",gap:4}}>{["capabilities","prompting","examples"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"5px 13px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff"}}>{t==="capabilities"?"What can it do?":t==="prompting"?"FRED framework":"See examples"}</button>)}</div>
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center",padding:isMobile?0:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{width:"100%",maxWidth:isMobile?"100%":660,maxHeight:isMobile?"91dvh":"88vh",background:"#fff",borderRadius:isMobile?"20px 20px 0 0":16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 -4px 40px rgba(0,0,0,0.18)",animation:isMobile?"nwSlideUp .25s ease":"nwSlideUp .22s ease"}}>
+        {isMobile&&<div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",background:"#fff",flexShrink:0}}><div style={{width:40,height:4,borderRadius:2,background:"#D1D5DB"}}/></div>}
+        <div style={{padding:"14px 20px 12px",background:`linear-gradient(135deg,${NHS.darkBlue},${NHS.blue})`,color:"#fff",flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontWeight:900,fontSize:"1rem",color:"#fff",letterSpacing:"-.01em"}}>Notewell</div>
+              <div style={{width:1,height:16,background:"rgba(255,255,255,.3)"}}/>
+              <div>
+                <div style={{fontWeight:700,fontSize:"1rem"}}>How to get the best results</div>
+                <div style={{fontSize:"0.72rem",opacity:.7}}>Hello {user.name.split(" ")[0]} · {user.practice.shortName}</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"8px 12px",fontSize:"1rem",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {["capabilities","prompting","examples"].map(t=>(
+              <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",minHeight:36}}>{t==="capabilities"?"What can it do?":t==="prompting"?"FRED framework":"See examples"}</button>
+            ))}
+          </div>
         </div>
-        <div style={{overflowY:"auto",flex:1,padding:"18px 22px"}}>
-          {tab==="capabilities"&&(<div><p style={{fontSize:"0.86rem",color:NHS.midGrey,margin:"0 0 16px",lineHeight:1.6}}>Already knows you're <strong>{user.name}</strong>, {user.role} at <strong>{user.practice.name}</strong>.</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>{CAPABILITIES.map((c,i)=><div key={i} style={{border:`1.5px solid ${c.colour}33`,borderRadius:11,padding:"11px 13px",background:c.colour+"08"}}><div style={{fontSize:"1.2rem",marginBottom:4}}>{c.icon}</div><div style={{fontWeight:700,fontSize:"0.84rem",color:c.colour,marginBottom:3}}>{c.title}</div><div style={{fontSize:"0.77rem",color:NHS.midGrey,lineHeight:1.5}}>{c.desc}</div></div>)}</div><div style={{background:"#F0F4F8",borderRadius:9,padding:"11px 13px",fontSize:"0.79rem",color:NHS.darkBlue}}><strong>🛡️ NHS Guardrails always active:</strong> PII detection, clinical caveats, safeguarding escalation, medication verification.</div></div>)}
-          {tab==="prompting"&&(<div><div style={{background:`${NHS.blue}0D`,borderRadius:11,padding:"13px 15px",marginBottom:18,border:`1.5px solid ${NHS.blue}33`}}><p style={{fontSize:"0.9rem",fontWeight:700,color:NHS.darkBlue,margin:"0 0 5px"}}>💡 The golden rule: rubbish in, rubbish out.</p><p style={{fontSize:"0.83rem",color:NHS.midGrey,margin:0,lineHeight:1.6}}>Vague prompts produce vague answers.</p></div><p style={{fontWeight:700,fontSize:"0.87rem",color:NHS.darkBlue,marginBottom:10}}>The FRED framework:</p><div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>{FRED.map((f,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"flex-start"}}><div style={{width:34,height:34,borderRadius:9,background:f.c,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:"1.05rem",color:"#fff",flexShrink:0}}>{f.l}</div><div><div style={{fontWeight:700,fontSize:"0.84rem",color:f.c,marginBottom:2}}>{f.w}</div><div style={{fontSize:"0.79rem",color:NHS.midGrey,lineHeight:1.55}}>{f.d}</div></div></div>)}</div><div style={{background:"#FFF9EC",border:`1.5px solid ${NHS.warmYellow}`,borderRadius:9,padding:"11px 13px"}}><p style={{fontWeight:700,fontSize:"0.83rem",color:"#7a4a00",margin:"0 0 5px"}}>⚠️ Always anonymise patient information</p><p style={{fontSize:"0.78rem",color:"#7a4a00",margin:0,lineHeight:1.5}}>Never include real NHS numbers, full names, DOBs or postcodes.</p></div></div>)}
-          {tab==="examples"&&(<div><p style={{fontSize:"0.84rem",color:NHS.midGrey,margin:"0 0 14px"}}>The difference a well-constructed prompt makes.</p>{[{label:"❌ Weak",bad:true,text:"Write a letter",why:"No audience, no patient detail, no format, no context."},{label:"✅ Strong",bad:false,text:`Write a GP referral letter to cardiology for a patient (use 'the patient' throughout) with suspected atrial fibrillation. Findings: irregular pulse, palpitations for 3 months, ECG showing AF, BP 138/86. Professional tone for secondary care. Practice: ${user.practice.name}.`,why:"Clear audience, specific detail, anonymised, format and tone stated."},{label:"❌ Weak",bad:true,text:"Make a spreadsheet",why:"No columns, no data, no purpose."},{label:"✅ Strong",bad:false,text:`Create an Excel spreadsheet to track ARRS staff for ${user.practice.name}. Columns: Role, WTE, Hours/Week, Rate (£/hr), Annual Cost, Funding Source, Contract End Date. Include totals row and 3 example rows.`,why:"Every column specified, example rows requested."}].map((ex,i)=><div key={i} style={{marginBottom:12,border:`1.5px solid ${ex.bad?NHS.red+"44":NHS.green+"44"}`,borderRadius:11,overflow:"hidden"}}><div style={{padding:"6px 11px",background:ex.bad?NHS.red+"10":NHS.green+"10"}}><span style={{fontWeight:700,fontSize:"0.79rem",color:ex.bad?NHS.red:NHS.green}}>{ex.label}</span></div><div style={{padding:"9px 11px"}}><div style={{fontFamily:"monospace",fontSize:"0.79rem",color:NHS.darkGrey,background:"#F8FAFC",borderRadius:6,padding:"7px 9px",marginBottom:7,lineHeight:1.55,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{ex.text}</div><p style={{fontSize:"0.76rem",color:NHS.midGrey,margin:0}}><strong style={{color:ex.bad?NHS.red:NHS.green}}>{ex.bad?"Why this fails:":"Why this works:"}</strong> {ex.why}</p></div></div>)}</div>)}
+        <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}>
+          {tab==="capabilities"&&(<div><p style={{fontSize:"0.86rem",color:NHS.midGrey,margin:"0 0 14px",lineHeight:1.6}}>Already knows you're <strong>{user.name}</strong>, {user.role} at <strong>{user.practice.name}</strong>.</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>{CAPS.map((c,i)=><div key={i} style={{border:`1.5px solid ${c.colour}33`,borderRadius:11,padding:"11px 13px",background:c.colour+"08"}}><div style={{fontSize:"1.2rem",marginBottom:4}}>{c.icon}</div><div style={{fontWeight:700,fontSize:"0.84rem",color:c.colour,marginBottom:3}}>{c.title}</div><div style={{fontSize:"0.77rem",color:NHS.midGrey,lineHeight:1.5}}>{c.desc}</div></div>)}</div><div style={{background:"#F0F4F8",borderRadius:9,padding:"11px 13px",fontSize:"0.79rem",color:NHS.darkBlue}}><strong>🛡️ NHS Guardrails always active:</strong> PII detection, clinical caveats, safeguarding escalation, medication verification.</div></div>)}
+          {tab==="prompting"&&(<div><div style={{background:`${NHS.blue}0D`,borderRadius:11,padding:"13px 15px",marginBottom:16,border:`1.5px solid ${NHS.blue}33`}}><p style={{fontSize:"0.9rem",fontWeight:700,color:NHS.darkBlue,margin:"0 0 5px"}}>💡 Rubbish in, rubbish out.</p><p style={{fontSize:"0.83rem",color:NHS.midGrey,margin:0,lineHeight:1.6}}>Vague prompts produce vague answers. Give the AI clear briefing.</p></div><p style={{fontWeight:700,fontSize:"0.87rem",color:NHS.darkBlue,marginBottom:10}}>The FRED framework:</p><div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>{FRED.map((f,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"flex-start"}}><div style={{width:34,height:34,borderRadius:9,background:f.c,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:"1.05rem",color:"#fff",flexShrink:0}}>{f.l}</div><div><div style={{fontWeight:700,fontSize:"0.84rem",color:f.c,marginBottom:2}}>{f.w}</div><div style={{fontSize:"0.79rem",color:NHS.midGrey,lineHeight:1.55}}>{f.d}</div></div></div>)}</div><div style={{background:"#FFF9EC",border:`1.5px solid ${NHS.warmYellow}`,borderRadius:9,padding:"11px 13px"}}><p style={{fontWeight:700,fontSize:"0.83rem",color:"#7a4a00",margin:"0 0 5px"}}>⚠️ Always anonymise patient information</p><p style={{fontSize:"0.78rem",color:"#7a4a00",margin:0,lineHeight:1.5}}>Never include real NHS numbers, full names, DOBs or postcodes.</p></div></div>)}
+          {tab==="examples"&&(<div>{[{label:"❌ Weak",bad:true,text:"Write a letter",why:"No audience, no detail, no format."},{label:"✅ Strong",bad:false,text:`Write a GP referral letter to cardiology for a patient (use 'the patient') with suspected AF. Findings: irregular pulse, palpitations 3 months, ECG showing AF, BP 138/86. Professional tone. Practice: ${user.practice.name}.`,why:"Clear audience, specific detail, anonymised, tone stated."},{label:"❌ Weak",bad:true,text:"Make a spreadsheet",why:"No columns, no purpose."},{label:"✅ Strong",bad:false,text:`Create an Excel spreadsheet to track ARRS staff for ${user.practice.name}. Columns: Role, WTE, Hours/Week, Rate (£/hr), Annual Cost, Funding Source, Contract End Date. Totals row and 3 example rows.`,why:"Every column specified, purpose clear."}].map((ex,i)=><div key={i} style={{marginBottom:12,border:`1.5px solid ${ex.bad?NHS.red+"44":NHS.green+"44"}`,borderRadius:11,overflow:"hidden"}}><div style={{padding:"6px 11px",background:ex.bad?NHS.red+"10":NHS.green+"10"}}><span style={{fontWeight:700,fontSize:"0.79rem",color:ex.bad?NHS.red:NHS.green}}>{ex.label}</span></div><div style={{padding:"9px 11px"}}><div style={{fontFamily:"monospace",fontSize:"0.79rem",color:NHS.darkGrey,background:"#F8FAFC",borderRadius:6,padding:"7px 9px",marginBottom:7,lineHeight:1.55,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{ex.text}</div><p style={{fontSize:"0.76rem",color:NHS.midGrey,margin:0}}><strong style={{color:ex.bad?NHS.red:NHS.green}}>{ex.bad?"Why this fails:":"Why this works:"}</strong> {ex.why}</p></div></div>)}</div>)}
         </div>
-        <div style={{padding:"12px 22px",borderTop:`1px solid ${NHS.paleGrey}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc"}}><span style={{fontSize:"0.72rem",color:NHS.midGrey}}>Always available via the <strong>?</strong> button</span><button onClick={onClose} style={{background:NHS.blue,border:"none",borderRadius:8,padding:"8px 22px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem"}}>Get started →</button></div>
+        <div style={{padding:"12px 20px",borderTop:`1px solid ${NHS.paleGrey}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc",flexShrink:0}}>
+          <span style={{fontSize:"0.72rem",color:NHS.midGrey}}>Always available via <strong>?</strong></span>
+          <button onClick={onClose} style={{background:NHS.blue,border:"none",borderRadius:8,padding:"10px 24px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",minHeight:44}}>Got it ✓</button>
+        </div>
       </div>
     </div>
   );
@@ -380,7 +403,7 @@ function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
   </div>);
 }
 
-function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle}){
+function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome}){
   const isMobile=vp==="mobile";
   const autoCollapse=(settings.sidebarMode==="auto"&&(vp==="compact"||isMobile));
   const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
@@ -402,15 +425,30 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
         <div onClick={onToggle} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:199,animation:"nwFadeIn .2s ease"}}/>
       )}
       <div style={sidebarStyle}>
-        <div style={{padding:"14px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.1)",minHeight:54,flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <PracticeLogo practice={user.practice} size={24}/>
-            <div>
-              <div style={{color:"#fff",fontWeight:700,fontSize:"0.84rem"}}>Ask AI</div>
-              <div style={{color:"rgba(255,255,255,.4)",fontSize:"0.62rem"}}>{user.practice.shortName} · last 7 days</div>
-            </div>
+        <div style={{padding:collapsed?"11px 7px":"11px 12px",display:"flex",flexDirection:"column",gap:collapsed?0:6,borderBottom:"1px solid rgba(255,255,255,.1)",flexShrink:0}}>
+          {/* Notewell home link */}
+          {!collapsed && (
+            <button
+              onClick={() => onNavigateHome?.()}
+              style={{background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.12)",borderRadius:7,padding:"5px 9px",cursor:"pointer",color:"rgba(255,255,255,.7)",fontSize:"0.73rem",fontWeight:700,display:"flex",alignItems:"center",gap:5,width:"100%",textAlign:"left",minHeight:34,letterSpacing:"-.01em"}}
+              onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,.14)"}
+              onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,.06)"}
+            >
+              <span>←</span>
+              <span style={{fontWeight:900,fontSize:"0.8rem",color:"#fff"}}>Notewell</span>
+              <span style={{opacity:.5,fontSize:"0.7rem"}}>/ Ask AI</span>
+            </button>
+          )}
+          {/* Practice + toggle row */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between"}}>
+            {!collapsed && (
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <PracticeLogo practice={user.practice} size={22}/>
+                <div style={{color:"rgba(255,255,255,.5)",fontSize:"0.6rem"}}>last 7 days</div>
+              </div>
+            )}
+            <button onClick={onToggle} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:6,padding:"3px 7px",cursor:"pointer",color:"#fff",fontSize:".87rem",minWidth:32,minHeight:32}}>{collapsed?"›":"‹"}</button>
           </div>
-          <button onClick={onToggle} style={{background:"rgba(255,255,255,.12)",border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",color:"#fff",fontSize:".9rem",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
         <div style={{padding:"10px 12px",flexShrink:0}}>
           <button onClick={()=>{onNew();if(isMobile)onToggle();}} style={{background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:9,padding:"10px 14px",cursor:"pointer",color:"#fff",width:"100%",fontSize:"0.82rem",display:"flex",alignItems:"center",gap:8,minHeight:44}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}>
@@ -508,7 +546,7 @@ async function callClaude(messages, systemPrompt, onChunk) {
 }
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
-export default function NotewellChat({ user }) {
+export default function NotewellChat({ user, onNavigateHome }) {
   const vp=useViewport();
   const [settings]=useState(()=>{try{const s=localStorage.getItem("nw_ai_settings");return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
   const [conversations,setConversations]=useState(()=>loadHistory());
@@ -592,27 +630,57 @@ export default function NotewellChat({ user }) {
         .nw-wrap ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px}
       `}</style>
 
-      {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}}/>}
-      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved}/>}
+      {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}} vp={vp}/>}
+      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp}/>}
 
-      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)}/>
+      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)} onNavigateHome={onNavigateHome}/>
 
       <div className="nw-wrap" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}} onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles(Array.from(e.dataTransfer.files));}}>
         {dragOver&&<div style={{position:"absolute",inset:0,background:"rgba(0,114,206,.08)",border:`3px dashed ${NHS.brightBlue}`,zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",color:NHS.blue,fontWeight:700}}>📎 Drop to attach</div>}
 
         {/* Status bar */}
         <div style={{padding:vp==="mobile"?"7px 10px":(vp==="compact"?"7px 13px":"9px 18px"),background:"#fff",borderBottom:`1px solid ${NHS.paleGrey}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            {vp==="mobile"&&(
-              <button onClick={()=>setSidebarForceOpen(o=>!o)}
-                style={{background:"transparent",border:"none",cursor:"pointer",color:NHS.midGrey,fontSize:"1.2rem",padding:"6px 8px",marginRight:2,minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}
-                aria-label="Open conversation history"
-              >☰</button>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            {/* Notewell home button */}
+            <button
+              onClick={() => onNavigateHome?.()}
+              style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",padding:"5px 8px",borderRadius:8,color:NHS.darkBlue,fontSize:"0.82rem",fontWeight:700,minHeight:44,minWidth:44,transition:"background .13s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#E8EDEE"}
+              onMouseLeave={e=>e.currentTarget.style.background="none"}
+              title="Back to Notewell"
+              aria-label="Back to Notewell"
+            >
+              <span style={{fontSize:"1.1rem"}}>←</span>
+              {vp !== "mobile" && <span style={{fontWeight:800,color:NHS.darkBlue,letterSpacing:"-.01em"}}>Notewell</span>}
+            </button>
+            {/* Hamburger — mobile only */}
+            {vp === "mobile" && (
+              <button onClick={() => setSidebarForceOpen(o => !o)}
+                style={{background:"transparent",border:"none",cursor:"pointer",color:NHS.midGrey,fontSize:"1.2rem",padding:"6px 4px",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}
+                aria-label="Open conversation history">☰</button>
             )}
-            <div style={{width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem",flexShrink:0}}>🤖</div>
-            <div>
-              <div style={{fontWeight:700,fontSize:vp==="mobile"?"0.78rem":"0.84rem",color:NHS.darkBlue}}>{vp==="mobile"?"Notewell AI":"Notewell AI Assistant"}</div>
-              <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>Ready · {user.practice.shortName}{vp!=="mobile"&&" · Word · Excel · PowerPoint · Diagrams"}{profileActive&&<span style={{color:NHS.blue,marginLeft:2}}>· Profile ✓</span>}</div>
+            {/* AI identity */}
+            <div style={{display:"flex",alignItems:"center",gap:7}}>
+              <div style={{width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem",flexShrink:0}}>🤖</div>
+              {vp !== "mobile" && (
+                <div>
+                  <div style={{fontWeight:700,fontSize:"0.84rem",color:NHS.darkBlue}}>Notewell AI Assistant</div>
+                  <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}>
+                    <span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>
+                    Ready · {user.practice.shortName} · Word · Excel · PowerPoint · Diagrams
+                    {profileActive && <span style={{color:NHS.blue,marginLeft:2}}>· Profile active</span>}
+                  </div>
+                </div>
+              )}
+              {vp === "mobile" && (
+                <div>
+                  <div style={{fontWeight:700,fontSize:"0.82rem",color:NHS.darkBlue,lineHeight:1.2}}>Notewell AI</div>
+                  <div style={{fontSize:"0.6rem",color:NHS.green,display:"flex",alignItems:"center",gap:2}}>
+                    <span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>
+                    Ready{profileActive && " · Profile ✓"}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>

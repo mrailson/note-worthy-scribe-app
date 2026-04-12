@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import NotewellChat from "@/components/AskAI/NotewellChat";
@@ -51,6 +52,7 @@ const buildFallbackUser = (authUser: { email?: string | null; user_metadata?: Re
 };
 
 export default function AskAIPage() {
+  const navigate = useNavigate();
   const { user: authUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -139,13 +141,12 @@ export default function AskAIPage() {
   return (
     <div style={{
       position: "fixed",
-      top: 48,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      overflow: "hidden"
+      inset: 0,
+      overflow: "hidden",
+      zIndex: 40,
+      background: "#F0F4F8"
     }}>
-      <NotewellChat user={user ?? buildFallbackUser(authUser)} />
+      <NotewellChat user={user ?? buildFallbackUser(authUser)} onNavigateHome={() => navigate("/")} />
     </div>
   );
 }
