@@ -968,7 +968,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
                     onQuery={queryClaim}
-                    onMarkPaid={markPaid}
+                    onUpdatePayment={updatePaymentStatus}
+                    savingPayment={savingClaim}
                     testActive={testActive}
                   />
                 );
