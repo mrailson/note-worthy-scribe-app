@@ -1,4 +1,5 @@
-import { useConversation, ConversationProvider } from "@elevenlabs/react";
+import { useConversation } from "@11labs/react";
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef } from "react";
 import { ClipboardList, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,12 +49,30 @@ const PMInner = () => {
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";
 
+  const generateSignedUrl = async (): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
+        body: { agentId: PM_AGENT_ID }
+      });
+      if (error) throw error;
+      return data.signed_url;
+    } catch (err) {
+      console.error('Signed URL failed:', err);
+      return null;
+    }
+  };
+
   const handleStart = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      await conversation.startSession({
+      const signedUrl = await generateSignedUrl();
+      if (!signedUrl) {
+        console.error('Could not get signed URL');
+        return;
+      }
+      await (conversation as any).startSession({
         agentId: PM_AGENT_ID,
-        connectionType: "websocket",
+        signedUrl,
       });
     } catch (error) {
       console.error("Failed to start PM assistant:", error);
@@ -102,8 +121,4 @@ const PMInner = () => {
   );
 };
 
-export const NRESPMAgent = () => (
-  <ConversationProvider>
-    <PMInner />
-  </ConversationProvider>
-);
+export const NRESPMAgent = () => <PMInner />;
