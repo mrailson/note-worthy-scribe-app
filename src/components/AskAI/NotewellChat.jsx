@@ -479,7 +479,6 @@ function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
     <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
     <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
     <p style={{color:NHS.midGrey,marginBottom:18,maxWidth:390,lineHeight:1.6,fontSize:"0.83rem"}}>
-      Ask me anything about Northamptonshire primary care.{" "}
       <button onClick={onHelp} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>How to get best results →</button>
       {" · "}
       <button onClick={onProfile} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>Set up my profile →</button>
