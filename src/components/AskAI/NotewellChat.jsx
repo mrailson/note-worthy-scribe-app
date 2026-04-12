@@ -728,13 +728,13 @@ export default function NotewellChat({ user, onNavigateHome }) {
     const userMsg={id:uid(),role:"user",content:text,files:files.slice(),timestamp:new Date()};
     const newMsgs=[...messages,userMsg];setMessages(newMsgs);setInput("");setFiles([]);setIsLoading(true);
     if(messages.length===0){const title=text.length>44?text.slice(0,44)+"…":text;setConversations(p=>p.map(c=>c.id===activeConvId?{...c,title,updatedAt:new Date()}:c));}
-    const aiId=uid();let accum="";
-    setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true}]);
+    const aiId=uid();let accum="";let kbSources=[];
+    setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}]);
     try{
-      await callClaude(newMsgs,systemPrompt,chunk=>{accum+=chunk;setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum}:m));});
+      await callClaude(newMsgs,systemPrompt,chunk=>{accum+=chunk;setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum}:m));},sources=>{kbSources=sources;setMessages(p=>p.map(m=>m.id===aiId?{...m,kbSources:sources}:m));});
       const artifact=parseArtifact(accum);
-      if(artifact){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
-      else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
+      if(artifact){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
+      else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
     }catch(e){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
     setIsLoading(false);
   },[input,files,messages,isLoading,activeConvId,systemPrompt]);
