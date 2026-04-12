@@ -565,7 +565,7 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
   );
 }
 
-async function callClaude(messages, systemPrompt, onChunk) {
+async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const endpoint = `${supabaseUrl}/functions/v1/ai-chat`;
@@ -605,6 +605,7 @@ async function callClaude(messages, systemPrompt, onChunk) {
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
+  let currentEvent = "";
 
   while (true) {
     const { done, value } = await reader.read();
@@ -613,15 +614,27 @@ async function callClaude(messages, systemPrompt, onChunk) {
     const lines = buf.split("\n");
     buf = lines.pop() || "";
     for (const line of lines) {
+      if (line.startsWith("event: ")) {
+        currentEvent = line.slice(7).trim();
+        continue;
+      }
       if (!line.startsWith("data: ")) continue;
       const raw = line.slice(6).trim();
       if (raw === "[DONE]") return;
       try {
+        if (currentEvent === "kb_sources") {
+          const sources = JSON.parse(raw);
+          onKbSources?.(sources);
+          currentEvent = "";
+          continue;
+        }
         const d = JSON.parse(raw).delta?.text;
         if (d) onChunk(d);
       } catch {}
+      currentEvent = "";
     }
   }
+}
 }
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
