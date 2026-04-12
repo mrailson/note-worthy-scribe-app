@@ -1965,8 +1965,17 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* Payment info */}
-      {claim.paid_at && (
+      {/* Payment workflow panel for approved/invoiced/paid claims — visible to admin (not PML Director) */}
+      {isAdmin && !isPMLDirector && (claim.status === 'approved' || claim.status === 'invoiced' || claim.status === 'paid') && onUpdatePayment && (
+        <PaymentWorkflowPanel
+          claim={claim}
+          onUpdatePayment={onUpdatePayment}
+          saving={savingPayment}
+        />
+      )}
+
+      {/* Read-only payment info for non-admin or PML Director */}
+      {(!isAdmin || isPMLDirector) && claim.paid_at && (
         <div className="px-3 py-2 border-t bg-green-50/50 dark:bg-green-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           <span>Paid by: <strong className="text-foreground">{claim.paid_by || '—'}</strong></span>
           <span>on <strong className="text-foreground">{format(new Date(claim.paid_at), 'dd/MM/yyyy')} at {format(new Date(claim.paid_at), 'HH:mm')}</strong></span>
@@ -2163,15 +2172,6 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* Mark as Paid action for approved/invoiced claims — hidden for PML Director */}
-      {isAdmin && !isPMLDirector && (claim.status === 'approved' || claim.status === 'invoiced') && onMarkPaid && (
-        <div className="px-3 py-3 border-t bg-green-50/50 dark:bg-green-950/20 flex items-center justify-between">
-          <p className="text-xs font-medium text-green-800 dark:text-green-200">Payment Processing</p>
-          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => onMarkPaid(claim.id)}>
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark as Paid
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
