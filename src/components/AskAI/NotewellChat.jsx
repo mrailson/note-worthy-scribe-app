@@ -1492,45 +1492,6 @@ export default function NotewellChat({ user, onNavigateHome }) {
       {/* Voice Panel — desktop only */}
       {vp!=="mobile"&&<VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)}/>}
 
-      {/* NRES Voice fullscreen overlay — SDK-powered */}
-      {showVoiceMode&&<div style={{position:"fixed",inset:0,zIndex:9999,background:"linear-gradient(180deg, #001845 0%, #003087 50%, #005EB8 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"nwFadeIn .25s ease"}}>
-        {/* Close button */}
-        <button onClick={endNresSession} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top, 0px))",right:12,width:48,height:48,borderRadius:"50%",background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",zIndex:10}} aria-label="Close voice mode">✕</button>
-
-        {/* Title */}
-        <div style={{position:"absolute",top:"calc(20px + env(safe-area-inset-top, 0px))",left:20,display:"flex",alignItems:"center",gap:8}}>
-          <img src="/favicon-option1.png" alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
-          <span style={{color:"#fff",fontWeight:700,fontSize:"0.9rem",opacity:.9}}>NRES Voice Assistant</span>
-        </div>
-
-        {/* Animated pulsing circle — adapts to state */}
-        <div style={{position:"relative",width:180,height:180,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:24}}>
-          {/* Outer rings — fast blue when speaking, slow white when listening */}
-          <div style={{position:"absolute",width:180,height:180,borderRadius:"50%",background:nresStatus==="speaking"?"rgba(65,182,230,.2)":"rgba(255,255,255,.08)",animation:nresStatus==="speaking"?"nwVoicePulse 0.8s ease-in-out infinite":"nwVoicePulse 2.5s ease-in-out infinite"}}/>
-          <div style={{position:"absolute",width:140,height:140,borderRadius:"50%",background:nresStatus==="speaking"?"rgba(65,182,230,.25)":"rgba(255,255,255,.1)",animation:nresStatus==="speaking"?"nwVoicePulse 0.8s ease-in-out .15s infinite":"nwVoicePulse 2.5s ease-in-out .4s infinite"}}/>
-          <div style={{position:"absolute",width:100,height:100,borderRadius:"50%",background:nresStatus==="speaking"?"rgba(65,182,230,.3)":"rgba(255,255,255,.12)",animation:nresStatus==="speaking"?"nwVoicePulse 0.8s ease-in-out .3s infinite":"nwVoicePulse 2.5s ease-in-out .8s infinite"}}/>
-          {/* Centre orb */}
-          <div style={{width:64,height:64,borderRadius:"50%",background:nresStatus==="speaking"?`linear-gradient(135deg,${NHS.lightBlue},${NHS.brightBlue})`:nresStatus==="connecting"?`linear-gradient(135deg,${NHS.warmYellow},#E89C0C)`:`linear-gradient(135deg,${NHS.green},#007A2F)`,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1,boxShadow:"0 0 30px rgba(65,182,230,.3)"}}>
-            {nresStatus==="connecting"?<div style={{width:24,height:24,border:"3px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>:
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>}
-          </div>
-        </div>
-
-        {/* Status text */}
-        <div style={{color:"#fff",fontSize:"1rem",fontWeight:600,marginBottom:8,opacity:.9}}>{
-          nresStatus==="connecting"?"Connecting…":
-          nresStatus==="listening"?"Listening…":
-          nresStatus==="speaking"?"Speaking…":
-          nresStatus==="error"?"Connection error":
-          "Ready"
-        }</div>
-        <p style={{color:"rgba(255,255,255,.45)",fontSize:"0.74rem",maxWidth:260,textAlign:"center",lineHeight:1.5,marginBottom:40}}>
-          {nresStatus==="listening"?"Speak naturally — the agent is listening":"The NRES programme agent can answer questions about the New Models programme"}
-        </p>
-
-        {/* Large END button */}
-        <button onClick={endNresSession} style={{background:NHS.red,border:"none",borderRadius:28,padding:"16px 48px",cursor:"pointer",color:"#fff",fontWeight:800,fontSize:"1rem",minHeight:56,boxShadow:"0 4px 20px rgba(218,41,28,.35)",letterSpacing:".03em",marginBottom:"env(safe-area-inset-bottom, 16px)"}}>End Session</button>
-      </div>}
     </div>
   );
 }
