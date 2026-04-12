@@ -59,6 +59,7 @@ import {
   Presentation
 } from 'lucide-react';
 import { PlaudIntegrationSettings } from '@/components/settings/PlaudIntegrationSettings';
+import { TavilyTestSection } from '@/components/settings/TavilyTestSection';
 import { ServiceVisibilitySettings } from '@/components/settings/ServiceVisibilitySettings';
 import { QuickRecordSettings } from '@/components/settings/QuickRecordSettings';
 import { PresentationTemplateSettings } from '@/components/settings/PresentationTemplateSettings';
@@ -1139,6 +1140,9 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Developer Tools */}
+              <TavilyTestSection />
             </TabsContent>
 
             {/* Presentations Tab */}
