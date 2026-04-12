@@ -466,9 +466,11 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const rateParams: RateParams = {
     onCostMultiplier,
     getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; },
+    getRoleConfig: (label) => rateSettings.roles_config.find(r => r.label.toLowerCase() === label.toLowerCase()),
     employerNiPct: rateSettings.employer_ni_pct,
     employerPensionPct: rateSettings.employer_pension_pct,
     workingWeeksInMonth: workingWeeksForMonth,
+    workingDaysInMonth: calcWorkingDays(claimMonthDate),
     bankHolidaysInMonth: bankHolidaysForMonth,
     bankHolidayDetails: bankHolidayDetailsForMonth,
   };
