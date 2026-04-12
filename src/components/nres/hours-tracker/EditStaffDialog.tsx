@@ -41,7 +41,7 @@ export function EditStaffDialog({
 }: EditStaffDialogProps) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
-  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours'>('sessions');
+  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
   const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
   const [practice, setPractice] = useState('');

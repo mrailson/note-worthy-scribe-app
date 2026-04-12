@@ -93,13 +93,26 @@ export function calculateStaffMonthlyAmount(
   } else if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     // Dynamic rates from settings
     const roleRate = rateParams.getRoleAnnualRate(staff.staff_role);
+    const roleConfig = rateParams.getRoleConfig?.(staff.staff_role);
     if (roleRate !== undefined) {
-      const annualWithOnCosts = roleRate * rateParams.onCostMultiplier;
-      if (staff.allocation_type === 'sessions') {
+      // Check if on-costs should be applied (default true for backward compat)
+      const includesOnCosts = roleConfig?.includes_on_costs !== false;
+      const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
+      
+      if (staff.allocation_type === 'daily') {
+        // Daily rate × working days in the month
+        const dailyRate = roleConfig?.daily_rate ?? staff.allocation_value;
+        const workingDays = rateParams.workingDaysInMonth ?? 21.67;
+        fullMonthly = dailyRate * workingDays;
+        // No on-costs for daily rate (locum)
+      } else if (staff.allocation_type === 'sessions') {
+        const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
       } else if (staff.allocation_type === 'hours') {
+        const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = ((staff.allocation_value / 37.5) * annualWithOnCosts) / 12;
       } else {
+        const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
       }
     } else {
