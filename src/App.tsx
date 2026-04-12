@@ -137,6 +137,8 @@ const KO41bReport = lazy(() => import("./pages/KO41bReport"));
 const PrivacyNotice = lazy(() => import("./pages/PrivacyNotice"));
 const AccessibilityStatement = lazy(() => import("./pages/AccessibilityStatement"));
 const AskAIPage = lazy(() => import("./pages/AskAIPage"));
+const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase"));
+const KnowledgeBaseAdmin = lazy(() => import("./pages/KnowledgeBaseAdmin"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -479,6 +481,16 @@ const App = () => {
                 <Route path="/ask-ai" element={
                   <ProtectedRoute>
                     <AskAIPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/knowledge-base" element={
+                  <ProtectedRoute>
+                    <KnowledgeBase />
+                  </ProtectedRoute>
+                } />
+                <Route path="/knowledge-base/admin" element={
+                  <ProtectedRoute>
+                    <KnowledgeBaseAdmin />
                   </ProtectedRoute>
                 } />
                 
