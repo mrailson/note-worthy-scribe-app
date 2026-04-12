@@ -117,8 +117,7 @@ function generateXlsxBlob(a){
   return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
 async function generatePptxBlob(a){
-  const PptxGenJS=await loadScript("https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundled.js","PptxGenJS");
-  const pptx=new PptxGenJS();pptx.layout="LAYOUT_WIDE";
+  const pptx=new pptxgen();pptx.layout="LAYOUT_WIDE";
   const DARK="003087",MID="005EB8",WHITE="FFFFFF",GREY="425563";
   (a.slides||[]).forEach((slide,idx)=>{
     const s=pptx.addSlide();const dark=idx===0||idx===(a.slides.length-1);
