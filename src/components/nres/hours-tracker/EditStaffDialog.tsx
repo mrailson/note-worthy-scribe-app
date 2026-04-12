@@ -145,6 +145,8 @@ export function EditStaffDialog({
               <Label className="text-xs">Role</Label>
               {isManagement ? (
                 <Input className="h-9 bg-muted" value="NRES Management" disabled />
+              ) : isGpLocum ? (
+                <Input className="h-9 bg-muted" value="GP Locum" disabled />
               ) : (
                 <Select value={role} onValueChange={setRole}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
