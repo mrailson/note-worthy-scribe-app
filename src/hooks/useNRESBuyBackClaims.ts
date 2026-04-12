@@ -83,6 +83,10 @@ export interface RateParams {
   bankHolidayDetails?: { name: string; formatted: string }[];
 }
 
+/** GP Locum constants */
+const GP_LOCUM_MAX_DAILY_RATE = 750;
+const GP_LOCUM_SESSION_RATE = 375; // half of £750
+
 /** Calculate the maximum monthly claim amount for a staff member */
 export function calculateStaffMonthlyAmount(
   staff: BuyBackStaffMember | { allocation_type: string; allocation_value: number; staff_role?: string; staff_category?: string; hourly_rate?: number },
@@ -92,9 +96,25 @@ export function calculateStaffMonthlyAmount(
 ): number {
   let fullMonthly: number;
 
+  const isGpLocum = (staff as any).staff_category === 'gp_locum';
+
+  // GP Locum category: fixed rates, no on-costs
+  if (isGpLocum) {
+    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+    if (staff.allocation_type === 'daily') {
+      const dailyRate = Math.min(staff.allocation_value, GP_LOCUM_MAX_DAILY_RATE);
+      fullMonthly = dailyRate * workingDays;
+    } else if (staff.allocation_type === 'sessions') {
+      // sessions per week × £375 × working weeks
+      const workingWeeks = workingDays / 5;
+      fullMonthly = staff.allocation_value * GP_LOCUM_SESSION_RATE * workingWeeks;
+    } else {
+      // Fallback for any other type
+      fullMonthly = staff.allocation_value * GP_LOCUM_MAX_DAILY_RATE * workingDays;
+    }
+  }
   // Management category: hourly_rate × weekly_hours × working_weeks_in_month
-  const isManagement = (staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management';
-  if (isManagement && (staff as any).hourly_rate && rateParams?.workingWeeksInMonth) {
+  else if (((staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management') && (staff as any).hourly_rate && rateParams?.workingWeeksInMonth) {
     const hourlyRate = (staff as any).hourly_rate as number;
     const weeklyHours = staff.allocation_value; // max_hours_per_week
     const workingWeeks = rateParams.workingWeeksInMonth;
@@ -133,6 +153,7 @@ export function calculateStaffMonthlyAmount(
   }
 
   // Pro-rata if start_date falls within the claim month (skip for management — working weeks already handles it)
+  const isManagement = (staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management';
   if (!isManagement && claimMonth && startDate) {
     const claimStart = new Date(claimMonth);
     const claimYear = claimStart.getFullYear();

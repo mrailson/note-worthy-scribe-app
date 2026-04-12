@@ -43,7 +43,7 @@ export function EditStaffDialog({
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
+  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum'>('buyback');
   const [practice, setPractice] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [isActive, setIsActive] = useState(true);
@@ -62,7 +62,12 @@ export function EditStaffDialog({
   }, [open, staff]);
 
   const isManagement = category === 'management';
-  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9;
+  const isGpLocum = category === 'gp_locum';
+  const GP_LOCUM_MAX_DAILY = 750;
+  const GP_LOCUM_SESSION_RATE = 375;
+  const maxAlloc = isGpLocum
+    ? (allocType === 'daily' ? GP_LOCUM_MAX_DAILY : allocType === 'sessions' ? 20 : 9)
+    : (allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9);
 
   const handleAllocValueChange = (val: string) => {
     const num = parseFloat(val);
@@ -112,12 +117,20 @@ export function EditStaffDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Category</Label>
-              <Select value={category} onValueChange={v => setCategory(v as 'buyback' | 'new_sda' | 'management')}>
+              <Select value={category} onValueChange={v => {
+                const newCat = v as 'buyback' | 'new_sda' | 'management' | 'gp_locum';
+                setCategory(newCat);
+                if (newCat === 'gp_locum') {
+                  setRole('GP Locum');
+                  if (allocType !== 'daily' && allocType !== 'sessions') setAllocType('daily');
+                }
+              }}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="buyback">Buy-Back</SelectItem>
                   <SelectItem value="new_sda">New SDA</SelectItem>
                   <SelectItem value="management">Management</SelectItem>
+                  <SelectItem value="gp_locum">GP Locum</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -132,6 +145,8 @@ export function EditStaffDialog({
               <Label className="text-xs">Role</Label>
               {isManagement ? (
                 <Input className="h-9 bg-muted" value="NRES Management" disabled />
+              ) : isGpLocum ? (
+                <Input className="h-9 bg-muted" value="GP Locum" disabled />
               ) : (
                 <Select value={role} onValueChange={setRole}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -148,6 +163,14 @@ export function EditStaffDialog({
               <Label className="text-xs">Allocation Type</Label>
               {isManagement ? (
                 <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
+              ) : isGpLocum ? (
+                <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'daily'); setAllocValue(''); }}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily Rate</SelectItem>
+                    <SelectItem value="sessions">Sessions</SelectItem>
+                  </SelectContent>
+                </Select>
               ) : (
                 <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours' | 'daily'); setAllocValue(''); }}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>

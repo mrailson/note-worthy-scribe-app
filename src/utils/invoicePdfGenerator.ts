@@ -155,7 +155,9 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
       ? `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`
       : s.allocation_type === 'hours'
         ? `${s.allocation_value} hrs/wk`
-        : `${s.allocation_value} WTE`,
+        : s.allocation_type === 'daily'
+          ? `${s.allocation_value}/day`
+          : `${s.allocation_value} WTE`,
     fmt(s.claimed_amount || 0),
   ]);
 

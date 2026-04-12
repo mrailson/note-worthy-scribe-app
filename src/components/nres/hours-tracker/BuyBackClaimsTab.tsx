@@ -46,8 +46,26 @@ function fmtGBP(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** GP Locum constants */
+const GP_LOCUM_MAX_DAILY_RATE = 750;
+const GP_LOCUM_SESSION_RATE = 375;
+
 /** Build a human-readable calculation breakdown for the live preview */
 function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
+  // GP Locum: fixed rates, no on-costs
+  if (category === 'gp_locum') {
+    if (allocType === 'daily') {
+      const rate = Math.min(allocValue, GP_LOCUM_MAX_DAILY_RATE);
+      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+      return `${fmtGBP(rate)}/day × ${workingDays} working days — excl. on-costs (Locum)`;
+    }
+    if (allocType === 'sessions') {
+      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+      const workingWeeks = workingDays / 5;
+      return `${allocValue} session${allocValue !== 1 ? 's' : ''}/wk × ${fmtGBP(GP_LOCUM_SESSION_RATE)}/session × ${workingWeeks.toFixed(1)} working weeks — excl. on-costs (Locum)`;
+    }
+  }
+
   // Management: hourly_rate × weekly_hours × working_weeks
   if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
     const ww = rateParams.workingWeeksInMonth;
@@ -104,7 +122,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
+  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum'>('buyback');
   const [practice, setPractice] = useState<string>('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [selectedMgmtKey, setSelectedMgmtKey] = useState('');
@@ -150,7 +168,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   };
 
   // When category changes
-  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management') => {
+  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management' | 'gp_locum') => {
     setCategory(newCat);
     if (newCat === 'management') {
       setRole('NRES Management');
@@ -158,9 +176,15 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       setAllocValue('');
       setName('');
       setSelectedMgmtKey('');
+    } else if (newCat === 'gp_locum') {
+      setRole('GP Locum');
+      setAllocType('daily');
+      setAllocValue('');
+      setName('');
+      setSelectedMgmtKey('');
     } else {
       setSelectedMgmtKey('');
-      if (role === 'NRES Management') {
+      if (role === 'NRES Management' || role === 'GP Locum') {
         setRole('GP');
         setAllocType('sessions');
         setAllocValue('');
@@ -184,9 +208,12 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   };
 
   const isManagement = category === 'management';
+  const isGpLocum = category === 'gp_locum';
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
-  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9;
+  const maxAlloc = isGpLocum
+    ? (allocType === 'daily' ? GP_LOCUM_MAX_DAILY_RATE : 20)
+    : (allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9);
 
   const handleAllocValueChange = (val: string) => {
     const num = parseFloat(val);
@@ -234,11 +261,12 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">Category</Label>
-          <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management')}>
+           <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management' | 'gp_locum')}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="buyback">Buy-Back</SelectItem>
               <SelectItem value="new_sda">New SDA</SelectItem>
+              <SelectItem value="gp_locum">GP Locum</SelectItem>
               {canShowManagement && <SelectItem value="management">Management</SelectItem>}
             </SelectContent>
           </Select>
@@ -262,6 +290,8 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           <Label className="text-xs">Role</Label>
           {isManagement ? (
             <Input className="h-9 bg-muted" value="NRES Management" disabled />
+          ) : isGpLocum ? (
+            <Input className="h-9 bg-muted" value="GP Locum" disabled />
           ) : (
             <Select value={role} onValueChange={handleRoleChange}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -275,6 +305,14 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           <Label className="text-xs">Allocation Type</Label>
           {isManagement ? (
             <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
+          ) : isGpLocum ? (
+            <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'daily'); setAllocValue(''); }}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily Rate</SelectItem>
+                <SelectItem value="sessions">Sessions/wk</SelectItem>
+              </SelectContent>
+            </Select>
           ) : (
              <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours' | 'daily'); setAllocValue(''); }}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -628,6 +666,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const categoryBadge = (cat: string) => {
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
     if (cat === 'management') return <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>;
+    if (cat === 'gp_locum') return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">GP Locum</Badge>;
     return <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>;
   };
 
@@ -922,8 +961,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               {filteredClaims.map(c => {
                 const staffDets = c.staff_details as any[];
                 const categories = [...new Set(staffDets.map((s: any) => s.staff_category).filter(Boolean))];
-                const claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed' = categories.length === 0 ? 'buyback'
-                  : categories.length === 1 ? (categories[0] as 'buyback' | 'new_sda' | 'management')
+                const claimCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed' = categories.length === 0 ? 'buyback'
+                  : categories.length === 1 ? (categories[0] as 'buyback' | 'new_sda' | 'management' | 'gp_locum')
                   : 'mixed';
                 const isBuyBack = claimCategory === 'buyback' || claimCategory === 'mixed';
                 
@@ -1011,6 +1050,55 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
   const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours' | 'daily';
   const allocValue = staff.allocation_value as number;
   const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
+  const isGpLocum = staff.staff_category === 'gp_locum';
+
+  // GP Locum: fixed rates, no on-costs
+  if (isGpLocum) {
+    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+    let dailyRate: number;
+    let baseLabel: string;
+    if (allocType === 'daily') {
+      dailyRate = Math.min(allocValue, 750);
+      baseLabel = `${fmtGBP(dailyRate)}/day × ${workingDays} working days`;
+    } else {
+      // sessions per week
+      dailyRate = 375;
+      const workingWeeks = workingDays / 5;
+      baseLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''}/wk × ${fmtGBP(375)}/session × ${workingWeeks.toFixed(1)} working weeks`;
+    }
+    const fullMonthly = allocType === 'daily'
+      ? dailyRate * workingDays
+      : allocValue * 375 * (workingDays / 5);
+
+    let proRataInfo: any = null;
+    let finalMonthly = fullMonthly;
+    if (claimMonth && staff.start_date) {
+      const claimStart = new Date(claimMonth);
+      const staffStart = new Date(staff.start_date);
+      if (staffStart.getFullYear() === claimStart.getFullYear() && staffStart.getMonth() === claimStart.getMonth()) {
+        const daysInMonth = new Date(claimStart.getFullYear(), claimStart.getMonth() + 1, 0).getDate();
+        const startDay = staffStart.getDate();
+        const remainingDays = daysInMonth - startDay + 1;
+        const ratio = remainingDays / daysInMonth;
+        proRataInfo = { daysInMonth, workingDays: remainingDays, startDay, ratio };
+        finalMonthly = fullMonthly * ratio;
+      }
+    }
+
+    return {
+      isManagement: false, isDaily: allocType === 'daily', isGpLocum: true, includesOnCosts: false,
+      dailyRate, workingDays,
+      baseSalary: 0, baseLabel,
+      niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0,
+      fullMonthly, proRataInfo, finalMonthly,
+      baseRate: fmtGBP(dailyRate),
+      hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+      mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+      grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    };
+  }
 
   // Management: simple hourly × weekly hours × working weeks
   if (isManagement && staff.hourly_rate && rateParams?.workingWeeksInMonth) {
@@ -1388,7 +1476,7 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
 
 function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, isPMLDirector, pmlFinanceEmails, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onUpdatePayment, savingPayment, testActive }: {
   claim: BuyBackClaim;
-  claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
+  claimCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed';
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
@@ -1535,8 +1623,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
 
       for (let idx = 0; idx < staffDetails.length; idx++) {
         const s = staffDetails[idx];
-        const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management';
-        const configItems = getConfigForCategory(cat);
+        const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum';
+        const evidenceCat = cat === 'gp_locum' ? 'buyback' : cat; // GP Locum uses buyback evidence config
+        const configItems = getConfigForCategory(evidenceCat);
         const mandatoryItems = configItems.filter((c: any) => c.is_mandatory);
         const uploadedForStaff = getUploadedTypesForStaff(idx);
 
@@ -1883,7 +1972,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <StaffLineEvidence
-                          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management'}
+                          staffCategory={((s.staff_category === 'gp_locum' ? 'buyback' : s.staff_category) || 'buyback') as 'buyback' | 'new_sda' | 'management'}
                           staffIndex={idx}
                           staffName={s.staff_name}
                           staffRole={s.staff_role}
