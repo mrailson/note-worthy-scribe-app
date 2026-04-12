@@ -10,7 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
-import VoicePanel from "@/components/AskAI/VoicePanel";
+import { lazy, Suspense } from "react";
+
+const AIVoiceStudio = lazy(() => import("@/components/ai4gp/AIVoiceStudio"));
 
 const NHS = {
   blue:"#005EB8", darkBlue:"#003087", brightBlue:"#0072CE",
@@ -1182,7 +1184,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const speechRef=useRef(null);
 
   // ── Voice Panel state (desktop only) ─────────────────────────────────────
-  const [voicePanelOpen,setVoicePanelOpen]=useState(false);
+  const [showVoiceStudio,setShowVoiceStudio]=useState(false);
   const startListening=useCallback(()=>{
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){setSpeechError("Speech recognition requires Chrome or Safari 17+");return;}
@@ -1409,6 +1411,9 @@ export default function NotewellChat({ user, onNavigateHome }) {
             </button>
 
 
+            {/* Voice Studio button */}
+            <button onClick={()=>setShowVoiceStudio(true)} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}} title="AI Voice Studio">🎙{vp!=="compact"&&" Voice"}</button>
+
             {/* Guide button */}
             <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>? {vp!=="compact"&&"Guide"}</button>
             
@@ -1486,9 +1491,20 @@ export default function NotewellChat({ user, onNavigateHome }) {
         </div>
       )}
 
-      {/* Floating Voice Panel + FAB */}
-      <VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)}/>
-      {!voicePanelOpen&&<button onClick={()=>setVoicePanelOpen(true)} style={{position:"fixed",bottom:80,right:16,width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#003087,#005EB8)",border:"none",cursor:"pointer",color:"#fff",fontSize:"1.4rem",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px rgba(0,48,135,.35)",zIndex:8999,transition:"transform .15s"}} onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.08)";}} onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";}} title="AI Voice Assistant" aria-label="Open AI Voice Assistant">🎙</button>}
+      {/* AI Voice Studio Modal */}
+      {showVoiceStudio&&<div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",animation:"nwFadeIn .15s ease"}} onClick={()=>setShowVoiceStudio(false)}>
+        <div style={{background:"#fff",borderRadius:16,width:"100%",maxWidth:720,maxHeight:"90vh",overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,.25)",animation:"nwFadeIn .2s ease"}} onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid #E8EDEE",flexShrink:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,fontWeight:700,fontSize:"1rem",color:"#231F20"}}>🎙 AI Voice Studio</div>
+            <button onClick={()=>setShowVoiceStudio(false)} style={{width:32,height:32,borderRadius:8,border:"1px solid #E8EDEE",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1rem",color:"#425563"}} aria-label="Close">✕</button>
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:0}}>
+            <Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#425563"}}>Loading…</div>}>
+              <AIVoiceStudio/>
+            </Suspense>
+          </div>
+        </div>
+      </div>}
 
     </div>
   );
