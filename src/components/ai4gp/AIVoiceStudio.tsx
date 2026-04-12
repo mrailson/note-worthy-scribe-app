@@ -30,7 +30,7 @@ function ElevenLabsWidget({ agentId }: { agentId: string }) {
 
 const AGENT_IDS: Record<string, string> = {
   gp: 'agent_01jwry2fzme7xsb2mwzatxseyt',
-  pm: 'agent_01jwry2fzme7xsb2mwzatxseyt',
+  pm: 'agent_4901kp1a5we7eacrq7c3g4kme1m8',
   patient: 'agent_3501knsz3wj8f0frkttr1yd90k72',
   translate: 'agent_2601knsxn311f9evq5zs0rrese7s',
 };

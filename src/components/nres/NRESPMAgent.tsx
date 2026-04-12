@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { ClipboardList, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const PM_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
+const PM_AGENT_ID = "agent_4901kp1a5we7eacrq7c3g4kme1m8";
 
 const PMInner = () => {
   const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
