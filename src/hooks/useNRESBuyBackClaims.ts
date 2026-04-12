@@ -684,19 +684,12 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         <tr><td style="padding:6px 0;color:#666;">Claim Period</td><td style="padding:6px 0;text-align:right;">${claimMonthLabel}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Invoice Date</td><td style="padding:6px 0;text-align:right;">${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Payment Terms</td><td style="padding:6px 0;text-align:right;">30 days from invoice date</td></tr>
-        <tr style="border-top:2px solid #005EB8;"><td style="padding:10px 0 6px;color:#003087;font-weight:700;">Total Amount Due</td><td style="padding:10px 0 6px;text-align:right;font-weight:700;font-size:16px;color:#003087;">£${((gpTotal || 0) + (otherTotal || 0)).toFixed(2)}</td></tr>
-      </table>
-    </div>
-
-    <div style="background:#f5f8fc;border-radius:6px;padding:20px;margin:0 0 20px;">
-      <h2 style="font-size:14px;color:#003087;margin:0 0 12px;font-weight:600;">Payment Details</h2>
-      <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <tr><td style="padding:4px 0;color:#666;">Payable by</td><td style="padding:4px 0;text-align:right;">PML (Principal Medical Limited)</td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Address</td><td style="padding:4px 0;text-align:right;">3 Barberry Place, Bicester, Oxfordshire, OX26 3HA</td></tr>
+        <tr><td colspan="2" style="padding:12px 0 4px;"><hr style="border:none;border-top:1px solid #dde3ea;margin:0;"/></td></tr>
         <tr><td style="padding:4px 0;color:#666;">Bank</td><td style="padding:4px 0;text-align:right;">Lloyds Bank</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Sort Code</td><td style="padding:4px 0;text-align:right;">30-11-08</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Account No.</td><td style="padding:4px 0;text-align:right;">28122560</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Account Name</td><td style="padding:4px 0;text-align:right;">Brackley &amp; Towcester PCN Ltd</td></tr>
+        <tr style="border-top:2px solid #005EB8;"><td style="padding:10px 0 6px;color:#003087;font-weight:700;">Total Amount Due</td><td style="padding:10px 0 6px;text-align:right;font-weight:700;font-size:16px;color:#003087;">£${((gpTotal || 0) + (otherTotal || 0)).toFixed(2)}</td></tr>
       </table>
     </div>
 
