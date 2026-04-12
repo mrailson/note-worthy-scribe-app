@@ -643,6 +643,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         @keyframes nwSpin{to{transform:rotate(360deg)}}
         @keyframes nwSlideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
         @keyframes nwSlideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes nwVoiceBar{0%{height:4px}100%{height:16px}}
         .nw-wrap *{box-sizing:border-box}
         .nw-wrap ::-webkit-scrollbar{width:5px}
         .nw-wrap ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px}
