@@ -1048,14 +1048,20 @@ export default function NotewellChat({ user, onNavigateHome }) {
       return;
     }
 
-    const aiId=uid();let accum="";let kbSources=[];
-    setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}]);
+    const aiId=uid();let accum="";let kbSources=[];const isSearching=messageNeedsSearch(text);
+    setMessages(p=>[...p,
+      ...(isSearching?[{id:uid(),role:"search-indicator",content:"🔍 Searching NHS sources...",timestamp:new Date()}]:[]),
+      {id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}
+    ]);
     try{
-      await callClaude(newMsgs,systemPrompt,chunk=>{accum+=chunk;setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum}:m));},sources=>{kbSources=sources;setMessages(p=>p.map(m=>m.id===aiId?{...m,kbSources:sources}:m));});
+      await callClaude(newMsgs,systemPrompt,chunk=>{
+        accum+=chunk;
+        setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum}:m));
+      },sources=>{kbSources=sources;setMessages(p=>p.map(m=>m.id===aiId?{...m,kbSources:sources}:m));},text);
       const artifact=parseArtifact(accum);
-      if(artifact){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
-      else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
-    }catch(e){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
+      if(artifact){setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
+      else{setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
+    }catch(e){setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
     setIsLoading(false);
   },[input,files,messages,isLoading,activeConvId,systemPrompt,handleRunwareImage]);
 
