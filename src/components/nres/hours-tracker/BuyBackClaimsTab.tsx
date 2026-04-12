@@ -1399,14 +1399,14 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
     if (autoFilling) return;
     setAutoFilling(true);
     try {
-      // 1. Acknowledge all ground rules for every staff member
+      // 1. Acknowledge all ground rules for every staff member (sequentially to avoid race conditions)
       for (let idx = 0; idx < staffDetails.length; idx++) {
         const s = staffDetails[idx];
         const rules = getRulesForRole(s.staff_role);
         const requiredRules = rules.filter((r: any) => r.requires_acknowledgement);
         if (requiredRules.length > 0) {
           const allIds = requiredRules.map((r: any) => r.id);
-          onUpdateStaffLine(claim.id, idx, { acknowledged_rules: allIds });
+          await onUpdateStaffLine(claim.id, idx, { acknowledged_rules: allIds });
         }
       }
 
