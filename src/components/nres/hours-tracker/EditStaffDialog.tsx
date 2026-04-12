@@ -163,6 +163,14 @@ export function EditStaffDialog({
               <Label className="text-xs">Allocation Type</Label>
               {isManagement ? (
                 <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
+              ) : isGpLocum ? (
+                <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'daily'); setAllocValue(''); }}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily Rate</SelectItem>
+                    <SelectItem value="sessions">Sessions</SelectItem>
+                  </SelectContent>
+                </Select>
               ) : (
                 <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours' | 'daily'); setAllocValue(''); }}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
