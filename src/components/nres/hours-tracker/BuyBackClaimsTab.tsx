@@ -465,7 +465,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const isAdmin = admin || isPMLFinance || isPMLDirector || isManagementLead || isSuperAdmin;
 
   // Test mode state — UI-only, admin users only
-  const [testMode, setTestMode] = useState<TestModeState>({ enabled: false, role: 'admin' });
+  const [testMode, setTestMode] = useState<TestModeState>({ enabled: true, role: 'admin' });
   const testActive = isAdmin && testMode.enabled && testMode.role !== 'admin';
 
   const [claimPractice, setClaimPractice] = useState<string>('');
