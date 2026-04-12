@@ -95,6 +95,7 @@ const CSOTrainingContentExport = lazy(() => import("./pages/CSOTrainingContentEx
 const UsingAiNhs = lazy(() => import("./pages/UsingAiNhs"));
 const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
+const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
 const LGCaptureLanding = lazy(() => import("./pages/LGCaptureLanding"));
 const LGCaptureStart = lazy(() => import("./pages/LGCaptureStart"));
 const LGCaptureCamera = lazy(() => import("./pages/LGCaptureCamera"));
@@ -227,6 +228,7 @@ const App = () => {
                 } />
                 <Route path="/ai4gp" element={<AI4GP />} />
                 <Route path="/voice-agent" element={<VoiceAgent />} />
+                <Route path="/voice-hub" element={<NotewellVoiceHub />} />
                 <Route path="/gp-scribe" element={<Navigate to="/scribe" replace />} />
                 <Route path="/gp-scribe/settings" element={<Navigate to="/scribe" replace />} />
                 <Route path="/meetings" element={<MeetingHistory />} />
