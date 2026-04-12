@@ -164,6 +164,7 @@ export function StaffLineEvidence({
   onUpload,
   onDelete,
   onDownload,
+  hideHeader = false,
 }: {
   staffCategory: 'buyback' | 'new_sda' | 'management';
   staffIndex: number;
