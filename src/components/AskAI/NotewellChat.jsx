@@ -559,8 +559,8 @@ export default function NotewellChat({ user }) {
             )}
             <div style={{width:26,height:26,borderRadius:"50%",background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".8rem",flexShrink:0}}>🤖</div>
             <div>
-              <div style={{fontWeight:700,fontSize:"0.84rem",color:NHS.darkBlue}}>Notewell AI Assistant</div>
-              <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>Ready · {user.practice.shortName} · Word · Excel · PowerPoint · Diagrams{profileActive&&<span style={{color:NHS.blue,marginLeft:2}}>· Profile active</span>}</div>
+              <div style={{fontWeight:700,fontSize:vp==="mobile"?"0.78rem":"0.84rem",color:NHS.darkBlue}}>{vp==="mobile"?"Notewell AI":"Notewell AI Assistant"}</div>
+              <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}><span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>Ready · {user.practice.shortName}{vp!=="mobile"&&" · Word · Excel · PowerPoint · Diagrams"}{profileActive&&<span style={{color:NHS.blue,marginLeft:2}}>· Profile ✓</span>}</div>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
