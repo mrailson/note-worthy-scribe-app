@@ -612,28 +612,6 @@ const ROLE_SUGGESTIONS = {
     "What QOF disease registers do I need to maintain?"
   ],
   "PCN Manager": [
-    "Draft a practice newsletter about our new online booking system",
-    "Write a care navigation script for telephone triage",
-    "What patient information can I share over the phone?",
-    "Draft a letter to a patient about a missed appointment (DNA)",
-    "Write an FAQ for patients about the NHS App",
-    "What is the process for registering a new patient?",
-    "Draft a patient-facing notice about appointment booking changes",
-    "How should I handle an aggressive patient on the phone?",
-    "Write a template email for chasing outstanding test results",
-    "What are the opening hours for Enhanced Access appointments?",
-    "Draft a social media post about flu vaccination appointments",
-    "How do I handle a Subject Access Request from a patient?",
-    "Write a receptionist guide to care navigation and triage",
-    "What is Pharmacy First and which conditions can pharmacists treat?",
-    "Draft a notice about prescription ordering and collection times",
-    "What should receptionists know about safeguarding?",
-    "Write a template for recording a significant event (SEA)",
-    "How do I book an Enhanced Access appointment for a patient?",
-    "Draft an out-of-hours answerphone message for the practice",
-    "What are the rules for giving test results to patients?"
-  ],
-  "PCN Manager": [
     "Summarise the PCN DES requirements for 2025/26 in a Word document",
     "Create an Excel ARRS budget tracker for all 14 eligible roles",
     "What is the CAIP submission process and what evidence is needed?",
