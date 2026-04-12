@@ -70,7 +70,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   }
 
   // Practice Manager contact
-  let practiceInfoY = practiceAddress ? 47 + (doc.splitTextToSize(practiceAddress, 80).length * 4.5) + 2 : 52;
+  let practiceInfoY = practiceAddress ? 47 + (practiceAddress.split(',').filter(s => s.trim()).length * 4.5) + 2 : 52;
   if (practiceContact) {
     doc.setFontSize(8);
     doc.setTextColor(GREY_100);
