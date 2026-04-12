@@ -1160,6 +1160,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
   const [editingNoteIdx, setEditingNoteIdx] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
+  const [autoFilling, setAutoFilling] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const debounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
