@@ -75,7 +75,7 @@ const APITesting = () => {
     },
     {
       category: "NHS Verification Test",
-      prompt: "Is a healthy 70-year-old eligible for flu vaccination under NHS England AW 2025/26 programme?"
+      prompt: "Is a healthy 70-year-old eligible for flu vaccination under NHS England AW 2026/27 programme?"
     },
     {
       category: "Challenge & Verify",

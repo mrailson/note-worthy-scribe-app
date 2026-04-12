@@ -544,7 +544,7 @@ My draft email:` },
         icon: Network,
         gradient: 'from-purple-500 to-purple-600',
         prompts: [
-          { id: 'pcn-des', shortTitle: 'DES Summary', title: 'PCN DES Requirements', description: 'PCN DES requirements', prompt: 'Create an infographic summarising PCN DES requirements and service specifications for 2025/26' },
+          { id: 'pcn-des', shortTitle: 'DES Summary', title: 'PCN DES Requirements', description: 'PCN DES requirements', prompt: 'Create an infographic summarising PCN DES requirements and service specifications for 2026/27' },
           { id: 'pcn-iif', shortTitle: 'IIF Tracker', title: 'IIF Performance', description: 'IIF indicator tracking', prompt: 'Create an IIF indicator dashboard showing performance across all PCN practices with RAG ratings' },
           { id: 'pcn-arrs', shortTitle: 'ARRS Roles', title: 'ARRS Business Case', description: 'ARRS recruitment case', prompt: 'Create a business case template for recruiting additional ARRS roles within PCN funding allocation' },
           { id: 'pcn-governance', shortTitle: 'PCN Governance', title: 'Board Agenda', description: 'PCN board meeting', prompt: 'Create a PCN Clinical Director board meeting agenda template with standard governance items' },
