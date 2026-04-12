@@ -476,6 +476,12 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 
+                <Route path="/ask-ai" element={
+                  <ProtectedRoute>
+                    <AskAIPage />
+                  </ProtectedRoute>
+                } />
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
