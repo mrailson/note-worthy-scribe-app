@@ -208,7 +208,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
   const maxAlloc = isGpLocum
-    ? (allocType === 'daily' ? GP_LOCUM_MAX_DAILY_RATE : 20)
+    ? (allocType === 'daily' ? 23 : 46)
     : (allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9);
 
   const handleAllocValueChange = (val: string) => {
@@ -305,8 +305,8 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'daily'); setAllocValue(''); }}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Daily Rate</SelectItem>
-                <SelectItem value="sessions">Sessions/wk</SelectItem>
+                <SelectItem value="daily">Days/month</SelectItem>
+                <SelectItem value="sessions">Sessions/month</SelectItem>
               </SelectContent>
             </Select>
           ) : (
@@ -323,7 +323,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">
-            {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
+            {isGpLocum ? (allocType === 'daily' ? 'Days Worked' : 'Sessions Worked') : allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
           </Label>
           <Input
             type="number"
