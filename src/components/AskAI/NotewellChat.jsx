@@ -7,7 +7,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useConversation } from "@elevenlabs/react";
+
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
 import VoicePanel from "@/components/AskAI/VoicePanel";
@@ -1180,66 +1180,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [isListening,setIsListening]=useState(false);
   const [interimText,setInterimText]=useState("");
   const [speechError,setSpeechError]=useState(null);
-  const [showVoiceMode,setShowVoiceMode]=useState(false);
-  const [nresStatus,setNresStatus]=useState("idle"); // idle | connecting | listening | speaking | ended | error
   const speechRef=useRef(null);
-  const nresKeepAliveRef=useRef(null);
-  const nresAudioCtxRef=useRef(null);
-
-  // NRES ElevenLabs Conversational AI agent
-  const NRES_AGENT_ID="agent_7801knyxsxcxehsr8kynxgxz6xyr";
-  const nresConversation=useConversation({
-    onConnect:()=>{setNresStatus("listening");},
-    onDisconnect:()=>{setNresStatus("ended");if(nresKeepAliveRef.current){clearInterval(nresKeepAliveRef.current);nresKeepAliveRef.current=null;}setTimeout(()=>setNresStatus("idle"),2000);},
-    onMessage:(msg)=>{console.log("NRES Agent:",msg);},
-    onError:(err)=>{console.error("NRES ElevenLabs error:",err);setNresStatus("error");},
-  });
-
-  // Track speaking state
-  useEffect(()=>{
-    if(nresConversation.isSpeaking&&nresStatus==="listening")setNresStatus("speaking");
-    else if(!nresConversation.isSpeaking&&nresStatus==="speaking")setNresStatus("listening");
-  },[nresConversation.isSpeaking]);
-
-  const startNresSession=useCallback(async()=>{
-    try{
-      setNresStatus("connecting");
-      // Pre-warm AudioContext on user gesture
-      const AudioCtx=window.AudioContext||window.webkitAudioContext;
-      if(AudioCtx){
-        const ctx=new AudioCtx();
-        nresAudioCtxRef.current=ctx;
-        if(ctx.state==="suspended")await ctx.resume();
-      }
-      // Request mic permission
-      await navigator.mediaDevices.getUserMedia({audio:true});
-      // 400ms delay for audio stream stabilisation
-      await new Promise(r=>setTimeout(r,400));
-      // Start ElevenLabs session
-      await nresConversation.startSession({agentId:NRES_AGENT_ID,connectionType:"websocket"});
-      // Keep-alive ping every 1.5s
-      nresKeepAliveRef.current=setInterval(()=>{try{nresConversation.sendUserActivity();}catch{}},1500);
-      setShowVoiceMode(true);
-    }catch(err){
-      console.error("Failed to start NRES session:",err);
-      setNresStatus("error");
-      setTimeout(()=>setNresStatus("idle"),3000);
-    }
-  },[nresConversation]);
-
-  const endNresSession=useCallback(async()=>{
-    try{await nresConversation.endSession();}catch{}
-    if(nresKeepAliveRef.current){clearInterval(nresKeepAliveRef.current);nresKeepAliveRef.current=null;}
-    if(nresAudioCtxRef.current){try{nresAudioCtxRef.current.close();}catch{}nresAudioCtxRef.current=null;}
-    setShowVoiceMode(false);
-    setNresStatus("idle");
-  },[nresConversation]);
-
-  // Cleanup on unmount
-  useEffect(()=>()=>{
-    if(nresKeepAliveRef.current)clearInterval(nresKeepAliveRef.current);
-    if(nresAudioCtxRef.current)try{nresAudioCtxRef.current.close();}catch{}
-  },[]);
 
   // ── Voice Panel state (desktop only) ─────────────────────────────────────
   const [voicePanelOpen,setVoicePanelOpen]=useState(false);
@@ -1489,28 +1430,6 @@ export default function NotewellChat({ user, onNavigateHome }) {
           </div>
         </div>
 
-        {/* NRES Voice Assistant banner — mobile only */}
-        {vp==="mobile"&&<div style={{padding:"6px 12px 0",background:"#fff",borderTop:`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:nresStatus!=="idle"?"linear-gradient(135deg,#001845,#003087)":"linear-gradient(135deg,#F0F8F0,#E8F5E9)",border:`1.5px solid ${nresStatus!=="idle"?"rgba(255,255,255,.2)":"#00963944"}`,borderRadius:10,transition:"all .2s"}}>
-            <span style={{fontSize:"1.2rem",flexShrink:0}}>{nresStatus==="connecting"?"⏳":"🎙"}</span>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontWeight:700,fontSize:"0.82rem",color:nresStatus!=="idle"?"#fff":NHS.darkBlue}}>NRES Voice Assistant</div>
-              <div style={{fontSize:"0.7rem",color:nresStatus!=="idle"?"rgba(255,255,255,.6)":NHS.midGrey,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{
-                nresStatus==="connecting"?"Connecting…":
-                nresStatus==="listening"?"Listening…":
-                nresStatus==="speaking"?"Speaking…":
-                nresStatus==="error"?"Connection error — tap to retry":
-                nresStatus==="ended"?"Session ended":
-                "Speak with the NRES Agent"
-              }</div>
-            </div>
-            {nresStatus!=="idle"&&nresStatus!=="ended"&&nresStatus!=="error"?(
-              <button onClick={endNresSession} style={{background:NHS.red,border:"none",borderRadius:20,padding:"8px 16px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.78rem",minWidth:44,minHeight:44,flexShrink:0,animation:"nwPulseRed 1.5s ease-in-out infinite"}}>End</button>
-            ):(
-              <button onClick={startNresSession} disabled={nresStatus==="connecting"} style={{background:NHS.green,border:"none",borderRadius:20,padding:"8px 16px",cursor:nresStatus==="connecting"?"wait":"pointer",color:"#fff",fontWeight:700,fontSize:"0.78rem",minWidth:44,minHeight:44,flexShrink:0}}>Start</button>
-            )}
-          </div>
-        </div>}
 
         {/* Input */}
         <div style={{padding:vp==="mobile"?"8px 12px calc(12px + env(safe-area-inset-bottom, 0px))":(vp==="compact"?"9px 11px 12px":"11px 16px 14px"),background:"#fff",borderTop:vp==="mobile"?"none":`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
