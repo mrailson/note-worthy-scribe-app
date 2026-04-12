@@ -479,6 +479,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
   const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
+  const [staffSortCol, setStaffSortCol] = useState<string>('practice');
+  const [staffSortDir, setStaffSortDir] = useState<'asc' | 'desc'>('asc');
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
