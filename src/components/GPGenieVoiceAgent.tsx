@@ -73,7 +73,7 @@ interface ConversationMessage {
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
   const { profile } = useUserProfile();
   const { saveSession } = useGenieHistory();
-  const { contextData, contextPrompt, dynamicVariables: voiceDynVars } = useVoiceAgentContext();
+  const { dynamicVariables: voiceDynVars } = useVoiceAgentContext();
   const deviceInfo = useDeviceInfo();
   const conversationStartTime = useRef<Date | null>(null);
   const profileEmailRef = useRef<string | null>(null);
@@ -483,7 +483,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           : activeTab === 'pm-genie'
           ? 'agent_01jzsg04q1fwy9bfydkhszan7s'  // PM Genie
           : 'agent_01jwrz44tyefdvhtvt7c622rj7',  // Oak Lane Patient Line
-        signedUrl
+        signedUrl,
+        dynamicVariables: voiceDynVars
       });
       
       console.log(`[${activeTab}] Conversation started successfully:`, conversationId);
