@@ -7,13 +7,39 @@ const corsHeaders = {
 };
 
 const SEARCH_TRIGGERS = [
-  'latest', 'current', 'recent', 'update', '2025', '2026',
-  'des ', 'pcn des', 'arrs', 'network contract', 'les ',
-  'guidance', 'has changed', 'new policy', 'announcement',
-  'nice', 'nhse', 'nhs england', 'formulary', 'tariff',
-  'reimbursement rate', 'qof', 'iif', 'caip', 'gpad',
-  'enhanced access', 'pharmacy first', 'icb', 'spec',
-  'this year', 'this month', 'april 2025', 'april 2026'
+  // Time signals
+  'latest', 'current', 'recent', 'update', 'today',
+  'this week', 'this month', 'news', 'announced',
+  'just published', 'new guidance', 'has changed',
+  'what is the', 'what are the',
+  // Year signals
+  '2025', '2026', '2027', 'april 2025', 'april 2026',
+  // NHS contracts & payments
+  'des ', 'pcn des', 'arrs', 'network contract',
+  'les ', 'local enhanced', 'qof', 'iif',
+  'caip', 'gpad', 'enhanced access', 'pharmacy first',
+  'reimbursement rate', 'tariff', 'payment rate',
+  // Policy & guidance
+  'guidance', 'policy', 'plan', 'strategy', 'proposal',
+  'consultation', 'specification', 'framework',
+  'white paper', 'green paper', 'mandate',
+  // NHS organisations & people
+  'nhs england', 'nhse', 'nice', 'dhsc', 'icb',
+  'wes streeting', 'streeting', 'secretary of state',
+  'nhsc', 'primary care', 'gpc', 'bma',
+  // NHS programmes
+  '10 year plan', 'ten year plan', 'long term plan',
+  'neighbourhood health', 'neighbourhood care',
+  'new models', 'elective reform', 'access recovery',
+  'workforce plan', 'nhs reform',
+  // Formulary & prescribing
+  'formulary', 'prescribing', 'drug', 'medicine',
+  'nice ta', 'technology appraisal', 'semaglutide',
+  'tirzepatide', 'glp-1', 'ozempic', 'wegovy',
+  'adhd medication', 'controlled drug',
+  // Local
+  'northamptonshire', 'nres', 'enn', 'pml',
+  'blue pcn', 'northants',
 ];
 
 const NHS_DOMAINS = [
@@ -24,9 +50,16 @@ const NHS_DOMAINS = [
   'rcgp.org.uk',
   'nhsbsa.nhs.uk',
   'icnorthamptonshire.org.uk',
-  'icnorthamptonshire.org.uk/primarycareportal',
+  'northamptonformulary.nhs.uk',
   'cqrs.nhs.uk',
-  'digital.nhs.uk'
+  'digital.nhs.uk',
+  'health.org.uk',
+  'kingsfund.org.uk',
+  'nhsconfed.org',
+  'pulsetoday.co.uk',
+  'hsj.co.uk',
+  'nationalhealthexecutive.com',
+  'parliament.uk',
 ];
 
 const NHS_DIRECT_URLS: Record<string, string[]> = {
@@ -49,8 +82,41 @@ const NHS_DIRECT_URLS: Record<string, string[]> = {
 };
 
 function needsSearch(message: string): boolean {
-  const lower = message.toLowerCase();
-  return SEARCH_TRIGGERS.some(t => lower.includes(t));
+  const m = message.toLowerCase();
+
+  // Never search for these — pure generation tasks
+  const skipPatterns = [
+    'write a letter', 'draft a letter',
+    'create a word doc', 'make a spreadsheet',
+    'write a policy', 'create an excel',
+    'make a powerpoint', 'create a presentation',
+    'generate an image', 'create a photo',
+    'write an email', 'draft an email',
+    'write a template', 'create a template',
+    'summarise this document', 'summarise the attached',
+  ];
+
+  if (skipPatterns.some(p => m.includes(p)))
+    return false;
+
+  // Search for anything that looks like a question
+  // or information request about NHS/health topics
+  const alwaysSearch = [
+    'what is', 'what are', 'what does', 'what was',
+    'how do', 'how does', 'how can', 'how much',
+    'when is', 'when was', 'when did',
+    'who is', 'who are', 'who was',
+    'why is', 'why did', 'why has',
+    'tell me', 'explain', 'describe',
+    'latest', 'current', 'recent', 'news',
+    'update', 'guidance', 'policy',
+  ];
+
+  if (alwaysSearch.some(p => m.includes(p)))
+    return true;
+
+  // Check original trigger list as fallback
+  return SEARCH_TRIGGERS.some(t => m.includes(t));
 }
 
 function buildQuery(message: string): string {
@@ -74,6 +140,21 @@ function buildQuery(message: string): string {
     return 'Northamptonshire ICB primary care formulary prescribing guidance 2025 2026 site:icnorthamptonshire.org.uk';
   if (m.includes('les') || m.includes('local enhanced'))
     return 'NHS local enhanced services LES Northamptonshire primary care 2025 2026';
+
+  // News / people / policy
+  if (m.includes('wes streeting') || m.includes('streeting') || m.includes('secretary of state')) {
+    return `Wes Streeting NHS announcement policy primary care 2025 2026 latest news`;
+  }
+  if (m.includes('10 year plan') || m.includes('ten year plan') || m.includes('long term plan') || m.includes('nhs plan')) {
+    return `NHS 10 year plan primary care implications neighbourhood health 2025 2026 GP PCN`;
+  }
+  if (m.includes('neighbourhood health') || m.includes('neighbourhood care')) {
+    return `NHS neighbourhood health service primary care 2025 2026 GP PCN integration`;
+  }
+  if (m.includes('news') || m.includes('latest') || m.includes('announced')) {
+    return `NHS primary care ${message} site:england.nhs.uk OR site:gov.uk OR site:bma.org.uk 2025 2026`;
+  }
+
   return `NHS primary care ${message} 2025 2026`;
 }
 
