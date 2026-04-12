@@ -84,7 +84,7 @@ const NRESVoiceAgentInner = () => {
       if (!signedUrl) return;
       messagesRef.current = [];
       sessionStartRef.current = new Date();
-      await conversation.startSession({
+      await (conversation as any).startSession({
         agentId: AGENT_ID,
         signedUrl,
       });
