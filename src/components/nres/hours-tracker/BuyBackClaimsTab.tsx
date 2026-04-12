@@ -904,8 +904,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       </Collapsible>
       </div>
 
-      {/* Management Time Section */}
-      {effectiveIsAdmin && !isENN && (
+      {/* Management Time Section — hidden for mgmt_lead, pml_director, pml_finance */}
+      {effectiveIsAdmin && !isENN && !isManagementLead && !isPMLDirector && !isPMLFinance && effectiveShowStaffMgmt && (
         <>
           <Separator className="my-6" />
           <ManagementTimeTab isAdmin={effectiveIsAdmin} />
