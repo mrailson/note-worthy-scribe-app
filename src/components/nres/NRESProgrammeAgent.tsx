@@ -57,13 +57,13 @@ const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
 
   const generateSignedUrl = async (): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
-        body: { agentId: NRES_AGENT_ID }
+      const { data, error } = await supabase.functions.invoke("elevenlabs-agent-url", {
+        body: { agentId: NRES_AGENT_ID },
       });
       if (error) throw error;
       return data.signed_url;
     } catch (err) {
-      console.error('Signed URL failed:', err);
+      console.error("Signed URL failed:", err);
       return null;
     }
   };
@@ -73,7 +73,7 @@ const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
-        console.error('Could not get signed URL');
+        console.error("Could not get signed URL");
         return;
       }
       await (conversation as any).startSession({
@@ -81,7 +81,7 @@ const NRESInner = ({ neighbourhoodName }: { neighbourhoodName: string }) => {
         signedUrl,
       });
     } catch (error) {
-      console.error("Failed to start NRES assistant:", error);
+      console.error("Failed to start:", error);
     }
   };
 

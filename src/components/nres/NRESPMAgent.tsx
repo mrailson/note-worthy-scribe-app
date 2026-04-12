@@ -51,13 +51,13 @@ const PMInner = () => {
 
   const generateSignedUrl = async (): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
-        body: { agentId: PM_AGENT_ID }
+      const { data, error } = await supabase.functions.invoke("elevenlabs-agent-url", {
+        body: { agentId: PM_AGENT_ID },
       });
       if (error) throw error;
       return data.signed_url;
     } catch (err) {
-      console.error('Signed URL failed:', err);
+      console.error("Signed URL failed:", err);
       return null;
     }
   };
@@ -67,7 +67,7 @@ const PMInner = () => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
-        console.error('Could not get signed URL');
+        console.error("Could not get signed URL");
         return;
       }
       await (conversation as any).startSession({
@@ -75,7 +75,7 @@ const PMInner = () => {
         signedUrl,
       });
     } catch (error) {
-      console.error("Failed to start PM assistant:", error);
+      console.error("Failed to start:", error);
     }
   };
 

@@ -66,13 +66,13 @@ const NRESVoiceAgentInner = () => {
 
   const generateSignedUrl = async (): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
-        body: { agentId: AGENT_ID }
+      const { data, error } = await supabase.functions.invoke("elevenlabs-agent-url", {
+        body: { agentId: AGENT_ID },
       });
       if (error) throw error;
       return data.signed_url;
     } catch (err) {
-      console.error('Signed URL failed:', err);
+      console.error("Signed URL failed:", err);
       return null;
     }
   };
@@ -81,7 +81,10 @@ const NRESVoiceAgentInner = () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       const signedUrl = await generateSignedUrl();
-      if (!signedUrl) return;
+      if (!signedUrl) {
+        console.error("Could not get signed URL");
+        return;
+      }
       messagesRef.current = [];
       sessionStartRef.current = new Date();
       await (conversation as any).startSession({
@@ -89,7 +92,7 @@ const NRESVoiceAgentInner = () => {
         signedUrl,
       });
     } catch (error) {
-      console.error('Failed to start NRES voice assistant:', error);
+      console.error("Failed to start:", error);
     }
   };
 

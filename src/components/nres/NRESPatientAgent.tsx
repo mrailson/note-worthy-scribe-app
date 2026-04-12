@@ -99,13 +99,13 @@ const PatientInner = () => {
 
   const generateSignedUrl = async (): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
-        body: { agentId: PATIENT_AGENT_ID }
+      const { data, error } = await supabase.functions.invoke("elevenlabs-agent-url", {
+        body: { agentId: PATIENT_AGENT_ID },
       });
       if (error) throw error;
       return data.signed_url;
     } catch (err) {
-      console.error('Signed URL failed:', err);
+      console.error("Signed URL failed:", err);
       return null;
     }
   };
@@ -115,7 +115,7 @@ const PatientInner = () => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
-        console.error('Could not get signed URL');
+        console.error("Could not get signed URL");
         return;
       }
       messagesRef.current = [];
@@ -125,7 +125,7 @@ const PatientInner = () => {
         signedUrl,
       });
     } catch (error) {
-      console.error("Failed to start patient assistant:", error);
+      console.error("Failed to start:", error);
     }
   };
 
