@@ -614,6 +614,50 @@ const ROLE_SUGGESTIONS = {
     "Draft a patient letter about changes to repeat prescribing",
     "What QOF disease registers do I need to maintain?"
   ],
+  "Salaried GP": [
+    "What are my contractual rights regarding study leave?",
+    "How do I raise a concern about patient safety at my practice?",
+    "What are the BMA model terms for salaried GPs?",
+    "Summarise the latest NICE guidance on hypertension management",
+    "Write a referral letter to dermatology for a suspected melanoma",
+    "What vaccinations are in the NHS childhood immunisation schedule?",
+    "How do I complete an eRS referral for a 2-week-wait pathway?",
+    "What are the red flag symptoms for headache I must not miss?",
+    "Explain the NICE CKD staging and monitoring requirements",
+    "What is the latest guidance on HRT prescribing in primary care?",
+    "How should I manage a new diagnosis of Type 2 diabetes?",
+    "What are the DVLA notification rules for seizures?",
+    "Write a med3 fit note for a patient with moderate depression",
+    "What are my indemnity requirements as a salaried GP?",
+    "Summarise the safeguarding referral process for children",
+    "What blood tests should I order for unexplained weight loss?",
+    "How do I manage an acute exacerbation of asthma in primary care?",
+    "What are the criteria for a social care referral?",
+    "Draft a clinical letter to a patient about their blood results",
+    "What CPD requirements do I need for appraisal and revalidation?"
+  ],
+  "Admin / Reception": [
+    "How do I process a subject access request (SAR) under GDPR?",
+    "What is the correct procedure for deducting a deceased patient?",
+    "Draft a polite template for patients who miss appointments",
+    "How do I register a new patient at the practice?",
+    "What are the rules for releasing medical records to solicitors?",
+    "How do I handle a request for a private sick note?",
+    "What is the process for ordering vaccines through ImmForm?",
+    "Draft a template letter for failed appointment reminders",
+    "How do I set up a new user account on EMIS/SystmOne?",
+    "What are the correct Read codes for a new patient health check?",
+    "How do I process a temporary patient registration?",
+    "What are the opening hours requirements under the GMS contract?",
+    "Draft a patient information leaflet about our online services",
+    "How do I handle a complaint received at reception?",
+    "What is the process for scanning and workflow of clinical post?",
+    "How do I add a carer flag to a patient record?",
+    "What forms are needed for a cremation request?",
+    "Draft an out-of-office message for the practice phone system",
+    "How do I request patient transport for a vulnerable patient?",
+    "What is the Enhanced Access appointment booking process?"
+  ],
   "PCN Manager": [
     "Summarise the PCN DES requirements for 2025/26 in a Word document",
     "Create an Excel ARRS budget tracker for all 14 eligible roles",
@@ -638,111 +682,269 @@ const ROLE_SUGGESTIONS = {
   ]
 };
 
-function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
-  const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
-  const getRoleFromProfile = (userRole) => {
-    const r = (userRole || '').toLowerCase();
-    if (r.includes('pcn manager') || r.includes('pcn')) return 'PCN Manager';
-    if (r.includes('practice manager') || r.includes('manager')) return 'Practice Manager';
-    if (r.includes('gp partner') || r.includes('partner')) return 'GP Partner';
-    if (r.includes('salaried') || r.includes('salaried gp')) return 'GP Partner';
-    if (r.includes('admin') || r.includes('reception') || r.includes('practice user')) return 'Practice Manager';
-    if (r.includes('system admin')) return 'Practice Manager';
-    return 'Practice Manager';
+function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
+  const h=new Date().getHours();
+  const g=h<12?"morning":h<17?"afternoon":"evening";
+  const isMobile=vp==="mobile";
+  const getRoleKey=(r)=>{
+    const s=(r||"").toLowerCase();
+    if(s.includes("pcn manager")||s.includes("pcn"))return"PCN Manager";
+    if(s.includes("practice manager")||s.includes("manager"))return"Practice Manager";
+    if(s.includes("gp partner")||s.includes("partner"))return"GP Partner";
+    if(s.includes("salaried")||s.includes("salaried gp"))return"Salaried GP";
+    if(s.includes("admin")||s.includes("reception")||s.includes("practice user"))return"Admin / Reception";
+    return"Practice Manager";
   };
-  const [selectedRole, setSelectedRole] = useState(() => getRoleFromProfile(user.role));
-  const scrollRef = useRef(null);
-  const currentSuggestions = ROLE_SUGGESTIONS[selectedRole] || ROLE_SUGGESTIONS["Practice Manager"];
-
-  return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center",overflow:"visible"}}>
-    <img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:58,height:58,borderRadius:"50%",marginBottom:13,objectFit:"cover",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}/>
-    <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
-    <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
-    <p style={{color:NHS.midGrey,marginBottom:18,maxWidth:390,lineHeight:1.6,fontSize:"0.83rem"}}>
-      <button onClick={onHelp} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>How to get best results →</button>
-      {" · "}
-      <button onClick={onProfile} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>Set up my profile →</button>
-    </p>
-    <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><button key={k} onClick={()=>onPopulateInput("Create a "+v.label)} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 10px",background:v.colour+"11",border:`1.5px solid ${v.colour}33`,borderRadius:20,fontSize:"0.72rem",color:v.colour,fontWeight:600,cursor:"pointer",transition:"background .15s"}} onMouseEnter={e=>e.currentTarget.style.background=v.colour+"23"} onMouseLeave={e=>e.currentTarget.style.background=v.colour+"11"}>{v.icon} {v.label}</button>)}</div>
-
-    {/* Role selector pills */}
-    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12,justifyContent:"center",maxWidth:660}}>
-      {Object.keys(ROLE_SUGGESTIONS).map(role=>(
-        <button key={role} onClick={()=>setSelectedRole(role)} style={{
-          padding:"5px 14px",borderRadius:20,fontSize:"0.74rem",fontWeight:600,cursor:"pointer",
-          border:selectedRole===role?"none":`1.5px solid ${NHS.blue}`,
-          background:selectedRole===role?NHS.blue:"#fff",
-          color:selectedRole===role?"#fff":NHS.blue,
-          transition:"all .15s",minHeight:32
-        }}>{role}</button>
-      ))}
-    </div>
-
-    {/* Horizontally scrollable suggestion cards */}
-    <style>{`
-      .nw-suggestions-scroll {
-        display: flex !important;
-        flex-direction: row !important;
-        overflow-x: auto !important;
-        overflow-y: visible !important;
-        flex-wrap: nowrap !important;
-        gap: 10px;
-        padding: 4px 2px 12px 2px;
-        width: 100%;
-        max-width: 100%;
-        -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
-      }
-      .nw-suggestions-scroll::-webkit-scrollbar {
-        height: 4px;
-      }
-      .nw-suggestions-scroll::-webkit-scrollbar-track {
-        background: #F0F4F8;
-        border-radius: 4px;
-      }
-      .nw-suggestions-scroll::-webkit-scrollbar-thumb {
-        background: #005EB8;
-        border-radius: 4px;
-      }
-      .nw-suggestion-card {
-        flex: 0 0 190px !important;
-        min-width: 190px !important;
-        max-width: 190px !important;
-        height: 85px;
-        background: #fff;
-        border: 1.5px solid #E8EDEE;
-        border-radius: 10px;
-        padding: 10px 12px;
-        cursor: pointer;
-        font-size: 0.78rem;
-        color: #231F20;
-        line-height: 1.45;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        text-overflow: ellipsis;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-        transition: all 0.15s;
-        text-align: left;
-        word-break: break-word;
-      }
-      .nw-suggestion-card:hover {
-        border-color: #0072CE;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 14px rgba(0,114,206,0.12);
-      }
-    `}</style>
-    <div style={{width:'100%',maxWidth:vp==="wide"?720:vp==="mobile"?"100%":560,overflow:'visible',position:'relative',alignSelf:'stretch'}}>
-      <div ref={scrollRef} className="nw-suggestions-scroll">
-        {currentSuggestions.map((text,i)=>(
-          <button key={`${selectedRole}-${i}`} className="nw-suggestion-card" onClick={()=>onSuggestion(text)}>
-            {text}
+  const ROLES=Object.keys(ROLE_SUGGESTIONS);
+  const [activeRole,setActiveRole]=useState(()=>getRoleKey(user.role));
+  const scrollRef=useRef(null);
+  const [canScrollLeft,setCanScrollLeft]=useState(false);
+  const [canScrollRight,setCanScrollRight]=useState(true);
+  const checkScroll=()=>{
+    const el=scrollRef.current;
+    if(!el)return;
+    setCanScrollLeft(el.scrollLeft>8);
+    setCanScrollRight(el.scrollLeft<el.scrollWidth-el.clientWidth-8);
+  };
+  useEffect(()=>{
+    const el=scrollRef.current;
+    if(!el)return;
+    el.addEventListener("scroll",checkScroll,{passive:true});
+    checkScroll();
+    return()=>el.removeEventListener("scroll",checkScroll);
+  },[activeRole]);
+  const nudge=(dir)=>{
+    const el=scrollRef.current;
+    if(!el)return;
+    el.scrollBy({left:dir*220,behavior:"smooth"});
+  };
+  const suggestions=ROLE_SUGGESTIONS[activeRole]||[];
+  const ROLE_ICONS={
+    "Practice Manager":"🗂️",
+    "GP Partner":"🩺",
+    "Salaried GP":"💊",
+    "Admin / Reception":"📋",
+    "PCN Manager":"🏥",
+  };
+  return(
+    <div style={{
+      flex:1,display:"flex",flexDirection:"column",
+      alignItems:"center",justifyContent:"center",
+      padding:isMobile?"20px 12px":"28px 20px",
+      textAlign:"center",maxWidth:720,
+      margin:"0 auto",width:"100%"
+    }}>
+      {/* Avatar + greeting */}
+      <img src="/notewell-chat-icon.png" alt="Notewell AI"
+        style={{width:56,height:56,borderRadius:"50%",
+          marginBottom:10,objectFit:"cover",
+          boxShadow:"0 8px 28px rgba(0,114,206,.25)"}}/>
+      <h2 style={{fontSize:"1.18rem",fontWeight:700,
+        color:NHS.darkBlue,margin:"0 0 3px"}}>
+        Good {g}, {user.name.split(" ")[0]}
+      </h2>
+      <p style={{color:NHS.midGrey,margin:"0 0 3px",
+        fontSize:"0.78rem"}}>
+        {user.role} · {user.practice.name}
+      </p>
+      <p style={{margin:"0 0 16px"}}>
+        <button onClick={onHelp} style={{background:"none",
+          border:"none",cursor:"pointer",color:NHS.brightBlue,
+          fontWeight:600,fontSize:"0.78rem",padding:0,
+          textDecoration:"underline"}}>
+          How to get best results →
+        </button>
+        {" · "}
+        <button onClick={onProfile} style={{background:"none",
+          border:"none",cursor:"pointer",color:NHS.brightBlue,
+          fontWeight:600,fontSize:"0.78rem",padding:0,
+          textDecoration:"underline"}}>
+          Set up my profile →
+        </button>
+      </p>
+      {/* Document type quick buttons */}
+      <div style={{display:"flex",gap:6,marginBottom:20,
+        flexWrap:"wrap",justifyContent:"center"}}>
+        {Object.entries(ARTIFACT_TYPES).map(([k,v])=>(
+          <button key={k}
+            onClick={()=>onPopulateInput("Create a "+v.label)}
+            style={{display:"flex",alignItems:"center",gap:5,
+              padding:"5px 12px",background:v.colour+"11",
+              border:`1.5px solid ${v.colour}33`,
+              borderRadius:20,fontSize:"0.72rem",
+              color:v.colour,fontWeight:600,cursor:"pointer",
+              transition:"all .15s"}}
+            onMouseEnter={e=>{
+              e.currentTarget.style.background=v.colour+"25";
+              e.currentTarget.style.transform="translateY(-1px)";
+            }}
+            onMouseLeave={e=>{
+              e.currentTarget.style.background=v.colour+"11";
+              e.currentTarget.style.transform="translateY(0)";
+            }}>
+            {v.icon} {v.label}
           </button>
         ))}
       </div>
+      {/* Role pills */}
+      <div style={{display:"flex",gap:6,marginBottom:12,
+        flexWrap:"wrap",justifyContent:"center",
+        width:"100%"}}>
+        {ROLES.map(r=>(
+          <button key={r} onClick={()=>setActiveRole(r)}
+            style={{
+              display:"flex",alignItems:"center",gap:5,
+              padding:"6px 14px",
+              background:activeRole===r?NHS.blue:"#fff",
+              color:activeRole===r?"#fff":NHS.darkBlue,
+              border:`1.5px solid ${activeRole===r?NHS.blue:NHS.paleGrey}`,
+              borderRadius:24,fontSize:"0.74rem",
+              fontWeight:600,cursor:"pointer",
+              transition:"all .17s",
+              boxShadow:activeRole===r?"0 3px 10px rgba(0,94,184,.28)":"none",
+            }}
+            onMouseEnter={e=>{
+              if(activeRole!==r){
+                e.currentTarget.style.borderColor=NHS.blue;
+                e.currentTarget.style.color=NHS.blue;
+              }
+            }}
+            onMouseLeave={e=>{
+              if(activeRole!==r){
+                e.currentTarget.style.borderColor=NHS.paleGrey;
+                e.currentTarget.style.color=NHS.darkBlue;
+              }
+            }}>
+            <span style={{fontSize:"0.85rem"}}>
+              {ROLE_ICONS[r]||"💼"}
+            </span>
+            {r}
+          </button>
+        ))}
+      </div>
+      {/* Scrollable suggestions row with nav arrows */}
+      <div style={{position:"relative",width:"100%",maxWidth:680}}>
+        {/* Left fade + arrow */}
+        {canScrollLeft&&(
+          <>
+            <div style={{
+              position:"absolute",left:0,top:0,
+              width:48,height:"100%",zIndex:2,
+              background:"linear-gradient(to right,#f8fafc,transparent)",
+              pointerEvents:"none",borderRadius:"10px 0 0 10px"
+            }}/>
+            <button onClick={()=>nudge(-1)} style={{
+              position:"absolute",left:0,top:"50%",
+              transform:"translateY(-50%)",zIndex:3,
+              width:28,height:28,borderRadius:"50%",
+              background:NHS.blue,color:"#fff",border:"none",
+              cursor:"pointer",display:"flex",
+              alignItems:"center",justifyContent:"center",
+              fontSize:"0.8rem",
+              boxShadow:"0 2px 8px rgba(0,94,184,.35)",
+            }}>‹</button>
+          </>
+        )}
+        {/* Right fade + arrow */}
+        {canScrollRight&&(
+          <>
+            <div style={{
+              position:"absolute",right:0,top:0,
+              width:48,height:"100%",zIndex:2,
+              background:"linear-gradient(to left,#f8fafc,transparent)",
+              pointerEvents:"none",
+              borderRadius:"0 10px 10px 0"
+            }}/>
+            <button onClick={()=>nudge(1)} style={{
+              position:"absolute",right:0,top:"50%",
+              transform:"translateY(-50%)",zIndex:3,
+              width:28,height:28,borderRadius:"50%",
+              background:NHS.blue,color:"#fff",border:"none",
+              cursor:"pointer",display:"flex",
+              alignItems:"center",justifyContent:"center",
+              fontSize:"0.8rem",
+              boxShadow:"0 2px 8px rgba(0,94,184,.35)",
+            }}>›</button>
+          </>
+        )}
+        {/* Cards */}
+        <div ref={scrollRef} className="nw-sc" style={{
+          display:"flex",
+          flexDirection:"row",
+          overflowX:"auto",
+          overflowY:"visible",
+          flexWrap:"nowrap",
+          gap:10,
+          padding:"6px 4px 10px",
+          scrollbarWidth:"none",
+          msOverflowStyle:"none",
+          WebkitOverflowScrolling:"touch",
+          scrollBehavior:"smooth",
+        }}>
+          <style>{`
+            .nw-sc::-webkit-scrollbar{display:none}
+            .nw-sc{scrollbar-width:none}
+          `}</style>
+          {suggestions.map((s,i)=>(
+            <button key={i} onClick={()=>onSuggestion(s)}
+              style={{
+                flex:"0 0 175px",
+                minWidth:175,
+                maxWidth:175,
+                height:82,
+                background:"#fff",
+                border:`1.5px solid ${NHS.paleGrey}`,
+                borderRadius:12,
+                padding:"10px 12px",
+                cursor:"pointer",
+                textAlign:"left",
+                fontSize:"0.76rem",
+                color:NHS.darkGrey,
+                lineHeight:1.45,
+                boxShadow:"0 2px 8px rgba(0,0,0,.05)",
+                transition:"all .17s",
+                overflow:"hidden",
+                display:"-webkit-box",
+                WebkitLineClamp:4,
+                WebkitBoxOrient:"vertical",
+                textOverflow:"ellipsis",
+                wordBreak:"break-word",
+                position:"relative",
+              }}
+              onMouseEnter={e=>{
+                e.currentTarget.style.borderColor=NHS.brightBlue;
+                e.currentTarget.style.transform="translateY(-3px)";
+                e.currentTarget.style.boxShadow="0 6px 18px rgba(0,114,206,.14)";
+                e.currentTarget.style.background="#F0F6FF";
+              }}
+              onMouseLeave={e=>{
+                e.currentTarget.style.borderColor=NHS.paleGrey;
+                e.currentTarget.style.transform="translateY(0)";
+                e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.05)";
+                e.currentTarget.style.background="#fff";
+              }}>
+              <span style={{
+                position:"absolute",top:8,right:9,
+                fontSize:"0.62rem",
+                background:NHS.blue+"18",
+                color:NHS.blue,
+                borderRadius:20,padding:"1px 7px",
+                fontWeight:600,
+              }}>{i+1}</span>
+              {s}
+            </button>
+          ))}
+        </div>
+        {/* Dot counter */}
+        <div style={{
+          textAlign:"center",marginTop:4,
+          fontSize:"0.69rem",color:NHS.midGrey
+        }}>
+          {suggestions.length} suggestions · scroll or use arrows to browse
+        </div>
+      </div>
     </div>
-  </div>);
+  );
 }
 
 function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome,onOpenKB}){
@@ -1271,7 +1473,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} onPopulateInput={t=>setInput(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
+            {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onPopulateInput={t=>setInput(t)}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/favicon-option1.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
