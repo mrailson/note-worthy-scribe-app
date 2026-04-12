@@ -29,6 +29,21 @@ const NHS_DOMAINS = [
   'digital.nhs.uk'
 ];
 
+const NHS_DIRECT_URLS: Record<string, string[]> = {
+  des: [
+    'https://www.england.nhs.uk/gp/the-best-of-general-practice/primary-care-networks/',
+    'https://www.england.nhs.uk/wp-content/uploads/2025/03/network-contract-des-specification-2025-26.pdf',
+    'https://www.england.nhs.uk/publication/network-contract-directed-enhanced-service-des-specification-2026-27/',
+  ],
+  arrs: [
+    'https://www.england.nhs.uk/gp/the-best-of-general-practice/primary-care-networks/',
+    'https://www.england.nhs.uk/publication/network-contract-directed-enhanced-service-des-specification-2026-27/',
+  ],
+  qof: [
+    'https://www.england.nhs.uk/wp-content/uploads/2023/03/qof-2023-24-guidance.pdf',
+  ],
+};
+
 function needsSearch(message: string): boolean {
   const lower = message.toLowerCase();
   return SEARCH_TRIGGERS.some(t => lower.includes(t));
@@ -36,10 +51,17 @@ function needsSearch(message: string): boolean {
 
 function buildQuery(message: string): string {
   const m = message.toLowerCase();
-  if (m.includes('arrs') || m.includes('reimbursement') || m.includes('additional roles'))
-    return 'ARRS additional roles reimbursement rates percentage 2025 2026 network contract DES NHS England';
-  if (m.includes('des') || m.includes('network contract'))
-    return 'Network Contract DES requirements 2025 2026 NHS England primary care networks';
+
+  if (m.includes('arrs') || m.includes('reimbursement') || m.includes('additional roles')) {
+    const year = m.includes('26/27') || m.includes('2026') ? '2026 2027' : '2025 2026';
+    return `ARRS additional roles reimbursement rates percentage ${year} network contract DES NHS England site:england.nhs.uk`;
+  }
+
+  if (m.includes('des') || m.includes('network contract') || m.includes('pcn des')) {
+    const year = m.includes('26/27') || m.includes('2026') ? '2026 2027' : '2025 2026';
+    return `Network Contract Directed Enhanced Service DES ${year} NHS England requirements specifications site:england.nhs.uk`;
+  }
+
   if (m.includes('qof'))
     return 'QOF quality outcomes framework indicators 2025 2026 NHS England';
   if (m.includes('caip') || m.includes('access improvement'))
@@ -70,6 +92,38 @@ async function searchNHS(query: string, tavilyKey: string) {
   return res.json();
 }
 
+async function fetchDirectContent(urls: string[]): Promise<string> {
+  const results: string[] = [];
+
+  for (const url of urls.slice(0, 2)) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(5000),
+        headers: { 'User-Agent': 'NotewellAI/1.0' }
+      });
+      if (!res.ok) continue;
+
+      const text = await res.text();
+
+      const plain = text
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 1500);
+
+      if (plain.length > 100) {
+        results.push(`DIRECT SOURCE: ${url}\nContent: ${plain}`);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return results.join('\n\n---\n\n');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -89,11 +143,12 @@ serve(async (req) => {
       );
     }
 
-    // Build enhanced system prompt with live search results
     let enhancedSystem = systemPrompt;
     let searchUsed = false;
     let searchSources: { title: string; url: string }[] = [];
+    const msg = (latestMessage || '').toLowerCase();
 
+    // Tavily search
     if (tavilyKey && needsSearch(latestMessage || '')) {
       try {
         const results = await searchNHS(latestMessage, tavilyKey);
@@ -128,6 +183,28 @@ serve(async (req) => {
       }
     }
 
+    // Direct NHS England page fetch for key topics
+    let directContent = '';
+    if (msg.includes('des') || msg.includes('network contract') || msg.includes('pcn des') || msg.includes('26/27') || msg.includes('2026/27')) {
+      directContent = await fetchDirectContent(NHS_DIRECT_URLS.des);
+    } else if (msg.includes('arrs') || msg.includes('reimbursement')) {
+      directContent = await fetchDirectContent(NHS_DIRECT_URLS.arrs);
+    } else if (msg.includes('qof')) {
+      directContent = await fetchDirectContent(NHS_DIRECT_URLS.qof);
+    }
+
+    if (directContent) {
+      enhancedSystem += `\n\nDIRECT NHS ENGLAND PAGE CONTENT (fetched live — highest authority):\n\n${directContent}`;
+    }
+
+    // Currency signal
+    const todayStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    enhancedSystem += `\nIMPORTANT: Today is ${todayStr}. ` +
+      `If you cannot confirm the 2026/27 DES has been published yet, say so explicitly and ` +
+      `provide the 2025/26 figures with a note that 2026/27 specifications should be verified at: ` +
+      `https://www.england.nhs.uk/gp/the-best-of-general-practice/primary-care-networks/\n` +
+      `Never present 2025/26 figures as 2026/27 without source confirmation.\n`;
+
     // Stream response from Anthropic
     const response = await fetch(
       'https://api.anthropic.com/v1/messages',
@@ -157,22 +234,18 @@ serve(async (req) => {
       );
     }
 
-    // Create a TransformStream to prepend search metadata then pass through Anthropic's SSE
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
 
-    // Pipe: first send search metadata event, then Anthropic stream
     (async () => {
       try {
-        // If search was performed, send sources as a custom SSE event
         if (searchUsed && searchSources.length > 0) {
           await writer.write(encoder.encode(
             `event: web_search_sources\ndata: ${JSON.stringify(searchSources)}\n\n`
           ));
         }
 
-        // Pipe the Anthropic response body through
         const reader = response.body!.getReader();
         while (true) {
           const { done, value } = await reader.read();
