@@ -1298,6 +1298,12 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
           {statusBadge(claim.status)}
         </div>
         <div className="flex items-center gap-1">
+          {testActive && canEdit && (
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-amber-400 text-amber-700 hover:bg-amber-50" onClick={handleTestAutoFill} disabled={autoFilling}>
+              {autoFilling ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+              ⚡ Auto-Fill
+            </Button>
+          )}
           {canEdit && (
             <Button size="sm" variant="ghost" onClick={() => onDelete(claim.id)}>
               <Trash2 className="w-3 h-3 text-destructive" />
