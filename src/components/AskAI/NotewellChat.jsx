@@ -11,7 +11,6 @@ import { useConversation } from "@elevenlabs/react";
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
 import VoicePanel from "@/components/AskAI/VoicePanel";
-import { VOICE_SERVICES } from "@/components/voice/NotewellVoiceHub";
 
 const NHS = {
   blue:"#005EB8", darkBlue:"#003087", brightBlue:"#0072CE",
@@ -1242,41 +1241,8 @@ export default function NotewellChat({ user, onNavigateHome }) {
     if(nresAudioCtxRef.current)try{nresAudioCtxRef.current.close();}catch{}
   },[]);
 
-  // ── Voice Hub Panel state (desktop only) ─────────────────────────────────────
+  // ── Voice Panel state (desktop only) ─────────────────────────────────────
   const [voicePanelOpen,setVoicePanelOpen]=useState(false);
-  const [voiceSessionStatus,setVoiceSessionStatus]=useState({});
-  const voiceAudioCtxRef=useRef(null);
-
-  const voiceGetStatus=(id)=>voiceSessionStatus[id]||"idle";
-  const voiceSetStatus=(id,s)=>setVoiceSessionStatus(p=>({...p,[id]:s}));
-
-  // Find any active voice service for banner
-  const activeVoiceService=VOICE_SERVICES.find(s=>voiceGetStatus(s.id)==="active"||voiceGetStatus(s.id)==="connecting");
-
-  const voiceStartSession=useCallback(async(service)=>{
-    voiceSetStatus(service.id,"connecting");
-    try{
-      const AudioCtx=window.AudioContext||window.webkitAudioContext;
-      if(AudioCtx){
-        if(!voiceAudioCtxRef.current)voiceAudioCtxRef.current=new AudioCtx();
-        if(voiceAudioCtxRef.current.state==="suspended")await voiceAudioCtxRef.current.resume();
-      }
-      await navigator.mediaDevices.getUserMedia({audio:true});
-      await new Promise(r=>setTimeout(r,400));
-      // TODO: wire real ElevenLabs SDK session per service.agentId
-      // Simulation for now:
-      setTimeout(()=>voiceSetStatus(service.id,"active"),1200);
-    }catch(err){
-      console.error("Voice panel start error:",err);
-      voiceSetStatus(service.id,"error");
-      setTimeout(()=>voiceSetStatus(service.id,"idle"),3000);
-    }
-  },[]);
-
-  const voiceEndSession=useCallback((id)=>{
-    voiceSetStatus(id,"ended");
-    setTimeout(()=>voiceSetStatus(id,"idle"),1500);
-  },[]);
   const startListening=useCallback(()=>{
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){setSpeechError("Speech recognition requires Chrome or Safari 17+");return;}
@@ -1503,7 +1469,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
             </button>
 
             {/* Voice Hub button — desktop only */}
-            {vp!=="mobile"&&<button id="voice-hub-toggle" onClick={()=>setVoicePanelOpen(o=>!o)} style={{background:voicePanelOpen?"#005EB8":"transparent",border:voicePanelOpen?"1.5px solid #005EB8":"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4,boxShadow:voicePanelOpen?"0 0 0 3px rgba(0,94,184,0.12)":"none"}} onMouseEnter={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.5)";e.currentTarget.style.boxShadow="0 0 0 3px rgba(0,94,184,0.12)";}}} onMouseLeave={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.25)";e.currentTarget.style.boxShadow="none";}}} title="Voice Services">🎙{vp!=="compact"&&" Voice"}{activeVoiceService&&<span style={{width:6,height:6,borderRadius:"50%",background:"#00A499",display:"inline-block",flexShrink:0,animation:"nwBlink 1s ease-in-out infinite"}}/>}</button>}
+            {vp!=="mobile"&&<button id="voice-hub-toggle" onClick={()=>setVoicePanelOpen(o=>!o)} style={{background:voicePanelOpen?"#005EB8":"transparent",border:voicePanelOpen?"1.5px solid #005EB8":"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4,boxShadow:voicePanelOpen?"0 0 0 3px rgba(0,94,184,0.12)":"none"}} onMouseEnter={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.5)";e.currentTarget.style.boxShadow="0 0 0 3px rgba(0,94,184,0.12)";}}} onMouseLeave={e=>{if(!voicePanelOpen){e.currentTarget.style.borderColor="rgba(255,255,255,.25)";e.currentTarget.style.boxShadow="none";}}} title="Voice Assistant">🎙{vp!=="compact"&&" Voice"}</button>}
 
             {/* Guide button */}
             <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>? {vp!=="compact"&&"Guide"}</button>
@@ -1511,17 +1477,8 @@ export default function NotewellChat({ user, onNavigateHome }) {
           </div>
         </div>
 
-        {/* Active voice session banner — desktop only */}
-        {vp!=="mobile"&&activeVoiceService&&(
-          <div style={{background:activeVoiceService.accentColor,color:"#fff",padding:"8px 16px",display:"flex",alignItems:"center",gap:10,fontSize:"0.81rem",flexShrink:0}}>
-            <span>🎙</span>
-            <span style={{fontWeight:700}}>{activeVoiceService.name}</span>
-            <span style={{opacity:.75}}>— {voiceGetStatus(activeVoiceService.id)==="connecting"?"Connecting…":"Live session"}</span>
-            <div style={{flex:1}}/>
-            <button onClick={()=>{setVoicePanelOpen(true);}} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"3px 10px",cursor:"pointer",color:"#fff",fontSize:"0.74rem",fontWeight:600}}>Open panel ↗</button>
-            <button onClick={()=>voiceEndSession(activeVoiceService.id)} style={{background:"rgba(255,255,255,.2)",border:"none",borderRadius:6,padding:"3px 10px",cursor:"pointer",color:"#fff",fontSize:"0.74rem",fontWeight:600}}>End ✕</button>
-          </div>
-        )}
+
+
 
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
@@ -1614,7 +1571,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       )}
 
       {/* Voice Panel — desktop only */}
-      {vp!=="mobile"&&<VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)} sessionStatus={voiceSessionStatus} onStartSession={voiceStartSession} onEndSession={voiceEndSession}/>}
+      {vp!=="mobile"&&<VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)}/>}
 
       {/* NRES Voice fullscreen overlay — SDK-powered */}
       {showVoiceMode&&<div style={{position:"fixed",inset:0,zIndex:9999,background:"linear-gradient(180deg, #001845 0%, #003087 50%, #005EB8 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"nwFadeIn .25s ease"}}>

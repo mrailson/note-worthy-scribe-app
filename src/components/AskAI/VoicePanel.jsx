@@ -1,19 +1,36 @@
 /**
- * VoicePanel — Compact slide-in panel for Ask AI desktop layout.
- * Imports shared VOICE_SERVICES and StatusDot from NotewellVoiceHub.
- * Props: open, onClose, sessionStatus, onStartSession, onEndSession
+ * VoicePanel — Single-agent ElevenLabs widget panel for Ask AI.
+ * Props: open, onClose
  */
-import { VOICE_SERVICES, StatusDot } from "@/components/voice/NotewellVoiceHub";
+import { useEffect, useRef } from "react";
 
-const STATUS_LABELS = {
-  idle: "Ready",
-  connecting: "Connecting…",
-  active: "Live",
-  error: "Error — retry",
-  ended: "Session ended",
-};
+const AGENT_ID = "agent_4901kp1a5we7eacrq7c3g4kme1m8";
 
-export default function VoicePanel({ open, onClose, sessionStatus, onStartSession, onEndSession }) {
+function useElevenLabsScript() {
+  useEffect(() => {
+    if (document.querySelector('script[src*="convai-widget-embed"]')) return;
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
+}
+
+export default function VoicePanel({ open, onClose }) {
+  useElevenLabsScript();
+  const widgetRef = useRef(null);
+
+  useEffect(() => {
+    if (!open || !widgetRef.current) return;
+    widgetRef.current.innerHTML = "";
+    const el = document.createElement("elevenlabs-convai");
+    el.setAttribute("agent-id", AGENT_ID);
+    widgetRef.current.appendChild(el);
+    return () => {
+      if (widgetRef.current) widgetRef.current.innerHTML = "";
+    };
+  }, [open]);
+
   return (
     <div style={{
       width: 340,
@@ -41,7 +58,7 @@ export default function VoicePanel({ open, onClose, sessionStatus, onStartSessio
         flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: "0.92rem", color: "#231F20" }}>
-          🎙 Voice Services
+          🎙 AI Voice Assistant
         </div>
         <button
           onClick={onClose}
@@ -58,77 +75,13 @@ export default function VoicePanel({ open, onClose, sessionStatus, onStartSessio
         >✕</button>
       </div>
 
-      {/* Service cards */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px" }}>
-        {VOICE_SERVICES.map(service => {
-          const status = sessionStatus[service.id] || "idle";
-          return (
-            <div
-              key={service.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "12px 16px",
-                borderRadius: 12,
-                border: "1px solid #E8EDEE",
-                marginBottom: 8,
-                background: status === "active" ? `${service.accentColor}08` : "#fff",
-                transition: "background .15s",
-                cursor: "default",
-              }}
-              onMouseEnter={e => { if (status !== "active") e.currentTarget.style.background = "#F8FAFC"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = status === "active" ? `${service.accentColor}08` : "#fff"; }}
-            >
-              {/* Icon */}
-              <span style={{ fontSize: "1.3rem", flexShrink: 0 }}>{service.icon}</span>
-
-              {/* Name + subtitle */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#231F20", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {service.name}
-                </div>
-                <div style={{ fontSize: "0.7rem", color: "#425563", display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
-                  <StatusDot status={status} color={service.accentColor} />
-                  {STATUS_LABELS[status] || "Ready"}
-                </div>
-              </div>
-
-              {/* Action button */}
-              {status === "active" ? (
-                <button
-                  onClick={() => onEndSession(service.id)}
-                  style={{
-                    background: "#DA291C", border: "none", borderRadius: 999,
-                    padding: "6px 14px", cursor: "pointer", color: "#fff",
-                    fontWeight: 700, fontSize: "0.74rem", height: 38,
-                    flexShrink: 0, transition: "all .13s",
-                  }}
-                >End</button>
-              ) : (
-                <button
-                  onClick={() => onStartSession(service)}
-                  disabled={status === "connecting"}
-                  style={{
-                    background: status === "connecting" ? "#f59e0b" : service.accentColor,
-                    border: "none", borderRadius: 999,
-                    padding: "6px 14px", cursor: status === "connecting" ? "wait" : "pointer",
-                    color: "#fff", fontWeight: 700, fontSize: "0.74rem",
-                    height: 38, flexShrink: 0, transition: "all .13s",
-                    opacity: status === "connecting" ? 0.8 : 1,
-                  }}
-                >
-                  {status === "connecting" ? (
-                    <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin .8s linear infinite" }} />
-                  ) : "Start"}
-                </button>
-              )}
-            </div>
-          );
-        })}
+      {/* Widget area */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 12px" }}>
+        <p style={{ fontSize: "0.78rem", color: "#425563", marginBottom: 12, lineHeight: 1.5 }}>
+          Speak with the AI Practice Manager assistant. Click the microphone below to start.
+        </p>
+        <div ref={widgetRef} style={{ minHeight: 80 }} />
       </div>
-
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
