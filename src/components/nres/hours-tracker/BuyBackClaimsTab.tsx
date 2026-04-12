@@ -1325,14 +1325,25 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
     setOpen(true);
     setLoading(true);
     try {
-      const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(invoicePdfPath, 600);
-      if (data?.signedUrl) setPdfUrl(data.signedUrl);
+      const { data, error } = await supabase.storage.from('nres-claim-evidence').download(invoicePdfPath);
+      if (error) throw error;
+      if (data) {
+        const blobUrl = URL.createObjectURL(data);
+        setPdfUrl(blobUrl);
+      }
     } catch (e) {
       console.error('Failed to load invoice PDF:', e);
     } finally {
       setLoading(false);
     }
   };
+
+  // Clean up blob URL on unmount or close
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    };
+  }, [pdfUrl]);
 
   return (
     <>
