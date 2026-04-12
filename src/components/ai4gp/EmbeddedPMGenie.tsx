@@ -366,7 +366,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
       }
 
       // Capture conversation ID
-      if (message.type === 'conversation_initiation_metadata' && (message as any).conversation_id) {
+      if ((message as any).type === 'conversation_initiation_metadata' && (message as any).conversation_id) {
         conversationIdRef.current = (message as any).conversation_id;
       }
     },
