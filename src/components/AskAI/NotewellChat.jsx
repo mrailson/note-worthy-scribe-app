@@ -475,7 +475,7 @@ export default function NotewellChat({ user }) {
   const [userProfile,setUserProfile]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [customInstructions,setCustomInstructions]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const bottomRef=useRef(null);const textareaRef=useRef(null);const fileInputRef=useRef(null);
-  const compact=settings.compactMessages||vp==="compact";
+  const compact=settings.compactMessages||vp==="compact"||vp==="mobile";
   const systemPrompt=buildSystemPrompt(user,settings,userProfile,customInstructions);
   const profileActive=!!(userProfile.trim()||customInstructions.trim());
 
