@@ -447,6 +447,16 @@ export default function KnowledgeBaseAdmin() {
                 </div>
               </div>
 
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Keywords / Tags (optional)</label>
+                <Input
+                  value={keywordsInput}
+                  onChange={(e) => setKeywordsInput(e.target.value)}
+                  placeholder="e.g. PML, semaglutide, ARRS, DocMed"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Comma-separated terms users might search for. Auto-populated on upload but you can add more.</p>
+              </div>
+
               <div className="flex items-center gap-3">
                 <Button onClick={handleUpload} disabled={uploading} className="gap-2">
                   {uploading ? (
@@ -472,10 +482,29 @@ export default function KnowledgeBaseAdmin() {
 
           {/* Documents Table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">
                 Documents ({documents.length})
               </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReprocessAll}
+                disabled={reprocessing}
+                className="gap-2"
+              >
+                {reprocessing ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Re-processing {reprocessProgress.done}/{reprocessProgress.total}…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Re-process All
+                  </>
+                )}
+              </Button>
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
