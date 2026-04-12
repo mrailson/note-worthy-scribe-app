@@ -834,23 +834,39 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
   );
 }
 
-async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
+const CLIENT_SEARCH_TRIGGERS = [
+  'latest', 'current', 'recent', 'update', '2025', '2026',
+  'des ', 'pcn des', 'arrs', 'network contract', 'les ',
+  'guidance', 'has changed', 'new policy', 'announcement',
+  'nice', 'nhse', 'nhs england', 'formulary', 'tariff',
+  'reimbursement rate', 'qof', 'iif', 'caip', 'gpad',
+  'enhanced access', 'pharmacy first', 'icb', 'spec',
+  'this year', 'this month', 'april 2025', 'april 2026'
+];
+function messageNeedsSearch(text) {
+  const lower = text.toLowerCase();
+  return CLIENT_SEARCH_TRIGGERS.some(t => lower.includes(t));
+}
+
+async function callClaude(messages, systemPrompt, onChunk, onKbSources, latestMessage) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const endpoint = `${supabaseUrl}/functions/v1/ai-chat`;
+  const endpoint = `${supabaseUrl}/functions/v1/notewell-ask-ai`;
+
+  const { data: { session } } = await supabase.auth.getSession();
 
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${supabaseKey}`,
+      "Authorization": `Bearer ${session?.access_token || supabaseKey}`,
       "apikey": supabaseKey,
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 4096,
-      system: systemPrompt,
-      stream: true,
+      systemPrompt,
+      latestMessage: latestMessage || "",
       messages: messages.map(m => ({
         role: m.role,
         content: m.files?.length
@@ -868,7 +884,7 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
 
   if (!resp.ok) {
     const e = await resp.json().catch(() => ({}));
-    throw new Error(e.error?.message || `API error ${resp.status}`);
+    throw new Error(e.error?.message || e.error || `API error ${resp.status}`);
   }
 
   const reader = resp.body.getReader();
@@ -894,6 +910,11 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
         if (currentEvent === "kb_sources") {
           const sources = JSON.parse(raw);
           onKbSources?.(sources);
+          currentEvent = "";
+          continue;
+        }
+        if (currentEvent === "web_search_sources") {
+          // Web search sources received — could extend UI later
           currentEvent = "";
           continue;
         }
