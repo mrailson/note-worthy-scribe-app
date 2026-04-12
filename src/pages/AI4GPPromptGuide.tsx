@@ -268,7 +268,7 @@ const hcaPromptExamples: PromptExample[] = [
 // PCN/Neighbourhood Management prompts (211-230)
 const pcnPromptExamples: PromptExample[] = [
   // DES & Specifications (211-214)
-  { id: 211, category: 'DES & Specifications', useCase: 'PCN DES service summary', prompt: 'Create an infographic summarising PCN DES requirements and service specifications for 2025/26' },
+  { id: 211, category: 'DES & Specifications', useCase: 'PCN DES service summary', prompt: 'Create an infographic summarising PCN DES requirements and service specifications for 2026/27' },
   { id: 212, category: 'DES & Specifications', useCase: 'Enhanced Access reporting', prompt: 'Create a monthly Enhanced Access activity report template showing utilisation and patient feedback' },
   { id: 213, category: 'DES & Specifications', useCase: 'IIF performance tracker', prompt: 'Create an IIF indicator dashboard showing performance across all PCN practices with RAG ratings' },
   { id: 214, category: 'DES & Specifications', useCase: 'eHUB activity summary', prompt: 'Create a quarterly eHUB/digital triage activity report showing online consultation volumes' },
