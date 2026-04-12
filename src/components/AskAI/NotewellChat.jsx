@@ -730,7 +730,7 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
         box-shadow: 0 4px 14px rgba(0,114,206,0.12);
       }
     `}</style>
-    <div style={{width:'100%',maxWidth:vp==="wide"?720:560,overflow:'visible',position:'relative'}}>
+    <div style={{width:'100%',maxWidth:vp==="wide"?720:vp==="mobile"?"100%":560,overflow:'visible',position:'relative',alignSelf:'stretch'}}>
       <div ref={scrollRef} className="nw-suggestions-scroll">
         {currentSuggestions.map((text,i)=>(
           <button key={`${selectedRole}-${i}`} className="nw-suggestion-card" onClick={()=>onSuggestion(text)}>
