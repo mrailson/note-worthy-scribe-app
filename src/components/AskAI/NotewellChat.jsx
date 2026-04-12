@@ -9,6 +9,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useConversation } from "@elevenlabs/react";
 import * as XLSX from 'xlsx-js-style';
+import pptxgen from 'pptxgenjs';
 import VoicePanel from "@/components/AskAI/VoicePanel";
 import { VOICE_SERVICES } from "@/components/voice/NotewellVoiceHub";
 
