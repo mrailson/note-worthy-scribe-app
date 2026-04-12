@@ -902,44 +902,46 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             </button>
           </CollapsibleTrigger>
           {claimsHistoryOpen && effectiveIsAdmin && (!testActive || testMode.role === 'pml_finance' || testMode.role === 'pml_director') && (
-            <div className="flex flex-wrap gap-2 mt-2 items-center">
-              {([
-                { key: 'all', label: 'All' },
-                { key: 'submitted', label: 'Outstanding' },
-                { key: 'verified', label: 'Verified' },
-                { key: 'approved', label: 'Approved' },
-                { key: 'queried', label: 'Queried' },
-                { key: 'invoiced', label: 'Invoiced' },
-                { key: 'paid', label: 'Paid' },
-                { key: 'rejected', label: 'Rejected' },
-                { key: 'draft', label: 'Draft' },
-              ] as const).filter(({ key }) => key === 'all' || statusCounts[key] > 0).map(({ key, label }) => (
-                <Button
-                  key={key}
-                  size="sm"
-                  variant={filterStatus === key ? 'default' : 'outline'}
-                  className="text-xs"
-                  onClick={() => setFilterStatus(key)}
-                >
-                  {label}
-                  <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
-                    {statusCounts[key]}
-                  </Badge>
-                </Button>
-              ))}
-            </div>
-          )}
-          {claimsHistoryOpen && effectiveIsAdmin && (
-            <div className="flex gap-2 mt-2">
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
-                <Download className="w-3 h-3" /> Export Detail
-              </Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(accessFilteredClaims, effectiveFilterPractice)}>
-                <Download className="w-3 h-3" /> Export Summary
-              </Button>
-              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(accessFilteredClaims)}>
-                <Download className="w-3 h-3" /> Export YTD
-              </Button>
+            <div className="flex flex-wrap gap-2 mt-2 items-center justify-between">
+              <div className="flex flex-wrap gap-2 items-center">
+                {([
+                  { key: 'all', label: 'All' },
+                  { key: 'submitted', label: 'Outstanding' },
+                  { key: 'verified', label: 'Verified' },
+                  { key: 'approved', label: 'Approved' },
+                  { key: 'queried', label: 'Queried' },
+                  { key: 'invoiced', label: 'Invoiced' },
+                  { key: 'paid', label: 'Paid' },
+                  { key: 'rejected', label: 'Rejected' },
+                  { key: 'draft', label: 'Draft' },
+                ] as const).filter(({ key }) => key === 'all' || statusCounts[key] > 0).map(({ key, label }) => (
+                  <Button
+                    key={key}
+                    size="sm"
+                    variant={filterStatus === key ? 'default' : 'outline'}
+                    className="text-xs"
+                    onClick={() => setFilterStatus(key)}
+                  >
+                    {label}
+                    <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                      {statusCounts[key]}
+                    </Badge>
+                  </Button>
+                ))}
+              </div>
+              {effectiveIsAdmin && (
+                <div className="flex gap-2 items-center">
+                  <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
+                    <Download className="w-3 h-3" /> Export Detail
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(accessFilteredClaims, effectiveFilterPractice)}>
+                    <Download className="w-3 h-3" /> Export Summary
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(accessFilteredClaims)}>
+                    <Download className="w-3 h-3" /> Export YTD
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardHeader>
