@@ -2,10 +2,11 @@
  * Notewell AI Chat — Complete Component
  * Includes: streaming chat, Word/Excel/PowerPoint/diagram generation,
  * file upload, PII guardrails, 7-day history, paste fix, PNG fix,
- * My Profile & Custom Instructions modal, FRED guide
+ * My Profile & Custom Instructions modal, FRED guide, Runware image generation
  * Props: user { name, initials, role, jobTitle, practice{...}, neighbourhood, icb }
  */
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const NHS = {
   blue:"#005EB8", darkBlue:"#003087", brightBlue:"#0072CE",
@@ -39,7 +40,18 @@ const fmtSize=b=>b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB
 const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp"];
 function readBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
 function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);}
-async function loadScript(url,g){if(window[g])return window[g];await new Promise((res,rej)=>{const s=document.createElement("script");s.src=url;s.onload=res;s.onerror=rej;document.head.appendChild(s);});return window[g];}
+// FIX 1: 30-second timeout on script load
+async function loadScript(url,g){
+  if(window[g])return window[g];
+  await new Promise((res,rej)=>{
+    const s=document.createElement("script");s.src=url;
+    const timeout=setTimeout(()=>{rej(new Error("Script load timeout — check your connection"));},30000);
+    s.onload=()=>{clearTimeout(timeout);res();};
+    s.onerror=()=>{clearTimeout(timeout);rej(new Error("Script load failed — check your connection"));};
+    document.head.appendChild(s);
+  });
+  return window[g];
+}
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
 const HIST_KEY         = "nw_ai_conv_list";
@@ -47,11 +59,14 @@ const msgKey           = id=>`nw_ai_msgs_${id}`;
 const PROFILE_KEY      = "nw_ai_user_profile";
 const INSTRUCTIONS_KEY = "nw_ai_instructions";
 const RETENTION        = 7*24*60*60*1000;
-const MAX_CONVS        = 60;
+// FIX 2: MAX_CONVS from 60 to 50
+const MAX_CONVS        = 50;
 
 function pruneOld(arr,field="updatedAt"){const c=Date.now()-RETENTION;return arr.filter(i=>new Date(i[field]).getTime()>c);}
-function saveHistory(conversations){try{const p=pruneOld(conversations).slice(0,MAX_CONVS);localStorage.setItem(HIST_KEY,JSON.stringify(p));const live=new Set(p.map(c=>c.id));Object.keys(localStorage).filter(k=>k.startsWith("nw_ai_msgs_")).forEach(k=>{if(!live.has(k.replace("nw_ai_msgs_","")))localStorage.removeItem(k);});}catch{}}
-function loadHistory(){try{const s=localStorage.getItem(HIST_KEY);if(!s)return[];return pruneOld(JSON.parse(s)).map(c=>({...c,updatedAt:new Date(c.updatedAt)}));}catch{return[];}}
+// FIX 2: Filter out blank titles and conversations with no messages in saveHistory
+function saveHistory(conversations){try{const pruned=pruneOld(conversations);const valid=pruned.filter(c=>c.title&&c.title.trim().length>0&&localStorage.getItem(msgKey(c.id)));const p=valid.slice(0,MAX_CONVS);localStorage.setItem(HIST_KEY,JSON.stringify(p));const live=new Set(p.map(c=>c.id));Object.keys(localStorage).filter(k=>k.startsWith("nw_ai_msgs_")).forEach(k=>{if(!live.has(k.replace("nw_ai_msgs_","")))localStorage.removeItem(k);});}catch{}}
+// FIX 2: Filter out blank titles in loadHistory
+function loadHistory(){try{const s=localStorage.getItem(HIST_KEY);if(!s)return[];return pruneOld(JSON.parse(s)).filter(c=>c.title&&c.title.trim().length>0).map(c=>({...c,updatedAt:new Date(c.updatedAt)}));}catch{return[];}}
 function saveMsgs(convId,msgs){try{const t=msgs.filter(m=>!m.streaming).map(m=>({...m,timestamp:m.timestamp instanceof Date?m.timestamp.toISOString():m.timestamp,files:(m.files||[]).map(f=>({name:f.name,mediaType:f.mediaType,size:f.size})),artifact:m.artifact||null}));localStorage.setItem(msgKey(convId),JSON.stringify(t));}catch{}}
 function loadMsgs(convId){try{const s=localStorage.getItem(msgKey(convId));if(!s)return[];return JSON.parse(s).map(m=>({...m,timestamp:new Date(m.timestamp)}));}catch{return[];}}
 function groupByDate(convs){
@@ -130,6 +145,26 @@ async function downloadPng(a){
   });
 }
 
+// ── Runware image detection (FIX 6) ───────────────────────────────────────────
+const IMAGE_GEN_PATTERNS = [
+  /generate\s+(?:an?\s+)?image/i,
+  /create\s+(?:an?\s+)?photo/i,
+  /make\s+(?:an?\s+)?picture/i,
+  /\bdraw\b/i,
+  /\billustrate\b/i,
+  /\bAI\s+image\s+of\b/i,
+  /\bimage\s+of\b/i,
+  /\bphoto\s+of\b/i,
+  /create\s+(?:an?\s+)?image/i,
+  /show\s+me\s+(?:an?\s+)?picture/i,
+  /generate\s+(?:an?\s+)?picture/i,
+];
+const DIAGRAM_PATTERNS = [/\bdiagram\b/i, /\bflowchart\b/i, /\bchart\b/i, /\bprocess\s+map\b/i, /\binfographic\b/i];
+function isRunwareImageRequest(text) {
+  if (DIAGRAM_PATTERNS.some(p => p.test(text))) return false;
+  return IMAGE_GEN_PATTERNS.some(p => p.test(text));
+}
+
 // ── System prompt ─────────────────────────────────────────────────────────────
 function buildSystemPrompt(user,settings,userProfile,customInstructions){
   const ctx=settings.includeUserContext?`
@@ -164,7 +199,20 @@ DOCX: {"type":"docx","title":"...","filename":"kebab","meta":{"author":"${user.n
 XLSX: {"type":"xlsx","title":"...","filename":"kebab","sheets":[{"name":"Sheet1","headers":["Col A","Col B"],"rows":[["data","data"]],"columnWidths":[25,20]}]}
 PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."]},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
 IMAGE: {"type":"image","title":"...","filename":"kebab","alt":"description","svg":"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'>...</svg>"}
-SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Escape quotes as \\".`;
+SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Escape quotes as \\".
+
+LOCAL NORTHAMPTONSHIRE GUIDANCE — whenever you recommend checking local guidance, always include the relevant URL as a markdown link inline:
+- Primary Care Portal: [Northamptonshire Primary Care Portal](https://www.icnorthamptonshire.org.uk/primarycareportal/)
+- Northamptonshire Formulary: [Northamptonshire Formulary](https://www.northamptonformulary.nhs.uk/)
+- ICB Main Site: [ICB Northamptonshire](https://www.icnorthamptonshire.org.uk)
+- Individual Funding Requests: [IFR Process](https://www.icnorthamptonshire.org.uk/ifr)
+- Weight Management / GLP-1: [Tirzepatide / GLP-1 Guidance](https://www.icnorthamptonshire.org.uk/tirzepatide)
+- ADHD / Autism: [ADHD & Autism Pathway](https://www.icnorthamptonshire.org.uk/autism-adhd)
+- OpenPrescribing Northants: [OpenPrescribing ICB QPM](https://openprescribing.net/icb/QPM/)
+- BNF Online: [BNF](https://bnf.nice.org.uk/)
+- NICE CKS: [NICE CKS](https://cks.nice.org.uk/)
+- MHRA Drug Safety: [MHRA Drug Safety Updates](https://www.gov.uk/drug-safety-update)
+Always format URLs as markdown links: [Label](URL)`;
 }
 
 function renderMd(t){
@@ -177,6 +225,7 @@ function renderMd(t){
     .replace(/^\s*[-*] (.+)$/gm,`<li style="margin:2px 0;padding-left:2px">$1</li>`)
     .replace(/^\d+\. (.+)$/gm,`<li style="margin:2px 0">$1</li>`)
     .replace(/(<li[^>]*>.*<\/li>\n?)+/g,m=>`<ul style="padding-left:18px;margin:6px 0">${m}</ul>`)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer" style="color:#005EB8;text-decoration:underline">$1</a>')
     .replace(/\n{2,}/g,"</p><p style='margin:6px 0'>").replace(/\n/g,"<br>");
 }
 
@@ -224,14 +273,9 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
     setKbLoading(true);
     const loadKB=async()=>{
       try{
-        const supabaseUrl=import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        // Dynamic import to avoid adding supabase dep to this JSX
-        const {createClient}=await import("@supabase/supabase-js");
-        const sb=createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true,autoRefreshToken:true}});
         const [catsRes,docsRes]=await Promise.all([
-          sb.from("kb_categories").select("*").order("sort_order"),
-          sb.from("kb_documents").select("*, kb_categories(*)").eq("is_active",true).eq("status","indexed").order("uploaded_at",{ascending:false}).limit(50)
+          supabase.from("kb_categories").select("*").order("sort_order"),
+          supabase.from("kb_documents").select("*, kb_categories(*)").eq("is_active",true).eq("status","indexed").order("uploaded_at",{ascending:false}).limit(50)
         ]);
         if(catsRes.data)setKbCategories(catsRes.data);
         if(docsRes.data)setKbDocs(docsRes.data);
@@ -308,7 +352,8 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
                   <div style={{fontWeight:700,fontSize:"0.88rem",color:"#003087"}}>📚 Loaded Knowledge Base</div>
                   <div style={{fontSize:"0.74rem",color:"#425563",marginTop:2}}>Showing the active indexed documents currently loaded into Ask AI</div>
                 </div>
-                <button onClick={()=>{onClose();onNavigateHome?.();setTimeout(()=>window.location.href="/knowledge-base",100);}} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:"0.74rem",color:"#003087",fontWeight:600,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>Open full page →</button>
+                {/* FIX 3: Fixed KB navigation to prevent race condition */}
+                <button onClick={()=>{onClose();setTimeout(()=>{window.location.assign('/knowledge-base');},200);}} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:"0.74rem",color:"#003087",fontWeight:600,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>Open full page →</button>
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
                 <div style={{background:"#F8FAFC",border:"1px solid #E8EDEE",borderRadius:9,padding:"8px 12px",fontSize:"0.74rem",color:"#003087",fontWeight:600}}>Loaded: {kbDocs.length} documents</div>
@@ -365,38 +410,34 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
 
 // ── Guide Modal ───────────────────────────────────────────────────────────────
 const CAPABILITIES=[{icon:"💬",title:"Chat & Ask",colour:NHS.blue,desc:"NHS primary care, policies, contracts, ARRS, governance, clinical queries."},{icon:"📝",title:"Word Documents",colour:"#2B579A",desc:"Letters, SOPs, policies, reports — formatted .doc files."},{icon:"📊",title:"Excel Reports",colour:"#217346",desc:"Spreadsheets, trackers, dashboards — real .xlsx files."},{icon:"🖥️",title:"Presentations",colour:"#D24726",desc:"NHS-styled PowerPoint decks for board meetings."},{icon:"🎨",title:"Diagrams",colour:NHS.purple,desc:"Process flows, pathway diagrams, infographics — SVG & PNG."},{icon:"📎",title:"File Upload",colour:NHS.aquaBlue,desc:"Attach PDFs, Word docs, images for analysis."}];
-const FRED=[{l:"F",w:"Frame the context",c:NHS.blue,d:"Who you are, what you need, why — extra context always helps."},{l:"R",w:"Role or format",c:NHS.green,d:"Letter? Table? Board report? Clinical or plain English?"},{l:"E",w:"Examples / expectations",c:NHS.purple,d:"'Professional tone', 'NHS letter format', '2 pages', 'summary box at top'."},{l:"D",w:"Detail and data",c:"#B07000",d:"Clinical findings, staff names, dates, figures. Attach documents."}];
 
 function GuideModal({user,onClose,vp}){
-  const [tab,setTab]=useState("capabilities");
   const isMobile=vp==="mobile";
-  const CAPS=CAPABILITIES;
   return(
-    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center",padding:isMobile?0:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{width:"100%",maxWidth:isMobile?"100%":660,maxHeight:isMobile?"91dvh":"88vh",background:"#fff",borderRadius:isMobile?"20px 20px 0 0":16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 -4px 40px rgba(0,0,0,0.18)",animation:isMobile?"nwSlideUp .25s ease":"nwSlideUp .22s ease"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center",padding:isMobile?0:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{width:"100%",maxWidth:isMobile?"100%":580,maxHeight:isMobile?"90dvh":"85vh",background:"#fff",borderRadius:isMobile?"20px 20px 0 0":16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 -4px 40px rgba(0,0,0,0.18)",animation:"nwSlideUp .25s ease"}}>
         {isMobile&&<div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px",background:"#fff",flexShrink:0}}><div style={{width:40,height:4,borderRadius:2,background:"#D1D5DB"}}/></div>}
-        <div style={{padding:"14px 20px 12px",background:`linear-gradient(135deg,${NHS.darkBlue},${NHS.blue})`,color:"#fff",flexShrink:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{fontWeight:900,fontSize:"1rem",color:"#fff",letterSpacing:"-.01em"}}>Notewell</div>
-              <div style={{width:1,height:16,background:"rgba(255,255,255,.3)"}}/>
-              <div>
-                <div style={{fontWeight:700,fontSize:"1rem"}}>How to get the best results</div>
-                <div style={{fontSize:"0.72rem",opacity:.7}}>Hello {user.name.split(" ")[0]} · {user.practice.shortName}</div>
-              </div>
+        <div style={{padding:"14px 20px 10px",background:`linear-gradient(135deg,${NHS.darkBlue},${NHS.blue})`,color:"#fff",flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontWeight:800,fontSize:"1rem",marginBottom:2}}>🤖 Getting the best results from Notewell AI</div>
+              <div style={{fontSize:"0.72rem",opacity:.65}}>Tips for {user.role} at {user.practice.shortName}</div>
             </div>
             <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"8px 12px",fontSize:"1rem",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           </div>
-          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-            {["capabilities","prompting","examples"].map(t=>(
-              <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",minHeight:36}}>{t==="capabilities"?"What can it do?":t==="prompting"?"FRED framework":"See examples"}</button>
-            ))}
-          </div>
         </div>
-        <div style={{overflowY:"auto",flex:1,padding:"16px 20px"}}>
-          {tab==="capabilities"&&(<div><p style={{fontSize:"0.86rem",color:NHS.midGrey,margin:"0 0 14px",lineHeight:1.6}}>Already knows you're <strong>{user.name}</strong>, {user.role} at <strong>{user.practice.name}</strong>.</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>{CAPS.map((c,i)=><div key={i} style={{border:`1.5px solid ${c.colour}33`,borderRadius:11,padding:"11px 13px",background:c.colour+"08"}}><div style={{fontSize:"1.2rem",marginBottom:4}}>{c.icon}</div><div style={{fontWeight:700,fontSize:"0.84rem",color:c.colour,marginBottom:3}}>{c.title}</div><div style={{fontSize:"0.77rem",color:NHS.midGrey,lineHeight:1.5}}>{c.desc}</div></div>)}</div><div style={{background:"#F0F4F8",borderRadius:9,padding:"11px 13px",fontSize:"0.79rem",color:NHS.darkBlue}}><strong>🛡️ NHS Guardrails always active:</strong> PII detection, clinical caveats, safeguarding escalation, medication verification.</div></div>)}
-          {tab==="prompting"&&(<div><div style={{background:`${NHS.blue}0D`,borderRadius:11,padding:"13px 15px",marginBottom:16,border:`1.5px solid ${NHS.blue}33`}}><p style={{fontSize:"0.9rem",fontWeight:700,color:NHS.darkBlue,margin:"0 0 5px"}}>💡 Rubbish in, rubbish out.</p><p style={{fontSize:"0.83rem",color:NHS.midGrey,margin:0,lineHeight:1.6}}>Vague prompts produce vague answers. Give the AI clear briefing.</p></div><p style={{fontWeight:700,fontSize:"0.87rem",color:NHS.darkBlue,marginBottom:10}}>The FRED framework:</p><div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>{FRED.map((f,i)=><div key={i} style={{display:"flex",gap:11,alignItems:"flex-start"}}><div style={{width:34,height:34,borderRadius:9,background:f.c,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:"1.05rem",color:"#fff",flexShrink:0}}>{f.l}</div><div><div style={{fontWeight:700,fontSize:"0.84rem",color:f.c,marginBottom:2}}>{f.w}</div><div style={{fontSize:"0.79rem",color:NHS.midGrey,lineHeight:1.55}}>{f.d}</div></div></div>)}</div><div style={{background:"#FFF9EC",border:`1.5px solid ${NHS.warmYellow}`,borderRadius:9,padding:"11px 13px"}}><p style={{fontWeight:700,fontSize:"0.83rem",color:"#7a4a00",margin:"0 0 5px"}}>⚠️ Always anonymise patient information</p><p style={{fontSize:"0.78rem",color:"#7a4a00",margin:0,lineHeight:1.5}}>Never include real NHS numbers, full names, DOBs or postcodes.</p></div></div>)}
-          {tab==="examples"&&(<div>{[{label:"❌ Weak",bad:true,text:"Write a letter",why:"No audience, no detail, no format."},{label:"✅ Strong",bad:false,text:`Write a GP referral letter to cardiology for a patient (use 'the patient') with suspected AF. Findings: irregular pulse, palpitations 3 months, ECG showing AF, BP 138/86. Professional tone. Practice: ${user.practice.name}.`,why:"Clear audience, specific detail, anonymised, tone stated."},{label:"❌ Weak",bad:true,text:"Make a spreadsheet",why:"No columns, no purpose."},{label:"✅ Strong",bad:false,text:`Create an Excel spreadsheet to track ARRS staff for ${user.practice.name}. Columns: Role, WTE, Hours/Week, Rate (£/hr), Annual Cost, Funding Source, Contract End Date. Totals row and 3 example rows.`,why:"Every column specified, purpose clear."}].map((ex,i)=><div key={i} style={{marginBottom:12,border:`1.5px solid ${ex.bad?NHS.red+"44":NHS.green+"44"}`,borderRadius:11,overflow:"hidden"}}><div style={{padding:"6px 11px",background:ex.bad?NHS.red+"10":NHS.green+"10"}}><span style={{fontWeight:700,fontSize:"0.79rem",color:ex.bad?NHS.red:NHS.green}}>{ex.label}</span></div><div style={{padding:"9px 11px"}}><div style={{fontFamily:"monospace",fontSize:"0.79rem",color:NHS.darkGrey,background:"#F8FAFC",borderRadius:6,padding:"7px 9px",marginBottom:7,lineHeight:1.55,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{ex.text}</div><p style={{fontSize:"0.76rem",color:NHS.midGrey,margin:0}}><strong style={{color:ex.bad?NHS.red:NHS.green}}>{ex.bad?"Why this fails:":"Why this works:"}</strong> {ex.why}</p></div></div>)}</div>)}
+        <div style={{overflowY:"auto",flex:1,padding:"14px 18px"}}>
+          <div style={{fontWeight:700,fontSize:"0.88rem",color:NHS.darkBlue,marginBottom:8}}>What can I do?</div>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:7,marginBottom:14}}>
+            {CAPABILITIES.map((c,i)=><div key={i} style={{display:"flex",gap:8,padding:"8px 10px",background:c.colour+"09",border:`1.5px solid ${c.colour}22`,borderRadius:9,alignItems:"flex-start"}}><span style={{fontSize:"1.1rem",flexShrink:0}}>{c.icon}</span><div><div style={{fontWeight:700,fontSize:"0.79rem",color:c.colour}}>{c.title}</div><div style={{fontSize:"0.72rem",color:NHS.midGrey,lineHeight:1.5}}>{c.desc}</div></div></div>)}
+          </div>
+          <div style={{fontWeight:700,fontSize:"0.88rem",color:NHS.darkBlue,marginBottom:8}}>💡 Tips</div>
+          <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>
+            {["Be specific — 'ARRS budget for 2025/26 South Northamptonshire' beats 'ARRS info'",`Say 'Create a Word SOP for ${user.practice.shortName}...' to get a downloadable .doc`,`Add context: 'I need this for a CQC inspection at ${user.practice.name}'`,`Upload PDFs or images and say 'Summarise this document'`,"Request Excel spreadsheets, PowerPoint decks, or diagrams directly",`Set up your profile for personalised responses`].map((t,i)=><div key={i} style={{fontSize:"0.78rem",color:NHS.darkGrey,padding:"5px 10px",background:"#F8FAFC",borderRadius:7,border:`1px solid ${NHS.paleGrey}`,lineHeight:1.5}}>✓ {t}</div>)}
+          </div>
+          <div style={{background:`${NHS.warmYellow}15`,border:`1.5px solid ${NHS.warmYellow}55`,borderRadius:9,padding:"8px 12px",fontSize:"0.76rem",lineHeight:1.6,color:NHS.darkGrey}}>
+            <strong style={{color:"#B56200"}}>⚠️ Clinical safety:</strong> Notewell AI is a decision-support tool. Always apply professional clinical judgement. AI outputs should be verified before use in patient care.
+          </div>
         </div>
         <div style={{padding:"12px 20px",borderTop:`1px solid ${NHS.paleGrey}`,display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc",flexShrink:0}}>
           <span style={{fontSize:"0.72rem",color:NHS.midGrey}}>Always available via <strong>?</strong></span>
@@ -408,13 +449,25 @@ function GuideModal({user,onClose,vp}){
 }
 
 // ── Artifact Panel ────────────────────────────────────────────────────────────
+// FIX 1: Enhanced PPTX download with spinner, error display, success confirmation, timeout
 function ArtifactPanel({artifact,onClose,vp}){
   const [gen,setGen]=useState(false);const [err,setErr]=useState(null);const [done,setDone]=useState(null);
+  const [genLabel,setGenLabel]=useState(null);
   const type=ARTIFACT_TYPES[artifact.type]||ARTIFACT_TYPES.docx;const isImg=artifact.type==="image";
   const dl=useCallback(async(fmt="default")=>{
     setGen(true);setErr(null);setDone(null);
-    try{if(artifact.type==="docx")triggerDownload(generateDocxBlob(artifact),(artifact.filename||"document")+".doc");else if(artifact.type==="xlsx")triggerDownload(await generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");else if(artifact.type==="pptx")triggerDownload(await generatePptxBlob(artifact),(artifact.filename||"presentation")+".pptx");else if(isImg){if(fmt==="png")await downloadPng(artifact);else downloadSvg(artifact);}setDone(fmt);setTimeout(()=>setDone(null),3000);}
-    catch(e){setErr(e.message);}finally{setGen(false);}
+    if(artifact.type==="pptx") setGenLabel("Building presentation...");
+    else setGenLabel("Generating...");
+    try{
+      if(artifact.type==="docx")triggerDownload(generateDocxBlob(artifact),(artifact.filename||"document")+".doc");
+      else if(artifact.type==="xlsx")triggerDownload(await generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");
+      else if(artifact.type==="pptx")triggerDownload(await generatePptxBlob(artifact),(artifact.filename||"presentation")+".pptx");
+      else if(isImg){if(fmt==="png")await downloadPng(artifact);else downloadSvg(artifact);}
+      setDone(fmt);setGenLabel(null);setTimeout(()=>setDone(null),2000);
+    }catch(e){
+      setErr(e.message||"⚠️ Download failed — try again or check connection");
+      setGenLabel(null);
+    }finally{setGen(false);}
   },[artifact]);
   const ps={width:vp==="wide"?430:vp==="standard"?380:undefined,minWidth:vp==="wide"?430:vp==="standard"?380:undefined,background:"#fff",borderLeft:`1px solid ${NHS.paleGrey}`,display:"flex",flexDirection:"column",boxShadow:"-4px 0 20px rgba(0,0,0,0.07)",animation:"nwSlideIn .22s ease"};
   if(vp==="compact")Object.assign(ps,{position:"absolute",inset:0,zIndex:100});
@@ -427,7 +480,9 @@ function ArtifactPanel({artifact,onClose,vp}){
     <div style={{padding:"12px 14px",borderTop:`1px solid ${NHS.paleGrey}`,background:"#fafbfc",flexShrink:0}}>
       {err&&<div style={{background:"#FFF5F5",border:`1px solid ${NHS.red}`,borderRadius:6,padding:"5px 9px",fontSize:"0.74rem",color:NHS.red,marginBottom:7}}>⚠️ {err}</div>}
       {isImg?(<div style={{display:"flex",gap:7}}><button onClick={()=>dl("svg")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="svg"?NHS.green:type.colour,color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>⬇ SVG</button><button onClick={()=>dl("png")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="png"?NHS.green:type.colour+"CC",color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>{gen?<span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>:"⬇"} PNG</button></div>)
-      :(<button onClick={()=>dl()} disabled={gen} style={{width:"100%",padding:"10px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done?NHS.green:gen?NHS.midGrey:type.colour,color:"#fff",fontWeight:700,fontSize:"0.87rem",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>{gen?<><span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>Generating…</>:done?"✓ Downloaded!":<>{type.icon} Download {type.label}</>}</button>)}
+      :(<button onClick={()=>dl()} disabled={gen} style={{width:"100%",padding:"10px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done?NHS.green:gen?NHS.midGrey:type.colour,color:"#fff",fontWeight:700,fontSize:"0.87rem",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+        {gen?<><span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>{genLabel||"Generating..."}</>:done?<>✓ Downloaded!</>:<>{type.icon} Download {type.label}</>}
+      </button>)}
       <div style={{fontSize:"0.62rem",color:NHS.midGrey,textAlign:"center",marginTop:6}}>Generated locally · not stored on any server</div>
     </div>
   </div>);
@@ -449,6 +504,40 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}
   const isUser=msg.role==="user";const [copied,setCopied]=useState(false);const [feedback,setFeedback]=useState(null);
   const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
   const isMobile=vp==="mobile";
+  
+  // FIX 6: Render generated images inline
+  if(!isUser && msg.generatedImage) {
+    return(
+      <div style={{display:"flex",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
+        <img src="/favicon-option1.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>
+        <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
+          <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3}}>Notewell AI · {fmt(msg.timestamp)}</div>
+          <div style={{background:"#fff",borderRadius:"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
+            {msg.imageError ? (
+              <div>
+                <span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>
+              </div>
+            ) : msg.imageUrl ? (
+              <div>
+                <p style={{margin:"0 0 8px"}}>{display}</p>
+                <img src={msg.imageUrl} style={{maxWidth:"100%",borderRadius:12,marginTop:8,boxShadow:"0 4px 20px rgba(0,0,0,0.15)"}} alt="Generated image"/>
+                <div style={{display:"flex",gap:8,marginTop:10}}>
+                  <button onClick={async()=>{try{const resp=await fetch(msg.imageUrl);const blob=await resp.blob();triggerDownload(blob,"notewell-image.png");}catch{alert("Download failed");}}} style={{background:NHS.blue,border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",color:"#fff",fontWeight:600,fontSize:"0.79rem",minHeight:36}}>⬇ Download PNG</button>
+                  {msg.onRegenerate&&<button onClick={msg.onRegenerate} style={{background:"#F0F4F8",border:`1px solid ${NHS.paleGrey}`,borderRadius:8,padding:"6px 14px",cursor:"pointer",color:NHS.darkGrey,fontWeight:600,fontSize:"0.79rem",minHeight:36}}>🔄 Regenerate</button>}
+                </div>
+              </div>
+            ) : (
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>🎨</span>
+                <span>{display}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return(<div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
     {isUser?<UserAvatar user={user} size={compact?27:33}/>:<img src="/favicon-option1.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>}
     <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
@@ -476,9 +565,129 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}
   </div>);
 }
 
+// ── FIX 4: Role-based suggestions ─────────────────────────────────────────────
+const ROLE_SUGGESTIONS = {
+  "Practice Manager": [
+    "What ARRS roles can we claim for and at what reimbursement rate?",
+    "How do I set up a new LES agreement with the ICB?",
+    "Draft a staff sickness absence letter following a return to work",
+    "What are the DES requirements for Enhanced Access 2025/26?",
+    "Create an Excel ARRS staff tracker with WTE, costs and contract dates",
+    "What are the QOF indicators I need to report on this quarter?",
+    "How do I submit a CAIP improvement plan to the ICB?",
+    "Draft a business continuity plan for a GP practice",
+    "What policies must be reviewed annually for CQC compliance?",
+    "Write a Word template for a significant event analysis (SEA)",
+    "How do I handle a patient removal from the practice list?",
+    "What is the process for an Individual Funding Request (IFR)?",
+    "Create a GDPR-compliant patient data breach response checklist",
+    "What DBS checks are required for different staff roles?",
+    "Draft a job description for a Social Prescribing Link Worker",
+    "How do I complete the DSPT submission for our practice?",
+    "Write a staff communication about new appointment booking changes",
+    "What are the GPAD slot type configurations needed for CAIP?",
+    "Create a monthly LES claims tracking spreadsheet",
+    "What notice periods apply under Agenda for Change?"
+  ],
+  "GP Partner": [
+    "What is the Northamptonshire formulary position on semaglutide?",
+    "A consultant has asked me to prescribe a RED formulary drug. Do I have to?",
+    "Summarise the Network Contract DES requirements for 2025/26",
+    "What are my responsibilities for structured medication reviews?",
+    "Write a referral letter to cardiology for a patient with suspected AF",
+    "What are the ARRS roles eligible for 100% reimbursement?",
+    "Explain the traffic light formulary system for prescribing",
+    "What should I document when declining to sign an SCA?",
+    "How do I report a significant event to NHS England?",
+    "What are the dementia diagnosis rate targets for Northamptonshire?",
+    "Draft a response to an ICB medicines management query",
+    "What are the current ADHD prescribing rules in Northamptonshire?",
+    "Summarise the buy-back model for the NRES neighbourhood programme",
+    "What are the CQC inspection domains and what do they look for?",
+    "Write a clinical audit protocol for antibiotic prescribing",
+    "What vaccinations are due at the 12-month child health check?",
+    "How should I handle a patient who wants a private ADHD prescription on NHS?",
+    "What is the IFR process for a non-formulary drug request?",
+    "Draft a patient letter about changes to repeat prescribing",
+    "What QOF disease registers do I need to maintain?"
+  ],
+  "Salaried GP": [
+    "What is the BNF first-line treatment for uncomplicated UTI?",
+    "Summarise NICE guidance on hypertension management 2023",
+    "What are the safe prescribing rules for controlled drugs in primary care?",
+    "Write a sick note for a patient with anxiety and depression",
+    "What SNOMED codes are used for LD Annual Health Checks?",
+    "How do I access the Northamptonshire Primary Care Portal?",
+    "What should I do if a patient discloses domestic abuse?",
+    "What are my obligations when a patient requests their full GP record?",
+    "Summarise the Enhanced Access requirements for my PCN",
+    "What is the QOF indicator for blood pressure in hypertension?",
+    "Draft a response to an aggressive or abusive patient complaint",
+    "What are the prescribing rules for GLP-1 agonists in Northamptonshire?",
+    "What is the safeguarding escalation process for an at-risk child?",
+    "Summarise the NICE CKS guidance on type 2 diabetes management",
+    "What are the legalities of prescribing for a patient not registered with me?",
+    "How should I manage a patient requesting benzodiazepines long-term?",
+    "Write up a consultation as a structured SOAP note",
+    "What are the antipsychotic prescribing rules for dementia patients?",
+    "What cervical screening intervals apply to women aged 25-49?",
+    "Summarise the NICE guidance on antibiotic stewardship"
+  ],
+  "Admin / Reception": [
+    "Draft a practice newsletter about our new online booking system",
+    "Write a care navigation script for telephone triage",
+    "What patient information can I share over the phone?",
+    "Draft a letter to a patient about a missed appointment (DNA)",
+    "Write an FAQ for patients about the NHS App",
+    "What is the process for registering a new patient?",
+    "Draft a patient-facing notice about appointment booking changes",
+    "How should I handle an aggressive patient on the phone?",
+    "Write a template email for chasing outstanding test results",
+    "What are the opening hours for Enhanced Access appointments?",
+    "Draft a social media post about flu vaccination appointments",
+    "How do I handle a Subject Access Request from a patient?",
+    "Write a receptionist guide to care navigation and triage",
+    "What is Pharmacy First and which conditions can pharmacists treat?",
+    "Draft a notice about prescription ordering and collection times",
+    "What should receptionists know about safeguarding?",
+    "Write a template for recording a significant event (SEA)",
+    "How do I book an Enhanced Access appointment for a patient?",
+    "Draft an out-of-hours answerphone message for the practice",
+    "What are the rules for giving test results to patients?"
+  ],
+  "PCN Manager": [
+    "Summarise the PCN DES requirements for 2025/26 in a Word document",
+    "Create an Excel ARRS budget tracker for all 14 eligible roles",
+    "What is the CAIP submission process and what evidence is needed?",
+    "Draft the agenda for a PCN board meeting",
+    "What are the 18 ICB metrics for the NRES neighbourhood programme?",
+    "Explain the buy-back methodology for the New Models programme",
+    "What ARRS roles require 70% vs 100% reimbursement?",
+    "Draft an MOU clause covering sick pay for neighbourhood staff",
+    "Create a PowerPoint for an ICB board presentation on PCN performance",
+    "What are the GPAD slot type requirements for SDA reporting?",
+    "Write a communication to practices about the Enhanced Access service",
+    "What is the process for submitting monthly ARRS claims via CQRS?",
+    "Summarise the Network Contract DES changes from 2024/25 to 2025/26",
+    "Draft a workforce plan for an ARRS recruitment round",
+    "What governance documents are required for a New Models pilot?",
+    "Create an Excel dashboard for PCN QOF performance tracking",
+    "Write a risk register template for PCN governance",
+    "What is the ICB contact for New Models commissioning queries?",
+    "Summarise the PML federation services in South Northamptonshire",
+    "Draft a board paper on neighbourhood care implementation progress"
+  ]
+};
+
 function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
   const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
-  const suggestions=[{icon:"📚",text:"What's the current semaglutide guidance?"},{icon:"📧",text:"Summarise this week's ICB update"},{icon:"💼",text:"What are the ARRS roles available?"},{icon:"📄",text:"What does the PCN DES say about access?"},{icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},{icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"}];
+  const [selectedRole, setSelectedRole] = useState(() => {
+    const roles = Object.keys(ROLE_SUGGESTIONS);
+    return roles.find(r => user.role?.toLowerCase().includes(r.toLowerCase())) || "Practice Manager";
+  });
+  const scrollRef = useRef(null);
+  const currentSuggestions = ROLE_SUGGESTIONS[selectedRole] || ROLE_SUGGESTIONS["Practice Manager"];
+
   return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
     <img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:58,height:58,borderRadius:"50%",marginBottom:13,objectFit:"cover",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}/>
     <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
@@ -489,9 +698,43 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
       <button onClick={onProfile} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>Set up my profile →</button>
     </p>
     <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><button key={k} onClick={()=>onPopulateInput("Create a "+v.label)} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 10px",background:v.colour+"11",border:`1.5px solid ${v.colour}33`,borderRadius:20,fontSize:"0.72rem",color:v.colour,fontWeight:600,cursor:"pointer",transition:"background .15s"}} onMouseEnter={e=>e.currentTarget.style.background=v.colour+"23"} onMouseLeave={e=>e.currentTarget.style.background=v.colour+"11"}>{v.icon} {v.label}</button>)}</div>
-    <div style={{display:"grid",gridTemplateColumns:vp==="wide"?"1fr 1fr 1fr":"1fr 1fr",gap:8,width:"100%",maxWidth:vp==="wide"?660:480}}>{suggestions.slice(0,vp==="wide"?6:4).map((s,i)=><button key={i} onClick={()=>onSuggestion(s.text)} style={{background:"#fff",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:10,padding:"10px 12px",cursor:"pointer",textAlign:"left",transition:"all .17s",fontSize:"0.78rem",color:NHS.darkGrey,lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,114,206,.12)`;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
-      <span style={{fontSize:"0.92rem",display:"block",marginBottom:4}}>{s.icon}</span>{s.text}
-    </button>)}</div>
+
+    {/* FIX 4: Role selector pills */}
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginBottom:12,maxWidth:660}}>
+      {Object.keys(ROLE_SUGGESTIONS).map(role=>(
+        <button key={role} onClick={()=>setSelectedRole(role)} style={{
+          padding:"5px 14px",borderRadius:20,fontSize:"0.74rem",fontWeight:600,cursor:"pointer",
+          border:selectedRole===role?"none":`1.5px solid ${NHS.blue}`,
+          background:selectedRole===role?NHS.blue:"#fff",
+          color:selectedRole===role?"#fff":NHS.blue,
+          transition:"all .15s",minHeight:32
+        }}>{role}</button>
+      ))}
+    </div>
+
+    {/* FIX 4: Horizontally scrollable suggestion cards */}
+    <div ref={scrollRef} style={{
+      display:"flex",gap:8,overflowX:"auto",width:"100%",maxWidth:vp==="wide"?720:560,
+      paddingBottom:8,scrollBehavior:"smooth",scrollbarWidth:"none",
+      WebkitOverflowScrolling:"touch",msOverflowStyle:"none"
+    }}>
+      <style>{`.nw-suggestions-scroll::-webkit-scrollbar{display:none}`}</style>
+      {currentSuggestions.map((text,i)=>(
+        <button key={`${selectedRole}-${i}`} onClick={()=>onSuggestion(text)} style={{
+          minWidth:200,maxWidth:200,height:90,background:"#fff",
+          border:`1.5px solid ${NHS.paleGrey}`,borderRadius:10,padding:"10px 12px",
+          cursor:"pointer",textAlign:"left",transition:"all .17s",fontSize:"0.78rem",
+          color:NHS.darkGrey,lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)",
+          flexShrink:0,display:"flex",alignItems:"flex-start",
+          overflow:"hidden",
+          WebkitLineClamp:2,WebkitBoxOrient:"vertical",
+        }}
+        onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,114,206,.12)`;}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
+          <span style={{display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",textOverflow:"ellipsis"}}>{text}</span>
+        </button>
+      ))}
+    </div>
   </div>);
 }
 
@@ -509,7 +752,9 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
     width:w,minWidth:w,background:NHS.darkBlue,display:"flex",flexDirection:"column",
     transition:"width .24s,min-width .24s",overflow:"hidden",
   };
-  const groups=groupByDate(conversations);
+  // FIX 2: Additional guard filter for blank titles
+  const validConvs = conversations.filter(c => c.title && c.title.trim().length > 0);
+  const groups=groupByDate(validConvs);
   return(
     <>
       {isMobile&&forceOpen&&(
@@ -568,7 +813,7 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
               ))}
             </div>
           ))}
-          {conversations.length===0&&<div style={{fontSize:"0.77rem",color:"rgba(255,255,255,.28)",padding:"16px 4px",textAlign:"center"}}>No conversations yet</div>}
+          {validConvs.length===0&&<div style={{fontSize:"0.77rem",color:"rgba(255,255,255,.28)",padding:"16px 4px",textAlign:"center"}}>No conversations yet</div>}
         </div>
         <div style={{padding:"10px 12px",borderTop:"1px solid rgba(255,255,255,.07)",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <UserAvatar user={user} size={26}/>
@@ -724,12 +969,57 @@ export default function NotewellChat({ user, onNavigateHome }) {
     if(text!==undefined){e.stopPropagation();const ta=textareaRef.current;if(ta){e.preventDefault();const start=ta.selectionStart;const end=ta.selectionEnd;const newVal=input.slice(0,start)+text+input.slice(end);setInput(newVal);requestAnimationFrame(()=>{if(textareaRef.current){textareaRef.current.selectionStart=start+text.length;textareaRef.current.selectionEnd=start+text.length;}});}}
   },[input]);
 
+  // FIX 6: Runware image generation handler
+  const handleRunwareImage = useCallback(async (text, userMsg) => {
+    const aiId = uid();
+    const tempContent = "🎨 Generating image — this takes a few seconds...";
+    setMessages(p => [...p, { id: aiId, role: "assistant", content: tempContent, timestamp: new Date(), streaming: false, generatedImage: true }]);
+    
+    try {
+      const formData = new FormData();
+      formData.append('prompt', text);
+      formData.append('mode', 'generation');
+      formData.append('size', '1024x1024');
+      formData.append('quality', 'high');
+
+      const { data, error } = await supabase.functions.invoke('runware-image-generation', { body: formData });
+
+      if (error) throw error;
+      if (!data?.imageUrl) throw new Error("No image returned");
+
+      const regenerate = () => handleRunwareImage(text, userMsg);
+      setMessages(p => p.map(m => m.id === aiId ? {
+        ...m,
+        content: "Here's your generated image:",
+        imageUrl: data.imageUrl,
+        onRegenerate: regenerate,
+        generatedImage: true,
+      } : m));
+    } catch (e) {
+      setMessages(p => p.map(m => m.id === aiId ? {
+        ...m,
+        content: "Image generation failed — try a different description, or use the full [Image Studio →](/image-create) for more options.",
+        imageError: true,
+        generatedImage: true,
+      } : m));
+    }
+  }, []);
+
   const send=useCallback(async(override)=>{
     const text=(override??input).trim();if(!text&&files.length===0)return;if(isLoading)return;
     const pii=detectPII(text);if(pii){setGuardrailAlert(`Possible ${pii.label} detected. Please anonymise patient data before submitting.`);return;}
     const userMsg={id:uid(),role:"user",content:text,files:files.slice(),timestamp:new Date()};
     const newMsgs=[...messages,userMsg];setMessages(newMsgs);setInput("");setFiles([]);setIsLoading(true);
     if(messages.length===0){const title=text.length>44?text.slice(0,44)+"…":text;setConversations(p=>p.map(c=>c.id===activeConvId?{...c,title,updatedAt:new Date()}:c));}
+
+    // FIX 6: Check for Runware image request
+    if (isRunwareImageRequest(text) && files.length === 0) {
+      await handleRunwareImage(text, userMsg);
+      setIsLoading(false);
+      setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));
+      return;
+    }
+
     const aiId=uid();let accum="";let kbSources=[];
     setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}]);
     try{
@@ -739,7 +1029,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
     }catch(e){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
     setIsLoading(false);
-  },[input,files,messages,isLoading,activeConvId,systemPrompt]);
+  },[input,files,messages,isLoading,activeConvId,systemPrompt,handleRunwareImage]);
 
   const ig=vp==="wide"?"0 7%":vp==="standard"?"0 2%":"0";
 
