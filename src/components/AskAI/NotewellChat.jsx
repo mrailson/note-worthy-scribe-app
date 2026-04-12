@@ -42,7 +42,7 @@ const fmtDate=d=>d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",mon
 const fmtSize=b=>b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";
 const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp"];
 function readBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
-function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.style.position="fixed";a.style.top="-9999px";a.style.left="-9999px";document.body.appendChild(a);a.dispatchEvent(new MouseEvent("click",{bubbles:false,cancelable:true,view:window}));document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),2000);}
 // FIX 1: 30-second timeout on script load
 async function loadScript(url,g){
   if(window[g])return window[g];
@@ -466,7 +466,7 @@ function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth}){
       else if(artifact.type==="xlsx")triggerDownload(await generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");
       else if(artifact.type==="pptx")triggerDownload(await generatePptxBlob(artifact),(artifact.filename||"presentation")+".pptx");
       else if(isImg){if(fmt==="png")await downloadPng(artifact);else downloadSvg(artifact);}
-      setDone(fmt);setGenLabel(null);setTimeout(()=>setDone(null),2000);
+      setDone(fmt);setGenLabel(null);setTimeout(()=>setDone(null),4000);
     }catch(e){
       setErr(e.message||"⚠️ Download failed — try again or check connection");
       setGenLabel(null);
@@ -503,8 +503,8 @@ function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth}){
     </div>
     <div style={{padding:"12px 14px",borderTop:`1px solid ${NHS.paleGrey}`,background:"#fafbfc",flexShrink:0}}>
       {err&&<div style={{background:"#FFF5F5",border:`1px solid ${NHS.red}`,borderRadius:6,padding:"5px 9px",fontSize:"0.74rem",color:NHS.red,marginBottom:7}}>⚠️ {err}</div>}
-      {isImg?(<div style={{display:"flex",gap:7}}><button onClick={()=>dl("svg")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="svg"?NHS.green:type.colour,color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>⬇ SVG</button><button onClick={()=>dl("png")} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="png"?NHS.green:type.colour+"CC",color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>{gen?<span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>:"⬇"} PNG</button></div>)
-      :(<button onClick={()=>dl()} disabled={gen} style={{width:"100%",padding:"10px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done?NHS.green:gen?NHS.midGrey:type.colour,color:"#fff",fontWeight:700,fontSize:"0.87rem",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+      {isImg?(<div style={{display:"flex",gap:7}}><button onClick={(e)=>{e.stopPropagation();e.preventDefault();dl("svg");}} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="svg"?NHS.green:type.colour,color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>⬇ SVG</button><button onClick={(e)=>{e.stopPropagation();e.preventDefault();dl("png");}} disabled={gen} style={{flex:1,padding:"9px 6px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done==="png"?NHS.green:type.colour+"CC",color:"#fff",fontWeight:700,fontSize:"0.81rem"}}>{gen?<span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>:"⬇"} PNG</button></div>)
+      :(<button onClick={(e)=>{e.stopPropagation();e.preventDefault();dl();}} disabled={gen} style={{width:"100%",padding:"10px",border:"none",borderRadius:8,cursor:gen?"wait":"pointer",background:done?NHS.green:gen?NHS.midGrey:type.colour,color:"#fff",fontWeight:700,fontSize:"0.87rem",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
         {gen?<><span style={{animation:"nwSpin .8s linear infinite",display:"inline-block"}}>⏳</span>{genLabel||"Generating..."}</>:done?<>✓ Downloaded!</>:<>{type.icon} Download {type.label}</>}
       </button>)}
       <div style={{fontSize:"0.62rem",color:NHS.midGrey,textAlign:"center",marginTop:6}}>Generated locally · not stored on any server</div>
