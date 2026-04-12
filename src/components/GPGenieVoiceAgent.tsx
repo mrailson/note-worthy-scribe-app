@@ -283,13 +283,23 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         console.log(`📧 Sending ${serviceNameForEmail} transcript on disconnect to ${profileEmailRef.current}...`);
         
         try {
+          const ctx = voiceCtxDataRef.current;
           await supabase.functions.invoke('send-genie-transcript-email', {
             body: {
               userEmail: profileEmailRef.current,
               serviceName: serviceNameForEmail,
               conversationBuffer: bufferedForEmail,
               conversationId: conversationIdRef.current,
-              serviceType: serviceTypeForEmail
+              serviceType: serviceTypeForEmail,
+              userContext: {
+                displayName: ctx.displayName,
+                role: ctx.role,
+                practiceName: ctx.practiceName,
+                practiceAddress: ctx.practiceAddress,
+                practicePostcode: ctx.practicePostcode,
+                practicePhone: ctx.practicePhone,
+                practiceOdsCode: ctx.practiceOdsCode,
+              }
             }
           });
         } catch (err) {
