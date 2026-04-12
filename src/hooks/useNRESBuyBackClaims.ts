@@ -654,6 +654,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             invoice_pdf_path: pdfPath,
             invoice_generated_at: new Date().toISOString(),
             gl_summary: { gp_total: gpTotal, other_clinical_total: otherTotal },
+            payment_status: 'received',
+            payment_audit_trail: [{ status: 'received', user_email: user.email || '', timestamp: new Date().toISOString(), notes: 'Auto-set on Director approval' }],
           })
           .eq('id', id)
           .select()
