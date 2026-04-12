@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { ConversationProvider } from "@elevenlabs/react";
 import NotewellChat from "@/components/AskAI/NotewellChat";
 
 interface UserProfile {
@@ -189,7 +190,9 @@ export default function AskAIPage() {
       zIndex: 40,
       background: "#F0F4F8"
     }}>
-      <NotewellChat user={user ?? buildFallbackUser(authUser)} onNavigateHome={() => navigate("/")} />
+      <ConversationProvider>
+        <NotewellChat user={user ?? buildFallbackUser(authUser)} onNavigateHome={() => navigate("/")} />
+      </ConversationProvider>
     </div>
   );
 }
