@@ -1313,7 +1313,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             const file = new File([docxBlob], `Test-Evidence-${cfg.evidence_type}.docx`, {
               type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             });
-            await uploadEvidence(cfg.evidence_type, file, idx);
+            await uploadEvidence(cfg.evidence_type, file, idx, true);
           }
         }
       }

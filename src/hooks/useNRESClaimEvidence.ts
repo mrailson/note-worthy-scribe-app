@@ -49,7 +49,7 @@ export function useNRESClaimEvidence(claimId?: string) {
     if (claimId && user?.id) fetchEvidence();
   }, [claimId, user?.id]);
 
-  const uploadEvidence = useCallback(async (evidenceType: string, file: File, staffIndex?: number) => {
+  const uploadEvidence = useCallback(async (evidenceType: string, file: File, staffIndex?: number, silent?: boolean) => {
     if (!claimId || !user?.id) return null;
     try {
       setUploading(true);
@@ -83,11 +83,11 @@ export function useNRESClaimEvidence(claimId?: string) {
 
       const newFile = data as ClaimEvidenceFile;
       setFiles(prev => [...prev, newFile]);
-      toast.success(`${file.name} uploaded`);
+      if (!silent) toast.success(`${file.name} uploaded`);
       return newFile;
     } catch (err) {
       console.error('Error uploading evidence:', err);
-      toast.error(`Failed to upload ${file.name}`);
+      if (!silent) toast.error(`Failed to upload ${file.name}`);
       return null;
     } finally {
       setUploading(false);
