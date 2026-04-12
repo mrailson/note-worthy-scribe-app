@@ -1,63 +1,56 @@
 
 
-## Plan: Add On-Costs Toggle and Daily Rate Allocation Type
+# GP Locum Category for Buy-Back Claims
 
-### What This Does
-1. **Inc/Excl On-Costs per role** — Each staff role gets a flag indicating whether on-costs (Employer NI + Pension) apply. Employed staff include on-costs; locums exclude them. This carries through all calculations, hover tooltips, invoices, and cost breakdowns.
-2. **Daily Rate allocation type** — A new "daily" allocation option alongside sessions/hours/WTE, with a max daily rate value. GPs default to this.
+## Summary
 
-### Changes Required
+Add a new **"GP Locum"** staff category that allows practices to record multiple locum GPs per month, respecting the £750/day maximum rate and the standard session length of 4 hours 10 minutes.
 
-**1. Update `RoleConfig` interface** (`src/hooks/useNRESBuyBackRateSettings.ts`)
-- Add `includes_on_costs: boolean` (default `true`) to `RoleConfig`
-- Add `'daily'` to the `allocation_default` union type
-- Add optional `daily_rate?: number` field for roles using daily allocation
-- Update `DEFAULT_ROLES`: GP gets `allocation_default: 'daily'`, `daily_rate: 800` (or similar max), `includes_on_costs: false` for locum-type roles
-- Add new roles like "GP Locum" with `includes_on_costs: false` if needed, or keep it per-role configurable
+## How It Works for Practices
 
-**2. Update `BuyBackStaffMember` interface** (`src/hooks/useNRESBuyBackStaff.ts`)
-- Add `'daily'` to the `allocation_type` union: `'sessions' | 'wte' | 'hours' | 'daily'`
+1. **Adding a Locum**: In the staff roster, select category **"GP Locum"**. Enter the locum's name, choose allocation type (Days or Sessions), and enter the value.
+2. **Rate Rules**:
+   - **Daily rate**: Capped at £750/day (8 hrs 20 mins = 2 sessions). If user enters more than £750, it is auto-capped.
+   - **Session rate**: Fixed at £375/session (half of £750). A session = 4 hrs 10 mins.
+   - **No on-costs** applied (locums are self-employed).
+3. **Multiple Locums**: Each locum is a separate staff entry under the same practice and month — the existing multi-staff roster handles this naturally.
+4. **Monthly Calculation**: Days × £750 (or Sessions × £375), pro-rated if they start mid-month (existing logic).
 
-**3. Update rate settings admin UI** (`src/components/nres/hours-tracker/CostBreakdownSection.tsx` and rates config UI)
-- Add an "Inc. On-Costs" toggle/checkbox column per role in the rates table
-- Show/hide the on-costs columns based on each role's setting
-- Add "Daily" as an allocation default option
-- Add a "Max Daily Rate (£)" input when daily is selected
+## Technical Changes
 
-**4. Update calculation logic** (`src/hooks/useNRESBuyBackClaims.ts`)
-- In `calculateStaffMonthlyAmount`: when `allocation_type === 'daily'`, calculate as `daily_rate × working_days_in_month`
-- Check role's `includes_on_costs` flag — if `false`, skip the `onCostMultiplier` (use multiplier of 1.0)
-- Pass `includes_on_costs` through `rateParams` or derive from role config
+### 1. Database — Add `gp_locum` to `staff_category` allowed values
+- Migration: `ALTER` column check constraint (or update app-level validation) to accept `'gp_locum'` alongside `'buyback'`, `'new_sda'`, `'management'`.
 
-**5. Update hover tooltip** (`BuyBackClaimsTab.tsx` — `buildCalcTooltip`)
-- For daily rate: show "X days × £Y/day = £Z/month"
-- When on-costs excluded: show "On-costs: Excluded (Locum)" instead of the NI/Pension breakdown
-- When included: show as current with "On-costs: Included (Employed Staff)"
+### 2. Types & Constants
+- **`useNRESBuyBackStaff.ts`**: Extend `BuyBackStaffMember.staff_category` type to include `'gp_locum'`.
+- **`useNRESBuyBackRateSettings.ts`**: No new role needed — GP Locum uses a hardcoded max daily rate of £750 and session rate of £375.
 
-**6. Update staff add/edit forms** (`BuyBackClaimsTab.tsx`, `EditStaffDialog.tsx`)
-- Add "Daily" option to the allocation type dropdown
-- When "daily" selected, max value = max daily rate from role config
-- Step = 1 for daily
+### 3. Calculation Engine (`useNRESBuyBackClaims.ts`)
+- In `calculateStaffMonthlyAmount`: Add a check for `staff_category === 'gp_locum'`:
+  - If `allocation_type === 'daily'`: `min(allocation_value, 750) × workingDaysInMonth`
+  - If `allocation_type === 'sessions'`: `allocation_value × 375 × (workingDaysInMonth / 1)` — actually: sessions per week × 375 × working weeks, or simply sessions-per-day approach matching existing patterns.
+- Ensure on-costs multiplier is always 1.0 for this category.
 
-**7. Update claim line display** (`BuyBackClaimsTab.tsx`)
-- Show "X daily" alongside existing "X sessions", "X hrs/wk", "X WTE" labels
-- Display "(excl. on-costs)" or "(inc. on-costs)" indicator on the amount
+### 4. Add Staff Form (`BuyBackClaimsTab.tsx`)
+- Add `"GP Locum"` option to the Category dropdown.
+- When selected:
+  - Role auto-set to **"GP Locum"** (read-only).
+  - Allocation type limited to **Days** or **Sessions** only.
+  - Daily rate input capped at £750 with validation message.
+  - Session rate fixed at £375 (displayed, not editable).
+- Show info tooltip: "1 Day = 2 sessions (8 hrs 20 mins). Max £750/day."
 
-**8. Update CostBreakdownSection** (`CostBreakdownSection.tsx`)
-- Add column or indicator showing which roles include/exclude on-costs
-- Calculate hourly equiv differently for excluded roles (no on-costs added)
-- Handle daily rate rows appropriately
+### 5. Edit Staff Dialog (`EditStaffDialog.tsx`)
+- Same constraints as the add form when category is `gp_locum`.
 
-### Files Modified
-- `src/hooks/useNRESBuyBackRateSettings.ts` — types, defaults
-- `src/hooks/useNRESBuyBackStaff.ts` — interface update
-- `src/hooks/useNRESBuyBackClaims.ts` — calculation logic
-- `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — UI, tooltips, forms
-- `src/components/nres/hours-tracker/EditStaffDialog.tsx` — daily option
-- `src/components/nres/hours-tracker/CostBreakdownSection.tsx` — on-costs column
+### 6. Display & Badges
+- `categoryBadge()`: Add orange badge **"GP Locum"** for the new category.
+- `calcBreakdown()` and `buildCalcTooltip()`: Add locum-specific breakdown text, e.g. "2 days × £750/day × 21.67 working days".
 
-### Technical Notes
-- The `includes_on_costs` flag is stored on the `RoleConfig` in `nres_buyback_rate_settings` (JSONB), so no database migration needed
-- Daily rate calculation: `daily_rate × working_days_per_month` (approx 21.67 days or derived from the specific month)
-- Existing claims with sessions/hours/WTE continue to work unchanged
+### 7. Invoice/PDF & Excel Export
+- Map `gp_locum` to display label "GP Locum" in invoice line items and Excel exports.
+- GL code: Use same as GP or a separate one if configured.
+
+### 8. Evidence Config
+- `gp_locum` category uses same evidence requirements as `buyback` (or a dedicated set if needed — will default to buyback config).
 
