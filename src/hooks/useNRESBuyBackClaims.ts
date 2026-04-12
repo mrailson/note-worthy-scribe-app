@@ -675,7 +675,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
   <div style="padding:28px;">
     <p style="margin:0 0 16px;">Dear ${pmContact.practiceManager},</p>
-    <p style="margin:0 0 20px;line-height:1.6;">Please find attached the NRES buy-back claim invoice for <strong>${practiceName}</strong> in respect of Neighbourhood Access Service sessions delivered during <strong>${claimMonthLabel}</strong>.</p>
+    <p style="margin:0 0 20px;line-height:1.6;">The NRES buy-back claim submitted for <strong>${practiceName}</strong> in respect of Neighbourhood Access Service sessions delivered during <strong>${claimMonthLabel}</strong> has been approved by PML. Following that approval, the attached invoice has been created that exactly matches the details of the approved claim. Please keep for your records.</p>
+    <p style="margin:0 0 20px;line-height:1.6;">This has been done to avoid the need for you to manually raise invoices. However, if you would prefer to raise your own invoices, please let <strong>Amanda Palin</strong> know and we can update the system accordingly.</p>
 
     <div style="background:#f0f4f8;border-radius:6px;padding:20px;margin:0 0 20px;">
       <h2 style="font-size:14px;color:#003087;margin:0 0 12px;font-weight:600;">Invoice Summary</h2>
