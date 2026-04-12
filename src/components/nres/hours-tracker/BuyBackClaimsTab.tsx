@@ -1575,6 +1575,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
       for (let idx = 0; idx < staffDetails.length; idx++) {
         const s = staffDetails[idx];
         const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum';
+        const evidenceCat = cat === 'gp_locum' ? 'buyback' : cat; // GP Locum uses buyback evidence config
         const configItems = getConfigForCategory(cat);
         const mandatoryItems = configItems.filter((c: any) => c.is_mandatory);
         const uploadedForStaff = getUploadedTypesForStaff(idx);
