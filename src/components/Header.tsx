@@ -206,186 +206,84 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    align="end" 
                     className="bg-background border border-border shadow-lg w-48 z-50"
                   >
-                      {isServiceVisible('ai4pm_service') && (
+                        {hasServiceAccess('agewell') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/agewell')}
+                            className="cursor-pointer py-3"
+                          >
+                            <img src="/images/agewell-house-icon.png" alt="" className="h-4 w-4 mr-2 object-contain" />
+                            AgeWell
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('ai_4_pm') && isServiceVisible('ai_4_pm') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/ai-4-pm')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            AI 4 PM Assistant
+                          </DropdownMenuItem>
+                        )}
+                        {isServiceVisible('ai4pm_service') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/ai4gp')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Ask AI
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem 
-                          onClick={() => navigate('/ai4gp')}
+                          onClick={() => navigate('/ask-ai')}
                           className="cursor-pointer py-3"
                         >
                           <Sparkles className="h-4 w-4 mr-2" />
-                          Ask AI
+                          Ask AI V2 (Beta)
                         </DropdownMenuItem>
-                      )}
-                     {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
-                       <DropdownMenuItem 
-                          onClick={() => navigate('/')}
-                         className="cursor-pointer py-3"
-                       >
-                         <FileText className="h-4 w-4 mr-2" />
-                         Meeting Notes
-                       </DropdownMenuItem>
-                     )}
-                    {hasModuleAccess('gp_scribe') && isServiceVisible('gp_scribe') && (
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/scribe')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Stethoscope className="h-4 w-4 mr-2" />
-                        Scribe
-                      </DropdownMenuItem>
-                    )}
-                    {hasModuleAccess('complaints_system') && isServiceVisible('complaints_system') && (
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/complaints')}
-                        className="cursor-pointer py-3"
-                      >
-                        <MessageSquareWarning className="h-4 w-4 mr-2" />
-                        Complaints System
-                      </DropdownMenuItem>
-                    )}
-                    {hasModuleAccess('ai_4_pm') && isServiceVisible('ai_4_pm') && (
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/ai-4-pm')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        AI 4 PM Assistant
-                      </DropdownMenuItem>
-                      )}
-                      {hasModuleAccess('enhanced_access') && isServiceVisible('enhanced_access') && (
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/enhanced-access')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Clock className="h-4 w-4 mr-2" />
-                        Enhanced Access
-                      </DropdownMenuItem>
-                     )}
-                       {hasModuleAccess('cqc_compliance_access') && isServiceVisible('cqc_compliance') && (
-                         <DropdownMenuItem 
-                           onClick={() => navigate('/cqc-compliance')}
-                           className="cursor-pointer py-3"
-                         >
-                           <Shield className="h-4 w-4 mr-2" />
-                           CQC Compliance
-                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/ask-ai')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Ask AI V2 (Beta)
-                      </DropdownMenuItem>
-                       {hasModuleAccess('survey_manager_access') && isServiceVisible('survey_manager') && (
-                         <DropdownMenuItem 
-                           onClick={() => navigate('/surveys')}
-                           className="cursor-pointer py-3"
-                         >
-                           <ClipboardList className="h-4 w-4 mr-2" />
-                           Survey Manager
-                         </DropdownMenuItem>
-                       )}
-
-                       {hasModuleAccess('shared_drive_access') && isServiceVisible('shared_drive') && (
+                        {hasServiceAccess('bp_service') && isServiceVisible('bp_service') && (
                           <DropdownMenuItem 
-                            onClick={() => navigate('/shared-drive')}
+                            onClick={() => navigate('/bp-calculator')}
                             className="cursor-pointer py-3"
                           >
-                            <FolderOpen className="h-4 w-4 mr-2" />
-                            Shared Drive
-                          </DropdownMenuItem>
-                          )}
-                          
-                          {/* Only show NRES if user has activation */}
-                          {hasServiceAccess('nres') && isServiceVisible('nres') && (
-                            <DropdownMenuSub>
-                              <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                                <Building2 className="h-4 w-4 mr-2" />
-                                NRES
-                              </DropdownMenuSubTrigger>
-                              <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
-                                <DropdownMenuItem 
-                                  onClick={() => navigate('/NRESDashboard')}
-                                  className="cursor-pointer py-3"
-                                >
-                                  <LayoutDashboard className="h-4 w-4 mr-2" />
-                                  SDA Pilot Dashboard
-                                </DropdownMenuItem>
-                                {/* Only show additional NRES options for system admins */}
-                                {isSystemAdmin && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => navigate('/nres')}
-                                      className="cursor-pointer py-3"
-                                    >
-                                      <Grid3X3 className="h-4 w-4 mr-2" />
-                                      Results Dashboard
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => navigate('/nres/complex-care')}
-                                      className="cursor-pointer py-3"
-                                    >
-                                      <Users className="h-4 w-4 mr-2" />
-                                      Proactive Complex Care
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => navigate('/gp-genie')}
-                                      className="cursor-pointer py-3"
-                                    >
-                                      <Mic className="h-4 w-4 mr-2" />
-                                      AI Phone Agents
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => navigate('/nres/comms-strategy')}
-                                      className="cursor-pointer py-3"
-                                    >
-                                      <MessageSquare className="h-4 w-4 mr-2" />
-                                      Comms Strategy
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                           )}
-
-                           {/* ENN Dashboard */}
-                           {hasServiceAccess('enn') && isServiceVisible('enn') && (
-                             <DropdownMenuItem 
-                               onClick={() => navigate('/enn')}
-                               className="cursor-pointer py-3"
-                             >
-                               <Building2 className="h-4 w-4 mr-2" />
-                               ENN Dashboard
-                             </DropdownMenuItem>
-                           )}
-
-                         {hasModuleAccess('mic_test_service_access') && isServiceVisible('mic_test') && (
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/mic-test')}
-                            className="cursor-pointer py-3"
-                          >
-                            <Wrench className="h-4 w-4 mr-2" />
-                            Mic Test Service
+                            <Heart className="h-4 w-4 mr-2" />
+                            BP Average Service
                           </DropdownMenuItem>
                         )}
-                         {hasModuleAccess('translation_service') && isServiceVisible('translation') && (
+                        {hasModuleAccess('complaints_system') && isServiceVisible('complaints_system') && (
                           <DropdownMenuItem 
-                            onClick={() => {
-                              // Check if mobile and redirect accordingly
-                              const isMobileScreen = window.innerWidth < 768;
-                              const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                              
-                              if (isMobileScreen || isMobileUserAgent) {
-                                navigate('/mobile-translate');
-                              } else {
-                                navigate('/gp-translation');
-                              }
-                            }}
+                            onClick={() => navigate('/complaints')}
                             className="cursor-pointer py-3"
                           >
-                            <Languages className="h-4 w-4 mr-2" />
-                            Translation Service
+                            <MessageSquareWarning className="h-4 w-4 mr-2" />
+                            Complaints System
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('cqc_compliance_access') && isServiceVisible('cqc_compliance') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/cqc-compliance')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            CQC Compliance
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('enhanced_access') && isServiceVisible('enhanced_access') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/enhanced-access')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Clock className="h-4 w-4 mr-2" />
+                            Enhanced Access
+                          </DropdownMenuItem>
+                        )}
+                        {/* ENN Dashboard */}
+                        {hasServiceAccess('enn') && isServiceVisible('enn') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/enn')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Building2 className="h-4 w-4 mr-2" />
+                            ENN Dashboard
                           </DropdownMenuItem>
                         )}
                         {hasModuleAccess('fridge_monitoring_access') && isServiceVisible('fridge_monitoring') && (
@@ -397,22 +295,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Fridge Monitoring
                           </DropdownMenuItem>
                         )}
-                        {hasServiceAccess('bp_service') && isServiceVisible('bp_service') && (
+                        {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
                           <DropdownMenuItem 
-                            onClick={() => navigate('/bp-calculator')}
+                            onClick={() => navigate('/')}
                             className="cursor-pointer py-3"
                           >
-                            <Heart className="h-4 w-4 mr-2" />
-                            BP Average Service
+                            <FileText className="h-4 w-4 mr-2" />
+                            Meeting Notes
                           </DropdownMenuItem>
                         )}
-                        {hasServiceAccess('agewell') && (
+                        {hasModuleAccess('mic_test_service_access') && isServiceVisible('mic_test') && (
                           <DropdownMenuItem 
-                            onClick={() => navigate('/agewell')}
+                            onClick={() => navigate('/mic-test')}
                             className="cursor-pointer py-3"
                           >
-                            <img src="/images/agewell-house-icon.png" alt="" className="h-4 w-4 mr-2 object-contain" />
-                            AgeWell
+                            <Wrench className="h-4 w-4 mr-2" />
+                            Mic Test Service
                           </DropdownMenuItem>
                         )}
                         {hasMockInspectionAccess && isServiceVisible('mock_cqc_inspection') && (
@@ -424,6 +322,57 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Mock CQC Inspection
                           </DropdownMenuItem>
                         )}
+                        {/* Only show NRES if user has activation */}
+                        {hasServiceAccess('nres') && isServiceVisible('nres') && (
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                              <Building2 className="h-4 w-4 mr-2" />
+                              NRES
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                              <DropdownMenuItem 
+                                onClick={() => navigate('/NRESDashboard')}
+                                className="cursor-pointer py-3"
+                              >
+                                <LayoutDashboard className="h-4 w-4 mr-2" />
+                                SDA Pilot Dashboard
+                              </DropdownMenuItem>
+                              {isSystemAdmin && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => navigate('/nres')}
+                                    className="cursor-pointer py-3"
+                                  >
+                                    <Grid3X3 className="h-4 w-4 mr-2" />
+                                    Results Dashboard
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => navigate('/nres/complex-care')}
+                                    className="cursor-pointer py-3"
+                                  >
+                                    <Users className="h-4 w-4 mr-2" />
+                                    Proactive Complex Care
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => navigate('/gp-genie')}
+                                    className="cursor-pointer py-3"
+                                  >
+                                    <Mic className="h-4 w-4 mr-2" />
+                                    AI Phone Agents
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => navigate('/nres/comms-strategy')}
+                                    className="cursor-pointer py-3"
+                                  >
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Comms Strategy
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                        )}
                         {isServiceVisible('policy_service') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/policy-service')}
@@ -431,6 +380,50 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           >
                             <FileText className="h-4 w-4 mr-2" />
                             Practice Policies
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('gp_scribe') && isServiceVisible('gp_scribe') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/scribe')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Stethoscope className="h-4 w-4 mr-2" />
+                            Scribe
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('shared_drive_access') && isServiceVisible('shared_drive') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/shared-drive')}
+                            className="cursor-pointer py-3"
+                          >
+                            <FolderOpen className="h-4 w-4 mr-2" />
+                            Shared Drive
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('survey_manager_access') && isServiceVisible('survey_manager') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/surveys')}
+                            className="cursor-pointer py-3"
+                          >
+                            <ClipboardList className="h-4 w-4 mr-2" />
+                            Survey Manager
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('translation_service') && isServiceVisible('translation') && (
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              const isMobileScreen = window.innerWidth < 768;
+                              const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                              if (isMobileScreen || isMobileUserAgent) {
+                                navigate('/mobile-translate');
+                              } else {
+                                navigate('/gp-translation');
+                              }
+                            }}
+                            className="cursor-pointer py-3"
+                          >
+                            <Languages className="h-4 w-4 mr-2" />
+                            Translation Service
                           </DropdownMenuItem>
                         )}
                         {isServiceVisible('ai4pm_service') && (
