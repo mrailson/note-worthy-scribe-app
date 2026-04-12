@@ -834,23 +834,39 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
   );
 }
 
-async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
+const CLIENT_SEARCH_TRIGGERS = [
+  'latest', 'current', 'recent', 'update', '2025', '2026',
+  'des ', 'pcn des', 'arrs', 'network contract', 'les ',
+  'guidance', 'has changed', 'new policy', 'announcement',
+  'nice', 'nhse', 'nhs england', 'formulary', 'tariff',
+  'reimbursement rate', 'qof', 'iif', 'caip', 'gpad',
+  'enhanced access', 'pharmacy first', 'icb', 'spec',
+  'this year', 'this month', 'april 2025', 'april 2026'
+];
+function messageNeedsSearch(text) {
+  const lower = text.toLowerCase();
+  return CLIENT_SEARCH_TRIGGERS.some(t => lower.includes(t));
+}
+
+async function callClaude(messages, systemPrompt, onChunk, onKbSources, latestMessage) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const endpoint = `${supabaseUrl}/functions/v1/ai-chat`;
+  const endpoint = `${supabaseUrl}/functions/v1/notewell-ask-ai`;
+
+  const { data: { session } } = await supabase.auth.getSession();
 
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${supabaseKey}`,
+      "Authorization": `Bearer ${session?.access_token || supabaseKey}`,
       "apikey": supabaseKey,
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 4096,
-      system: systemPrompt,
-      stream: true,
+      systemPrompt,
+      latestMessage: latestMessage || "",
       messages: messages.map(m => ({
         role: m.role,
         content: m.files?.length
@@ -868,7 +884,7 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
 
   if (!resp.ok) {
     const e = await resp.json().catch(() => ({}));
-    throw new Error(e.error?.message || `API error ${resp.status}`);
+    throw new Error(e.error?.message || e.error || `API error ${resp.status}`);
   }
 
   const reader = resp.body.getReader();
@@ -894,6 +910,11 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
         if (currentEvent === "kb_sources") {
           const sources = JSON.parse(raw);
           onKbSources?.(sources);
+          currentEvent = "";
+          continue;
+        }
+        if (currentEvent === "web_search_sources") {
+          // Web search sources received — could extend UI later
           currentEvent = "";
           continue;
         }
@@ -1027,14 +1048,20 @@ export default function NotewellChat({ user, onNavigateHome }) {
       return;
     }
 
-    const aiId=uid();let accum="";let kbSources=[];
-    setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}]);
+    const aiId=uid();let accum="";let kbSources=[];const isSearching=messageNeedsSearch(text);
+    setMessages(p=>[...p,
+      ...(isSearching?[{id:uid(),role:"search-indicator",content:"🔍 Searching NHS sources...",timestamp:new Date()}]:[]),
+      {id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}
+    ]);
     try{
-      await callClaude(newMsgs,systemPrompt,chunk=>{accum+=chunk;setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum}:m));},sources=>{kbSources=sources;setMessages(p=>p.map(m=>m.id===aiId?{...m,kbSources:sources}:m));});
+      await callClaude(newMsgs,systemPrompt,chunk=>{
+        accum+=chunk;
+        setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum}:m));
+      },sources=>{kbSources=sources;setMessages(p=>p.map(m=>m.id===aiId?{...m,kbSources:sources}:m));},text);
       const artifact=parseArtifact(accum);
-      if(artifact){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
-      else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
-    }catch(e){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
+      if(artifact){setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
+      else{setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
+    }catch(e){setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
     setIsLoading(false);
   },[input,files,messages,isLoading,activeConvId,systemPrompt,handleRunwareImage]);
 
@@ -1131,7 +1158,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} onPopulateInput={t=>setInput(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
+            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} onPopulateInput={t=>setInput(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/favicon-option1.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
