@@ -43,7 +43,7 @@ export function EditStaffDialog({
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
+  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum'>('buyback');
   const [practice, setPractice] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [isActive, setIsActive] = useState(true);

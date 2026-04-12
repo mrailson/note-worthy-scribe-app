@@ -153,6 +153,7 @@ export function calculateStaffMonthlyAmount(
   }
 
   // Pro-rata if start_date falls within the claim month (skip for management — working weeks already handles it)
+  const isManagement = (staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management';
   if (!isManagement && claimMonth && startDate) {
     const claimStart = new Date(claimMonth);
     const claimYear = claimStart.getFullYear();
