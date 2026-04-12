@@ -25,31 +25,32 @@ Deno.serve(async (req) => {
         ? lastMsg.content
         : lastMsg.content?.find?.((c: any) => c.type === "text")?.text || "";
 
-      if (query.length > 3) {
+      if (query.length > 2) {
         try {
           const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
           // Search kb_documents by keyword match
           const searchTerms = query
-            .toLowerCase()
             .replace(/[^\w\s]/g, "")
             .split(/\s+/)
-            .filter((w: string) => w.length > 3)
-            .slice(0, 5);
+            .filter((w: string) => w.length >= 2)
+            .slice(0, 6);
 
           if (searchTerms.length > 0) {
-            let queryBuilder = serviceClient
-              .from("kb_documents")
-              .select("title, summary, key_points, source, effective_date")
-              .eq("is_active", true)
-              .eq("status", "indexed")
-              .limit(3);
-
+            // Build OR conditions that also search the keywords column
             const orConditions = searchTerms
-              .map((term: string) => `title.ilike.%${term}%,summary.ilike.%${term}%`)
+              .map((term: string) => 
+                `title.ilike.%${term}%,summary.ilike.%${term}%,keywords.cs.{${term}}`
+              )
               .join(",");
 
-            const { data: kbDocs } = await queryBuilder.or(orConditions);
+            const { data: kbDocs } = await serviceClient
+              .from("kb_documents")
+              .select("title, summary, key_points, keywords, source, effective_date")
+              .eq("is_active", true)
+              .eq("status", "indexed")
+              .or(orConditions)
+              .limit(5);
 
             if (kbDocs && kbDocs.length > 0) {
               kbSources = kbDocs.map((doc: any) => ({
@@ -60,10 +61,42 @@ Deno.serve(async (req) => {
 
               const entries = kbDocs.map((doc: any) => {
                 const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("; ") : "";
-                return `SOURCE: ${doc.source || "Unknown"} (${doc.effective_date || "No date"})\n${doc.summary || ""}\nKey points: ${keyPts}`;
+                const kws = Array.isArray(doc.keywords) ? doc.keywords.join(", ") : "";
+                return `SOURCE: ${doc.source || "Unknown"} (${doc.effective_date || "No date"})\n${doc.summary || ""}\nKey points: ${keyPts}${kws ? `\nKeywords: ${kws}` : ""}`;
               });
 
               kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE (use this in preference to general knowledge):\n\n${entries.join("\n---\n")}\n---`;
+            }
+
+            // If no results from structured search, try keyword array text search via RPC-like approach
+            if (!kbDocs || kbDocs.length === 0) {
+              // Fallback: search keywords array with case-insensitive matching
+              for (const term of searchTerms) {
+                if (term.length < 2) continue;
+                const { data: fallbackDocs } = await serviceClient
+                  .from("kb_documents")
+                  .select("title, summary, key_points, keywords, source, effective_date")
+                  .eq("is_active", true)
+                  .eq("status", "indexed")
+                  .or(`title.ilike.%${term}%,summary.ilike.%${term}%`)
+                  .limit(3);
+
+                if (fallbackDocs && fallbackDocs.length > 0) {
+                  kbSources = fallbackDocs.map((doc: any) => ({
+                    title: doc.title || "",
+                    source: doc.source || "Unknown",
+                    effective_date: doc.effective_date || "",
+                  }));
+
+                  const entries = fallbackDocs.map((doc: any) => {
+                    const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("; ") : "";
+                    return `SOURCE: ${doc.source || "Unknown"} (${doc.effective_date || "No date"})\n${doc.summary || ""}\nKey points: ${keyPts}`;
+                  });
+
+                  kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE (use this in preference to general knowledge):\n\n${entries.join("\n---\n")}\n---`;
+                  break;
+                }
+              }
             }
           }
         } catch (kbErr) {

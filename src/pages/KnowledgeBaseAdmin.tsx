@@ -31,6 +31,7 @@ interface KBDocument {
   uploaded_at: string;
   summary: string | null;
   key_points: string[] | null;
+  keywords: string[] | null;
   file_url: string | null;
   file_type: string | null;
   status: string;
@@ -53,7 +54,10 @@ export default function KnowledgeBaseAdmin() {
   const [effectiveDate, setEffectiveDate] = useState<Date | undefined>();
   const [file, setFile] = useState<File | null>(null);
   const [urlInput, setUrlInput] = useState("");
+  const [keywordsInput, setKeywordsInput] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [reprocessing, setReprocessing] = useState(false);
+  const [reprocessProgress, setReprocessProgress] = useState({ done: 0, total: 0 });
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
@@ -166,6 +170,11 @@ export default function KnowledgeBaseAdmin() {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const { data: { session } } = await supabase.auth.getSession();
 
+        const extraKeywords = keywordsInput
+          .split(",")
+          .map((k: string) => k.trim())
+          .filter((k: string) => k.length > 0);
+
         fetch(`${supabaseUrl}/functions/v1/kb-summarise`, {
           method: "POST",
           headers: {
@@ -176,6 +185,7 @@ export default function KnowledgeBaseAdmin() {
           body: JSON.stringify({
             document_id: doc.id,
             document_text: documentText,
+            extra_keywords: extraKeywords,
           }),
         }).then(async (resp) => {
           if (resp.ok) {
@@ -204,6 +214,7 @@ export default function KnowledgeBaseAdmin() {
       setTitle("");
       setCategoryId("");
       setSource("");
+      setKeywordsInput("");
       setEffectiveDate(undefined);
       setFile(null);
       setUrlInput("");
@@ -228,7 +239,78 @@ export default function KnowledgeBaseAdmin() {
   };
 
   const handleReprocess = async (doc: KBDocument) => {
-    toast.info("Re-processing not yet implemented for stored documents. Please re-upload the file.");
+    if (!doc.file_url) {
+      toast.error("No file URL available for this document. Please re-upload.");
+      return;
+    }
+    toast.info(`Re-processing "${doc.title}"…`);
+    try {
+      const resp = await fetch(doc.file_url);
+      const text = await resp.text();
+      if (text.length < 50) {
+        toast.error("Could not extract sufficient text from the file.");
+        return;
+      }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${supabaseUrl}/functions/v1/kb-summarise`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ document_id: doc.id, document_text: text }),
+      });
+      if (res.ok) {
+        toast.success(`"${doc.title}" re-processed successfully`);
+        loadData();
+      } else {
+        toast.error(`Failed to re-process "${doc.title}"`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Re-processing failed");
+    }
+  };
+
+  const handleReprocessAll = async () => {
+    const indexedDocs = documents.filter(d => d.status === "indexed" && d.file_url);
+    if (indexedDocs.length === 0) {
+      toast.info("No indexed documents with files to re-process.");
+      return;
+    }
+    if (!confirm(`Re-process all ${indexedDocs.length} indexed documents? This may take a while.`)) return;
+
+    setReprocessing(true);
+    setReprocessProgress({ done: 0, total: indexedDocs.length });
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const { data: { session } } = await supabase.auth.getSession();
+
+    for (let i = 0; i < indexedDocs.length; i++) {
+      const doc = indexedDocs[i];
+      try {
+        const resp = await fetch(doc.file_url!);
+        const text = await resp.text();
+        if (text.length >= 50) {
+          await fetch(`${supabaseUrl}/functions/v1/kb-summarise`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session?.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ document_id: doc.id, document_text: text }),
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to re-process ${doc.title}:`, err);
+      }
+      setReprocessProgress({ done: i + 1, total: indexedDocs.length });
+    }
+
+    setReprocessing(false);
+    toast.success("All documents re-processed");
+    loadData();
   };
 
   const formatDate = (d: string | null) => {
@@ -365,6 +447,16 @@ export default function KnowledgeBaseAdmin() {
                 </div>
               </div>
 
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Keywords / Tags (optional)</label>
+                <Input
+                  value={keywordsInput}
+                  onChange={(e) => setKeywordsInput(e.target.value)}
+                  placeholder="e.g. PML, semaglutide, ARRS, DocMed"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Comma-separated terms users might search for. Auto-populated on upload but you can add more.</p>
+              </div>
+
               <div className="flex items-center gap-3">
                 <Button onClick={handleUpload} disabled={uploading} className="gap-2">
                   {uploading ? (
@@ -390,10 +482,29 @@ export default function KnowledgeBaseAdmin() {
 
           {/* Documents Table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">
                 Documents ({documents.length})
               </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReprocessAll}
+                disabled={reprocessing}
+                className="gap-2"
+              >
+                {reprocessing ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Re-processing {reprocessProgress.done}/{reprocessProgress.total}…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Re-process All
+                  </>
+                )}
+              </Button>
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
