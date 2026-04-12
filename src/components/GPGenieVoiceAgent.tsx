@@ -41,6 +41,7 @@ import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useGenieHistory, ServiceType } from '@/hooks/useGenieHistory';
+import { useVoiceAgentContext } from '@/hooks/useVoiceAgentContext';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { Packer } from 'docx';
