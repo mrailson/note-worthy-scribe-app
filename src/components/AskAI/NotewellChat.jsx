@@ -24,7 +24,7 @@ function useViewport(){
   useEffect(()=>{const ro=new ResizeObserver(()=>setVp(classify(window.innerWidth)));ro.observe(document.documentElement);return()=>ro.disconnect();},[]);
   return vp;
 }
-function classify(w){ return w<1100?"compact":w<1600?"standard":"wide"; }
+function classify(w){ return w<600?"mobile":w<1100?"compact":w<1600?"standard":"wide"; }
 
 const PII_PATTERNS=[
   {pattern:/\b(NHS\s*n(o|umber)\.?)\s*[:=]?\s*\d{3}\s?\d{3}\s?\d{4}/i,label:"NHS Number"},
@@ -341,9 +341,10 @@ function ArtifactPreview({artifact}){
 function UserAvatar({user,size=32}){return<div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.32,fontWeight:700,color:"#fff",border:"2px solid rgba(255,255,255,.2)"}}>{user.initials}</div>;}
 function PracticeLogo({practice,size=26}){if(practice.logoUrl)return<img src={practice.logoUrl} alt={practice.name} style={{width:size,height:size,objectFit:"contain",borderRadius:5}}/>;const init=(practice.shortName||practice.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,3);return<div style={{width:size,height:size,borderRadius:6,background:`linear-gradient(135deg,${practice.primaryColour||NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.28,fontWeight:900,color:"#fff",flexShrink:0}}>{init}</div>;}
 
-function MessageBubble({msg,user,settings,compact,hasPanel}){
+function MessageBubble({msg,user,settings,compact,hasPanel,vp}){
   const isUser=msg.role==="user";const [copied,setCopied]=useState(false);const [feedback,setFeedback]=useState(null);
   const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
+  const isMobile=vp==="mobile";
   return(<div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
     {isUser?<UserAvatar user={user} size={compact?27:33}/>:<div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",fontWeight:700,color:"#fff",boxShadow:"0 2px 8px rgba(0,0,0,.1)"}}>N</div>}
     <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
@@ -353,7 +354,7 @@ function MessageBubble({msg,user,settings,compact,hasPanel}){
       <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
         {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/><span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/></>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
       </div>
-      {!isUser&&!msg.streaming&&<div style={{display:"flex",gap:4,marginTop:4}}>{[{l:copied?"✓ Copied":"⎘ Copy",fn:()=>{navigator.clipboard.writeText(display);setCopied(true);setTimeout(()=>setCopied(false),1500)},a:copied},{l:"👍",fn:()=>setFeedback("up"),a:feedback==="up",ac:NHS.green},{l:"👎",fn:()=>setFeedback("down"),a:feedback==="down",ac:NHS.red}].map((b,i)=><button key={i} onClick={b.fn} style={{background:b.a?(b.ac||NHS.blue)+"22":"transparent",border:`1px solid ${b.a?(b.ac||NHS.blue):NHS.paleGrey}`,borderRadius:5,padding:"2px 7px",cursor:"pointer",fontSize:"0.71rem",color:b.a?(b.ac||NHS.blue):NHS.midGrey}}>{b.l}</button>)}</div>}
+      {!isUser&&!msg.streaming&&<div style={{display:"flex",gap:4,marginTop:4}}>{[{l:copied?"✓ Copied":"⎘ Copy",fn:()=>{navigator.clipboard.writeText(display);setCopied(true);setTimeout(()=>setCopied(false),1500)},a:copied},{l:"👍",fn:()=>setFeedback("up"),a:feedback==="up",ac:NHS.green},{l:"👎",fn:()=>setFeedback("down"),a:feedback==="down",ac:NHS.red}].map((b,i)=><button key={i} onClick={b.fn} style={{background:b.a?(b.ac||NHS.blue)+"22":"transparent",border:`1px solid ${b.a?(b.ac||NHS.blue):NHS.paleGrey}`,borderRadius:5,padding:isMobile?"8px 12px":"2px 7px",cursor:"pointer",fontSize:"0.71rem",color:b.a?(b.ac||NHS.blue):NHS.midGrey,minHeight:isMobile?36:undefined}}>{b.l}</button>)}</div>}
       {!isUser&&!msg.streaming&&settings.showClinicalCaveats&&display.length>60&&<div style={{fontSize:"0.64rem",color:NHS.midGrey,marginTop:4,padding:"2px 7px",background:"#f8f9fa",borderRadius:4,borderLeft:`3px solid ${NHS.warmYellow}`}}>⚕️ Apply clinical judgement before acting on AI output in patient care.</div>}
     </div>
   </div>);
@@ -380,31 +381,71 @@ function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
 }
 
 function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle}){
-  const autoCollapse=settings.sidebarMode==="auto"&&vp==="compact";
+  const isMobile=vp==="mobile";
+  const autoCollapse=(settings.sidebarMode==="auto"&&(vp==="compact"||isMobile));
   const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
-  const w=collapsed?50:vp==="wide"?255:230;
+  const w=collapsed?(isMobile?0:50):vp==="wide"?255:230;
+  const sidebarStyle=isMobile?{
+    position:"fixed",top:0,left:0,bottom:0,zIndex:200,
+    width:forceOpen?260:0,overflow:"hidden",
+    background:NHS.darkBlue,display:"flex",flexDirection:"column",
+    transition:"width .24s",
+    boxShadow:forceOpen?"4px 0 24px rgba(0,0,0,0.35)":"none",
+  }:{
+    width:w,minWidth:w,background:NHS.darkBlue,display:"flex",flexDirection:"column",
+    transition:"width .24s,min-width .24s",overflow:"hidden",
+  };
   const groups=groupByDate(conversations);
-  return(<div style={{width:w,minWidth:w,background:NHS.darkBlue,display:"flex",flexDirection:"column",transition:"width .24s,min-width .24s",overflow:"hidden"}}>
-    <div style={{padding:collapsed?"11px 7px":"11px 10px",display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between",borderBottom:"1px solid rgba(255,255,255,.1)",minHeight:50}}>
-      {!collapsed&&<div style={{display:"flex",alignItems:"center",gap:7}}><PracticeLogo practice={user.practice} size={23}/><div><div style={{color:"#fff",fontWeight:700,fontSize:"0.83rem"}}>Ask AI</div><div style={{color:"rgba(255,255,255,.4)",fontSize:"0.61rem"}}>{user.practice.shortName} · last 7 days</div></div></div>}
-      <button onClick={onToggle} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:6,padding:"3px 6px",cursor:"pointer",color:"#fff",fontSize:".87rem"}}>{collapsed?"›":"‹"}</button>
-    </div>
-    <div style={{padding:collapsed?"7px":"7px 9px"}}><button onClick={onNew} style={{background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.17)",borderRadius:8,padding:collapsed?"6px":"6px 10px",cursor:"pointer",color:"#fff",width:"100%",fontSize:"0.79rem",display:"flex",alignItems:"center",justifyContent:collapsed?"center":"flex-start",gap:6}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}><span>✏️</span>{!collapsed&&"New conversation"}</button></div>
-    {!collapsed&&(<div style={{flex:1,overflowY:"auto",padding:"0 7px 7px"}}>
-      {Object.entries(groups).map(([label,convs])=>convs.length===0?null:(<div key={label}>
-        <div style={{fontSize:"0.6rem",color:"rgba(255,255,255,.32)",padding:"8px 4px 4px",letterSpacing:".07em",textTransform:"uppercase"}}>{label}</div>
-        {convs.map(c=>(<div key={c.id} style={{position:"relative",marginBottom:2}}>
-          <button onClick={()=>onSelect(c.id)} style={{background:c.id===activeId?"rgba(255,255,255,.15)":"transparent",border:"none",borderRadius:7,padding:"6px 24px 6px 8px",cursor:"pointer",width:"100%",textAlign:"left",color:"#fff",transition:"background .13s"}} onMouseEnter={e=>{if(c.id!==activeId)e.currentTarget.style.background="rgba(255,255,255,.08)";}} onMouseLeave={e=>{if(c.id!==activeId)e.currentTarget.style.background="transparent";}}>
-            <div style={{fontSize:"0.77rem",fontWeight:c.id===activeId?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.hasArtifact&&<span style={{marginRight:4}}>{ARTIFACT_TYPES[c.artifactType]?.icon||"📎"}</span>}{c.title}</div>
-            <div style={{fontSize:"0.61rem",color:"rgba(255,255,255,.3)",marginTop:1}}>{fmtDate(c.updatedAt)}</div>
+  return(
+    <>
+      {isMobile&&forceOpen&&(
+        <div onClick={onToggle} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:199,animation:"nwFadeIn .2s ease"}}/>
+      )}
+      <div style={sidebarStyle}>
+        <div style={{padding:"14px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.1)",minHeight:54,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <PracticeLogo practice={user.practice} size={24}/>
+            <div>
+              <div style={{color:"#fff",fontWeight:700,fontSize:"0.84rem"}}>Ask AI</div>
+              <div style={{color:"rgba(255,255,255,.4)",fontSize:"0.62rem"}}>{user.practice.shortName} · last 7 days</div>
+            </div>
+          </div>
+          <button onClick={onToggle} style={{background:"rgba(255,255,255,.12)",border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",color:"#fff",fontSize:".9rem",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+        <div style={{padding:"10px 12px",flexShrink:0}}>
+          <button onClick={()=>{onNew();if(isMobile)onToggle();}} style={{background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:9,padding:"10px 14px",cursor:"pointer",color:"#fff",width:"100%",fontSize:"0.82rem",display:"flex",alignItems:"center",gap:8,minHeight:44}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}>
+            <span>✏️</span>New conversation
           </button>
-          <button onClick={()=>onDelete(c.id)} style={{position:"absolute",right:3,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.2)",fontSize:"0.72rem",padding:"2px 3px",transition:"color .13s"}} onMouseEnter={e=>e.currentTarget.style.color=NHS.red} onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,.2)"}>🗑</button>
-        </div>))}
-      </div>))}
-      {conversations.length===0&&<div style={{fontSize:"0.74rem",color:"rgba(255,255,255,.28)",padding:"10px 4px",textAlign:"center"}}>No conversations yet</div>}
-    </div>)}
-    {!collapsed&&(<div style={{padding:"8px 10px 9px",borderTop:"1px solid rgba(255,255,255,.07)",display:"flex",gap:6,alignItems:"center"}}><UserAvatar user={user} size={23}/><div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:"0.73rem",fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div><div style={{fontSize:"0.59rem",color:"rgba(255,255,255,.34)"}}>DCB0129/0160 · MHRA Class I</div></div></div>)}
-  </div>);
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"0 10px 10px"}}>
+          {Object.entries(groups).map(([label,convs])=>convs.length===0?null:(
+            <div key={label}>
+              <div style={{fontSize:"0.62rem",color:"rgba(255,255,255,.32)",padding:"10px 4px 5px",letterSpacing:".07em",textTransform:"uppercase"}}>{label}</div>
+              {convs.map(c=>(
+                <div key={c.id} style={{position:"relative",marginBottom:3}}>
+                  <button onClick={()=>{onSelect(c.id);if(isMobile)onToggle();}} style={{background:c.id===activeId?"rgba(255,255,255,.15)":"transparent",border:"none",borderRadius:8,padding:"10px 36px 10px 10px",cursor:"pointer",width:"100%",textAlign:"left",color:"#fff",minHeight:44,transition:"background .13s"}}
+                    onMouseEnter={e=>{if(c.id!==activeId)e.currentTarget.style.background="rgba(255,255,255,.08)";}}
+                    onMouseLeave={e=>{if(c.id!==activeId)e.currentTarget.style.background="transparent";}}>
+                    <div style={{fontSize:"0.8rem",fontWeight:c.id===activeId?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.hasArtifact&&<span style={{marginRight:5}}>{ARTIFACT_TYPES[c.artifactType]?.icon||"📎"}</span>}{c.title}</div>
+                    <div style={{fontSize:"0.63rem",color:"rgba(255,255,255,.32)",marginTop:2}}>{fmtDate(c.updatedAt)}</div>
+                  </button>
+                  <button onClick={()=>onDelete(c.id)} style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.25)",fontSize:"0.8rem",padding:isMobile?"8px 10px":"4px 6px",minWidth:isMobile?40:undefined,minHeight:isMobile?44:undefined,display:"flex",alignItems:"center",justifyContent:"center",transition:"color .13s"}} onMouseEnter={e=>e.currentTarget.style.color=NHS.red} onMouseLeave={e=>e.currentTarget.style.color="rgba(255,255,255,.25)"}>🗑</button>
+                </div>
+              ))}
+            </div>
+          ))}
+          {conversations.length===0&&<div style={{fontSize:"0.77rem",color:"rgba(255,255,255,.28)",padding:"16px 4px",textAlign:"center"}}>No conversations yet</div>}
+        </div>
+        <div style={{padding:"10px 12px",borderTop:"1px solid rgba(255,255,255,.07)",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+          <UserAvatar user={user} size={26}/>
+          <div style={{flex:1,overflow:"hidden"}}>
+            <div style={{fontSize:"0.75rem",fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
+            <div style={{fontSize:"0.61rem",color:"rgba(255,255,255,.34)"}}>DCB0129/0160 · MHRA Class I</div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
 
 async function callClaude(messages,systemPrompt,onChunk){

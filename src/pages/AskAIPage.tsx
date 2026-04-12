@@ -137,7 +137,14 @@ export default function AskAIPage() {
   );
 
   return (
-    <div style={{ height: "calc(100vh - 48px)" }}>
+    <div style={{
+      position: "fixed",
+      top: 48,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: "hidden"
+    }}>
       <NotewellChat user={user ?? buildFallbackUser(authUser)} />
     </div>
   );
