@@ -901,6 +901,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </CollapsibleContent>
       </Card>
       </Collapsible>
+      </div>
 
       {/* Management Time Section */}
       {effectiveIsAdmin && !isENN && (
