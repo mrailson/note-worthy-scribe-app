@@ -667,19 +667,47 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                 to_email: invoiceRecipient,
                 subject: `Invoice ${invoiceNum} — ${practiceName} NRES Buy-Back Claim (${claimMonthLabel})`,
                 html_content: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <div style="background-color: #003087; padding: 16px 24px;">
-                      <h1 style="color: #ffffff; font-size: 18px; margin: 0;">NRES Buy-Back Invoice</h1>
-                    </div>
-                    <div style="padding: 24px;">
-                      <p>Dear ${pmContact.practiceManager},</p>
-                      <p>Please find attached invoice <strong>${invoiceNum}</strong> for the NRES Neighbourhood Access Service buy-back claim for <strong>${practiceName}</strong> covering <strong>${claimMonthLabel}</strong>.</p>
-                      <p>Payment terms: <strong>30 days</strong> from the date of this invoice.</p>
-                      <p>Invoice payable to: <strong>PML (Principal Medical Limited)</strong>, 3 Barberry Place, Bicester, Oxfordshire, OX26 3HA.</p>
-                      <p>If you have any queries regarding this invoice, please contact your Neighbourhood Manager.</p>
-                      <p style="margin-top: 24px; color: #666; font-size: 12px;">This is an automated message from Notewell AI — NRES SDA Programme.</p>
-                    </div>
-                  </div>
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;">
+  <div style="background-color:#003087;padding:20px 28px;">
+    <p style="color:#ffffff;font-size:11px;margin:0 0 4px 0;letter-spacing:1px;text-transform:uppercase;">NRES Neighbourhood Access Service</p>
+    <h1 style="color:#ffffff;font-size:20px;margin:0;font-weight:600;">Buy-Back Claim Invoice — ${claimMonthLabel}</h1>
+  </div>
+
+  <div style="padding:28px;">
+    <p style="margin:0 0 16px;">Dear ${pmContact.practiceManager},</p>
+    <p style="margin:0 0 20px;line-height:1.6;">Please find attached the NRES buy-back claim invoice for <strong>${practiceName}</strong> in respect of Neighbourhood Access Service sessions delivered during <strong>${claimMonthLabel}</strong>.</p>
+
+    <div style="background:#f0f4f8;border-radius:6px;padding:20px;margin:0 0 20px;">
+      <h2 style="font-size:14px;color:#003087;margin:0 0 12px;font-weight:600;">Invoice Summary</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:6px 0;color:#666;">Invoice Number</td><td style="padding:6px 0;font-weight:600;text-align:right;">${invoiceNum}</td></tr>
+        <tr><td style="padding:6px 0;color:#666;">Claim Period</td><td style="padding:6px 0;text-align:right;">${claimMonthLabel}</td></tr>
+        <tr><td style="padding:6px 0;color:#666;">Invoice Date</td><td style="padding:6px 0;text-align:right;">${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</td></tr>
+        <tr><td style="padding:6px 0;color:#666;">Payment Terms</td><td style="padding:6px 0;text-align:right;">30 days from invoice date</td></tr>
+        <tr style="border-top:2px solid #005EB8;"><td style="padding:10px 0 6px;color:#003087;font-weight:700;">Total Amount Due</td><td style="padding:10px 0 6px;text-align:right;font-weight:700;font-size:16px;color:#003087;">£${((gpTotal || 0) + (otherTotal || 0)).toFixed(2)}</td></tr>
+      </table>
+    </div>
+
+    <div style="background:#f5f8fc;border-radius:6px;padding:20px;margin:0 0 20px;">
+      <h2 style="font-size:14px;color:#003087;margin:0 0 12px;font-weight:600;">Payment Details</h2>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <tr><td style="padding:4px 0;color:#666;">Payable to</td><td style="padding:4px 0;text-align:right;">PML (Principal Medical Limited)</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Address</td><td style="padding:4px 0;text-align:right;">3 Barberry Place, Bicester, Oxfordshire, OX26 3HA</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Bank</td><td style="padding:4px 0;text-align:right;">Lloyds Bank</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Sort Code</td><td style="padding:4px 0;text-align:right;">30-11-08</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Account No.</td><td style="padding:4px 0;text-align:right;">28122560</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Account Name</td><td style="padding:4px 0;text-align:right;">Brackley &amp; Towcester PCN Ltd</td></tr>
+      </table>
+    </div>
+
+    <p style="margin:0 0 16px;line-height:1.6;">Please use invoice number <strong>${invoiceNum}</strong> as your payment reference to ensure correct allocation.</p>
+    <p style="margin:0 0 0;line-height:1.6;">If you have any queries regarding this invoice or the associated claim, please contact your Neighbourhood Manager: <strong>Amanda Palin</strong> (<a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;">amanda.palin2@nhs.net</a>).</p>
+  </div>
+
+  <div style="background:#f0f4f8;padding:16px 28px;font-size:11px;color:#666;line-height:1.5;">
+    <p style="margin:0;">This is an automated message generated by Notewell AI — NRES SDA Programme.<br/>NHS Northamptonshire ICB &nbsp;·&nbsp; MHRA Class I &nbsp;·&nbsp; ICO ZB226324 &nbsp;·&nbsp; DCB0129/DCB0160<br/>Invoice Ref: ${invoiceNum} &nbsp;·&nbsp; Claim ID: ${id}</p>
+  </div>
+</div>
                 `,
                 from_name: 'NRES Buy-Back Claims',
                 cc_emails: invoiceCc,

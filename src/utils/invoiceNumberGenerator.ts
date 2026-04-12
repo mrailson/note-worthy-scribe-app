@@ -21,16 +21,25 @@ function getFinancialYear(claimMonth: string): string {
  * e.g. NRES-2627-04-K83049-001
  */
 export async function generateInvoiceNumber(
-  neighbourhoodPrefix: string, // 'NRES' or 'ENN'
+  neighbourhoodPrefix: string, // kept for compatibility but no longer used in output
   practiceKey: string,
   claimMonth: string,
 ): Promise<string> {
-  const fy = getFinancialYear(claimMonth);
-  const mm = String(new Date(claimMonth).getMonth() + 1).padStart(2, '0');
-  const ods = getOdsCode(practiceKey);
-  const prefix = `${neighbourhoodPrefix}-${fy}-${mm}-${ods}`;
+  const d = new Date(claimMonth);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const fyStart = month >= 4 ? year : year - 1;
+  const fy = String(fyStart).slice(2);
 
-  // Find highest existing sequence for this prefix
+  const mm = String(month).padStart(2, '0');
+
+  const rawOds = getOdsCode(practiceKey);
+  const ods = (rawOds && rawOds !== '—' && rawOds !== '')
+    ? rawOds.replace(/^K/i, '')
+    : 'UNKNOWN';
+
+  const prefix = `${fy}-${ods}-${mm}`;
+
   const { data } = await supabase
     .from('nres_buyback_claims')
     .select('invoice_number')
