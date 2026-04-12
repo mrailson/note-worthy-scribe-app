@@ -33,7 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight, Pencil } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight, Pencil, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { EditStaffDialog } from './EditStaffDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -479,6 +479,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
   const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
+  const [staffSortCol, setStaffSortCol] = useState<string>('practice');
+  const [staffSortDir, setStaffSortDir] = useState<'asc' | 'desc'>('asc');
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
@@ -662,23 +664,62 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           <AddStaffForm saving={savingStaff} onAdd={addStaff} staffRoles={staffRoles} rateParams={rateParams} practiceKeys={effectivePracticeKeys} practiceNames={ALL_PRACTICES} managementRoles={rateSettings.management_roles_config} />
 
           {/* Staff list */}
-          {filteredStaff.length > 0 && (
+          {filteredStaff.length > 0 && (() => {
+            const toggleSort = (col: string) => {
+              if (staffSortCol === col) {
+                setStaffSortDir(d => d === 'asc' ? 'desc' : 'asc');
+              } else {
+                setStaffSortCol(col);
+                setStaffSortDir('asc');
+              }
+            };
+            const SortIcon = ({ col }: { col: string }) => {
+              if (staffSortCol !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+              return staffSortDir === 'asc' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+            };
+            const sortedStaff = [...filteredStaff].sort((a, b) => {
+              const dir = staffSortDir === 'asc' ? 1 : -1;
+              switch (staffSortCol) {
+                case 'practice': return dir * (resolvePracticeName(a.practice_key)).localeCompare(resolvePracticeName(b.practice_key));
+                case 'category': return dir * (a.staff_category || '').localeCompare(b.staff_category || '');
+                case 'name': return dir * (a.staff_name || '').localeCompare(b.staff_name || '');
+                case 'role': return dir * (a.staff_role || '').localeCompare(b.staff_role || '');
+                case 'allocation': return dir * ((a.allocation_value || 0) - (b.allocation_value || 0));
+                case 'start_date': return dir * ((a.start_date || '').localeCompare(b.start_date || ''));
+                case 'monthly': return dir * (calculateStaffMonthlyAmount(a, undefined, undefined, rateParams) - calculateStaffMonthlyAmount(b, undefined, undefined, rateParams));
+                default: return 0;
+              }
+            });
+            return (
             <div className="border rounded-md overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
                    <tr>
-                     <th className="text-left p-2 font-medium">Practice</th>
-                     <th className="text-left p-2 font-medium">Category</th>
-                     <th className="text-left p-2 font-medium">Name</th>
-                     <th className="text-left p-2 font-medium">Role</th>
-                     <th className="text-left p-2 font-medium">Allocation</th>
-                     <th className="text-left p-2 font-medium">Start Date</th>
-                     <th className="text-right p-2 font-medium">Monthly Max Claim</th>
+                     {[
+                       { key: 'practice', label: 'Practice', align: 'left' },
+                       { key: 'category', label: 'Category', align: 'left' },
+                       { key: 'name', label: 'Name', align: 'left' },
+                       { key: 'role', label: 'Role', align: 'left' },
+                       { key: 'allocation', label: 'Allocation', align: 'left' },
+                       { key: 'start_date', label: 'Start Date', align: 'left' },
+                       { key: 'monthly', label: 'Monthly Max Claim', align: 'right' },
+                     ].map(col => (
+                       <th
+                         key={col.key}
+                         className={cn("p-2 font-medium cursor-pointer select-none hover:bg-muted/80 transition-colors", col.align === 'right' ? 'text-right' : 'text-left')}
+                         onClick={() => toggleSort(col.key)}
+                       >
+                         <span className="inline-flex items-center">
+                           {col.label}
+                           <SortIcon col={col.key} />
+                         </span>
+                       </th>
+                     ))}
                      <th className="p-2"></th>
                    </tr>
                  </thead>
                  <tbody>
-                   {filteredStaff.map(s => {
+                   {sortedStaff.map(s => {
                      const displayName = maskStaffName(s.staff_name, user?.id, s.user_id, user?.email);
                      const monthly = calculateStaffMonthlyAmount(s, undefined, undefined, rateParams);
                      return (
@@ -729,7 +770,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 </tbody>
               </table>
             </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
       )}
