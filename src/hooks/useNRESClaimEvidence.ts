@@ -83,11 +83,11 @@ export function useNRESClaimEvidence(claimId?: string) {
 
       const newFile = data as ClaimEvidenceFile;
       setFiles(prev => [...prev, newFile]);
-      toast.success(`${file.name} uploaded`);
+      if (!silent) toast.success(`${file.name} uploaded`);
       return newFile;
     } catch (err) {
       console.error('Error uploading evidence:', err);
-      toast.error(`Failed to upload ${file.name}`);
+      if (!silent) toast.error(`Failed to upload ${file.name}`);
       return null;
     } finally {
       setUploading(false);
