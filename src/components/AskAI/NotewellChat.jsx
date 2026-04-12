@@ -1205,6 +1205,51 @@ export default function NotewellChat({ user, onNavigateHome }) {
       </div>
 
       {activeArtifact&&<div style={{display:"flex",animation:"nwSlideIn .22s ease"}}><ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp}/></div>}
+
+      {/* Live Voice Mode — mobile only floating button */}
+      {vp==="mobile"&&!showVoiceMode&&<button onClick={()=>setShowVoiceMode(true)} style={{position:"fixed",bottom:"calc(90px + env(safe-area-inset-bottom, 0px))",right:16,width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg, ${NHS.blue}, ${NHS.darkBlue})`,border:"none",color:"#fff",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,48,135,.35)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,transition:"transform .15s"}} title="Live Voice Mode" aria-label="Live Voice Mode"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>}
+
+      {/* Live Voice Mode fullscreen overlay */}
+      {showVoiceMode&&<div style={{position:"fixed",inset:0,zIndex:9999,background:"linear-gradient(180deg, #001845 0%, #003087 50%, #005EB8 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"nwFadeIn .25s ease"}}>
+        {/* Close button */}
+        <button onClick={()=>setShowVoiceMode(false)} style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top, 0px))",right:12,width:48,height:48,borderRadius:"50%",background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",zIndex:10}} aria-label="Close voice mode">✕</button>
+
+        {/* Title */}
+        <div style={{position:"absolute",top:"calc(20px + env(safe-area-inset-top, 0px))",left:20,display:"flex",alignItems:"center",gap:8}}>
+          <img src="/favicon-option1.png" alt="" style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
+          <span style={{color:"#fff",fontWeight:700,fontSize:"0.9rem",opacity:.9}}>Notewell Voice</span>
+        </div>
+
+        {/* Pulsing circle */}
+        <div style={{position:"relative",width:160,height:160,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:32}}>
+          <div style={{position:"absolute",width:160,height:160,borderRadius:"50%",background:"rgba(65,182,230,.15)",animation:"nwVoicePulse 2s ease-in-out infinite"}}/>
+          <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(65,182,230,.2)",animation:"nwVoicePulse 2s ease-in-out .3s infinite"}}/>
+          <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",background:"rgba(65,182,230,.3)",animation:"nwVoicePulse 2s ease-in-out .6s infinite"}}/>
+          <div style={{width:56,height:56,borderRadius:"50%",background:NHS.lightBlue,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1}}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+        </div>
+
+        {/* ElevenLabs widget container */}
+        <div ref={el=>{
+          if(el&&!el.dataset.loaded){
+            el.dataset.loaded="1";
+            const loadWidget=async()=>{
+              try{
+                if(!document.querySelector('script[src*="elevenlabs.io/convai-widget"]')){
+                  await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://elevenlabs.io/convai-widget/index.js";s.async=true;s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+                }
+                const w=document.createElement("elevenlabs-convai");
+                w.setAttribute("agent-id","agent_01jwry2fzme7xsb2mwzatxseyt");
+                el.appendChild(w);
+              }catch(e){console.error("ElevenLabs widget error:",e);}
+            };
+            loadWidget();
+          }
+        }} style={{width:"100%",maxWidth:360,minHeight:80,display:"flex",justifyContent:"center"}}/>
+
+        <p style={{color:"rgba(255,255,255,.5)",fontSize:"0.72rem",marginTop:24,textAlign:"center",padding:"0 32px",paddingBottom:"env(safe-area-inset-bottom, 16px)"}}>Tap the widget above to start talking · Powered by ElevenLabs</p>
+      </div>}
     </div>
   );
 }
