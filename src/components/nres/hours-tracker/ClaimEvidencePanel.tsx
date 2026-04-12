@@ -176,6 +176,7 @@ export function StaffLineEvidence({
   onUpload: (evidenceType: string, file: File, staffIndex: number) => Promise<any>;
   onDelete: (id: string) => Promise<void>;
   onDownload: (filePath: string) => Promise<string | null>;
+  hideHeader?: boolean;
 }) {
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const allTypes = getConfigForCategory(staffCategory);
