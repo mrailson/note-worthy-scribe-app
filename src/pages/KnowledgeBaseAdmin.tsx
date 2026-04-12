@@ -294,6 +294,7 @@ export default function KnowledgeBaseAdmin() {
 
     for (let i = 0; i < indexedDocs.length; i++) {
       const doc = indexedDocs[i];
+      setRowProcessing(prev => ({ ...prev, [doc.id]: 'processing' }));
       try {
         const resp = await fetch(doc.file_url!);
         const text = await resp.text();
@@ -308,8 +309,10 @@ export default function KnowledgeBaseAdmin() {
             body: JSON.stringify({ document_id: doc.id, document_text: text }),
           });
         }
+        setRowProcessing(prev => ({ ...prev, [doc.id]: 'done' }));
       } catch (err) {
         console.error(`Failed to re-process ${doc.title}:`, err);
+        setRowProcessing(prev => ({ ...prev, [doc.id]: 'error' }));
       }
       setReprocessProgress({ done: i + 1, total: indexedDocs.length });
     }
@@ -317,6 +320,7 @@ export default function KnowledgeBaseAdmin() {
     setReprocessing(false);
     toast.success("All documents re-processed");
     loadData();
+    setTimeout(() => setRowProcessing({}), 3000);
   };
 
   const formatDate = (d: string | null) => {
