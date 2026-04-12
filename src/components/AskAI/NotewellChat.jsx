@@ -763,74 +763,68 @@ export default function NotewellChat({ user, onNavigateHome }) {
       <div className="nw-wrap" style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative",minWidth:0}} onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles(Array.from(e.dataTransfer.files));}}>
         {dragOver&&<div style={{position:"absolute",inset:0,background:"rgba(0,114,206,.08)",border:`3px dashed ${NHS.brightBlue}`,zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.3rem",color:NHS.blue,fontWeight:700}}>📎 Drop to attach</div>}
 
-        {/* Status bar */}
-        <div style={{padding:vp==="mobile"?"7px 10px":(vp==="compact"?"7px 13px":"9px 18px"),background:"#fff",borderBottom:`1px solid ${NHS.paleGrey}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            {/* Notewell home button */}
+        {/* NHS Blue Banner — matching ENN/NRES dashboard style */}
+        <div style={{background:"linear-gradient(to right, #005EB8, #003087, #002060)",color:"#fff",padding:vp==="mobile"?"0 10px":"0 18px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,height:48,boxShadow:"0 2px 6px rgba(0,0,0,.15)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:vp==="mobile"?8:12,minWidth:0}}>
+            {/* Home */}
             <button
               onClick={() => onNavigateHome?.()}
-              style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",padding:"5px 8px",borderRadius:8,color:NHS.darkBlue,fontSize:"0.82rem",fontWeight:700,minHeight:44,minWidth:44,transition:"background .13s"}}
-              onMouseEnter={e=>e.currentTarget.style.background="#E8EDEE"}
-              onMouseLeave={e=>e.currentTarget.style.background="none"}
+              style={{display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",padding:"5px 6px",borderRadius:8,color:"#fff",fontSize:"0.82rem",fontWeight:700,minHeight:40,transition:"opacity .13s",opacity:.9}}
+              onMouseEnter={e=>e.currentTarget.style.opacity="1"}
+              onMouseLeave={e=>e.currentTarget.style.opacity=".9"}
               title="Back to Notewell"
               aria-label="Back to Notewell"
             >
-              <span style={{fontSize:"1.1rem"}}>←</span>
-              {vp !== "mobile" && <span style={{fontWeight:800,color:NHS.darkBlue,letterSpacing:"-.01em"}}>Notewell</span>}
+              <img src="/favicon-robot-white.png" alt="Notewell AI" style={{width:24,height:24,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
+              {vp !== "mobile" && <span style={{fontWeight:800,letterSpacing:"-.01em"}}>Notewell AI</span>}
             </button>
+
             {/* Hamburger — mobile only */}
             {vp === "mobile" && (
               <button onClick={() => setSidebarForceOpen(o => !o)}
-                style={{background:"transparent",border:"none",cursor:"pointer",color:NHS.midGrey,fontSize:"1.2rem",padding:"6px 4px",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}
+                style={{background:"transparent",border:"none",cursor:"pointer",color:"rgba(255,255,255,.8)",fontSize:"1.2rem",padding:"6px 4px",minWidth:40,minHeight:40,display:"flex",alignItems:"center",justifyContent:"center"}}
                 aria-label="Open conversation history">☰</button>
             )}
-            {/* AI identity */}
-            <div style={{display:"flex",alignItems:"center",gap:7}}>
-              <img src="/favicon-robot-white.png" alt="Notewell AI" style={{width:26,height:26,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
-              {vp !== "mobile" && (
-                <div>
-                  <div style={{fontWeight:700,fontSize:"0.84rem",color:NHS.darkBlue}}>Notewell AI Assistant</div>
-                  <div style={{fontSize:"0.61rem",color:NHS.green,display:"flex",alignItems:"center",gap:3}}>
-                    <span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>
-                    Ready · {user.practice.shortName}
-                    {profileActive && <span style={{color:NHS.blue,marginLeft:2}}>· Profile active</span>}
-                  </div>
-                </div>
-              )}
-              {vp === "mobile" && (
-                <div>
-                  <div style={{fontWeight:700,fontSize:"0.82rem",color:NHS.darkBlue,lineHeight:1.2}}>Notewell AI</div>
-                  <div style={{fontSize:"0.6rem",color:NHS.green,display:"flex",alignItems:"center",gap:2}}>
-                    <span style={{width:4,height:4,borderRadius:"50%",background:NHS.green,display:"inline-block"}}/>
-                    Ready{profileActive && " · Profile ✓"}
-                  </div>
-                </div>
-              )}
+
+            {/* Divider */}
+            <div style={{width:1,height:20,background:"rgba(255,255,255,.3)",flexShrink:0}}/>
+
+            {/* Context */}
+            <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+              <span style={{fontSize:"0.82rem",color:"rgba(255,255,255,.92)",fontWeight:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                {vp==="mobile"?"AI Assistant":"Notewell AI Assistant"}
+              </span>
+              <span style={{display:"flex",alignItems:"center",gap:3,fontSize:"0.65rem",color:"rgba(255,255,255,.7)"}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:"#00A499",display:"inline-block"}}/>
+                Ready · {user.practice.shortName}
+                {profileActive && <span style={{marginLeft:2}}>· Profile active</span>}
+              </span>
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-            {activeArtifact&&vp!=="compact"&&<button onClick={()=>setActiveArtifact(null)} style={{background:ARTIFACT_TYPES[activeArtifact.type]?.colour+"14",border:`1px solid ${ARTIFACT_TYPES[activeArtifact.type]?.colour}44`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:ARTIFACT_TYPES[activeArtifact.type]?.colour,display:"flex",alignItems:"center",gap:4}}>{ARTIFACT_TYPES[activeArtifact.type]?.icon} {(activeArtifact.title||"").slice(0,20)}{(activeArtifact.title||"").length>20?"…":""}</button>}
+
+          <div style={{display:"flex",alignItems:"center",gap:vp==="mobile"?4:6,flexShrink:0}}>
+            {activeArtifact&&vp!=="compact"&&<button onClick={()=>setActiveArtifact(null)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:"#fff",display:"flex",alignItems:"center",gap:4}}>{ARTIFACT_TYPES[activeArtifact.type]?.icon} {(activeArtifact.title||"").slice(0,20)}{(activeArtifact.title||"").length>20?"…":""}</button>}
 
             {/* Chat History toggle */}
-            <button onClick={()=>setSidebarForceOpen(o=>!o)} style={{background:sidebarForceOpen?NHS.blue+"11":"transparent",border:`1.5px solid ${sidebarForceOpen?NHS.blue+"44":NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:sidebarForceOpen?NHS.blue:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=sidebarForceOpen?NHS.blue+"44":NHS.paleGrey;e.currentTarget.style.color=sidebarForceOpen?NHS.blue:NHS.midGrey;}} title="Toggle chat history">
+            <button onClick={()=>setSidebarForceOpen(o=>!o)} style={{background:sidebarForceOpen?"rgba(255,255,255,.15)":"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.2)";}} onMouseLeave={e=>{e.currentTarget.style.background=sidebarForceOpen?"rgba(255,255,255,.15)":"transparent";}} title="Toggle chat history">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
               {vp!=="compact"&&vp!=="mobile"&&" History"}
             </button>
 
             {/* + New Chat */}
-            <button onClick={()=>{newConv();}} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.green;e.currentTarget.style.color=NHS.green;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}} title="New conversation">
+            <button onClick={()=>{newConv();}} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}} title="New conversation">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               {vp!=="compact"&&vp!=="mobile"&&" New Chat"}
             </button>
 
             {/* My Profile button */}
-            <button onClick={()=>{setProfileInitialTab("profile");setShowProfile(true);}} style={{background:profileActive?NHS.blue+"11":"transparent",border:`1.5px solid ${profileActive?NHS.blue+"44":NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:profileActive?NHS.blue:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=profileActive?NHS.blue+"44":NHS.paleGrey;e.currentTarget.style.color=profileActive?NHS.blue:NHS.midGrey;}} title="My Profile & Custom Instructions">
-              👤{vp!=="compact"&&" My Profile"}{profileActive&&<span style={{width:6,height:6,borderRadius:"50%",background:NHS.green,display:"inline-block",flexShrink:0}}/>}
+            <button onClick={()=>{setProfileInitialTab("profile");setShowProfile(true);}} style={{background:profileActive?"rgba(255,255,255,.15)":"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.2)";}} onMouseLeave={e=>{e.currentTarget.style.background=profileActive?"rgba(255,255,255,.15)":"transparent";}} title="My Profile & Custom Instructions">
+              👤{vp!=="compact"&&" My Profile"}{profileActive&&<span style={{width:6,height:6,borderRadius:"50%",background:"#00A499",display:"inline-block",flexShrink:0}}/>}
             </button>
 
             {/* Guide button */}
-            <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}}>? {vp!=="compact"&&"Guide"}</button>
-            {vp!=="compact"&&<div style={{display:"flex",alignItems:"center",gap:5,padding:"2px 8px 2px 5px",background:NHS.blue,borderRadius:20,fontSize:"0.62rem",fontWeight:700,color:"#fff",letterSpacing:".05em"}}><span style={{background:"#fff",color:NHS.blue,borderRadius:3,padding:"0 3px",fontWeight:900,fontSize:".58rem"}}>NHS</span>Clinical Grade</div>}
+            <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>? {vp!=="compact"&&"Guide"}</button>
+            {vp!=="compact"&&<div style={{display:"flex",alignItems:"center",gap:5,padding:"2px 8px 2px 5px",background:"rgba(255,255,255,.15)",borderRadius:20,fontSize:"0.62rem",fontWeight:700,color:"#fff",letterSpacing:".05em"}}><span style={{background:"#fff",color:NHS.blue,borderRadius:3,padding:"0 3px",fontWeight:900,fontSize:".58rem"}}>NHS</span>Clinical Grade</div>}
           </div>
         </div>
 
