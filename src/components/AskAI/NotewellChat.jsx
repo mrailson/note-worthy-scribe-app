@@ -1606,7 +1606,25 @@ export default function NotewellChat({ user, onNavigateHome }) {
         </div>
       </div>
 
-      {activeArtifact&&<div style={{display:"flex",animation:"nwSlideIn .22s ease"}}><ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp}/></div>}
+      {/* Artifact panel — desktop with drag handle */}
+      {activeArtifact&&vp!=="compact"&&vp!=="mobile"&&(
+        <>
+          <div ref={dragRef} onMouseDown={onDragStart} style={{width:6,background:"transparent",cursor:"col-resize",flexShrink:0,position:"relative",zIndex:10,transition:"background .15s",display:"flex",alignItems:"center",justifyContent:"center"}} onMouseEnter={e=>{e.currentTarget.style.background=NHS.blue+"33";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}} title="Drag to resize panel">
+            <div style={{width:2,height:40,background:NHS.paleGrey,borderRadius:2}}/>
+          </div>
+          <div style={{width:panelWidth,minWidth:MIN_PANEL_W,maxWidth:MAX_PANEL_W,flexShrink:0,animation:"nwSlideIn .22s ease",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={panelWidth} onSetWidth={savePanelWidth}/>
+          </div>
+        </>
+      )}
+      {/* Artifact panel — mobile/compact overlay */}
+      {activeArtifact&&(vp==="compact"||vp==="mobile")&&(
+        <div style={{position:"fixed",inset:0,zIndex:999,background:"rgba(0,0,0,.45)",animation:"nwFadeIn .2s ease"}} onClick={()=>setActiveArtifact(null)}>
+          <div style={{position:"absolute",right:0,top:0,bottom:0,width:"90vw",maxWidth:480,background:"#fff",animation:"nwSlideIn .22s ease",display:"flex",flexDirection:"column",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={480} onSetWidth={null}/>
+          </div>
+        </div>
+      )}
 
       {/* Voice Panel — desktop only */}
       {vp!=="mobile"&&<VoicePanel open={voicePanelOpen} onClose={()=>setVoicePanelOpen(false)} sessionStatus={voiceSessionStatus} onStartSession={voiceStartSession} onEndSession={voiceEndSession}/>}
