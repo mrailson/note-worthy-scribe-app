@@ -86,6 +86,7 @@ import { PageRouteAudit } from '@/components/admin/PageRouteAudit';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
 const DPIAGenerator = lazy(() => import("@/components/sda/DPIAGenerator"));
+const KnowledgeBaseEmbed = lazy(() => import("@/pages/KnowledgeBase"));
 
 // Word lists for memorable password generation
 const PASSWORD_WORDS = [
@@ -4500,14 +4501,23 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
-            <PolicyEnhancementModelSettings />
-            
-            <PolicyRegenerateButtonSettings />
-            
-            <ConsultationVisibilitySettings />
-            
-            <AdminVideoUpload />
-            
+            <Tabs defaultValue="general-settings">
+              <TabsList className="mb-4">
+                <TabsTrigger value="general-settings">General</TabsTrigger>
+                <TabsTrigger value="ai-knowledge-base">AI Chat Knowledge Base</TabsTrigger>
+              </TabsList>
+              <TabsContent value="general-settings" className="space-y-6">
+                <PolicyEnhancementModelSettings />
+                <PolicyRegenerateButtonSettings />
+                <ConsultationVisibilitySettings />
+                <AdminVideoUpload />
+              </TabsContent>
+              <TabsContent value="ai-knowledge-base">
+                <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading Knowledge Base…</div>}>
+                  <KnowledgeBaseEmbed />
+                </Suspense>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>
