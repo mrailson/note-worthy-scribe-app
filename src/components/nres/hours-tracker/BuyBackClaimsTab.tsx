@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { exportClaimsDetail, exportMonthlySummary, exportYTDRunningTotals } from '@/utils/buybackExcelExport';
+import { exportClaimsDetail } from '@/utils/buybackExcelExport';
 import { TestModeBar, type TestModeState } from './TestModeBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
@@ -933,12 +933,6 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                 <div className="flex gap-2 items-center">
                   <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
                     <Download className="w-3 h-3" /> Export Detail
-                  </Button>
-                  <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportMonthlySummary(accessFilteredClaims, effectiveFilterPractice)}>
-                    <Download className="w-3 h-3" /> Export Summary
-                  </Button>
-                  <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportYTDRunningTotals(accessFilteredClaims)}>
-                    <Download className="w-3 h-3" /> Export YTD
                   </Button>
                 </div>
               )}
