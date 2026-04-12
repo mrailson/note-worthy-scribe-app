@@ -1260,6 +1260,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
     }
   };
 
+  const statusBadge = (status: string) => {
     const variants: Record<string, string> = {
       draft: 'bg-muted text-muted-foreground',
       submitted: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
