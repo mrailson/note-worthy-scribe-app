@@ -636,7 +636,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       </div>
     );
   }
-
+import { PaymentWorkflowPanel } from './PaymentWorkflowPanel';
 
   return (
     <div className="space-y-6">
