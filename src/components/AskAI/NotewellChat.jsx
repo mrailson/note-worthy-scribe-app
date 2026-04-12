@@ -948,7 +948,9 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [isListening,setIsListening]=useState(false);
   const [interimText,setInterimText]=useState("");
   const [speechError,setSpeechError]=useState(null);
+  const [showVoiceMode,setShowVoiceMode]=useState(false);
   const speechRef=useRef(null);
+  const voiceWidgetRef=useRef(null);
   const startListening=useCallback(()=>{
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){setSpeechError("Speech recognition requires Chrome or Safari 17+");return;}
@@ -1074,6 +1076,9 @@ export default function NotewellChat({ user, onNavigateHome }) {
         @keyframes nwSlideIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
         @keyframes nwSlideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
         @keyframes nwVoiceBar{0%{height:4px}100%{height:16px}}
+        @keyframes nwPulseRed{0%,100%{border-color:#DC2626;box-shadow:0 0 0 3px rgba(220,38,38,.15)}50%{border-color:#EF4444;box-shadow:0 0 0 6px rgba(220,38,38,.25)}}
+        @keyframes nwVoicePulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.18);opacity:1}}
+        @keyframes nwVoiceRipple{0%{transform:scale(.8);opacity:.6}100%{transform:scale(2.2);opacity:0}}
         .nw-wrap *{box-sizing:border-box}
         .nw-wrap ::-webkit-scrollbar{width:5px}
         .nw-wrap ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:3px}
