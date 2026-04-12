@@ -30,7 +30,7 @@ export default function AskAIPage() {
       const { data: profile } = await supabase
         .from("profiles")
         .select("*, gp_practices(name, short_name, ods_code, clinical_system, logo_url, primary_colour)")
-        .eq("id", session.user.id)
+        .eq("user_id", session.user.id)
         .single();
 
       if (profile) {
