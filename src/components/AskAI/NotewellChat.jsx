@@ -380,7 +380,7 @@ function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
   </div>);
 }
 
-function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle}){
+function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome}){
   const isMobile=vp==="mobile";
   const autoCollapse=(settings.sidebarMode==="auto"&&(vp==="compact"||isMobile));
   const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
@@ -402,15 +402,30 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
         <div onClick={onToggle} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:199,animation:"nwFadeIn .2s ease"}}/>
       )}
       <div style={sidebarStyle}>
-        <div style={{padding:"14px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.1)",minHeight:54,flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <PracticeLogo practice={user.practice} size={24}/>
-            <div>
-              <div style={{color:"#fff",fontWeight:700,fontSize:"0.84rem"}}>Ask AI</div>
-              <div style={{color:"rgba(255,255,255,.4)",fontSize:"0.62rem"}}>{user.practice.shortName} · last 7 days</div>
-            </div>
+        <div style={{padding:collapsed?"11px 7px":"11px 12px",display:"flex",flexDirection:"column",gap:collapsed?0:6,borderBottom:"1px solid rgba(255,255,255,.1)",flexShrink:0}}>
+          {/* Notewell home link */}
+          {!collapsed && (
+            <button
+              onClick={() => onNavigateHome?.()}
+              style={{background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.12)",borderRadius:7,padding:"5px 9px",cursor:"pointer",color:"rgba(255,255,255,.7)",fontSize:"0.73rem",fontWeight:700,display:"flex",alignItems:"center",gap:5,width:"100%",textAlign:"left",minHeight:34,letterSpacing:"-.01em"}}
+              onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,.14)"}
+              onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,.06)"}
+            >
+              <span>←</span>
+              <span style={{fontWeight:900,fontSize:"0.8rem",color:"#fff"}}>Notewell</span>
+              <span style={{opacity:.5,fontSize:"0.7rem"}}>/ Ask AI</span>
+            </button>
+          )}
+          {/* Practice + toggle row */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:collapsed?"center":"space-between"}}>
+            {!collapsed && (
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <PracticeLogo practice={user.practice} size={22}/>
+                <div style={{color:"rgba(255,255,255,.5)",fontSize:"0.6rem"}}>last 7 days</div>
+              </div>
+            )}
+            <button onClick={onToggle} style={{background:"rgba(255,255,255,.1)",border:"none",borderRadius:6,padding:"3px 7px",cursor:"pointer",color:"#fff",fontSize:".87rem",minWidth:32,minHeight:32}}>{collapsed?"›":"‹"}</button>
           </div>
-          <button onClick={onToggle} style={{background:"rgba(255,255,255,.12)",border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",color:"#fff",fontSize:".9rem",minWidth:36,minHeight:36,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
         </div>
         <div style={{padding:"10px 12px",flexShrink:0}}>
           <button onClick={()=>{onNew();if(isMobile)onToggle();}} style={{background:"rgba(255,255,255,.1)",border:"1.5px solid rgba(255,255,255,.2)",borderRadius:9,padding:"10px 14px",cursor:"pointer",color:"#fff",width:"100%",fontSize:"0.82rem",display:"flex",alignItems:"center",gap:8,minHeight:44}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,.2)"} onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,.1)"}>
