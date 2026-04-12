@@ -681,10 +681,17 @@ const ROLE_SUGGESTIONS = {
 
 function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
   const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
-  const [selectedRole, setSelectedRole] = useState(() => {
-    const roles = Object.keys(ROLE_SUGGESTIONS);
-    return roles.find(r => user.role?.toLowerCase().includes(r.toLowerCase())) || "Practice Manager";
-  });
+  const getRoleFromProfile = (userRole) => {
+    const r = (userRole || '').toLowerCase();
+    if (r.includes('pcn manager') || r.includes('pcn')) return 'PCN Manager';
+    if (r.includes('practice manager') || r.includes('manager')) return 'Practice Manager';
+    if (r.includes('gp partner') || r.includes('partner')) return 'GP Partner';
+    if (r.includes('salaried') || r.includes('salaried gp')) return 'Salaried GP';
+    if (r.includes('admin') || r.includes('reception') || r.includes('practice user')) return 'Admin / Reception';
+    if (r.includes('system admin')) return 'Practice Manager';
+    return 'Practice Manager';
+  };
+  const [selectedRole, setSelectedRole] = useState(() => getRoleFromProfile(user.role));
   const scrollRef = useRef(null);
   const currentSuggestions = ROLE_SUGGESTIONS[selectedRole] || ROLE_SUGGESTIONS["Practice Manager"];
 
@@ -699,8 +706,8 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
     </p>
     <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><button key={k} onClick={()=>onPopulateInput("Create a "+v.label)} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 10px",background:v.colour+"11",border:`1.5px solid ${v.colour}33`,borderRadius:20,fontSize:"0.72rem",color:v.colour,fontWeight:600,cursor:"pointer",transition:"background .15s"}} onMouseEnter={e=>e.currentTarget.style.background=v.colour+"23"} onMouseLeave={e=>e.currentTarget.style.background=v.colour+"11"}>{v.icon} {v.label}</button>)}</div>
 
-    {/* FIX 4: Role selector pills */}
-    <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginBottom:12,maxWidth:660}}>
+    {/* Role selector pills */}
+    <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12,justifyContent:"center",maxWidth:660}}>
       {Object.keys(ROLE_SUGGESTIONS).map(role=>(
         <button key={role} onClick={()=>setSelectedRole(role)} style={{
           padding:"5px 14px",borderRadius:20,fontSize:"0.74rem",fontWeight:600,cursor:"pointer",
@@ -712,26 +719,26 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
       ))}
     </div>
 
-    {/* FIX 4: Horizontally scrollable suggestion cards */}
-    <div ref={scrollRef} style={{
-      display:"flex",gap:8,overflowX:"auto",width:"100%",maxWidth:vp==="wide"?720:560,
-      paddingBottom:8,scrollBehavior:"smooth",scrollbarWidth:"none",
+    {/* Horizontally scrollable suggestion cards */}
+    <style>{`.nw-sugg-scroll::-webkit-scrollbar{display:none}`}</style>
+    <div ref={scrollRef} className="nw-sugg-scroll" style={{
+      display:"flex",flexDirection:"row",overflowX:"auto",overflowY:"hidden",
+      gap:10,paddingBottom:8,paddingTop:4,width:"100%",maxWidth:vp==="wide"?720:560,
+      scrollBehavior:"smooth",scrollbarWidth:"none",
       WebkitOverflowScrolling:"touch",msOverflowStyle:"none"
     }}>
-      <style>{`.nw-suggestions-scroll::-webkit-scrollbar{display:none}`}</style>
       {currentSuggestions.map((text,i)=>(
         <button key={`${selectedRole}-${i}`} onClick={()=>onSuggestion(text)} style={{
-          minWidth:200,maxWidth:200,height:90,background:"#fff",
-          border:`1.5px solid ${NHS.paleGrey}`,borderRadius:10,padding:"10px 12px",
-          cursor:"pointer",textAlign:"left",transition:"all .17s",fontSize:"0.78rem",
-          color:NHS.darkGrey,lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)",
-          flexShrink:0,display:"flex",alignItems:"flex-start",
-          overflow:"hidden",
-          WebkitLineClamp:2,WebkitBoxOrient:"vertical",
+          flexShrink:0,minWidth:180,maxWidth:200,height:80,background:"#fff",
+          border:"1.5px solid #E8EDEE",borderRadius:10,padding:"10px 12px",
+          cursor:"pointer",textAlign:"left",transition:"all .15s",fontSize:"0.78rem",
+          color:"#231F20",lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)",
+          overflow:"hidden",display:"-webkit-box",
+          WebkitLineClamp:3,WebkitBoxOrient:"vertical",textOverflow:"ellipsis",
         }}
-        onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,114,206,.12)`;}}
-        onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
-          <span style={{display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",textOverflow:"ellipsis"}}>{text}</span>
+        onMouseEnter={e=>{e.currentTarget.style.borderColor="#0072CE";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 4px 14px rgba(0,114,206,.12)";}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor="#E8EDEE";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
+          {text}
         </button>
       ))}
     </div>
