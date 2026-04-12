@@ -1315,6 +1315,56 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
+/** Inline PDF viewer button — opens invoice in a dialog */
+function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath: string; invoiceNumber: string }) {
+  const [open, setOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleOpen = async () => {
+    setOpen(true);
+    setLoading(true);
+    try {
+      const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(invoicePdfPath, 600);
+      if (data?.signedUrl) setPdfUrl(data.signedUrl);
+    } catch (e) {
+      console.error('Failed to load invoice PDF:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleOpen}>
+        <Eye className="w-3 h-3" /> View Invoice
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] p-0">
+          <DialogHeader className="px-6 pt-4 pb-2">
+            <DialogTitle className="text-sm">Invoice {invoiceNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            {loading ? (
+              <div className="flex items-center justify-center h-[600px]">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                className="w-full h-[600px] rounded-md border"
+                title={`Invoice ${invoiceNumber}`}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Failed to load invoice PDF.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, isPMLDirector, pmlFinanceEmails, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onUpdatePayment, savingPayment, testActive }: {
   claim: BuyBackClaim;
   claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
