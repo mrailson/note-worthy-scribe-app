@@ -2,18 +2,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { getOdsCode } from '@/data/nresPractices';
 
 /**
- * Derive the financial year string from a claim month.
- * NHS financial year runs April (month 4) to March (month 3).
- * April 2026 → "2627", March 2027 → "2627", April 2027 → "2728"
+ * Generate the next invoice number for a claim.
+ * Format: [YY]-[ODS_NO_K]-[MM]-[SEQ]
+ * e.g. 26-83049-04-001
  */
-function getFinancialYear(claimMonth: string): string {
-  const d = new Date(claimMonth);
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1; // 1-based
-  const fyStart = month >= 4 ? year : year - 1;
-  const fyEnd = fyStart + 1;
-  return `${String(fyStart).slice(2)}${String(fyEnd).slice(2)}`;
-}
 
 /**
  * Generate the next invoice number for a claim.
