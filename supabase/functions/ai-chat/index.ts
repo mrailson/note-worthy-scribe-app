@@ -29,94 +29,95 @@ Deno.serve(async (req) => {
         try {
           const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-          // Search kb_documents by keyword match
+          // STAGE 1: Find relevant documents via title/summary/keyword match
           const searchTerms = query
             .replace(/[^\w\s]/g, "")
             .split(/\s+/)
-            .filter((w: string) => w.length >= 2)
-            .slice(0, 6);
+            .filter((w: string) => w.length >= 3)
+            .slice(0, 8);
 
           if (searchTerms.length > 0) {
-            // Build OR conditions that also search the keywords column
             const orConditions = searchTerms
-              .map((term: string) => 
+              .map((term: string) =>
                 `title.ilike.%${term}%,summary.ilike.%${term}%,keywords.cs.{${term}}`
               )
               .join(",");
 
-            const { data: kbDocs } = await serviceClient
+            const { data: matchedDocs } = await serviceClient
               .from("kb_documents")
-              .select("title, summary, key_points, keywords, source, effective_date, full_text")
+              .select("id, title, source, effective_date, summary, key_points, keywords")
               .eq("is_active", true)
               .eq("status", "indexed")
               .or(orConditions)
-              .limit(5);
+              .limit(4);
 
-            if (kbDocs && kbDocs.length > 0) {
-              kbSources = kbDocs.map((doc: any) => ({
+            if (matchedDocs && matchedDocs.length > 0) {
+              const docIds = matchedDocs.map((d: any) => d.id);
+
+              // STAGE 2: Get chunks from those documents that contain search terms
+              const chunkOrConditions = searchTerms
+                .map((term: string) => `content.ilike.%${term}%`)
+                .join(",");
+
+              const { data: matchedChunks } = await serviceClient
+                .from("kb_chunks")
+                .select("document_id, content, chunk_index")
+                .in("document_id", docIds)
+                .or(chunkOrConditions)
+                .order("chunk_index", { ascending: true })
+                .limit(6);
+
+              kbSources = matchedDocs.map((doc: any) => ({
                 title: doc.title || "",
                 source: doc.source || "Unknown",
                 effective_date: doc.effective_date || "",
               }));
 
-              const entries = kbDocs.map((doc: any) => {
-                const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("\n- ") : "";
-                const kws = Array.isArray(doc.keywords) ? doc.keywords.join(", ") : "";
-                const fullText = doc.full_text ? `\n\nFULL CONTENT:\n${doc.full_text.slice(0, 3000)}` : "";
-                return [
-                  `SOURCE: ${doc.title || "Unknown"}`,
-                  `Date: ${doc.effective_date || "No date"}`,
-                  `From: ${doc.source || ""}`,
-                  `Summary: ${doc.summary || ""}`,
-                  keyPts ? `Key points:\n- ${keyPts}` : "",
-                  kws ? `Keywords: ${kws}` : "",
-                  fullText,
-                ].filter(Boolean).join("\n");
-              });
+              const docMap = new Map(
+                matchedDocs.map((d: any) => [d.id, d])
+              );
 
-              kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE — AUTHORITATIVE LOCAL SOURCE. Use this data in preference to general knowledge for all Northamptonshire prescribing questions:\n\n${entries.join("\n\n---\n\n")}\n---`;
-            }
+              let contextParts: string[] = [];
 
-            // If no results from structured search, try keyword array text search via RPC-like approach
-            if (!kbDocs || kbDocs.length === 0) {
-              // Fallback: search keywords array with case-insensitive matching
-              for (const term of searchTerms) {
-                if (term.length < 2) continue;
-                const { data: fallbackDocs } = await serviceClient
-                  .from("kb_documents")
-                  .select("title, summary, key_points, keywords, source, effective_date, full_text")
-                  .eq("is_active", true)
-                  .eq("status", "indexed")
-                  .or(`title.ilike.%${term}%,summary.ilike.%${term}%`)
-                  .limit(3);
+              if (matchedChunks && matchedChunks.length > 0) {
+                const chunksByDoc = new Map<string, string[]>();
+                for (const chunk of matchedChunks) {
+                  const existing = chunksByDoc.get(chunk.document_id) || [];
+                  existing.push(chunk.content);
+                  chunksByDoc.set(chunk.document_id, existing);
+                }
 
-                if (fallbackDocs && fallbackDocs.length > 0) {
-                  kbSources = fallbackDocs.map((doc: any) => ({
-                    title: doc.title || "",
-                    source: doc.source || "Unknown",
-                    effective_date: doc.effective_date || "",
-                  }));
-
-                  const entries = fallbackDocs.map((doc: any) => {
-                    const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("\n- ") : "";
-                    const kws = Array.isArray(doc.keywords) ? doc.keywords.join(", ") : "";
-                    const fullText = doc.full_text ? `\n\nFULL CONTENT:\n${doc.full_text.slice(0, 3000)}` : "";
-                    return [
-                      `SOURCE: ${doc.title || "Unknown"}`,
-                      `Date: ${doc.effective_date || "No date"}`,
-                      `From: ${doc.source || ""}`,
-                      `Summary: ${doc.summary || ""}`,
-                      keyPts ? `Key points:\n- ${keyPts}` : "",
-                      kws ? `Keywords: ${kws}` : "",
-                      fullText,
-                    ].filter(Boolean).join("\n");
-                  });
-
-                  kbContext = `\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE — AUTHORITATIVE LOCAL SOURCE. Use this data in preference to general knowledge for all Northamptonshire prescribing questions:\n\n${entries.join("\n\n---\n\n")}\n---`;
-                  break;
+                for (const [docId, chunks] of chunksByDoc) {
+                  const doc = docMap.get(docId);
+                  if (!doc) continue;
+                  contextParts.push(
+                    `SOURCE: ${doc.title} (${doc.effective_date || "No date"}) · ${doc.source || ""}\n` +
+                    chunks.join("\n")
+                  );
+                }
+              } else {
+                for (const doc of matchedDocs) {
+                  const kp = Array.isArray(doc.key_points)
+                    ? "\n- " + doc.key_points.join("\n- ")
+                    : "";
+                  contextParts.push(
+                    `SOURCE: ${doc.title} (${doc.effective_date || "No date"})\n` +
+                    `${doc.summary || ""}${kp}`
+                  );
                 }
               }
+
+              if (contextParts.length > 0) {
+                kbContext =
+                  "\n\nNORTHAMPTONSHIRE LOCAL KNOWLEDGE BASE" +
+                  " — AUTHORITATIVE. Prioritise this over" +
+                  " general knowledge for all Northants" +
+                  " prescribing questions:\n\n" +
+                  contextParts.join("\n\n---\n\n") +
+                  "\n---";
+              }
             }
+          }
           }
         } catch (kbErr) {
           console.error("KB search error (non-fatal):", kbErr);
