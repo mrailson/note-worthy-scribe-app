@@ -1,0 +1,1 @@
+ALTER TABLE public.kb_documents ADD COLUMN IF NOT EXISTS keywords text[];

@@ -5237,6 +5237,7 @@ export type Database = {
           id: string
           is_active: boolean
           key_points: string[] | null
+          keywords: string[] | null
           source: string | null
           status: string
           summary: string | null
@@ -5253,6 +5254,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           key_points?: string[] | null
+          keywords?: string[] | null
           source?: string | null
           status?: string
           summary?: string | null
@@ -5269,6 +5271,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           key_points?: string[] | null
+          keywords?: string[] | null
           source?: string | null
           status?: string
           summary?: string | null
