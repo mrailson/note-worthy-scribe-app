@@ -1691,22 +1691,35 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                     </td>
                   </tr>
                 )}
-                {/* Inline staff evidence */}
+                {/* Inline staff evidence — collapsed by default */}
                 <tr key={`evidence-${idx}`} className="border-b">
                   <td colSpan={canEdit ? 9 : 8} className="p-0">
-                    <StaffLineEvidence
-                      staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management'}
-                      staffIndex={idx}
-                      staffName={s.staff_name}
-                      staffRole={s.staff_role}
-                      uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
-                      allFilesForStaff={evidenceFiles.filter(f => f.staff_index === idx)}
-                      canEdit={canEdit}
-                      uploading={evidenceUploading}
-                      onUpload={uploadEvidence}
-                      onDelete={deleteEvidence}
-                      onDownload={getDownloadUrl}
-                    />
+                    <Collapsible>
+                      <CollapsibleTrigger className="w-full px-4 py-1.5 flex items-center gap-2 hover:bg-muted/30 transition-colors">
+                        <ChevronRight className="w-3 h-3 text-primary transition-transform [[data-state=open]>&]:rotate-90" />
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-primary">Evidence</span>
+                        <Badge variant="outline" className="text-[10px] ml-auto">
+                          {Object.keys(getUploadedTypesForStaff(idx)).length} uploaded
+                        </Badge>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <StaffLineEvidence
+                          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management'}
+                          staffIndex={idx}
+                          staffName={s.staff_name}
+                          staffRole={s.staff_role}
+                          uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+                          allFilesForStaff={evidenceFiles.filter(f => f.staff_index === idx)}
+                          canEdit={canEdit}
+                          uploading={evidenceUploading}
+                          onUpload={uploadEvidence}
+                          onDelete={deleteEvidence}
+                          onDownload={getDownloadUrl}
+                          hideHeader
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
                   </td>
                 </tr>
                 {/* Ground rules for this role */}
