@@ -113,7 +113,6 @@ function generateXlsxBlob(a){
   for(const sheet of(a.sheets||[])){const ws=XLSX.utils.aoa_to_sheet([sheet.headers||[],...(sheet.rows||[])]);if(sheet.columnWidths)ws["!cols"]=sheet.columnWidths.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,sheet.name||"Sheet1");}
   return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
 }
-}
 async function generatePptxBlob(a){
   const PptxGenJS=await loadScript("https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundled.js","PptxGenJS");
   const pptx=new PptxGenJS();pptx.layout="LAYOUT_WIDE";
