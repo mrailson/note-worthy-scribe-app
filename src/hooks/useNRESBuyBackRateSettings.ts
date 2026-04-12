@@ -47,7 +47,7 @@ export interface RateSettings {
 }
 
 const DEFAULT_ROLES: RoleConfig[] = [
-  { key: 'gp', label: 'GP', annual_rate: 11000, allocation_default: 'daily', working_hours_per_year: 1950, includes_on_costs: false, daily_rate: 800 },
+  { key: 'gp', label: 'GP', annual_rate: 11000, allocation_default: 'daily', working_hours_per_year: 1950, includes_on_costs: false, daily_rate: 750 },
   { key: 'anp', label: 'ANP', annual_rate: 55000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },
   { key: 'acp', label: 'ACP', annual_rate: 50000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },
   { key: 'practice_nurse', label: 'Practice Nurse', annual_rate: 35000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },

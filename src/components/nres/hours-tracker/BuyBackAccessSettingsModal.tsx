@@ -380,6 +380,7 @@ function RatesAndRolesPanel() {
       annual_rate: 0,
       allocation_default: 'hours' as const,
       working_hours_per_year: 1950,
+      includes_on_costs: true,
       ground_rules: getDefaultGroundRules(key),
     }]);
     setNewRoleLabel('');
@@ -480,6 +481,8 @@ function RatesAndRolesPanel() {
                 <th className="text-left px-3 py-2.5 font-medium">Role</th>
                 <th className="text-left px-3 py-2.5 font-medium">Base Annual Rate (£)</th>
                 <th className="text-left px-3 py-2.5 font-medium">Default Allocation</th>
+                <th className="text-left px-3 py-2.5 font-medium">Daily Rate (£)</th>
+                <th className="text-left px-3 py-2.5 font-medium">Inc. On-Costs</th>
                 <th className="text-left px-3 py-2.5 font-medium">GL Code</th>
                 <th className="px-3 py-2.5 w-10"></th>
               </tr>
@@ -516,8 +519,31 @@ function RatesAndRolesPanel() {
                           <SelectItem value="sessions">Sessions</SelectItem>
                           <SelectItem value="hours">Hours</SelectItem>
                           <SelectItem value="wte">WTE</SelectItem>
+                          <SelectItem value="daily">Daily Rate</SelectItem>
                         </SelectContent>
                       </Select>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {role.allocation_default === 'daily' ? (
+                        <Input
+                          type="number"
+                          className="h-8 text-xs w-24 bg-white dark:bg-slate-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                          value={role.daily_rate ?? 0}
+                          onChange={e => handleRoleFieldChange(i, 'daily_rate', parseFloat(e.target.value) || 0)}
+                          min="0"
+                          placeholder="£/day"
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground px-1">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={role.includes_on_costs !== false}
+                        onChange={e => handleRoleFieldChange(i, 'includes_on_costs', e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
                     </td>
                     <td className="px-3 py-2.5">
                       <Input
@@ -534,7 +560,7 @@ function RatesAndRolesPanel() {
                     </td>
                   </tr>
                   <tr>
-                    <td colSpan={5} className="px-3 pb-2">
+                    <td colSpan={7} className="px-3 pb-2">
                       <GroundRulesEditor role={role} onRulesChange={(rules) => handleGroundRulesChange(i, rules)} />
                     </td>
                   </tr>
