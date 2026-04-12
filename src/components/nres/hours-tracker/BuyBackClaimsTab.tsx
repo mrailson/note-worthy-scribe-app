@@ -52,17 +52,13 @@ const GP_LOCUM_SESSION_RATE = 375;
 
 /** Build a human-readable calculation breakdown for the live preview */
 function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
-  // GP Locum: fixed rates, no on-costs
+  // GP Locum: allocation_value = total days or sessions worked that month
   if (category === 'gp_locum') {
     if (allocType === 'daily') {
-      const rate = Math.min(allocValue, GP_LOCUM_MAX_DAILY_RATE);
-      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
-      return `${fmtGBP(rate)}/day × ${workingDays} working days — excl. on-costs (Locum)`;
+      return `${allocValue} day${allocValue !== 1 ? 's' : ''} × ${fmtGBP(GP_LOCUM_MAX_DAILY_RATE)}/day — excl. on-costs (Locum)`;
     }
     if (allocType === 'sessions') {
-      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
-      const workingWeeks = workingDays / 5;
-      return `${allocValue} session${allocValue !== 1 ? 's' : ''}/wk × ${fmtGBP(GP_LOCUM_SESSION_RATE)}/session × ${workingWeeks.toFixed(1)} working weeks — excl. on-costs (Locum)`;
+      return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${fmtGBP(GP_LOCUM_SESSION_RATE)}/session — excl. on-costs (Locum)`;
     }
   }
 
