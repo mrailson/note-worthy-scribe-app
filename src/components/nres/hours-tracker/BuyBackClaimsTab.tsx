@@ -673,7 +673,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                      <th className="text-left p-2 font-medium">Role</th>
                      <th className="text-left p-2 font-medium">Allocation</th>
                      <th className="text-left p-2 font-medium">Start Date</th>
-                     <th className="text-right p-2 font-medium">Monthly</th>
+                     <th className="text-right p-2 font-medium">Monthly Max Claim</th>
                      <th className="p-2"></th>
                    </tr>
                  </thead>
