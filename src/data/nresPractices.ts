@@ -18,7 +18,7 @@ export const NRES_PRACTICE_KEYS = (Object.keys(NRES_PRACTICES) as NRESPracticeKe
   (a, b) => NRES_PRACTICES[a].localeCompare(NRES_PRACTICES[b])
 );
 
-export const NRES_ODS_CODES: Record<NRESPracticeKey, string> = {
+export const NRES_ODS_CODES: Record<string, string> = {
   parks: 'K83052',
   brackley: 'K83049',
   springfield: 'K83018',
@@ -27,6 +27,9 @@ export const NRES_ODS_CODES: Record<NRESPracticeKey, string> = {
   brook: 'K83620',
   denton: 'K83068',
   bt_pcn: 'N/A',
+  brackley_towcester_pcn: 'U57957',
+  nres_programme: 'U57957',
+  blue_pcn: 'U45023',
 };
 
 export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
@@ -83,9 +86,8 @@ export function getPracticeName(key: string | null | undefined): string {
 
 /** Get the ODS code for a practice key */
 export function getOdsCode(key: string | null | undefined): string {
-  if (!key) return '—';
+  if (!key) return 'UNKNOWN';
   if (key in NRES_ODS_CODES) return NRES_ODS_CODES[key as NRESPracticeKey];
-  // Also check ENN
   if (key in ENN_ODS_CODES) return ENN_ODS_CODES[key as keyof typeof ENN_ODS_CODES];
   return key;
 }
