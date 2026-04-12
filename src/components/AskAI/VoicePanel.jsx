@@ -1,5 +1,5 @@
 /**
- * VoicePanel — Single-agent ElevenLabs widget panel for Ask AI.
+ * VoicePanel — Floating bottom-right popover with ElevenLabs widget.
  * Props: open, onClose
  */
 import { useEffect, useRef } from "react";
@@ -31,53 +31,57 @@ export default function VoicePanel({ open, onClose }) {
     };
   }, [open]);
 
+  if (!open) return null;
+
   return (
     <div style={{
+      position: "fixed",
+      bottom: 80,
+      right: 20,
       width: 340,
-      flexShrink: 0,
+      maxHeight: "70vh",
       background: "#fff",
-      borderLeft: "1px solid #E8EDEE",
+      borderRadius: 14,
+      boxShadow: "0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08)",
+      border: "1px solid #E8EDEE",
       display: "flex",
       flexDirection: "column",
-      transform: open ? "translateX(0)" : "translateX(340px)",
-      transition: "transform 0.28s ease",
-      position: open ? "relative" : "absolute",
-      right: 0,
-      top: 0,
-      bottom: 0,
-      zIndex: 30,
+      zIndex: 9000,
       overflow: "hidden",
+      animation: "nwFadeIn .2s ease",
     }}>
       {/* Header */}
       <div style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "14px 16px",
+        padding: "12px 14px",
         borderBottom: "1px solid #E8EDEE",
+        background: "linear-gradient(135deg, #003087 0%, #005EB8 100%)",
         flexShrink: 0,
+        borderRadius: "14px 14px 0 0",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: "0.92rem", color: "#231F20" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: "0.85rem", color: "#fff" }}>
           🎙 AI Voice Assistant
         </div>
         <button
           onClick={onClose}
           style={{
-            width: 32, height: 32, borderRadius: 8,
-            border: "1px solid #E8EDEE", background: "#fff",
+            width: 28, height: 28, borderRadius: 6,
+            border: "1px solid rgba(255,255,255,.25)", background: "rgba(255,255,255,.12)",
             cursor: "pointer", display: "flex", alignItems: "center",
-            justifyContent: "center", fontSize: "1rem", color: "#425563",
+            justifyContent: "center", fontSize: "0.85rem", color: "#fff",
             transition: "all .13s",
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#F8FAFC"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.25)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.12)"; }}
           aria-label="Close voice panel"
         >✕</button>
       </div>
 
       {/* Widget area */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 12px" }}>
-        <p style={{ fontSize: "0.78rem", color: "#425563", marginBottom: 12, lineHeight: 1.5 }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
+        <p style={{ fontSize: "0.76rem", color: "#425563", marginBottom: 10, lineHeight: 1.5 }}>
           Speak with the AI Practice Manager assistant. Click the microphone below to start.
         </p>
         <div ref={widgetRef} style={{ minHeight: 80 }} />
