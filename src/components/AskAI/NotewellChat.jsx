@@ -651,7 +651,7 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
   const scrollRef = useRef(null);
   const currentSuggestions = ROLE_SUGGESTIONS[selectedRole] || ROLE_SUGGESTIONS["Practice Manager"];
 
-  return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
+  return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center",overflow:"visible"}}>
     <img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:58,height:58,borderRadius:"50%",marginBottom:13,objectFit:"cover",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}/>
     <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
     <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
