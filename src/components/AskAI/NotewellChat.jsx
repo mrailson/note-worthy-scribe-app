@@ -305,12 +305,16 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
             <div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                 <div>
-                  <div style={{fontWeight:700,fontSize:"0.88rem",color:"#003087"}}>📚 Knowledge Base</div>
-                  <div style={{fontSize:"0.74rem",color:"#425563",marginTop:2}}>Local Northamptonshire primary care documents</div>
+                  <div style={{fontWeight:700,fontSize:"0.88rem",color:"#003087"}}>📚 Loaded Knowledge Base</div>
+                  <div style={{fontSize:"0.74rem",color:"#425563",marginTop:2}}>Showing the active indexed documents currently loaded into Ask AI</div>
                 </div>
                 <button onClick={()=>{onClose();onNavigateHome?.();setTimeout(()=>window.location.href="/knowledge-base",100);}} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:"0.74rem",color:"#003087",fontWeight:600,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>Open full page →</button>
               </div>
-              <input value={kbSearch} onChange={e=>setKbSearch(e.target.value)} placeholder="Search documents…" style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"8px 12px",fontSize:"16px",color:"#231F20",outline:"none",boxSizing:"border-box",marginBottom:12}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+                <div style={{background:"#F8FAFC",border:"1px solid #E8EDEE",borderRadius:9,padding:"8px 12px",fontSize:"0.74rem",color:"#003087",fontWeight:600}}>Loaded: {kbDocs.length} documents</div>
+                <div style={{background:"#F8FAFC",border:"1px solid #E8EDEE",borderRadius:9,padding:"8px 12px",fontSize:"0.74rem",color:"#425563"}}>Active only · Indexed only</div>
+              </div>
+              <input value={kbSearch} onChange={e=>setKbSearch(e.target.value)} placeholder="Search loaded documents…" style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"8px 12px",fontSize:"16px",color:"#231F20",outline:"none",boxSizing:"border-box",marginBottom:12}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
               {kbLoading?(
                 <div style={{textAlign:"center",padding:24,color:"#425563",fontSize:"0.83rem"}}>Loading…</div>
               ):filteredKb.length===0?(
@@ -330,6 +334,7 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
                         </div>
                         <div style={{fontWeight:600,fontSize:"0.83rem",color:"#003087",marginBottom:3}}>{doc.title}</div>
                         {doc.summary&&<div style={{fontSize:"0.76rem",color:"#425563",lineHeight:1.5,marginBottom:6}}>{doc.summary.length>120?doc.summary.slice(0,120)+"…":doc.summary}</div>}
+                        {!!doc.keywords?.length&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{doc.keywords.slice(0,6).map((kw,i)=><span key={i} style={{fontSize:"0.66rem",padding:"2px 7px",borderRadius:999,border:"1px solid #D5E8FF",background:"#EDF4FF",color:"#003087"}}>{kw}</span>)}</div>}
                         <div style={{display:"flex",gap:4,flexWrap:"wrap",fontSize:"0.7rem",color:"#768692"}}>
                           {doc.source&&<span>{doc.source}</span>}
                           {doc.effective_date&&<span>· {new Date(doc.effective_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</span>}
