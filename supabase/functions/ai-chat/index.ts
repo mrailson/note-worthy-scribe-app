@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
 
     // Extract user query from last message for KB search
     let kbContext = "";
+    let kbSources: { title: string; source: string; effective_date: string }[] = [];
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -37,7 +38,6 @@ Deno.serve(async (req) => {
             .slice(0, 5);
 
           if (searchTerms.length > 0) {
-            // Build OR conditions for ILIKE search
             let queryBuilder = serviceClient
               .from("kb_documents")
               .select("title, summary, key_points, source, effective_date")
@@ -45,7 +45,6 @@ Deno.serve(async (req) => {
               .eq("status", "indexed")
               .limit(3);
 
-            // Use or() with ilike for each search term
             const orConditions = searchTerms
               .map((term: string) => `title.ilike.%${term}%,summary.ilike.%${term}%`)
               .join(",");
@@ -53,6 +52,12 @@ Deno.serve(async (req) => {
             const { data: kbDocs } = await queryBuilder.or(orConditions);
 
             if (kbDocs && kbDocs.length > 0) {
+              kbSources = kbDocs.map((doc: any) => ({
+                title: doc.title || "",
+                source: doc.source || "Unknown",
+                effective_date: doc.effective_date || "",
+              }));
+
               const entries = kbDocs.map((doc: any) => {
                 const keyPts = Array.isArray(doc.key_points) ? doc.key_points.join("; ") : "";
                 return `SOURCE: ${doc.source || "Unknown"} (${doc.effective_date || "No date"})\n${doc.summary || ""}\nKey points: ${keyPts}`;
@@ -95,7 +100,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(upstream.body, {
+    // Create a custom stream that prepends KB sources metadata
+    const encoder = new TextEncoder();
+    const upstreamBody = upstream.body!;
+
+    const readable = new ReadableStream({
+      async start(controller) {
+        // Send KB sources as custom SSE event first
+        if (kbSources.length > 0) {
+          const meta = `event: kb_sources\ndata: ${JSON.stringify(kbSources)}\n\n`;
+          controller.enqueue(encoder.encode(meta));
+        }
+
+        // Pipe upstream body
+        const reader = upstreamBody.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(readable, {
       headers: {
         ...CORS,
         "Content-Type": "text/event-stream",

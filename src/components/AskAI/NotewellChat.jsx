@@ -438,7 +438,9 @@ function ArtifactPreview({artifact}){
 function UserAvatar({user,size=32}){return<div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.32,fontWeight:700,color:"#fff",border:"2px solid rgba(255,255,255,.2)"}}>{user.initials}</div>;}
 function PracticeLogo({practice,size=26}){if(practice.logoUrl)return<img src={practice.logoUrl} alt={practice.name} style={{width:size,height:size,objectFit:"contain",borderRadius:5}}/>;const init=(practice.shortName||practice.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,3);return<div style={{width:size,height:size,borderRadius:6,background:`linear-gradient(135deg,${practice.primaryColour||NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.28,fontWeight:900,color:"#fff",flexShrink:0}}>{init}</div>;}
 
-function MessageBubble({msg,user,settings,compact,hasPanel,vp}){
+const FOLLOW_UP_SUGGESTIONS=["Tell me more","Summarise as bullet points","What's changed recently?"];
+
+function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}){
   const isUser=msg.role==="user";const [copied,setCopied]=useState(false);const [feedback,setFeedback]=useState(null);
   const display=stripArtifact(msg.content);const fs=FONT_SCALE[settings.fontSize||"medium"];
   const isMobile=vp==="mobile";
@@ -451,21 +453,33 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp}){
       <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
         {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/><span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/></>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
       </div>
+      {/* KB source chips */}
+      {!isUser&&!msg.streaming&&msg.kbSources?.length>0&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:5}}>
+          {msg.kbSources.map((s,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,background:"#F0F4F8",border:`1px solid ${NHS.paleGrey}`,borderRadius:12,padding:"2px 8px",fontSize:"0.68rem",color:NHS.midGrey}}>📋 {s.title}{s.effective_date&&<span>· {new Date(s.effective_date).toLocaleDateString("en-GB",{month:"short",year:"numeric"})}</span>}</span>)}
+        </div>
+      )}
       {!isUser&&!msg.streaming&&<div style={{display:"flex",gap:4,marginTop:4}}>{[{l:copied?"✓ Copied":"⎘ Copy",fn:()=>{navigator.clipboard.writeText(display);setCopied(true);setTimeout(()=>setCopied(false),1500)},a:copied},{l:"👍",fn:()=>setFeedback("up"),a:feedback==="up",ac:NHS.green},{l:"👎",fn:()=>setFeedback("down"),a:feedback==="down",ac:NHS.red}].map((b,i)=><button key={i} onClick={b.fn} style={{background:b.a?(b.ac||NHS.blue)+"22":"transparent",border:`1px solid ${b.a?(b.ac||NHS.blue):NHS.paleGrey}`,borderRadius:5,padding:isMobile?"8px 12px":"2px 7px",cursor:"pointer",fontSize:"0.71rem",color:b.a?(b.ac||NHS.blue):NHS.midGrey,minHeight:isMobile?36:undefined}}>{b.l}</button>)}</div>}
       {!isUser&&!msg.streaming&&settings.showClinicalCaveats&&display.length>60&&<div style={{fontSize:"0.64rem",color:NHS.midGrey,marginTop:4,padding:"2px 7px",background:"#f8f9fa",borderRadius:4,borderLeft:`3px solid ${NHS.warmYellow}`}}>⚕️ Apply clinical judgement before acting on AI output in patient care.</div>}
+      {/* Follow-up suggestion chips — only on the last assistant message */}
+      {!isUser&&!msg.streaming&&isLast&&onFollowUp&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>
+          {FOLLOW_UP_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>onFollowUp(s)} style={{background:"#EDF4FF",border:`1.5px solid ${NHS.brightBlue}33`,borderRadius:20,padding:"5px 12px",cursor:"pointer",fontSize:"0.73rem",color:NHS.blue,fontWeight:500,transition:"all .13s",minHeight:32}} onMouseEnter={e=>{e.currentTarget.style.background="#D5E8FF";e.currentTarget.style.borderColor=NHS.brightBlue;}} onMouseLeave={e=>{e.currentTarget.style.background="#EDF4FF";e.currentTarget.style.borderColor=NHS.brightBlue+"33";}}>{s}</button>)}
+        </div>
+      )}
     </div>
   </div>);
 }
 
 function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
   const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
-  const suggestions=[{icon:"🎨",text:"Create an NHS care pathway diagram for Type 2 diabetes management"},{icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"},{icon:"🖥️",text:"Build a PowerPoint presentation on the NRES New Models Programme for the ICB Board"},{icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},{icon:"💬",text:"Explain the ARRS roles available under the PCN contract and their eligibility"},{icon:"🎨",text:"Design an infographic showing NHS integrated neighbourhood team structure"}];
+  const suggestions=[{icon:"📚",text:"What's the current semaglutide guidance?"},{icon:"📧",text:"Summarise this week's ICB update"},{icon:"💼",text:"What are the ARRS roles available?"},{icon:"📄",text:"What does the PCN DES say about access?"},{icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},{icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"}];
   return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
     <div style={{width:58,height:58,borderRadius:"50%",marginBottom:13,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.65rem",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}>🏥</div>
     <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
     <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
     <p style={{color:NHS.midGrey,marginBottom:18,maxWidth:390,lineHeight:1.6,fontSize:"0.83rem"}}>
-      Your NHS-grade AI assistant.{" "}
+      Ask me anything about Northamptonshire primary care.{" "}
       <button onClick={onHelp} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>How to get best results →</button>
       {" · "}
       <button onClick={onProfile} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>Set up my profile →</button>
@@ -565,7 +579,7 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
   );
 }
 
-async function callClaude(messages, systemPrompt, onChunk) {
+async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const endpoint = `${supabaseUrl}/functions/v1/ai-chat`;
@@ -605,6 +619,7 @@ async function callClaude(messages, systemPrompt, onChunk) {
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
+  let currentEvent = "";
 
   while (true) {
     const { done, value } = await reader.read();
@@ -613,15 +628,27 @@ async function callClaude(messages, systemPrompt, onChunk) {
     const lines = buf.split("\n");
     buf = lines.pop() || "";
     for (const line of lines) {
+      if (line.startsWith("event: ")) {
+        currentEvent = line.slice(7).trim();
+        continue;
+      }
       if (!line.startsWith("data: ")) continue;
       const raw = line.slice(6).trim();
       if (raw === "[DONE]") return;
       try {
+        if (currentEvent === "kb_sources") {
+          const sources = JSON.parse(raw);
+          onKbSources?.(sources);
+          currentEvent = "";
+          continue;
+        }
         const d = JSON.parse(raw).delta?.text;
         if (d) onChunk(d);
       } catch {}
+      currentEvent = "";
     }
   }
+}
 }
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
@@ -701,13 +728,13 @@ export default function NotewellChat({ user, onNavigateHome }) {
     const userMsg={id:uid(),role:"user",content:text,files:files.slice(),timestamp:new Date()};
     const newMsgs=[...messages,userMsg];setMessages(newMsgs);setInput("");setFiles([]);setIsLoading(true);
     if(messages.length===0){const title=text.length>44?text.slice(0,44)+"…":text;setConversations(p=>p.map(c=>c.id===activeConvId?{...c,title,updatedAt:new Date()}:c));}
-    const aiId=uid();let accum="";
-    setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true}]);
+    const aiId=uid();let accum="";let kbSources=[];
+    setMessages(p=>[...p,{id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}]);
     try{
-      await callClaude(newMsgs,systemPrompt,chunk=>{accum+=chunk;setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum}:m));});
+      await callClaude(newMsgs,systemPrompt,chunk=>{accum+=chunk;setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum}:m));},sources=>{kbSources=sources;setMessages(p=>p.map(m=>m.id===aiId?{...m,kbSources:sources}:m));});
       const artifact=parseArtifact(accum);
-      if(artifact){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
-      else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
+      if(artifact){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
+      else{setMessages(p=>p.map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
     }catch(e){setMessages(p=>p.map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
     setIsLoading(false);
   },[input,files,messages,isLoading,activeConvId,systemPrompt]);
@@ -792,6 +819,8 @@ export default function NotewellChat({ user, onNavigateHome }) {
 
             {/* Guide button */}
             <button onClick={()=>setShowGuide(true)} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.blue;e.currentTarget.style.color=NHS.blue;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}}>? {vp!=="compact"&&"Guide"}</button>
+            {/* Clear conversation button */}
+            {messages.length>0&&<button onClick={()=>{if(confirm("Start a new conversation? This will clear the current thread."))newConv();}} style={{background:"transparent",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:NHS.midGrey,transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.red;e.currentTarget.style.color=NHS.red;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.color=NHS.midGrey;}} title="Clear conversation">🗑{vp!=="compact"&&" Clear"}</button>}
             {vp!=="compact"&&<div style={{display:"flex",alignItems:"center",gap:5,padding:"2px 8px 2px 5px",background:NHS.blue,borderRadius:20,fontSize:"0.62rem",fontWeight:700,color:"#fff",letterSpacing:".05em"}}><span style={{background:"#fff",color:NHS.blue,borderRadius:3,padding:"0 3px",fontWeight:900,fontSize:".58rem"}}>NHS</span>Clinical Grade</div>}
           </div>
         </div>
@@ -799,7 +828,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map(m=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp}/></div>)}
+            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><div style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",color:"#fff",fontWeight:700}}>N</div><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
