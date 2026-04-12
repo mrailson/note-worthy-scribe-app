@@ -611,50 +611,6 @@ const ROLE_SUGGESTIONS = {
     "Draft a patient letter about changes to repeat prescribing",
     "What QOF disease registers do I need to maintain?"
   ],
-  "Salaried GP": [
-    "What is the BNF first-line treatment for uncomplicated UTI?",
-    "Summarise NICE guidance on hypertension management 2023",
-    "What are the safe prescribing rules for controlled drugs in primary care?",
-    "Write a sick note for a patient with anxiety and depression",
-    "What SNOMED codes are used for LD Annual Health Checks?",
-    "How do I access the Northamptonshire Primary Care Portal?",
-    "What should I do if a patient discloses domestic abuse?",
-    "What are my obligations when a patient requests their full GP record?",
-    "Summarise the Enhanced Access requirements for my PCN",
-    "What is the QOF indicator for blood pressure in hypertension?",
-    "Draft a response to an aggressive or abusive patient complaint",
-    "What are the prescribing rules for GLP-1 agonists in Northamptonshire?",
-    "What is the safeguarding escalation process for an at-risk child?",
-    "Summarise the NICE CKS guidance on type 2 diabetes management",
-    "What are the legalities of prescribing for a patient not registered with me?",
-    "How should I manage a patient requesting benzodiazepines long-term?",
-    "Write up a consultation as a structured SOAP note",
-    "What are the antipsychotic prescribing rules for dementia patients?",
-    "What cervical screening intervals apply to women aged 25-49?",
-    "Summarise the NICE guidance on antibiotic stewardship"
-  ],
-  "Admin / Reception": [
-    "Draft a practice newsletter about our new online booking system",
-    "Write a care navigation script for telephone triage",
-    "What patient information can I share over the phone?",
-    "Draft a letter to a patient about a missed appointment (DNA)",
-    "Write an FAQ for patients about the NHS App",
-    "What is the process for registering a new patient?",
-    "Draft a patient-facing notice about appointment booking changes",
-    "How should I handle an aggressive patient on the phone?",
-    "Write a template email for chasing outstanding test results",
-    "What are the opening hours for Enhanced Access appointments?",
-    "Draft a social media post about flu vaccination appointments",
-    "How do I handle a Subject Access Request from a patient?",
-    "Write a receptionist guide to care navigation and triage",
-    "What is Pharmacy First and which conditions can pharmacists treat?",
-    "Draft a notice about prescription ordering and collection times",
-    "What should receptionists know about safeguarding?",
-    "Write a template for recording a significant event (SEA)",
-    "How do I book an Enhanced Access appointment for a patient?",
-    "Draft an out-of-hours answerphone message for the practice",
-    "What are the rules for giving test results to patients?"
-  ],
   "PCN Manager": [
     "Summarise the PCN DES requirements for 2025/26 in a Word document",
     "Create an Excel ARRS budget tracker for all 14 eligible roles",
@@ -686,8 +642,8 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
     if (r.includes('pcn manager') || r.includes('pcn')) return 'PCN Manager';
     if (r.includes('practice manager') || r.includes('manager')) return 'Practice Manager';
     if (r.includes('gp partner') || r.includes('partner')) return 'GP Partner';
-    if (r.includes('salaried') || r.includes('salaried gp')) return 'Salaried GP';
-    if (r.includes('admin') || r.includes('reception') || r.includes('practice user')) return 'Admin / Reception';
+    if (r.includes('salaried') || r.includes('salaried gp')) return 'GP Partner';
+    if (r.includes('admin') || r.includes('reception') || r.includes('practice user')) return 'Practice Manager';
     if (r.includes('system admin')) return 'Practice Manager';
     return 'Practice Manager';
   };
