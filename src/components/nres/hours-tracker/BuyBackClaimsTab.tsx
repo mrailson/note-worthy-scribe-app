@@ -1635,6 +1635,8 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
           }
         }
       }
+      // Refresh evidence state to pick up all uploaded files
+      await refetchEvidence();
     } catch (err) {
       console.error('Test auto-fill error:', err);
       toast.error('Auto-fill failed');
