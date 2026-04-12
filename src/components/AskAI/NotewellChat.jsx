@@ -480,7 +480,7 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
   const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
   const suggestions=[{icon:"📚",text:"What's the current semaglutide guidance?"},{icon:"📧",text:"Summarise this week's ICB update"},{icon:"💼",text:"What are the ARRS roles available?"},{icon:"📄",text:"What does the PCN DES say about access?"},{icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},{icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"}];
   return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
-    <div style={{width:58,height:58,borderRadius:"50%",marginBottom:13,background:`linear-gradient(135deg,${NHS.aquaBlue},${NHS.brightBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.65rem",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}>🏥</div>
+    <img src="/notewell-chat-icon.png" alt="Notewell AI" style={{width:58,height:58,borderRadius:"50%",marginBottom:13,objectFit:"cover",boxShadow:`0 8px 24px rgba(0,114,206,.22)`}}/>
     <h2 style={{fontSize:"1.2rem",fontWeight:700,color:NHS.darkBlue,marginBottom:4}}>Good {g}, {user.name.split(" ")[0]}</h2>
     <p style={{color:NHS.midGrey,marginBottom:4,fontSize:"0.8rem"}}>{user.role} · {user.practice.name}</p>
     <p style={{color:NHS.midGrey,marginBottom:18,maxWidth:390,lineHeight:1.6,fontSize:"0.83rem"}}>
