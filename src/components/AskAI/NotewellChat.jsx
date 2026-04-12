@@ -204,15 +204,45 @@ const INSTRUCTION_SUGGESTIONS=[
   "Start every response with a one-sentence summary before the detail.",
 ];
 
-function UserProfileModal({user,onClose,vp}){
+function UserProfileModal({user,onClose,vp,onNavigateHome}){
   const [tab,setTab]=useState("profile");
   const [pt,setPt]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [it,setIt]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const [saved,setSaved]=useState(false);
+  const [kbDocs,setKbDocs]=useState([]);
+  const [kbLoading,setKbLoading]=useState(false);
+  const [kbCategories,setKbCategories]=useState([]);
+  const [kbSearch,setKbSearch]=useState("");
   const isMobile=vp==="mobile";
   const save=()=>{try{localStorage.setItem(PROFILE_KEY,pt);localStorage.setItem(INSTRUCTIONS_KEY,it);setSaved(true);setTimeout(()=>{setSaved(false);onClose();},900);}catch{alert("Could not save — storage may be full.");}};
   const append=(setter,cur,text)=>setter(cur+(cur.trim()?"\n":"")+text);
   const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.jobTitle&&`Job title: ${user.jobTitle}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`System: ${user.practice.clinicalSystem}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
+
+  // Load KB docs when tab selected
+  useEffect(()=>{
+    if(tab!=="kb")return;
+    setKbLoading(true);
+    const loadKB=async()=>{
+      try{
+        const supabaseUrl=import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        // Dynamic import to avoid adding supabase dep to this JSX
+        const {createClient}=await import("@supabase/supabase-js");
+        const sb=createClient(supabaseUrl,supabaseKey,{auth:{persistSession:true,autoRefreshToken:true}});
+        const [catsRes,docsRes]=await Promise.all([
+          sb.from("kb_categories").select("*").order("sort_order"),
+          sb.from("kb_documents").select("*, kb_categories(*)").eq("is_active",true).eq("status","indexed").order("uploaded_at",{ascending:false}).limit(50)
+        ]);
+        if(catsRes.data)setKbCategories(catsRes.data);
+        if(docsRes.data)setKbDocs(docsRes.data);
+      }catch(e){console.error("KB load error:",e);}
+      setKbLoading(false);
+    };
+    loadKB();
+  },[tab]);
+
+  const filteredKb=kbSearch.trim()?kbDocs.filter(d=>d.title.toLowerCase().includes(kbSearch.toLowerCase())||d.summary?.toLowerCase().includes(kbSearch.toLowerCase())):kbDocs;
+
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center",padding:isMobile?0:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{width:"100%",maxWidth:isMobile?"100%":600,maxHeight:isMobile?"92dvh":"88vh",background:"#fff",borderRadius:isMobile?"20px 20px 0 0":16,overflow:"hidden",display:"flex",flexDirection:"column",boxShadow:"0 -4px 40px rgba(0,0,0,0.18)",animation:"nwSlideUp .25s ease"}}>
@@ -229,8 +259,8 @@ function UserProfileModal({user,onClose,vp}){
             </div>
             <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"8px 12px",fontSize:"1rem",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           </div>
-          <div style={{display:"flex",gap:4}}>
-            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"]].map(([t,l])=>(
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"],["kb","📚 Knowledge Base"]].map(([t,l])=>(
               <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",minHeight:36}}>{l}</button>
             ))}
           </div>
@@ -271,12 +301,56 @@ function UserProfileModal({user,onClose,vp}){
               </div>
             </div>
           )}
+          {tab==="kb"&&(
+            <div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:"0.88rem",color:"#003087"}}>📚 Knowledge Base</div>
+                  <div style={{fontSize:"0.74rem",color:"#425563",marginTop:2}}>Local Northamptonshire primary care documents</div>
+                </div>
+                <button onClick={()=>{onClose();onNavigateHome?.();setTimeout(()=>window.location.href="/knowledge-base",100);}} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:"0.74rem",color:"#003087",fontWeight:600,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>Open full page →</button>
+              </div>
+              <input value={kbSearch} onChange={e=>setKbSearch(e.target.value)} placeholder="Search documents…" style={{width:"100%",border:"1.5px solid #E8EDEE",borderRadius:9,padding:"8px 12px",fontSize:"16px",color:"#231F20",outline:"none",boxSizing:"border-box",marginBottom:12}} onFocus={e=>e.target.style.borderColor="#0072CE"} onBlur={e=>e.target.style.borderColor="#E8EDEE"}/>
+              {kbLoading?(
+                <div style={{textAlign:"center",padding:24,color:"#425563",fontSize:"0.83rem"}}>Loading…</div>
+              ):filteredKb.length===0?(
+                <div style={{textAlign:"center",padding:24}}>
+                  <div style={{fontSize:"1.4rem",marginBottom:8}}>📭</div>
+                  <div style={{color:"#425563",fontSize:"0.83rem",fontWeight:500}}>No documents found</div>
+                  <div style={{color:"#768692",fontSize:"0.76rem",marginTop:4}}>Contact your administrator to add content.</div>
+                </div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {filteredKb.map(doc=>{
+                    const cat=doc.kb_categories;
+                    return(
+                      <div key={doc.id} style={{border:"1.5px solid #E8EDEE",borderRadius:10,padding:"10px 13px",background:"#FAFBFC"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
+                          {cat&&<span style={{fontSize:"0.68rem",fontWeight:600,padding:"2px 8px",borderRadius:12,background:`${cat.colour}15`,color:cat.colour,border:`1px solid ${cat.colour}40`}}>{cat.icon} {cat.name}</span>}
+                        </div>
+                        <div style={{fontWeight:600,fontSize:"0.83rem",color:"#003087",marginBottom:3}}>{doc.title}</div>
+                        {doc.summary&&<div style={{fontSize:"0.76rem",color:"#425563",lineHeight:1.5,marginBottom:6}}>{doc.summary.length>120?doc.summary.slice(0,120)+"…":doc.summary}</div>}
+                        <div style={{display:"flex",gap:4,flexWrap:"wrap",fontSize:"0.7rem",color:"#768692"}}>
+                          {doc.source&&<span>{doc.source}</span>}
+                          {doc.effective_date&&<span>· {new Date(doc.effective_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</span>}
+                        </div>
+                        <div style={{display:"flex",gap:6,marginTop:8}}>
+                          {doc.file_url&&<button onClick={()=>window.open(doc.file_url,"_blank")} style={{background:"#F0F4F8",border:"1px solid #E8EDEE",borderRadius:7,padding:"5px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",fontWeight:500,minHeight:32}}>📄 Open</button>}
+                          <button onClick={()=>{onClose();setTimeout(()=>{const ta=document.querySelector("textarea");if(ta){ta.value=`Tell me about: ${doc.title}`;ta.dispatchEvent(new Event("input",{bubbles:true}));}},300);}} style={{background:"#005EB8",border:"none",borderRadius:7,padding:"5px 10px",cursor:"pointer",fontSize:"0.72rem",color:"#fff",fontWeight:600,minHeight:32}}>💬 Ask AI</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div style={{padding:"12px 20px",borderTop:"1px solid #E8EDEE",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafbfc",flexShrink:0}}>
           <div>{(pt.trim()||it.trim())&&<button onClick={()=>{setPt("");setIt("");}} style={{background:"none",border:"none",cursor:"pointer",color:"#DA291C",fontSize:"0.77rem",padding:0,minHeight:44}}>🗑 Clear all</button>}</div>
           <div style={{display:"flex",gap:8}}>
             <button onClick={onClose} style={{background:"#F0F4F8",border:"none",borderRadius:8,padding:"10px 18px",cursor:"pointer",color:"#425563",fontWeight:600,fontSize:"0.87rem",minHeight:44}}>Cancel</button>
-            <button onClick={save} style={{background:saved?"#009639":"#005EB8",border:"none",borderRadius:8,padding:"10px 24px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",minWidth:90,minHeight:44,transition:"background .2s"}}>{saved?"✓ Saved!":"Save"}</button>
+            {tab!=="kb"&&<button onClick={save} style={{background:saved?"#009639":"#005EB8",border:"none",borderRadius:8,padding:"10px 24px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.87rem",minWidth:90,minHeight:44,transition:"background .2s"}}>{saved?"✓ Saved!":"Save"}</button>}
           </div>
         </div>
       </div>
