@@ -1050,6 +1050,55 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
   const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours' | 'daily';
   const allocValue = staff.allocation_value as number;
   const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
+  const isGpLocum = staff.staff_category === 'gp_locum';
+
+  // GP Locum: fixed rates, no on-costs
+  if (isGpLocum) {
+    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+    let dailyRate: number;
+    let baseLabel: string;
+    if (allocType === 'daily') {
+      dailyRate = Math.min(allocValue, 750);
+      baseLabel = `${fmtGBP(dailyRate)}/day × ${workingDays} working days`;
+    } else {
+      // sessions per week
+      dailyRate = 375;
+      const workingWeeks = workingDays / 5;
+      baseLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''}/wk × ${fmtGBP(375)}/session × ${workingWeeks.toFixed(1)} working weeks`;
+    }
+    const fullMonthly = allocType === 'daily'
+      ? dailyRate * workingDays
+      : allocValue * 375 * (workingDays / 5);
+
+    let proRataInfo: any = null;
+    let finalMonthly = fullMonthly;
+    if (claimMonth && staff.start_date) {
+      const claimStart = new Date(claimMonth);
+      const staffStart = new Date(staff.start_date);
+      if (staffStart.getFullYear() === claimStart.getFullYear() && staffStart.getMonth() === claimStart.getMonth()) {
+        const daysInMonth = new Date(claimStart.getFullYear(), claimStart.getMonth() + 1, 0).getDate();
+        const startDay = staffStart.getDate();
+        const remainingDays = daysInMonth - startDay + 1;
+        const ratio = remainingDays / daysInMonth;
+        proRataInfo = { daysInMonth, workingDays: remainingDays, startDay, ratio };
+        finalMonthly = fullMonthly * ratio;
+      }
+    }
+
+    return {
+      isManagement: false, isDaily: allocType === 'daily', isGpLocum: true, includesOnCosts: false,
+      dailyRate, workingDays,
+      baseSalary: 0, baseLabel,
+      niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0,
+      fullMonthly, proRataInfo, finalMonthly,
+      baseRate: fmtGBP(dailyRate),
+      hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+      mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+      grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    };
+  }
 
   // Management: simple hourly × weekly hours × working weeks
   if (isManagement && staff.hourly_rate && rateParams?.workingWeeksInMonth) {
