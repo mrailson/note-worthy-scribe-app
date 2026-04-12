@@ -777,6 +777,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       <Separator />
 
       {/* Claims */}
+      <div ref={claimsHistoryRef}>
       <Collapsible open={claimsHistoryOpen} onOpenChange={setClaimsHistoryOpen}>
       <Card>
         <CardHeader>
