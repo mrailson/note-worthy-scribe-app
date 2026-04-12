@@ -216,7 +216,7 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
   const isMobile=vp==="mobile";
   const save=()=>{try{localStorage.setItem(PROFILE_KEY,pt);localStorage.setItem(INSTRUCTIONS_KEY,it);setSaved(true);setTimeout(()=>{setSaved(false);onClose();},900);}catch{alert("Could not save — storage may be full.");}};
   const append=(setter,cur,text)=>setter(cur+(cur.trim()?"\n":"")+text);
-  const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.jobTitle&&`Job title: ${user.jobTitle}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`System: ${user.practice.clinicalSystem}`,user.pcn&&`PCN: ${user.pcn}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
+  const autoSummary=[user.name&&`Name: ${user.name}`,user.role&&`Role: ${user.role}`,user.practice?.name&&`Practice: ${user.practice.name}`,user.practice?.odsCode&&`ODS: ${user.practice.odsCode}`,user.practice?.clinicalSystem&&`System: ${user.practice.clinicalSystem}`,user.pcn&&`PCN: ${user.pcn}`,user.neighbourhood&&`Neighbourhood: ${user.neighbourhood}`,user.icb&&`ICB: ${user.icb}`].filter(Boolean);
 
   // Load KB docs when tab selected
   useEffect(()=>{

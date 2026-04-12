@@ -125,6 +125,11 @@ export default function AskAIPage() {
         }
       }
 
+      // Default ICB to Northamptonshire ICB for Northants practices
+      if (!icb || icb === "Test Integrated Care System") {
+        icb = "Northamptonshire ICB";
+      }
+
       if (!isActive) return;
 
       // Generate short name from practice name
