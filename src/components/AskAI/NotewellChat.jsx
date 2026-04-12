@@ -950,8 +950,65 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [interimText,setInterimText]=useState("");
   const [speechError,setSpeechError]=useState(null);
   const [showVoiceMode,setShowVoiceMode]=useState(false);
+  const [nresStatus,setNresStatus]=useState("idle"); // idle | connecting | listening | speaking | ended | error
   const speechRef=useRef(null);
-  const voiceWidgetRef=useRef(null);
+  const nresKeepAliveRef=useRef(null);
+  const nresAudioCtxRef=useRef(null);
+
+  // NRES ElevenLabs Conversational AI agent
+  const NRES_AGENT_ID="agent_7801knyxsxcxehsr8kynxgxz6xyr";
+  const nresConversation=useConversation({
+    onConnect:()=>{setNresStatus("listening");},
+    onDisconnect:()=>{setNresStatus("ended");if(nresKeepAliveRef.current){clearInterval(nresKeepAliveRef.current);nresKeepAliveRef.current=null;}setTimeout(()=>setNresStatus("idle"),2000);},
+    onMessage:(msg)=>{console.log("NRES Agent:",msg);},
+    onError:(err)=>{console.error("NRES ElevenLabs error:",err);setNresStatus("error");},
+  });
+
+  // Track speaking state
+  useEffect(()=>{
+    if(nresConversation.isSpeaking&&nresStatus==="listening")setNresStatus("speaking");
+    else if(!nresConversation.isSpeaking&&nresStatus==="speaking")setNresStatus("listening");
+  },[nresConversation.isSpeaking]);
+
+  const startNresSession=useCallback(async()=>{
+    try{
+      setNresStatus("connecting");
+      // Pre-warm AudioContext on user gesture
+      const AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(AudioCtx){
+        const ctx=new AudioCtx();
+        nresAudioCtxRef.current=ctx;
+        if(ctx.state==="suspended")await ctx.resume();
+      }
+      // Request mic permission
+      await navigator.mediaDevices.getUserMedia({audio:true});
+      // 400ms delay for audio stream stabilisation
+      await new Promise(r=>setTimeout(r,400));
+      // Start ElevenLabs session
+      await nresConversation.startSession({agentId:NRES_AGENT_ID,connectionType:"websocket"});
+      // Keep-alive ping every 1.5s
+      nresKeepAliveRef.current=setInterval(()=>{try{nresConversation.sendUserActivity();}catch{}},1500);
+      setShowVoiceMode(true);
+    }catch(err){
+      console.error("Failed to start NRES session:",err);
+      setNresStatus("error");
+      setTimeout(()=>setNresStatus("idle"),3000);
+    }
+  },[nresConversation]);
+
+  const endNresSession=useCallback(async()=>{
+    try{await nresConversation.endSession();}catch{}
+    if(nresKeepAliveRef.current){clearInterval(nresKeepAliveRef.current);nresKeepAliveRef.current=null;}
+    if(nresAudioCtxRef.current){try{nresAudioCtxRef.current.close();}catch{}nresAudioCtxRef.current=null;}
+    setShowVoiceMode(false);
+    setNresStatus("idle");
+  },[nresConversation]);
+
+  // Cleanup on unmount
+  useEffect(()=>()=>{
+    if(nresKeepAliveRef.current)clearInterval(nresKeepAliveRef.current);
+    if(nresAudioCtxRef.current)try{nresAudioCtxRef.current.close();}catch{}
+  },[]);
   const startListening=useCallback(()=>{
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR){setSpeechError("Speech recognition requires Chrome or Safari 17+");return;}
