@@ -395,9 +395,13 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         dynamicVariables: {
           user_name: currentName,
           user_email: currentEmail || '',
+          user_role: userTitle || '',
           practice_name: currentPractice || '',
+          practice_address: contextData.practiceAddress || '',
+          practice_postcode: contextData.practicePostcode || '',
+          practice_phone: contextData.practicePhone || '',
+          practice_ods_code: contextData.practiceOdsCode || '',
           user_title: userTitle || '',
-          // Pass the full dynamic prompt so the agent knows about tools and user context
           dynamic_context: dynamicPrompt
         }
       });
