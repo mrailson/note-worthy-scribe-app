@@ -98,19 +98,17 @@ export function calculateStaffMonthlyAmount(
 
   const isGpLocum = (staff as any).staff_category === 'gp_locum';
 
-  // GP Locum category: fixed rates, no on-costs
+  // GP Locum category: allocation_value = total days or sessions worked that month
+  // Fixed rates: £750/day, £375/session. No on-costs (locums are self-employed).
   if (isGpLocum) {
-    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
     if (staff.allocation_type === 'daily') {
-      const dailyRate = Math.min(staff.allocation_value, GP_LOCUM_MAX_DAILY_RATE);
-      fullMonthly = dailyRate * workingDays;
+      // allocation_value = number of days worked this month
+      fullMonthly = staff.allocation_value * GP_LOCUM_MAX_DAILY_RATE;
     } else if (staff.allocation_type === 'sessions') {
-      // sessions per week × £375 × working weeks
-      const workingWeeks = workingDays / 5;
-      fullMonthly = staff.allocation_value * GP_LOCUM_SESSION_RATE * workingWeeks;
+      // allocation_value = number of sessions worked this month
+      fullMonthly = staff.allocation_value * GP_LOCUM_SESSION_RATE;
     } else {
-      // Fallback for any other type
-      fullMonthly = staff.allocation_value * GP_LOCUM_MAX_DAILY_RATE * workingDays;
+      fullMonthly = staff.allocation_value * GP_LOCUM_MAX_DAILY_RATE;
     }
   }
   // Management category: hourly_rate × weekly_hours × working_weeks_in_month

@@ -52,17 +52,13 @@ const GP_LOCUM_SESSION_RATE = 375;
 
 /** Build a human-readable calculation breakdown for the live preview */
 function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
-  // GP Locum: fixed rates, no on-costs
+  // GP Locum: allocation_value = total days or sessions worked that month
   if (category === 'gp_locum') {
     if (allocType === 'daily') {
-      const rate = Math.min(allocValue, GP_LOCUM_MAX_DAILY_RATE);
-      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
-      return `${fmtGBP(rate)}/day × ${workingDays} working days — excl. on-costs (Locum)`;
+      return `${allocValue} day${allocValue !== 1 ? 's' : ''} × ${fmtGBP(GP_LOCUM_MAX_DAILY_RATE)}/day — excl. on-costs (Locum)`;
     }
     if (allocType === 'sessions') {
-      const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
-      const workingWeeks = workingDays / 5;
-      return `${allocValue} session${allocValue !== 1 ? 's' : ''}/wk × ${fmtGBP(GP_LOCUM_SESSION_RATE)}/session × ${workingWeeks.toFixed(1)} working weeks — excl. on-costs (Locum)`;
+      return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${fmtGBP(GP_LOCUM_SESSION_RATE)}/session — excl. on-costs (Locum)`;
     }
   }
 
@@ -212,7 +208,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
   const maxAlloc = isGpLocum
-    ? (allocType === 'daily' ? GP_LOCUM_MAX_DAILY_RATE : 20)
+    ? (allocType === 'daily' ? 23 : 46)
     : (allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9);
 
   const handleAllocValueChange = (val: string) => {
@@ -309,8 +305,8 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'daily'); setAllocValue(''); }}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Daily Rate</SelectItem>
-                <SelectItem value="sessions">Sessions/wk</SelectItem>
+                <SelectItem value="daily">Days/month</SelectItem>
+                <SelectItem value="sessions">Sessions/month</SelectItem>
               </SelectContent>
             </Select>
           ) : (
@@ -327,7 +323,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">
-            {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
+            {isGpLocum ? (allocType === 'daily' ? 'Days Worked' : 'Sessions Worked') : allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
           </Label>
           <Input
             type="number"
