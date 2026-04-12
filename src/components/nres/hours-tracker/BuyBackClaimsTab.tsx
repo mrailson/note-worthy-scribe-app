@@ -1339,7 +1339,7 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
   };
 
   // Clean up blob URL on unmount or close
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     };
