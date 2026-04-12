@@ -478,6 +478,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const [proposalOpen, setProposalOpen] = useState(false);
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
