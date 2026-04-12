@@ -690,7 +690,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         <tr><td style="padding:4px 0;color:#666;">Sort Code</td><td style="padding:4px 0;text-align:right;">30-11-08</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Account No.</td><td style="padding:4px 0;text-align:right;">28122560</td></tr>
         <tr><td style="padding:4px 0;color:#666;">Account Name</td><td style="padding:4px 0;text-align:right;">Brackley &amp; Towcester PCN Ltd</td></tr>
-        <tr style="border-top:2px solid #005EB8;"><td style="padding:10px 0 6px;color:#003087;font-weight:700;">Total Amount Due</td><td style="padding:10px 0 6px;text-align:right;font-weight:700;font-size:16px;color:#003087;">£${((gpTotal || 0) + (otherTotal || 0)).toFixed(2)}</td></tr>
+        <tr style="border-top:2px solid #005EB8;"><td style="padding:10px 0 6px;color:#003087;font-weight:700;">Total Amount Due</td><td style="padding:10px 0 6px;text-align:right;font-weight:700;font-size:16px;color:#003087;">£${((gpTotal || 0) + (otherTotal || 0)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>
       </table>
     </div>
 
