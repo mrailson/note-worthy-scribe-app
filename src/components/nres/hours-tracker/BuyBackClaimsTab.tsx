@@ -692,29 +692,32 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                           <td className="p-2 text-right font-medium">
                             <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
                           </td>
-                         <td className="p-2 text-right">
-                           <AlertDialog>
-                             <AlertDialogTrigger asChild>
-                               <Button variant="ghost" size="icon">
-                                 <Trash2 className="w-4 h-4 text-destructive" />
-                               </Button>
-                             </AlertDialogTrigger>
-                             <AlertDialogContent>
-                               <AlertDialogHeader>
-                                 <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
-                                 <AlertDialogDescription>
-                                   Are you sure you want to remove <span className="font-semibold">{displayName}</span> from the staff list? This action cannot be undone.
-                                 </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter>
-                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                 <AlertDialogAction onClick={() => removeStaff(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                   Remove
-                                 </AlertDialogAction>
-                               </AlertDialogFooter>
-                             </AlertDialogContent>
-                           </AlertDialog>
-                          </td>
+                          <td className="p-2 text-right space-x-1">
+                            <Button variant="ghost" size="icon" onClick={() => setEditingStaff(s)}>
+                              <Pencil className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove <span className="font-semibold">{displayName}</span> from the staff list? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => removeStaff(s.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Remove
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                           </td>
                        </tr>
                      );
                    })}
