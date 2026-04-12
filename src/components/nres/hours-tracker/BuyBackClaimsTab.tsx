@@ -1965,6 +1965,33 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
+      {/* Invoice info & download — moved above payment processing */}
+      {claim.invoice_number && (
+        <div className="px-3 py-2 border-t bg-blue-50/50 dark:bg-blue-950/20 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span>Invoice: <strong className="text-foreground">{claim.invoice_number}</strong></span>
+            {claim.invoice_generated_at && (
+              <span>Generated {format(new Date(claim.invoice_generated_at), 'dd/MM/yyyy HH:mm')}</span>
+            )}
+            {claim.gl_summary && (
+              <span className="ml-2">GL: GP {fmtGBP(claim.gl_summary.gp_total || 0)} / Other {fmtGBP(claim.gl_summary.other_clinical_total || 0)}</span>
+            )}
+          </div>
+          {claim.invoice_pdf_path && (
+            <div className="flex items-center gap-1.5">
+              <InvoiceViewerButton invoicePdfPath={claim.invoice_pdf_path} invoiceNumber={claim.invoice_number} />
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={async () => {
+                const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
+                if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+              }}>
+                <Download className="w-3 h-3" /> Download PDF
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Payment workflow panel for approved/invoiced/paid claims — visible to admin (not PML Director) */}
       {isAdmin && !isPMLDirector && (claim.status === 'approved' || claim.status === 'invoiced' || claim.status === 'paid') && onUpdatePayment && (
         <PaymentWorkflowPanel
@@ -1979,30 +2006,6 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         <div className="px-3 py-2 border-t bg-green-50/50 dark:bg-green-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           <span>Paid by: <strong className="text-foreground">{claim.paid_by || '—'}</strong></span>
           <span>on <strong className="text-foreground">{format(new Date(claim.paid_at), 'dd/MM/yyyy')} at {format(new Date(claim.paid_at), 'HH:mm')}</strong></span>
-        </div>
-      )}
-
-      {/* Invoice info & download */}
-      {claim.invoice_number && (
-        <div className="px-3 py-2 border-t bg-blue-50/50 dark:bg-blue-950/20 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <FileText className="w-4 h-4 text-blue-600" />
-            <span>Invoice: <strong className="text-foreground">{claim.invoice_number}</strong></span>
-            {claim.invoice_generated_at && (
-              <span>Generated {format(new Date(claim.invoice_generated_at), 'dd/MM/yyyy HH:mm')}</span>
-            )}
-            {claim.gl_summary && (
-              <span className="ml-2">GL: GP {fmtGBP(claim.gl_summary.gp_total || 0)} / Other {fmtGBP(claim.gl_summary.other_clinical_total || 0)}</span>
-            )}
-          </div>
-          {claim.invoice_pdf_path && (
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={async () => {
-              const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
-              if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-            }}>
-              <Download className="w-3 h-3" /> Download PDF
-            </Button>
-          )}
         </div>
       )}
 
