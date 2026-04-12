@@ -492,8 +492,7 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
 
 function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,vp,forceOpen,onToggle,onNavigateHome,onOpenKB}){
   const isMobile=vp==="mobile";
-  const autoCollapse=(settings.sidebarMode==="auto"&&(vp==="compact"||isMobile));
-  const collapsed=settings.sidebarMode==="collapsed"||(autoCollapse&&!forceOpen);
+  const collapsed=forceOpen?false:settings.sidebarMode==="collapsed"||(settings.sidebarMode!=="expanded");
   const w=collapsed?0:vp==="wide"?255:230;
   const sidebarStyle=isMobile?{
     position:"fixed",top:0,left:0,bottom:0,zIndex:200,
