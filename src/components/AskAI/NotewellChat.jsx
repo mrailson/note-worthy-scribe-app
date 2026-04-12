@@ -528,7 +528,7 @@ function ArtifactPreview({artifact}){
 function UserAvatar({user,size=32}){return<div style={{width:size,height:size,borderRadius:"50%",flexShrink:0,background:`linear-gradient(135deg,${NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.32,fontWeight:700,color:"#fff",border:"2px solid rgba(255,255,255,.2)"}}>{user.initials}</div>;}
 function PracticeLogo({practice,size=26}){if(practice.logoUrl)return<img src={practice.logoUrl} alt={practice.name} style={{width:size,height:size,objectFit:"contain",borderRadius:5}}/>;const init=(practice.shortName||practice.name||"?").split(/\s+/).map(w=>w[0]).join("").slice(0,3);return<div style={{width:size,height:size,borderRadius:6,background:`linear-gradient(135deg,${practice.primaryColour||NHS.blue},${NHS.darkBlue})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.28,fontWeight:900,color:"#fff",flexShrink:0}}>{init}</div>;}
 
-const FOLLOW_UP_SUGGESTIONS=["Tell me more","Summarise as bullet points","What's changed recently?"];
+const FOLLOW_UP_SUGGESTIONS=["Tell me more","Summarise as bullet points","Draft this as a letter"];
 
 function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp,onOpenArtifact}){
   const isUser=msg.role==="user";const [copied,setCopied]=useState(false);const [feedback,setFeedback]=useState(null);
@@ -598,11 +598,13 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp,
 // ── FIX 4: Role-based suggestions ─────────────────────────────────────────────
 const ROLE_SUGGESTIONS = {
   "Practice Manager": [
-    "What ARRS roles can we claim for and at what reimbursement rate?",
+    "📄 Draft a staff sickness absence return to work letter",
+    "💼 What ARRS roles can we claim reimbursement for in 2025/26?",
+    "📊 Create an Excel tracker for ARRS staff, WTE, costs and contract end dates",
+    "📋 What does the PCN DES say about Enhanced Access requirements?",
+    "✅ Write a CQC-ready infection control policy for our practice",
+    "📧 Draft an email to patients about appointment access changes",
     "How do I set up a new LES agreement with the ICB?",
-    "Draft a staff sickness absence letter following a return to work",
-    "What are the DES requirements for Enhanced Access 2025/26?",
-    "Create an Excel ARRS staff tracker with WTE, costs and contract dates",
     "What are the QOF indicators I need to report on this quarter?",
     "How do I submit a CAIP improvement plan to the ICB?",
     "Draft a business continuity plan for a GP practice",
@@ -614,26 +616,24 @@ const ROLE_SUGGESTIONS = {
     "What DBS checks are required for different staff roles?",
     "Draft a job description for a Social Prescribing Link Worker",
     "How do I complete the DSPT submission for our practice?",
-    "Write a staff communication about new appointment booking changes",
     "What are the GPAD slot type configurations needed for CAIP?",
-    "Create a monthly LES claims tracking spreadsheet",
     "What notice periods apply under Agenda for Change?"
   ],
   "GP Partner": [
-    "What is the Northamptonshire formulary position on semaglutide?",
+    "💊 What's the Northamptonshire formulary position on semaglutide?",
+    "📋 What are the NICE criteria for starting a GLP-1 in type 2 diabetes?",
+    "🚦 Is doxazosin XL on the Northamptonshire formulary?",
+    "📝 Write a referral letter for a patient with uncontrolled hypertension",
+    "🔬 What monitoring does methotrexate require in primary care?",
+    "🩺 What are the QOF indicators for diabetes review 2025/26?",
     "A consultant has asked me to prescribe a RED formulary drug. Do I have to?",
     "Summarise the Network Contract DES requirements for 2025/26",
     "What are my responsibilities for structured medication reviews?",
-    "Write a referral letter to cardiology for a patient with suspected AF",
-    "What are the ARRS roles eligible for 100% reimbursement?",
     "Explain the traffic light formulary system for prescribing",
     "What should I document when declining to sign an SCA?",
     "How do I report a significant event to NHS England?",
     "What are the dementia diagnosis rate targets for Northamptonshire?",
-    "Draft a response to an ICB medicines management query",
     "What are the current ADHD prescribing rules in Northamptonshire?",
-    "Summarise the buy-back model for the NRES neighbourhood programme",
-    "What are the CQC inspection domains and what do they look for?",
     "Write a clinical audit protocol for antibiotic prescribing",
     "What vaccinations are due at the 12-month child health check?",
     "How should I handle a patient who wants a private ADHD prescription on NHS?",
@@ -642,30 +642,34 @@ const ROLE_SUGGESTIONS = {
     "What QOF disease registers do I need to maintain?"
   ],
   "Admin / Reception": [
-    "How do I process a subject access request (SAR) under GDPR?",
+    "📧 Draft a patient letter about a change to opening hours",
+    "📄 Write a repeat prescription request policy for patients",
+    "📋 What is the process for a subject access request under GDPR?",
+    "✅ Create a new patient registration checklist for our practice",
+    "📝 Draft a template for a chaperone request letter",
+    "📊 Create a spreadsheet to track appointment DNA rates by month",
     "What is the correct procedure for deducting a deceased patient?",
     "Draft a polite template for patients who miss appointments",
-    "How do I register a new patient at the practice?",
     "What are the rules for releasing medical records to solicitors?",
     "How do I handle a request for a private sick note?",
     "What is the process for ordering vaccines through ImmForm?",
-    "Draft a template letter for failed appointment reminders",
     "How do I set up a new user account on EMIS/SystmOne?",
-    "What are the correct Read codes for a new patient health check?",
     "How do I process a temporary patient registration?",
-    "What are the opening hours requirements under the GMS contract?",
     "Draft a patient information leaflet about our online services",
     "How do I handle a complaint received at reception?",
     "What is the process for scanning and workflow of clinical post?",
     "How do I add a carer flag to a patient record?",
     "What forms are needed for a cremation request?",
-    "Draft an out-of-office message for the practice phone system",
     "How do I request patient transport for a vulnerable patient?",
     "What is the Enhanced Access appointment booking process?"
   ],
   "PCN Manager": [
-    "Summarise the PCN DES requirements for 2025/26 in a Word document",
-    "Create an Excel ARRS budget tracker for all 14 eligible roles",
+    "💼 What ARRS roles are available and what are the reimbursement rates?",
+    "📊 Create an Excel spreadsheet to track PCN ARRS staff, WTE and contract dates",
+    "📄 What are the Network Contract DES requirements for 2025/26?",
+    "📋 Summarise the key changes in the GP contract for 2025/26",
+    "✅ Draft a PCN board report template",
+    "📧 Write a communication to member practices about Enhanced Access",
     "What is the CAIP submission process and what evidence is needed?",
     "Draft the agenda for a PCN board meeting",
     "What are the 18 ICB metrics for the NRES neighbourhood programme?",
@@ -674,15 +678,11 @@ const ROLE_SUGGESTIONS = {
     "Draft an MOU clause covering sick pay for neighbourhood staff",
     "Create a PowerPoint for an ICB board presentation on PCN performance",
     "What are the GPAD slot type requirements for SDA reporting?",
-    "Write a communication to practices about the Enhanced Access service",
     "What is the process for submitting monthly ARRS claims via CQRS?",
-    "Summarise the Network Contract DES changes from 2024/25 to 2025/26",
     "Draft a workforce plan for an ARRS recruitment round",
     "What governance documents are required for a New Models pilot?",
     "Create an Excel dashboard for PCN QOF performance tracking",
     "Write a risk register template for PCN governance",
-    "What is the ICB contact for New Models commissioning queries?",
-    "Summarise the PML federation services in South Northamptonshire",
     "Draft a board paper on neighbourhood care implementation progress"
   ]
 };
@@ -693,11 +693,10 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
   const isMobile=vp==="mobile";
   const getRoleKey=(r)=>{
     const s=(r||"").toLowerCase();
-    if(s.includes("pcn manager")||s.includes("pcn"))return"PCN Manager";
-    if(s.includes("practice manager")||s.includes("manager"))return"Practice Manager";
-    if(s.includes("gp partner")||s.includes("partner"))return"GP Partner";
-    if(s.includes("salaried")||s.includes("salaried gp"))return"GP Partner";
-    if(s.includes("admin")||s.includes("reception")||s.includes("practice user"))return"Admin / Reception";
+    if(s.includes("gp")||s.includes("doctor")||s.includes("clinical")||s.includes("clinician"))return"GP Partner";
+    if(s.includes("pcn")||s.includes("network")||s.includes("neighbourhood"))return"PCN Manager";
+    if(s.includes("manager")||s.includes("pm")||s.includes("practice manager"))return"Practice Manager";
+    if(s.includes("admin")||s.includes("reception")||s.includes("coordinator")||s.includes("practice user"))return"Admin / Reception";
     return"Practice Manager";
   };
   const ROLES=Object.keys(ROLE_SUGGESTIONS);
