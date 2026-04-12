@@ -496,6 +496,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     ? (testMode.role === 'mgmt_lead' ? 'submitted'
       : testMode.role === 'pml_director' ? filterStatus
       : testMode.role === 'pml_finance' ? filterStatus
+      : testMode.role === 'practice' ? 'all'
       : filterStatus)
     : filterStatus;
   const effectiveCanCreateClaim = !testActive || testMode.role === 'admin' || testMode.role === 'practice';
