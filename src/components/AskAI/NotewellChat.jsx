@@ -649,7 +649,6 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources) {
     }
   }
 }
-}
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function NotewellChat({ user, onNavigateHome }) {
