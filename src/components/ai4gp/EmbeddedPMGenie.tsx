@@ -40,6 +40,10 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const practiceNameRef = useRef<string | undefined>(undefined);
   const profileLoadedRef = useRef(false);
 
+  // Conversation buffer for transcript emails on disconnect
+  const conversationBufferRef = useRef<Array<{ role: string; message: string; timestamp: string }>>([]);
+  const conversationIdRef = useRef<string | null>(null);
+  
   const extractImageUrlFromText = (text?: string): string | null => {
     if (!text) return null;
 
@@ -105,6 +109,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const userEmail = contextData.email || profile?.email || user?.email;
   const practiceName = contextData.practiceName || practiceContext?.pcnName;
   const userTitle = contextData.role;
+  const voiceCtxDataRef = useRef(contextData);
 
   // Keep refs in sync so ElevenLabs client tool closures always see current values
   useEffect(() => {
@@ -112,7 +117,8 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     userDisplayNameRef.current = userDisplayName;
     practiceNameRef.current = practiceName;
     if (userEmail) profileLoadedRef.current = true;
-  }, [userEmail, userDisplayName, practiceName]);
+    voiceCtxDataRef.current = contextData;
+  }, [userEmail, userDisplayName, practiceName, contextData]);
 
   // Build dynamic prompt with user context for the agent
   const dynamicPrompt = useMemo(() => {
@@ -301,7 +307,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         console.warn('Volume guard setup failed:', e);
       }
     },
-    onDisconnect: () => {
+    onDisconnect: async () => {
       console.log('Disconnected from PM Genie');
       setStatus('disconnected');
       toast.info('Disconnected from PM Genie');
@@ -310,9 +316,59 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         clearInterval(volumeGuardTimerRef.current);
         volumeGuardTimerRef.current = null;
       }
+
+      // Auto-send transcript email on disconnect
+      const buffered = conversationBufferRef.current;
+      if (buffered.length > 0 && userEmailRef.current) {
+        console.log(`📧 Auto-sending PM Genie transcript to ${userEmailRef.current}...`);
+        try {
+          const ctx = voiceCtxDataRef.current;
+          await supabase.functions.invoke('send-genie-transcript-email', {
+            body: {
+              userEmail: userEmailRef.current,
+              serviceName: 'PM Genie',
+              conversationBuffer: buffered,
+              conversationId: conversationIdRef.current,
+              serviceType: 'pm-genie',
+              userContext: {
+                displayName: ctx.displayName,
+                role: ctx.role,
+                practiceName: ctx.practiceName,
+                practiceAddress: ctx.practiceAddress,
+                practicePostcode: ctx.practicePostcode,
+                practicePhone: ctx.practicePhone,
+                practiceOdsCode: ctx.practiceOdsCode,
+              }
+            }
+          });
+          console.log('✅ PM Genie transcript email sent');
+          toast.success('Session summary emailed to you');
+        } catch (err) {
+          console.error('Failed to send PM Genie transcript on disconnect:', err);
+        }
+      }
+
+      conversationIdRef.current = null;
     },
     onMessage: (message) => {
       console.log('PM Genie message:', message);
+
+      // Capture conversation messages for transcript
+      if (message.message && message.source) {
+        const now = new Date().toISOString();
+        const role = message.source === 'ai' ? 'assistant' : 'user';
+        
+        // Avoid duplicates
+        const lastEntry = conversationBufferRef.current[conversationBufferRef.current.length - 1];
+        if (!lastEntry || lastEntry.message !== message.message || lastEntry.role !== role) {
+          conversationBufferRef.current.push({ role, message: message.message, timestamp: now });
+        }
+      }
+
+      // Capture conversation ID
+      if ((message as any).type === 'conversation_initiation_metadata' && (message as any).conversation_id) {
+        conversationIdRef.current = (message as any).conversation_id;
+      }
     },
     onError: (error) => {
       console.error('PM Genie error:', error);
