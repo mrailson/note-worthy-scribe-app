@@ -961,8 +961,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               {filteredClaims.map(c => {
                 const staffDets = c.staff_details as any[];
                 const categories = [...new Set(staffDets.map((s: any) => s.staff_category).filter(Boolean))];
-                const claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed' = categories.length === 0 ? 'buyback'
-                  : categories.length === 1 ? (categories[0] as 'buyback' | 'new_sda' | 'management')
+                const claimCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed' = categories.length === 0 ? 'buyback'
+                  : categories.length === 1 ? (categories[0] as 'buyback' | 'new_sda' | 'management' | 'gp_locum')
                   : 'mixed';
                 const isBuyBack = claimCategory === 'buyback' || claimCategory === 'mixed';
                 
@@ -1427,7 +1427,7 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
 
 function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAdmin, isPMLDirector, pmlFinanceEmails, canApproveClaim, canVerifyClaim, rateParams, rolesConfig, onSubmit, onDelete, onConfirmDeclaration, onUpdateStaffAmount, onRemoveStaff, onUpdateStaffNotes, onUpdateStaffLine, onApprove, onReject, onVerify, onQuery, onUpdatePayment, savingPayment, testActive }: {
   claim: BuyBackClaim;
-  claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
+  claimCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed';
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
@@ -1574,7 +1574,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
 
       for (let idx = 0; idx < staffDetails.length; idx++) {
         const s = staffDetails[idx];
-        const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management';
+        const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum';
         const configItems = getConfigForCategory(cat);
         const mandatoryItems = configItems.filter((c: any) => c.is_mandatory);
         const uploadedForStaff = getUploadedTypesForStaff(idx);
@@ -1922,7 +1922,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <StaffLineEvidence
-                          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management'}
+                          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
                           staffIndex={idx}
                           staffName={s.staff_name}
                           staffRole={s.staff_role}
