@@ -10,7 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
-import VoicePanel from "@/components/AskAI/VoicePanel";
+import { lazy, Suspense } from "react";
+
+const AIVoiceStudio = lazy(() => import("@/components/ai4gp/AIVoiceStudio"));
 
 const NHS = {
   blue:"#005EB8", darkBlue:"#003087", brightBlue:"#0072CE",
