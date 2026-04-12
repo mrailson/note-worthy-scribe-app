@@ -45,7 +45,7 @@ function fmtGBP(n: number): string {
 }
 
 /** Build a human-readable calculation breakdown for the live preview */
-function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
+function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
   // Management: hourly_rate × weekly_hours × working_weeks
   if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
     const ww = rateParams.workingWeeksInMonth;
@@ -53,10 +53,14 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: numb
     return `${allocValue} hrs/wk × ${ww.toFixed(1)} working weeks${bhNote} × ${fmtGBP(hourlyRate)}/hr`;
   }
 
+  const roleConfig = rateParams?.getRoleConfig?.(role ?? '');
+  const includesOnCosts = roleConfig?.includes_on_costs !== false;
   const niPct = rateParams?.employerNiPct ?? 15;
   const penPct = rateParams?.employerPensionPct ?? 14.38;
   const totalPct = niPct + penPct;
-  const onCostsLabel = `${totalPct.toFixed(2)}% on-costs (NI ${niPct}% + Pension ${penPct}%)`;
+  const onCostsLabel = includesOnCosts 
+    ? `inc. ${totalPct.toFixed(2)}% on-costs (NI ${niPct}% + Pension ${penPct}%)`
+    : 'excl. on-costs (Locum)';
 
   let baseRate = '£11,000';
   if (rateParams?.getRoleAnnualRate && role) {
@@ -64,14 +68,19 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours', allocValue: numb
     if (r !== undefined) baseRate = fmtGBP(r);
   }
 
+  if (allocType === 'daily') {
+    const dailyRate = roleConfig?.daily_rate ?? allocValue;
+    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+    return `${fmtGBP(dailyRate)}/day × ${workingDays} working days — excl. on-costs (Locum)`;
+  }
   if (allocType === 'sessions') {
-    return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
+    return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
   }
   if (allocType === 'hours') {
     const wteRatio = (allocValue / 37.5).toFixed(2);
-    return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
+    return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
   }
-  return `${allocValue} WTE × ${baseRate}/yr ÷ 12 months × ${onCostsLabel}`;
+  return `${allocValue} WTE × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
 }
 
 const DECLARATION_TEXT =
@@ -91,7 +100,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
-  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours'>('sessions');
+  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
   const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
   const [practice, setPractice] = useState<string>('');
@@ -161,17 +170,21 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   // Default allocation type based on role
   const handleRoleChange = (newRole: string) => {
     setRole(newRole);
-    if (newRole === 'ANP' || newRole === 'ACP') {
+    // Look up default allocation from role config
+    const roleConfig = rateParams?.getRoleConfig?.(newRole);
+    if (roleConfig?.allocation_default === 'daily') {
+      setAllocType('daily');
+    } else if (newRole === 'ANP' || newRole === 'ACP') {
       setAllocType('hours');
     } else if (newRole === 'GP') {
-      setAllocType('sessions');
+      setAllocType('daily');
     }
   };
 
   const isManagement = category === 'management';
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
-  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : 9;
+  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9;
 
   const handleAllocValueChange = (val: string) => {
     const num = parseFloat(val);
@@ -261,19 +274,20 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
           {isManagement ? (
             <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
           ) : (
-            <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
+             <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours' | 'daily'); setAllocValue(''); }}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="sessions">Sessions</SelectItem>
                 <SelectItem value="hours">Hrs/wk</SelectItem>
                 <SelectItem value="wte">WTE</SelectItem>
+                <SelectItem value="daily">Daily Rate</SelectItem>
               </SelectContent>
             </Select>
           )}
         </div>
         <div>
           <Label className="text-xs">
-            {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : 'WTE Value'}
+            {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
           </Label>
           <Input
             type="number"
@@ -453,9 +467,11 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const rateParams: RateParams = {
     onCostMultiplier,
     getRoleAnnualRate: (label) => { const v = getAnnualRate(label); return v > 0 ? v : undefined; },
+    getRoleConfig: (label) => rateSettings.roles_config.find(r => r.label.toLowerCase() === label.toLowerCase()),
     employerNiPct: rateSettings.employer_ni_pct,
     employerPensionPct: rateSettings.employer_pension_pct,
     workingWeeksInMonth: workingWeeksForMonth,
+    workingDaysInMonth: calcWorkingDays(claimMonthDate),
     bankHolidaysInMonth: bankHolidaysForMonth,
     bankHolidayDetails: bankHolidayDetailsForMonth,
   };
@@ -729,7 +745,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                           <td className="p-2">{categoryBadge(s.staff_category)}</td>
                          <td className="p-2">{displayName}</td>
                          <td className="p-2">{s.staff_role}</td>
-                         <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
+                         <td className="p-2">{s.allocation_type === 'daily' ? `${fmtGBP(s.allocation_value)}/day` : `${s.allocation_value} ${s.allocation_type}`}</td>
                          <td className="p-2 text-xs">{s.start_date ? format(new Date(s.start_date), 'dd/MM/yyyy') : <span className="text-muted-foreground italic">Prior to claim month</span>}</td>
                           <td className="p-2 text-right font-medium">
                             <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
@@ -990,7 +1006,7 @@ function getStaffMaxAmount(staff: any, claimMonth?: string, rateParams?: RatePar
 
 /** Build a detailed calculation breakdown for hover display */
 function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RateParams) {
-  const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
+  const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours' | 'daily';
   const allocValue = staff.allocation_value as number;
   const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
 
@@ -1014,36 +1030,65 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     const totalOnCosts = totalHours * onCostsPerHour;
 
     return {
-      isManagement: true,
-      hourlyRate,
-      baseHourlyRate,
-      niPerHour,
-      pensionPerHour,
-      onCostsPerHour,
-      mgmtNiPct,
-      mgmtPensionPct,
-      mgmtOnCostPct: onCostPct,
-      grossHoursCost,
-      totalOnCosts,
-      weeklyHours: allocValue,
-      workingWeeks,
-      totalHours,
-      bankHolidaysExcluded: bhCount,
-      bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
+      isManagement: true, isDaily: false, includesOnCosts: true,
+      hourlyRate, baseHourlyRate, niPerHour, pensionPerHour, onCostsPerHour,
+      mgmtNiPct, mgmtPensionPct, mgmtOnCostPct: onCostPct,
+      grossHoursCost, totalOnCosts, weeklyHours: allocValue, workingWeeks, totalHours,
+      bankHolidaysExcluded: bhCount, bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
+      dailyRate: 0, workingDays: 0,
     };
   }
 
+  const roleConfig = rateParams?.getRoleConfig?.(staff.staff_role ?? '');
+  const includesOnCosts = roleConfig?.includes_on_costs !== false;
+
   const niPct = rateParams?.employerNiPct ?? 15;
   const pensionPct = rateParams?.employerPensionPct ?? 14.38;
-  const onCostRate = rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938;
+  const onCostRate = includesOnCosts ? (rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938) : 0;
   const onCostPct = onCostRate * 100;
 
   let roleAnnualRate: number | undefined;
   if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     roleAnnualRate = rateParams.getRoleAnnualRate(staff.staff_role);
+  }
+
+  // Daily rate calculation
+  if (allocType === 'daily') {
+    const dailyRate = roleConfig?.daily_rate ?? allocValue;
+    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+    const finalMonthly = dailyRate * workingDays;
+    
+    let proRataInfo: any = null;
+    let proRatedMonthly = finalMonthly;
+    if (claimMonth && staff.start_date) {
+      const claimStart = new Date(claimMonth);
+      const staffStart = new Date(staff.start_date);
+      if (staffStart.getFullYear() === claimStart.getFullYear() && staffStart.getMonth() === claimStart.getMonth()) {
+        const daysInMonth = new Date(claimStart.getFullYear(), claimStart.getMonth() + 1, 0).getDate();
+        const startDay = staffStart.getDate();
+        const remainingDays = daysInMonth - startDay + 1;
+        const ratio = remainingDays / daysInMonth;
+        proRataInfo = { daysInMonth, workingDays: remainingDays, startDay, ratio };
+        proRatedMonthly = finalMonthly * ratio;
+      }
+    }
+
+    return {
+      isManagement: false, isDaily: true, includesOnCosts: false,
+      dailyRate, workingDays,
+      baseSalary: 0, baseLabel: `${fmtGBP(dailyRate)}/day × ${workingDays} working days`,
+      niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0,
+      fullMonthly: finalMonthly, proRataInfo, finalMonthly: proRatedMonthly,
+      baseRate: fmtGBP(dailyRate),
+      hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+      mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+      grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    };
   }
 
   const baseRate = roleAnnualRate ?? (allocType === 'sessions' ? 11000 : 60000);
@@ -1064,8 +1109,8 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     baseLabel = `${allocValue} WTE × ${rateLabel}/yr`;
   }
 
-  const niValue = baseSalary * (niPct / 100);
-  const pensionValue = baseSalary * (pensionPct / 100);
+  const niValue = includesOnCosts ? baseSalary * (niPct / 100) : 0;
+  const pensionValue = includesOnCosts ? baseSalary * (pensionPct / 100) : 0;
   const onCostsValue = niValue + pensionValue;
   const annualBase = baseSalary + onCostsValue;
   const fullMonthly = annualBase / 12;
@@ -1089,7 +1134,16 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     }
   }
 
-  return { isManagement: false, baseSalary, baseLabel, niPct, pensionPct, niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly, baseRate: rateLabel };
+  return {
+    isManagement: false, isDaily: false, includesOnCosts,
+    baseSalary, baseLabel, niPct: includesOnCosts ? niPct : 0, pensionPct: includesOnCosts ? pensionPct : 0,
+    niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly,
+    baseRate: rateLabel, dailyRate: 0, workingDays: 0,
+    hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+    mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+    grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
+    bankHolidaysExcluded: 0, bankHolidayDetails: [],
+  };
 }
 
 /** Hover card showing the full calculation breakdown for a staff line's monthly amount */
@@ -1163,6 +1217,40 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
               </div>
             </>
+          ) : breakdown.isDaily ? (
+            <>
+              {/* Daily rate calculation */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Daily Rate (Locum)</p>
+                <p className="text-foreground">{breakdown.baseLabel}</p>
+                <p className="font-semibold">= {fmtGBP(breakdown.fullMonthly)}/month</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">On-Costs</p>
+                <p className="text-foreground italic">Excluded — Locum/daily rate (no employer NI or pension)</p>
+              </div>
+              {breakdown.proRataInfo && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground font-medium mb-0.5">Pro-Rata Adjustment</p>
+                    <p className="text-foreground">
+                      Staff started on day {breakdown.proRataInfo.startDay} of {breakdown.proRataInfo.daysInMonth}
+                    </p>
+                    <p className="text-foreground">
+                      {breakdown.proRataInfo.workingDays} of {breakdown.proRataInfo.daysInMonth} days = {(breakdown.proRataInfo.ratio * 100).toFixed(1)}%
+                    </p>
+                    <p className="font-semibold">= {fmtGBP(breakdown.finalMonthly)}/month (pro-rated)</p>
+                  </div>
+                </>
+              )}
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Maximum Claimable</span>
+                <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
+              </div>
+            </>
           ) : (
             <>
               {/* Step 1: Base salary */}
@@ -1172,20 +1260,28 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
               </div>
               <Separator />
-              {/* Step 2: On-costs split */}
-              <div>
-                <p className="text-muted-foreground font-medium mb-0.5">+ Employer On-Costs ({breakdown.onCostPct.toFixed(2)}%)</p>
-                <p className="text-foreground">Employer NI ({breakdown.niPct}%): {fmtGBP(breakdown.niValue)}</p>
-                <p className="text-foreground">Employer Pension ({breakdown.pensionPct}%): {fmtGBP(breakdown.pensionValue)}</p>
-                <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.onCostsValue)}</p>
-                <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 italic">Rates as configured in Settings</p>
-              </div>
+              {/* Step 2: On-costs — show differently based on includes_on_costs */}
+              {breakdown.includesOnCosts ? (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-0.5">+ Employer On-Costs ({breakdown.onCostPct.toFixed(2)}%)</p>
+                  <p className="text-foreground">Employer NI ({breakdown.niPct}%): {fmtGBP(breakdown.niValue)}</p>
+                  <p className="text-foreground">Employer Pension ({breakdown.pensionPct}%): {fmtGBP(breakdown.pensionValue)}</p>
+                  <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.onCostsValue)}</p>
+                  <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 italic">On-costs included (Employed Staff)</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-0.5">On-Costs</p>
+                  <p className="text-foreground italic">Excluded — Locum (no employer NI or pension)</p>
+                  <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)}/year</p>
+                </div>
+              )}
               <Separator />
               {/* Step 3: Monthly */}
               <div>
                 <p className="text-muted-foreground font-medium mb-0.5">Monthly Amount</p>
-                <p className="text-foreground">{fmtGBP(breakdown.annualBase)} ÷ 12 months</p>
+                <p className="text-foreground">{fmtGBP(breakdown.annualBase || breakdown.baseSalary)} ÷ 12 months</p>
                 <p className="font-semibold">= {fmtGBP(breakdown.fullMonthly)}/month</p>
               </div>
               {/* Step 4: Pro-rata if applicable */}
@@ -1507,7 +1603,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                   <td className="p-2">
                     {canEdit ? (
                       <div className="flex items-center gap-1">
-                        <Select
+                         <Select
                           value={s.allocation_type}
                           onValueChange={(v) => {
                             onUpdateStaffLine(claim.id, idx, { allocation_type: v }, rateParams);
@@ -1520,6 +1616,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                             <SelectItem value="sessions">Sessions</SelectItem>
                             <SelectItem value="hours">Hrs/wk</SelectItem>
                             <SelectItem value="wte">WTE</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
                           </SelectContent>
                         </Select>
                         <Input
@@ -1527,7 +1624,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                           className="h-7 w-16 text-xs text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           defaultValue={s.allocation_value}
                           min={0}
-                          max={s.allocation_type === 'sessions' ? 9 : s.allocation_type === 'hours' ? 37.5 : 1}
+                          max={s.allocation_type === 'sessions' ? 9 : s.allocation_type === 'hours' ? 37.5 : s.allocation_type === 'daily' ? 2000 : 1}
                           step={s.allocation_type === 'wte' ? 0.1 : s.allocation_type === 'hours' ? 0.5 : 1}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value);
@@ -1538,7 +1635,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                         />
                       </div>
                     ) : (
-                      <span className="text-xs">{s.allocation_value} {s.allocation_type}</span>
+                      <span className="text-xs">
+                        {s.allocation_type === 'daily' ? `${fmtGBP(s.allocation_value)}/day` : `${s.allocation_value} ${s.allocation_type}`}
+                      </span>
                     )}
                   </td>
                   {/* Start Date — editable */}

@@ -41,7 +41,7 @@ export function EditStaffDialog({
 }: EditStaffDialogProps) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
-  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours'>('sessions');
+  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
   const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
   const [practice, setPractice] = useState('');
@@ -62,7 +62,7 @@ export function EditStaffDialog({
   }, [open, staff]);
 
   const isManagement = category === 'management';
-  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : 9;
+  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9;
 
   const handleAllocValueChange = (val: string) => {
     const num = parseFloat(val);
@@ -149,19 +149,20 @@ export function EditStaffDialog({
               {isManagement ? (
                 <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
               ) : (
-                <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours'); setAllocValue(''); }}>
+                <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'wte' | 'hours' | 'daily'); setAllocValue(''); }}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="sessions">Sessions</SelectItem>
                     <SelectItem value="hours">Hrs/wk</SelectItem>
                     <SelectItem value="wte">WTE</SelectItem>
+                    <SelectItem value="daily">Daily Rate</SelectItem>
                   </SelectContent>
                 </Select>
               )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">
-                {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : 'WTE Value'}
+                {allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
               </Label>
               <Input
                 type="number"

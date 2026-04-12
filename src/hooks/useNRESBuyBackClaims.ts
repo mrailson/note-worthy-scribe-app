@@ -61,10 +61,13 @@ const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
 export interface RateParams {
   onCostMultiplier: number;
   getRoleAnnualRate?: (roleLabel: string) => number | undefined;
+  getRoleConfig?: (roleLabel: string) => import('@/hooks/useNRESBuyBackRateSettings').RoleConfig | undefined;
   employerNiPct?: number;
   employerPensionPct?: number;
   /** Pre-calculated working weeks for a given claim month (used for management billing) */
   workingWeeksInMonth?: number;
+  /** Working days in the claim month */
+  workingDaysInMonth?: number;
   /** Number of bank holidays excluded from the month */
   bankHolidaysInMonth?: number;
   /** Detailed bank holiday info for display */
@@ -90,13 +93,26 @@ export function calculateStaffMonthlyAmount(
   } else if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     // Dynamic rates from settings
     const roleRate = rateParams.getRoleAnnualRate(staff.staff_role);
+    const roleConfig = rateParams.getRoleConfig?.(staff.staff_role);
     if (roleRate !== undefined) {
-      const annualWithOnCosts = roleRate * rateParams.onCostMultiplier;
-      if (staff.allocation_type === 'sessions') {
+      // Check if on-costs should be applied (default true for backward compat)
+      const includesOnCosts = roleConfig?.includes_on_costs !== false;
+      const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
+      
+      if (staff.allocation_type === 'daily') {
+        // Daily rate × working days in the month
+        const dailyRate = roleConfig?.daily_rate ?? staff.allocation_value;
+        const workingDays = rateParams.workingDaysInMonth ?? 21.67;
+        fullMonthly = dailyRate * workingDays;
+        // No on-costs for daily rate (locum)
+      } else if (staff.allocation_type === 'sessions') {
+        const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
       } else if (staff.allocation_type === 'hours') {
+        const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = ((staff.allocation_value / 37.5) * annualWithOnCosts) / 12;
       } else {
+        const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
       }
     } else {
@@ -131,6 +147,10 @@ export function calculateStaffMonthlyAmount(
 }
 
 function calculateFallback(staff: { allocation_type: string; allocation_value: number }): number {
+  if (staff.allocation_type === 'daily') {
+    // Default daily rate for fallback = allocation_value × ~21.67 working days
+    return staff.allocation_value * 21.67;
+  }
   if (staff.allocation_type === 'sessions') {
     return (staff.allocation_value * DEFAULT_GP_SESSION_ANNUAL) / 12;
   } else if (staff.allocation_type === 'hours') {

@@ -14,10 +14,12 @@ export interface RoleConfig {
   key: string;
   label: string;
   annual_rate: number;
-  allocation_default: 'sessions' | 'hours' | 'wte';
+  allocation_default: 'sessions' | 'hours' | 'wte' | 'daily';
   working_hours_per_year: number;
   gl_code?: string;
   ground_rules?: GroundRule[];
+  includes_on_costs?: boolean;
+  daily_rate?: number;
 }
 
 export interface ManagementRoleConfig {
@@ -45,12 +47,12 @@ export interface RateSettings {
 }
 
 const DEFAULT_ROLES: RoleConfig[] = [
-  { key: 'gp', label: 'GP', annual_rate: 11000, allocation_default: 'sessions', working_hours_per_year: 1950 },
-  { key: 'anp', label: 'ANP', annual_rate: 55000, allocation_default: 'hours', working_hours_per_year: 1950 },
-  { key: 'acp', label: 'ACP', annual_rate: 50000, allocation_default: 'hours', working_hours_per_year: 1950 },
-  { key: 'practice_nurse', label: 'Practice Nurse', annual_rate: 35000, allocation_default: 'hours', working_hours_per_year: 1950 },
-  { key: 'hca', label: 'HCA', annual_rate: 25000, allocation_default: 'hours', working_hours_per_year: 1950 },
-  { key: 'pharmacist', label: 'Pharmacist', annual_rate: 45000, allocation_default: 'hours', working_hours_per_year: 1950 },
+  { key: 'gp', label: 'GP', annual_rate: 11000, allocation_default: 'daily', working_hours_per_year: 1950, includes_on_costs: false, daily_rate: 800 },
+  { key: 'anp', label: 'ANP', annual_rate: 55000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },
+  { key: 'acp', label: 'ACP', annual_rate: 50000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },
+  { key: 'practice_nurse', label: 'Practice Nurse', annual_rate: 35000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },
+  { key: 'hca', label: 'HCA', annual_rate: 25000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },
+  { key: 'pharmacist', label: 'Pharmacist', annual_rate: 45000, allocation_default: 'hours', working_hours_per_year: 1950, includes_on_costs: true },
 ];
 
 const DEFAULT_ON_COSTS_PCT = 29.38;
