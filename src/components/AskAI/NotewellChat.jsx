@@ -686,8 +686,8 @@ function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
     if (r.includes('pcn manager') || r.includes('pcn')) return 'PCN Manager';
     if (r.includes('practice manager') || r.includes('manager')) return 'Practice Manager';
     if (r.includes('gp partner') || r.includes('partner')) return 'GP Partner';
-    if (r.includes('salaried') || r.includes('salaried gp')) return 'Salaried GP';
-    if (r.includes('admin') || r.includes('reception') || r.includes('practice user')) return 'Admin / Reception';
+    if (r.includes('salaried') || r.includes('salaried gp')) return 'GP Partner';
+    if (r.includes('admin') || r.includes('reception') || r.includes('practice user')) return 'Practice Manager';
     if (r.includes('system admin')) return 'Practice Manager';
     return 'Practice Manager';
   };
