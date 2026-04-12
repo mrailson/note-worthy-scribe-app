@@ -1934,11 +1934,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              Declaration: {claim.declaration_confirmed ? '✓ Confirmed' : '✗ Not confirmed'}
-            </span>
-          )}
+          ) : null}
         </div>
         {canEdit && (
           <div className="flex items-center gap-2">
