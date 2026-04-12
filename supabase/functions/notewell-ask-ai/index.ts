@@ -34,17 +34,36 @@ function needsSearch(message: string): boolean {
   return SEARCH_TRIGGERS.some(t => lower.includes(t));
 }
 
+function buildQuery(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('arrs') || m.includes('reimbursement') || m.includes('additional roles'))
+    return 'ARRS additional roles reimbursement rates percentage 2025 2026 network contract DES NHS England';
+  if (m.includes('des') || m.includes('network contract'))
+    return 'Network Contract DES requirements 2025 2026 NHS England primary care networks';
+  if (m.includes('qof'))
+    return 'QOF quality outcomes framework indicators 2025 2026 NHS England';
+  if (m.includes('caip') || m.includes('access improvement'))
+    return 'CAIP capacity access improvement payment 2025 2026 NHS England primary care';
+  if (m.includes('formulary') || m.includes('prescribing'))
+    return 'Northamptonshire formulary prescribing guidance primary care 2025';
+  if (m.includes('les') || m.includes('local enhanced'))
+    return 'NHS local enhanced services LES Northamptonshire primary care 2025 2026';
+  return `NHS primary care ${message} 2025 2026`;
+}
+
 async function searchNHS(query: string, tavilyKey: string) {
   const res = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       api_key: tavilyKey,
-      query: `NHS primary care ${query}`,
+      query: buildQuery(query),
       search_depth: 'basic',
       max_results: 4,
       include_domains: NHS_DOMAINS,
-      include_answer: true
+      include_answer: true,
+      include_raw_content: false,
+      days: 365
     })
   });
   if (!res.ok) return null;
@@ -86,18 +105,23 @@ serve(async (req) => {
           }));
 
           const searchContext = results.results
-            .map((r: any) =>
-              `SOURCE: ${r.title} (${r.url})\n` +
-              `DATE: ${r.published_date || 'recent'}\n` +
-              `${r.content?.slice(0, 600)}`
-            )
+            .map((r: any, i: number) => {
+              const date = r.published_date
+                ? new Date(r.published_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                : 'recent';
+              return `[Source ${i + 1}] ${r.title}\nURL: ${r.url}\nDate: ${date}\n${r.content?.slice(0, 600)}`;
+            })
             .join('\n\n---\n\n');
 
           enhancedSystem += `\n\nLIVE NHS SEARCH RESULTS ` +
-            `(retrieved now — use this in preference to ` +
-            `training knowledge for current figures/dates):\n\n` +
+            `(retrieved just now — use these in preference to ` +
+            `training knowledge for current figures, dates, and rates):\n\n` +
             `${searchContext}\n\n` +
-            `Always cite the source URL as a markdown link when using these results.`;
+            `CITATION RULES:\n` +
+            `- Always cite each source used as a markdown link: [Title](URL)\n` +
+            `- Include the publication date where available\n` +
+            `- If multiple sources agree, cite the most recent one\n` +
+            `- At the end of the response add a "Sources" section listing all sources used`;
         }
       } catch (e) {
         console.error('Search failed, continuing without:', e);
