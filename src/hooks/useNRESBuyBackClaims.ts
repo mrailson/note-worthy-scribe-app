@@ -42,6 +42,15 @@ export interface BuyBackClaim {
   // Payment fields
   paid_at: string | null;
   paid_by: string | null;
+  // Payment workflow fields
+  payment_status: string | null;
+  pml_po_reference: string | null;
+  payment_method: string | null;
+  bacs_reference: string | null;
+  expected_payment_date: string | null;
+  actual_payment_date: string | null;
+  payment_notes: string | null;
+  payment_audit_trail: any[];
   created_at: string;
   updated_at: string;
 }
