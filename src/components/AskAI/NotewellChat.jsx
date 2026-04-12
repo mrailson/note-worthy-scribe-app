@@ -471,7 +471,7 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp}
   </div>);
 }
 
-function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
+function EmptyState({user,onSuggestion,onPopulateInput,vp,onHelp,onProfile}){
   const h=new Date().getHours();const g=h<12?"morning":h<17?"afternoon":"evening";
   const suggestions=[{icon:"📚",text:"What's the current semaglutide guidance?"},{icon:"📧",text:"Summarise this week's ICB update"},{icon:"💼",text:"What are the ARRS roles available?"},{icon:"📄",text:"What does the PCN DES say about access?"},{icon:"📝",text:`Write a Word SOP for dispensary accuracy checking at ${user.practice.shortName}`},{icon:"📊",text:"Create an Excel spreadsheet to track ARRS staff WTE, costs, and contract end dates"}];
   return(<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"28px 18px",textAlign:"center"}}>
@@ -483,7 +483,7 @@ function EmptyState({user,onSuggestion,vp,onHelp,onProfile}){
       {" · "}
       <button onClick={onProfile} style={{background:"none",border:"none",cursor:"pointer",color:NHS.brightBlue,fontWeight:600,fontSize:"0.83rem",padding:0,textDecoration:"underline"}}>Set up my profile →</button>
     </p>
-    <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><button key={k} onClick={()=>onSuggestion("Create a "+v.label)} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 10px",background:v.colour+"11",border:`1.5px solid ${v.colour}33`,borderRadius:20,fontSize:"0.72rem",color:v.colour,fontWeight:600,cursor:"pointer",transition:"background .15s"}} onMouseEnter={e=>e.currentTarget.style.background=v.colour+"23"} onMouseLeave={e=>e.currentTarget.style.background=v.colour+"11"}>{v.icon} {v.label}</button>)}</div>
+    <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",justifyContent:"center"}}>{Object.entries(ARTIFACT_TYPES).map(([k,v])=><button key={k} onClick={()=>onPopulateInput("Create a "+v.label)} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 10px",background:v.colour+"11",border:`1.5px solid ${v.colour}33`,borderRadius:20,fontSize:"0.72rem",color:v.colour,fontWeight:600,cursor:"pointer",transition:"background .15s"}} onMouseEnter={e=>e.currentTarget.style.background=v.colour+"23"} onMouseLeave={e=>e.currentTarget.style.background=v.colour+"11"}>{v.icon} {v.label}</button>)}</div>
     <div style={{display:"grid",gridTemplateColumns:vp==="wide"?"1fr 1fr 1fr":"1fr 1fr",gap:8,width:"100%",maxWidth:vp==="wide"?660:480}}>{suggestions.slice(0,vp==="wide"?6:4).map((s,i)=><button key={i} onClick={()=>onSuggestion(s.text)} style={{background:"#fff",border:`1.5px solid ${NHS.paleGrey}`,borderRadius:10,padding:"10px 12px",cursor:"pointer",textAlign:"left",transition:"all .17s",fontSize:"0.78rem",color:NHS.darkGrey,lineHeight:1.45,boxShadow:"0 2px 6px rgba(0,0,0,.04)"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,114,206,.12)`;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 6px rgba(0,0,0,.04)";}}>
       <span style={{fontSize:"0.92rem",display:"block",marginBottom:4}}>{s.icon}</span>{s.text}
     </button>)}</div>
@@ -799,22 +799,22 @@ export default function NotewellChat({ user, onNavigateHome }) {
                 {profileActive && <span style={{marginLeft:2}}>· Profile active</span>}
               </span>
             </div>
+
+            {/* History toggle — left side */}
+            <button onClick={()=>setSidebarForceOpen(o=>!o)} style={{background:sidebarForceOpen?"rgba(255,255,255,.18)":"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.2)";}} onMouseLeave={e=>{e.currentTarget.style.background=sidebarForceOpen?"rgba(255,255,255,.18)":"transparent";}} title="Toggle chat history">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+              {vp!=="compact"&&vp!=="mobile"&&" History"}
+            </button>
+
+            {/* + New Chat — left side */}
+            <button onClick={()=>{newConv();}} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}} title="New conversation">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              {vp!=="compact"&&vp!=="mobile"&&" New Chat"}
+            </button>
           </div>
 
           <div style={{display:"flex",alignItems:"center",gap:vp==="mobile"?4:6,flexShrink:0}}>
             {activeArtifact&&vp!=="compact"&&<button onClick={()=>setActiveArtifact(null)} style={{background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:"#fff",display:"flex",alignItems:"center",gap:4}}>{ARTIFACT_TYPES[activeArtifact.type]?.icon} {(activeArtifact.title||"").slice(0,20)}{(activeArtifact.title||"").length>20?"…":""}</button>}
-
-            {/* Chat History toggle */}
-            <button onClick={()=>setSidebarForceOpen(o=>!o)} style={{background:sidebarForceOpen?"rgba(255,255,255,.15)":"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.2)";}} onMouseLeave={e=>{e.currentTarget.style.background=sidebarForceOpen?"rgba(255,255,255,.15)":"transparent";}} title="Toggle chat history">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-              {vp!=="compact"&&vp!=="mobile"&&" History"}
-            </button>
-
-            {/* + New Chat */}
-            <button onClick={()=>{newConv();}} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}} title="New conversation">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              {vp!=="compact"&&vp!=="mobile"&&" New Chat"}
-            </button>
 
             {/* My Profile button */}
             <button onClick={()=>{setProfileInitialTab("profile");setShowProfile(true);}} style={{background:profileActive?"rgba(255,255,255,.15)":"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.77rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.2)";}} onMouseLeave={e=>{e.currentTarget.style.background=profileActive?"rgba(255,255,255,.15)":"transparent";}} title="My Profile & Custom Instructions">
@@ -830,7 +830,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
+            {messages.length===0&&!isLoading?<EmptyState user={user} onSuggestion={t=>send(t)} onPopulateInput={t=>setInput(t)} vp={vp} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}}/>:messages.map((m,idx)=><div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/favicon-robot-white.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
