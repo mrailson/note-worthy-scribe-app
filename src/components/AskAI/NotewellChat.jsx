@@ -565,6 +565,24 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [userProfile,setUserProfile]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [customInstructions,setCustomInstructions]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const bottomRef=useRef(null);const textareaRef=useRef(null);const fileInputRef=useRef(null);
+  // Speech-to-text state
+  const [isListening,setIsListening]=useState(false);
+  const [interimText,setInterimText]=useState("");
+  const [speechError,setSpeechError]=useState(null);
+  const speechRef=useRef(null);
+  const startListening=useCallback(()=>{
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){setSpeechError("Speech recognition requires Chrome or Safari 17+");return;}
+    setSpeechError(null);setInterimText("");
+    const r=new SR();r.continuous=true;r.interimResults=true;r.lang="en-GB";r.maxAlternatives=1;
+    r.onstart=()=>setIsListening(true);
+    r.onresult=(ev)=>{let interim="";for(let i=ev.resultIndex;i<ev.results.length;i++){const t=ev.results[i][0].transcript;if(ev.results[i].isFinal){setInput(p=>(p?p+" ":"")+t.trim());setInterimText("");}else{interim+=t;}}setInterimText(interim);};
+    r.onerror=(ev)=>{if(ev.error==="no-speech"||ev.error==="aborted")return;setIsListening(false);setSpeechError("Mic error: "+ev.error);};
+    r.onend=()=>{setIsListening(false);setInterimText("");};
+    r.start();speechRef.current=r;
+  },[]);
+  const stopListening=useCallback(()=>{if(speechRef.current){speechRef.current.stop();speechRef.current=null;}setIsListening(false);setInterimText("");},[]);
+  useEffect(()=>()=>{if(speechRef.current){speechRef.current.stop();}},[]);
   const compact=settings.compactMessages||vp==="compact"||vp==="mobile";
   const systemPrompt=buildSystemPrompt(user,settings,userProfile,customInstructions);
   const profileActive=!!(userProfile.trim()||customInstructions.trim());
