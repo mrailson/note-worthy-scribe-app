@@ -1006,7 +1006,7 @@ function getStaffMaxAmount(staff: any, claimMonth?: string, rateParams?: RatePar
 
 /** Build a detailed calculation breakdown for hover display */
 function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RateParams) {
-  const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours';
+  const allocType = staff.allocation_type as 'sessions' | 'wte' | 'hours' | 'daily';
   const allocValue = staff.allocation_value as number;
   const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
 
@@ -1030,36 +1030,65 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     const totalOnCosts = totalHours * onCostsPerHour;
 
     return {
-      isManagement: true,
-      hourlyRate,
-      baseHourlyRate,
-      niPerHour,
-      pensionPerHour,
-      onCostsPerHour,
-      mgmtNiPct,
-      mgmtPensionPct,
-      mgmtOnCostPct: onCostPct,
-      grossHoursCost,
-      totalOnCosts,
-      weeklyHours: allocValue,
-      workingWeeks,
-      totalHours,
-      bankHolidaysExcluded: bhCount,
-      bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
+      isManagement: true, isDaily: false, includesOnCosts: true,
+      hourlyRate, baseHourlyRate, niPerHour, pensionPerHour, onCostsPerHour,
+      mgmtNiPct, mgmtPensionPct, mgmtOnCostPct: onCostPct,
+      grossHoursCost, totalOnCosts, weeklyHours: allocValue, workingWeeks, totalHours,
+      bankHolidaysExcluded: bhCount, bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
+      dailyRate: 0, workingDays: 0,
     };
   }
 
+  const roleConfig = rateParams?.getRoleConfig?.(staff.staff_role ?? '');
+  const includesOnCosts = roleConfig?.includes_on_costs !== false;
+
   const niPct = rateParams?.employerNiPct ?? 15;
   const pensionPct = rateParams?.employerPensionPct ?? 14.38;
-  const onCostRate = rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938;
+  const onCostRate = includesOnCosts ? (rateParams ? (rateParams.onCostMultiplier - 1) : 0.2938) : 0;
   const onCostPct = onCostRate * 100;
 
   let roleAnnualRate: number | undefined;
   if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     roleAnnualRate = rateParams.getRoleAnnualRate(staff.staff_role);
+  }
+
+  // Daily rate calculation
+  if (allocType === 'daily') {
+    const dailyRate = roleConfig?.daily_rate ?? allocValue;
+    const workingDays = rateParams?.workingDaysInMonth ?? 21.67;
+    const finalMonthly = dailyRate * workingDays;
+    
+    let proRataInfo: any = null;
+    let proRatedMonthly = finalMonthly;
+    if (claimMonth && staff.start_date) {
+      const claimStart = new Date(claimMonth);
+      const staffStart = new Date(staff.start_date);
+      if (staffStart.getFullYear() === claimStart.getFullYear() && staffStart.getMonth() === claimStart.getMonth()) {
+        const daysInMonth = new Date(claimStart.getFullYear(), claimStart.getMonth() + 1, 0).getDate();
+        const startDay = staffStart.getDate();
+        const remainingDays = daysInMonth - startDay + 1;
+        const ratio = remainingDays / daysInMonth;
+        proRataInfo = { daysInMonth, workingDays: remainingDays, startDay, ratio };
+        proRatedMonthly = finalMonthly * ratio;
+      }
+    }
+
+    return {
+      isManagement: false, isDaily: true, includesOnCosts: false,
+      dailyRate, workingDays,
+      baseSalary: 0, baseLabel: `${fmtGBP(dailyRate)}/day × ${workingDays} working days`,
+      niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0,
+      fullMonthly: finalMonthly, proRataInfo, finalMonthly: proRatedMonthly,
+      baseRate: fmtGBP(dailyRate),
+      hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+      mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+      grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    };
   }
 
   const baseRate = roleAnnualRate ?? (allocType === 'sessions' ? 11000 : 60000);
@@ -1080,8 +1109,8 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     baseLabel = `${allocValue} WTE × ${rateLabel}/yr`;
   }
 
-  const niValue = baseSalary * (niPct / 100);
-  const pensionValue = baseSalary * (pensionPct / 100);
+  const niValue = includesOnCosts ? baseSalary * (niPct / 100) : 0;
+  const pensionValue = includesOnCosts ? baseSalary * (pensionPct / 100) : 0;
   const onCostsValue = niValue + pensionValue;
   const annualBase = baseSalary + onCostsValue;
   const fullMonthly = annualBase / 12;
@@ -1105,7 +1134,16 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     }
   }
 
-  return { isManagement: false, baseSalary, baseLabel, niPct, pensionPct, niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly, baseRate: rateLabel };
+  return {
+    isManagement: false, isDaily: false, includesOnCosts,
+    baseSalary, baseLabel, niPct: includesOnCosts ? niPct : 0, pensionPct: includesOnCosts ? pensionPct : 0,
+    niValue, pensionValue, onCostsValue, onCostPct, annualBase, fullMonthly, proRataInfo, finalMonthly,
+    baseRate: rateLabel, dailyRate: 0, workingDays: 0,
+    hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+    mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+    grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
+    bankHolidaysExcluded: 0, bankHolidayDetails: [],
+  };
 }
 
 /** Hover card showing the full calculation breakdown for a staff line's monthly amount */
