@@ -4500,14 +4500,23 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
-            <PolicyEnhancementModelSettings />
-            
-            <PolicyRegenerateButtonSettings />
-            
-            <ConsultationVisibilitySettings />
-            
-            <AdminVideoUpload />
-            
+            <Tabs defaultValue="general-settings">
+              <TabsList className="mb-4">
+                <TabsTrigger value="general-settings">General</TabsTrigger>
+                <TabsTrigger value="ai-knowledge-base">AI Chat Knowledge Base</TabsTrigger>
+              </TabsList>
+              <TabsContent value="general-settings" className="space-y-6">
+                <PolicyEnhancementModelSettings />
+                <PolicyRegenerateButtonSettings />
+                <ConsultationVisibilitySettings />
+                <AdminVideoUpload />
+              </TabsContent>
+              <TabsContent value="ai-knowledge-base">
+                <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading Knowledge Base…</div>}>
+                  <KnowledgeBaseEmbed />
+                </Suspense>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>
