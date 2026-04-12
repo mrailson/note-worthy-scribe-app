@@ -151,13 +151,17 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     s.staff_name || '—',
     s.staff_role || '—',
     s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical'),
-    s.allocation_type === 'sessions'
-      ? `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`
-      : s.allocation_type === 'hours'
-        ? `${s.allocation_value} hrs/wk`
-        : s.allocation_type === 'daily'
-          ? `${s.allocation_value}/day`
-          : `${s.allocation_value} WTE`,
+    s.staff_category === 'gp_locum'
+      ? (s.allocation_type === 'daily'
+        ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''} @ £750/day`
+        : `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''} @ £375`)
+      : s.allocation_type === 'sessions'
+        ? `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`
+        : s.allocation_type === 'hours'
+          ? `${s.allocation_value} hrs/wk`
+          : s.allocation_type === 'daily'
+            ? `${s.allocation_value}/day`
+            : `${s.allocation_value} WTE`,
     fmt(s.claimed_amount || 0),
   ]);
 
