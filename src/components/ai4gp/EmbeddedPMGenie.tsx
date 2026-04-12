@@ -116,7 +116,8 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     userDisplayNameRef.current = userDisplayName;
     practiceNameRef.current = practiceName;
     if (userEmail) profileLoadedRef.current = true;
-  }, [userEmail, userDisplayName, practiceName]);
+    voiceCtxDataRef.current = contextData;
+  }, [userEmail, userDisplayName, practiceName, contextData]);
 
   // Build dynamic prompt with user context for the agent
   const dynamicPrompt = useMemo(() => {
