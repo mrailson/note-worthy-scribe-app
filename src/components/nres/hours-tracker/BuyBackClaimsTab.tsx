@@ -208,9 +208,12 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   };
 
   const isManagement = category === 'management';
+  const isGpLocum = category === 'gp_locum';
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
-  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9;
+  const maxAlloc = isGpLocum
+    ? (allocType === 'daily' ? GP_LOCUM_MAX_DAILY_RATE : 20)
+    : (allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9);
 
   const handleAllocValueChange = (val: string) => {
     const num = parseFloat(val);
@@ -258,11 +261,12 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">Category</Label>
-          <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management')}>
+           <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management' | 'gp_locum')}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="buyback">Buy-Back</SelectItem>
               <SelectItem value="new_sda">New SDA</SelectItem>
+              <SelectItem value="gp_locum">GP Locum</SelectItem>
               {canShowManagement && <SelectItem value="management">Management</SelectItem>}
             </SelectContent>
           </Select>
