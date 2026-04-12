@@ -444,7 +444,7 @@ function GuideModal({user,onClose,vp}){
           </div>
           <div style={{fontWeight:700,fontSize:"0.88rem",color:NHS.darkBlue,marginBottom:8}}>💡 Tips</div>
           <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:14}}>
-            {["Be specific — 'ARRS budget for 2025/26 South Northamptonshire' beats 'ARRS info'",`Say 'Create a Word SOP for ${user.practice.shortName}...' to get a downloadable .doc`,`Add context: 'I need this for a CQC inspection at ${user.practice.name}'`,`Upload PDFs or images and say 'Summarise this document'`,"Request Excel spreadsheets, PowerPoint decks, or diagrams directly",`Set up your profile for personalised responses`].map((t,i)=><div key={i} style={{fontSize:"0.78rem",color:NHS.darkGrey,padding:"5px 10px",background:"#F8FAFC",borderRadius:7,border:`1px solid ${NHS.paleGrey}`,lineHeight:1.5}}>✓ {t}</div>)}
+            {["Be specific — 'ARRS budget for 2026/27 South Northamptonshire' beats 'ARRS info'",`Say 'Create a Word SOP for ${user.practice.shortName}...' to get a downloadable .doc`,`Add context: 'I need this for a CQC inspection at ${user.practice.name}'`,`Upload PDFs or images and say 'Summarise this document'`,"Request Excel spreadsheets, PowerPoint decks, or diagrams directly",`Set up your profile for personalised responses`].map((t,i)=><div key={i} style={{fontSize:"0.78rem",color:NHS.darkGrey,padding:"5px 10px",background:"#F8FAFC",borderRadius:7,border:`1px solid ${NHS.paleGrey}`,lineHeight:1.5}}>✓ {t}</div>)}
           </div>
           <div style={{background:`${NHS.warmYellow}15`,border:`1.5px solid ${NHS.warmYellow}55`,borderRadius:9,padding:"8px 12px",fontSize:"0.76rem",lineHeight:1.6,color:NHS.darkGrey}}>
             <strong style={{color:"#B56200"}}>⚠️ Clinical safety:</strong> Notewell AI is a decision-support tool. Always apply professional clinical judgement. AI outputs should be verified before use in patient care.
@@ -601,14 +601,14 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp,
 const ROLE_SUGGESTIONS = {
   "Practice Manager": [
     "📄 Draft a staff sickness absence return to work letter",
-    "💼 What ARRS roles can we claim reimbursement for in 2025/26?",
+    "💼 What ARRS roles can we claim reimbursement for in 2026/27?",
     "📊 Create an Excel tracker for ARRS staff, WTE, costs and contract end dates",
-    "📋 What does the PCN DES say about Enhanced Access requirements?",
+    "📋 What are the Network Contract DES 2026/27 key requirements and deadlines?",
     "✅ Write a CQC-ready infection control policy for our practice",
     "📧 Draft an email to patients about appointment access changes",
     "How do I set up a new LES agreement with the ICB?",
     "What are the QOF indicators I need to report on this quarter?",
-    "How do I submit a CAIP improvement plan to the ICB?",
+    "How do I submit a capacity and access improvement plan to the ICB?",
     "Draft a business continuity plan for a GP practice",
     "What policies must be reviewed annually for CQC compliance?",
     "Write a Word template for a significant event analysis (SEA)",
@@ -618,7 +618,7 @@ const ROLE_SUGGESTIONS = {
     "What DBS checks are required for different staff roles?",
     "Draft a job description for a Social Prescribing Link Worker",
     "How do I complete the DSPT submission for our practice?",
-    "What are the GPAD slot type configurations needed for CAIP?",
+    "What are the GPAD slot type configurations needed for access reporting?",
     "What notice periods apply under Agenda for Change?"
   ],
   "GP Partner": [
@@ -627,9 +627,9 @@ const ROLE_SUGGESTIONS = {
     "🚦 Is doxazosin XL on the Northamptonshire formulary?",
     "📝 Write a referral letter for a patient with uncontrolled hypertension",
     "🔬 What monitoring does methotrexate require in primary care?",
-    "🩺 What are the QOF indicators for diabetes review 2025/26?",
+    "🩺 What are the QOF indicators for diabetes review 2026/27?",
     "A consultant has asked me to prescribe a RED formulary drug. Do I have to?",
-    "Summarise the Network Contract DES requirements for 2025/26",
+    "Summarise the Network Contract DES requirements for 2026/27",
     "What are my responsibilities for structured medication reviews?",
     "Explain the traffic light formulary system for prescribing",
     "What should I document when declining to sign an SCA?",
@@ -668,11 +668,11 @@ const ROLE_SUGGESTIONS = {
   "PCN Manager": [
     "💼 What ARRS roles are available and what are the reimbursement rates?",
     "📊 Create an Excel spreadsheet to track PCN ARRS staff, WTE and contract dates",
-    "📄 What are the Network Contract DES requirements for 2025/26?",
-    "📋 Summarise the key changes in the GP contract for 2025/26",
+    "📄 What are the Network Contract DES requirements for 2026/27?",
+    "📋 Summarise the key changes in the GP contract for 2026/27",
     "✅ Draft a PCN board report template",
     "📧 Write a communication to member practices about Enhanced Access",
-    "What is the CAIP submission process and what evidence is needed?",
+    "What is the capacity and access improvement plan submission process and what evidence is needed?",
     "Draft the agenda for a PCN board meeting",
     "What are the 18 ICB metrics for the NRES neighbourhood programme?",
     "Explain the buy-back methodology for the New Models programme",
