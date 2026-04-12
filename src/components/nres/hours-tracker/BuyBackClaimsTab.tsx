@@ -1217,6 +1217,40 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
               </div>
             </>
+          ) : breakdown.isDaily ? (
+            <>
+              {/* Daily rate calculation */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Daily Rate (Locum)</p>
+                <p className="text-foreground">{breakdown.baseLabel}</p>
+                <p className="font-semibold">= {fmtGBP(breakdown.fullMonthly)}/month</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">On-Costs</p>
+                <p className="text-foreground italic">Excluded — Locum/daily rate (no employer NI or pension)</p>
+              </div>
+              {breakdown.proRataInfo && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground font-medium mb-0.5">Pro-Rata Adjustment</p>
+                    <p className="text-foreground">
+                      Staff started on day {breakdown.proRataInfo.startDay} of {breakdown.proRataInfo.daysInMonth}
+                    </p>
+                    <p className="text-foreground">
+                      {breakdown.proRataInfo.workingDays} of {breakdown.proRataInfo.daysInMonth} days = {(breakdown.proRataInfo.ratio * 100).toFixed(1)}%
+                    </p>
+                    <p className="font-semibold">= {fmtGBP(breakdown.finalMonthly)}/month (pro-rated)</p>
+                  </div>
+                </>
+              )}
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Maximum Claimable</span>
+                <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
+              </div>
+            </>
           ) : (
             <>
               {/* Step 1: Base salary */}
@@ -1226,20 +1260,28 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
               </div>
               <Separator />
-              {/* Step 2: On-costs split */}
-              <div>
-                <p className="text-muted-foreground font-medium mb-0.5">+ Employer On-Costs ({breakdown.onCostPct.toFixed(2)}%)</p>
-                <p className="text-foreground">Employer NI ({breakdown.niPct}%): {fmtGBP(breakdown.niValue)}</p>
-                <p className="text-foreground">Employer Pension ({breakdown.pensionPct}%): {fmtGBP(breakdown.pensionValue)}</p>
-                <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.onCostsValue)}</p>
-                <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 italic">Rates as configured in Settings</p>
-              </div>
+              {/* Step 2: On-costs — show differently based on includes_on_costs */}
+              {breakdown.includesOnCosts ? (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-0.5">+ Employer On-Costs ({breakdown.onCostPct.toFixed(2)}%)</p>
+                  <p className="text-foreground">Employer NI ({breakdown.niPct}%): {fmtGBP(breakdown.niValue)}</p>
+                  <p className="text-foreground">Employer Pension ({breakdown.pensionPct}%): {fmtGBP(breakdown.pensionValue)}</p>
+                  <p className="text-foreground">Total on-costs: {fmtGBP(breakdown.onCostsValue)}</p>
+                  <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)} + {fmtGBP(breakdown.onCostsValue)} = {fmtGBP(breakdown.annualBase)}/year</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 italic">On-costs included (Employed Staff)</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-0.5">On-Costs</p>
+                  <p className="text-foreground italic">Excluded — Locum (no employer NI or pension)</p>
+                  <p className="font-semibold">Total annual: {fmtGBP(breakdown.baseSalary)}/year</p>
+                </div>
+              )}
               <Separator />
               {/* Step 3: Monthly */}
               <div>
                 <p className="text-muted-foreground font-medium mb-0.5">Monthly Amount</p>
-                <p className="text-foreground">{fmtGBP(breakdown.annualBase)} ÷ 12 months</p>
+                <p className="text-foreground">{fmtGBP(breakdown.annualBase || breakdown.baseSalary)} ÷ 12 months</p>
                 <p className="font-semibold">= {fmtGBP(breakdown.fullMonthly)}/month</p>
               </div>
               {/* Step 4: Pro-rata if applicable */}
