@@ -1523,7 +1523,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                   <td className="p-2">
                     {canEdit ? (
                       <div className="flex items-center gap-1">
-                        <Select
+                         <Select
                           value={s.allocation_type}
                           onValueChange={(v) => {
                             onUpdateStaffLine(claim.id, idx, { allocation_type: v }, rateParams);
@@ -1536,6 +1536,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                             <SelectItem value="sessions">Sessions</SelectItem>
                             <SelectItem value="hours">Hrs/wk</SelectItem>
                             <SelectItem value="wte">WTE</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
                           </SelectContent>
                         </Select>
                         <Input
@@ -1543,7 +1544,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                           className="h-7 w-16 text-xs text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           defaultValue={s.allocation_value}
                           min={0}
-                          max={s.allocation_type === 'sessions' ? 9 : s.allocation_type === 'hours' ? 37.5 : 1}
+                          max={s.allocation_type === 'sessions' ? 9 : s.allocation_type === 'hours' ? 37.5 : s.allocation_type === 'daily' ? 2000 : 1}
                           step={s.allocation_type === 'wte' ? 0.1 : s.allocation_type === 'hours' ? 0.5 : 1}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value);
@@ -1554,7 +1555,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                         />
                       </div>
                     ) : (
-                      <span className="text-xs">{s.allocation_value} {s.allocation_type}</span>
+                      <span className="text-xs">
+                        {s.allocation_type === 'daily' ? `${fmtGBP(s.allocation_value)}/day` : `${s.allocation_value} ${s.allocation_type}`}
+                      </span>
                     )}
                   </td>
                   {/* Start Date — editable */}
