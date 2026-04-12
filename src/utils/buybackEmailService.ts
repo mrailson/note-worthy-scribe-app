@@ -129,8 +129,32 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
     case 'submission_confirmation':
       bodyContent = `
         <p>Your ${claimLabel.toLowerCase()} has been successfully submitted for approval.</p>
-        <p>You will receive an email notification once the claim has been reviewed.</p>
+        <table width="100%" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;" cellpadding="0" cellspacing="0">
+          <tr style="background:#f0f4ff;">
+            <td style="padding:10px 16px;font-size:13px;font-weight:600;color:#1e40af;" colspan="2">Submission Details</td>
+          </tr>
+          <tr style="background:#f9fafb;">
+            <td style="padding:8px 16px;font-size:12px;font-weight:600;color:#374151;width:140px;">Practice</td>
+            <td style="padding:8px 16px;font-size:12px;color:#374151;">${practiceName}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 16px;font-size:12px;font-weight:600;color:#374151;border-top:1px solid #e5e7eb;">Submitted By</td>
+            <td style="padding:8px 16px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${data.submitterName || 'Unknown'} (${data.submitterEmail})</td>
+          </tr>
+          <tr style="background:#f9fafb;">
+            <td style="padding:8px 16px;font-size:12px;font-weight:600;color:#374151;border-top:1px solid #e5e7eb;">Date &amp; Time</td>
+            <td style="padding:8px 16px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${now}</td>
+          </tr>
+        </table>
         ${staffBreakdown}
+        <div style="margin:20px 0;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;">
+          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#166534;">What happens next?</p>
+          <ol style="margin:0;padding-left:20px;font-size:12px;color:#374151;line-height:1.8;">
+            <li>Your submission will be <strong>verified and confirmed</strong> by the NRES Neighbourhood team.</li>
+            <li>You will receive an email notification when this is complete (within <strong>3 working days</strong>).</li>
+            <li>Once verified, the claim will be passed to <strong>PML Finance</strong> for formal approval and payment.</li>
+          </ol>
+        </div>
       `;
       break;
     case 'claim_approved':
