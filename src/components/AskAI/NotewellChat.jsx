@@ -1174,6 +1174,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [userProfile,setUserProfile]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [customInstructions,setCustomInstructions]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const bottomRef=useRef(null);const textareaRef=useRef(null);const fileInputRef=useRef(null);
+  const accumRef=useRef("");const streamingIdRef=useRef(null);
   // Speech-to-text state
   const [isListening,setIsListening]=useState(false);
   const [interimText,setInterimText]=useState("");
@@ -1370,20 +1371,27 @@ export default function NotewellChat({ user, onNavigateHome }) {
       return;
     }
 
-    const aiId=uid();let accum="";let kbSources=[];const isSearching=messageNeedsSearch(text);
+    const aiId=uid();accumRef.current="";streamingIdRef.current=aiId;let kbSources=[];const isSearching=messageNeedsSearch(text);
     setMessages(p=>[...p,
       ...(isSearching?[{id:uid(),role:"search-indicator",content:"🔍 Searching NHS sources...",timestamp:new Date()}]:[]),
       {id:aiId,role:"assistant",content:"",timestamp:new Date(),streaming:true,kbSources:[]}
     ]);
     try{
       await callClaude(newMsgs,systemPrompt,chunk=>{
-        accum+=chunk;
-        setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum}:m));
+        accumRef.current+=chunk;
+        try{localStorage.setItem('nw_stream_partial',JSON.stringify({id:aiId,convId:activeConvId,content:accumRef.current,ts:Date.now()}));}catch{}
+        setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accumRef.current}:m));
       },sources=>{kbSources=sources;setMessages(p=>p.map(m=>m.id===aiId?{...m,kbSources:sources}:m));},text);
-      const artifact=parseArtifact(accum);
-      if(artifact){setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
-      else{setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accum,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
-    }catch(e){setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:`⚠️ Error: ${e.message}`,streaming:false}:m));}
+      const artifact=parseArtifact(accumRef.current);
+      try{localStorage.removeItem('nw_stream_partial');}catch{}
+      if(artifact){setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accumRef.current,streaming:false,artifact,kbSources}:m));setActiveArtifact(artifact);setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date(),hasArtifact:true,artifactType:artifact.type}:c));}
+      else{setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accumRef.current,streaming:false,kbSources}:m));setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));}
+      streamingIdRef.current=null;
+    }catch(e){
+      try{localStorage.removeItem('nw_stream_partial');}catch{}
+      setMessages(p=>p.filter(m=>m.role!=="search-indicator").map(m=>m.id===aiId?{...m,content:accumRef.current.length>20?accumRef.current:`⚠️ Error: ${e.message}`,streaming:false}:m));
+      streamingIdRef.current=null;
+    }
     setIsLoading(false);
   },[input,files,messages,isLoading,activeConvId,systemPrompt,handleRunwareImage]);
 
