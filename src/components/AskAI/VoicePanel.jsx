@@ -36,8 +36,8 @@ export default function VoicePanel({ open, onClose }) {
   return (
     <div style={{
       position: "fixed",
-      bottom: 80,
-      right: 20,
+      bottom: 140,
+      right: 16,
       width: 340,
       maxHeight: "70vh",
       background: "#fff",
