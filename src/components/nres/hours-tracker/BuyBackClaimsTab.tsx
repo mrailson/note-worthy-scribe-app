@@ -91,7 +91,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
 }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('GP');
-  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours'>('sessions');
+  const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
   const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management'>('buyback');
   const [practice, setPractice] = useState<string>('');
@@ -161,17 +161,21 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   // Default allocation type based on role
   const handleRoleChange = (newRole: string) => {
     setRole(newRole);
-    if (newRole === 'ANP' || newRole === 'ACP') {
+    // Look up default allocation from role config
+    const roleConfig = rateParams?.getRoleConfig?.(newRole);
+    if (roleConfig?.allocation_default === 'daily') {
+      setAllocType('daily');
+    } else if (newRole === 'ANP' || newRole === 'ACP') {
       setAllocType('hours');
     } else if (newRole === 'GP') {
-      setAllocType('sessions');
+      setAllocType('daily');
     }
   };
 
   const isManagement = category === 'management';
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
-  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : 9;
+  const maxAlloc = allocType === 'wte' ? 1 : allocType === 'hours' ? 37.5 : allocType === 'daily' ? 2000 : 9;
 
   const handleAllocValueChange = (val: string) => {
     const num = parseFloat(val);
