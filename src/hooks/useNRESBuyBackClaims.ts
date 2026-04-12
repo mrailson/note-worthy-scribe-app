@@ -635,6 +635,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           toast.success(`Invoice ${invoiceNum} generated`);
 
           // Email invoice PDF to Practice Manager (non-blocking)
+          // Respects email testing mode — redirects to current user when testing
           const practiceKey = claim?.practice_key as NRESPracticeKey | undefined;
           const pmContact = practiceKey ? NRES_PRACTICE_CONTACTS[practiceKey] : null;
           if (pmContact?.email) {
@@ -653,9 +654,17 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             reader.readAsDataURL(pdfBlob);
             const pdfBase64 = await base64Promise;
 
+            // In testing mode, redirect invoice email to current user
+            const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? emailConfig.currentUserEmail
+              : pmContact.email;
+            const invoiceCc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? []
+              : ['amanda.palin2@nhs.net'];
+
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
-                to_email: pmContact.email,
+                to_email: invoiceRecipient,
                 subject: `Invoice ${invoiceNum} — ${practiceName} NRES Buy-Back Claim (${claimMonthLabel})`,
                 html_content: `
                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -673,7 +682,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                   </div>
                 `,
                 from_name: 'NRES Buy-Back Claims',
-                cc_emails: ['amanda.palin2@nhs.net'],
+                cc_emails: invoiceCc,
                 extra_attachments: [{
                   content: pdfBase64,
                   filename: `Invoice_${invoiceNum}.pdf`,
@@ -681,7 +690,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                 }],
               },
             }).then(() => {
-              toast.success(`Invoice emailed to ${pmContact.practiceManager}`);
+              const recipientLabel = (emailConfig?.emailTestingMode) ? `${invoiceRecipient} (test mode)` : pmContact.practiceManager;
+              toast.success(`Invoice emailed to ${recipientLabel}`);
             }).catch((emailErr) => {
               console.error('Failed to email invoice to PM:', emailErr);
               toast.error('Invoice generated but email to Practice Manager failed');
