@@ -1,4 +1,5 @@
-import { useConversation, ConversationProvider } from "@elevenlabs/react";
+import { useConversation } from "@11labs/react";
+import { supabase } from "@/integrations/supabase/client";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNRESSummaryEmail } from "@/hooks/useNRESSummaryEmail";
@@ -63,16 +64,32 @@ const NRESVoiceAgentInner = () => {
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";
 
+  const generateSignedUrl = async (): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
+        body: { agentId: AGENT_ID }
+      });
+      if (error) throw error;
+      return data.signed_url;
+    } catch (err) {
+      console.error('Signed URL failed:', err);
+      return null;
+    }
+  };
+
   const handleStart = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      const signedUrl = await generateSignedUrl();
+      if (!signedUrl) return;
       messagesRef.current = [];
       sessionStartRef.current = new Date();
-      conversation.startSession({
+      await conversation.startSession({
         agentId: AGENT_ID,
+        signedUrl,
       });
     } catch (error) {
-      console.error("Failed to start conversation:", error);
+      console.error('Failed to start NRES voice assistant:', error);
     }
   };
 
@@ -104,8 +121,4 @@ const NRESVoiceAgentInner = () => {
   );
 };
 
-export const NRESVoiceAgent = () => (
-  <ConversationProvider>
-    <NRESVoiceAgentInner />
-  </ConversationProvider>
-);
+export const NRESVoiceAgent = () => <NRESVoiceAgentInner />;
