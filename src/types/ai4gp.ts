@@ -118,9 +118,11 @@ export interface PracticeContext {
   logoUrl?: string;
   // Enhanced practice details
   practiceAddress?: string;
+  practicePostcode?: string;
   practicePhone?: string;
   practiceEmail?: string;
   practiceWebsite?: string;
+  practiceOdsCode?: string;
   // User details
   userFullName?: string;
   userEmail?: string;

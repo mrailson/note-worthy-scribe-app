@@ -41,6 +41,7 @@ import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useGenieHistory, ServiceType } from '@/hooks/useGenieHistory';
+import { useVoiceAgentContext } from '@/hooks/useVoiceAgentContext';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { Packer } from 'docx';
@@ -72,6 +73,8 @@ interface ConversationMessage {
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
   const { profile } = useUserProfile();
   const { saveSession } = useGenieHistory();
+  const { contextData: voiceCtxData, dynamicVariables: voiceDynVars } = useVoiceAgentContext();
+  const voiceCtxDataRef = useRef(voiceCtxData);
   const deviceInfo = useDeviceInfo();
   const conversationStartTime = useRef<Date | null>(null);
   const profileEmailRef = useRef<string | null>(null);
@@ -280,13 +283,23 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         console.log(`📧 Sending ${serviceNameForEmail} transcript on disconnect to ${profileEmailRef.current}...`);
         
         try {
+          const ctx = voiceCtxDataRef.current;
           await supabase.functions.invoke('send-genie-transcript-email', {
             body: {
               userEmail: profileEmailRef.current,
               serviceName: serviceNameForEmail,
               conversationBuffer: bufferedForEmail,
               conversationId: conversationIdRef.current,
-              serviceType: serviceTypeForEmail
+              serviceType: serviceTypeForEmail,
+              userContext: {
+                displayName: ctx.displayName,
+                role: ctx.role,
+                practiceName: ctx.practiceName,
+                practiceAddress: ctx.practiceAddress,
+                practicePostcode: ctx.practicePostcode,
+                practicePhone: ctx.practicePhone,
+                practiceOdsCode: ctx.practiceOdsCode,
+              }
             }
           });
         } catch (err) {
@@ -481,7 +494,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           : activeTab === 'pm-genie'
           ? 'agent_01jzsg04q1fwy9bfydkhszan7s'  // PM Genie
           : 'agent_01jwrz44tyefdvhtvt7c622rj7',  // Oak Lane Patient Line
-        signedUrl
+        signedUrl,
+        dynamicVariables: voiceDynVars
       });
       
       console.log(`[${activeTab}] Conversation started successfully:`, conversationId);
@@ -1162,7 +1176,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
 
   useEffect(() => {
     profileEmailRef.current = profile?.email ?? null;
-  }, [profile?.email]);
+    voiceCtxDataRef.current = voiceCtxData;
+  }, [profile?.email, voiceCtxData]);
 
   useEffect(() => {
     // Check if microphone permission is already granted

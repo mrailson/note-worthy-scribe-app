@@ -9,6 +9,7 @@ import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useVoiceAgentContext } from '@/hooks/useVoiceAgentContext';
 import wakeRing from '@/assets/sounds/uk_phone_ring_two_rings.wav';
 
 interface EmbeddedPMGenieProps {
@@ -99,10 +100,11 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   };
 
   // Get user's display name, email and practice
-  const userDisplayName = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || 'User';
-  const userEmail = profile?.email || user?.email;
-  const practiceName = practiceContext?.practiceName || practiceContext?.pcnName;
-  const userTitle = profile?.title || profile?.role;
+  const { contextData, contextPrompt } = useVoiceAgentContext();
+  const userDisplayName = contextData.displayName;
+  const userEmail = contextData.email || profile?.email || user?.email;
+  const practiceName = contextData.practiceName || practiceContext?.pcnName;
+  const userTitle = contextData.role;
 
   // Keep refs in sync so ElevenLabs client tool closures always see current values
   useEffect(() => {
@@ -114,17 +116,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
 
   // Build dynamic prompt with user context for the agent
   const dynamicPrompt = useMemo(() => {
-    const parts: string[] = [];
-    
-    parts.push(`You are speaking with ${userDisplayName}.`);
-    
-    if (userTitle) {
-      parts.push(`Their role is ${userTitle}.`);
-    }
-    
-    if (practiceName) {
-      parts.push(`They work at ${practiceName}.`);
-    }
+    const parts: string[] = [contextPrompt];
     
     if (userEmail) {
       parts.push(`Their email address is ${userEmail} - you already know this, so NEVER ask for their email. When they ask you to email them something, use this email address directly.`);
@@ -133,8 +125,8 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     parts.push(`You can send emails using the send_email tool and create infographics using the generate_infographic tool.`);
     parts.push(`IMPORTANT: When sending an infographic by email, you MUST include the imageUrl parameter in the send_email call with the exact image URL returned from generate_infographic. Example: send_email({ subject: "...", content: "...", imageUrl: "data:image/png;base64,..." }).`);
     
-    return parts.join(' ');
-  }, [userDisplayName, userEmail, practiceName, userTitle]);
+    return parts.join('\n');
+  }, [contextPrompt, userEmail]);
 
   // Email sending function for client tool — uses ref to avoid stale closure
   const sendEmailToUser = async (params: { subject: string; content: string; imageUrl?: string }) => {
@@ -403,9 +395,13 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         dynamicVariables: {
           user_name: currentName,
           user_email: currentEmail || '',
+          user_role: userTitle || '',
           practice_name: currentPractice || '',
+          practice_address: contextData.practiceAddress || '',
+          practice_postcode: contextData.practicePostcode || '',
+          practice_phone: contextData.practicePhone || '',
+          practice_ods_code: contextData.practiceOdsCode || '',
           user_title: userTitle || '',
-          // Pass the full dynamic prompt so the agent knows about tools and user context
           dynamic_context: dynamicPrompt
         }
       });
