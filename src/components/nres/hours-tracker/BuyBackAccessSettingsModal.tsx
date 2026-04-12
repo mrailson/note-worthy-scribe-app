@@ -380,6 +380,7 @@ function RatesAndRolesPanel() {
       annual_rate: 0,
       allocation_default: 'hours' as const,
       working_hours_per_year: 1950,
+      includes_on_costs: true,
       ground_rules: getDefaultGroundRules(key),
     }]);
     setNewRoleLabel('');
