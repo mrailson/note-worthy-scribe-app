@@ -2030,7 +2030,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                 {claim.invoice_generated_at && (
                   <span>Generated: <strong className="text-foreground">{format(new Date(claim.invoice_generated_at), 'dd/MM/yyyy HH:mm')}</strong></span>
                 )}
-                <span>Total: <strong className="text-foreground">{fmtGBP(claim.total_amount || 0)}</strong></span>
+                <span>Total: <strong className="text-foreground">{fmtGBP(claim.claimed_amount || 0)}</strong></span>
               </div>
               {claim.invoice_pdf_path && (
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1 mt-1" onClick={async () => {
