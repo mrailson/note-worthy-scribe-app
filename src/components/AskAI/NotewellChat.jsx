@@ -204,8 +204,8 @@ const INSTRUCTION_SUGGESTIONS=[
   "Start every response with a one-sentence summary before the detail.",
 ];
 
-function UserProfileModal({user,onClose,vp,onNavigateHome}){
-  const [tab,setTab]=useState("profile");
+function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"}){
+  const [tab,setTab]=useState(initialTab);
   const [pt,setPt]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [it,setIt]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
   const [saved,setSaved]=useState(false);
