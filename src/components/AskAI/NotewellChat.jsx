@@ -1297,6 +1297,24 @@ export default function NotewellChat({ user, onNavigateHome }) {
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[messages,isLoading]);
   useEffect(()=>{if(textareaRef.current){textareaRef.current.style.height="auto";textareaRef.current.style.height=Math.min(textareaRef.current.scrollHeight,150)+"px";}},[input]);
 
+  // Restore streamed content when tab becomes visible again
+  useEffect(()=>{
+    const handleVisibility=()=>{
+      if(document.visibilityState==='visible'){
+        if(streamingIdRef.current&&accumRef.current.length>0){
+          setMessages(p=>p.map(m=>m.id===streamingIdRef.current&&m.content===''?{...m,content:accumRef.current}:m));
+          return;
+        }
+        try{
+          const raw=localStorage.getItem('nw_stream_partial');
+          if(raw){const saved=JSON.parse(raw);if(saved.convId===activeConvId&&Date.now()-saved.ts<300000&&saved.content.length>0){setMessages(p=>p.map(m=>m.id===saved.id&&m.content===''?{...m,content:saved.content,streaming:false}:m));}}
+        }catch{}
+      }
+    };
+    document.addEventListener('visibilitychange',handleVisibility);
+    return()=>document.removeEventListener('visibilitychange',handleVisibility);
+  },[activeConvId]);
+
   const newConv=useCallback(()=>{const id=uid();setConversations(p=>[{id,title:"New conversation",updatedAt:new Date()},...p]);setActiveConvId(id);setMessages([]);setFiles([]);setInput("");setGuardrailAlert(null);setActiveArtifact(null);setSidebarForceOpen(false);},[]);
   useEffect(()=>{newConv();},[]);
 
