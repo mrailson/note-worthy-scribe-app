@@ -118,7 +118,6 @@ Deno.serve(async (req) => {
               }
             }
           }
-          }
         } catch (kbErr) {
           console.error("KB search error (non-fatal):", kbErr);
         }
