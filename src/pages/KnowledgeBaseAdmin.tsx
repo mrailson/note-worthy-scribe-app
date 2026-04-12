@@ -239,7 +239,78 @@ export default function KnowledgeBaseAdmin() {
   };
 
   const handleReprocess = async (doc: KBDocument) => {
-    toast.info("Re-processing not yet implemented for stored documents. Please re-upload the file.");
+    if (!doc.file_url) {
+      toast.error("No file URL available for this document. Please re-upload.");
+      return;
+    }
+    toast.info(`Re-processing "${doc.title}"…`);
+    try {
+      const resp = await fetch(doc.file_url);
+      const text = await resp.text();
+      if (text.length < 50) {
+        toast.error("Could not extract sufficient text from the file.");
+        return;
+      }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${supabaseUrl}/functions/v1/kb-summarise`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ document_id: doc.id, document_text: text }),
+      });
+      if (res.ok) {
+        toast.success(`"${doc.title}" re-processed successfully`);
+        loadData();
+      } else {
+        toast.error(`Failed to re-process "${doc.title}"`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Re-processing failed");
+    }
+  };
+
+  const handleReprocessAll = async () => {
+    const indexedDocs = documents.filter(d => d.status === "indexed" && d.file_url);
+    if (indexedDocs.length === 0) {
+      toast.info("No indexed documents with files to re-process.");
+      return;
+    }
+    if (!confirm(`Re-process all ${indexedDocs.length} indexed documents? This may take a while.`)) return;
+
+    setReprocessing(true);
+    setReprocessProgress({ done: 0, total: indexedDocs.length });
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const { data: { session } } = await supabase.auth.getSession();
+
+    for (let i = 0; i < indexedDocs.length; i++) {
+      const doc = indexedDocs[i];
+      try {
+        const resp = await fetch(doc.file_url!);
+        const text = await resp.text();
+        if (text.length >= 50) {
+          await fetch(`${supabaseUrl}/functions/v1/kb-summarise`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session?.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ document_id: doc.id, document_text: text }),
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to re-process ${doc.title}:`, err);
+      }
+      setReprocessProgress({ done: i + 1, total: indexedDocs.length });
+    }
+
+    setReprocessing(false);
+    toast.success("All documents re-processed");
+    loadData();
   };
 
   const formatDate = (d: string | null) => {
