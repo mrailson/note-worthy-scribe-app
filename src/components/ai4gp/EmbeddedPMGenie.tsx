@@ -100,7 +100,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   };
 
   // Get user's display name, email and practice
-  const { contextData, contextPrompt, dynamicVariables: agentDynamicVars } = useVoiceAgentContext();
+  const { contextData, contextPrompt } = useVoiceAgentContext();
   const userDisplayName = contextData.displayName;
   const userEmail = contextData.email || profile?.email || user?.email;
   const practiceName = contextData.practiceName || practiceContext?.pcnName;
