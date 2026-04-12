@@ -1,9 +1,9 @@
-import { useConversation, ConversationProvider } from "@elevenlabs/react";
-import { useEffect } from "react";
+import { useConversation } from "@11labs/react";
+import { useEffect, useRef } from "react";
 import { Stethoscope, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGPSummaryEmail } from "@/hooks/useGPSummaryEmail";
-import { useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const GP_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
 
@@ -20,7 +20,7 @@ const GPAgentInner = () => {
   const keepAliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const conversation = useConversation({
-    onMessage: (payload) => {
+    onMessage: (payload: any) => {
       console.log("📝 GP onMessage:", payload.source, payload.message?.substring(0, 50));
       messagesRef.current.push({
         role: payload.source === "ai" ? "assistant" : "user",
@@ -93,14 +93,35 @@ const GPAgentInner = () => {
   const isConnected = conversation.status === "connected";
   const isConnecting = conversation.status === "connecting";
 
+  const generateSignedUrl = async (): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
+        body: { agentId: GP_AGENT_ID }
+      });
+      if (error) throw error;
+      return data.signed_url;
+    } catch (err) {
+      console.error('Failed to generate signed URL:', err);
+      return null;
+    }
+  };
+
   const handleStart = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const signedUrl = await generateSignedUrl();
+      if (!signedUrl) {
+        console.error('Could not get signed URL');
+        return;
+      }
+
       messagesRef.current = [];
       sessionStartRef.current = new Date();
-      conversation.startSession({
+
+      await conversation.startSession({
         agentId: GP_AGENT_ID,
-        connectionType: "websocket",
+        signedUrl,
       });
     } catch (error) {
       console.error("Failed to start GP assistant:", error);
@@ -149,8 +170,4 @@ const GPAgentInner = () => {
   );
 };
 
-export const NRESGPAgent = () => (
-  <ConversationProvider>
-    <GPAgentInner />
-  </ConversationProvider>
-);
+export const NRESGPAgent = () => <GPAgentInner />;
