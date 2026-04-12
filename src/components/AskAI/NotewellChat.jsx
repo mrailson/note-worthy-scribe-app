@@ -1163,6 +1163,51 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [fileError,setFileError]=useState(null);
   const [dragOver,setDragOver]=useState(false);
   const [activeArtifact,setActiveArtifact]=useState(null);
+
+  // Panel width state with persistence
+  const PANEL_WIDTH_KEY='nw_panel_width';
+  const DEFAULT_PANEL_W=460;
+  const MIN_PANEL_W=300;
+  const MAX_PANEL_W=780;
+  const [panelWidth,setPanelWidth]=useState(()=>{
+    try{const saved=localStorage.getItem(PANEL_WIDTH_KEY);return saved?parseInt(saved):DEFAULT_PANEL_W;}catch{return DEFAULT_PANEL_W;}
+  });
+  const savePanelWidth=(w)=>{
+    const clamped=Math.max(MIN_PANEL_W,Math.min(MAX_PANEL_W,w));
+    setPanelWidth(clamped);
+    try{localStorage.setItem(PANEL_WIDTH_KEY,String(clamped));}catch{}
+    return clamped;
+  };
+
+  // Drag-to-resize logic
+  const dragRef=useRef(null);
+  const isDragging=useRef(false);
+  const dragStart=useRef({x:0,w:0});
+  const onDragStart=(e)=>{
+    isDragging.current=true;
+    dragStart.current={x:e.clientX,w:panelWidth};
+    document.body.style.cursor='col-resize';
+    document.body.style.userSelect='none';
+  };
+  useEffect(()=>{
+    const onMove=(e)=>{
+      if(!isDragging.current)return;
+      const delta=dragStart.current.x-e.clientX;
+      savePanelWidth(dragStart.current.w+delta);
+    };
+    const onUp=()=>{
+      if(!isDragging.current)return;
+      isDragging.current=false;
+      document.body.style.cursor='';
+      document.body.style.userSelect='';
+    };
+    window.addEventListener('mousemove',onMove);
+    window.addEventListener('mouseup',onUp);
+    return()=>{
+      window.removeEventListener('mousemove',onMove);
+      window.removeEventListener('mouseup',onUp);
+    };
+  },[panelWidth]);
   const [sidebarForceOpen,setSidebarForceOpen]=useState(false);
   const [showGuide,setShowGuide]=useState(()=>localStorage.getItem("nw_ai_welcomed")!=="1");
   const [showProfile,setShowProfile]=useState(false);
