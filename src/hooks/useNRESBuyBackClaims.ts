@@ -147,6 +147,10 @@ export function calculateStaffMonthlyAmount(
 }
 
 function calculateFallback(staff: { allocation_type: string; allocation_value: number }): number {
+  if (staff.allocation_type === 'daily') {
+    // Default daily rate for fallback = allocation_value × ~21.67 working days
+    return staff.allocation_value * 21.67;
+  }
   if (staff.allocation_type === 'sessions') {
     return (staff.allocation_value * DEFAULT_GP_SESSION_ANNUAL) / 12;
   } else if (staff.allocation_type === 'hours') {

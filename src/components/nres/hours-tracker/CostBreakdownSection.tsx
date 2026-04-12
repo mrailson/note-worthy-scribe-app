@@ -20,6 +20,9 @@ interface CostRow {
   hourlyEquiv: number;
   maxMonthly: number;
   glCode: string;
+  includesOnCosts: boolean;
+  isDailyRate: boolean;
+  dailyRate: number;
 }
 
 type SortKey = keyof CostRow;
