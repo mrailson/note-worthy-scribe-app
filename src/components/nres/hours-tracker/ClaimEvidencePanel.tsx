@@ -166,7 +166,7 @@ export function StaffLineEvidence({
   onDownload,
   hideHeader = false,
 }: {
-  staffCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum';
+  staffCategory: 'buyback' | 'new_sda' | 'management';
   staffIndex: number;
   staffName?: string;
   staffRole?: string;
