@@ -1224,8 +1224,31 @@ export default function NotewellChat({ user, onNavigateHome }) {
           </div>
         </div>
 
+        {/* NRES Voice Assistant banner — mobile only */}
+        {vp==="mobile"&&<div style={{padding:"6px 12px 0",background:"#fff",borderTop:`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:nresStatus!=="idle"?"linear-gradient(135deg,#001845,#003087)":"linear-gradient(135deg,#F0F8F0,#E8F5E9)",border:`1.5px solid ${nresStatus!=="idle"?"rgba(255,255,255,.2)":"#00963944"}`,borderRadius:10,transition:"all .2s"}}>
+            <span style={{fontSize:"1.2rem",flexShrink:0}}>{nresStatus==="connecting"?"⏳":"🎙"}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:"0.82rem",color:nresStatus!=="idle"?"#fff":NHS.darkBlue}}>NRES Voice Assistant</div>
+              <div style={{fontSize:"0.7rem",color:nresStatus!=="idle"?"rgba(255,255,255,.6)":NHS.midGrey,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{
+                nresStatus==="connecting"?"Connecting…":
+                nresStatus==="listening"?"Listening…":
+                nresStatus==="speaking"?"Speaking…":
+                nresStatus==="error"?"Connection error — tap to retry":
+                nresStatus==="ended"?"Session ended":
+                "Speak with the NRES Agent"
+              }</div>
+            </div>
+            {nresStatus!=="idle"&&nresStatus!=="ended"&&nresStatus!=="error"?(
+              <button onClick={endNresSession} style={{background:NHS.red,border:"none",borderRadius:20,padding:"8px 16px",cursor:"pointer",color:"#fff",fontWeight:700,fontSize:"0.78rem",minWidth:44,minHeight:44,flexShrink:0,animation:"nwPulseRed 1.5s ease-in-out infinite"}}>End</button>
+            ):(
+              <button onClick={startNresSession} disabled={nresStatus==="connecting"} style={{background:NHS.green,border:"none",borderRadius:20,padding:"8px 16px",cursor:nresStatus==="connecting"?"wait":"pointer",color:"#fff",fontWeight:700,fontSize:"0.78rem",minWidth:44,minHeight:44,flexShrink:0}}>Start</button>
+            )}
+          </div>
+        </div>}
+
         {/* Input */}
-        <div style={{padding:vp==="mobile"?"8px 12px calc(12px + env(safe-area-inset-bottom, 0px))":(vp==="compact"?"9px 11px 12px":"11px 16px 14px"),background:"#fff",borderTop:`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
+        <div style={{padding:vp==="mobile"?"8px 12px calc(12px + env(safe-area-inset-bottom, 0px))":(vp==="compact"?"9px 11px 12px":"11px 16px 14px"),background:"#fff",borderTop:vp==="mobile"?"none":`1px solid ${NHS.paleGrey}`,flexShrink:0}}>
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
             {guardrailAlert&&<div style={{background:"#FFF5F5",border:`1.5px solid ${NHS.red}`,borderRadius:9,padding:"7px 13px",display:"flex",gap:7,alignItems:"flex-start",marginBottom:7,fontSize:"0.79rem",animation:"nwFadeIn .2s ease"}}><span style={{flexShrink:0}}>⚠️</span><div style={{flex:1,color:"#7a1010"}}><strong style={{color:NHS.red}}>Patient Data Warning</strong><p style={{margin:"2px 0 0"}}>{guardrailAlert}</p></div><button onClick={()=>setGuardrailAlert(null)} style={{background:"none",border:"none",cursor:"pointer",color:NHS.red,fontSize:".88rem",padding:0,flexShrink:0}}>✕</button></div>}
             {fileError&&<div style={{background:"#FFF5EC",border:`1px solid ${NHS.warmYellow}`,borderRadius:7,padding:"4px 11px",fontSize:"0.75rem",color:"#7a4a00",marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>⚠️ {fileError}</span><button onClick={()=>setFileError(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#7a4a00"}}>✕</button></div>}
