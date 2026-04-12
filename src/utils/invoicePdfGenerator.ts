@@ -59,14 +59,18 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.setTextColor(GREY_60);
   doc.text(`ODS Code: ${odsCode}`, 14, 42);
 
-  // Practice address (wrap long lines)
+  // Practice address — split by comma into separate lines like PML address
   if (practiceAddress) {
-    const addressLines = doc.splitTextToSize(practiceAddress, 80);
-    doc.text(addressLines, 14, 47);
+    const addressParts = practiceAddress.split(',').map(s => s.trim()).filter(Boolean);
+    let addrY = 47;
+    addressParts.forEach(part => {
+      doc.text(part, 14, addrY);
+      addrY += 4.5;
+    });
   }
 
   // Practice Manager contact
-  let practiceInfoY = practiceAddress ? 47 + (doc.splitTextToSize(practiceAddress, 80).length * 4.5) + 2 : 52;
+  let practiceInfoY = practiceAddress ? 47 + (practiceAddress.split(',').filter(s => s.trim()).length * 4.5) + 2 : 52;
   if (practiceContact) {
     doc.setFontSize(8);
     doc.setTextColor(GREY_100);
