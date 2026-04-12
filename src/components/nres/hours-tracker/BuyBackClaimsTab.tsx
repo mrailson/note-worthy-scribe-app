@@ -1328,7 +1328,9 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
       const { data, error } = await supabase.storage.from('nres-claim-evidence').download(invoicePdfPath);
       if (error) throw error;
       if (data) {
-        const blobUrl = URL.createObjectURL(data);
+        // Create blob URL with explicit PDF type
+        const pdfBlob = new Blob([data], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(pdfBlob);
         setPdfUrl(blobUrl);
       }
     } catch (e) {
@@ -1338,19 +1340,20 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
     }
   };
 
-  // Clean up blob URL on unmount or close
-  useEffect(() => {
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    };
-  }, [pdfUrl]);
+  const handleClose = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen && pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+  };
 
   return (
     <>
       <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleOpen}>
         <Eye className="w-3 h-3" /> View Invoice
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] p-0">
           <DialogHeader className="px-6 pt-4 pb-2">
             <DialogTitle className="text-sm">Invoice {invoiceNumber}</DialogTitle>
@@ -1361,11 +1364,18 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : pdfUrl ? (
-              <iframe
-                src={pdfUrl}
+              <object
+                data={pdfUrl}
+                type="application/pdf"
                 className="w-full h-[600px] rounded-md border"
-                title={`Invoice ${invoiceNumber}`}
-              />
+              >
+                <div className="flex flex-col items-center justify-center h-[600px] gap-3">
+                  <p className="text-sm text-muted-foreground">Unable to display PDF inline.</p>
+                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline">
+                    Open PDF in new tab
+                  </a>
+                </div>
+              </object>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">Failed to load invoice PDF.</p>
             )}
