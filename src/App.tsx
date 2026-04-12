@@ -136,6 +136,7 @@ const GPContract = lazy(() => import("./pages/GPContract"));
 const KO41bReport = lazy(() => import("./pages/KO41bReport"));
 const PrivacyNotice = lazy(() => import("./pages/PrivacyNotice"));
 const AccessibilityStatement = lazy(() => import("./pages/AccessibilityStatement"));
+const AskAIPage = lazy(() => import("./pages/AskAIPage"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -472,6 +473,12 @@ const App = () => {
                 <Route path="/policy-service/profile" element={
                   <ProtectedRoute>
                     <PolicyServiceProfile />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/ask-ai" element={
+                  <ProtectedRoute>
+                    <AskAIPage />
                   </ProtectedRoute>
                 } />
                 
