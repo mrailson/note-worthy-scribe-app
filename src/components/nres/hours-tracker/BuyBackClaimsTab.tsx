@@ -729,7 +729,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                          <td className="p-2">{displayName}</td>
                          <td className="p-2">{s.staff_role}</td>
                          <td className="p-2">{s.allocation_value} {s.allocation_type}</td>
-                         <td className="p-2 text-xs">{s.start_date ? format(new Date(s.start_date), 'dd/MM/yyyy') : '—'}</td>
+                         <td className="p-2 text-xs">{s.start_date ? format(new Date(s.start_date), 'dd/MM/yyyy') : <span className="text-muted-foreground italic">Prior to claim month</span>}</td>
                           <td className="p-2 text-right font-medium">
                             <CalcBreakdownHover staff={s} amount={monthly} rateParams={rateParams} />
                           </td>
