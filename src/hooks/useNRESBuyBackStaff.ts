@@ -10,7 +10,7 @@ export interface BuyBackStaffMember {
   practice_id: string | null;
   staff_name: string;
   staff_role: string;
-  allocation_type: 'sessions' | 'wte' | 'hours';
+  allocation_type: 'sessions' | 'wte' | 'hours' | 'daily';
   allocation_value: number;
   hourly_rate: number;
   is_active: boolean;
