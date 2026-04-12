@@ -530,7 +530,7 @@ function Sidebar({conversations,activeId,onSelect,onNew,onDelete,user,settings,v
           </button>
         </div>
         {!collapsed&&<div style={{padding:"0 12px 10px",flexShrink:0}}>
-          <button onClick={()=>{onNavigateHome?.();setTimeout(()=>window.location.href="/knowledge-base",100);}} style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",color:"rgba(255,255,255,.65)",width:"100%",fontSize:"0.76rem",display:"flex",alignItems:"center",gap:7,minHeight:38}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.12)";e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.05)";e.currentTarget.style.color="rgba(255,255,255,.65)";}}>
+          <button onClick={()=>{onOpenKB?.();if(isMobile)onToggle();}} style={{background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",cursor:"pointer",color:"rgba(255,255,255,.65)",width:"100%",fontSize:"0.76rem",display:"flex",alignItems:"center",gap:7,minHeight:38}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.12)";e.currentTarget.style.color="#fff";}} onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.05)";e.currentTarget.style.color="rgba(255,255,255,.65)";}}>
             <span>📚</span>Knowledge Base
           </button>
         </div>}
