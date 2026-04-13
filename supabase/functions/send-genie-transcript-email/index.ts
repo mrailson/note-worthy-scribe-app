@@ -90,6 +90,18 @@ const handler = async (req: Request): Promise<Response> => {
         bgColor: '#EDE9FE',
         lightBgColor: '#F5F3FF',
         name: 'Oak Lane Patient Line'
+      },
+      'nres-agent': {
+        color: '#005EB8',
+        bgColor: '#EDF4FF',
+        lightBgColor: '#F0F6FF',
+        name: 'NRES Voice Agent'
+      },
+      'enn-agent': {
+        color: '#7C3AED',
+        bgColor: '#EDE9FE',
+        lightBgColor: '#F5F3FF',
+        name: 'ENN Voice Agent'
       }
     };
 
