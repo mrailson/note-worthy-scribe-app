@@ -707,6 +707,10 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             reader.readAsDataURL(pdfBlob);
             const pdfBase64 = await base64Promise;
 
+            // If sending is disabled, skip invoice email entirely
+            if (emailConfig?.emailSendingDisabled) {
+              console.log('[Email suppressed] Invoice email — sending disabled for high-volume testing');
+            } else {
             // In testing mode, redirect invoice email to current user
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
