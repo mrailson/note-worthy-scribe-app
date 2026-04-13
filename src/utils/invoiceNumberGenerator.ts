@@ -27,7 +27,7 @@ export async function generateInvoiceNumber(
 
   const rawOds = getOdsCode(practiceKey);
   const ods = (rawOds && rawOds !== '—' && rawOds !== '')
-    ? rawOds.replace(/^K/i, '')
+    ? rawOds.replace(/^[KU]/i, '')
     : 'UNKNOWN';
 
   const prefix = `${fy}-${ods}-${mm}`;
