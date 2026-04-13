@@ -862,6 +862,23 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         practiceNames={ALL_PRACTICES}
       />
 
+      {/* Meeting Schedule & Attendance — between staff management and create claim */}
+      {effectiveShowStaffMgmt && filteredStaff.some(s => s.staff_category === 'meeting') && (
+        <>
+          <Separator />
+          <MeetingScheduleSection
+            neighbourhoodName={neighbourhoodName}
+            practiceKey={effectiveFilterPractice}
+            claimMonth={claimMonth}
+            practiceKeys={effectivePracticeKeys}
+            practiceNames={ALL_PRACTICES}
+            meetingStaff={filteredStaff.filter(s => s.staff_category === 'meeting')}
+            meetingGpRate={rateSettings.meeting_gp_rate}
+            meetingPmRate={rateSettings.meeting_pm_rate}
+          />
+        </>
+      )}
+
       {effectiveCanCreateClaim && <Separator />}
 
       {/* Create Claim — hidden in mgmt_lead, pml_director, pml_finance test modes */}
@@ -1065,6 +1082,28 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
   const allocValue = staff.allocation_value as number;
   const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
   const isGpLocum = staff.staff_category === 'gp_locum';
+  const isMeeting = staff.staff_category === 'meeting';
+
+  // Meeting attendance: simple hours × rate
+  if (isMeeting) {
+    const totalHours = allocValue ?? 0;
+    const rate = staff.hourly_rate ?? 0;
+    const finalMonthly = totalHours * rate;
+    const meetingCount = staff.meeting_breakdown?.length ?? 0;
+    return {
+      isMeeting: true, isManagement: false, isDaily: false, isGpLocum: false, includesOnCosts: false,
+      totalHours, hourlyRate: rate, meetingCount,
+      meetingBreakdown: staff.meeting_breakdown ?? [],
+      baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
+      proRataInfo: null, finalMonthly, baseRate: fmtGBP(rate),
+      dailyRate: 0, workingDays: 0,
+      baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+      mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+      grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0,
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    };
+  }
 
   // GP Locum: fixed rates, no on-costs
   if (isGpLocum) {
@@ -1269,7 +1308,43 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
           </h4>
         </div>
         <div className="p-3 space-y-2 text-xs">
-          {breakdown.isManagement ? (
+          {breakdown.isMeeting ? (
+            <>
+              {/* Meeting attendance breakdown */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Meeting Attendance</p>
+                <p className="text-foreground">{breakdown.meetingCount} meeting{breakdown.meetingCount !== 1 ? 's' : ''} attended</p>
+                <p className="text-foreground">Total hours: {(breakdown.totalHours ?? 0).toFixed(1)}h</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Hourly Rate</p>
+                <p className="font-semibold">{fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
+                <p className="text-[10px] text-muted-foreground italic">No on-costs — fixed meeting rate</p>
+              </div>
+              {breakdown.meetingBreakdown && breakdown.meetingBreakdown.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground font-medium mb-1">Meetings Breakdown</p>
+                    {breakdown.meetingBreakdown.map((m: any, i: number) => (
+                      <p key={i} className="text-foreground">• {m.title || m.meeting_type || 'Meeting'} — {m.date ? format(new Date(m.date), 'dd/MM/yyyy') : '—'} — {m.duration_hours}h</p>
+                    ))}
+                  </div>
+                </>
+              )}
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Calculation</p>
+                <p className="font-semibold">{(breakdown.totalHours ?? 0).toFixed(1)}h × {fmtGBP(breakdown.hourlyRate ?? 0)}/hr = {fmtGBP(breakdown.finalMonthly)}</p>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Maximum Claimable</span>
+                <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
+              </div>
+            </>
+          ) : breakdown.isManagement ? (
             <>
               {/* Management: hourly rate with on-costs breakdown */}
               <div>
@@ -1770,6 +1845,10 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       ? <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>
                       : (s.staff_category || 'buyback') === 'management'
                       ? <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>
+                      : (s.staff_category || 'buyback') === 'meeting'
+                      ? <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs">Meeting</Badge>
+                      : (s.staff_category || 'buyback') === 'gp_locum'
+                      ? <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">GP Locum</Badge>
                       : <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>}
                   </td>
                   <td className="p-2">{s.staff_role}</td>
@@ -1778,9 +1857,25 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       ? <Badge className="bg-blue-100 text-blue-800 text-[10px]">GP</Badge>
                       : <Badge className="bg-purple-100 text-purple-800 text-[10px]">Other</Badge>}
                   </td>
-                  {/* Allocation — editable in draft/queried */}
+                  {/* Allocation — editable in draft/queried, read-only for meeting staff */}
                   <td className="p-2">
-                    {canEdit ? (
+                    {(s.staff_category === 'meeting') ? (
+                      <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <span className="text-xs cursor-help text-muted-foreground hover:text-foreground">
+                            {s.meeting_breakdown?.length ?? 0} meeting{(s.meeting_breakdown?.length ?? 0) !== 1 ? 's' : ''} · {s.allocation_value ?? 0}h total
+                          </span>
+                        </HoverCardTrigger>
+                        {s.meeting_breakdown && s.meeting_breakdown.length > 0 && (
+                          <HoverCardContent className="w-64 text-xs" align="start">
+                            <p className="font-medium mb-1">Meeting Breakdown</p>
+                            {s.meeting_breakdown.map((m: any, i: number) => (
+                              <p key={i} className="text-muted-foreground">• {m.title || m.meeting_type || 'Meeting'} — {m.date ? format(new Date(m.date), 'dd/MM/yy') : '—'} — {m.duration_hours}h</p>
+                            ))}
+                          </HoverCardContent>
+                        )}
+                      </HoverCard>
+                    ) : canEdit ? (
                       <div className="flex items-center gap-1">
                          <Select
                           value={s.allocation_type}
@@ -2221,6 +2316,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                         ? "I confirm that all staff listed are delivering SDA (Part A) activity during their attributed hours. I confirm that matching Part B (LTC) provision has been delivered and the supporting evidence has been uploaded. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed."
                         : "I confirm all staff listed are working 100% on SDA (Part A) during their funded hours. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed in this claim."
                       }
+                      {staffDetails.some((s: any) => s.staff_category === 'meeting') && (
+                        <> For meeting attendance lines, I confirm that signed attendance registers are held on file at the practice.</>
+                      )}
                     </span>
                   </div>
                 </TooltipTrigger>

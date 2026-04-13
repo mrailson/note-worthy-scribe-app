@@ -116,25 +116,36 @@ export function useNRESBuyBackRateSettings() {
     return () => { hasFetchedRef.current = false; };
   }, [user?.id]);
 
-  const updateSettings = useCallback(async (niPct: number, pensionPct: number, rolesConfig: RoleConfig[]) => {
+  const updateSettings = useCallback(async (niPct: number, pensionPct: number, rolesConfig: RoleConfig[], meetingGpRate?: number, meetingPmRate?: number) => {
     if (!user?.id) return;
     try {
       setSaving(true);
       const totalOnCosts = niPct + pensionPct;
+      const upsertData: any = {
+        id: 'default',
+        on_costs_pct: totalOnCosts,
+        employer_ni_pct: niPct,
+        employer_pension_pct: pensionPct,
+        roles_config: rolesConfig,
+        updated_at: new Date().toISOString(),
+        updated_by: user.id,
+      };
+      if (meetingGpRate !== undefined) upsertData.meeting_gp_rate = meetingGpRate;
+      if (meetingPmRate !== undefined) upsertData.meeting_pm_rate = meetingPmRate;
       const { error } = await (supabase as any)
         .from('nres_buyback_rate_settings')
-        .upsert({
-          id: 'default',
-          on_costs_pct: totalOnCosts,
-          employer_ni_pct: niPct,
-          employer_pension_pct: pensionPct,
-          roles_config: rolesConfig,
-          updated_at: new Date().toISOString(),
-          updated_by: user.id,
-        });
+        .upsert(upsertData);
 
       if (error) throw error;
-      setSettings(prev => ({ ...prev, on_costs_pct: totalOnCosts, employer_ni_pct: niPct, employer_pension_pct: pensionPct, roles_config: rolesConfig }));
+      setSettings(prev => ({
+        ...prev,
+        on_costs_pct: totalOnCosts,
+        employer_ni_pct: niPct,
+        employer_pension_pct: pensionPct,
+        roles_config: rolesConfig,
+        ...(meetingGpRate !== undefined ? { meeting_gp_rate: meetingGpRate } : {}),
+        ...(meetingPmRate !== undefined ? { meeting_pm_rate: meetingPmRate } : {}),
+      }));
       toast.success('Rate settings saved');
     } catch (err) {
       console.error('Error saving rate settings:', err);

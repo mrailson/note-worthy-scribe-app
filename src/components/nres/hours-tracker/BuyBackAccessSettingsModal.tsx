@@ -342,6 +342,8 @@ function RatesAndRolesPanel() {
   const [pensionPct, setPensionPct] = useState<string>('');
   const [roles, setRoles] = useState<RoleConfig[]>([]);
   const [mgmtRoles, setMgmtRoles] = useState<ManagementRoleConfig[]>([]);
+  const [meetingGpRate, setMeetingGpRate] = useState<string>('');
+  const [meetingPmRate, setMeetingPmRate] = useState<string>('');
   const [initialised, setInitialised] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
   const [editingMgmtIndex, setEditingMgmtIndex] = useState<number | null>(null);
@@ -354,6 +356,8 @@ function RatesAndRolesPanel() {
       ...r,
       max_hours_per_week: (r as any).max_hours_per_week ?? 8,
     })));
+    setMeetingGpRate(String(settings.meeting_gp_rate));
+    setMeetingPmRate(String(settings.meeting_pm_rate));
     setInitialised(true);
   }
 
@@ -395,13 +399,15 @@ function RatesAndRolesPanel() {
   };
 
   const handleSave = async () => {
-    await updateSettings(niPctNum, pensionPctNum, roles);
+    await updateSettings(niPctNum, pensionPctNum, roles, parseFloat(meetingGpRate) || 85, parseFloat(meetingPmRate) || 45);
     await updateManagementRoles(mgmtRoles);
   };
 
   const hasChanges = initialised && (
     niPct !== String(settings.employer_ni_pct) ||
     pensionPct !== String(settings.employer_pension_pct) ||
+    meetingGpRate !== String(settings.meeting_gp_rate) ||
+    meetingPmRate !== String(settings.meeting_pm_rate) ||
     JSON.stringify(roles) !== JSON.stringify(settings.roles_config.filter(r => !r.key.startsWith('nres_'))) ||
     JSON.stringify(mgmtRoles) !== JSON.stringify(settings.management_roles_config)
   );
@@ -465,6 +471,56 @@ function RatesAndRolesPanel() {
             <span className="font-medium">Combined on-costs rate: </span>
             <span className="font-semibold text-primary">{onCostsPctNum.toFixed(2)}%</span>
             <span className="text-muted-foreground ml-1">(NI {niPctNum}% + Pension {pensionPctNum}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Section A2: Meeting Attendance Rates */}
+      <div>
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Meeting Attendance Rates</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Fixed hourly rates for meeting attendance. These are applied to all meeting staff based on their role.
+        </p>
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-medium">Meeting GP rate (£/hr)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">£</span>
+                <Input
+                  type="number"
+                  className="w-28 h-9 text-sm bg-white dark:bg-slate-900"
+                  value={meetingGpRate}
+                  onChange={e => setMeetingGpRate(e.target.value)}
+                  step="0.01"
+                  min="0"
+                />
+                <span className="text-sm text-muted-foreground">/hr</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Hourly rate for GP meeting attendance
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Meeting PM rate (£/hr)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">£</span>
+                <Input
+                  type="number"
+                  className="w-28 h-9 text-sm bg-white dark:bg-slate-900"
+                  value={meetingPmRate}
+                  onChange={e => setMeetingPmRate(e.target.value)}
+                  step="0.01"
+                  min="0"
+                />
+                <span className="text-sm text-muted-foreground">/hr</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Hourly rate for Practice Manager meeting attendance
+              </p>
+            </div>
           </div>
         </div>
       </div>
