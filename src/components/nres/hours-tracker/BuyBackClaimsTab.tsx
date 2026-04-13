@@ -340,6 +340,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             </Select>
           )}
         </div>
+        {!isMeeting && (
         <div>
           <Label className="text-xs">
             {isGpLocum ? (allocType === 'daily' ? 'Days Worked' : 'Sessions Worked') : allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
@@ -356,6 +357,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             disabled={isManagement && !!selectedMgmtKey}
           />
         </div>
+        )}
         <div>
           <div className="flex items-center gap-1">
             <Label className="text-xs">Start Date</Label>
