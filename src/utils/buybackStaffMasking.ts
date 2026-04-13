@@ -30,14 +30,17 @@ export function isBuybackApprover(userEmail: string | null | undefined): boolean
  *
  * Full names are shown when the user is:
  * 1. The practice user who submitted the claim (owner), OR
- * 2. An authorised approver / NRES admin
+ * 2. An authorised approver / NRES admin, OR
+ * 3. Any admin or PML role holder (isAdminOverride)
  */
 export function canViewStaffName(
   currentUserId: string | null | undefined,
   claimOwnerUserId: string | null | undefined,
-  currentUserEmail: string | null | undefined
+  currentUserEmail: string | null | undefined,
+  isAdminOverride?: boolean
 ): boolean {
   if (!currentUserId) return false;
+  if (isAdminOverride) return true;
   if (currentUserId === claimOwnerUserId) return true;
   return isBuybackApprover(currentUserEmail);
 }
@@ -49,9 +52,10 @@ export function maskStaffName(
   name: string,
   currentUserId: string | null | undefined,
   claimOwnerUserId: string | null | undefined,
-  currentUserEmail: string | null | undefined
+  currentUserEmail: string | null | undefined,
+  isAdminOverride?: boolean
 ): string {
-  if (canViewStaffName(currentUserId, claimOwnerUserId, currentUserEmail)) {
+  if (canViewStaffName(currentUserId, claimOwnerUserId, currentUserEmail, isAdminOverride)) {
     return name;
   }
   return maskPatientName(name);
