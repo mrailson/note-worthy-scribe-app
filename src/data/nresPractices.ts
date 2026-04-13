@@ -75,6 +75,12 @@ export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPra
     accountNumber: '28122560',
     accountName: 'Brackley & Towcester PCN Ltd',
   },
+  parks: {
+    bankName: 'Lloyds Bank',
+    sortCode: '30-96-09',
+    accountNumber: '29159962',
+    accountName: 'Parkwood',
+  },
   bugbrooke: {
     bankName: 'Barclays Bank',
     sortCode: '20-65-18',
