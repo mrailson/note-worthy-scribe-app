@@ -14,6 +14,7 @@ import { TrackerSummary } from './TrackerSummary';
 import { TrackerReportModal } from './TrackerReportModal';
 import { AdminClaimsReport } from './AdminClaimsReport';
 import { ClaimantsManager } from './ClaimantsManager';
+import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { ClaimsUserGuide } from './ClaimsUserGuide';
@@ -63,6 +64,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
 
   const { admin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const { staffRoles, settings: rateSettings, onCostMultiplier } = useNRESBuyBackRateSettings();
+  const { isSuperAdmin, isManagementLead } = useNRESSystemRoles();
   const isENN = neighbourhoodName === 'ENN';
 
   const {
@@ -144,7 +146,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
                 <TooltipContent side="top" className="text-xs">Claims Guide</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {admin && (
+            {(admin || isSuperAdmin || isManagementLead) && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
