@@ -917,7 +917,6 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewNotes: notes,
         };
         sendBuyBackEmail('claim_verified', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
-        sendBuyBackEmail('verification_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
       }
     } catch (error) {
       console.error('Error verifying claim:', error);
