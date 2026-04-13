@@ -70,6 +70,8 @@ export function useNRESBuyBackRateSettings() {
     roles_config: DEFAULT_ROLES,
     email_testing_mode: false,
     management_roles_config: [],
+    meeting_gp_rate: 85,
+    meeting_pm_rate: 45,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -97,6 +99,8 @@ export function useNRESBuyBackRateSettings() {
           roles_config: (data.roles_config as RoleConfig[]) || DEFAULT_ROLES,
           email_testing_mode: data.email_testing_mode ?? false,
           management_roles_config: (data.management_roles_config as ManagementRoleConfig[]) || [],
+          meeting_gp_rate: data.meeting_gp_rate ?? 85,
+          meeting_pm_rate: data.meeting_pm_rate ?? 45,
         });
       }
       hasFetchedRef.current = true;
