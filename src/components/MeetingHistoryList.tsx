@@ -2406,6 +2406,20 @@ export const MeetingHistoryList = ({
                       })() : null}
                     </div>
 
+                    {/* Recording Error Card for failed/too-short mobile recordings */}
+                    {meeting.import_source?.startsWith('mobile_') && (!meeting.word_count || meeting.word_count === 0) && (
+                      <RecordingErrorCard
+                        meetingId={meeting.id}
+                        meetingTitle={meeting.title}
+                        wordCount={meeting.word_count ?? null}
+                        durationMinutes={meeting.duration_minutes}
+                        importSource={meeting.import_source}
+                        onReprocessComplete={(meetingId) => {
+                          if (onRefresh) onRefresh();
+                        }}
+                      />
+                    )}
+
                     {/* Display Attendees */}
                     {meetingAttendees[meeting.id] && meetingAttendees[meeting.id].length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
