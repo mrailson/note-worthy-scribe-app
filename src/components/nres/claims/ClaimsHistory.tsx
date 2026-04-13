@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { type ClaimLine, type ClaimsRole, type Practice, type ClaimEvidence, type ClaimAuditEntry, STATUS_CONFIG, PIPELINE, type ClaimStatus } from '@/hooks/useNRESClaims';
+import { type ClaimLine, type ClaimsRole, type Practice, type ClaimEvidence, type ClaimAuditEntry, STATUS_CONFIG, type ClaimStatus } from '@/hooks/useNRESClaims';
 import { ClaimStatusBadge } from './ClaimStatusBadge';
 import { ClaimStatusPipeline } from './ClaimStatusPipeline';
 import { Input } from '@/components/ui/input';

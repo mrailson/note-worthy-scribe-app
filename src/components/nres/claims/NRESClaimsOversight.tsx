@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNRESClaims, type ClaimStatus } from '@/hooks/useNRESClaims';
+import { useNRESClaims } from '@/hooks/useNRESClaims';
 import { ClaimsSummaryCards } from './ClaimsSummaryCards';
 import { CreateClaimPanel } from './CreateClaimPanel';
 import { ClaimsHistory } from './ClaimsHistory';
@@ -19,7 +19,7 @@ export function NRESClaimsOversight() {
     claims, practices, evidence, auditLog, loading, saving,
     claimsRole, userEmail,
     createClaimLine, declareAndSubmit, advanceStatus,
-    raiseQuery, resubmitQueried, deleteClaim,
+    raiseQuery, resubmitQueried,
     fetchEvidence, fetchAuditLog,
     getAction, canQuery,
   } = useNRESClaims();
