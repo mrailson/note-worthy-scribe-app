@@ -2316,6 +2316,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                         ? "I confirm that all staff listed are delivering SDA (Part A) activity during their attributed hours. I confirm that matching Part B (LTC) provision has been delivered and the supporting evidence has been uploaded. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed."
                         : "I confirm all staff listed are working 100% on SDA (Part A) during their funded hours. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed in this claim."
                       }
+                      {staffDetails.some((s: any) => s.staff_category === 'meeting') && (
+                        <> For meeting attendance lines, I confirm that signed attendance registers are held on file at the practice.</>
+                      )}
                     </span>
                   </div>
                 </TooltipTrigger>
