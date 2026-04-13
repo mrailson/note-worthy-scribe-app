@@ -820,11 +820,22 @@ function RatesAndRolesPanel() {
             Add Attending PM
           </Button>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
-      <CostBreakdownSection roles={roles} niPctNum={niPctNum} pensionPctNum={pensionPctNum} onCostsPctNum={onCostsPctNum} />
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Cost Breakdown</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CostBreakdownSection roles={roles} niPctNum={niPctNum} pensionPctNum={pensionPctNum} onCostsPctNum={onCostsPctNum} />
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Save Button */}
       <div className="flex justify-end">
