@@ -862,6 +862,23 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         practiceNames={ALL_PRACTICES}
       />
 
+      {/* Meeting Schedule & Attendance — between staff management and create claim */}
+      {effectiveShowStaffMgmt && filteredStaff.some(s => s.staff_category === 'meeting') && (
+        <>
+          <Separator />
+          <MeetingScheduleSection
+            neighbourhoodName={neighbourhoodName}
+            practiceKey={effectiveFilterPractice}
+            claimMonth={claimMonth}
+            practiceKeys={effectivePracticeKeys}
+            practiceNames={ALL_PRACTICES}
+            meetingStaff={filteredStaff.filter(s => s.staff_category === 'meeting')}
+            meetingGpRate={rateSettings.meeting_gp_rate}
+            meetingPmRate={rateSettings.meeting_pm_rate}
+          />
+        </>
+      )}
+
       {effectiveCanCreateClaim && <Separator />}
 
       {/* Create Claim — hidden in mgmt_lead, pml_director, pml_finance test modes */}
