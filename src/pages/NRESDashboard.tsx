@@ -221,7 +221,7 @@ const NRESDashboard = () => {
           </TabsContent>
 
           <TabsContent value="hours-tracker">
-            <NRESClaimsOversight />
+            <NRESHoursTracker />
           </TabsContent>
 
           <TabsContent value="document-vault">
