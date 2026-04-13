@@ -1082,6 +1082,28 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
   const allocValue = staff.allocation_value as number;
   const isManagement = staff.staff_category === 'management' || staff.staff_role === 'NRES Management';
   const isGpLocum = staff.staff_category === 'gp_locum';
+  const isMeeting = staff.staff_category === 'meeting';
+
+  // Meeting attendance: simple hours × rate
+  if (isMeeting) {
+    const totalHours = allocValue ?? 0;
+    const rate = staff.hourly_rate ?? 0;
+    const finalMonthly = totalHours * rate;
+    const meetingCount = staff.meeting_breakdown?.length ?? 0;
+    return {
+      isMeeting: true, isManagement: false, isDaily: false, isGpLocum: false, includesOnCosts: false,
+      totalHours, hourlyRate: rate, meetingCount,
+      meetingBreakdown: staff.meeting_breakdown ?? [],
+      baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
+      onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
+      proRataInfo: null, finalMonthly, baseRate: fmtGBP(rate),
+      dailyRate: 0, workingDays: 0,
+      baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
+      mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
+      grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0,
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    };
+  }
 
   // GP Locum: fixed rates, no on-costs
   if (isGpLocum) {
@@ -1286,7 +1308,43 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
           </h4>
         </div>
         <div className="p-3 space-y-2 text-xs">
-          {breakdown.isManagement ? (
+          {breakdown.isMeeting ? (
+            <>
+              {/* Meeting attendance breakdown */}
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Meeting Attendance</p>
+                <p className="text-foreground">{breakdown.meetingCount} meeting{breakdown.meetingCount !== 1 ? 's' : ''} attended</p>
+                <p className="text-foreground">Total hours: {(breakdown.totalHours ?? 0).toFixed(1)}h</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Hourly Rate</p>
+                <p className="font-semibold">{fmtGBP(breakdown.hourlyRate ?? 0)}/hr</p>
+                <p className="text-[10px] text-muted-foreground italic">No on-costs — fixed meeting rate</p>
+              </div>
+              {breakdown.meetingBreakdown && breakdown.meetingBreakdown.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground font-medium mb-1">Meetings Breakdown</p>
+                    {breakdown.meetingBreakdown.map((m: any, i: number) => (
+                      <p key={i} className="text-foreground">• {m.title || m.meeting_type || 'Meeting'} — {m.date ? format(new Date(m.date), 'dd/MM/yyyy') : '—'} — {m.duration_hours}h</p>
+                    ))}
+                  </div>
+                </>
+              )}
+              <Separator />
+              <div>
+                <p className="text-muted-foreground font-medium mb-0.5">Calculation</p>
+                <p className="font-semibold">{(breakdown.totalHours ?? 0).toFixed(1)}h × {fmtGBP(breakdown.hourlyRate ?? 0)}/hr = {fmtGBP(breakdown.finalMonthly)}</p>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Maximum Claimable</span>
+                <span className="text-primary">{fmtGBP(breakdown.finalMonthly)}</span>
+              </div>
+            </>
+          ) : breakdown.isManagement ? (
             <>
               {/* Management: hourly rate with on-costs breakdown */}
               <div>
