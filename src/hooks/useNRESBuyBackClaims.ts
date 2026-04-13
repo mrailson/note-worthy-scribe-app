@@ -189,6 +189,7 @@ function calculateFallback(staff: { allocation_type: string; allocation_value: n
 
 export interface BuyBackClaimsEmailConfig {
   emailTestingMode: boolean;
+  emailSendingDisabled?: boolean;
   currentUserEmail?: string;
   currentUserName?: string;
 }
