@@ -12,6 +12,7 @@ import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import { UnclaimedFundsIndicator } from './UnclaimedFundsIndicator';
 import { ManagementTimeTab } from './ManagementTimeTab';
+import { MeetingScheduleSection } from './MeetingScheduleSection';
 import { ClaimsUserGuide } from './ClaimsUserGuide';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
@@ -118,7 +119,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum'>('buyback');
+  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'meeting'>('buyback');
   const [practice, setPractice] = useState<string>('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [selectedMgmtKey, setSelectedMgmtKey] = useState('');
@@ -164,7 +165,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   };
 
   // When category changes
-  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management' | 'gp_locum') => {
+  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'meeting') => {
     setCategory(newCat);
     if (newCat === 'management') {
       setRole('NRES Management');
@@ -176,6 +177,12 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       setRole('GP Locum');
       setAllocType('daily');
       setAllocValue('');
+      setName('');
+      setSelectedMgmtKey('');
+    } else if (newCat === 'meeting') {
+      setRole('GP');
+      setAllocType('hours');
+      setAllocValue('0');
       setName('');
       setSelectedMgmtKey('');
     } else {
@@ -205,6 +212,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
 
   const isManagement = category === 'management';
   const isGpLocum = category === 'gp_locum';
+  const isMeeting = category === 'meeting';
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
   const maxAlloc = isGpLocum
@@ -257,12 +265,13 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">Category</Label>
-           <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management' | 'gp_locum')}>
+           <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'meeting')}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="buyback">Buy-Back</SelectItem>
               <SelectItem value="new_sda">New SDA</SelectItem>
               <SelectItem value="gp_locum">GP Locum</SelectItem>
+              <SelectItem value="meeting">Meeting Attendance</SelectItem>
               {canShowManagement && <SelectItem value="management">Management</SelectItem>}
             </SelectContent>
           </Select>
@@ -288,6 +297,14 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             <Input className="h-9 bg-muted" value="NRES Management" disabled />
           ) : isGpLocum ? (
             <Input className="h-9 bg-muted" value="GP Locum" disabled />
+          ) : isMeeting ? (
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GP">GP</SelectItem>
+                <SelectItem value="PM">PM</SelectItem>
+              </SelectContent>
+            </Select>
           ) : (
             <Select value={role} onValueChange={handleRoleChange}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -299,7 +316,9 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">Allocation Type</Label>
-          {isManagement ? (
+          {isMeeting ? (
+            <Input className="h-9 bg-muted text-xs" value="From attendance" disabled />
+          ) : isManagement ? (
             <Input className="h-9 bg-muted" value="Hrs/wk" disabled />
           ) : isGpLocum ? (
             <Select value={allocType} onValueChange={v => { setAllocType(v as 'sessions' | 'daily'); setAllocValue(''); }}>
@@ -321,6 +340,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             </Select>
           )}
         </div>
+        {!isMeeting && (
         <div>
           <Label className="text-xs">
             {isGpLocum ? (allocType === 'daily' ? 'Days Worked' : 'Sessions Worked') : allocType === 'sessions' ? 'Weekly Sessions' : allocType === 'hours' ? 'Weekly Hours' : allocType === 'daily' ? 'Daily Rate (£)' : 'WTE Value'}
@@ -337,6 +357,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             disabled={isManagement && !!selectedMgmtKey}
           />
         </div>
+        )}
         <div>
           <div className="flex items-center gap-1">
             <Label className="text-xs">Start Date</Label>
@@ -663,6 +684,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
     if (cat === 'management') return <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>;
     if (cat === 'gp_locum') return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">GP Locum</Badge>;
+    if (cat === 'meeting') return <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs">Meeting</Badge>;
     return <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>;
   };
 

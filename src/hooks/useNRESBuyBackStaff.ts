@@ -14,7 +14,7 @@ export interface BuyBackStaffMember {
   allocation_value: number;
   hourly_rate: number;
   is_active: boolean;
-  staff_category: 'buyback' | 'new_sda' | 'management' | 'gp_locum';
+  staff_category: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'meeting';
   practice_key: string | null;
   start_date: string | null;
   created_at: string;
