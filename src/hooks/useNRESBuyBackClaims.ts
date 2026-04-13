@@ -736,11 +736,11 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         <tr><td style="padding:6px 0;color:#666;">Claim Period</td><td style="padding:6px 0;text-align:right;">${claimMonthLabel}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Invoice Date</td><td style="padding:6px 0;text-align:right;">${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</td></tr>
         <tr><td style="padding:6px 0;color:#666;">Payment Terms</td><td style="padding:6px 0;text-align:right;">30 days from invoice date</td></tr>
-        <tr><td colspan="2" style="padding:12px 0 4px;"><hr style="border:none;border-top:1px solid #dde3ea;margin:0;"/></td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Bank</td><td style="padding:4px 0;text-align:right;">Lloyds Bank</td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Sort Code</td><td style="padding:4px 0;text-align:right;">30-11-08</td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Account No.</td><td style="padding:4px 0;text-align:right;">28122560</td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Account Name</td><td style="padding:4px 0;text-align:right;">Brackley &amp; Towcester PCN Ltd</td></tr>
+        ${bankDetails ? `<tr><td colspan="2" style="padding:12px 0 4px;"><hr style="border:none;border-top:1px solid #dde3ea;margin:0;"/></td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Bank</td><td style="padding:4px 0;text-align:right;">${bankDetails.bankName}</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Sort Code</td><td style="padding:4px 0;text-align:right;">${bankDetails.sortCode}</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Account No.</td><td style="padding:4px 0;text-align:right;">${bankDetails.accountNumber}</td></tr>
+        <tr><td style="padding:4px 0;color:#666;">Account Name</td><td style="padding:4px 0;text-align:right;">${bankDetails.accountName.replace(/&/g, '&amp;')}</td></tr>` : ''}
         <tr style="border-top:2px solid #005EB8;"><td style="padding:10px 0 6px;color:#003087;font-weight:700;">Total Amount Due</td><td style="padding:10px 0 6px;text-align:right;font-weight:700;font-size:16px;color:#003087;">£${((gpTotal || 0) + (otherTotal || 0)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>
       </table>
     </div>
