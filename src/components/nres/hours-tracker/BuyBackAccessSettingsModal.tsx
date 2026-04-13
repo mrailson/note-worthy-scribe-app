@@ -538,7 +538,12 @@ function RatesAndRolesPanel() {
                 <th className="text-left px-3 py-2.5 font-medium">Base Annual Rate (£)</th>
                 <th className="text-left px-3 py-2.5 font-medium">Default Allocation</th>
                 <th className="text-left px-3 py-2.5 font-medium">Daily Rate (£)</th>
-                <th className="text-left px-3 py-2.5 font-medium">Inc. On-Costs</th>
+                <th className="text-left px-3 py-2.5 font-medium">
+                  <div className="flex items-center gap-1">
+                    Inc. On-Costs
+                    <InfoTooltip content="When ticked, employer on-costs (NI + Pension) are added on top of the base salary when calculating claim values. Leave unticked for roles where on-costs are not applicable, such as GP locums or external contractors paid at an all-inclusive rate." />
+                  </div>
+                </th>
                 <th className="text-left px-3 py-2.5 font-medium">GL Code</th>
                 <th className="px-3 py-2.5 w-10"></th>
               </tr>
