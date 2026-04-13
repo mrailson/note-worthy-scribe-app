@@ -103,6 +103,7 @@ import { useMeetingFolders } from '@/hooks/useMeetingFolders';
 import { FolderBadge } from '@/components/meeting-folders/FolderBadge';
 import { FolderAssignmentSheet } from '@/components/meeting-folders/FolderAssignmentSheet';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { RecordingErrorCard } from "@/components/recording/RecordingErrorCard";
 
 
 interface Meeting {
@@ -2369,35 +2370,11 @@ export const MeetingHistoryList = ({
                         </Badge>
                       )}
                       
-                      {/* Re-transcribe button for mobile meetings with missing transcripts */}
+                      {/* Re-transcribe indicator kept inline as small badge for context */}
                       {meeting.import_source?.startsWith('mobile_') && (!meeting.word_count || meeting.word_count === 0) && (
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-700 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (retranscribingMeetings[meeting.id]) return;
-                            setRetranscribingMeetings(prev => ({ ...prev, [meeting.id]: true }));
-                            try {
-                              const { error } = await supabase.functions.invoke('transcribe-offline-meeting', {
-                                body: { meetingId: meeting.id, chunkIndex: 0 }
-                              });
-                              if (error) throw error;
-                              toast.success('Transcription started — this may take a few minutes');
-                            } catch (err) {
-                              console.error('Re-transcribe failed:', err);
-                              toast.error('Failed to start re-transcription');
-                            } finally {
-                              setRetranscribingMeetings(prev => ({ ...prev, [meeting.id]: false }));
-                            }
-                          }}
-                        >
-                          {retranscribingMeetings[meeting.id] ? (
-                            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                          ) : (
-                            <Mic className="h-3 w-3 mr-1" />
-                          )}
-                          {retranscribingMeetings[meeting.id] ? 'Transcribing...' : 'Re-transcribe'}
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400">
+                          <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                          Needs reprocessing
                         </Badge>
                       )}
                       
