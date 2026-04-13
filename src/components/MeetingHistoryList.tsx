@@ -1602,6 +1602,14 @@ export const MeetingHistoryList = ({
             await pollForNoteCompletion(meetingId, 'summary', 'meeting_summaries');
             localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || modelOverride);
             completedCount++;
+
+            // Safety net: ensure meeting title was generated
+            try {
+              const { ensureMeetingTitle } = await import('@/utils/manualTriggerNotes');
+              await ensureMeetingTitle(meetingId);
+            } catch (titleErr) {
+              console.warn('Title safety net failed (non-fatal):', titleErr);
+            }
           } catch (err: any) {
             console.error('💥 Standard notes generation error:', err);
             throw new Error(`Standard notes failed: ${err.message || 'Network error - edge function may have timed out'}`);
