@@ -303,7 +303,6 @@ function AddMeetingDialog({
   practiceKeys,
   practiceNames,
   defaultPractice,
-  _claimMonth,
   onAdd,
 }: {
   open: boolean;
