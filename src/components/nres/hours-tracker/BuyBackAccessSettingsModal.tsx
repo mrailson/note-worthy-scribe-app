@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2, Pencil } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2, Pencil, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { SystemRolesTab } from './SystemRolesTab';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
@@ -422,11 +423,17 @@ function RatesAndRolesPanel() {
   }
 
   return (
-    <div className="space-y-6 pb-4 pt-2">
+    <div className="space-y-2 pb-4 pt-2">
       {/* Section A: On-Costs — split into NI and Pension */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Employer On-Costs</h3>
-        <p className="text-xs text-muted-foreground mb-3">
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Employer On-Costs</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+        <p className="text-xs text-muted-foreground mb-3 mt-1">
           On-costs are the additional employer contributions paid on top of an employee's base salary. They consist of two components:
         </p>
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
@@ -474,13 +481,20 @@ function RatesAndRolesPanel() {
             <span className="text-muted-foreground ml-1">(NI {niPctNum}% + Pension {pensionPctNum}%)</span>
           </div>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
       {/* Section A2: Meeting Attendance Rates */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Meeting Attendance Rates</h3>
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Meeting Attendance Rates</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
         <p className="text-xs text-muted-foreground mb-3">
           Fixed hourly rates for meeting attendance. These are applied to all meeting staff based on their role.
         </p>
@@ -524,13 +538,20 @@ function RatesAndRolesPanel() {
             </div>
           </div>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
       {/* Section B: Role Management */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Role Types</h3>
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Role Types</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
         <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden">
           <table className="w-full text-xs">
             <thead className="bg-slate-100 dark:bg-slate-800">
@@ -644,13 +665,20 @@ function RatesAndRolesPanel() {
             Add Role
           </Button>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
       {/* Section B2: Management Roles */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">NRES Management Rates</h3>
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">NRES Management Rates</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
         <p className="text-xs text-muted-foreground mb-3">
           Management time and meeting attendance are billed at a simple hourly rate — no annual salary, on-costs, or allocation type.
         </p>
@@ -793,11 +821,22 @@ function RatesAndRolesPanel() {
             Add Attending PM
           </Button>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
-      <CostBreakdownSection roles={roles} niPctNum={niPctNum} pensionPctNum={pensionPctNum} onCostsPctNum={onCostsPctNum} />
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Cost Breakdown</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CostBreakdownSection roles={roles} niPctNum={niPctNum} pensionPctNum={pensionPctNum} onCostsPctNum={onCostsPctNum} />
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Save Button */}
       <div className="flex justify-end">
