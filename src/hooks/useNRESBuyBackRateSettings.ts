@@ -194,6 +194,29 @@ export function useNRESBuyBackRateSettings() {
     }
   }, [user?.id]);
 
+  const toggleEmailSendingDisabled = useCallback(async (disabled: boolean) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          email_sending_disabled: disabled,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+      if (error) throw error;
+      setSettings(prev => ({ ...prev, email_sending_disabled: disabled }));
+      toast.success(disabled ? 'Email sending disabled' : 'Email sending re-enabled');
+    } catch (err) {
+      console.error('Error toggling email sending:', err);
+      toast.error('Failed to update email sending setting');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
   const updateManagementRoles = useCallback(async (mgmtRoles: ManagementRoleConfig[]) => {
     if (!user?.id) return;
     try {
@@ -223,6 +246,7 @@ export function useNRESBuyBackRateSettings() {
     saving,
     updateSettings,
     toggleEmailTestingMode,
+    toggleEmailSendingDisabled,
     updateManagementRoles,
     onCostMultiplier,
     getRoleConfig,
