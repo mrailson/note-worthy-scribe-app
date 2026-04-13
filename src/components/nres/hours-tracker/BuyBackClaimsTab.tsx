@@ -19,6 +19,7 @@ import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, NRES_ODS_CODES, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
 import { PaymentWorkflowPanel } from './PaymentWorkflowPanel';
+import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
@@ -2244,10 +2245,17 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
           </div>
           {claim.invoice_pdf_path && (
             <div className="flex items-center gap-1.5">
-              <InvoiceViewerButton invoicePdfPath={claim.invoice_pdf_path} invoiceNumber={claim.invoice_number} />
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={async () => {
-                const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
-                if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+              <InvoiceViewerButton claim={claim} />
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
+                try {
+                  const pdfDoc = generateInvoicePdf({ claim, invoiceNumber: claim.invoice_number || '', neighbourhoodName: 'NRES' });
+                  const pdfBlob = pdfDoc.output('blob');
+                  const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+                  window.open(blobUrl, '_blank');
+                } catch (e) {
+                  console.error('Failed to generate PDF:', e);
+                  toast.error('Failed to generate invoice PDF');
+                }
               }}>
                 <Download className="w-3 h-3" /> Download PDF
               </Button>
