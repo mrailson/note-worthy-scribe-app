@@ -94,6 +94,6 @@ export const actionLogData: ActionLogItem[] = [
 
 export const actionLogMetadata = {
   sourceMeeting: "",
-  nextMeeting: "In Person - Health Education Room, The Brook Health Centre, Swinneyford Road, Towcester, NN12 6HD",
+  nextMeeting: "In Person - Tuesday 21st April 2026 15:00-17:00 - Health Education Room, The Brook Health Centre, Swinneyford Road, Towcester, NN12 6HD",
   lastUpdated: "24/02/2026 15:15"
 };
