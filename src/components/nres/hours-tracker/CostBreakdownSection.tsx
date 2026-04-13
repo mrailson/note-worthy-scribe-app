@@ -226,13 +226,13 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
                   {!r.includesOnCosts && <span className="ml-1.5 text-[10px] text-amber-600 font-medium">(excl. on-costs)</span>}
                 </td>
                 <td className="px-3 py-2.5 text-muted-foreground">{r.glCode || '—'}</td>
-                <td className="px-3 py-2.5 text-right">{r.isDailyRate ? `${fmtGBP(r.dailyRate)}/day` : fmtGBP(r.baseAnnual)}</td>
-                <td className="px-3 py-2.5 text-right">{r.isDailyRate ? '—' : `${fmtGBP(r.staffHourlyRate)}/hr`}</td>
+                <td className="px-3 py-2.5 text-right">{fmtGBP(r.baseAnnual)}</td>
+                <td className="px-3 py-2.5 text-right">{fmtGBP(r.staffHourlyRate)}/hr</td>
                 <td className="px-3 py-2.5 text-right">{r.includesOnCosts ? fmtGBP(r.niAmt) : <span className="text-muted-foreground italic">N/A</span>}</td>
                 <td className="px-3 py-2.5 text-right">{r.includesOnCosts ? fmtGBP(r.pensionAmt) : <span className="text-muted-foreground italic">N/A</span>}</td>
                 <td className="px-3 py-2.5 text-right">{r.includesOnCosts ? fmtGBP(r.totalOnCosts) : <span className="text-muted-foreground italic">N/A</span>}</td>
-                <td className="px-3 py-2.5 text-right font-medium">{r.isDailyRate ? `${fmtGBP(r.dailyRate)}/day` : fmtGBP(r.totalAnnual)}</td>
-                <td className="px-3 py-2.5 text-right font-medium">{r.isDailyRate ? '—' : `${fmtGBP(r.hourlyEquiv)}/hr`}</td>
+                <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(r.totalAnnual)}</td>
+                <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(r.hourlyEquiv)}/hr</td>
                 <td className="px-3 py-2.5 text-right font-semibold text-primary">{fmtGBP(r.maxMonthly)}/mo</td>
               </tr>
             ))}
