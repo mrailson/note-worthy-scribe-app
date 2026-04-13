@@ -212,6 +212,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
 
   const isManagement = category === 'management';
   const isGpLocum = category === 'gp_locum';
+  const isMeeting = category === 'meeting';
   const selectedMgmtRole = isManagement ? availableMgmtRoles.find(r => r.key === selectedMgmtKey) : undefined;
 
   const maxAlloc = isGpLocum
@@ -264,12 +265,13 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
         </div>
         <div>
           <Label className="text-xs">Category</Label>
-           <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management' | 'gp_locum')}>
+           <Select value={category} onValueChange={v => handleCategoryChange(v as 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'meeting')}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="buyback">Buy-Back</SelectItem>
               <SelectItem value="new_sda">New SDA</SelectItem>
               <SelectItem value="gp_locum">GP Locum</SelectItem>
+              <SelectItem value="meeting">Meeting Attendance</SelectItem>
               {canShowManagement && <SelectItem value="management">Management</SelectItem>}
             </SelectContent>
           </Select>
@@ -670,6 +672,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
     if (cat === 'management') return <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>;
     if (cat === 'gp_locum') return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">GP Locum</Badge>;
+    if (cat === 'meeting') return <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs">Meeting</Badge>;
     return <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>;
   };
 
