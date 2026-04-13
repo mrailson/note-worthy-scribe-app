@@ -342,6 +342,8 @@ function RatesAndRolesPanel() {
   const [pensionPct, setPensionPct] = useState<string>('');
   const [roles, setRoles] = useState<RoleConfig[]>([]);
   const [mgmtRoles, setMgmtRoles] = useState<ManagementRoleConfig[]>([]);
+  const [meetingGpRate, setMeetingGpRate] = useState<string>('');
+  const [meetingPmRate, setMeetingPmRate] = useState<string>('');
   const [initialised, setInitialised] = useState(false);
   const [newRoleLabel, setNewRoleLabel] = useState('');
   const [editingMgmtIndex, setEditingMgmtIndex] = useState<number | null>(null);
@@ -354,6 +356,8 @@ function RatesAndRolesPanel() {
       ...r,
       max_hours_per_week: (r as any).max_hours_per_week ?? 8,
     })));
+    setMeetingGpRate(String(settings.meeting_gp_rate));
+    setMeetingPmRate(String(settings.meeting_pm_rate));
     setInitialised(true);
   }
 
@@ -395,13 +399,15 @@ function RatesAndRolesPanel() {
   };
 
   const handleSave = async () => {
-    await updateSettings(niPctNum, pensionPctNum, roles);
+    await updateSettings(niPctNum, pensionPctNum, roles, parseFloat(meetingGpRate) || 85, parseFloat(meetingPmRate) || 45);
     await updateManagementRoles(mgmtRoles);
   };
 
   const hasChanges = initialised && (
     niPct !== String(settings.employer_ni_pct) ||
     pensionPct !== String(settings.employer_pension_pct) ||
+    meetingGpRate !== String(settings.meeting_gp_rate) ||
+    meetingPmRate !== String(settings.meeting_pm_rate) ||
     JSON.stringify(roles) !== JSON.stringify(settings.roles_config.filter(r => !r.key.startsWith('nres_'))) ||
     JSON.stringify(mgmtRoles) !== JSON.stringify(settings.management_roles_config)
   );
