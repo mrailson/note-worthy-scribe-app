@@ -664,13 +664,20 @@ function RatesAndRolesPanel() {
             Add Role
           </Button>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
       {/* Section B2: Management Roles */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">NRES Management Rates</h3>
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">NRES Management Rates</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
         <p className="text-xs text-muted-foreground mb-3">
           Management time and meeting attendance are billed at a simple hourly rate — no annual salary, on-costs, or allocation type.
         </p>
