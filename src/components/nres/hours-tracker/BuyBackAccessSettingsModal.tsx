@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { GroundRulesEditor, getDefaultGroundRules } from './GroundRulesEditor';
 import { CostBreakdownSection } from './CostBreakdownSection';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
