@@ -636,11 +636,17 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       console.warn('handleCreateClaim: staffForClaim empty. practiceForClaim:', practiceForClaim, 'filteredStaff practice_keys:', filteredStaff.map(s => s.practice_key));
       return;
     }
-    const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date, rateParams), 0);
-    const result = await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams);
 
-    // After successful creation, open claims history and scroll to it
-    if (result) {
+    // Create one claim per staff member — each is an individual submission/invoice
+    let createdCount = 0;
+    for (const staff of staffForClaim) {
+      const staffAmount = calculateStaffMonthlyAmount(staff, monthDate, staff.start_date, rateParams);
+      const result = await createClaim(monthDate, [staff], staffAmount, staffAmount, practiceForClaim, rateParams);
+      if (result) createdCount++;
+    }
+
+    if (createdCount > 0) {
+      toast.success(`${createdCount} individual claim${createdCount > 1 ? 's' : ''} created — one per staff member`);
       setClaimsHistoryOpen(true);
       setTimeout(() => {
         claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
