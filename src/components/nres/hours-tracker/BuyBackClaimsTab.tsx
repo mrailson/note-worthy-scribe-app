@@ -662,9 +662,22 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     ? accessFilteredClaims
     : accessFilteredClaims.filter(c => c.practice_key === effectiveFilterPractice);
 
-  const filteredClaims = effectiveFilterStatus === 'all'
+  // Sort: drafts first so the next claim to process is always at the top
+  const STATUS_SORT_ORDER: Record<string, number> = {
+    draft: 0,
+    queried: 1,
+    submitted: 2,
+    verified: 3,
+    approved: 4,
+    invoiced: 5,
+    paid: 6,
+    rejected: 7,
+  };
+
+  const filteredClaims = (effectiveFilterStatus === 'all'
     ? practiceFilteredClaims
-    : practiceFilteredClaims.filter(c => c.status === effectiveFilterStatus);
+    : practiceFilteredClaims.filter(c => c.status === effectiveFilterStatus)
+  ).sort((a, b) => (STATUS_SORT_ORDER[a.status] ?? 99) - (STATUS_SORT_ORDER[b.status] ?? 99));
 
   // Status counts for badges
   const statusCounts = {
