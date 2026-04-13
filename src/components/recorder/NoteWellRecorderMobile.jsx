@@ -575,6 +575,44 @@ function Toast({ msg, type }) {
   );
 }
 
+function StepsGuide() {
+  const [open, setOpen] = useState(true);
+  const steps = [
+    {n:"1",icon:"🎙️",label:"Tap record to start"},
+    {n:"2",icon:"💾",label:"Saved to device"},
+    {n:"3",icon:"✨",label:"Notes generated on stop"},
+  ];
+  return (
+    <div style={{margin:"8px 16px 0"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{
+        width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+        padding:"8px 12px",background:"white",borderRadius:open?"12px 12px 0 0":"12px",
+        border:"1px solid rgba(21,101,192,0.08)",borderBottom:open?"none":"1px solid rgba(21,101,192,0.08)",
+        cursor:"pointer",boxShadow:"0 2px 8px rgba(21,101,192,0.05)",fontFamily:"inherit",
+      }}>
+        <span style={{fontSize:11,fontWeight:600,color:"#94a3b8",letterSpacing:0.5,textTransform:"uppercase"}}>How it works</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
+          style={{transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div style={{display:"flex",gap:6,background:"white",borderRadius:"0 0 12px 12px",padding:"8px 10px 10px",
+          border:"1px solid rgba(21,101,192,0.08)",borderTop:"none",
+          boxShadow:"0 2px 8px rgba(21,101,192,0.05)",animation:"fadeIn 0.15s"}}>
+          {steps.map(s=>(
+            <div key={s.n} style={{flex:1,textAlign:"center",padding:"6px 4px"}}>
+              <div style={{fontSize:16,marginBottom:2}}>{s.icon}</div>
+              <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(21,101,192,0.1)",color:"#1565c0",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px"}}>{s.n}</div>
+              <div style={{fontSize:10,color:"#475569",lineHeight:1.3,fontWeight:500}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
