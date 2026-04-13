@@ -634,8 +634,9 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
       toast.success('Claim approved — generating invoice...');
 
-      // Calculate GL summary
-      const staffDetails = (claim?.staff_details as any[]) || [];
+      // Use fresh DB data (not stale local state) for invoice generation
+      const freshClaim = (data as BuyBackClaim) || claim;
+      const staffDetails = (freshClaim?.staff_details as any[]) || [];
       const gpTotal = staffDetails
         .filter(s => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP')
         .reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
@@ -645,8 +646,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
       // Generate invoice number and PDF
       try {
-        const invoiceNum = await generateInvoiceNumber('NRES', claim?.practice_key || '', claim?.claim_month || '');
-        const approvedClaim = { ...(claim || data), status: 'approved' as const } as BuyBackClaim;
+        const invoiceNum = await generateInvoiceNumber('NRES', freshClaim?.practice_key || '', freshClaim?.claim_month || '');
+        const approvedClaim = { ...freshClaim, status: 'approved' as const } as BuyBackClaim;
         const pdfDoc = generateInvoicePdf({
           claim: approvedClaim,
           invoiceNumber: invoiceNum,
