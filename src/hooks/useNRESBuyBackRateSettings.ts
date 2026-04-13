@@ -44,6 +44,8 @@ export interface RateSettings {
   roles_config: RoleConfig[];
   email_testing_mode: boolean;
   management_roles_config: ManagementRoleConfig[];
+  meeting_gp_rate: number;
+  meeting_pm_rate: number;
 }
 
 const DEFAULT_ROLES: RoleConfig[] = [

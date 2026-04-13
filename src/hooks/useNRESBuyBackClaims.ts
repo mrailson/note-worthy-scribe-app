@@ -97,15 +97,22 @@ export function calculateStaffMonthlyAmount(
   let fullMonthly: number;
 
   const isGpLocum = (staff as any).staff_category === 'gp_locum';
+  const isMeeting = (staff as any).staff_category === 'meeting';
+
+  // Meeting attendance: allocation_value = total hours attended, hourly_rate = GP or PM rate
+  if (isMeeting) {
+    const totalHours = staff.allocation_value ?? 0;
+    const rate = (staff as any).hourly_rate ?? 0;
+    fullMonthly = totalHours * rate;
+    return fullMonthly; // No pro-rata for meeting attendance — hours are actual
+  }
 
   // GP Locum category: allocation_value = total days or sessions worked that month
   // Fixed rates: £750/day, £375/session. No on-costs (locums are self-employed).
   if (isGpLocum) {
     if (staff.allocation_type === 'daily') {
-      // allocation_value = number of days worked this month
       fullMonthly = staff.allocation_value * GP_LOCUM_MAX_DAILY_RATE;
     } else if (staff.allocation_type === 'sessions') {
-      // allocation_value = number of sessions worked this month
       fullMonthly = staff.allocation_value * GP_LOCUM_SESSION_RATE;
     } else {
       fullMonthly = staff.allocation_value * GP_LOCUM_MAX_DAILY_RATE;
@@ -114,24 +121,20 @@ export function calculateStaffMonthlyAmount(
   // Management category: hourly_rate × weekly_hours × working_weeks_in_month
   else if (((staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management') && (staff as any).hourly_rate && rateParams?.workingWeeksInMonth) {
     const hourlyRate = (staff as any).hourly_rate as number;
-    const weeklyHours = staff.allocation_value; // max_hours_per_week
+    const weeklyHours = staff.allocation_value;
     const workingWeeks = rateParams.workingWeeksInMonth;
     fullMonthly = hourlyRate * weeklyHours * workingWeeks;
   } else if (rateParams?.getRoleAnnualRate && staff.staff_role) {
-    // Dynamic rates from settings
     const roleRate = rateParams.getRoleAnnualRate(staff.staff_role);
     const roleConfig = rateParams.getRoleConfig?.(staff.staff_role);
     if (roleRate !== undefined) {
-      // Check if on-costs should be applied (default true for backward compat)
       const includesOnCosts = roleConfig?.includes_on_costs !== false;
       const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
       
       if (staff.allocation_type === 'daily') {
-        // Daily rate × working days in the month
         const dailyRate = roleConfig?.daily_rate ?? staff.allocation_value;
         const workingDays = rateParams.workingDaysInMonth ?? 21.67;
         fullMonthly = dailyRate * workingDays;
-        // No on-costs for daily rate (locum)
       } else if (staff.allocation_type === 'sessions') {
         const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
@@ -143,7 +146,6 @@ export function calculateStaffMonthlyAmount(
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
       }
     } else {
-      // Fallback for unknown roles
       fullMonthly = calculateFallback(staff);
     }
   } else {
@@ -158,14 +160,12 @@ export function calculateStaffMonthlyAmount(
     const claimMonthNum = claimStart.getMonth();
     const staffStart = new Date(startDate);
 
-    // Only pro-rata if staff starts in this specific month
     if (staffStart.getFullYear() === claimYear && staffStart.getMonth() === claimMonthNum) {
       const daysInMonth = new Date(claimYear, claimMonthNum + 1, 0).getDate();
-      const startDay = staffStart.getDate(); // e.g. 15th
-      const workingDays = daysInMonth - startDay + 1; // days from start to end of month inclusive
+      const startDay = staffStart.getDate();
+      const workingDays = daysInMonth - startDay + 1;
       fullMonthly = fullMonthly * (workingDays / daysInMonth);
     }
-    // If staff starts after the claim month, no claim allowed
     if (staffStart > new Date(claimYear, claimMonthNum + 1, 0)) {
       return 0;
     }
