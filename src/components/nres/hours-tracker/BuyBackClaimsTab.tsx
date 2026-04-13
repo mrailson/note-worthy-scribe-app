@@ -53,6 +53,13 @@ const GP_LOCUM_SESSION_RATE = 375;
 
 /** Build a human-readable calculation breakdown for the live preview */
 function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
+  // Meeting attendance: total hours × hourly rate
+  if (category === 'meeting') {
+    const rate = hourlyRate ?? 0;
+    const rateLabel = role === 'GP' ? 'GP' : 'PM';
+    return `${allocValue.toFixed(1)}h total attendance × ${fmtGBP(rate)}/hr (${rateLabel} meeting rate)`;
+  }
+
   // GP Locum: allocation_value = total days or sessions worked that month
   if (category === 'gp_locum') {
     if (allocType === 'daily') {
