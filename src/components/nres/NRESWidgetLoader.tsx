@@ -1,99 +1,98 @@
 /**
- * NRESWidgetLoader.tsx — Fixed version
+ * NRESWidgetLoader.tsx — v3
  *
- * Previously used the bare <elevenlabs-convai> HTML web component which has no
- * lifecycle callbacks, so the email hook (useNRESSummaryEmail) was never called.
- *
- * Now uses useConversation from @11labs/react (same pattern as EmbeddedPMGenie)
- * so we get onConnect / onDisconnect / onMessage and can:
- *  - buffer the transcript
- *  - send a session summary email on disconnect via send-genie-transcript-email
+ * Changes from v2:
+ * 1. Removed position:fixed — now renders inline inside the NRES tab card
+ *    in SDAExecutiveSummary (same pattern as NRESGPAgent, NRESPMAgent etc.)
+ * 2. Fixed blank email — transforms { role, message, timestamp }[] buffer into
+ *    the { user, agent, timestamp }[] format expected by send-genie-transcript-email
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { useConversation } from '@11labs/react';
 import { Loader2, Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useVoiceAgentContext } from '@/hooks/useVoiceAgentContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
 
-// ── Agent IDs ──────────────────────────────────────────────────────────────────
 const NRES_AGENT_ID = 'agent_7801knyxsxcxehsr8kynxgxz6xyr';
 const ENN_AGENT_ID  = 'agent_6801kp1qmxn1f24b42407nn2gq57';
 
 type Status = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
 
 interface ConversationEntry {
-  role: string;
+  role: string;      // 'user' | 'assistant'
   message: string;
   timestamp: string;
 }
 
-// ── Shared email sender ────────────────────────────────────────────────────────
+/**
+ * Convert individual-message buffer to the paired { user, agent } format
+ * expected by send-genie-transcript-email.
+ * Each entry has either user OR agent populated (never both), which is fine —
+ * the email function checks each field independently.
+ */
+function toEmailBuffer(buffer: ConversationEntry[]) {
+  return buffer.map(e => ({
+    user:           e.role === 'user'      ? e.message : '',
+    agent:          e.role === 'assistant' ? e.message : '',
+    timestamp:      e.timestamp,
+    userTimestamp:  e.role === 'user'      ? e.timestamp : undefined,
+    agentTimestamp: e.role === 'assistant' ? e.timestamp : undefined,
+  }));
+}
+
 async function sendTranscriptEmail(
   userEmail: string,
-  conversationBuffer: ConversationEntry[],
+  buffer: ConversationEntry[],
   conversationId: string | null,
   neighbourhoodName: string,
   userContext: Record<string, string | undefined>,
 ) {
-  if (!userEmail || conversationBuffer.length === 0) return;
-
-  const serviceType  = neighbourhoodName === 'ENN' ? 'enn-agent' : 'nres-agent';
-  const serviceName  = `${neighbourhoodName} Voice Agent`;
-
+  if (!userEmail || buffer.length === 0) return;
   try {
     const { error } = await supabase.functions.invoke('send-genie-transcript-email', {
       body: {
         userEmail,
-        serviceName,
-        conversationBuffer,
+        serviceName:       `${neighbourhoodName} Voice Agent`,
+        conversationBuffer: toEmailBuffer(buffer),   // ← fixed format
         conversationId,
-        serviceType,
+        serviceType:       neighbourhoodName === 'ENN' ? 'enn-agent' : 'nres-agent',
         userContext,
       },
     });
-
     if (error) throw error;
-
-    toast.success('Session summary emailed', {
-      description: `Transcript sent to ${userEmail}`,
-    });
+    toast.success('Session summary emailed', { description: `Transcript sent to ${userEmail}` });
   } catch (err) {
-    console.error(`[${neighbourhoodName}Widget] Transcript email failed:`, err);
-    toast.error('Email failed', {
-      description: 'Session saved but transcript email could not be sent.',
-    });
+    console.error(`[${neighbourhoodName}Widget] Email failed:`, err);
+    toast.error('Email failed', { description: 'Transcript could not be sent.' });
   }
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
 export const NRESWidgetEmbed = ({
   neighbourhoodName = 'NRES',
 }: {
   neighbourhoodName?: string;
 }) => {
-  const agentId = neighbourhoodName === 'ENN' ? ENN_AGENT_ID : NRES_AGENT_ID;
-  const { user }                   = useAuth();
+  const agentId      = neighbourhoodName === 'ENN' ? ENN_AGENT_ID : NRES_AGENT_ID;
+  const accentColour = neighbourhoodName === 'ENN' ? '#7C3AED' : '#005EB8';
+  const label        = `${neighbourhoodName} Voice Agent`;
+
+  const { user }                       = useAuth();
   const { contextData, contextPrompt } = useVoiceAgentContext();
 
-  const [status,    setStatus]    = useState<Status>('idle');
+  const [status,     setStatus]     = useState<Status>('idle');
   const [isMicMuted, setIsMicMuted] = useState(false);
-  const [error,     setError]     = useState<string | null>(null);
+  const [error,      setError]      = useState<string | null>(null);
 
-  // Refs that stay fresh inside ElevenLabs callbacks
-  const emailRef       = useRef<string | undefined>(undefined);
-  const nameRef        = useRef<string>('User');
-  const practiceRef    = useRef<string | undefined>(undefined);
-  const bufferRef      = useRef<ConversationEntry[]>([]);
-  const convIdRef      = useRef<string | null>(null);
-  const startTimeRef   = useRef<string | null>(null);
-  const ctxRef         = useRef(contextData);
+  const emailRef    = useRef<string | undefined>(undefined);
+  const nameRef     = useRef<string>('User');
+  const practiceRef = useRef<string | undefined>(undefined);
+  const bufferRef   = useRef<ConversationEntry[]>([]);
+  const convIdRef   = useRef<string | null>(null);
+  const ctxRef      = useRef(contextData);
 
-  // Keep refs in sync when context loads
   useEffect(() => {
     emailRef.current    = contextData.email || user?.email;
     nameRef.current     = contextData.displayName || user?.email?.split('@')[0] || 'User';
@@ -101,235 +100,193 @@ export const NRESWidgetEmbed = ({
     ctxRef.current      = contextData;
   }, [contextData, user?.email]);
 
-  // ── useConversation ──────────────────────────────────────────────────────────
   const conversation = useConversation({
     onConnect: () => {
-      console.log(`[${neighbourhoodName}Widget] Connected`);
       setStatus('connected');
       setError(null);
-      bufferRef.current  = [];
-      startTimeRef.current = new Date().toISOString();
+      bufferRef.current = [];
     },
 
     onDisconnect: async () => {
-      console.log(`[${neighbourhoodName}Widget] Disconnected — buffered ${bufferRef.current.length} messages`);
       setStatus('disconnected');
-
       const email  = emailRef.current;
       const buffer = bufferRef.current;
-
       if (email && buffer.length > 0) {
         const ctx = ctxRef.current;
-        await sendTranscriptEmail(
-          email,
-          buffer,
-          convIdRef.current,
-          neighbourhoodName,
-          {
-            displayName:      ctx.displayName,
-            role:             ctx.role,
-            practiceName:     ctx.practiceName,
-            practiceAddress:  ctx.practiceAddress,
-            practicePostcode: ctx.practicePostcode,
-            practicePhone:    ctx.practicePhone,
-            practiceOdsCode:  ctx.practiceOdsCode,
-          },
-        );
-      } else if (!email) {
-        console.warn(`[${neighbourhoodName}Widget] No email — transcript not sent`);
+        await sendTranscriptEmail(email, buffer, convIdRef.current, neighbourhoodName, {
+          displayName: ctx.displayName, role: ctx.role, practiceName: ctx.practiceName,
+          practiceAddress: ctx.practiceAddress, practicePostcode: ctx.practicePostcode,
+          practicePhone: ctx.practicePhone, practiceOdsCode: ctx.practiceOdsCode,
+        });
       }
-
-      convIdRef.current  = null;
-      bufferRef.current  = [];
+      convIdRef.current = null;
+      bufferRef.current = [];
     },
 
     onMessage: (message) => {
-      // Capture text turns for the transcript
       if (message.message && message.source) {
         const role = message.source === 'ai' ? 'assistant' : 'user';
         const last = bufferRef.current[bufferRef.current.length - 1];
-        // Deduplicate consecutive identical entries
         if (!last || last.message !== message.message || last.role !== role) {
-          bufferRef.current.push({
-            role,
-            message: message.message,
-            timestamp: new Date().toISOString(),
-          });
+          bufferRef.current.push({ role, message: message.message, timestamp: new Date().toISOString() });
         }
       }
-
-      // Capture the ElevenLabs conversation ID for reference
-      if (
-        (message as any).type === 'conversation_initiation_metadata' &&
-        (message as any).conversation_id
-      ) {
+      if ((message as any).type === 'conversation_initiation_metadata' && (message as any).conversation_id) {
         convIdRef.current = (message as any).conversation_id;
       }
     },
 
-    onError: (err) => {
-      console.error(`[${neighbourhoodName}Widget] Error:`, err);
+    onError: (error) => {
+      console.error(`[${neighbourhoodName}Widget] Error:`, error);
       setStatus('error');
-      setError(typeof err === 'string' ? err : 'Connection error');
+      setError(typeof error === 'string' ? error : 'Connection error occurred');
     },
   });
 
-  // ── Start session ────────────────────────────────────────────────────────────
   const startConversation = async () => {
     if (status === 'connecting' || status === 'connected') return;
     setStatus('connecting');
     setError(null);
-
     try {
-      // Get signed URL from our edge function (keeps XI_API_KEY server-side)
       const { data, error: fnError } = await supabase.functions.invoke(
         'elevenlabs-agent-url',
         { body: { agentId } },
       );
-
-      if (fnError || !data?.signed_url) {
-        throw new Error(fnError?.message || 'Failed to get signed URL');
-      }
-
+      if (fnError || !data?.signed_url) throw new Error(fnError?.message || 'Failed to get signed URL');
       await conversation.startSession({
         agentId,
         signedUrl: data.signed_url,
         dynamicVariables: {
-          user_name:        nameRef.current,
-          user_email:       emailRef.current || '',
-          user_role:        contextData.role || '',
-          practice_name:    practiceRef.current || '',
-          practice_address: contextData.practiceAddress || '',
-          practice_postcode:contextData.practicePostcode || '',
-          practice_phone:   contextData.practicePhone || '',
-          practice_ods_code:contextData.practiceOdsCode || '',
-          neighbourhood:    neighbourhoodName,
-          dynamic_context:  contextPrompt,
+          user_name:         nameRef.current,
+          user_email:        emailRef.current || '',
+          user_role:         contextData.role || '',
+          practice_name:     practiceRef.current || '',
+          practice_address:  contextData.practiceAddress || '',
+          practice_postcode: contextData.practicePostcode || '',
+          practice_phone:    contextData.practicePhone || '',
+          practice_ods_code: contextData.practiceOdsCode || '',
+          neighbourhood:     neighbourhoodName,
+          dynamic_context:   contextPrompt,
         },
       });
     } catch (err: any) {
-      console.error(`[${neighbourhoodName}Widget] Start failed:`, err);
       setStatus('error');
       setError(err?.message || 'Failed to connect');
-      toast.error(`Failed to start ${neighbourhoodName} agent`);
+      toast.error(`Failed to start ${label}`);
     }
   };
 
-  // ── End session ──────────────────────────────────────────────────────────────
   const endConversation = async () => {
-    try {
-      await conversation.endSession();
-    } catch (err) {
-      console.error(`[${neighbourhoodName}Widget] End session error:`, err);
-    }
+    try { await conversation.endSession(); } catch {}
   };
 
-  // Tidy up on unmount
-  useEffect(() => {
-    return () => {
-      conversation.endSession().catch(() => {});
-    };
-  }, []);
-
-  // Toggle mic mute
   const toggleMic = async () => {
     try {
-      if (isMicMuted) {
-        await (conversation as any).unmute?.();
-      } else {
-        await (conversation as any).mute?.();
-      }
+      if (isMicMuted) await (conversation as any).unmute?.();
+      else            await (conversation as any).mute?.();
       setIsMicMuted(v => !v);
-    } catch {
-      /* not all versions support mute */
-    }
+    } catch {}
   };
 
-  // ── UI ───────────────────────────────────────────────────────────────────────
-  const label = neighbourhoodName === 'ENN' ? 'ENN Agent' : 'NRES Agent';
-  const accentColour = neighbourhoodName === 'ENN' ? '#7C3AED' : '#005EB8';
+  useEffect(() => { return () => { conversation.endSession().catch(() => {}); }; }, []);
+
+  // ── Inline UI — sits inside the NRES tab card ─────────────────────────────
+  const isLive = status === 'connected';
+  const isBusy = status === 'connecting';
 
   return (
-    <div className="mt-3 pt-3 border-t border-slate-200">
-      <div className="flex items-center gap-3 flex-wrap">
+    <div style={{ marginTop: 10 }}>
+      <style>{`
+        @keyframes nwAgentPulse {
+          0%,100% { box-shadow: 0 0 0 0 rgba(0,94,184,0.4) }
+          50%      { box-shadow: 0 0 0 6px rgba(0,94,184,0) }
+        }
+        @keyframes nwAgentSpin { to { transform: rotate(360deg) } }
+      `}</style>
 
-        {/* Status orb */}
-        <div className={cn(
-          'w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300',
-          status === 'idle'         && 'bg-slate-100',
-          status === 'connecting'   && 'bg-amber-100 animate-pulse',
-          status === 'connected'    && 'bg-green-100',
-          status === 'disconnected' && 'bg-slate-100',
-          status === 'error'        && 'bg-red-100',
-        )}>
-          {status === 'connecting' && <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />}
-          {status === 'connected'  && <Phone   className="w-4 h-4 text-green-600" />}
-          {status === 'error'      && <PhoneOff className="w-4 h-4 text-red-500" />}
-          {(status === 'idle' || status === 'disconnected') && (
-            <span style={{ color: accentColour }} className="text-sm font-bold">🎙</span>
-          )}
-        </div>
-
-        {/* Label + status text */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-700 leading-tight">{label}</p>
-          <p className="text-xs text-slate-400 leading-tight">
-            {status === 'idle'         && 'Click to start voice session'}
-            {status === 'connecting'   && 'Connecting…'}
-            {status === 'connected'    && 'Live — transcript will be emailed when you end the call'}
-            {status === 'disconnected' && 'Session ended — check your email for the transcript'}
-            {status === 'error'        && (error || 'Connection failed — try again')}
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {status === 'connected' && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={toggleMic}
-              title={isMicMuted ? 'Unmute mic' : 'Mute mic'}
-            >
-              {isMicMuted
-                ? <MicOff className="w-3.5 h-3.5 text-red-500" />
-                : <Mic    className="w-3.5 h-3.5" />
-              }
-            </Button>
-          )}
-
-          {(status === 'idle' || status === 'disconnected' || status === 'error') && (
-            <Button
-              size="sm"
-              className="h-8 text-xs font-semibold text-white"
-              style={{ background: accentColour }}
-              onClick={startConversation}
-            >
-              <Phone className="w-3 h-3 mr-1" />
-              Start
-            </Button>
-          )}
-
-          {(status === 'connected' || status === 'connecting') && (
-            <Button
-              size="sm"
-              variant="destructive"
-              className="h-8 text-xs font-semibold"
-              onClick={endConversation}
-            >
-              <PhoneOff className="w-3 h-3 mr-1" />
-              End call
-            </Button>
-          )}
-        </div>
+      {/* Status row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        {/* Live indicator dot */}
+        <div style={{
+          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+          background: isLive ? '#16A34A' : isBusy ? '#D97706' : status === 'error' ? '#DC2626' : '#94A3B8',
+          animation: isLive ? 'nwAgentPulse 1.5s ease-in-out infinite' : 'none',
+        }} />
+        <span style={{ fontSize: '0.72rem', color: '#475569', flex: 1 }}>
+          {status === 'idle'         && 'Start a voice session — transcript emailed when call ends'}
+          {status === 'connecting'   && 'Connecting…'}
+          {status === 'connected'    && 'Live — transcript will be emailed when you end the call'}
+          {status === 'disconnected' && 'Session ended · check your email for the transcript'}
+          {status === 'error'        && (error || 'Connection failed — try again')}
+        </span>
       </div>
 
-      {/* No email warning */}
+      {/* Controls */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {/* Start button */}
+        {(status === 'idle' || status === 'disconnected' || status === 'error') && (
+          <button
+            onClick={startConversation}
+            style={{
+              flex: 1, background: accentColour, border: 'none', borderRadius: 8,
+              color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem',
+              padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              fontFamily: 'inherit',
+            }}
+          >
+            <Phone size={13} />
+            {status === 'disconnected' ? 'Start new session' : 'Start voice session'}
+          </button>
+        )}
+
+        {/* Connecting */}
+        {isBusy && (
+          <button disabled style={{
+            flex: 1, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8,
+            color: '#94A3B8', cursor: 'not-allowed', fontWeight: 600, fontSize: '0.78rem',
+            padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            fontFamily: 'inherit',
+          }}>
+            <Loader2 size={13} style={{ animation: 'nwAgentSpin 1s linear infinite' }} />
+            Connecting…
+          </button>
+        )}
+
+        {/* Live controls */}
+        {isLive && (
+          <>
+            <button
+              onClick={toggleMic}
+              title={isMicMuted ? 'Unmute mic' : 'Mute mic'}
+              style={{
+                background: isMicMuted ? '#FEE2E2' : '#F1F5F9', border: 'none', borderRadius: 8,
+                cursor: 'pointer', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {isMicMuted ? <MicOff size={14} color="#DC2626" /> : <Mic size={14} color="#475569" />}
+            </button>
+            <button
+              onClick={endConversation}
+              style={{
+                flex: 1, background: '#DC2626', border: 'none', borderRadius: 8,
+                color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem',
+                padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                fontFamily: 'inherit',
+              }}
+            >
+              <PhoneOff size={13} /> End call
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* No-email warning */}
       {!emailRef.current && status === 'idle' && (
-        <p className="mt-2 text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-          ⚠️ No email address found in your profile — transcript cannot be emailed.
-          Please update your Notewell profile.
+        <p style={{
+          margin: '6px 0 0', fontSize: '0.67rem', color: '#D97706',
+          background: '#FFFBEB', borderRadius: 5, padding: '4px 8px', border: '1px solid #FDE68A',
+        }}>
+          ⚠️ No email in your profile — transcript cannot be sent
         </p>
       )}
     </div>
