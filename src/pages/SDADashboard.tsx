@@ -6,7 +6,7 @@ import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
-import { NRESClaimsOversight } from "@/components/nres/claims/NRESClaimsOversight";
+
 import { 
   LayoutDashboard, 
   Building2, 
@@ -16,14 +16,14 @@ import {
 } from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
 
-import { Receipt } from "lucide-react";
+
 
 const tabs = [
   { value: "executive", label: "Executive Summary", shortLabel: "Summary", icon: LayoutDashboard },
   { value: "estates", label: "Estates & Capacity", shortLabel: "Estates", icon: Building2 },
   { value: "digital", label: "IT & Reporting", shortLabel: "Digital", icon: Monitor },
   { value: "hours", label: "Claims & Oversight", shortLabel: "Claims", icon: Clock },
-  { value: "invoices", label: "Per-Line Invoices", shortLabel: "Invoices", icon: Receipt },
+  
   { value: "document-vault", label: "NRES Document Vault Home", shortLabel: "Vault", icon: FolderLock },
 ];
 
@@ -82,9 +82,6 @@ const SDADashboard = () => {
               </TabsContent>
               <TabsContent value="hours" className="mt-0">
                 <NRESHoursTracker />
-              </TabsContent>
-              <TabsContent value="invoices" className="mt-0">
-                <NRESClaimsOversight />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
