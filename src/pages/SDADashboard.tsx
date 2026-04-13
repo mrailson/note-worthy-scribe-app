@@ -5,6 +5,7 @@ import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
 import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
+import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 import { NRESClaimsOversight } from "@/components/nres/claims/NRESClaimsOversight";
 import { 
   LayoutDashboard, 
@@ -79,7 +80,7 @@ const SDADashboard = () => {
                 <SDADigitalIntegration />
               </TabsContent>
               <TabsContent value="hours" className="mt-0">
-                <NRESClaimsOversight />
+                <NRESHoursTracker />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
