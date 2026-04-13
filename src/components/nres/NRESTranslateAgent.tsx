@@ -1,31 +1,11 @@
-import { useEffect, useRef } from "react";
+import { NRESWidgetEmbed } from '@/components/nres/NRESWidgetLoader';
 
-const TRANSLATE_AGENT_ID = "agent_2601knsxn311f9evq5zs0rrese7s";
-
-function useElevenLabsScript() {
-  useEffect(() => {
-    if (document.querySelector('script[src*="convai-widget-embed"]')) return;
-    const s = document.createElement("script");
-    s.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
-    s.async = true;
-    document.body.appendChild(s);
-  }, []);
-}
-
-export const NRESTranslateAgent = () => {
-  useElevenLabsScript();
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.innerHTML = "";
-    const el = document.createElement("elevenlabs-convai");
-    el.setAttribute("agent-id", TRANSLATE_AGENT_ID);
-    ref.current.appendChild(el);
-    return () => {
-      if (ref.current) ref.current.innerHTML = "";
-    };
-  }, []);
-
-  return <div ref={ref} className="mt-3" style={{ minHeight: 60 }} />;
-};
+export const NRESTranslateAgent = () => (
+  <NRESWidgetEmbed
+    agentId="agent_2601knsxn311f9evq5zs0rrese7s"
+    label="Translation Agent"
+    accentColour="#047857"
+    serviceType="nres-translate-agent"
+    serviceName="NRES Translation Voice Agent"
+  />
+);

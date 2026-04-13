@@ -1,31 +1,11 @@
-import { useEffect, useRef } from "react";
+import { NRESWidgetEmbed } from '@/components/nres/NRESWidgetLoader';
 
-const GP_AGENT_ID = "agent_01jwry2fzme7xsb2mwzatxseyt";
-
-function useElevenLabsScript() {
-  useEffect(() => {
-    if (document.querySelector('script[src*="convai-widget-embed"]')) return;
-    const s = document.createElement("script");
-    s.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
-    s.async = true;
-    document.body.appendChild(s);
-  }, []);
-}
-
-export const NRESGPAgent = () => {
-  useElevenLabsScript();
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    ref.current.innerHTML = "";
-    const el = document.createElement("elevenlabs-convai");
-    el.setAttribute("agent-id", GP_AGENT_ID);
-    ref.current.appendChild(el);
-    return () => {
-      if (ref.current) ref.current.innerHTML = "";
-    };
-  }, []);
-
-  return <div ref={ref} className="mt-3" style={{ minHeight: 60 }} />;
-};
+export const NRESGPAgent = () => (
+  <NRESWidgetEmbed
+    agentId="agent_01jwry2fzme7xsb2mwzatxseyt"
+    label="GP Voice Agent"
+    accentColour="#4338CA"
+    serviceType="nres-gp-agent"
+    serviceName="NRES GP Voice Agent"
+  />
+);

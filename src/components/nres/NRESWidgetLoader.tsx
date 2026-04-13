@@ -1,11 +1,9 @@
 /**
- * NRESWidgetLoader.tsx — v3
+ * NRESWidgetLoader.tsx — v4
  *
- * Changes from v2:
- * 1. Removed position:fixed — now renders inline inside the NRES tab card
- *    in SDAExecutiveSummary (same pattern as NRESGPAgent, NRESPMAgent etc.)
- * 2. Fixed blank email — transforms { role, message, timestamp }[] buffer into
- *    the { user, agent, timestamp }[] format expected by send-genie-transcript-email
+ * NRESWidgetEmbed now accepts optional override props so all agent tabs
+ * (GP, PM, Patient, Translate, NRES) can reuse the same inline button
+ * component with their own agent ID, label, colour and service type.
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -16,23 +14,18 @@ import { toast } from 'sonner';
 import { useVoiceAgentContext } from '@/hooks/useVoiceAgentContext';
 import { useAuth } from '@/contexts/AuthContext';
 
+// ── Default agent IDs (NRES / ENN programme agent) ────────────────────────────
 const NRES_AGENT_ID = 'agent_7801knyxsxcxehsr8kynxgxz6xyr';
 const ENN_AGENT_ID  = 'agent_6801kp1qmxn1f24b42407nn2gq57';
 
 type Status = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
 
 interface ConversationEntry {
-  role: string;      // 'user' | 'assistant'
+  role: string;
   message: string;
   timestamp: string;
 }
 
-/**
- * Convert individual-message buffer to the paired { user, agent } format
- * expected by send-genie-transcript-email.
- * Each entry has either user OR agent populated (never both), which is fine —
- * the email function checks each field independently.
- */
 function toEmailBuffer(buffer: ConversationEntry[]) {
   return buffer.map(e => ({
     user:           e.role === 'user'      ? e.message : '',
@@ -47,7 +40,8 @@ async function sendTranscriptEmail(
   userEmail: string,
   buffer: ConversationEntry[],
   conversationId: string | null,
-  neighbourhoodName: string,
+  serviceName: string,
+  serviceType: string,
   userContext: Record<string, string | undefined>,
 ) {
   if (!userEmail || buffer.length === 0) return;
@@ -55,29 +49,52 @@ async function sendTranscriptEmail(
     const { error } = await supabase.functions.invoke('send-genie-transcript-email', {
       body: {
         userEmail,
-        serviceName:       `${neighbourhoodName} Voice Agent`,
-        conversationBuffer: toEmailBuffer(buffer),   // ← fixed format
+        serviceName,
+        conversationBuffer: toEmailBuffer(buffer),
         conversationId,
-        serviceType:       neighbourhoodName === 'ENN' ? 'enn-agent' : 'nres-agent',
+        serviceType,
         userContext,
       },
     });
     if (error) throw error;
     toast.success('Session summary emailed', { description: `Transcript sent to ${userEmail}` });
   } catch (err) {
-    console.error(`[${neighbourhoodName}Widget] Email failed:`, err);
+    console.error(`[${serviceType}] Email failed:`, err);
     toast.error('Email failed', { description: 'Transcript could not be sent.' });
   }
 }
 
+// ── Props ─────────────────────────────────────────────────────────────────────
+interface NRESWidgetEmbedProps {
+  /** Used to resolve the default agent ID if agentId is not supplied */
+  neighbourhoodName?: string;
+  /** Override agent ID (used by GP, PM, Patient, Translate agents) */
+  agentId?: string;
+  /** Display label, e.g. "GP Voice Agent" */
+  label?: string;
+  /** Button / accent colour — mid-tone recommended */
+  accentColour?: string;
+  /** Service type sent to send-genie-transcript-email for email branding */
+  serviceType?: string;
+  /** Human-readable service name for the email subject / header */
+  serviceName?: string;
+}
+
 export const NRESWidgetEmbed = ({
   neighbourhoodName = 'NRES',
-}: {
-  neighbourhoodName?: string;
-}) => {
-  const agentId      = neighbourhoodName === 'ENN' ? ENN_AGENT_ID : NRES_AGENT_ID;
-  const accentColour = neighbourhoodName === 'ENN' ? '#7C3AED' : '#005EB8';
-  const label        = `${neighbourhoodName} Voice Agent`;
+  agentId: agentIdProp,
+  label: labelProp,
+  accentColour: accentColourProp,
+  serviceType: serviceTypeProp,
+  serviceName: serviceNameProp,
+}: NRESWidgetEmbedProps) => {
+
+  // Resolve defaults
+  const resolvedAgentId     = agentIdProp ?? (neighbourhoodName === 'ENN' ? ENN_AGENT_ID : NRES_AGENT_ID);
+  const resolvedAccent      = accentColourProp ?? (neighbourhoodName === 'ENN' ? '#7C3AED' : '#005EB8');
+  const resolvedLabel       = labelProp ?? `${neighbourhoodName} Voice Agent`;
+  const resolvedServiceType = serviceTypeProp ?? (neighbourhoodName === 'ENN' ? 'enn-agent' : 'nres-agent');
+  const resolvedServiceName = serviceNameProp ?? resolvedLabel;
 
   const { user }                       = useAuth();
   const { contextData, contextPrompt } = useVoiceAgentContext();
@@ -113,7 +130,7 @@ export const NRESWidgetEmbed = ({
       const buffer = bufferRef.current;
       if (email && buffer.length > 0) {
         const ctx = ctxRef.current;
-        await sendTranscriptEmail(email, buffer, convIdRef.current, neighbourhoodName, {
+        await sendTranscriptEmail(email, buffer, convIdRef.current, resolvedServiceName, resolvedServiceType, {
           displayName: ctx.displayName, role: ctx.role, practiceName: ctx.practiceName,
           practiceAddress: ctx.practiceAddress, practicePostcode: ctx.practicePostcode,
           practicePhone: ctx.practicePhone, practiceOdsCode: ctx.practiceOdsCode,
@@ -137,7 +154,7 @@ export const NRESWidgetEmbed = ({
     },
 
     onError: (error) => {
-      console.error(`[${neighbourhoodName}Widget] Error:`, error);
+      console.error(`[${resolvedServiceType}] Error:`, error);
       setStatus('error');
       setError(typeof error === 'string' ? error : 'Connection error occurred');
     },
@@ -150,11 +167,11 @@ export const NRESWidgetEmbed = ({
     try {
       const { data, error: fnError } = await supabase.functions.invoke(
         'elevenlabs-agent-url',
-        { body: { agentId } },
+        { body: { agentId: resolvedAgentId } },
       );
       if (fnError || !data?.signed_url) throw new Error(fnError?.message || 'Failed to get signed URL');
       await conversation.startSession({
-        agentId,
+        agentId:  resolvedAgentId,
         signedUrl: data.signed_url,
         dynamicVariables: {
           user_name:         nameRef.current,
@@ -172,7 +189,7 @@ export const NRESWidgetEmbed = ({
     } catch (err: any) {
       setStatus('error');
       setError(err?.message || 'Failed to connect');
-      toast.error(`Failed to start ${label}`);
+      toast.error(`Failed to start ${resolvedLabel}`);
     }
   };
 
@@ -190,102 +207,84 @@ export const NRESWidgetEmbed = ({
 
   useEffect(() => { return () => { conversation.endSession().catch(() => {}); }; }, []);
 
-  // ── Inline UI — sits inside the NRES tab card ─────────────────────────────
   const isLive = status === 'connected';
   const isBusy = status === 'connecting';
 
   return (
     <div style={{ marginTop: 10 }}>
       <style>{`
-        @keyframes nwAgentPulse {
-          0%,100% { box-shadow: 0 0 0 0 rgba(0,94,184,0.4) }
-          50%      { box-shadow: 0 0 0 6px rgba(0,94,184,0) }
-        }
-        @keyframes nwAgentSpin { to { transform: rotate(360deg) } }
+        @keyframes nwAgentPulse { 0%,100%{box-shadow:0 0 0 0 ${resolvedAccent}66} 50%{box-shadow:0 0 0 6px ${resolvedAccent}00} }
+        @keyframes nwAgentSpin  { to{transform:rotate(360deg)} }
       `}</style>
 
       {/* Status row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        {/* Live indicator dot */}
+      <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
         <div style={{
-          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-          background: isLive ? '#16A34A' : isBusy ? '#D97706' : status === 'error' ? '#DC2626' : '#94A3B8',
+          width:8, height:8, borderRadius:'50%', flexShrink:0,
+          background: isLive ? '#16A34A' : isBusy ? '#D97706' : status==='error' ? '#DC2626' : '#CBD5E1',
           animation: isLive ? 'nwAgentPulse 1.5s ease-in-out infinite' : 'none',
-        }} />
-        <span style={{ fontSize: '0.72rem', color: '#475569', flex: 1 }}>
-          {status === 'idle'         && 'Start a voice session — transcript emailed when call ends'}
-          {status === 'connecting'   && 'Connecting…'}
-          {status === 'connected'    && 'Live — transcript will be emailed when you end the call'}
-          {status === 'disconnected' && 'Session ended · check your email for the transcript'}
-          {status === 'error'        && (error || 'Connection failed — try again')}
+        }}/>
+        <span style={{ fontSize:'0.71rem', color:'#64748B', lineHeight:1.4 }}>
+          {status==='idle'         && 'Start a voice session — transcript emailed when call ends'}
+          {status==='connecting'   && 'Connecting…'}
+          {status==='connected'    && 'Live · transcript will be emailed when you end the call'}
+          {status==='disconnected' && 'Session ended — check your email for the transcript'}
+          {status==='error'        && (error || 'Connection failed — try again')}
         </span>
       </div>
 
-      {/* Controls */}
-      <div style={{ display: 'flex', gap: 6 }}>
-        {/* Start button */}
-        {(status === 'idle' || status === 'disconnected' || status === 'error') && (
-          <button
-            onClick={startConversation}
-            style={{
-              flex: 1, background: accentColour, border: 'none', borderRadius: 8,
-              color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem',
-              padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              fontFamily: 'inherit',
-            }}
+      {/* Button row */}
+      <div style={{ display:'flex', gap:6 }}>
+        {(status==='idle' || status==='disconnected' || status==='error') && (
+          <button onClick={startConversation} style={{
+            flex:1, border:'none', borderRadius:8, color:'#fff', cursor:'pointer',
+            fontWeight:700, fontSize:'0.77rem', padding:'8px 12px', fontFamily:'inherit',
+            background: resolvedAccent,
+            display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+            opacity: 0.92,
+          }}
+          onMouseEnter={e=>(e.currentTarget.style.opacity='1')}
+          onMouseLeave={e=>(e.currentTarget.style.opacity='0.92')}
           >
-            <Phone size={13} />
-            {status === 'disconnected' ? 'Start new session' : 'Start voice session'}
+            <Phone size={13}/>
+            {status==='disconnected' ? 'Start new session' : 'Start voice session'}
           </button>
         )}
 
-        {/* Connecting */}
         {isBusy && (
           <button disabled style={{
-            flex: 1, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8,
-            color: '#94A3B8', cursor: 'not-allowed', fontWeight: 600, fontSize: '0.78rem',
-            padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            fontFamily: 'inherit',
+            flex:1, background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:8,
+            color:'#94A3B8', cursor:'not-allowed', fontWeight:600, fontSize:'0.77rem',
+            padding:'8px 12px', display:'flex', alignItems:'center', justifyContent:'center', gap:5, fontFamily:'inherit',
           }}>
-            <Loader2 size={13} style={{ animation: 'nwAgentSpin 1s linear infinite' }} />
+            <Loader2 size={13} style={{ animation:'nwAgentSpin 1s linear infinite' }}/>
             Connecting…
           </button>
         )}
 
-        {/* Live controls */}
         {isLive && (
           <>
-            <button
-              onClick={toggleMic}
-              title={isMicMuted ? 'Unmute mic' : 'Mute mic'}
-              style={{
-                background: isMicMuted ? '#FEE2E2' : '#F1F5F9', border: 'none', borderRadius: 8,
-                cursor: 'pointer', padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              {isMicMuted ? <MicOff size={14} color="#DC2626" /> : <Mic size={14} color="#475569" />}
+            <button onClick={toggleMic} title={isMicMuted ? 'Unmute mic' : 'Mute mic'} style={{
+              background: isMicMuted ? '#FEE2E2' : '#F1F5F9', border:'none', borderRadius:8,
+              cursor:'pointer', padding:'8px 10px',
+              display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+              {isMicMuted ? <MicOff size={14} color="#DC2626"/> : <Mic size={14} color="#475569"/>}
             </button>
-            <button
-              onClick={endConversation}
-              style={{
-                flex: 1, background: '#DC2626', border: 'none', borderRadius: 8,
-                color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.78rem',
-                padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                fontFamily: 'inherit',
-              }}
-            >
-              <PhoneOff size={13} /> End call
+            <button onClick={endConversation} style={{
+              flex:1, background:'#DC2626', border:'none', borderRadius:8, color:'#fff',
+              cursor:'pointer', fontWeight:700, fontSize:'0.77rem', padding:'8px 12px',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:5, fontFamily:'inherit',
+            }}>
+              <PhoneOff size={13}/> End call
             </button>
           </>
         )}
       </div>
 
-      {/* No-email warning */}
-      {!emailRef.current && status === 'idle' && (
-        <p style={{
-          margin: '6px 0 0', fontSize: '0.67rem', color: '#D97706',
-          background: '#FFFBEB', borderRadius: 5, padding: '4px 8px', border: '1px solid #FDE68A',
-        }}>
+      {!emailRef.current && status==='idle' && (
+        <p style={{ margin:'6px 0 0', fontSize:'0.66rem', color:'#D97706',
+          background:'#FFFBEB', borderRadius:5, padding:'4px 8px', border:'1px solid #FDE68A' }}>
           ⚠️ No email in your profile — transcript cannot be sent
         </p>
       )}
