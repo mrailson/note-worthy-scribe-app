@@ -6058,8 +6058,29 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
     } catch (error) {
       console.error('❌ Error while saving/finishing recording:', error);
-      // Ensure UI recovers even if saving fails early
       showToast.error('Something went wrong finishing the recording. We have safely stopped it.', { section: 'meeting_manager' });
+
+      // SAFETY NET: If the meeting was saved but processing failed,
+      // still try to fire the edge function so notes generate server-side.
+      // The queue processor cron will also pick this up, but this is faster.
+      if (capturedMeetingId) {
+        try {
+          console.log('🔄 Safety net: attempting edge function call for saved meeting:', capturedMeetingId);
+          supabase.functions
+            .invoke('auto-generate-meeting-notes', {
+              body: {
+                meetingId: capturedMeetingId,
+                forceRegenerate: false,
+                modelOverride: 'claude-sonnet-4-6',
+                skipQc: true,
+              }
+            })
+            .catch(err => console.warn('Safety net edge function call failed (cron will retry):', err?.message));
+        } catch (safetyErr) {
+          console.warn('Safety net failed (cron will retry):', safetyErr);
+        }
+      }
+
       try {
         await resetMeeting();
       } finally {
