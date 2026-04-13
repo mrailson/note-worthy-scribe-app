@@ -50,9 +50,14 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  const rows = useMemo<CostRow[]>(() => roles.map(role => {
+  // Filter out daily-rate roles (e.g. GP Locum) — they don't fit the salary-based breakdown
+  // but remain available for selection and claims elsewhere
+  const salariedRoles = useMemo(() => roles.filter(r => r.allocation_default !== 'daily'), [roles]);
+  const dailyRateRoles = useMemo(() => roles.filter(r => r.allocation_default === 'daily'), [roles]);
+
+  const rows = useMemo<CostRow[]>(() => salariedRoles.map(role => {
     const includesOnCosts = role.includes_on_costs !== false;
-    const isDailyRate = role.allocation_default === 'daily';
+    const isDailyRate = false;
     const workingHrs = role.working_hours_per_year || 1950;
     const fullAnnualBase = role.allocation_default === 'sessions' ? role.annual_rate * 9 : role.annual_rate;
     const staffHourlyRate = workingHrs > 0 ? fullAnnualBase / workingHrs : 0;
@@ -64,20 +69,16 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
     const hourlyEquiv = workingHrs > 0 ? fullAnnualWithOnCosts / workingHrs : 0;
     
     let maxMonthly: number;
-    if (isDailyRate) {
-      maxMonthly = (role.daily_rate ?? 0) * 21.67;
-    } else {
-      const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
-      maxMonthly = role.allocation_default === 'sessions'
-        ? (maxAlloc * totalAnnual) / 12
-        : role.allocation_default === 'hours'
-        ? ((maxAlloc / 37.5) * totalAnnual) / 12
-        : (maxAlloc * totalAnnual) / 12;
-    }
+    const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
+    maxMonthly = role.allocation_default === 'sessions'
+      ? (maxAlloc * totalAnnual) / 12
+      : role.allocation_default === 'hours'
+      ? ((maxAlloc / 37.5) * totalAnnual) / 12
+      : (maxAlloc * totalAnnual) / 12;
 
     return {
       label: role.label,
-      allocationNote: isDailyRate ? '(daily rate)' : role.allocation_default === 'sessions' ? '(per session/yr)' : '',
+      allocationNote: role.allocation_default === 'sessions' ? '(per session/yr)' : '',
       baseAnnual: role.annual_rate,
       staffHourlyRate,
       niAmt,
@@ -91,7 +92,7 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
       isDailyRate,
       dailyRate: role.daily_rate ?? 0,
     };
-  }), [roles, niPctNum, pensionPctNum]);
+  }), [salariedRoles, niPctNum, pensionPctNum]);
 
   const sortedRows = useMemo(() => {
     if (!sortKey) return rows;
