@@ -91,7 +91,7 @@ export function useMeetings(neighbourhoodName: string, practiceKey: string | nul
   useEffect(() => {
     hasFetchedRef.current = false;
     if (user?.id) fetchData();
-  }, [user?.id, neighbourhoodName, practiceKey, month]);
+  }, [user?.id, neighbourhoodName, practiceKey, month, fetchData]);
 
   const addMeeting = useCallback(async (meeting: {
     practice_key: string;

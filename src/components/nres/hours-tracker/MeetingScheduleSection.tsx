@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { Plus, ChevronRight, Check, Minus, Trash2, Users, Loader2, CalendarDays } from 'lucide-react';
+import { Plus, ChevronRight, Check, Minus, Trash2, Loader2, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
-import { useMeetings, type Meeting } from '@/hooks/useMeetings';
+import { useMeetings } from '@/hooks/useMeetings';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 
 /** Format a number as £X,XXX.XX */
@@ -304,7 +303,7 @@ function AddMeetingDialog({
   practiceKeys,
   practiceNames,
   defaultPractice,
-  claimMonth,
+  _claimMonth,
   onAdd,
 }: {
   open: boolean;
