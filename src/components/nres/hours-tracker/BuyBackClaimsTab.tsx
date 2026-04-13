@@ -1857,9 +1857,25 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       ? <Badge className="bg-blue-100 text-blue-800 text-[10px]">GP</Badge>
                       : <Badge className="bg-purple-100 text-purple-800 text-[10px]">Other</Badge>}
                   </td>
-                  {/* Allocation — editable in draft/queried */}
+                  {/* Allocation — editable in draft/queried, read-only for meeting staff */}
                   <td className="p-2">
-                    {canEdit ? (
+                    {(s.staff_category === 'meeting') ? (
+                      <HoverCard openDelay={200} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <span className="text-xs cursor-help text-muted-foreground hover:text-foreground">
+                            {s.meeting_breakdown?.length ?? 0} meeting{(s.meeting_breakdown?.length ?? 0) !== 1 ? 's' : ''} · {s.allocation_value ?? 0}h total
+                          </span>
+                        </HoverCardTrigger>
+                        {s.meeting_breakdown && s.meeting_breakdown.length > 0 && (
+                          <HoverCardContent className="w-64 text-xs" align="start">
+                            <p className="font-medium mb-1">Meeting Breakdown</p>
+                            {s.meeting_breakdown.map((m: any, i: number) => (
+                              <p key={i} className="text-muted-foreground">• {m.title || m.meeting_type || 'Meeting'} — {m.date ? format(new Date(m.date), 'dd/MM/yy') : '—'} — {m.duration_hours}h</p>
+                            ))}
+                          </HoverCardContent>
+                        )}
+                      </HoverCard>
+                    ) : canEdit ? (
                       <div className="flex items-center gap-1">
                          <Select
                           value={s.allocation_type}
