@@ -477,6 +477,56 @@ function RatesAndRolesPanel() {
 
       <Separator />
 
+      {/* Section A2: Meeting Attendance Rates */}
+      <div>
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Meeting Attendance Rates</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Fixed hourly rates for meeting attendance. These are applied to all meeting staff based on their role.
+        </p>
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-medium">Meeting GP rate (£/hr)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">£</span>
+                <Input
+                  type="number"
+                  className="w-28 h-9 text-sm bg-white dark:bg-slate-900"
+                  value={meetingGpRate}
+                  onChange={e => setMeetingGpRate(e.target.value)}
+                  step="0.01"
+                  min="0"
+                />
+                <span className="text-sm text-muted-foreground">/hr</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Hourly rate for GP meeting attendance
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs font-medium">Meeting PM rate (£/hr)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-sm text-muted-foreground">£</span>
+                <Input
+                  type="number"
+                  className="w-28 h-9 text-sm bg-white dark:bg-slate-900"
+                  value={meetingPmRate}
+                  onChange={e => setMeetingPmRate(e.target.value)}
+                  step="0.01"
+                  min="0"
+                />
+                <span className="text-sm text-muted-foreground">/hr</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Hourly rate for Practice Manager meeting attendance
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
       {/* Section B: Role Management */}
       <div>
         <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Role Types</h3>
