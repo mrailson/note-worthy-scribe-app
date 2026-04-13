@@ -217,21 +217,22 @@ export const NRESWidgetEmbed = ({
         @keyframes nwAgentSpin  { to{transform:rotate(360deg)} }
       `}</style>
 
-      {/* Status row */}
-      <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
-        <div style={{
-          width:8, height:8, borderRadius:'50%', flexShrink:0,
-          background: isLive ? '#16A34A' : isBusy ? '#D97706' : status==='error' ? '#DC2626' : '#CBD5E1',
-          animation: isLive ? 'nwAgentPulse 1.5s ease-in-out infinite' : 'none',
-        }}/>
-        <span style={{ fontSize:'0.71rem', color:'#64748B', lineHeight:1.4 }}>
-          {status==='idle'         && 'Start a voice session — transcript emailed when call ends'}
-          {status==='connecting'   && 'Connecting…'}
-          {status==='connected'    && 'Live · transcript will be emailed when you end the call'}
-          {status==='disconnected' && 'Session ended — check your email for the transcript'}
-          {status==='error'        && (error || 'Connection failed — try again')}
-        </span>
-      </div>
+      {/* Status row — only show when not idle */}
+      {status !== 'idle' && (
+        <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:7 }}>
+          <div style={{
+            width:8, height:8, borderRadius:'50%', flexShrink:0,
+            background: isLive ? '#16A34A' : isBusy ? '#D97706' : status==='error' ? '#DC2626' : '#CBD5E1',
+            animation: isLive ? 'nwAgentPulse 1.5s ease-in-out infinite' : 'none',
+          }}/>
+          <span style={{ fontSize:'0.71rem', color:'#64748B', lineHeight:1.4 }}>
+            {status==='connecting'   && 'Connecting…'}
+            {status==='connected'    && 'Live · transcript will be emailed when you end the call'}
+            {status==='disconnected' && 'Session ended — check your email for the transcript'}
+            {status==='error'        && (error || 'Connection failed — try again')}
+          </span>
+        </div>
+      )}
 
       {/* Button row */}
       <div style={{ display:'flex', gap:6 }}>
