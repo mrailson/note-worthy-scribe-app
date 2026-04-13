@@ -1845,6 +1845,10 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       ? <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>
                       : (s.staff_category || 'buyback') === 'management'
                       ? <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>
+                      : (s.staff_category || 'buyback') === 'meeting'
+                      ? <Badge className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs">Meeting</Badge>
+                      : (s.staff_category || 'buyback') === 'gp_locum'
+                      ? <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 text-xs">GP Locum</Badge>
                       : <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 text-xs">Buy-Back</Badge>}
                   </td>
                   <td className="p-2">{s.staff_role}</td>
