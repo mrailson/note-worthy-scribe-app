@@ -422,11 +422,17 @@ function RatesAndRolesPanel() {
   }
 
   return (
-    <div className="space-y-6 pb-4 pt-2">
+    <div className="space-y-2 pb-4 pt-2">
       {/* Section A: On-Costs — split into NI and Pension */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Employer On-Costs</h3>
-        <p className="text-xs text-muted-foreground mb-3">
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Employer On-Costs</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+        <p className="text-xs text-muted-foreground mb-3 mt-1">
           On-costs are the additional employer contributions paid on top of an employee's base salary. They consist of two components:
         </p>
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
@@ -474,13 +480,20 @@ function RatesAndRolesPanel() {
             <span className="text-muted-foreground ml-1">(NI {niPctNum}% + Pension {pensionPctNum}%)</span>
           </div>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
       {/* Section A2: Meeting Attendance Rates */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Meeting Attendance Rates</h3>
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Meeting Attendance Rates</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
         <p className="text-xs text-muted-foreground mb-3">
           Fixed hourly rates for meeting attendance. These are applied to all meeting staff based on their role.
         </p>
