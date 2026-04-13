@@ -275,118 +275,11 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     calculatedAmount: number,
     practiceKey?: string | null,
     rateParams?: RateParams,
-    meetingGpRate?: number,
-    meetingPmRate?: number,
   ) => {
     if (!user?.id) return null;
     try {
       setSaving(true);
-
-      // --- Fetch meeting attendance data for meeting-category staff ---
-      const meetingStaff = staffMembers.filter(s => s.staff_category === 'meeting');
-      let meetingDataMap: Record<string, { totalHours: number; hourlyRate: number; meetingBreakdown: any[] }> = {};
-
-      if (meetingStaff.length > 0 && practiceKey) {
-        const monthStart = `${claimMonth.slice(0, 7)}-01`;
-        const startDate = new Date(monthStart);
-        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-        const monthEnd = endDate.toISOString().split('T')[0];
-
-        // Fetch meetings for this practice + month
-        let meetingsQuery = (supabase as any)
-          .from('neighbourhood_meetings')
-          .select('*')
-          .eq('practice_key', practiceKey)
-          .gte('meeting_date', monthStart)
-          .lte('meeting_date', monthEnd);
-
-        const { data: meetingsData } = await meetingsQuery;
-        const mtgs = (meetingsData || []) as any[];
-
-        if (mtgs.length > 0) {
-          const meetingIds = mtgs.map((m: any) => m.id);
-          const { data: attData } = await (supabase as any)
-            .from('meeting_attendance')
-            .select('*')
-            .in('meeting_id', meetingIds);
-          const attRecords = (attData || []) as any[];
-
-          // Build per-staff meeting data
-          for (const s of meetingStaff) {
-            const gpRate = meetingGpRate ?? 85;
-            const pmRate = meetingPmRate ?? 45;
-            const rate = s.staff_role === 'GP' ? gpRate : pmRate;
-
-            let totalHours = 0;
-            const breakdown: any[] = [];
-
-            for (const m of mtgs) {
-              const attended = attRecords.some(
-                (a: any) => a.meeting_id === m.id && a.staff_id === s.id && a.attended
-              );
-              if (attended) {
-                totalHours += m.duration_hours;
-                breakdown.push({
-                  meeting_id: m.id,
-                  meeting_type: m.meeting_type,
-                  title: m.title,
-                  meeting_date: m.meeting_date,
-                  duration_hours: m.duration_hours,
-                });
-              }
-            }
-
-            meetingDataMap[s.id] = { totalHours, hourlyRate: rate, meetingBreakdown: breakdown };
-          }
-        }
-      }
-
-      // Exclude meeting staff with zero attendance
-      const excludedMeetingStaff = meetingStaff.filter(s => {
-        const data = meetingDataMap[s.id];
-        return !data || data.totalHours === 0;
-      });
-      if (excludedMeetingStaff.length > 0) {
-        const names = excludedMeetingStaff.map(s => s.staff_name).join(', ');
-        toast.info(`Excluded ${excludedMeetingStaff.length} meeting staff with zero attendance: ${names}`);
-      }
-
-      const eligibleStaff = staffMembers.filter(s => {
-        if (s.staff_category !== 'meeting') return true;
-        const data = meetingDataMap[s.id];
-        return data && data.totalHours > 0;
-      });
-
-      if (eligibleStaff.length === 0) {
-        toast.error('No eligible staff for this claim — all meeting staff have zero attendance');
-        return null;
-      }
-
-      const staffSnapshot = eligibleStaff.map(s => {
-        // For meeting staff, override allocation_value and hourly_rate from actual attendance
-        if (s.staff_category === 'meeting' && meetingDataMap[s.id]) {
-          const md = meetingDataMap[s.id];
-          const enriched = {
-            ...s,
-            allocation_value: md.totalHours,
-            hourly_rate: md.hourlyRate,
-          };
-          const maxAmount = calculateStaffMonthlyAmount(enriched as any, claimMonth, s.start_date, rateParams);
-          return {
-            staff_name: s.staff_name,
-            staff_role: s.staff_role,
-            staff_category: s.staff_category,
-            allocation_type: s.allocation_type,
-            allocation_value: md.totalHours,
-            hourly_rate: md.hourlyRate,
-            start_date: s.start_date,
-            practice_key: s.practice_key,
-            claimed_amount: maxAmount,
-            gl_category: s.staff_role === 'GP' ? 'GP' : 'Other Clinical',
-            meeting_breakdown: md.meetingBreakdown,
-          };
-        }
-
+      const staffSnapshot = staffMembers.map(s => {
         const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date, rateParams);
         return {
           staff_name: s.staff_name,
@@ -402,17 +295,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         };
       });
 
-      // Recalculate totals from eligible staff
-      const recalcAmount = staffSnapshot.reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
-
       const { data, error } = await supabase
         .from('nres_buyback_claims')
         .insert({
           user_id: user.id,
           claim_month: claimMonth,
           staff_details: staffSnapshot,
-          calculated_amount: recalcAmount,
-          claimed_amount: recalcAmount,
+          calculated_amount: calculatedAmount,
+          claimed_amount: claimedAmount,
           practice_key: practiceKey || null,
           status: 'draft',
         })

@@ -97,6 +97,42 @@ const handler = async (req: Request): Promise<Response> => {
         bgColor: '#EDE9FE',
         lightBgColor: '#F5F3FF',
         name: 'Oak Lane Patient Line'
+      },
+      'nres-agent': {
+        color: '#005EB8',
+        bgColor: '#EDF4FF',
+        lightBgColor: '#F0F6FF',
+        name: 'NRES Voice Agent'
+      },
+      'enn-agent': {
+        color: '#7C3AED',
+        bgColor: '#EDE9FE',
+        lightBgColor: '#F5F3FF',
+        name: 'ENN Voice Agent'
+      },
+      'nres-gp-agent': {
+        color: '#4338CA',
+        bgColor: '#EEF2FF',
+        lightBgColor: '#F5F3FF',
+        name: 'NRES GP Voice Agent'
+      },
+      'nres-pm-agent': {
+        color: '#0F766E',
+        bgColor: '#CCFBF1',
+        lightBgColor: '#F0FDFA',
+        name: 'NRES Practice Manager Voice Agent'
+      },
+      'nres-patient-agent': {
+        color: '#6D28D9',
+        bgColor: '#EDE9FE',
+        lightBgColor: '#F5F3FF',
+        name: 'NRES Patient Voice Agent'
+      },
+      'nres-translate-agent': {
+        color: '#047857',
+        bgColor: '#D1FAE5',
+        lightBgColor: '#ECFDF5',
+        name: 'NRES Translation Voice Agent'
       }
     };
 
