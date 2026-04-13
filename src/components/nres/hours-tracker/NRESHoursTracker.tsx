@@ -14,6 +14,7 @@ import { TrackerSummary } from './TrackerSummary';
 import { TrackerReportModal } from './TrackerReportModal';
 import { AdminClaimsReport } from './AdminClaimsReport';
 import { ClaimantsManager } from './ClaimantsManager';
+import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { ClaimsUserGuide } from './ClaimsUserGuide';
