@@ -537,13 +537,20 @@ function RatesAndRolesPanel() {
             </div>
           </div>
         </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
       {/* Section B: Role Management */}
-      <div>
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Role Types</h3>
+      <Collapsible defaultOpen={true}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-2 hover:bg-muted/30 rounded transition-colors group">
+            <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Role Types</h3>
+            <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
         <div className="bg-white dark:bg-slate-900 border rounded-lg overflow-hidden">
           <table className="w-full text-xs">
             <thead className="bg-slate-100 dark:bg-slate-800">
