@@ -611,6 +611,15 @@ export default function NoteWellRecorder() {
   const healthCheckRef = useRef(null); // Stream health monitor interval
   const [wakeLockStatus, setWakeLockStatus] = useState("unsupported"); // unsupported|active|inactive
   const { requestLock, releaseLock, isLocked, isSupported: wakeLockSupported } = useWakeLock();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // ── Refresh pending-sync count for ConnectionToggle ────────────────────────
+  const refreshPendingCount = useCallback(async () => {
+    const count = await countPendingRecordings();
+    setPendingCount(count);
+  }, []);
+
+  useEffect(() => { refreshPendingCount(); }, [refreshPendingCount]);
 
   // ── Sync wake lock status with hook state ──────────────────────────────────
   useEffect(() => {
