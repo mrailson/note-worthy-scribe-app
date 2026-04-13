@@ -146,7 +146,7 @@ export function NRESHoursTracker({ hideEvidenceLibrary = false, hideBoardLeaders
                 <TooltipContent side="top" className="text-xs">Claims Guide</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            {admin && (
+            {(admin || isSuperAdmin || isManagementLead) && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
