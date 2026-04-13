@@ -809,7 +809,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewNotes: notes,
         };
         sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
-        sendBuyBackEmail('approval_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        // approval_confirmation email removed — not needed
       }
     } catch (error) {
       console.error('Error approving claim:', error);
