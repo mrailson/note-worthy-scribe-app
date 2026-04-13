@@ -859,7 +859,7 @@ const EMAIL_TYPES_TABLE = [
 ];
 
 function EmailSettingsPanel() {
-  const { settings, loading, saving, toggleEmailTestingMode } = useNRESBuyBackRateSettings();
+  const { settings, loading, saving, toggleEmailTestingMode, toggleEmailSendingDisabled } = useNRESBuyBackRateSettings();
   const { user } = useAuth();
 
   if (loading) {
@@ -871,6 +871,7 @@ function EmailSettingsPanel() {
   }
 
   const testingMode = settings.email_testing_mode;
+  const sendingDisabled = settings.email_sending_disabled;
 
   return (
     <div className="space-y-6 pb-4 pt-2">
@@ -908,6 +909,47 @@ function EmailSettingsPanel() {
                 <Info className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
                 <p className="text-[11px] text-amber-800 dark:text-amber-300">
                   <strong>Testing mode is active.</strong> All automated emails from the buy-back claims workflow will be sent to <strong>{user?.email}</strong> instead of their normal recipients. Toggle off when ready to go live.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Suppress All Emails Toggle */}
+      <div>
+        <h3 className="border-l-[3px] border-destructive pl-3 text-sm font-semibold mb-2">Suppress All Emails</h3>
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 mr-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Mail className="h-4 w-4 text-destructive" />
+                <span className="text-sm font-medium">Disable Email Sending</span>
+                <Badge className={sendingDisabled
+                  ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700'
+                  : 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700'
+                }>
+                  {sendingDisabled ? 'Suppressed' : 'Active'}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {sendingDisabled
+                  ? 'No emails will be sent at all — ideal for high-volume testing. Claims workflow continues normally without any email notifications.'
+                  : 'Emails are being sent normally (to live recipients or test redirect depending on testing mode above).'}
+              </p>
+            </div>
+            <Switch
+              checked={sendingDisabled}
+              onCheckedChange={(checked) => toggleEmailSendingDisabled(checked)}
+              disabled={saving}
+            />
+          </div>
+          {sendingDisabled && (
+            <div className="mt-3 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2">
+              <div className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 text-red-600 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-red-800 dark:text-red-300">
+                  <strong>All emails are suppressed.</strong> No submission, approval, verification, or invoice emails will be sent. Turn this off before going live.
                 </p>
               </div>
             </div>

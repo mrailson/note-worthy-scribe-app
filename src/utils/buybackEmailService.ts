@@ -342,7 +342,12 @@ export async function sendBuyBackEmail(
   data: BuyBackEmailData,
   testingMode: boolean,
   overrideEmail?: string,
+  sendingDisabled?: boolean,
 ): Promise<void> {
+  if (sendingDisabled) {
+    console.log(`[Email suppressed] ${type} — sending disabled for high-volume testing`);
+    return;
+  }
   const subject = buildSubject(type, data);
   const html = buildEmailHtml(type, data);
 

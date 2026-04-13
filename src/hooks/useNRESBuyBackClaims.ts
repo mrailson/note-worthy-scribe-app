@@ -189,6 +189,7 @@ function calculateFallback(staff: { allocation_type: string; allocation_value: n
 
 export interface BuyBackClaimsEmailConfig {
   emailTestingMode: boolean;
+  emailSendingDisabled?: boolean;
   currentUserEmail?: string;
   currentUserName?: string;
 }
@@ -366,8 +367,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           submitterEmail: user.email || '',
           submitterName: emailConfig.currentUserName,
         };
-        sendBuyBackEmail('claim_submitted', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
-        sendBuyBackEmail('submission_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('claim_submitted', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
+        sendBuyBackEmail('submission_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
       }
     } catch (error) {
       console.error('Error submitting claim:', error);
@@ -706,6 +707,10 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             reader.readAsDataURL(pdfBlob);
             const pdfBase64 = await base64Promise;
 
+            // If sending is disabled, skip invoice email entirely
+            if (emailConfig?.emailSendingDisabled) {
+              console.log('[Email suppressed] Invoice email — sending disabled for high-volume testing');
+            } else {
             // In testing mode, redirect invoice email to current user
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
@@ -780,6 +785,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               console.error('Failed to email invoice to PM:', emailErr);
               toast.error('Invoice generated but email to Practice Manager failed');
             });
+            } // end else (sending not disabled)
           }
         }
       } catch (invoiceError) {
@@ -809,7 +815,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewerName: emailConfig.currentUserName,
           reviewNotes: notes,
         };
-        sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
         // approval_confirmation email removed — not needed
       }
     } catch (error) {
@@ -863,8 +869,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewerName: emailConfig.currentUserName,
           reviewNotes: notes,
         };
-        sendBuyBackEmail('claim_rejected', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
-        sendBuyBackEmail('rejection_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('claim_rejected', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
+        sendBuyBackEmail('rejection_confirmation', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
       }
     } catch (error) {
       console.error('Error rejecting claim:', error);
@@ -917,7 +923,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewerName: emailConfig.currentUserName,
           reviewNotes: notes,
         };
-        sendBuyBackEmail('claim_verified', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('claim_verified', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
       }
     } catch (error) {
       console.error('Error verifying claim:', error);
@@ -974,7 +980,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewerName: emailConfig.currentUserName,
           reviewNotes: notes,
         };
-        sendBuyBackEmail('claim_rejected', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail).catch(console.error);
+        sendBuyBackEmail('claim_rejected', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
       }
     } catch (error) {
       console.error('Error querying claim:', error);
