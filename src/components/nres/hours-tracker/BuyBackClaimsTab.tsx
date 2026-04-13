@@ -12,6 +12,7 @@ import { maskStaffName, isBuybackApprover } from '@/utils/buybackStaffMasking';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import { UnclaimedFundsIndicator } from './UnclaimedFundsIndicator';
 import { ManagementTimeTab } from './ManagementTimeTab';
+import { MeetingScheduleSection } from './MeetingScheduleSection';
 import { ClaimsUserGuide } from './ClaimsUserGuide';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
@@ -118,7 +119,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const [role, setRole] = useState('GP');
   const [allocType, setAllocType] = useState<'sessions' | 'wte' | 'hours' | 'daily'>('sessions');
   const [allocValue, setAllocValue] = useState('');
-  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum'>('buyback');
+  const [category, setCategory] = useState<'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'meeting'>('buyback');
   const [practice, setPractice] = useState<string>('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [selectedMgmtKey, setSelectedMgmtKey] = useState('');
@@ -164,7 +165,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   };
 
   // When category changes
-  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management' | 'gp_locum') => {
+  const handleCategoryChange = (newCat: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'meeting') => {
     setCategory(newCat);
     if (newCat === 'management') {
       setRole('NRES Management');
@@ -176,6 +177,12 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       setRole('GP Locum');
       setAllocType('daily');
       setAllocValue('');
+      setName('');
+      setSelectedMgmtKey('');
+    } else if (newCat === 'meeting') {
+      setRole('GP');
+      setAllocType('hours');
+      setAllocValue('0');
       setName('');
       setSelectedMgmtKey('');
     } else {
