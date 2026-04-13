@@ -19,6 +19,7 @@ import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { NRES_PRACTICES, NRES_PRACTICE_KEYS, NRES_ODS_CODES, getPracticeName, type NRESPracticeKey } from '@/data/nresPractices';
 import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
 import { PaymentWorkflowPanel } from './PaymentWorkflowPanel';
+import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
@@ -1492,28 +1493,24 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
   );
 }
 
-/** Inline PDF viewer button — opens invoice in a dialog */
-function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath: string; invoiceNumber: string }) {
+/** Inline PDF viewer button — regenerates invoice from live claim data */
+function InvoiceViewerButton({ claim }: { claim: BuyBackClaim }) {
   const [open, setOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleOpen = async () => {
+  const handleOpen = () => {
     setOpen(true);
-    setLoading(true);
     try {
-      const { data, error } = await supabase.storage.from('nres-claim-evidence').download(invoicePdfPath);
-      if (error) throw error;
-      if (data) {
-        // Create blob URL with explicit PDF type
-        const pdfBlob = new Blob([data], { type: 'application/pdf' });
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        setPdfUrl(blobUrl);
-      }
+      const pdfDoc = generateInvoicePdf({
+        claim,
+        invoiceNumber: claim.invoice_number || '',
+        neighbourhoodName: 'NRES',
+      });
+      const pdfBlob = pdfDoc.output('blob');
+      const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+      setPdfUrl(blobUrl);
     } catch (e) {
-      console.error('Failed to load invoice PDF:', e);
-    } finally {
-      setLoading(false);
+      console.error('Failed to generate invoice PDF:', e);
     }
   };
 
@@ -1533,14 +1530,10 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] p-0">
           <DialogHeader className="px-6 pt-4 pb-2">
-            <DialogTitle className="text-sm">Invoice {invoiceNumber}</DialogTitle>
+            <DialogTitle className="text-sm">Invoice {claim.invoice_number}</DialogTitle>
           </DialogHeader>
           <div className="px-6 pb-6">
-            {loading ? (
-              <div className="flex items-center justify-center h-[600px]">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : pdfUrl ? (
+            {pdfUrl ? (
               <object
                 data={pdfUrl}
                 type="application/pdf"
@@ -1554,7 +1547,7 @@ function InvoiceViewerButton({ invoicePdfPath, invoiceNumber }: { invoicePdfPath
                 </div>
               </object>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">Failed to load invoice PDF.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">Failed to generate invoice PDF.</p>
             )}
           </div>
         </DialogContent>
@@ -2252,10 +2245,17 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
           </div>
           {claim.invoice_pdf_path && (
             <div className="flex items-center gap-1.5">
-              <InvoiceViewerButton invoicePdfPath={claim.invoice_pdf_path} invoiceNumber={claim.invoice_number} />
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={async () => {
-                const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
-                if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+              <InvoiceViewerButton claim={claim} />
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
+                try {
+                  const pdfDoc = generateInvoicePdf({ claim, invoiceNumber: claim.invoice_number || '', neighbourhoodName: 'NRES' });
+                  const pdfBlob = pdfDoc.output('blob');
+                  const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+                  window.open(blobUrl, '_blank');
+                } catch (e) {
+                  console.error('Failed to generate PDF:', e);
+                  toast.error('Failed to generate invoice PDF');
+                }
               }}>
                 <Download className="w-3 h-3" /> Download PDF
               </Button>
@@ -2420,10 +2420,17 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                 )}
                 <span>Total: <strong className="text-foreground">{fmtGBP(claim.claimed_amount || 0)}</strong></span>
               </div>
-              {claim.invoice_pdf_path && (
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 mt-1" onClick={async () => {
-                  const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
-                  if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+              {claim.invoice_number && (
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 mt-1" onClick={() => {
+                  try {
+                    const pdfDoc = generateInvoicePdf({ claim, invoiceNumber: claim.invoice_number || '', neighbourhoodName: 'NRES' });
+                    const pdfBlob = pdfDoc.output('blob');
+                    const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+                    window.open(blobUrl, '_blank');
+                  } catch (e) {
+                    console.error('Failed to generate PDF:', e);
+                    toast.error('Failed to generate invoice PDF');
+                  }
                 }}>
                   <Download className="w-3 h-3" /> Download Invoice PDF
                 </Button>
