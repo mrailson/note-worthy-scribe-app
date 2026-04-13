@@ -10,7 +10,7 @@ import { PatientDetailModal } from "@/components/nres/PatientDetailModal";
 import { WorkflowModal } from "@/components/nres/WorkflowModal";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NRESClaimsOversight } from "@/components/nres/claims/NRESClaimsOversight";
+import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
