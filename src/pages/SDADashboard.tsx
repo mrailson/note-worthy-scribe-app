@@ -6,7 +6,7 @@ import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
-import { NRESClaimsOversight } from "@/components/nres/claims/NRESClaimsOversight";
+
 import { 
   LayoutDashboard, 
   Building2, 
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
 
-import { Receipt } from "lucide-react";
+
 
 const tabs = [
   { value: "executive", label: "Executive Summary", shortLabel: "Summary", icon: LayoutDashboard },
