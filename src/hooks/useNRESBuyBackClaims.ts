@@ -785,6 +785,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               console.error('Failed to email invoice to PM:', emailErr);
               toast.error('Invoice generated but email to Practice Manager failed');
             });
+            } // end else (sending not disabled)
           }
         }
       } catch (invoiceError) {
