@@ -643,7 +643,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       return;
     }
     const calcAmount = staffForClaim.reduce((sum, s) => sum + calculateStaffMonthlyAmount(s, monthDate, s.start_date, rateParams), 0);
-    const result = await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams);
+    const result = await createClaim(monthDate, staffForClaim, calcAmount, calcAmount, practiceForClaim, rateParams, rateSettings.meeting_gp_rate, rateSettings.meeting_pm_rate);
 
     // After successful creation, open claims history and scroll to it
     if (result) {
