@@ -64,6 +64,7 @@ const HIST_KEY         = "nw_ai_conv_list";
 const msgKey           = id=>`nw_ai_msgs_${id}`;
 const PROFILE_KEY      = "nw_ai_user_profile";
 const INSTRUCTIONS_KEY = "nw_ai_instructions";
+const LAST_CONV_KEY    = "nw_ai_last_conv";   // FIX 3: persist active conv across navigation/remounts
 const RETENTION        = 7*24*60*60*1000;
 // FIX 2: MAX_CONVS from 60 to 50
 const MAX_CONVS        = 50;
@@ -1226,7 +1227,33 @@ export default function NotewellChat({ user, onNavigateHome }) {
   },[activeConvId]);
 
   const newConv=useCallback(()=>{const id=uid();setConversations(p=>[{id,title:"New conversation",updatedAt:new Date()},...p]);setActiveConvId(id);setMessages([]);setFiles([]);setInput("");setGuardrailAlert(null);setActiveArtifact(null);setSidebarForceOpen(false);},[]);
-  useEffect(()=>{newConv();},[]);
+
+  // FIX 3: Persist the active conversation ID so tab navigation / remounts restore session
+  useEffect(()=>{
+    if(activeConvId){try{localStorage.setItem(LAST_CONV_KEY,activeConvId);}catch{}}
+  },[activeConvId]);
+
+  // FIX 3: On mount, restore last session instead of always creating a new blank conversation
+  useEffect(()=>{
+    let restored=false;
+    try{
+      const lastId=localStorage.getItem(LAST_CONV_KEY);
+      if(lastId){
+        const msgs=loadMsgs(lastId);
+        const history=loadHistory();
+        const conv=history.find(c=>c.id===lastId);
+        if(conv&&msgs.length>0){
+          setActiveConvId(lastId);
+          setMessages(msgs);
+          const lastAI=[...msgs].reverse().find(m=>m.role==="assistant"&&m.artifact);
+          setActiveArtifact(lastAI?.artifact||null);
+          restored=true;
+        }
+      }
+    }catch{}
+    if(!restored)newConv();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
 
   const handleProfileSaved=useCallback(()=>{
     setUserProfile(localStorage.getItem(PROFILE_KEY)||"");
