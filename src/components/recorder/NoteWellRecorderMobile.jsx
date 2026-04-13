@@ -575,6 +575,44 @@ function Toast({ msg, type }) {
   );
 }
 
+function StepsGuide() {
+  const [open, setOpen] = useState(true);
+  const steps = [
+    {n:"1",icon:"🎙️",label:"Tap record to start"},
+    {n:"2",icon:"💾",label:"Saved to device"},
+    {n:"3",icon:"✨",label:"Notes generated on stop"},
+  ];
+  return (
+    <div style={{margin:"8px 16px 0"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{
+        width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+        padding:"8px 12px",background:"white",borderRadius:open?"12px 12px 0 0":"12px",
+        border:"1px solid rgba(21,101,192,0.08)",borderBottom:open?"none":"1px solid rgba(21,101,192,0.08)",
+        cursor:"pointer",boxShadow:"0 2px 8px rgba(21,101,192,0.05)",fontFamily:"inherit",
+      }}>
+        <span style={{fontSize:11,fontWeight:600,color:"#94a3b8",letterSpacing:0.5,textTransform:"uppercase"}}>How it works</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5"
+          style={{transform:open?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div style={{display:"flex",gap:6,background:"white",borderRadius:"0 0 12px 12px",padding:"8px 10px 10px",
+          border:"1px solid rgba(21,101,192,0.08)",borderTop:"none",
+          boxShadow:"0 2px 8px rgba(21,101,192,0.05)",animation:"fadeIn 0.15s"}}>
+          {steps.map(s=>(
+            <div key={s.n} style={{flex:1,textAlign:"center",padding:"6px 4px"}}>
+              <div style={{fontSize:16,marginBottom:2}}>{s.icon}</div>
+              <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(21,101,192,0.1)",color:"#1565c0",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px"}}>{s.n}</div>
+              <div style={{fontSize:10,color:"#475569",lineHeight:1.3,fontWeight:500}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
@@ -2110,25 +2148,13 @@ export default function NoteWellRecorder() {
             )}
           </div>
 
-          {/* Steps — idle only */}
+          {/* Steps — idle only, collapsible */}
           {isIdle && (
-            <div style={{margin:"12px 16px 0",display:"flex",gap:8}}>
-              {[
-                {n:"1",icon:"🎙️",label:"Tap record to start"},
-                {n:"2",icon:"💾",label:"Saved to device"},
-                {n:"3",icon:"✨",label:"Notes generated on stop"},
-              ].map(s=>(
-                <div key={s.n} style={{flex:1,background:"white",borderRadius:14,padding:"12px 8px",textAlign:"center",boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border:"1px solid rgba(21,101,192,0.08)"}}>
-                  <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
-                  <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(21,101,192,0.1)",color:"#1565c0",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 6px"}}>{s.n}</div>
-                  <div style={{fontSize:11,color:"#475569",lineHeight:1.4,fontWeight:500}}>{s.label}</div>
-                </div>
-              ))}
-            </div>
+            <StepsGuide />
           )}
 
           {/* Recordings list */}
-          <div style={{padding:"14px 16px 28px"}}>
+          <div style={{padding:"10px 16px 28px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
               <div style={{fontSize:11,fontWeight:600,color:"#94a3b8",letterSpacing:0.5,textTransform:"uppercase"}}>
                 Recordings ({recordings.length})
@@ -2144,10 +2170,9 @@ export default function NoteWellRecorder() {
             </div>
 
             {recordings.length === 0 ? (
-              <div style={{textAlign:"center",padding:"28px 20px",color:"#94a3b8"}}>
-                <div style={{fontSize:36,marginBottom:8}}>🎙️</div>
-                <div style={{fontSize:14,fontWeight:500}}>No recordings yet</div>
-                <div style={{fontSize:12,marginTop:3}}>Tap the button above to start</div>
+              <div style={{textAlign:"center",padding:"16px 20px",color:"#94a3b8"}}>
+                <div style={{fontSize:13,fontWeight:500}}>No recordings yet</div>
+                <div style={{fontSize:12,marginTop:2}}>Tap the button above to start</div>
               </div>
             ) : recordings.map(r => (
               <RecordingItem key={r.id} rec={r}
