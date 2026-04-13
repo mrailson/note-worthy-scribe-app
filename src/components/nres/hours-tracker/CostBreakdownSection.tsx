@@ -50,9 +50,14 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  const rows = useMemo<CostRow[]>(() => roles.map(role => {
+  // Filter out daily-rate roles (e.g. GP Locum) — they don't fit the salary-based breakdown
+  // but remain available for selection and claims elsewhere
+  const salariedRoles = useMemo(() => roles.filter(r => r.allocation_default !== 'daily'), [roles]);
+  const dailyRateRoles = useMemo(() => roles.filter(r => r.allocation_default === 'daily'), [roles]);
+
+  const rows = useMemo<CostRow[]>(() => salariedRoles.map(role => {
     const includesOnCosts = role.includes_on_costs !== false;
-    const isDailyRate = role.allocation_default === 'daily';
+    const isDailyRate = false;
     const workingHrs = role.working_hours_per_year || 1950;
     const fullAnnualBase = role.allocation_default === 'sessions' ? role.annual_rate * 9 : role.annual_rate;
     const staffHourlyRate = workingHrs > 0 ? fullAnnualBase / workingHrs : 0;
@@ -64,20 +69,16 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
     const hourlyEquiv = workingHrs > 0 ? fullAnnualWithOnCosts / workingHrs : 0;
     
     let maxMonthly: number;
-    if (isDailyRate) {
-      maxMonthly = (role.daily_rate ?? 0) * 21.67;
-    } else {
-      const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
-      maxMonthly = role.allocation_default === 'sessions'
-        ? (maxAlloc * totalAnnual) / 12
-        : role.allocation_default === 'hours'
-        ? ((maxAlloc / 37.5) * totalAnnual) / 12
-        : (maxAlloc * totalAnnual) / 12;
-    }
+    const maxAlloc = role.allocation_default === 'sessions' ? 9 : role.allocation_default === 'hours' ? 37.5 : 1;
+    maxMonthly = role.allocation_default === 'sessions'
+      ? (maxAlloc * totalAnnual) / 12
+      : role.allocation_default === 'hours'
+      ? ((maxAlloc / 37.5) * totalAnnual) / 12
+      : (maxAlloc * totalAnnual) / 12;
 
     return {
       label: role.label,
-      allocationNote: isDailyRate ? '(daily rate)' : role.allocation_default === 'sessions' ? '(per session/yr)' : '',
+      allocationNote: role.allocation_default === 'sessions' ? '(per session/yr)' : '',
       baseAnnual: role.annual_rate,
       staffHourlyRate,
       niAmt,
@@ -91,7 +92,7 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
       isDailyRate,
       dailyRate: role.daily_rate ?? 0,
     };
-  }), [roles, niPctNum, pensionPctNum]);
+  }), [salariedRoles, niPctNum, pensionPctNum]);
 
   const sortedRows = useMemo(() => {
     if (!sortKey) return rows;
@@ -225,19 +226,29 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
                   {!r.includesOnCosts && <span className="ml-1.5 text-[10px] text-amber-600 font-medium">(excl. on-costs)</span>}
                 </td>
                 <td className="px-3 py-2.5 text-muted-foreground">{r.glCode || '—'}</td>
-                <td className="px-3 py-2.5 text-right">{r.isDailyRate ? `${fmtGBP(r.dailyRate)}/day` : fmtGBP(r.baseAnnual)}</td>
-                <td className="px-3 py-2.5 text-right">{r.isDailyRate ? '—' : `${fmtGBP(r.staffHourlyRate)}/hr`}</td>
+                <td className="px-3 py-2.5 text-right">{fmtGBP(r.baseAnnual)}</td>
+                <td className="px-3 py-2.5 text-right">{fmtGBP(r.staffHourlyRate)}/hr</td>
                 <td className="px-3 py-2.5 text-right">{r.includesOnCosts ? fmtGBP(r.niAmt) : <span className="text-muted-foreground italic">N/A</span>}</td>
                 <td className="px-3 py-2.5 text-right">{r.includesOnCosts ? fmtGBP(r.pensionAmt) : <span className="text-muted-foreground italic">N/A</span>}</td>
                 <td className="px-3 py-2.5 text-right">{r.includesOnCosts ? fmtGBP(r.totalOnCosts) : <span className="text-muted-foreground italic">N/A</span>}</td>
-                <td className="px-3 py-2.5 text-right font-medium">{r.isDailyRate ? `${fmtGBP(r.dailyRate)}/day` : fmtGBP(r.totalAnnual)}</td>
-                <td className="px-3 py-2.5 text-right font-medium">{r.isDailyRate ? '—' : `${fmtGBP(r.hourlyEquiv)}/hr`}</td>
+                <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(r.totalAnnual)}</td>
+                <td className="px-3 py-2.5 text-right font-medium">{fmtGBP(r.hourlyEquiv)}/hr</td>
                 <td className="px-3 py-2.5 text-right font-semibold text-primary">{fmtGBP(r.maxMonthly)}/mo</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {dailyRateRoles.length > 0 && (
+        <div className="flex items-start gap-2 mt-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2">
+          <Info className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-[10px] text-muted-foreground">
+            <span className="font-semibold">Daily-rate roles not shown above:</span>{' '}
+            {dailyRateRoles.map(r => `${r.label} (${fmtGBP(r.daily_rate ?? 0)}/day)`).join(', ')}.
+            These roles use fixed daily rates without on-costs and are available for selection when submitting claims.
+          </p>
+        </div>
+      )}
       <div className="flex items-start gap-2 mt-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2">
         <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
         <p className="text-[10px] text-muted-foreground">
