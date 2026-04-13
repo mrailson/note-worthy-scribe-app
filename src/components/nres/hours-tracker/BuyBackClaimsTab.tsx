@@ -816,7 +816,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
                  </thead>
                  <tbody>
                    {sortedStaff.map(s => {
-                     const displayName = maskStaffName(s.staff_name, user?.id, s.user_id, user?.email);
+                     const displayName = maskStaffName(s.staff_name, user?.id, s.user_id, user?.email, isAdmin);
                      const monthly = calculateStaffMonthlyAmount(s, undefined, undefined, rateParams);
                      return (
                        <tr key={s.id} className="border-t">
@@ -1845,7 +1845,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             );
             const maxAmount = getStaffMaxAmount(s, claim.claim_month, rateParams);
             const claimedAmount = s.claimed_amount ?? maxAmount;
-            const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail);
+            const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail, isAdmin);
             const hasNotes = !!s.notes;
             const belowMax = claimedAmount < maxAmount && maxAmount > 0;
             return (
