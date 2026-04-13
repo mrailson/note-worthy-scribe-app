@@ -1110,6 +1110,213 @@ export type Database = {
         }
         Relationships: []
       }
+      claim_audit_log: {
+        Row: {
+          action: string
+          claim_line_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          on_behalf_of: string | null
+          performed_by: string | null
+          performed_by_name: string | null
+          performed_by_role: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          claim_line_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          on_behalf_of?: string | null
+          performed_by?: string | null
+          performed_by_name?: string | null
+          performed_by_role?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          claim_line_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          on_behalf_of?: string | null
+          performed_by?: string | null
+          performed_by_name?: string | null
+          performed_by_role?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_audit_log_claim_line_id_fkey"
+            columns: ["claim_line_id"]
+            isOneToOne: false
+            referencedRelation: "claim_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_evidence: {
+        Row: {
+          claim_line_id: string
+          file_name: string
+          file_path: string
+          file_type: string | null
+          id: string
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          claim_line_id: string
+          file_name: string
+          file_path: string
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          claim_line_id?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_evidence_claim_line_id_fkey"
+            columns: ["claim_line_id"]
+            isOneToOne: false
+            referencedRelation: "claim_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_lines: {
+        Row: {
+          allocation: string | null
+          approved_at: string | null
+          approved_by: string | null
+          category: string
+          claim_month: string
+          claim_ref: string | null
+          claimed_amount: number | null
+          created_at: string
+          declaration_text: string | null
+          declared_at: string | null
+          declared_by: string | null
+          gl_code: string | null
+          id: string
+          invoice_created_at: string | null
+          invoice_created_by: string | null
+          max_rate: number | null
+          on_behalf_of: string | null
+          paid_at: string | null
+          paid_by: string | null
+          practice_id: string
+          queried_at: string | null
+          queried_by: string | null
+          query_note: string | null
+          role: string
+          scheduled_at: string | null
+          scheduled_by: string | null
+          staff_member: string
+          start_date: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          allocation?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category: string
+          claim_month: string
+          claim_ref?: string | null
+          claimed_amount?: number | null
+          created_at?: string
+          declaration_text?: string | null
+          declared_at?: string | null
+          declared_by?: string | null
+          gl_code?: string | null
+          id?: string
+          invoice_created_at?: string | null
+          invoice_created_by?: string | null
+          max_rate?: number | null
+          on_behalf_of?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          practice_id: string
+          queried_at?: string | null
+          queried_by?: string | null
+          query_note?: string | null
+          role: string
+          scheduled_at?: string | null
+          scheduled_by?: string | null
+          staff_member: string
+          start_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          allocation?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string
+          claim_month?: string
+          claim_ref?: string | null
+          claimed_amount?: number | null
+          created_at?: string
+          declaration_text?: string | null
+          declared_at?: string | null
+          declared_by?: string | null
+          gl_code?: string | null
+          id?: string
+          invoice_created_at?: string | null
+          invoice_created_by?: string | null
+          max_rate?: number | null
+          on_behalf_of?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          practice_id?: string
+          queried_at?: string | null
+          queried_by?: string | null
+          query_note?: string | null
+          role?: string
+          scheduled_at?: string | null
+          scheduled_by?: string | null
+          staff_member?: string
+          start_date?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_lines_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_verification_tests: {
         Row: {
           batch_id: string
@@ -12793,6 +13000,7 @@ export type Database = {
         }
         Returns: string
       }
+      auth_email: { Args: never; Returns: string }
       can_access_enn_vault_item: {
         Args: { p_target_id: string; p_target_type: string; p_user_id: string }
         Returns: boolean
@@ -13478,6 +13686,14 @@ export type Database = {
         }
         Returns: string
       }
+      has_any_nres_admin_role: {
+        Args: { _user_email: string }
+        Returns: boolean
+      }
+      has_any_nres_claims_read_role: {
+        Args: { _user_email: string }
+        Returns: boolean
+      }
       has_cso_governance_access: {
         Args: { _user_id?: string }
         Returns: boolean
@@ -13489,6 +13705,10 @@ export type Database = {
         Returns: boolean
       }
       has_nres_access: { Args: { check_user_id?: string }; Returns: boolean }
+      has_nres_claims_role: {
+        Args: { _role: string; _user_email: string }
+        Returns: boolean
+      }
       has_nres_vault_access: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {
         Args: {
