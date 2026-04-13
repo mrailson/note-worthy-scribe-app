@@ -25,8 +25,15 @@ const handler = async (req: Request): Promise<Response> => {
       serviceName,
       conversationBuffer,
       conversationId,
-      serviceType
+      serviceType,
+      userContext = {}
     } = await req.json();
+
+    // Extract user details — falls back gracefully if not provided
+    const userDisplayName: string = userContext.displayName || userContext.userName || 'Colleague';
+    const userRole: string        = userContext.role        || '';
+    const userPractice: string    = userContext.practiceName || '';
+    const userOds: string         = userContext.practiceOdsCode || '';
 
     console.log(`[Transcript Email] Processing for ${serviceName}, ${conversationBuffer?.length || 0} messages`);
 
@@ -90,18 +97,6 @@ const handler = async (req: Request): Promise<Response> => {
         bgColor: '#EDE9FE',
         lightBgColor: '#F5F3FF',
         name: 'Oak Lane Patient Line'
-      },
-      'nres-agent': {
-        color: '#005EB8',
-        bgColor: '#EDF4FF',
-        lightBgColor: '#F0F6FF',
-        name: 'NRES Voice Agent'
-      },
-      'enn-agent': {
-        color: '#7C3AED',
-        bgColor: '#EDE9FE',
-        lightBgColor: '#F5F3FF',
-        name: 'ENN Voice Agent'
       }
     };
 
@@ -109,6 +104,45 @@ const handler = async (req: Request): Promise<Response> => {
     const serviceColor = config.color;
     const serviceBgColor = config.bgColor;
     const serviceLightBgColor = config.lightBgColor;
+
+    // Generate a brief AI summary of the conversation using Claude
+    let aiSummary = '';
+    try {
+      const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+      if (ANTHROPIC_KEY && messageCount > 0) {
+        const transcriptText = conversationBuffer
+          .map((m: ConversationMessage) => {
+            const lines: string[] = [];
+            if (m.user)  lines.push(`User: ${m.user}`);
+            if (m.agent) lines.push(`Agent: ${m.agent}`);
+            return lines.join('\n');
+          })
+          .join('\n');
+
+        const summaryResp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 200,
+            messages: [{
+              role: 'user',
+              content: `Summarise this voice conversation in 2-3 warm, plain-English sentences. Focus on what topics were covered and any key points or outcomes. Do not use bullet points. Address the summary to the user directly (e.g. "You asked about..." or "The conversation covered...").\n\nTranscript:\n${transcriptText}`
+            }]
+          }),
+        });
+        if (summaryResp.ok) {
+          const summaryData = await summaryResp.json();
+          aiSummary = summaryData?.content?.[0]?.text?.trim() || '';
+        }
+      }
+    } catch (summaryErr) {
+      console.warn('[Transcript Email] AI summary failed (non-fatal):', summaryErr);
+    }
 
     // Build conversation HTML
     let conversationHtml = '';
@@ -137,69 +171,104 @@ const handler = async (req: Request): Promise<Response> => {
     const messageCount = conversationBuffer.filter((m: ConversationMessage) => m.user && m.user.trim()).length;
 
     // Build full email HTML
+    const sessionDate = formatTime(conversationBuffer[0].timestamp).split(' on ')[1] || '';
+    const sessionTime = formatTimeOnly(conversationBuffer[0].timestamp);
+    const greetingName = userDisplayName.split(' ')[0] || 'there';  // first name only
+
     const emailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${serviceName} Conversation Transcript</title>
+        <title>${serviceName} — Session Summary</title>
       </head>
-      <body style="font-family: 'Fira Sans', 'Segoe UI', Arial, sans-serif; background-color: #F9FAFB; padding: 20px; margin: 0;">
-        <div style="max-width: 650px; margin: 0 auto; background-color: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-          
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, ${serviceColor} 0%, ${serviceColor}dd 100%); color: white; padding: 32px 24px; text-align: center;">
-            <h1 style="margin: 0 0 12px 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">${serviceName.toUpperCase()}</h1>
-            <h2 style="margin: 0; font-size: 18px; font-weight: 400; opacity: 0.95;">CONVERSATION TRANSCRIPT</h2>
-            <div style="margin-top: 16px; padding: 8px 20px; background-color: rgba(255,255,255,0.2); border-radius: 20px; display: inline-block;">
-              <span style="font-size: 14px; font-weight: 500;">Voice Assistant Session</span>
-            </div>
-          </div>
+      <body style="margin:0;padding:0;background:#F3F4F6;font-family:'Segoe UI',Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:28px 0;">
+          <tr><td align="center">
+          <table width="620" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
 
-          <!-- Metadata -->
-          <div style="padding: 24px; background-color: ${serviceBgColor}; border-bottom: 2px solid ${serviceColor};">
-            <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 10px 12px; font-weight: 600; color: #374151; background-color: white; border-radius: 6px 0 0 0;">Service:</td>
-                <td style="padding: 10px 12px; color: #1F2937; background-color: white; border-radius: 0 6px 0 0;">${serviceName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 12px; font-weight: 600; color: #374151; background-color: rgba(255,255,255,0.6);">Start Time:</td>
-                <td style="padding: 10px 12px; color: #1F2937; background-color: rgba(255,255,255,0.6);">${formatTime(conversationBuffer[0].timestamp)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 12px; font-weight: 600; color: #374151; background-color: white;">End Time:</td>
-                <td style="padding: 10px 12px; color: #1F2937; background-color: white;">${formatTime(conversationBuffer[conversationBuffer.length - 1].timestamp)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 12px; font-weight: 600; color: #374151; background-color: rgba(255,255,255,0.6);">Duration:</td>
-                <td style="padding: 10px 12px; color: #1F2937; background-color: rgba(255,255,255,0.6);">${durationMins} minute${durationMins !== 1 ? 's' : ''}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px 12px; font-weight: 600; color: #374151; background-color: white; border-radius: 0 0 0 6px;">Total Exchanges:</td>
-                <td style="padding: 10px 12px; color: #1F2937; background-color: white; border-radius: 0 0 6px 0;">${messageCount}</td>
-              </tr>
-            </table>
-          </div>
+            <!-- NHS blue header -->
+            <tr><td style="background:linear-gradient(135deg,#003087 0%,#005EB8 100%);padding:32px 32px 24px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.65);text-transform:uppercase;">Notewell AI · ${serviceName}</p>
+              <h1 style="margin:0 0 6px;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;">Session Summary</h1>
+              <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.75);">${sessionDate}</p>
+            </td></tr>
 
-          <!-- Conversation -->
-          <div style="padding: 32px 24px;">
-            <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 3px solid ${serviceColor};">
-              CONVERSATION HISTORY
-            </h2>
-            ${conversationHtml}
-          </div>
+            <!-- Personal greeting -->
+            <tr><td style="padding:28px 32px 0;">
+              <p style="margin:0 0 10px;font-size:16px;font-weight:600;color:#111827;">Hi ${greetingName},</p>
+              <p style="margin:0 0 14px;font-size:14px;line-height:1.7;color:#374151;">
+                Thank you for using the <strong>${serviceName}</strong> today. Below you'll find a brief summary of your session and the full transcript for your records. If you have any questions about the service, please contact your neighbourhood manager.
+              </p>
+            </td></tr>
 
-          <!-- Footer -->
-          <div style="background-color: #F3F4F6; padding: 24px; text-align: center; font-size: 12px; color: #6B7280; border-top: 1px solid #E5E7EB;">
-            <p style="margin: 0 0 8px 0; font-size: 13px;">Generated by <strong style="color: ${serviceColor};">Notewell AI</strong></p>
-            <p style="margin: 0 0 8px 0;">This transcript is for your records only</p>
-            <p style="margin: 0; font-style: italic; color: #9CA3AF;">Confidential - Do Not Forward</p>
-            <p style="margin: 12px 0 0 0; font-size: 11px; color: #9CA3AF;">Conversation ID: ${conversationId}</p>
-          </div>
+            ${aiSummary ? `
+            <!-- AI summary -->
+            <tr><td style="padding:0 32px 0;">
+              <div style="background:#EFF6FF;border-left:4px solid #005EB8;border-radius:0 8px 8px 0;padding:14px 18px;margin:0 0 4px;">
+                <p style="margin:0 0 5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#005EB8;">Session Summary</p>
+                <p style="margin:0;font-size:14px;line-height:1.65;color:#1E3A5F;">${aiSummary}</p>
+              </div>
+            </td></tr>` : ''}
 
-        </div>
+            <!-- Session details card -->
+            <tr><td style="padding:20px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;font-size:13px;">
+                ${userDisplayName && userDisplayName !== 'Colleague' ? `
+                <tr style="background:#F9FAFB;">
+                  <td style="padding:10px 14px;font-weight:600;color:#6B7280;width:35%;">Name</td>
+                  <td style="padding:10px 14px;color:#111827;">${userDisplayName}${userRole ? ` &mdash; ${userRole}` : ''}</td>
+                </tr>` : ''}
+                ${userPractice ? `
+                <tr>
+                  <td style="padding:10px 14px;font-weight:600;color:#6B7280;border-top:1px solid #F3F4F6;">Organisation</td>
+                  <td style="padding:10px 14px;color:#111827;border-top:1px solid #F3F4F6;">${userPractice}${userOds ? ` (${userOds})` : ''}</td>
+                </tr>` : ''}
+                <tr style="background:#F9FAFB;">
+                  <td style="padding:10px 14px;font-weight:600;color:#6B7280;border-top:1px solid #F3F4F6;">Date &amp; Time</td>
+                  <td style="padding:10px 14px;color:#111827;border-top:1px solid #F3F4F6;">${sessionTime} &nbsp;·&nbsp; ${sessionDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px;font-weight:600;color:#6B7280;border-top:1px solid #F3F4F6;">Duration</td>
+                  <td style="padding:10px 14px;color:#111827;border-top:1px solid #F3F4F6;">${durationMins} minute${durationMins !== 1 ? 's' : ''} &nbsp;·&nbsp; ${messageCount} exchange${messageCount !== 1 ? 's' : ''}</td>
+                </tr>
+                <tr style="background:#F9FAFB;">
+                  <td style="padding:10px 14px;font-weight:600;color:#6B7280;border-top:1px solid #F3F4F6;">Service</td>
+                  <td style="padding:10px 14px;color:#111827;border-top:1px solid #F3F4F6;">${serviceName}</td>
+                </tr>
+              </table>
+            </td></tr>
+
+            <!-- Transcript -->
+            <tr><td style="padding:24px 32px 0;">
+              <p style="margin:0 0 14px;font-size:15px;font-weight:700;color:#111827;border-bottom:2px solid #E5E7EB;padding-bottom:8px;">Full Conversation Transcript</p>
+              ${conversationHtml || '<p style="color:#9CA3AF;font-style:italic;font-size:13px;">No conversation content was captured for this session.</p>'}
+            </td></tr>
+
+            <!-- Sign-off -->
+            <tr><td style="padding:24px 32px 0;">
+              <p style="margin:0 0 6px;font-size:14px;line-height:1.6;color:#374151;">
+                We hope the session was helpful. This transcript is for your records only — please do not forward it externally.
+              </p>
+              <p style="margin:0;font-size:14px;color:#374151;">
+                Kind regards,<br>
+                <strong style="color:#003087;">Notewell AI</strong> · ${serviceName}
+              </p>
+            </td></tr>
+
+            <!-- Footer -->
+            <tr><td style="padding:24px 32px 28px;margin-top:24px;">
+              <div style="border-top:1px solid #E5E7EB;padding-top:18px;text-align:center;">
+                <p style="margin:0 0 4px;font-size:11px;color:#9CA3AF;">Generated by <strong>Notewell AI</strong> · DCB0129/DCB0160 · MHRA Class I · ICO ZB226324</p>
+                <p style="margin:0 0 4px;font-size:11px;color:#9CA3AF;">This transcript is confidential and for your records only. Always apply professional judgement.</p>
+                ${conversationId ? `<p style="margin:0;font-size:10px;color:#D1D5DB;">Session ID: ${conversationId}</p>` : ''}
+              </div>
+            </td></tr>
+
+          </table>
+          </td></tr>
+        </table>
       </body>
       </html>
     `;
@@ -529,7 +598,8 @@ Conversation ID: ${conversationId}
       throw new Error('RESEND_API_KEY is not configured');
     }
 
-    const emailSubject = `${serviceName} Conversation Transcript - ${formatTime(conversationBuffer[0].timestamp).split(' on ')[1]}`;
+    const sessionDateStr = formatTime(conversationBuffer[0].timestamp).split(' on ')[1] || new Date().toLocaleDateString('en-GB');
+    const emailSubject = `${serviceName} — Your Session Summary for ${sessionDateStr}${userPractice ? ' · ' + userPractice : ''}`;
     console.log(`[Transcript Email] Sending to ${userEmail} via Resend...`);
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
