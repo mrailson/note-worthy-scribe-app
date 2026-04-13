@@ -239,6 +239,16 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
           </tbody>
         </table>
       </div>
+      {dailyRateRoles.length > 0 && (
+        <div className="flex items-start gap-2 mt-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2">
+          <Info className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-[10px] text-muted-foreground">
+            <span className="font-semibold">Daily-rate roles not shown above:</span>{' '}
+            {dailyRateRoles.map(r => `${r.label} (${fmtGBP(r.daily_rate ?? 0)}/day)`).join(', ')}.
+            These roles use fixed daily rates without on-costs and are available for selection when submitting claims.
+          </p>
+        </div>
+      )}
       <div className="flex items-start gap-2 mt-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2">
         <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 shrink-0" />
         <p className="text-[10px] text-muted-foreground">
