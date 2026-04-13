@@ -6126,6 +6126,51 @@ export type Database = {
           },
         ]
       }
+      meeting_attendance: {
+        Row: {
+          attended: boolean
+          id: string
+          meeting_id: string
+          notes: string | null
+          recorded_at: string
+          recorded_by: string | null
+          staff_id: string
+        }
+        Insert: {
+          attended?: boolean
+          id?: string
+          meeting_id: string
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          staff_id: string
+        }
+        Update: {
+          attended?: boolean
+          id?: string
+          meeting_id?: string
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendance_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "neighbourhood_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendance_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "nres_buyback_staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_attendee_templates: {
         Row: {
           created_at: string
@@ -7666,6 +7711,51 @@ export type Database = {
         }
         Relationships: []
       }
+      neighbourhood_meetings: {
+        Row: {
+          created_at: string
+          created_by: string
+          duration_hours: number
+          id: string
+          is_recurring: boolean
+          meeting_date: string
+          meeting_type: string
+          neighbourhood: string
+          practice_key: string
+          recurrence_rule: string | null
+          start_time: string | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          duration_hours?: number
+          id?: string
+          is_recurring?: boolean
+          meeting_date: string
+          meeting_type: string
+          neighbourhood?: string
+          practice_key: string
+          recurrence_rule?: string | null
+          start_time?: string | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          duration_hours?: number
+          id?: string
+          is_recurring?: boolean
+          meeting_date?: string
+          meeting_type?: string
+          neighbourhood?: string
+          practice_key?: string
+          recurrence_rule?: string | null
+          start_time?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       neighbourhoods: {
         Row: {
           created_at: string
@@ -8091,6 +8181,8 @@ export type Database = {
           employer_pension_pct: number
           id: string
           management_roles_config: Json
+          meeting_gp_rate: number
+          meeting_pm_rate: number
           on_costs_pct: number
           roles_config: Json
           updated_at: string | null
@@ -8102,6 +8194,8 @@ export type Database = {
           employer_pension_pct?: number
           id?: string
           management_roles_config?: Json
+          meeting_gp_rate?: number
+          meeting_pm_rate?: number
           on_costs_pct?: number
           roles_config?: Json
           updated_at?: string | null
@@ -8113,6 +8207,8 @@ export type Database = {
           employer_pension_pct?: number
           id?: string
           management_roles_config?: Json
+          meeting_gp_rate?: number
+          meeting_pm_rate?: number
           on_costs_pct?: number
           roles_config?: Json
           updated_at?: string | null
