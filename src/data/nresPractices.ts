@@ -26,7 +26,7 @@ export const NRES_ODS_CODES: Record<string, string> = {
   bugbrooke: 'K83070',
   brook: 'K83620',
   denton: 'K83068',
-  bt_pcn: 'N/A',
+  bt_pcn: '07902',
   brackley_towcester_pcn: 'U57902',
   nres_programme: 'U57902',
   blue_pcn: 'U45023',
@@ -74,6 +74,12 @@ export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPra
     sortCode: '30-11-08',
     accountNumber: '28122560',
     accountName: 'Brackley & Towcester PCN Ltd',
+  },
+  bugbrooke: {
+    bankName: 'Barclays Bank',
+    sortCode: '20-65-18',
+    accountNumber: '53443485',
+    accountName: 'Bugbrooke Medical Practice',
   },
 };
 
