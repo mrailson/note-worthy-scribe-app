@@ -43,6 +43,7 @@ export interface RateSettings {
   employer_pension_pct: number;
   roles_config: RoleConfig[];
   email_testing_mode: boolean;
+  email_sending_disabled: boolean;
   management_roles_config: ManagementRoleConfig[];
   meeting_gp_rate: number;
   meeting_pm_rate: number;
@@ -69,6 +70,7 @@ export function useNRESBuyBackRateSettings() {
     employer_pension_pct: DEFAULT_EMPLOYER_PENSION_PCT,
     roles_config: DEFAULT_ROLES,
     email_testing_mode: false,
+    email_sending_disabled: false,
     management_roles_config: [],
     meeting_gp_rate: 85,
     meeting_pm_rate: 45,
@@ -98,6 +100,7 @@ export function useNRESBuyBackRateSettings() {
           employer_pension_pct: pensionPct,
           roles_config: (data.roles_config as RoleConfig[]) || DEFAULT_ROLES,
           email_testing_mode: data.email_testing_mode ?? false,
+          email_sending_disabled: data.email_sending_disabled ?? false,
           management_roles_config: (data.management_roles_config as ManagementRoleConfig[]) || [],
           meeting_gp_rate: data.meeting_gp_rate ?? 85,
           meeting_pm_rate: data.meeting_pm_rate ?? 45,
