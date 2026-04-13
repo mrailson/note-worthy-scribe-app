@@ -2420,10 +2420,17 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                 )}
                 <span>Total: <strong className="text-foreground">{fmtGBP(claim.claimed_amount || 0)}</strong></span>
               </div>
-              {claim.invoice_pdf_path && (
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 mt-1" onClick={async () => {
-                  const { data } = await supabase.storage.from('nres-claim-evidence').createSignedUrl(claim.invoice_pdf_path!, 300);
-                  if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+              {claim.invoice_number && (
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1 mt-1" onClick={() => {
+                  try {
+                    const pdfDoc = generateInvoicePdf({ claim, invoiceNumber: claim.invoice_number || '', neighbourhoodName: 'NRES' });
+                    const pdfBlob = pdfDoc.output('blob');
+                    const blobUrl = URL.createObjectURL(new Blob([pdfBlob], { type: 'application/pdf' }));
+                    window.open(blobUrl, '_blank');
+                  } catch (e) {
+                    console.error('Failed to generate PDF:', e);
+                    toast.error('Failed to generate invoice PDF');
+                  }
                 }}>
                   <Download className="w-3 h-3" /> Download Invoice PDF
                 </Button>
