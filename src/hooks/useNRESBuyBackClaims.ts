@@ -690,6 +690,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           const pmContact = practiceKey ? NRES_PRACTICE_CONTACTS[practiceKey] : null;
           if (pmContact?.email) {
             const practiceName = getPracticeName(practiceKey);
+            const bankDetails = practiceKey ? NRES_PRACTICE_BANK_DETAILS[practiceKey] : null;
             const claimDate = new Date(claim?.claim_month || '');
             const claimMonthLabel = claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
