@@ -1233,18 +1233,29 @@ export default function NotewellChat({ user, onNavigateHome }) {
     if(activeConvId){try{localStorage.setItem(LAST_CONV_KEY,activeConvId);}catch{}}
   },[activeConvId]);
 
-  // FIX 3: On mount, restore last session instead of always creating a new blank conversation
+  // FIX 3 (v2): On mount, restore last session instead of always creating a new blank
+  // conversation. We do NOT check loadHistory() here because of a save-order race:
+  // saveHistory (conversations effect, line ~1206) runs before saveMsgs (messages effect,
+  // line ~1207) in the same render cycle. If the tab was switched mid-stream the conv is
+  // absent from HIST_KEY even though nw_ai_msgs_{id} IS populated. Restore from msgs alone.
   useEffect(()=>{
     let restored=false;
     try{
       const lastId=localStorage.getItem(LAST_CONV_KEY);
       if(lastId){
         const msgs=loadMsgs(lastId);
-        const history=loadHistory();
-        const conv=history.find(c=>c.id===lastId);
-        if(conv&&msgs.length>0){
+        if(msgs.length>0){
           setActiveConvId(lastId);
           setMessages(msgs);
+          // Re-add to sidebar if history missed it (race condition)
+          setConversations(p=>{
+            if(p.find(c=>c.id===lastId))return p;
+            const firstUser=msgs.find(m=>m.role==="user");
+            const title=firstUser?.content
+              ?(firstUser.content.length>44?firstUser.content.slice(0,44)+"\u2026":firstUser.content)
+              :"Restored conversation";
+            return [{id:lastId,title,updatedAt:new Date()},...p];
+          });
           const lastAI=[...msgs].reverse().find(m=>m.role==="assistant"&&m.artifact);
           setActiveArtifact(lastAI?.artifact||null);
           restored=true;
