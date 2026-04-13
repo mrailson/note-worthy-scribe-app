@@ -411,8 +411,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           user_id: user.id,
           claim_month: claimMonth,
           staff_details: staffSnapshot,
-          calculated_amount: calculatedAmount,
-          claimed_amount: claimedAmount,
+          calculated_amount: recalcAmount,
+          claimed_amount: recalcAmount,
           practice_key: practiceKey || null,
           status: 'draft',
         })
