@@ -5796,13 +5796,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       const seconds = duration % 60;
       const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
       
-      // Store meeting details and show post-meeting modal IMMEDIATELY
-      setLastCompletedMeetingId(savedMeeting.id);
-      setLastCompletedMeetingTitle(savedMeeting.title);
-      setLastCompletedMeetingDuration(formattedDuration);
-      setShowPostMeetingActions(true);
-      
-      console.log('✅ Showing post-meeting modal with generating status');
+      // Post-meeting modal will be shown inside backgroundProcessing() after resetMeeting()
+      console.log('⏳ Post-meeting modal will appear after background processing completes');
       
       // Check if auto-generation was triggered
       console.log('🤖 Checking if auto-generation was triggered for meeting:', meetingId);
@@ -6026,30 +6021,39 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           const seconds = duration % 60;
           const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
           
-          // Store meeting details for post-meeting modal
+          setStopRecordingStep('Complete!');
+          await resetMeeting();
+          
+          // Show post-meeting modal AFTER resetMeeting so there's no gap
           setLastCompletedMeetingId(savedMeeting.id);
           setLastCompletedMeetingTitle(savedMeeting.title);
           setLastCompletedMeetingDuration(formattedDuration);
+          setShowPostMeetingActions(true);
           
-          setStopRecordingStep('Complete!');
-          await resetMeeting();
+          // Only now hide the processing overlay
           setIsStoppingRecording(false);
           stopInProgressRef.current = false;
           
-          console.log('✅ Recording state reset - notes generation continuing in background');
+          console.log('✅ Recording state reset & post-meeting modal shown');
         } catch (error) {
           console.error('⚠️ Background processing error:', error);
-          // Don't fail the main save process for background errors
-          // Always reset, even if background processing fails
           setStopRecordingStep('Complete!');
           
-          console.log('🔄 Resetting recording state');
-          
           await resetMeeting();
+          
+          // Still show post-meeting modal even if background processing partially failed
+          const minutes = Math.floor(duration / 60);
+          const seconds = duration % 60;
+          const fmt = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          setLastCompletedMeetingId(savedMeeting.id);
+          setLastCompletedMeetingTitle(savedMeeting.title);
+          setLastCompletedMeetingDuration(fmt);
+          setShowPostMeetingActions(true);
+          
           setIsStoppingRecording(false);
           stopInProgressRef.current = false;
           
-          console.log('✅ Recording state reset - notes generation continuing in background');
+          console.log('✅ Recording state reset & post-meeting modal shown (after bg error)');
         }
       };
 
