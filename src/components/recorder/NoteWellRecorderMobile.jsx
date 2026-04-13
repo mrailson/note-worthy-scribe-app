@@ -2110,21 +2110,9 @@ export default function NoteWellRecorder() {
             )}
           </div>
 
-          {/* Steps — idle only */}
+          {/* Steps — idle only, collapsible */}
           {isIdle && (
-            <div style={{margin:"12px 16px 0",display:"flex",gap:8}}>
-              {[
-                {n:"1",icon:"🎙️",label:"Tap record to start"},
-                {n:"2",icon:"💾",label:"Saved to device"},
-                {n:"3",icon:"✨",label:"Notes generated on stop"},
-              ].map(s=>(
-                <div key={s.n} style={{flex:1,background:"white",borderRadius:14,padding:"12px 8px",textAlign:"center",boxShadow:"0 2px 8px rgba(21,101,192,0.07)",border:"1px solid rgba(21,101,192,0.08)"}}>
-                  <div style={{fontSize:20,marginBottom:4}}>{s.icon}</div>
-                  <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(21,101,192,0.1)",color:"#1565c0",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 6px"}}>{s.n}</div>
-                  <div style={{fontSize:11,color:"#475569",lineHeight:1.4,fontWeight:500}}>{s.label}</div>
-                </div>
-              ))}
-            </div>
+            <StepsGuide />
           )}
 
           {/* Recordings list */}
