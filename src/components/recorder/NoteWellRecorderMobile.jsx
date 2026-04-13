@@ -2116,7 +2116,7 @@ export default function NoteWellRecorder() {
           )}
 
           {/* Recordings list */}
-          <div style={{padding:"14px 16px 28px"}}>
+          <div style={{padding:"10px 16px 28px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
               <div style={{fontSize:11,fontWeight:600,color:"#94a3b8",letterSpacing:0.5,textTransform:"uppercase"}}>
                 Recordings ({recordings.length})
@@ -2132,10 +2132,9 @@ export default function NoteWellRecorder() {
             </div>
 
             {recordings.length === 0 ? (
-              <div style={{textAlign:"center",padding:"28px 20px",color:"#94a3b8"}}>
-                <div style={{fontSize:36,marginBottom:8}}>🎙️</div>
-                <div style={{fontSize:14,fontWeight:500}}>No recordings yet</div>
-                <div style={{fontSize:12,marginTop:3}}>Tap the button above to start</div>
+              <div style={{textAlign:"center",padding:"16px 20px",color:"#94a3b8"}}>
+                <div style={{fontSize:13,fontWeight:500}}>No recordings yet</div>
+                <div style={{fontSize:12,marginTop:2}}>Tap the button above to start</div>
               </div>
             ) : recordings.map(r => (
               <RecordingItem key={r.id} rec={r}
