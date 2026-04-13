@@ -4,6 +4,8 @@ import { NRES_PRACTICES } from '@/data/nresPractices';
 export type BuyBackEmailType =
   | 'claim_submitted'
   | 'submission_confirmation'
+  | 'claim_verified'
+  | 'verification_confirmation'
   | 'claim_approved'
   | 'approval_confirmation'
   | 'claim_rejected'
@@ -55,6 +57,8 @@ function getClaimTypeLabel(categories?: string[]): string {
 const EMAIL_TYPE_CONFIG: Record<BuyBackEmailType, { subjectAction: string; heading: (label: string) => string; colour: string }> = {
   claim_submitted: { subjectAction: 'New', heading: (l) => `New ${l} Awaiting Approval`, colour: '#2563eb' },
   submission_confirmation: { subjectAction: 'Submitted', heading: (l) => `Your ${l} Has Been Submitted`, colour: '#2563eb' },
+  claim_verified: { subjectAction: 'Verified', heading: (l) => `Your ${l} Has Been Verified`, colour: '#d97706' },
+  verification_confirmation: { subjectAction: 'Verification Recorded', heading: (l) => `${l} Verification Confirmation`, colour: '#d97706' },
   claim_approved: { subjectAction: 'Approved', heading: (l) => `Your ${l} Has Been Approved`, colour: '#16a34a' },
   approval_confirmation: { subjectAction: 'Approval Recorded', heading: (l) => `${l} Approval Confirmation`, colour: '#16a34a' },
   claim_rejected: { subjectAction: 'Declined', heading: (l) => `Your ${l} Has Been Declined`, colour: '#dc2626' },
@@ -154,6 +158,29 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
             <li>You will receive an email notification when this is complete (within <strong>3 working days</strong>).</li>
             <li>Once verified, the claim will be passed to <strong>PML Finance</strong> for formal approval and payment.</li>
           </ol>
+        </div>
+      `;
+      break;
+    case 'claim_verified':
+      bodyContent = `
+        <p>Your ${claimLabel.toLowerCase()} has been verified by the NRES Neighbourhood team.</p>
+        ${data.reviewerName ? `<p><strong>Verified by:</strong> ${data.reviewerName}</p>` : ''}
+        ${data.reviewNotes ? `<p><strong>Notes:</strong> ${data.reviewNotes}</p>` : ''}
+        ${staffBreakdown}
+        <div style="margin:20px 0;padding:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">
+          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#92400e;">What happens next?</p>
+          <p style="margin:0;font-size:12px;color:#374151;line-height:1.8;">Now that your claim has been verified, we believe it is in order and it has been passed to PML for final approval. You will be notified when that has happened. Assuming it is approved as expected, the system will automatically create the invoice on your behalf and send you a copy for your records.</p>
+          <p style="margin:8px 0 0;font-size:12px;color:#374151;line-height:1.8;">If you have any questions, please let your NRES management team know.</p>
+        </div>
+      `;
+      break;
+    case 'verification_confirmation':
+      bodyContent = `
+        <p>This confirms that you have verified the following ${claimLabel.toLowerCase()}. It has been forwarded to PML for final approval.</p>
+        <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
+        ${staffBreakdown}
+        <div style="margin:20px 0;text-align:center;">
+          <a href="https://gpnotewell.co.uk" style="display:inline-block;padding:12px 28px;background:#d97706;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:6px;">Go to Notewell</a>
         </div>
       `;
       break;
@@ -326,10 +353,12 @@ export async function sendBuyBackEmail(
       recipients = await getApproverEmails(data.practiceKey);
       break;
     case 'submission_confirmation':
+    case 'claim_verified':
     case 'claim_approved':
     case 'claim_rejected':
       recipients = [data.submitterEmail];
       break;
+    case 'verification_confirmation':
     case 'approval_confirmation':
     case 'rejection_confirmation':
       recipients = data.reviewerEmail ? [data.reviewerEmail] : [];
