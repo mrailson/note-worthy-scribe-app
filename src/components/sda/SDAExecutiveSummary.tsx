@@ -247,7 +247,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
                             <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">👤</span><span>Key contacts — ICB, {neighbourhoodName === 'ENN' ? '3Sixty' : 'PML'}, programme team</span></li>
                           </ul>
                           <p className="text-[10px] text-indigo-600 font-medium mt-3 italic">Everything about the pilot, instantly.</p>
-                          <p className="text-[10px] text-blue-600 font-medium mt-2">💬 Use the floating chat widget (bottom-right) to talk to the programme assistant.</p>
+                          <NRESWidgetEmbed neighbourhoodName={neighbourhoodName} />
                         </>
                       )}
                        {aiCardTab === "Translate" && (
@@ -721,7 +721,7 @@ export const SDAExecutiveSummary = ({ customLogos, customMetrics, patientListSiz
       `}</style>
     </div>
     <ContractAskAI open={showContractAskAI} onOpenChange={setShowContractAskAI} neighbourhoodName={neighbourhoodName} />
-    {aiCardTab !== "Translate" && aiCardTab !== "Patient" && aiCardTab !== "GP" && aiCardTab !== "Practice Manager" && <NRESWidgetEmbed neighbourhoodName={neighbourhoodName} />}
+    
     </>
   );
 };
