@@ -12,6 +12,7 @@ import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 import { Loader2 } from "lucide-react";
 
 // Lazy-load all pages to reduce initial bundle size
+const RecoveryTool = lazy(() => import("./pages/RecoveryTool"));
 const Index = lazy(() => import("./pages/Index"));
 const AI4GP = lazy(() => import("./pages/AI4GP"));
 const VoiceAgent = lazy(() => import("./pages/VoiceAgent"));
@@ -277,6 +278,7 @@ const App = () => {
                 <Route path="/patient-language" element={<PatientLanguageSelection />} />
                 <Route path="/gp-genie" element={<GPGenie />} />
                 <Route path="/new-recorder" element={<NewRecorder />} />
+                <Route path="/recovery-tool" element={<RecoveryTool />} />
                 <Route path="/ai4pm" element={
                   <ProtectedRoute requiredModule="enhanced_access">
                     <AI4PMService />
