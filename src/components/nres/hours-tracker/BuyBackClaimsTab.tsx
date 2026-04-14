@@ -773,6 +773,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           onQuery={queryClaim}
           onApprove={approveClaim}
           onReject={rejectClaim}
+          onMarkPaid={(id: string, notes?: string) => updatePaymentStatus(id, {
+            payment_status: 'payment_sent',
+            payment_notes: notes || undefined,
+          })}
           savingClaim={savingClaim}
           defaultView={pmlDashboardView as 'director' | 'finance'}
         />
