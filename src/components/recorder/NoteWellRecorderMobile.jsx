@@ -661,6 +661,7 @@ export default function NoteWellRecorder() {
   const [storageWarning, setStorageWarning] = useState(null);
   const [retranscribingIds, setRetranscribingIds] = useState({});
   const [emailingIds, setEmailingIds] = useState({});
+  const [forceRetryingIds, setForceRetryingIds] = useState({});
   const [chunksCompleted, setChunksCompleted] = useState(0);
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
@@ -1733,6 +1734,54 @@ export default function NoteWellRecorder() {
   const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
 
   const retranscribeRecording = async (rec) => {
+
+  const forceRetryRecording = async (rec) => {
+    try {
+      setForceRetryingIds(prev => ({ ...prev, [rec.id]: true }));
+      showToast("Force retry — resetting and re-syncing…", "info");
+      // Reset status to 'local' so syncRecording re-uploads and re-transcribes
+      await dbPatch(rec.id, { status: "local", transcript: null, meetingId: null, forceCreate: true });
+      await refresh();
+      // Small delay then trigger sync
+      setTimeout(async () => {
+        const freshRecs = await dbGetAll();
+        const freshRec = freshRecs.find(r => r.id === rec.id);
+        if (freshRec) {
+          await syncRecording(freshRec);
+        }
+        setForceRetryingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
+      }, 500);
+    } catch (err) {
+      console.error("Force retry failed:", err);
+      showToast("Force retry failed: " + (err.message || "Unknown error"), "error");
+      setForceRetryingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
+    }
+  };
+
+  const downloadAudioRecording = (rec) => {
+    try {
+      const chunks = rec.chunks || [];
+      const audioData = rec.audioData;
+      if (chunks.length === 0 && !audioData) { showToast("No audio data found", "error"); return; }
+      const parts = chunks.length > 0
+        ? chunks.map(ch => new Blob([ch.arrayBuffer], { type: ch.mimeType || rec.mimeType }))
+        : [new Blob([audioData], { type: rec.mimeType })];
+      const merged = new Blob(parts, { type: rec.mimeType || "audio/webm" });
+      const ext = (rec.mimeType || "").includes("mp4") ? "m4a" : (rec.mimeType || "").includes("ogg") ? "ogg" : "webm";
+      const safeName = (rec.title || "recording").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const url = URL.createObjectURL(merged);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${safeName}.${ext}`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Audio downloaded ✓", "success");
+    } catch (err) {
+      console.error("Download failed:", err);
+      showToast("Download failed: " + (err.message || "Unknown error"), "error");
+    }
+  };
+
+  const retranscribeRecording = async (rec) => {
     if (!rec.meetingId) return;
     try {
       setRetranscribingIds(prev => ({ ...prev, [rec.id]: true }));
@@ -2210,7 +2259,9 @@ export default function NoteWellRecorder() {
                 onDelete={deleteRecording} onSync={syncRecording}
                 onPlay={playRecording} isPlaying={playingId===r.id}
                 onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]}
-                onEmailAudio={emailAudioRecording} isEmailing={!!emailingIds[r.id]} />
+                onEmailAudio={emailAudioRecording} isEmailing={!!emailingIds[r.id]}
+                onForceRetry={forceRetryRecording} isForceRetrying={!!forceRetryingIds[r.id]}
+                onDownloadAudio={downloadAudioRecording} />
             ))}
 
             {/* My Meetings card */}
