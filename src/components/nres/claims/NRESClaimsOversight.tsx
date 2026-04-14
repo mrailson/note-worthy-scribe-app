@@ -4,7 +4,7 @@ import { ClaimsSummaryCards } from './ClaimsSummaryCards';
 import { CreateClaimPanel } from './CreateClaimPanel';
 import { ClaimsHistory } from './ClaimsHistory';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, FlaskConical } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 
 const ROLE_DISPLAY = [
