@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
 // --- Types ---
 interface BuyBackPracticeDashboardProps {

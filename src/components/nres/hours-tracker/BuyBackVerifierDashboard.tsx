@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
 import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search } from 'lucide-react';
 
