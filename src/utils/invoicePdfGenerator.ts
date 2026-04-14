@@ -178,38 +178,42 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     alternateRowStyles: { fillColor: [240, 244, 245] },
   });
 
-  // --- GL Subtotals ---
-  const gpTotal = staffDetails
-    .filter((s: any) => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP')
-    .reduce((sum: number, s: any) => sum + (s.claimed_amount || 0), 0);
-  const otherTotal = staffDetails
-    .filter((s: any) => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) !== 'GP')
-    .reduce((sum: number, s: any) => sum + (s.claimed_amount || 0), 0);
-  const grandTotal = gpTotal + otherTotal;
+  // --- GL Subtotals (grouped by GL code) ---
+  const glGroups: Record<string, number> = {};
+  staffDetails.forEach((s: any) => {
+    const glCode = s.gl_code || s.gl_category || (s.staff_role === 'GP' ? '5421' : 'Other');
+    glGroups[glCode] = (glGroups[glCode] || 0) + (s.claimed_amount || 0);
+  });
+  const grandTotal = Object.values(glGroups).reduce((a, b) => a + b, 0);
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const glEntries = Object.entries(glGroups).sort((a, b) => a[0].localeCompare(b[0]));
+  const boxHeight = Math.max(30, 10 + glEntries.length * 6 + 12);
 
   // Subtotals box
   doc.setFillColor(240, 244, 248);
-  doc.roundedRect(130, finalY - 5, 66, 30, 2, 2, 'F');
+  doc.roundedRect(120, finalY - 5, 76, boxHeight, 2, 2, 'F');
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(GREY_60);
-  doc.text('GP Subtotal:', 134, finalY);
-  doc.text(fmt(gpTotal), 192, finalY, { align: 'right' });
-  doc.text('Other Clinical Subtotal:', 134, finalY + 6);
-  doc.text(fmt(otherTotal), 192, finalY + 6, { align: 'right' });
+
+  let lineY = finalY;
+  glEntries.forEach(([code, amount]) => {
+    doc.text(`GL ${code}:`, 124, lineY);
+    doc.text(fmt(amount), 192, lineY, { align: 'right' });
+    lineY += 6;
+  });
 
   doc.setDrawColor(...NHS_BLUE);
   doc.setLineWidth(0.4);
-  doc.line(134, finalY + 10, 192, finalY + 10);
+  doc.line(124, lineY, 192, lineY);
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...NHS_DARK_BLUE);
-  doc.text('TOTAL:', 134, finalY + 18);
-  doc.text(fmt(grandTotal), 192, finalY + 18, { align: 'right' });
+  doc.text('TOTAL:', 124, lineY + 8);
+  doc.text(fmt(grandTotal), 192, lineY + 8, { align: 'right' });
 
   // --- Bank Details (if available) ---
   let bankY = finalY + 28;
