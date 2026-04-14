@@ -1745,8 +1745,6 @@ export default function NoteWellRecorder() {
 
   const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
 
-  const retranscribeRecording = async (rec) => {
-
   const forceRetryRecording = async (rec) => {
     try {
       setForceRetryingIds(prev => ({ ...prev, [rec.id]: true }));
