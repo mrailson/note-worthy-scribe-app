@@ -56,6 +56,12 @@ export function AddComplaintDocumentDialog({
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'text/plain': ['.txt'],
       'message/rfc822': ['.eml'],
+      'audio/webm': ['.webm'],
+      'audio/mpeg': ['.mp3'],
+      'audio/wav': ['.wav'],
+      'audio/x-m4a': ['.m4a'],
+      'audio/ogg': ['.ogg'],
+      'audio/flac': ['.flac'],
     },
   });
 
