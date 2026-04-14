@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
@@ -386,7 +387,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           }}>
             {claim.submitted_at && <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
-            {claim.invoice_number && <InfoBlock label="Invoice No" value={claim.invoice_number} highlight="#7c3aed" />}
+            {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             {claim.paid_at && <InfoBlock label="Paid" value={shortDate(claim.paid_at)} highlight="#166534" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Part A" met={hasPartA} />

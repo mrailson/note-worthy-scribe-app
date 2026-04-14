@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
 import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search } from 'lucide-react';
 
@@ -324,7 +325,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             <InfoBlock label="Practice Manager" value={(claim as any).manager_name || '—'} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
-            {claim.invoice_number && <InfoBlock label="Invoice No" value={claim.invoice_number} highlight="#7c3aed" />}
+            {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Part A" met={hasPartA} />
               <EvidencePill label="Part B" met={hasPartB} />

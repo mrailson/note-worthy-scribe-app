@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { getPracticeName } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import { maskStaffName } from '@/utils/buybackStaffMasking';
+import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
 // --- Types ---
 type PMLView = 'director' | 'finance';
@@ -464,7 +465,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           }}>
             <InfoBlock label="Verified by" value={claim.verified_by || '—'} sub={dateStr(claim.verified_at)} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
-            {claim.invoice_number && <InfoBlock label="Invoice No" value={claim.invoice_number} highlight="#7c3aed" />}
+            {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             {claim.paid_at && <InfoBlock label="Paid" value={new Date(claim.paid_at).toLocaleDateString('en-GB')} highlight="#166534" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Part A" met={!!hasPartA} />
