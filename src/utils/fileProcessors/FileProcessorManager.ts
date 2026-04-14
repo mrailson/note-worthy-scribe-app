@@ -61,7 +61,9 @@ export class FileProcessorManager {
     '.aac': 'audio',
     '.opus': 'audio',
     '.amr': 'audio',
-    '.3gp': 'audio'
+    '.3gp': 'audio',
+    '.webm': 'audio',
+    '.weba': 'audio'
   };
 
   static getFileType(fileName: string): string {
