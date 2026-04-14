@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getGLCode, type ClaimType } from '@/utils/glCodes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -278,12 +279,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     calculatedAmount: number,
     practiceKey?: string | null,
     rateParams?: RateParams,
+    claimType: ClaimType = 'buyback',
   ) => {
     if (!user?.id) return null;
     try {
       setSaving(true);
       const staffSnapshot = staffMembers.map(s => {
         const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date, rateParams);
+        const glCode = getGLCode(claimType, s.staff_role);
         return {
           staff_name: s.staff_name,
           staff_role: s.staff_role,
@@ -294,7 +297,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           start_date: s.start_date,
           practice_key: s.practice_key,
           claimed_amount: maxAmount,
-          gl_category: s.staff_role === 'GP' ? 'GP' : 'Other Clinical',
+          gl_code: glCode,
+          gl_category: glCode ?? 'N/A',
         };
       });
 
@@ -303,6 +307,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .insert({
           user_id: user.id,
           claim_month: claimMonth,
+          claim_type: claimType,
           staff_details: staffSnapshot,
           calculated_amount: calculatedAmount,
           claimed_amount: claimedAmount,
