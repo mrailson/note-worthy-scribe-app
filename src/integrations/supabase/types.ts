@@ -8257,6 +8257,7 @@ export type Database = {
           bacs_reference: string | null
           calculated_amount: number
           claim_month: string
+          claim_type: string
           claimed_amount: number
           created_at: string
           declaration_confirmed: boolean
@@ -8297,6 +8298,7 @@ export type Database = {
           bacs_reference?: string | null
           calculated_amount?: number
           claim_month: string
+          claim_type?: string
           claimed_amount?: number
           created_at?: string
           declaration_confirmed?: boolean
@@ -8337,6 +8339,7 @@ export type Database = {
           bacs_reference?: string | null
           calculated_amount?: number
           claim_month?: string
+          claim_type?: string
           claimed_amount?: number
           created_at?: string
           declaration_confirmed?: boolean
