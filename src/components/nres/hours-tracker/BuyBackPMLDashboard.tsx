@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, Clock, Building2, PoundSterling, AlertTriangle, CheckCircle2, XCircle, Search, Lock, Landmark } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPracticeName } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';

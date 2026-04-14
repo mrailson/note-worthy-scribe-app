@@ -3,14 +3,12 @@ import { getOdsCode } from '@/data/nresPractices';
 
 /**
  * Generate the next invoice number for a claim.
- * Format: [YY]-[ODS_NO_K]-[MM]-[SEQ]
- * e.g. 26-83049-04-001
- */
-
-/**
- * Generate the next invoice number for a claim.
- * Format: NRES-[FY]-[MM]-[ODS]-[SEQ]
- * e.g. NRES-2627-04-K83049-001
+ * Format: {ODS_CODE}-{YYYYMM}-{SEQ}
+ * e.g. 07902-202604-001
+ *
+ * ODS code: stripped of K/U prefix
+ * YYYYMM: year + month of the claim period
+ * SEQ: 3-digit sequential number starting at 001
  */
 export async function generateInvoiceNumber(
   neighbourhoodPrefix: string, // kept for compatibility but no longer used in output
@@ -20,17 +18,15 @@ export async function generateInvoiceNumber(
   const d = new Date(claimMonth);
   const year = d.getFullYear();
   const month = d.getMonth() + 1;
-  const fyStart = month >= 4 ? year : year - 1;
-  const fy = String(fyStart).slice(2);
 
-  const mm = String(month).padStart(2, '0');
+  const yyyymm = `${year}${String(month).padStart(2, '0')}`;
 
   const rawOds = getOdsCode(practiceKey);
   const ods = (rawOds && rawOds !== '—' && rawOds !== '')
     ? rawOds.replace(/^[KU]/i, '')
     : 'UNKNOWN';
 
-  const prefix = `${fy}-${ods}-${mm}`;
+  const prefix = `${ods}-${yyyymm}`;
 
   const { data } = await supabase
     .from('nres_buyback_claims')
