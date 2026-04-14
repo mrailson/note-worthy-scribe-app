@@ -738,6 +738,48 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     );
   }
 
+  // Determine if the PML Dashboard should be shown
+  const showPMLDashboard = (() => {
+    if (testActive && (testMode.role === 'pml_director' || testMode.role === 'pml_finance')) return true;
+    if (!testActive && (isPMLDirector || isPMLFinance) && !isSuperAdmin && !isManagementLead) return true;
+    return false;
+  })();
+
+  const pmlDashboardView = testActive
+    ? (testMode.role === 'pml_finance' ? 'finance' : 'director')
+    : (isPMLFinance ? 'finance' : 'director');
+
+  if (showPMLDashboard) {
+    return (
+      <div className="space-y-6">
+        {isAdmin && (
+          <TestModeBar
+            state={testMode}
+            onChange={setTestMode}
+            practiceKeys={ALL_PRACTICE_KEYS}
+            practiceNames={ALL_PRACTICES}
+          />
+        )}
+        <BuyBackPMLDashboard
+          claims={accessFilteredClaims}
+          userId={user?.id}
+          userEmail={user?.email}
+          isAdmin={isAdmin}
+          isSuperAdmin={isSuperAdmin}
+          isPMLDirector={isPMLDirector}
+          isPMLFinance={isPMLFinance}
+          rateParams={rateParams}
+          onVerify={verifyClaim}
+          onQuery={queryClaim}
+          onApprove={approveClaim}
+          onReject={rejectClaim}
+          savingClaim={savingClaim}
+          defaultView={pmlDashboardView as 'director' | 'finance'}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Test Mode Bar — admin only */}
