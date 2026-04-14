@@ -60,6 +60,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
+import { AdminAudioBackupSearch } from '@/components/admin/AdminAudioBackupSearch';
 import AITestModal from '@/components/AITestModal';
 import { CSOComplianceReport } from '@/components/CSOComplianceReport';
 import { HazardAnalysisReport } from '@/components/HazardAnalysisReport';
@@ -4449,6 +4450,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     <AudioBackupManager />
                   </CardContent>
                 </Card>
+
+                {/* Audio Backup Search */}
+                <AdminAudioBackupSearch />
               </TabsContent>
 
               {/* LG Capture Sub-Tab */}
