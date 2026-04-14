@@ -1426,6 +1426,51 @@ Keep language professional, concise, and appropriate for an NHS neighbourhood ca
   );
 }
 
+// ─── AGEWELL VOICE WIDGET ────────────────────────────────────────────────────
+const AGEWELL_AGENT_ID = "agent_7601kp1ak0ncf9yv6zvxqrtz3zjd";
+
+function useAgewellElevenLabsScript() {
+  useEffect(() => {
+    if (document.querySelector('script[src*="convai-widget-embed"]')) return;
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
+}
+
+function AgewellVoiceWidget() {
+  useAgewellElevenLabsScript();
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.innerHTML = "";
+    const el = document.createElement("elevenlabs-convai");
+    el.setAttribute("agent-id", AGEWELL_AGENT_ID);
+    ref.current.appendChild(el);
+    return () => {
+      if (ref.current) ref.current.innerHTML = "";
+    };
+  }, []);
+
+  return (
+    <div style={{maxWidth:720,width:"100%",background:T.surfaceAlt,border:`1px solid ${T.tealBorder}`,
+      borderRadius:14,padding:"18px 24px",textAlign:"center"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:10}}>
+        <span style={{fontSize:16}}>🎙</span>
+        <span style={{fontSize:14,fontWeight:700,color:T.tealDark,fontFamily:"Georgia,'Times New Roman',serif"}}>
+          Ageing Well AI Voice Assistant
+        </span>
+      </div>
+      <p style={{fontSize:12,color:T.textSecondary,lineHeight:1.6,margin:"0 0 12px"}}>
+        Speak with the AI assistant about Ageing Well services, care pathways and neighbourhood support.
+      </p>
+      <div ref={ref} style={{minHeight:60}} />
+    </div>
+  );
+}
+
 // ─── HOME SCREEN ─────────────────────────────────────────────────────────────
 function HomeScreen({onSelect}){
   const navigate = useNavigate();
