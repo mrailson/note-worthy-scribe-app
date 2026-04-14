@@ -324,7 +324,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             <InfoBlock label="Practice Manager" value={(claim as any).manager_name || '—'} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
-            {claim.invoice_number && <InfoBlock label="Invoice No" value={claim.invoice_number} highlight="#7c3aed" />}
+            {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Part A" met={hasPartA} />
               <EvidencePill label="Part B" met={hasPartB} />
