@@ -746,9 +746,40 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     return false;
   })();
 
+  // Determine if the Practice Dashboard should be shown
+  const showPracticeDashboard = (() => {
+    if (testActive && testMode.role === 'practice' && testMode.selectedPractice) return true;
+    return false;
+  })();
+
   const pmlDashboardView = testActive
     ? (testMode.role === 'pml_finance' ? 'finance' : 'director')
     : (isPMLFinance ? 'finance' : 'director');
+
+  if (showPracticeDashboard) {
+    return (
+      <div className="space-y-6">
+        {isAdmin && (
+          <TestModeBar
+            state={testMode}
+            onChange={setTestMode}
+            practiceKeys={ALL_PRACTICE_KEYS}
+            practiceNames={ALL_PRACTICES}
+          />
+        )}
+        <BuyBackPracticeDashboard
+          claims={claims}
+          practiceKey={testMode.selectedPractice!}
+          onSubmit={submitClaim}
+          onResubmit={(id, notes) => {
+            // Resubmit queried claim
+            submitClaim(id);
+          }}
+          savingClaim={savingClaim}
+        />
+      </div>
+    );
+  }
 
   if (showPMLDashboard) {
     return (
