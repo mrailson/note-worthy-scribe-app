@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
-import { NRES_PRACTICES, NRES_ODS_CODES, type NRESPracticeKey } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Clock, Landmark, Search, AlertTriangle } from 'lucide-react';
+import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -17,13 +17,13 @@ const fmtShort = (v: number) => `£${v.toLocaleString('en-GB', { minimumFraction
 
 const claimTotal = (c: BuyBackClaim) => {
   if (c.claimed_amount != null) return c.claimed_amount;
-  return c.staff_lines?.reduce((a: number, l: any) => a + (l.claimed_amount ?? l.claimed ?? 0), 0) ?? 0;
+  return ((c as any).staff_lines ?? c.staff_details ?? []).reduce((a: number, l: any) => a + (l.claimed_amount ?? l.claimed ?? 0), 0);
 };
 
 const claimHours = (c: BuyBackClaim) =>
-  c.staff_lines?.reduce((a: number, l: any) => a + (l.total_hours ?? l.totalHrs ?? 0), 0) ?? 0;
+  ((c as any).staff_lines ?? c.staff_details ?? []).reduce((a: number, l: any) => a + (l.total_hours ?? l.totalHrs ?? 0), 0);
 
-const claimLines = (c: BuyBackClaim): any[] => c.staff_lines ?? [];
+const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff_details ?? [];
 
 const dateStr = (iso: string | null | undefined) => {
   if (!iso) return '—';
@@ -124,7 +124,7 @@ const KpiCard = ({ label, value, sub, accent }: { label: string; value: number |
 // ─── Verification Checklist ───────────────────────────────────────────────────
 const VerificationChecklist = ({ claim }: { claim: BuyBackClaim }) => {
   const lines = claimLines(claim);
-  const hasPartA = !!(claim as any).part_a ?? true;
+  const hasPartA = (claim as any).part_a !== undefined ? !!(claim as any).part_a : true;
   const hasPartB = !!(claim as any).part_b;
   const partBDetail = (claim as any).part_b_detail;
   const bankDetails = (claim as any).bank_details;
@@ -186,7 +186,7 @@ const PracticeQueueTable = ({ claims }: { claims: BuyBackClaim[] }) => {
       const t = claimTotal(c);
       r.total += 1; r.totalVal += t;
       if (c.status === 'submitted') { r.submitted += 1; r.submittedVal += t; }
-      else if (c.status === 'verified' || c.status === 'awaiting_review') { r.verified += 1; }
+      else if (c.status === 'verified' || (c as any).status === 'awaiting_review') { r.verified += 1; }
       else if (c.status === 'approved') { r.approved += 1; }
       else if (c.status === 'paid') { r.paid += 1; }
     });
@@ -312,7 +312,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             <InfoBlock label="Practice Manager" value={(claim as any).manager_name || '—'} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
-            {claim.claim_ref && <InfoBlock label="Invoice No" value={claim.claim_ref} highlight="#7c3aed" />}
+            {claim.invoice_number && <InfoBlock label="Invoice No" value={claim.invoice_number} highlight="#7c3aed" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Part A" met={hasPartA} />
               <EvidencePill label="Part B" met={hasPartB} />
@@ -481,9 +481,9 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
   }, [visibleClaims]);
 
   const submittedTotal = submittedClaims.reduce((a, c) => a + claimTotal(c), 0);
-  const verifiedClaims = visibleClaims.filter(c => c.status === 'verified' || c.status === 'awaiting_review');
+  const verifiedClaims = visibleClaims.filter(c => c.status === 'verified' || (c as any).status === 'awaiting_review');
   const verifiedTotal = verifiedClaims.reduce((a, c) => a + claimTotal(c), 0);
-  const approvedTotal = visibleClaims.filter(c => c.status === 'approved').reduce((a, c) => a + claimTotal(c), 0);
+  const _approvedTotal = visibleClaims.filter(c => c.status === 'approved').reduce((a, c) => a + claimTotal(c), 0);
   const paidTotal = visibleClaims.filter(c => c.status === 'paid').reduce((a, c) => a + claimTotal(c), 0);
 
   const uniqueSubmittedPractices = new Set(submittedClaims.map(c => c.practice_key)).size;
