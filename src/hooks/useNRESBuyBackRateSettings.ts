@@ -243,6 +243,29 @@ export function useNRESBuyBackRateSettings() {
     }
   }, [user?.id]);
 
+  const toggleAllowInvoiceWhenSuppressed = useCallback(async (allowed: boolean) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          allow_invoice_email_when_suppressed: allowed,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+      if (error) throw error;
+      setSettings(prev => ({ ...prev, allow_invoice_email_when_suppressed: allowed }));
+      toast.success(allowed ? 'Invoice emails will be sent even when suppressed' : 'Invoice emails will also be suppressed');
+    } catch (err) {
+      console.error('Error toggling invoice email exception:', err);
+      toast.error('Failed to update setting');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
   return {
     settings,
     loading,
@@ -250,6 +273,7 @@ export function useNRESBuyBackRateSettings() {
     updateSettings,
     toggleEmailTestingMode,
     toggleEmailSendingDisabled,
+    toggleAllowInvoiceWhenSuppressed,
     updateManagementRoles,
     onCostMultiplier,
     getRoleConfig,
