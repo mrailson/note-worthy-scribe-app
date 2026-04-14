@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Lock } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getPracticeName } from '@/data/nresPractices';
+import { getPracticeName, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
+import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
@@ -473,7 +474,26 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             </div>
           </div>
 
-          {/* Part B substantiation */}
+          {/* Bank details for payment verification */}
+          {(() => {
+            const bankDetails = NRES_PRACTICE_BANK_DETAILS[claim.practice_key as NRESPracticeKey];
+            if (!bankDetails) return null;
+            return (
+              <div style={{
+                display: 'flex', gap: 20, padding: '10px 0', fontSize: 12, color: '#6b7280',
+                borderBottom: '1px solid #f3f4f6', alignItems: 'center', flexWrap: 'wrap',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Landmark className="w-3.5 h-3.5 text-gray-500" />
+                  <span style={{ fontWeight: 600, color: '#374151', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Payment Details</span>
+                </div>
+                <InfoBlock label="Account Name" value={bankDetails.accountName} />
+                <InfoBlock label="Sort Code" value={bankDetails.sortCode} />
+                <InfoBlock label="Account No" value={bankDetails.accountNumber} />
+                {bankDetails.bankName && <InfoBlock label="Bank" value={bankDetails.bankName} />}
+              </div>
+            );
+          })()}
           {hasPartA && hasPartB && claim.review_notes && (
             <div style={{
               marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
