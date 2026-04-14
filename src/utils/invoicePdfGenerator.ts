@@ -216,7 +216,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.text(fmt(grandTotal), 192, lineY + 8, { align: 'right' });
 
   // --- Bank Details (if available) ---
-  let bankY = finalY + 28;
+  let bankY = lineY + 18;
   if (bankDetails) {
     doc.setFillColor(245, 248, 252);
     doc.roundedRect(14, bankY - 4, 100, 30, 2, 2, 'F');
