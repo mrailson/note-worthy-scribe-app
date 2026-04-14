@@ -190,6 +190,7 @@ function calculateFallback(staff: { allocation_type: string; allocation_value: n
 export interface BuyBackClaimsEmailConfig {
   emailTestingMode: boolean;
   emailSendingDisabled?: boolean;
+  allowInvoiceWhenSuppressed?: boolean;
   currentUserEmail?: string;
   currentUserName?: string;
 }
@@ -707,8 +708,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             reader.readAsDataURL(pdfBlob);
             const pdfBase64 = await base64Promise;
 
-            // If sending is disabled, skip invoice email entirely
-            if (emailConfig?.emailSendingDisabled) {
+            // If sending is disabled AND invoice exception is not enabled, skip invoice email
+            if (emailConfig?.emailSendingDisabled && !emailConfig?.allowInvoiceWhenSuppressed) {
               console.log('[Email suppressed] Invoice email — sending disabled for high-volume testing');
             } else {
             // In testing mode, redirect invoice email to current user

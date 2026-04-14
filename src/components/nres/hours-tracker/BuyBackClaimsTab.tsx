@@ -431,9 +431,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   const emailConfig = useMemo(() => ({
     emailTestingMode: rateSettings.email_testing_mode,
     emailSendingDisabled: rateSettings.email_sending_disabled,
+    allowInvoiceWhenSuppressed: rateSettings.allow_invoice_email_when_suppressed,
     currentUserEmail: user?.email || undefined,
     currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
-  }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, user?.email, user?.user_metadata?.full_name]);
+  }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, user?.email, user?.user_metadata?.full_name]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
 

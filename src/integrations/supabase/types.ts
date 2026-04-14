@@ -8383,6 +8383,7 @@ export type Database = {
       }
       nres_buyback_rate_settings: {
         Row: {
+          allow_invoice_email_when_suppressed: boolean
           email_sending_disabled: boolean
           email_testing_mode: boolean
           employer_ni_pct: number
@@ -8397,6 +8398,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          allow_invoice_email_when_suppressed?: boolean
           email_sending_disabled?: boolean
           email_testing_mode?: boolean
           employer_ni_pct?: number
@@ -8411,6 +8413,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          allow_invoice_email_when_suppressed?: boolean
           email_sending_disabled?: boolean
           email_testing_mode?: boolean
           employer_ni_pct?: number

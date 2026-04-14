@@ -44,6 +44,7 @@ export interface RateSettings {
   roles_config: RoleConfig[];
   email_testing_mode: boolean;
   email_sending_disabled: boolean;
+  allow_invoice_email_when_suppressed: boolean;
   management_roles_config: ManagementRoleConfig[];
   meeting_gp_rate: number;
   meeting_pm_rate: number;
@@ -71,6 +72,7 @@ export function useNRESBuyBackRateSettings() {
     roles_config: DEFAULT_ROLES,
     email_testing_mode: false,
     email_sending_disabled: false,
+    allow_invoice_email_when_suppressed: false,
     management_roles_config: [],
     meeting_gp_rate: 85,
     meeting_pm_rate: 45,
@@ -101,6 +103,7 @@ export function useNRESBuyBackRateSettings() {
           roles_config: (data.roles_config as RoleConfig[]) || DEFAULT_ROLES,
           email_testing_mode: data.email_testing_mode ?? false,
           email_sending_disabled: data.email_sending_disabled ?? false,
+          allow_invoice_email_when_suppressed: data.allow_invoice_email_when_suppressed ?? false,
           management_roles_config: (data.management_roles_config as ManagementRoleConfig[]) || [],
           meeting_gp_rate: data.meeting_gp_rate ?? 85,
           meeting_pm_rate: data.meeting_pm_rate ?? 45,
@@ -240,6 +243,29 @@ export function useNRESBuyBackRateSettings() {
     }
   }, [user?.id]);
 
+  const toggleAllowInvoiceWhenSuppressed = useCallback(async (allowed: boolean) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          allow_invoice_email_when_suppressed: allowed,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+      if (error) throw error;
+      setSettings(prev => ({ ...prev, allow_invoice_email_when_suppressed: allowed }));
+      toast.success(allowed ? 'Invoice emails will be sent even when suppressed' : 'Invoice emails will also be suppressed');
+    } catch (err) {
+      console.error('Error toggling invoice email exception:', err);
+      toast.error('Failed to update setting');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
   return {
     settings,
     loading,
@@ -247,6 +273,7 @@ export function useNRESBuyBackRateSettings() {
     updateSettings,
     toggleEmailTestingMode,
     toggleEmailSendingDisabled,
+    toggleAllowInvoiceWhenSuppressed,
     updateManagementRoles,
     onCostMultiplier,
     getRoleConfig,
