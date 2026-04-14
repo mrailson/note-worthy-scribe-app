@@ -691,6 +691,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           // Respects email testing mode — redirects to current user when testing
           const practiceKey = claim?.practice_key as NRESPracticeKey | undefined;
           const pmContact = practiceKey ? NRES_PRACTICE_CONTACTS[practiceKey] : null;
+          console.log('[Invoice Email] practiceKey:', practiceKey, '| pmContact:', pmContact?.email || 'NONE');
+          console.log('[Invoice Email] emailConfig:', JSON.stringify({
+            disabled: emailConfig?.emailSendingDisabled,
+            allowInvoice: emailConfig?.allowInvoiceWhenSuppressed,
+            testMode: emailConfig?.emailTestingMode,
+            testEmail: emailConfig?.currentUserEmail,
+          }));
           if (pmContact?.email) {
             const practiceName = getPracticeName(practiceKey);
             const bankDetails = practiceKey ? NRES_PRACTICE_BANK_DETAILS[practiceKey] : null;
