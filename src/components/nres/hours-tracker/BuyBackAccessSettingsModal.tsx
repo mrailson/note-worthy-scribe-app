@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2, Pencil, ChevronDown } from 'lucide-react';
+import { Loader2, Search, Plus, Trash2, Settings2, Info, Mail, Users, Building2, Pencil, ChevronDown, FileText } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { EvidenceConfigTab } from './EvidenceConfigTab';
 import { SystemRolesTab } from './SystemRolesTab';
@@ -859,7 +859,7 @@ const EMAIL_TYPES_TABLE = [
 ];
 
 function EmailSettingsPanel() {
-  const { settings, loading, saving, toggleEmailTestingMode, toggleEmailSendingDisabled } = useNRESBuyBackRateSettings();
+  const { settings, loading, saving, toggleEmailTestingMode, toggleEmailSendingDisabled, toggleAllowInvoiceWhenSuppressed } = useNRESBuyBackRateSettings();
   const { user } = useAuth();
 
   if (loading) {
