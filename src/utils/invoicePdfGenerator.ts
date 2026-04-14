@@ -150,7 +150,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     i + 1,
     s.staff_name || '—',
     s.staff_role || '—',
-    s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical'),
+    s.gl_code || s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical'),
     s.staff_category === 'gp_locum'
       ? (s.allocation_type === 'daily'
         ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''} @ £750/day`
