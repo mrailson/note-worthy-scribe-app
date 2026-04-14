@@ -73,7 +73,7 @@ export function NRESClaimsOversight() {
     fetchAuditLog(claimId);
   };
 
-  const roleInfo = ROLE_DISPLAY.find(r => r.key === claimsRole);
+  const roleInfo = ROLE_DISPLAY.find(r => r.key === effectiveRole);
 
   if (loading) {
     return (
@@ -141,7 +141,7 @@ export function NRESClaimsOversight() {
         </div>
         {showPracticeSelector && practices.length > 0 && (
           <div className="flex items-center gap-1.5">
-            {claimsRole === 'super_admin' && (
+            {effectiveRole === 'super_admin' && (
               <span className="text-[10px] text-slate-500 font-semibold">On behalf of:</span>
             )}
             <Select value={effectivePracticeId} onValueChange={setSelectedPracticeId}>
@@ -162,11 +162,11 @@ export function NRESClaimsOversight() {
       <main className="max-w-[1100px] mx-auto px-4 py-5 pb-16">
         {(view === 'dashboard' || view === 'claims') && (
           <>
-            {view === 'dashboard' && <ClaimsSummaryCards claims={visibleClaims} role={claimsRole} />}
+            {view === 'dashboard' && <ClaimsSummaryCards claims={visibleClaims} role={effectiveRole} />}
             <ClaimsHistory
               claims={visibleClaims}
               practices={practices}
-              role={claimsRole}
+              role={effectiveRole}
               evidence={evidence}
               auditLog={auditLog}
               saving={saving}
@@ -183,7 +183,7 @@ export function NRESClaimsOversight() {
           <CreateClaimPanel
             practices={practices}
             selectedPracticeId={effectivePracticeId}
-            claimsRole={claimsRole}
+            claimsRole={effectiveRole}
             saving={saving}
             onCreateAndSubmit={handleCreateAndSubmit}
             onDeclareAndSubmit={declareAndSubmit}
