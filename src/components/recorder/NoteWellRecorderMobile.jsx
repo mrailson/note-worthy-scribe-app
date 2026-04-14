@@ -402,7 +402,7 @@ function SyncProgressBar({ progress }) {
   );
 }
 
-function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing }) {
+function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const colors = {
@@ -419,6 +419,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
   const isOldAndDone = ageMs > 24 * 60 * 60 * 1000 && (rec.status === "transcribed" || rec.meetingId);
   const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
   const showExpandableActions = rec.status === "transcribed" && rec.meetingId;
+  const showTooShortActions = rec.status === "too_short";
 
   return (
     <div style={{background:"white",borderRadius:16,padding:"12px 14px",marginBottom:8,
@@ -470,7 +471,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
           {/* Expandable actions toggle for transcribed recordings */}
-          {showExpandableActions && (
+          {(showExpandableActions || showTooShortActions) && (
             <button onClick={()=>setActionsOpen(o=>!o)} style={{
               width:28,height:28,borderRadius:8,border:"1px solid rgba(21,101,192,0.15)",
               background:actionsOpen?"rgba(21,101,192,0.1)":"rgba(21,101,192,0.04)",
@@ -478,11 +479,11 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
               fontSize:14,color:"#1565c0",fontWeight:700,transition:"all 0.2s",
             }}>⋯</button>
           )}
-          {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
+          {(rec.status==="local"||rec.status==="error"||rec.status==="too_short"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
               padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
               background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
-            }}>{rec.status==="transcribed"?"⟳ Create Meeting":"↑ Sync"}</button>
+            }}>{rec.status==="transcribed"?"⟳ Create Meeting":rec.status==="too_short"?"⟳ Re-sync":"↑ Sync"}</button>
           )}
           {confirmDelete ? (
             <div style={{display:"flex",gap:4,alignItems:"center"}}>
@@ -513,19 +514,34 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
       </div>
 
       {/* Expandable actions panel */}
-      {showExpandableActions && actionsOpen && (
+      {(showExpandableActions || showTooShortActions) && actionsOpen && (
         <div style={{
           marginTop:8,padding:"8px 6px",borderRadius:10,
           background:"#f8fafc",border:"1px solid rgba(21,101,192,0.08)",
           display:"flex",gap:8,flexWrap:"wrap",
           animation:"fadeIn 0.15s ease-out",
         }}>
-          <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
+          {showExpandableActions && <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
             padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(245,158,11,0.4)",
             background:isRetranscribing?"rgba(245,158,11,0.15)":"rgba(245,158,11,0.08)",
             cursor:isRetranscribing?"not-allowed":"pointer",fontSize:11,color:"#b45309",fontWeight:700,fontFamily:"inherit",
             opacity:isRetranscribing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
-          }}>{isRetranscribing?"⏳ Processing…":"⟳ Reprocess"}</button>
+          }}>{isRetranscribing?"⏳ Processing…":"⟳ Reprocess"}</button>}
+
+          {showTooShortActions && <button onClick={()=>onForceRetry?.(rec)} disabled={isForceRetrying} style={{
+            padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.4)",
+            background:isForceRetrying?"rgba(21,101,192,0.15)":"linear-gradient(135deg, #1565c0, #0288d1)",
+            cursor:isForceRetrying?"not-allowed":"pointer",fontSize:11,color:"white",fontWeight:700,fontFamily:"inherit",
+            opacity:isForceRetrying?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
+            boxShadow:"0 2px 6px rgba(21,101,192,0.3)",
+          }}>{isForceRetrying?"⏳ Retrying…":"⟳ Force Retry"}</button>}
+
+          <button onClick={()=>onDownloadAudio?.(rec)} style={{
+            padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(22,163,74,0.4)",
+            background:"rgba(22,163,74,0.08)",
+            cursor:"pointer",fontSize:11,color:"#15803d",fontWeight:700,fontFamily:"inherit",
+            transition:"all 0.2s",whiteSpace:"nowrap",
+          }}>💾 Download</button>
 
           <button onClick={()=>onEmailAudio?.(rec)} disabled={isEmailing} style={{
             padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
@@ -537,6 +553,21 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
       )}
 
       {/* Cleanup reminder for old transcribed recordings */}
+
+      {/* Too short — help text */}
+      {showTooShortActions && !actionsOpen && (
+        <div style={{
+          marginTop:8,padding:"8px 10px",borderRadius:10,
+          background:"linear-gradient(135deg, #fef3c7, #fff7ed)",
+          border:"1px solid rgba(245,158,11,0.25)",
+          animation:"fadeIn 0.15s ease-out",
+        }}>
+          <div style={{fontSize:11,color:"#92400e",lineHeight:1.4}}>
+            ⚠️ Transcription returned too few words. Tap <strong>⋯</strong> for recovery options: Force Retry, Download, or Email the audio.
+          </div>
+        </div>
+      )}
+
       {isOldAndDone && (
         <div style={{
           marginTop:8, padding:"8px 10px", borderRadius:10,
@@ -630,6 +661,7 @@ export default function NoteWellRecorder() {
   const [storageWarning, setStorageWarning] = useState(null);
   const [retranscribingIds, setRetranscribingIds] = useState({});
   const [emailingIds, setEmailingIds] = useState({});
+  const [forceRetryingIds, setForceRetryingIds] = useState({});
   const [chunksCompleted, setChunksCompleted] = useState(0);
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
@@ -1149,11 +1181,15 @@ export default function NoteWellRecorder() {
 
         if (wordCount < 100) {
           console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
-          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
-          await dbPatch(rec.id, { status: "too_short" });
-          await refresh();
-          setSyncProgress(null);
-          return;
+          if (!rec.forceCreate) {
+            showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+            await dbPatch(rec.id, { status: "too_short" });
+            await refresh();
+            setSyncProgress(null);
+            return;
+          }
+          console.log("[Sync] Force create enabled — bypassing word count guard");
+          showToast(`Force creating meeting with ${wordCount} words…`, "info");
         }
 
         let durationMins = Math.round((rec.duration || 0) / 60);
@@ -1406,11 +1442,15 @@ export default function NoteWellRecorder() {
 
       if (wordCount < 100) {
         console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
-        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
-        await dbPatch(rec.id, { status: "too_short", transcript: fullTranscript });
-        await refresh();
-        setSyncProgress(null);
-        return;
+        if (!rec.forceCreate) {
+          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+          await dbPatch(rec.id, { status: "too_short", transcript: fullTranscript });
+          await refresh();
+          setSyncProgress(null);
+          return;
+        }
+        console.log("[Sync] Force create enabled — bypassing word count guard");
+        showToast(`Force creating meeting with ${wordCount} words…`, "info");
       }
 
       let durationMins = Math.round((rec.duration || 0) / 60);
@@ -1633,11 +1673,15 @@ export default function NoteWellRecorder() {
 
       if (wordCount < 100) {
         console.log(`[LegacySync] Recording too short (${wordCount} words) — skipping meeting creation`);
-        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
-        await dbPatch(rec.id, { status: "too_short", transcript: transcriptText });
-        await refresh();
-        setSyncProgress(null);
-        return;
+        if (!rec.forceCreate) {
+          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+          await dbPatch(rec.id, { status: "too_short", transcript: transcriptText });
+          await refresh();
+          setSyncProgress(null);
+          return;
+        }
+        console.log("[LegacySync] Force create enabled — bypassing word count guard");
+        showToast(`Force creating meeting with ${wordCount} words…`, "info");
       }
 
       const sessionId = crypto.randomUUID();
@@ -1700,6 +1744,54 @@ export default function NoteWellRecorder() {
   };
 
   const [deleteConfirm, setDeleteConfirm] = useState(null); // recording id pending delete
+
+  const retranscribeRecording = async (rec) => {
+
+  const forceRetryRecording = async (rec) => {
+    try {
+      setForceRetryingIds(prev => ({ ...prev, [rec.id]: true }));
+      showToast("Force retry — resetting and re-syncing…", "info");
+      // Reset status to 'local' so syncRecording re-uploads and re-transcribes
+      await dbPatch(rec.id, { status: "local", transcript: null, meetingId: null, forceCreate: true });
+      await refresh();
+      // Small delay then trigger sync
+      setTimeout(async () => {
+        const freshRecs = await dbGetAll();
+        const freshRec = freshRecs.find(r => r.id === rec.id);
+        if (freshRec) {
+          await syncRecording(freshRec);
+        }
+        setForceRetryingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
+      }, 500);
+    } catch (err) {
+      console.error("Force retry failed:", err);
+      showToast("Force retry failed: " + (err.message || "Unknown error"), "error");
+      setForceRetryingIds(prev => { const n = { ...prev }; delete n[rec.id]; return n; });
+    }
+  };
+
+  const downloadAudioRecording = (rec) => {
+    try {
+      const chunks = rec.chunks || [];
+      const audioData = rec.audioData;
+      if (chunks.length === 0 && !audioData) { showToast("No audio data found", "error"); return; }
+      const parts = chunks.length > 0
+        ? chunks.map(ch => new Blob([ch.arrayBuffer], { type: ch.mimeType || rec.mimeType }))
+        : [new Blob([audioData], { type: rec.mimeType })];
+      const merged = new Blob(parts, { type: rec.mimeType || "audio/webm" });
+      const ext = (rec.mimeType || "").includes("mp4") ? "m4a" : (rec.mimeType || "").includes("ogg") ? "ogg" : "webm";
+      const safeName = (rec.title || "recording").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const url = URL.createObjectURL(merged);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${safeName}.${ext}`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Audio downloaded ✓", "success");
+    } catch (err) {
+      console.error("Download failed:", err);
+      showToast("Download failed: " + (err.message || "Unknown error"), "error");
+    }
+  };
 
   const retranscribeRecording = async (rec) => {
     if (!rec.meetingId) return;
@@ -2179,7 +2271,9 @@ export default function NoteWellRecorder() {
                 onDelete={deleteRecording} onSync={syncRecording}
                 onPlay={playRecording} isPlaying={playingId===r.id}
                 onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]}
-                onEmailAudio={emailAudioRecording} isEmailing={!!emailingIds[r.id]} />
+                onEmailAudio={emailAudioRecording} isEmailing={!!emailingIds[r.id]}
+                onForceRetry={forceRetryRecording} isForceRetrying={!!forceRetryingIds[r.id]}
+                onDownloadAudio={downloadAudioRecording} />
             ))}
 
             {/* My Meetings card */}
