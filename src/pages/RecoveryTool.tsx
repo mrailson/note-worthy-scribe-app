@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { listAllSessions, getSegments, updateSession, deleteSession, type BackupSession, type BackupSegment } from '@/utils/offlineAudioStore';
-
-/**
- * Emergency IndexedDB Recovery Tool
- * 
- * Scans both IndexedDB databases used by the recorder:
- *  1. "offline-backups" — sessions + segments (offlineAudioStore)
- *  2. "notewell_recording_recovery" — audio_chunks (recordingSessionPersistence)
- * 
- * Allows inspecting, downloading, and force-uploading stranded recordings.
- */
+import { listAllSessions, getSegments, updateSession, type BackupSession, type BackupSegment } from '@/utils/offlineAudioStore';
 
 interface RecoveryChunk {
   id: number;
@@ -19,24 +9,45 @@ interface RecoveryChunk {
   timestamp: number;
 }
 
+interface MobileRecordingChunk {
+  index: number;
+  arrayBuffer: ArrayBuffer;
+  mimeType?: string;
+  durationMs?: number;
+}
+
+interface MobileRecording {
+  id: string;
+  title?: string;
+  createdAt: number | string;
+  duration?: number;
+  size?: number;
+  mimeType?: string;
+  audioData?: ArrayBuffer;
+  chunks?: MobileRecordingChunk[];
+  chunkCount?: number;
+  status?: string;
+  capturedLiveTranscript?: string;
+  meetingId?: string;
+}
+
 interface RecoveryDBSession {
-  source: 'offline-backups' | 'notewell_recording_recovery';
+  source: 'offline-backups' | 'notewell_recording_recovery' | 'notewell_recordings_v1';
   sessionId: string;
   session?: BackupSession;
   segments?: BackupSegment[];
   chunks?: RecoveryChunk[];
+  mobileRecording?: MobileRecording;
   totalSize: number;
   totalDuration: number;
   createdAt: string;
 }
 
-// Read all from notewell_recording_recovery DB
 async function readRecoveryDB(): Promise<RecoveryChunk[]> {
   return new Promise((resolve) => {
     const request = indexedDB.open('notewell_recording_recovery', 1);
     request.onerror = () => resolve([]);
     request.onupgradeneeded = () => {
-      // DB doesn't exist yet, nothing to recover
       request.result.close();
       resolve([]);
     };
@@ -62,6 +73,56 @@ async function readRecoveryDB(): Promise<RecoveryChunk[]> {
   });
 }
 
+async function readMobileRecorderDB(): Promise<MobileRecording[]> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('notewell_recordings_v1', 1);
+    request.onerror = () => resolve([]);
+    request.onupgradeneeded = () => {
+      request.result.close();
+      resolve([]);
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('recordings')) {
+        db.close();
+        resolve([]);
+        return;
+      }
+      const tx = db.transaction('recordings', 'readonly');
+      const store = tx.objectStore('recordings');
+      const getAll = store.getAll();
+      getAll.onsuccess = () => {
+        db.close();
+        resolve((getAll.result || []) as MobileRecording[]);
+      };
+      getAll.onerror = () => {
+        db.close();
+        resolve([]);
+      };
+    };
+  });
+}
+
+function buildMobileRecordingBlobs(recording: MobileRecording): { blobs: Blob[]; mimeType: string } {
+  if (Array.isArray(recording.chunks) && recording.chunks.length > 0) {
+    const mimeType = recording.mimeType || recording.chunks[0]?.mimeType || 'audio/webm';
+    return {
+      blobs: recording.chunks.map((chunk) => new Blob([chunk.arrayBuffer], { type: chunk.mimeType || mimeType })),
+      mimeType,
+    };
+  }
+
+  if (recording.audioData) {
+    const mimeType = recording.mimeType || 'audio/webm';
+    return {
+      blobs: [new Blob([recording.audioData], { type: mimeType })],
+      mimeType,
+    };
+  }
+
+  return { blobs: [], mimeType: recording.mimeType || 'audio/webm' };
+}
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -79,6 +140,42 @@ function formatDuration(seconds: number): string {
   return `${s}s`;
 }
 
+function getSessionBlobs(s: RecoveryDBSession): { blobs: Blob[]; mimeType: string } {
+  if (s.source === 'offline-backups' && s.segments) {
+    return {
+      blobs: s.segments.map((seg) => seg.blob),
+      mimeType: s.session?.format || 'audio/webm',
+    };
+  }
+
+  if (s.source === 'notewell_recording_recovery' && s.chunks) {
+    return {
+      blobs: s.chunks.map((chunk) => chunk.chunk),
+      mimeType: 'audio/webm',
+    };
+  }
+
+  if (s.source === 'notewell_recordings_v1' && s.mobileRecording) {
+    return buildMobileRecordingBlobs(s.mobileRecording);
+  }
+
+  return { blobs: [], mimeType: 'audio/webm' };
+}
+
+function getSessionTitle(s: RecoveryDBSession): string {
+  return s.session?.title || s.mobileRecording?.title || `Session ${s.sessionId.slice(0, 8)}...`;
+}
+
+function getSessionStatus(s: RecoveryDBSession): string {
+  return s.session?.status || s.mobileRecording?.status || 'unknown';
+}
+
+function getSourceLabel(source: RecoveryDBSession['source']): string {
+  if (source === 'offline-backups') return '📦 Offline Backups DB';
+  if (source === 'notewell_recordings_v1') return '📱 iPhone Offline Recorder DB';
+  return '🔄 Recovery DB';
+}
+
 export default function RecoveryToolPage() {
   const [sessions, setSessions] = useState<RecoveryDBSession[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -90,7 +187,6 @@ export default function RecoveryToolPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
-    // Check localStorage for active recording session
     try {
       const raw = localStorage.getItem('notewell_active_recording');
       if (raw) setLsSession(JSON.parse(raw));
@@ -101,7 +197,6 @@ export default function RecoveryToolPage() {
     setScanning(true);
     const found: RecoveryDBSession[] = [];
 
-    // 1. Scan offline-backups (offlineAudioStore)
     try {
       const allSessions = await listAllSessions();
       for (const session of allSessions) {
@@ -122,11 +217,9 @@ export default function RecoveryToolPage() {
       console.warn('Failed to scan offline-backups:', err);
     }
 
-    // 2. Scan notewell_recording_recovery
     try {
       const chunks = await readRecoveryDB();
       if (chunks.length > 0) {
-        // Group by sessionId
         const grouped: Record<string, RecoveryChunk[]> = {};
         for (const chunk of chunks) {
           const sid = chunk.sessionId || 'unknown';
@@ -142,7 +235,7 @@ export default function RecoveryToolPage() {
             chunks: sorted,
             totalSize,
             totalDuration: 0,
-            createdAt: sorted[0]?.timestamp ? new Date(sorted[0].timestamp).toISOString() : 'Unknown',
+            createdAt: sorted[0]?.timestamp ? new Date(sorted[0].timestamp).toISOString() : new Date().toISOString(),
           });
         }
       }
@@ -150,21 +243,33 @@ export default function RecoveryToolPage() {
       console.warn('Failed to scan notewell_recording_recovery:', err);
     }
 
+    try {
+      const mobileRecordings = await readMobileRecorderDB();
+      for (const recording of mobileRecordings) {
+        const { blobs } = buildMobileRecordingBlobs(recording);
+        const totalSize = recording.size || blobs.reduce((sum, blob) => sum + blob.size, 0);
+        const totalDuration = recording.duration || 0;
+        found.push({
+          source: 'notewell_recordings_v1',
+          sessionId: recording.id,
+          mobileRecording: recording,
+          totalSize,
+          totalDuration,
+          createdAt: new Date(recording.createdAt).toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to scan notewell_recordings_v1:', err);
+    }
+
+    found.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     setSessions(found);
     setScanned(true);
     setScanning(false);
   }, []);
 
   const downloadSession = useCallback(async (s: RecoveryDBSession) => {
-    let blobs: Blob[] = [];
-    let mimeType = 'audio/webm';
-
-    if (s.source === 'offline-backups' && s.segments) {
-      blobs = s.segments.map(seg => seg.blob);
-      mimeType = s.session?.format || 'audio/webm';
-    } else if (s.chunks) {
-      blobs = s.chunks.map(c => c.chunk);
-    }
+    const { blobs, mimeType } = getSessionBlobs(s);
 
     if (blobs.length === 0) {
       alert('No audio data found for this session.');
@@ -191,24 +296,14 @@ export default function RecoveryToolPage() {
     setUploadStatus(prev => ({ ...prev, [s.sessionId]: 'Preparing upload...' }));
 
     try {
-      let blobs: Blob[] = [];
-      let mimeType = 'audio/webm';
-
-      if (s.source === 'offline-backups' && s.segments) {
-        blobs = s.segments.map(seg => seg.blob);
-        mimeType = s.session?.format || 'audio/webm';
-      } else if (s.chunks) {
-        blobs = s.chunks.map(c => c.chunk);
-      }
+      const { blobs, mimeType } = getSessionBlobs(s);
 
       if (blobs.length === 0) {
         throw new Error('No audio data found');
       }
 
-      // Create a meeting record first
-      const now = new Date().toISOString();
-      const title = s.session?.title || `Recovered Recording ${new Date(s.createdAt).toLocaleDateString('en-GB')}`;
-      
+      const title = getSessionTitle(s) || `Recovered Recording ${new Date(s.createdAt).toLocaleDateString('en-GB')}`;
+
       setUploadStatus(prev => ({ ...prev, [s.sessionId]: 'Creating meeting record...' }));
 
       const { data: meeting, error: meetingError } = await supabase
@@ -229,7 +324,6 @@ export default function RecoveryToolPage() {
       const meetingId = meeting.id;
       const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm';
 
-      // Upload each segment as a backup
       for (let i = 0; i < blobs.length; i++) {
         setUploadStatus(prev => ({ ...prev, [s.sessionId]: `Uploading segment ${i + 1}/${blobs.length}...` }));
         const storagePath = `${user.id}/${meetingId}/backup-segment-${i}.${ext}`;
@@ -241,13 +335,9 @@ export default function RecoveryToolPage() {
             upsert: true,
           });
 
-        if (uploadError) {
-          console.error(`Upload failed for segment ${i}:`, uploadError);
-          throw uploadError;
-        }
+        if (uploadError) throw uploadError;
       }
 
-      // Insert backup metadata
       const totalSize = blobs.reduce((sum, b) => sum + b.size, 0);
       setUploadStatus(prev => ({ ...prev, [s.sessionId]: 'Saving metadata...' }));
 
@@ -260,7 +350,6 @@ export default function RecoveryToolPage() {
         backup_reason: 'emergency_recovery',
       });
 
-      // If this was from offline-backups, update the session status
       if (s.source === 'offline-backups') {
         await updateSession(s.sessionId, { status: 'completed', meetingId });
       }
@@ -275,22 +364,21 @@ export default function RecoveryToolPage() {
   }, [user]);
 
   return (
-    <div style={{ 
-      padding: '16px', 
-      maxWidth: 600, 
-      margin: '0 auto', 
+    <div style={{
+      padding: '16px',
+      maxWidth: 600,
+      margin: '0 auto',
       fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
       color: '#1a1a2e'
     }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>🔧 Recording Recovery Tool</h1>
       <p style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
-        Scans IndexedDB for stranded offline recordings that weren't synced to the server.
+        Scans IndexedDB for stranded offline recordings that were not synced to the server.
       </p>
 
-      {/* Auth status */}
-      <div style={{ 
-        padding: '10px 14px', 
-        borderRadius: 8, 
+      <div style={{
+        padding: '10px 14px',
+        borderRadius: 8,
         marginBottom: 16,
         fontSize: 13,
         background: user ? '#e8f5e9' : '#fff3e0',
@@ -303,11 +391,10 @@ export default function RecoveryToolPage() {
         )}
       </div>
 
-      {/* localStorage session */}
       {lsSession && (
-        <div style={{ 
-          padding: '10px 14px', 
-          borderRadius: 8, 
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: 8,
           marginBottom: 16,
           fontSize: 13,
           background: '#e3f2fd',
@@ -324,7 +411,6 @@ export default function RecoveryToolPage() {
         </div>
       )}
 
-      {/* Scan button */}
       <button
         onClick={scan}
         disabled={scanning}
@@ -344,11 +430,10 @@ export default function RecoveryToolPage() {
         {scanning ? '🔍 Scanning IndexedDB...' : scanned ? '🔄 Re-scan IndexedDB' : '🔍 Scan for Lost Recordings'}
       </button>
 
-      {/* Results */}
       {scanned && sessions.length === 0 && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: 30, 
+        <div style={{
+          textAlign: 'center',
+          padding: 30,
           color: '#999',
           background: '#f5f5f5',
           borderRadius: 10,
@@ -356,109 +441,117 @@ export default function RecoveryToolPage() {
           <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
           <div style={{ fontSize: 14 }}>No recordings found in IndexedDB on this device.</div>
           <div style={{ fontSize: 12, marginTop: 8, color: '#aaa' }}>
-            Make sure you're using the same browser that was used to record.
+            Make sure you are using the same browser that was used to record.
           </div>
         </div>
       )}
 
-      {sessions.map((s) => (
-        <div
-          key={`${s.source}-${s.sessionId}`}
-          style={{
-            border: '1px solid #e0e0e0',
-            borderRadius: 10,
-            padding: 14,
-            marginBottom: 12,
-            background: '#fafafa',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>
-                {s.session?.title || `Session ${s.sessionId.slice(0, 8)}...`}
+      {sessions.map((s) => {
+        const status = getSessionStatus(s);
+        const segmentCount = s.segments?.length || s.chunks?.length || s.mobileRecording?.chunkCount || s.mobileRecording?.chunks?.length || 0;
+
+        return (
+          <div
+            key={`${s.source}-${s.sessionId}`}
+            style={{
+              border: '1px solid #e0e0e0',
+              borderRadius: 10,
+              padding: 14,
+              marginBottom: 12,
+              background: '#fafafa',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  {getSessionTitle(s)}
+                </div>
+                <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+                  Source: {getSourceLabel(s.source)}
+                </div>
               </div>
-              <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
-                Source: {s.source === 'offline-backups' ? '📦 Offline Backups DB' : '🔄 Recovery DB'}
+              <span style={{
+                fontSize: 11,
+                padding: '2px 8px',
+                borderRadius: 4,
+                background: status === 'completed' || status === 'transcribed' ? '#e8f5e9' : '#fff3e0',
+                color: status === 'completed' || status === 'transcribed' ? '#2e7d32' : '#e65100',
+                fontWeight: 600,
+              }}>
+                {status}
+              </span>
+            </div>
+
+            <div style={{ fontSize: 12, color: '#555', lineHeight: 1.8 }}>
+              <div>📅 Created: {new Date(s.createdAt).toLocaleString('en-GB')}</div>
+              <div>📊 Segments: {segmentCount}</div>
+              <div>💾 Size: {formatBytes(s.totalSize)}</div>
+              {s.totalDuration > 0 && <div>⏱️ Duration: {formatDuration(s.totalDuration)}</div>}
+              {s.session?.format && <div>🎵 Format: {s.session.format}</div>}
+              {s.mobileRecording?.mimeType && <div>🎵 Format: {s.mobileRecording.mimeType}</div>}
+              {s.session?.meetingId && <div>🔗 Meeting ID: {s.session.meetingId}</div>}
+              {s.mobileRecording?.meetingId && <div>🔗 Meeting ID: {s.mobileRecording.meetingId}</div>}
+              {s.session?.userId && <div>👤 User ID: {s.session.userId}</div>}
+              {s.mobileRecording?.capturedLiveTranscript && (
+                <div>📝 Live transcript rescue: {s.mobileRecording.capturedLiveTranscript.split(/\s+/).filter(Boolean).length} words</div>
+              )}
+            </div>
+
+            {uploadStatus[s.sessionId] && (
+              <div style={{
+                marginTop: 8,
+                padding: '6px 10px',
+                borderRadius: 6,
+                fontSize: 12,
+                background: uploadStatus[s.sessionId].startsWith('✅') ? '#e8f5e9'
+                  : uploadStatus[s.sessionId].startsWith('❌') ? '#fce4ec'
+                  : '#e3f2fd',
+              }}>
+                {uploadStatus[s.sessionId]}
               </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                onClick={() => downloadSession(s)}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: '1px solid #1a73e8',
+                  background: '#fff',
+                  color: '#1a73e8',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                ⬇️ Download
+              </button>
+              <button
+                onClick={() => uploadSession(s)}
+                disabled={!user || uploadingId === s.sessionId}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: !user ? '#ccc' : '#1a73e8',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: !user ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {uploadingId === s.sessionId ? '⏳ Uploading...' : '☁️ Upload'}
+              </button>
             </div>
-            <span style={{
-              fontSize: 11,
-              padding: '2px 8px',
-              borderRadius: 4,
-              background: s.session?.status === 'completed' ? '#e8f5e9' : '#fff3e0',
-              color: s.session?.status === 'completed' ? '#2e7d32' : '#e65100',
-              fontWeight: 600,
-            }}>
-              {s.session?.status || 'unknown'}
-            </span>
           </div>
-
-          <div style={{ fontSize: 12, color: '#555', lineHeight: 1.8 }}>
-            <div>📅 Created: {new Date(s.createdAt).toLocaleString('en-GB')}</div>
-            <div>📊 Segments: {s.segments?.length || s.chunks?.length || 0}</div>
-            <div>💾 Size: {formatBytes(s.totalSize)}</div>
-            {s.totalDuration > 0 && <div>⏱️ Duration: {formatDuration(s.totalDuration)}</div>}
-            {s.session?.format && <div>🎵 Format: {s.session.format}</div>}
-            {s.session?.meetingId && <div>🔗 Meeting ID: {s.session.meetingId}</div>}
-            {s.session?.userId && <div>👤 User ID: {s.session.userId}</div>}
-          </div>
-
-          {/* Upload status */}
-          {uploadStatus[s.sessionId] && (
-            <div style={{ 
-              marginTop: 8, 
-              padding: '6px 10px', 
-              borderRadius: 6, 
-              fontSize: 12,
-              background: uploadStatus[s.sessionId].startsWith('✅') ? '#e8f5e9' 
-                : uploadStatus[s.sessionId].startsWith('❌') ? '#fce4ec' 
-                : '#e3f2fd',
-            }}>
-              {uploadStatus[s.sessionId]}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <button
-              onClick={() => downloadSession(s)}
-              style={{
-                flex: 1,
-                padding: '10px',
-                borderRadius: 8,
-                border: '1px solid #1a73e8',
-                background: '#fff',
-                color: '#1a73e8',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              ⬇️ Download
-            </button>
-            <button
-              onClick={() => uploadSession(s)}
-              disabled={!user || uploadingId === s.sessionId}
-              style={{
-                flex: 1,
-                padding: '10px',
-                borderRadius: 8,
-                border: 'none',
-                background: !user ? '#ccc' : '#1a73e8',
-                color: '#fff',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: !user ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {uploadingId === s.sessionId ? '⏳ Uploading...' : '☁️ Upload'}
-            </button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       <div style={{ marginTop: 24, fontSize: 11, color: '#aaa', textAlign: 'center', paddingBottom: 40 }}>
-        This tool reads data directly from this browser's IndexedDB. It must be run on the same device and browser that was used to record.
+        This tool reads data directly from this browser&rsquo;s IndexedDB. It must be run on the same device and browser that was used to record.
       </div>
     </div>
   );
