@@ -72,7 +72,8 @@ export function ClaimsHistory({
   claims, practices, role, evidence, auditLog, saving,
   getAction, canQuery, onAdvanceStatus, onResubmit, onQuery, onExpandClaim,
 }: ClaimsHistoryProps) {
-  const [statusFilter, setStatusFilter] = useState('all');
+  const defaultFilter = role === 'approver' ? 'awaiting_pml_approval' : role === 'finance' ? 'finance_pipeline' : 'all';
+  const [statusFilter, setStatusFilter] = useState(defaultFilter);
   const [practiceFilter, setPracticeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -81,6 +82,9 @@ export function ClaimsHistory({
 
   const filtered = useMemo(() => {
     return claims.filter(c => {
+      // Check grouped filters first
+      const groupedStatuses = GROUPED_FILTERS[statusFilter];
+      if (groupedStatuses) return groupedStatuses.includes(c.status);
       if (statusFilter === 'in_progress') return IN_PROGRESS.includes(c.status);
       if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       if (practiceFilter !== 'all' && c.practice_id !== practiceFilter) return false;
