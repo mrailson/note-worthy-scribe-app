@@ -158,6 +158,29 @@ export function NRESClaimsOversight() {
         )}
       </nav>
 
+      {/* TEST mode role switcher — super_admin only */}
+      {isSuperAdmin && (
+        <div className="bg-amber-50 border-b border-amber-200 px-5 py-1.5 flex items-center gap-2">
+          <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1">
+            🧪 TEST
+          </span>
+          {TEST_ROLES.map(r => (
+            <button
+              key={r.value}
+              onClick={() => setTestRoleOverride(testRoleOverride === r.value ? null : r.value)}
+              className="px-2.5 py-1 rounded-full border-none text-[10px] font-semibold cursor-pointer transition-all"
+              style={
+                effectiveRole === r.value
+                  ? { background: '#005eb8', color: '#fff' }
+                  : { background: '#fff', color: '#64748b', border: '1px solid #e2e8f0' }
+              }
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       <main className="max-w-[1100px] mx-auto px-4 py-5 pb-16">
         {(view === 'dashboard' || view === 'claims') && (
