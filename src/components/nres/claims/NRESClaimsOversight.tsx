@@ -32,10 +32,15 @@ export function NRESClaimsOversight() {
 
   // Filter claims for practice role
   const visibleClaims = useMemo(() => {
+    let filtered = claims;
     if (claimsRole === 'practice') {
-      return claims.filter(c => c.practice_id === effectivePracticeId);
+      filtered = claims.filter(c => c.practice_id === effectivePracticeId);
+    } else if (claimsRole === 'approver') {
+      filtered = claims.filter(c => ['verified', 'approved', 'invoice_created', 'scheduled', 'paid'].includes(c.status));
+    } else if (claimsRole === 'finance') {
+      filtered = claims.filter(c => ['approved', 'invoice_created', 'scheduled', 'paid'].includes(c.status));
     }
-    return claims;
+    return filtered;
   }, [claims, claimsRole, effectivePracticeId]);
 
   const showCreateTab = claimsRole === 'practice' || claimsRole === 'super_admin';
