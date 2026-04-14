@@ -12,6 +12,7 @@ import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 import { Loader2 } from "lucide-react";
 
 // Lazy-load all pages to reduce initial bundle size
+const RecoveryTool = lazy(() => import("./pages/RecoveryTool"));
 const Index = lazy(() => import("./pages/Index"));
 const AI4GP = lazy(() => import("./pages/AI4GP"));
 const VoiceAgent = lazy(() => import("./pages/VoiceAgent"));
