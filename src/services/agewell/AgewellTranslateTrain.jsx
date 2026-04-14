@@ -1478,6 +1478,9 @@ function HomeScreen({onSelect}){
         ))}
       </div>
 
+      {/* ElevenLabs Voice Agent Widget */}
+      <AgewellVoiceWidget />
+
       {/* Badge */}
       <div style={{display:"inline-flex",alignItems:"center",gap:6,background:T.tealLight,
         border:`1px solid ${T.tealBorder}`,borderRadius:20,padding:"3px 12px"}}>
