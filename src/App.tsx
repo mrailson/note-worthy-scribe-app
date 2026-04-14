@@ -278,6 +278,7 @@ const App = () => {
                 <Route path="/patient-language" element={<PatientLanguageSelection />} />
                 <Route path="/gp-genie" element={<GPGenie />} />
                 <Route path="/new-recorder" element={<NewRecorder />} />
+                <Route path="/recovery-tool" element={<RecoveryTool />} />
                 <Route path="/ai4pm" element={
                   <ProtectedRoute requiredModule="enhanced_access">
                     <AI4PMService />
