@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { BuyBackPMLDashboard } from './BuyBackPMLDashboard';
 import { BuyBackPracticeDashboard } from './BuyBackPracticeDashboard';
+import { BuyBackVerifierDashboard } from './BuyBackVerifierDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportClaimsDetail } from '@/utils/buybackExcelExport';
@@ -752,6 +753,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     return false;
   })();
 
+  // Determine if the Verifier Dashboard should be shown
+  const showVerifierDashboard = (() => {
+    if (testActive && testMode.role === 'mgmt_lead') return true;
+    if (!testActive && isManagementLead && !isSuperAdmin && !isPMLDirector && !isPMLFinance) return true;
+    return false;
+  })();
+
   const pmlDashboardView = testActive
     ? (testMode.role === 'pml_finance' ? 'finance' : 'director')
     : (isPMLFinance ? 'finance' : 'director');
@@ -775,6 +783,27 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             // Resubmit queried claim
             submitClaim(id);
           }}
+          savingClaim={savingClaim}
+        />
+      </div>
+    );
+  }
+
+  if (showVerifierDashboard) {
+    return (
+      <div className="space-y-6">
+        {isAdmin && (
+          <TestModeBar
+            state={testMode}
+            onChange={setTestMode}
+            practiceKeys={ALL_PRACTICE_KEYS}
+            practiceNames={ALL_PRACTICES}
+          />
+        )}
+        <BuyBackVerifierDashboard
+          claims={accessFilteredClaims}
+          onVerify={verifyClaim}
+          onReturnToPractice={(id, notes) => queryClaim(id, notes)}
           savingClaim={savingClaim}
         />
       </div>
