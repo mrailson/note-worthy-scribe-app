@@ -16,6 +16,7 @@ export interface BuyBackClaim {
   practice_id: string | null;
   practice_key: string | null;
   claim_month: string;
+  claim_type: 'buyback' | 'additional';
   staff_details: any[];
   calculated_amount: number;
   claimed_amount: number;
