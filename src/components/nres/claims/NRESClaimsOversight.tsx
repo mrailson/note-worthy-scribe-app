@@ -1,28 +1,43 @@
 import { useState, useMemo } from 'react';
-import { useNRESClaims } from '@/hooks/useNRESClaims';
+import { useNRESClaims, type ClaimsRole } from '@/hooks/useNRESClaims';
 import { ClaimsSummaryCards } from './ClaimsSummaryCards';
 import { CreateClaimPanel } from './CreateClaimPanel';
 import { ClaimsHistory } from './ClaimsHistory';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FlaskConical } from 'lucide-react';
+import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 
 const ROLE_DISPLAY = [
   { key: 'super_admin', label: 'Super Admin', icon: '🛡️' },
   { key: 'practice', label: 'Practice', icon: '🏥' },
-  { key: 'verifier', label: 'Verifier', icon: '✅' },
-  { key: 'approver', label: 'Approver', icon: '👨‍⚕️' },
-  { key: 'finance', label: 'PML Finance', icon: '💷' },
+  { key: 'verifier', label: 'Mgmt Lead', icon: '📋' },
+  { key: 'approver', label: 'PML Director', icon: '✅' },
+  { key: 'finance', label: 'PML Finance', icon: '💰' },
 ] as const;
+
+const TEST_ROLES: { value: ClaimsRole; label: string }[] = [
+  { value: 'super_admin', label: 'Admin' },
+  { value: 'practice', label: 'Practice' },
+  { value: 'verifier', label: 'Mgmt Lead' },
+  { value: 'approver', label: 'PML Director' },
+  { value: 'finance', label: 'PML Finance' },
+];
 
 export function NRESClaimsOversight() {
   const {
     claims, practices, evidence, auditLog, loading, saving,
-    claimsRole, userEmail,
+    claimsRole: actualRole, userEmail,
     createClaimLine, declareAndSubmit, advanceStatus,
     raiseQuery, resubmitQueried,
     fetchEvidence, fetchAuditLog,
     getAction, canQuery,
   } = useNRESClaims();
+
+  const { isSuperAdmin } = useNRESSystemRoles();
+  const [testRoleOverride, setTestRoleOverride] = useState<ClaimsRole | null>(null);
+
+  // Only super_admin can use the test mode role switcher
+  const effectiveRole: ClaimsRole = (isSuperAdmin && testRoleOverride) ? testRoleOverride : actualRole;
 
   const [view, setView] = useState<'dashboard' | 'create' | 'claims'>('dashboard');
   const [selectedPracticeId, setSelectedPracticeId] = useState<string>('');
@@ -30,23 +45,23 @@ export function NRESClaimsOversight() {
   // Default to first practice if none selected
   const effectivePracticeId = selectedPracticeId || (practices.length > 0 ? practices[0].id : '');
 
-  // Filter claims for practice role
+  // Filter claims based on effective role
   const visibleClaims = useMemo(() => {
     let filtered = claims;
-    if (claimsRole === 'practice') {
+    if (effectiveRole === 'practice') {
       filtered = claims.filter(c => c.practice_id === effectivePracticeId);
-    } else if (claimsRole === 'verifier') {
+    } else if (effectiveRole === 'verifier') {
       filtered = claims.filter(c => ['submitted', 'verified', 'approved', 'invoice_created', 'scheduled', 'paid'].includes(c.status));
-    } else if (claimsRole === 'approver') {
+    } else if (effectiveRole === 'approver') {
       filtered = claims.filter(c => ['verified', 'approved', 'invoice_created', 'scheduled', 'paid'].includes(c.status));
-    } else if (claimsRole === 'finance') {
+    } else if (effectiveRole === 'finance') {
       filtered = claims.filter(c => ['approved', 'invoice_created', 'scheduled', 'paid'].includes(c.status));
     }
     return filtered;
-  }, [claims, claimsRole, effectivePracticeId]);
+  }, [claims, effectiveRole, effectivePracticeId]);
 
-  const showCreateTab = claimsRole === 'practice' || claimsRole === 'super_admin';
-  const showPracticeSelector = claimsRole === 'practice' || claimsRole === 'super_admin';
+  const showCreateTab = effectiveRole === 'practice' || effectiveRole === 'super_admin';
+  const showPracticeSelector = effectiveRole === 'practice' || effectiveRole === 'super_admin';
 
   const handleCreateAndSubmit = async (entry: Parameters<typeof createClaimLine>[0]) => {
     const result = await createClaimLine(entry);
