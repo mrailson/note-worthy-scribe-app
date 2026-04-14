@@ -1153,9 +1153,102 @@ export default function NoteWellRecorder() {
     }
   };
 
+  // ── Offline sync helpers ────────────────────────────────────────────────
+  const getChunkFileExtension = (mimeType = "") => {
+    const normalized = String(mimeType).toLowerCase();
+    if (normalized.includes("mp4") || normalized.includes("m4a") || normalized.includes("aac")) return "m4a";
+    if (normalized.includes("ogg")) return "ogg";
+    return "webm";
+  };
+
+  const removeChunkTextOverlap = (currentTranscript, previousTranscript, chunkNumber) => {
+    if (!currentTranscript || !previousTranscript) return currentTranscript;
+
+    const currentWords = currentTranscript.split(/\s+/).filter(Boolean);
+    const previousWords = previousTranscript.split(/\s+/).filter(Boolean);
+    const previousTail = previousWords.slice(-80).map(word => word.toLowerCase());
+    const previousTailStr = previousTail.join(" ");
+    const searchWindow = Math.min(50, currentWords.length);
+
+    let overlapEndIndex = 0;
+
+    for (let phraseLength = Math.min(30, searchWindow); phraseLength >= 8; phraseLength--) {
+      for (let startIndex = 0; startIndex <= searchWindow - phraseLength; startIndex++) {
+        const phrase = currentWords
+          .slice(startIndex, startIndex + phraseLength)
+          .map(word => word.toLowerCase())
+          .join(" ");
+
+        if (previousTailStr.includes(phrase)) {
+          overlapEndIndex = startIndex + phraseLength;
+          console.log(`[Sync] Chunk ${chunkNumber}: removed ${phraseLength}-word overlap at position ${startIndex}`);
+          break;
+        }
+      }
+
+      if (overlapEndIndex > 0) break;
+    }
+
+    return overlapEndIndex > 0
+      ? currentWords.slice(overlapEndIndex).join(" ")
+      : currentTranscript;
+  };
+
+  const stitchChunkTranscripts = (chunks) => {
+    const orderedChunks = (chunks || [])
+      .filter(chunk => chunk?.text)
+      .sort((a, b) => a.index - b.index);
+
+    if (orderedChunks.length === 0) return "";
+
+    const stitched = [orderedChunks[0].text.trim()];
+
+    for (let i = 1; i < orderedChunks.length; i++) {
+      const deduplicated = removeChunkTextOverlap(
+        orderedChunks[i].text,
+        stitched[stitched.length - 1],
+        orderedChunks[i].index
+      ).trim();
+
+      if (deduplicated) stitched.push(deduplicated);
+    }
+
+    return stitched.join(" ").replace(/\s+/g, " ").trim();
+  };
+
+  const persistUploadedChunkMetadata = async (meetingId, uploadedChunks, recordingCreatedAt) => {
+    if (!meetingId || !uploadedChunks?.length) return;
+
+    try {
+      const recordingStartMs = new Date(recordingCreatedAt).getTime();
+      if (Number.isNaN(recordingStartMs)) {
+        console.warn("[Sync] Could not persist audio chunk metadata — invalid recording start time");
+        return;
+      }
+
+      const rows = uploadedChunks.map(chunk => ({
+        meeting_id: meetingId,
+        chunk_number: chunk.index,
+        audio_blob_path: chunk.storagePath,
+        file_size: chunk.sizeBytes,
+        original_file_size: chunk.sizeBytes,
+        chunk_duration_ms: chunk.durationMs,
+        processing_status: "uploaded",
+        start_time: new Date(recordingStartMs + (chunk.startTimeMs || 0)).toISOString(),
+        end_time: new Date(recordingStartMs + (chunk.endTimeMs || chunk.startTimeMs || 0)).toISOString(),
+      }));
+
+      const { error } = await supabase.from("audio_chunks").insert(rows);
+      if (error) {
+        console.warn("[Sync] Failed to persist audio chunk metadata:", error);
+      }
+    } catch (error) {
+      console.warn("[Sync] Audio chunk metadata persistence failed:", error);
+    }
+  };
+
   // ── Sync (chunked) ───────────────────────────────────────────────────────
   const syncRecording = async (rec) => {
-    // Check authentication first
     let user = null;
     try {
       const { data: { session } } = await supabase.auth.refreshSession();
@@ -1173,7 +1266,6 @@ export default function NoteWellRecorder() {
       return;
     }
 
-    // If already transcribed but meeting wasn't created, skip upload/transcription
     if (rec.status === "transcribed" && rec.transcript && !rec.meetingId) {
       console.log("[Sync] Resuming meeting creation for already-transcribed recording");
       try {
@@ -1202,12 +1294,19 @@ export default function NoteWellRecorder() {
           .from("meetings")
           .insert({
             title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-            user_id: user.id, status: "completed", meeting_type: "general",
-            start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
-            duration_minutes: durationMins, word_count: wordCount,
-            import_source: mode === "live" ? "mobile_live" : "mobile_offline", whisper_transcript_text: rec.transcript,
+            user_id: user.id,
+            status: "completed",
+            meeting_type: "general",
+            start_time: new Date(rec.createdAt).toISOString(),
+            end_time: new Date().toISOString(),
+            duration_minutes: durationMins,
+            word_count: wordCount,
+            import_source: mode === "live" ? "mobile_live" : "mobile_offline",
+            whisper_transcript_text: rec.transcript,
             primary_transcript_source: "whisper",
-          }).select("id").single();
+          })
+          .select("id")
+          .single();
 
         if (meetingErr) {
           console.error("[Sync] Resume meeting creation failed:", meetingErr);
@@ -1230,7 +1329,6 @@ export default function NoteWellRecorder() {
           })
           .catch(async (err) => {
             console.error("[Sync] Note generation client error (may be timeout):", err);
-            // The edge function may have succeeded despite client timeout — poll for notes
             await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
           })
           .finally(() => { setSyncProgress(null); refresh(); });
@@ -1250,22 +1348,25 @@ export default function NoteWellRecorder() {
       const sessionId = crypto.randomUUID();
       const chunks = rec.chunks || [];
       const totalChunks = chunks.length;
+      const uploadedChunks = [];
 
-      // If no chunk data, fall back to single-file upload
       if (totalChunks === 0 && rec.audioData) {
         await syncLegacySingleFile(rec, user);
         return;
       }
 
-      // ── Phase 1: Upload all chunks to storage (with retry) ─────────────
       for (let i = 0; i < totalChunks; i++) {
         const chunk = chunks[i];
         const paddedIndex = String(chunk.index).padStart(3, "0");
-        const storagePath = `${sessionId}/chunk_${paddedIndex}.webm`;
-        const blob = new Blob([chunk.arrayBuffer], { type: chunk.mimeType || "audio/webm" });
+        const mimeType = chunk.mimeType || rec.mimeType || "audio/webm";
+        const ext = getChunkFileExtension(mimeType);
+        const storagePath = `${sessionId}/chunk_${paddedIndex}.${ext}`;
+        const blob = new Blob([chunk.arrayBuffer], { type: mimeType });
 
         setSyncProgress({
-          phase: "uploading", currentChunk: i + 1, totalChunks,
+          phase: "uploading",
+          currentChunk: i + 1,
+          totalChunks,
           percentComplete: Math.round(((i + 1) / totalChunks) * 30),
           message: `Uploading segment ${i + 1} of ${totalChunks}…`,
         });
@@ -1274,119 +1375,139 @@ export default function NoteWellRecorder() {
         for (let attempt = 1; attempt <= 3; attempt++) {
           const { error } = await supabase.storage
             .from("recordings")
-            .upload(storagePath, blob, { contentType: chunk.mimeType || "audio/webm", upsert: true });
-          if (!error) { uploadSuccess = true; break; }
+            .upload(storagePath, blob, { contentType: mimeType, upsert: true });
+
+          if (!error) {
+            uploadSuccess = true;
+            break;
+          }
+
           console.warn(`[Sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, error.message);
           if (attempt < 3) {
             setSyncProgress({
-              phase: "uploading", currentChunk: i + 1, totalChunks,
+              phase: "uploading",
+              currentChunk: i + 1,
+              totalChunks,
               percentComplete: Math.round(((i + 1) / totalChunks) * 30),
               message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
             });
-            await new Promise(r => setTimeout(r, 2000 * attempt));
+            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
           }
         }
+
         if (!uploadSuccess) throw new Error(`Failed to upload segment ${i + 1} after 3 attempts`);
+
+        uploadedChunks.push({
+          index: chunk.index,
+          storagePath,
+          startTimeMs: chunk.startTimeMs || 0,
+          endTimeMs: chunk.endTimeMs || ((chunk.startTimeMs || 0) + (chunk.durationMs || 0)),
+          durationMs: chunk.durationMs || 0,
+          sizeBytes: chunk.sizeBytes || blob.size,
+        });
       }
 
-      await dbPatch(rec.id, { status: "synced" });
+      await dbPatch(rec.id, {
+        status: "synced",
+        uploadSessionId: sessionId,
+        remoteChunkPaths: uploadedChunks.map(chunk => chunk.storagePath),
+      });
       await refresh();
 
-      // ── Phase 2: Transcribe each chunk ────────────────────────────────
       const chunkTranscripts = [];
       let previousChunkText = "";
+
       for (let i = 0; i < totalChunks; i++) {
         const chunk = chunks[i];
-        const paddedIndex = String(chunk.index).padStart(3, "0");
-        const storagePath = `${sessionId}/chunk_${paddedIndex}.webm`;
+        const uploadedChunk = uploadedChunks.find(entry => entry.index === chunk.index);
+        const storagePath = uploadedChunk?.storagePath;
+
+        if (!storagePath) {
+          console.warn(`[Sync] Missing uploaded storage path for chunk ${chunk.index}`);
+          chunkTranscripts.push({ index: chunk.index, text: "", success: false });
+          continue;
+        }
 
         setSyncProgress({
-          phase: "transcribing", currentChunk: i + 1, totalChunks,
+          phase: "transcribing",
+          currentChunk: i + 1,
+          totalChunks,
           percentComplete: 30 + Math.round(((i + 1) / totalChunks) * 55),
           message: `Transcribing segment ${i + 1} of ${totalChunks}…`,
         });
 
-        // Build context prompt: chain previous chunk text for continuity
         const prompt = previousChunkText
-          ? `NHS primary care meeting transcript. ${rec.title ? `Meeting: ${rec.title}.` : ''} ${previousChunkText.split(/\s+/).slice(-150).join(' ')}`
-          : `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ''}`;
+          ? `NHS primary care meeting transcript. ${rec.title ? `Meeting: ${rec.title}.` : ""} ${previousChunkText.split(/\s+/).slice(-150).join(" ")}`
+          : `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ""}`;
 
-        const { data: transcriptData, error: fnErr } = await supabase.functions
-          .invoke("standalone-whisper", {
-            body: { storagePath, bucket: "recordings", responseFormat: "verbose_json", prompt },
-          });
+        const { data: transcriptData, error: fnErr } = await supabase.functions.invoke("standalone-whisper", {
+          body: { storagePath, bucket: "recordings", responseFormat: "verbose_json", prompt },
+        });
+
         if (fnErr) {
-          console.warn(`Chunk ${i} transcription failed:`, fnErr);
-          chunkTranscripts.push({ index: chunk.index, text: "", segments: [], success: false });
-        } else {
-          // ── Whisper Chunk Cleaner: strip repetition loops ──
-          const cleaned = cleanWhisperResponse(transcriptData || {});
-          if (cleaned.cleaningSummary?.totalWordsRemoved > 0) {
-            console.log(`🧹 Mobile chunk ${i}: cleaner removed ${cleaned.cleaningSummary.totalWordsRemoved} words`);
-          }
-          const cleanedText = cleaned.text || transcriptData?.text || "";
-
-          const offsetSec = (chunk.startTimeMs || 0) / 1000;
-          const segments = (transcriptData?.segments || []).map(seg => ({
-            start: seg.start + offsetSec,
-            end: seg.end + offsetSec,
-            text: seg.text?.trim() || "",
-          }));
-          chunkTranscripts.push({
-            index: chunk.index,
-            text: cleanedText,
-            segments,
-            success: true,
-          });
-          // Chain this chunk's text for next chunk's prompt
-          if (cleanedText) previousChunkText = cleanedText;
+          console.warn(`Chunk ${i + 1} transcription failed:`, fnErr);
+          chunkTranscripts.push({ index: chunk.index, text: "", success: false });
+          continue;
         }
+
+        const cleaned = cleanWhisperResponse(transcriptData || {});
+        if (cleaned.cleaningSummary?.totalWordsRemoved > 0) {
+          console.log(`🧹 Mobile chunk ${i + 1}: cleaner removed ${cleaned.cleaningSummary.totalWordsRemoved} words`);
+        }
+
+        const cleanedText = (cleaned.text || transcriptData?.text || "")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (!cleanedText) {
+          console.warn(`[Sync] Chunk ${i + 1} cleaned to empty text — treating as failed`);
+          chunkTranscripts.push({ index: chunk.index, text: "", success: false });
+          continue;
+        }
+
+        const rawWordCount = String(transcriptData?.text || "").split(/\s+/).filter(Boolean).length;
+        const cleanedWordCount = cleanedText.split(/\s+/).filter(Boolean).length;
+        if (rawWordCount > cleanedWordCount && cleaned.cleaningSummary?.totalWordsRemoved > 0) {
+          console.log(`[Sync] Chunk ${i + 1}: keeping cleaned text (${cleanedWordCount} words) instead of raw Whisper output (${rawWordCount} words)`);
+        }
+
+        chunkTranscripts.push({
+          index: chunk.index,
+          text: cleanedText,
+          success: true,
+        });
+        previousChunkText = cleanedText;
       }
 
-      // ── Phase 3: Stitch transcripts ───────────────────────────────────
       setSyncProgress({
-        phase: "stitching", currentChunk: totalChunks, totalChunks,
-        percentComplete: 90, message: "Assembling final transcript…",
+        phase: "stitching",
+        currentChunk: totalChunks,
+        totalChunks,
+        percentComplete: 90,
+        message: "Assembling final transcript…",
       });
 
-      let fullTranscript;
-      const successfulChunks = chunkTranscripts.filter(c => c.success && c.text).sort((a, b) => a.index - b.index);
-      if (successfulChunks.length <= 1) {
-        fullTranscript = successfulChunks[0]?.text || "";
-      } else {
-        // Stitch with overlap deduplication
-        const allSegments = [];
-        let lastEndTime = 0;
-        for (const ct of successfulChunks) {
-          for (const seg of ct.segments) {
-            if (seg.end <= lastEndTime + 0.5) continue;
-            allSegments.push(seg);
-            lastEndTime = Math.max(lastEndTime, seg.end);
-          }
-        }
-        fullTranscript = allSegments.map(s => s.text).join(" ").replace(/\s+/g, " ").trim();
-      }
+      const successfulChunks = chunkTranscripts
+        .filter(chunk => chunk.success && chunk.text)
+        .sort((a, b) => a.index - b.index);
 
+      let fullTranscript = stitchChunkTranscripts(successfulChunks);
       if (!fullTranscript) {
-        fullTranscript = chunkTranscripts.map(c => c.text).filter(Boolean).join(" ").trim();
+        fullTranscript = successfulChunks.map(chunk => chunk.text).join(" ").replace(/\s+/g, " ").trim();
       }
 
-      // ── Live transcript rescue: if Whisper hallucinated, use captured live transcript ──
       const whisperWordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
       const capturedLive = rec.capturedLiveTranscript || "";
       const liveWordCount2 = capturedLive.split(/\s+/).filter(Boolean).length;
       let usedLiveRescue = false;
       const recordingMinutes = (rec.duration || 0) / 60;
 
-      if (liveWordCount2 > 30 && recordingMinutes >= 2) {
-        // If Whisper produced less than 30% of the live transcript, it likely hallucinated
-        if (whisperWordCount < liveWordCount2 * 0.3) {
-          console.warn(`[LiveRescue] Whisper hallucinated: ${whisperWordCount} words vs live ${liveWordCount2} words. Using live transcript.`);
-          fullTranscript = capturedLive;
-          usedLiveRescue = true;
-        }
+      if (liveWordCount2 > 30 && recordingMinutes >= 2 && whisperWordCount < liveWordCount2 * 0.3) {
+        console.warn(`[LiveRescue] Whisper output suspiciously short: ${whisperWordCount} words vs live ${liveWordCount2} words. Using live transcript.`);
+        fullTranscript = capturedLive;
+        usedLiveRescue = true;
       }
-      // Also rescue if Whisper produced under 30 words for a 5+ minute recording
+
       if (!usedLiveRescue && whisperWordCount < 30 && recordingMinutes >= 5 && liveWordCount2 > whisperWordCount) {
         console.warn(`[LiveRescue] Whisper suspiciously short (${whisperWordCount} words for ${recordingMinutes.toFixed(0)}min). Using live transcript (${liveWordCount2} words).`);
         fullTranscript = capturedLive;
@@ -1396,23 +1517,23 @@ export default function NoteWellRecorder() {
       await dbPatch(rec.id, { status: "transcribed", transcript: fullTranscript });
       await refresh();
 
-      const failedCount = chunkTranscripts.filter(c => !c.success).length;
+      const failedCount = chunkTranscripts.filter(chunk => !chunk.success).length;
       if (failedCount > 0) {
         showToast(`${failedCount} segment${failedCount > 1 ? "s" : ""} failed — partial transcript`, "error");
       } else {
         showToast("Transcription complete", "success");
       }
 
-      // ── Step 4: Create meeting record ─────────────────────────────────
       setSyncProgress({
-        phase: "stitching", currentChunk: totalChunks, totalChunks,
-        percentComplete: 92, message: "Creating meeting record…",
+        phase: "stitching",
+        currentChunk: totalChunks,
+        totalChunks,
+        percentComplete: 92,
+        message: "Creating meeting record…",
       });
 
-      // Re-verify auth before meeting creation (token may have expired during long transcription)
       let activeUser = null;
       try {
-        // First try refreshing the session (handles expired tokens on iOS Safari)
         const { data: { session } } = await supabase.auth.refreshSession();
         if (session?.user) {
           activeUser = session.user;
@@ -1423,7 +1544,6 @@ export default function NoteWellRecorder() {
       }
 
       if (!activeUser) {
-        // Fallback to getUser
         const { data: { user: freshUser } } = await supabase.auth.getUser();
         activeUser = freshUser || user;
       }
@@ -1431,7 +1551,6 @@ export default function NoteWellRecorder() {
 
       if (!activeUser?.id) {
         console.error("[ChunkedSync] No authenticated user for meeting creation");
-        // Store transcript so user doesn't lose data, but keep trying
         console.error("[ChunkedSync] Transcript preserved in IndexedDB with status 'transcribed'");
         showToast("Session expired — tap Sync again after signing in", "error");
         setSyncProgress(null);
@@ -1454,26 +1573,71 @@ export default function NoteWellRecorder() {
       }
 
       let durationMins = Math.round((rec.duration || 0) / 60);
-      // Fallback: compute from timestamps if rec.duration is missing/zero
       if (durationMins === 0 && rec.createdAt) {
         durationMins = Math.round((Date.now() - new Date(rec.createdAt).getTime()) / 60000);
         console.log("[Sync] Duration computed from timestamps:", durationMins, "mins");
       }
 
-      const meetingInsert = {
-          title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-          user_id: activeUser.id,
-          status: "completed",
-          meeting_type: "general",
-          start_time: new Date(rec.createdAt).toISOString(),
-          end_time: new Date().toISOString(),
-          duration_minutes: durationMins,
-          word_count: wordCount,
-          import_source: mode === "live" ? "mobile_live" : "mobile_offline",
-          whisper_transcript_text: fullTranscript,
-          primary_transcript_source: usedLiveRescue ? "assemblyai_rescue" : "whisper",
+      const finalizeMeetingSync = async (meetingId, ownerId) => {
+        attachDeviceInfoToMeeting(meetingId);
+        await persistUploadedChunkMetadata(meetingId, uploadedChunks, rec.createdAt);
+
+        for (const chunk of successfulChunks) {
+          await supabase.from("meeting_transcription_chunks").insert({
+            meeting_id: meetingId,
+            user_id: ownerId,
+            session_id: sessionId,
+            chunk_number: chunk.index,
+            transcription_text: chunk.text,
+            is_final: true,
+            source: "whisper",
+            transcriber_type: "whisper",
+            word_count: chunk.text.split(/\s+/).filter(Boolean).length,
+          });
+        }
+
+        await dbPatch(rec.id, {
+          meetingId,
+          uploadSessionId: sessionId,
+          remoteChunkPaths: uploadedChunks.map(chunk => chunk.storagePath),
+        });
+        await refresh();
+
+        setSyncProgress({
+          phase: "complete",
+          currentChunk: totalChunks,
+          totalChunks,
+          percentComplete: 100,
+          message: `Complete — ${wordCount} words`,
+        });
+        showToast("Meeting created — generating notes…", "success");
+
+        generateNotesForMeeting(meetingId)
+          .then(() => {
+            showToast("Meeting notes generated ✨", "success");
+            triggerPostNoteActions(meetingId);
+          })
+          .catch(async (err) => {
+            console.error("Note generation client error (may be timeout):", err);
+            await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
+          })
+          .finally(() => { setSyncProgress(null); refresh(); });
       };
-      // Store the non-primary transcript for audit
+
+      const meetingInsert = {
+        title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+        user_id: activeUser.id,
+        status: "completed",
+        meeting_type: "general",
+        start_time: new Date(rec.createdAt).toISOString(),
+        end_time: new Date().toISOString(),
+        duration_minutes: durationMins,
+        word_count: wordCount,
+        import_source: mode === "live" ? "mobile_live" : "mobile_offline",
+        whisper_transcript_text: fullTranscript,
+        primary_transcript_source: usedLiveRescue ? "assemblyai_rescue" : "whisper",
+      };
+
       if (usedLiveRescue && capturedLive) {
         meetingInsert.assembly_transcript_text = capturedLive;
       } else if (capturedLive && liveWordCount2 > 0) {
@@ -1489,7 +1653,6 @@ export default function NoteWellRecorder() {
       if (meetingErr) {
         console.error("Meeting creation failed:", meetingErr);
         console.error("Meeting creation error details:", JSON.stringify(meetingErr));
-        // Retry once after re-checking auth
         const { data: { user: retryUser } } = await supabase.auth.getUser();
         if (retryUser) {
           const { data: retryData, error: retryErr } = await supabase
@@ -1505,85 +1668,27 @@ export default function NoteWellRecorder() {
               word_count: wordCount,
               import_source: mode === "live" ? "mobile_live" : "mobile_offline",
               whisper_transcript_text: fullTranscript,
-              primary_transcript_source: "whisper",
+              primary_transcript_source: usedLiveRescue ? "assemblyai_rescue" : "whisper",
+              assembly_transcript_text: capturedLive && liveWordCount2 > 0 ? capturedLive : null,
             })
             .select("id")
             .single();
+
           if (!retryErr && retryData) {
             console.log("Meeting creation succeeded on retry");
-            // Continue with the retry data
-            const meetingId = retryData.id;
-            attachDeviceInfoToMeeting(meetingId);
-            for (const ct of successfulChunks) {
-              await supabase.from("meeting_transcription_chunks").insert({
-                meeting_id: meetingId, user_id: retryUser.id, session_id: sessionId,
-                chunk_number: ct.index, transcription_text: ct.text, is_final: true,
-                source: "whisper", transcriber_type: "whisper",
-                word_count: ct.text.split(/\s+/).filter(Boolean).length,
-              });
-            }
-            await dbPatch(rec.id, { meetingId });
-            await refresh();
-            setSyncProgress({ phase: "complete", currentChunk: totalChunks, totalChunks, percentComplete: 100, message: `Complete — ${wordCount} words` });
-            showToast("Meeting created — generating notes…", "success");
-            generateNotesForMeeting(meetingId)
-              .then(() => {
-                showToast("Meeting notes generated ✨", "success");
-                triggerPostNoteActions(meetingId);
-              })
-              .catch(async (err) => {
-                console.error("Note generation client error (may be timeout):", err);
-                await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
-              })
-              .finally(() => { setSyncProgress(null); refresh(); });
+            await finalizeMeetingSync(retryData.id, retryUser.id);
             return;
           }
           console.error("Meeting creation retry also failed:", retryErr);
         }
+
         const errMsg = meetingErr?.message || meetingErr?.details || JSON.stringify(meetingErr);
         showToast(`Transcribed but meeting creation failed: ${errMsg}`, "error");
         setSyncProgress(null);
         return;
       }
 
-      const meetingId = meetingData.id;
-      attachDeviceInfoToMeeting(meetingId);
-
-      // ── Step 5: Store transcript chunks ───────────────────────────────
-      for (const ct of successfulChunks) {
-        await supabase.from("meeting_transcription_chunks").insert({
-          meeting_id: meetingId,
-          user_id: activeUser.id,
-          session_id: sessionId,
-          chunk_number: ct.index,
-          transcription_text: ct.text,
-          is_final: true,
-          source: "whisper",
-          transcriber_type: "whisper",
-          word_count: ct.text.split(/\s+/).filter(Boolean).length,
-        });
-      }
-
-      await dbPatch(rec.id, { meetingId });
-      await refresh();
-
-      setSyncProgress({
-        phase: "complete", currentChunk: totalChunks, totalChunks,
-        percentComplete: 100, message: `Complete — ${wordCount} words`,
-      });
-      showToast("Meeting created — generating notes…", "success");
-
-      // ── Step 6: Trigger note generation (governance-grade pipeline) ────
-      generateNotesForMeeting(meetingId)
-        .then(() => {
-          showToast("Meeting notes generated ✨", "success");
-          triggerPostNoteActions(meetingId);
-        })
-        .catch(async (err) => {
-          console.error("Note generation client error (may be timeout):", err);
-          await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
-        })
-        .finally(() => { setSyncProgress(null); refresh(); });
+      await finalizeMeetingSync(meetingData.id, activeUser.id);
     } catch (err) {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
@@ -1600,10 +1705,21 @@ export default function NoteWellRecorder() {
       const audioBlob = new Blob([rec.audioData], { type: rec.mimeType });
       const ext = rec.mimeType?.includes("mp4") ? "m4a" : rec.mimeType?.includes("ogg") ? "ogg" : "webm";
       const filePath = `${user.id}/${rec.id}.${ext}`;
+      const uploadedChunks = [{
+        index: 0,
+        storagePath: filePath,
+        startTimeMs: 0,
+        endTimeMs: Math.max((rec.duration || 0) * 1000, 1000),
+        durationMs: Math.max((rec.duration || 0) * 1000, 1000),
+        sizeBytes: audioBlob.size,
+      }];
 
       setSyncProgress({
-        phase: "uploading", currentChunk: 1, totalChunks: 1,
-        percentComplete: 20, message: "Uploading audio…",
+        phase: "uploading",
+        currentChunk: 1,
+        totalChunks: 1,
+        percentComplete: 20,
+        message: "Uploading audio…",
       });
 
       const { error } = await supabase.storage
@@ -1611,38 +1727,45 @@ export default function NoteWellRecorder() {
         .upload(filePath, audioBlob, { contentType: rec.mimeType, upsert: true });
       if (error) throw error;
 
-      await dbPatch(rec.id, { status: "synced" });
+      await dbPatch(rec.id, {
+        status: "synced",
+        uploadSessionId: rec.id,
+        remoteChunkPaths: [filePath],
+      });
       await refresh();
 
       setSyncProgress({
-        phase: "transcribing", currentChunk: 1, totalChunks: 1,
-        percentComplete: 50, message: "Transcribing…",
+        phase: "transcribing",
+        currentChunk: 1,
+        totalChunks: 1,
+        percentComplete: 50,
+        message: "Transcribing…",
       });
 
-      const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ''}`;
-      const { data: transcriptData, error: fnErr } = await supabase.functions
-        .invoke("standalone-whisper", {
-          body: { storagePath: filePath, bucket: "recordings", prompt },
-        });
+      const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ""}`;
+      const { data: transcriptData, error: fnErr } = await supabase.functions.invoke("standalone-whisper", {
+        body: { storagePath: filePath, bucket: "recordings", prompt },
+      });
       if (fnErr) throw fnErr;
 
-      // ── Whisper Chunk Cleaner: strip repetition loops ──
       const cleanedLegacy = cleanWhisperResponse(transcriptData || {});
       if (cleanedLegacy.cleaningSummary?.totalWordsRemoved > 0) {
         console.log(`🧹 Mobile legacy sync: cleaner removed ${cleanedLegacy.cleaningSummary.totalWordsRemoved} words`);
       }
-      const transcriptText = cleanedLegacy.text || transcriptData?.text || "";
+      const transcriptText = (cleanedLegacy.text || transcriptData?.text || "").replace(/\s+/g, " ").trim();
       await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
       await refresh();
 
       setSyncProgress({
-        phase: "transcribing", currentChunk: 1, totalChunks: 1,
-        percentComplete: 85, message: "Creating meeting record…",
+        phase: "transcribing",
+        currentChunk: 1,
+        totalChunks: 1,
+        percentComplete: 85,
+        message: "Creating meeting record…",
       });
 
       showToast("Transcription complete", "success");
 
-      // Re-verify auth before meeting creation (token may have expired during long transcription)
       let activeUser = null;
       try {
         const { data: { session } } = await supabase.auth.refreshSession();
@@ -1668,7 +1791,6 @@ export default function NoteWellRecorder() {
         return;
       }
 
-      // Create meeting
       const wordCount = transcriptText.split(/\s+/).filter(Boolean).length;
 
       if (wordCount < 100) {
@@ -1690,12 +1812,19 @@ export default function NoteWellRecorder() {
         .from("meetings")
         .insert({
           title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-          user_id: activeUser.id, status: "completed", meeting_type: "general",
-          start_time: new Date(rec.createdAt).toISOString(), end_time: new Date().toISOString(),
-          duration_minutes: Math.round((rec.duration || 0) / 60), word_count: wordCount,
-          import_source: mode === "live" ? "mobile_live" : "mobile_offline", whisper_transcript_text: transcriptText,
+          user_id: activeUser.id,
+          status: "completed",
+          meeting_type: "general",
+          start_time: new Date(rec.createdAt).toISOString(),
+          end_time: new Date().toISOString(),
+          duration_minutes: Math.round((rec.duration || 0) / 60),
+          word_count: wordCount,
+          import_source: mode === "live" ? "mobile_live" : "mobile_offline",
+          whisper_transcript_text: transcriptText,
           primary_transcript_source: "whisper",
-        }).select("id").single();
+        })
+        .select("id")
+        .single();
 
       if (meetingErr) {
         console.error("[LegacySync] Meeting creation failed:", meetingErr, JSON.stringify(meetingErr));
@@ -1707,23 +1836,36 @@ export default function NoteWellRecorder() {
 
       console.log("[LegacySync] Meeting created:", meetingData?.id);
       attachDeviceInfoToMeeting(meetingData.id);
+      await persistUploadedChunkMetadata(meetingData.id, uploadedChunks, rec.createdAt);
 
       await supabase.from("meeting_transcription_chunks").insert({
-        meeting_id: meetingData.id, user_id: activeUser.id, session_id: sessionId,
-        chunk_number: 0, transcription_text: transcriptText, is_final: true,
-        source: "whisper", transcriber_type: "whisper", word_count: wordCount,
+        meeting_id: meetingData.id,
+        user_id: activeUser.id,
+        session_id: sessionId,
+        chunk_number: 0,
+        transcription_text: transcriptText,
+        is_final: true,
+        source: "whisper",
+        transcriber_type: "whisper",
+        word_count: wordCount,
       });
 
-      await dbPatch(rec.id, { meetingId: meetingData.id });
+      await dbPatch(rec.id, {
+        meetingId: meetingData.id,
+        uploadSessionId: rec.id,
+        remoteChunkPaths: [filePath],
+      });
       await refresh();
 
       setSyncProgress({
-        phase: "complete", currentChunk: 1, totalChunks: 1,
-        percentComplete: 100, message: `Complete — ${wordCount} words`,
+        phase: "complete",
+        currentChunk: 1,
+        totalChunks: 1,
+        percentComplete: 100,
+        message: `Complete — ${wordCount} words`,
       });
       showToast("Meeting created — generating notes…", "success");
 
-      // Generate notes via governance-grade pipeline (generate-meeting-notes-claude)
       generateNotesForMeeting(meetingData.id)
         .then(() => {
           showToast("Meeting notes generated ✨", "success");
