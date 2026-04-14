@@ -182,6 +182,7 @@ export default function RecoveryToolPage() {
   const [scanned, setScanned] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [emailingId, setEmailingId] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<Record<string, string>>({});
   const [lsSession, setLsSession] = useState<any>(null);
 
@@ -360,6 +361,110 @@ export default function RecoveryToolPage() {
       setUploadStatus(prev => ({ ...prev, [s.sessionId]: `❌ Failed: ${err.message}` }));
     } finally {
       setUploadingId(null);
+    }
+  }, [user]);
+
+  const emailSession = useCallback(async (s: RecoveryDBSession) => {
+    if (!user) {
+      alert('You must be logged in to email files. Please log in first.');
+      return;
+    }
+
+    setEmailingId(s.sessionId);
+    setUploadStatus(prev => ({ ...prev, [s.sessionId]: '📧 Preparing email...' }));
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.email) {
+        throw new Error('No email address found in your profile');
+      }
+
+      const { blobs, mimeType } = getSessionBlobs(s);
+      if (blobs.length === 0) throw new Error('No audio data found');
+
+      const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+      const title = getSessionTitle(s);
+
+      // Convert blobs to base64 and batch to stay under 15MB per email
+      const MAX_RAW_PER_EMAIL = 10.9 * 1024 * 1024;
+      const chunkData: { base64: string; rawSize: number; index: number }[] = [];
+
+      for (let i = 0; i < blobs.length; i++) {
+        const buf = await blobs[i].arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        for (let j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
+        chunkData.push({ base64: btoa(binary), rawSize: buf.byteLength, index: i });
+      }
+
+      const batches: typeof chunkData[] = [];
+      let currentBatch: typeof chunkData = [];
+      let currentSize = 0;
+      for (const chunk of chunkData) {
+        if (currentSize + chunk.rawSize > MAX_RAW_PER_EMAIL && currentBatch.length > 0) {
+          batches.push(currentBatch);
+          currentBatch = [];
+          currentSize = 0;
+        }
+        currentBatch.push(chunk);
+        currentSize += chunk.rawSize;
+      }
+      if (currentBatch.length > 0) batches.push(currentBatch);
+
+      const totalEmails = batches.length;
+
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const partLabel = totalEmails > 1 ? ` — Part ${i + 1} of ${totalEmails}` : '';
+        setUploadStatus(prev => ({ ...prev, [s.sessionId]: `📧 Sending email${totalEmails > 1 ? ` ${i + 1} of ${totalEmails}` : ''}...` }));
+
+        const extraAttachments = batch.map((ch) => ({
+          content: ch.base64,
+          filename: `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}_chunk${ch.index + 1}.${ext}`,
+          type: mimeType,
+        }));
+
+        const totalSizeMB = (batch.reduce((sum, ch) => sum + ch.rawSize, 0) / (1024 * 1024)).toFixed(1);
+        const htmlContent = `
+          <div style="font-family:sans-serif;padding:20px;max-width:600px;margin:0 auto">
+            <h2 style="color:#1565c0;margin-bottom:12px">🔧 Recovery Tool — ${title}${partLabel}</h2>
+            <p style="color:#334155;font-size:14px;line-height:1.6">
+              Attached ${batch.length === 1 ? 'is 1 audio file' : `are ${batch.length} audio files`}
+              recovered from IndexedDB for <strong>"${title}"</strong>.
+            </p>
+            <p style="color:#64748b;font-size:13px">
+              Size: ${formatBytes(s.totalSize)}${s.totalDuration > 0 ? ` · Duration: ${formatDuration(s.totalDuration)}` : ''}
+              ${totalEmails > 1 ? ` · This is part ${i + 1} of ${totalEmails} (${totalSizeMB} MB)` : ''}
+            </p>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0"/>
+            <p style="color:#94a3b8;font-size:11px">Sent from Notewell AI Recovery Tool</p>
+          </div>
+        `;
+
+        const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
+          body: {
+            to_email: profile.email,
+            subject: `Recovery: ${title}${partLabel}`,
+            html_content: htmlContent,
+            from_name: 'Notewell AI',
+            extra_attachments: extraAttachments,
+          },
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'Email send failed');
+      }
+
+      setUploadStatus(prev => ({ ...prev, [s.sessionId]: totalEmails > 1 ? `✅ Audio sent across ${totalEmails} emails` : '✅ Audio emailed successfully' }));
+    } catch (err: any) {
+      console.error('Email failed:', err);
+      setUploadStatus(prev => ({ ...prev, [s.sessionId]: `❌ Email failed: ${err.message}` }));
+    } finally {
+      setEmailingId(null);
     }
   }, [user]);
 
