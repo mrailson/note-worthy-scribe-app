@@ -296,6 +296,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{practiceName(claim.practice_key)}</span>
           <span style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'monospace' }}>{practiceCode(claim.practice_key)}</span>
           <span style={{ fontSize: 13, color: '#6b7280' }}>{getClaimMonthLabel(claim)}</span>
+          <ClaimTypeBadge type={claim.claim_type} />
           <StatusBadge status={claim.status} />
           {isSubmitted && <span style={{ fontSize: 11, color: '#0369a1', fontWeight: 500 }}>Needs verification</span>}
         </div>
