@@ -1181,11 +1181,15 @@ export default function NoteWellRecorder() {
 
         if (wordCount < 100) {
           console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
-          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
-          await dbPatch(rec.id, { status: "too_short" });
-          await refresh();
-          setSyncProgress(null);
-          return;
+          if (!rec.forceCreate) {
+            showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+            await dbPatch(rec.id, { status: "too_short" });
+            await refresh();
+            setSyncProgress(null);
+            return;
+          }
+          console.log("[Sync] Force create enabled — bypassing word count guard");
+          showToast(`Force creating meeting with ${wordCount} words…`, "info");
         }
 
         let durationMins = Math.round((rec.duration || 0) / 60);
@@ -1438,11 +1442,15 @@ export default function NoteWellRecorder() {
 
       if (wordCount < 100) {
         console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
-        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
-        await dbPatch(rec.id, { status: "too_short", transcript: fullTranscript });
-        await refresh();
-        setSyncProgress(null);
-        return;
+        if (!rec.forceCreate) {
+          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+          await dbPatch(rec.id, { status: "too_short", transcript: fullTranscript });
+          await refresh();
+          setSyncProgress(null);
+          return;
+        }
+        console.log("[Sync] Force create enabled — bypassing word count guard");
+        showToast(`Force creating meeting with ${wordCount} words…`, "info");
       }
 
       let durationMins = Math.round((rec.duration || 0) / 60);
@@ -1665,11 +1673,15 @@ export default function NoteWellRecorder() {
 
       if (wordCount < 100) {
         console.log(`[LegacySync] Recording too short (${wordCount} words) — skipping meeting creation`);
-        showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
-        await dbPatch(rec.id, { status: "too_short", transcript: transcriptText });
-        await refresh();
-        setSyncProgress(null);
-        return;
+        if (!rec.forceCreate) {
+          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
+          await dbPatch(rec.id, { status: "too_short", transcript: transcriptText });
+          await refresh();
+          setSyncProgress(null);
+          return;
+        }
+        console.log("[LegacySync] Force create enabled — bypassing word count guard");
+        showToast(`Force creating meeting with ${wordCount} words…`, "info");
       }
 
       const sessionId = crypto.randomUUID();
