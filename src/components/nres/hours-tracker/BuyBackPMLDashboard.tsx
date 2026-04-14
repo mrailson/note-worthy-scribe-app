@@ -505,7 +505,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                   const claimedAmt = s.claimed_amount ?? maxAmt;
                   const lineOver = claimedAmt > maxAmt && maxAmt > 0;
                   const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail, isAdmin);
-                  const glCat = s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical');
+                  const glCat = s.gl_code || s.gl_category || (s.staff_role === 'GP' ? '5421' : '—');
                   const hoursWorked = s.allocation_type === 'hours' ? `${s.allocation_value ?? 0} hrs/wk` : s.allocation_type === 'sessions' ? `${s.allocation_value ?? 0} sessions` : s.allocation_type === 'daily' ? `${s.allocation_value ?? 0} days` : `${s.allocation_value ?? 0} WTE`;
                   const totalHrs = s.allocation_type === 'hours' ? (s.allocation_value ?? 0) : null;
 

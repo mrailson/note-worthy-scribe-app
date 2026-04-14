@@ -1994,9 +1994,9 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                   </td>
                   <td className="p-2">{s.staff_role}</td>
                   <td className="p-2">
-                    {(s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP'
-                      ? <Badge className="bg-blue-100 text-blue-800 text-[10px]">GP</Badge>
-                      : <Badge className="bg-purple-100 text-purple-800 text-[10px]">Other</Badge>}
+                    <code className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground">
+                      {s.gl_code || s.gl_category || '—'}
+                    </code>
                   </td>
                   {/* Allocation — editable in draft/queried, read-only for meeting staff */}
                   <td className="p-2">
