@@ -645,7 +645,7 @@ export function BuyBackPracticeDashboard({
       {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
         <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#6b7280' : '#d1d5db'} />
-        <KpiCard label="In Pipeline" value={(counts.submitted || 0) + (counts.awaiting_review || 0) - (counts.submitted || 0)} sub={fmtShort(totals.pending)} accent="#2563eb" />
+        <KpiCard label="In Pipeline" value={counts.awaiting_review || 0} sub={fmtShort(totals.pending)} accent="#2563eb" />
         <KpiCard label="Queried" value={counts.queried || 0} sub={fmtShort(totals.queried)} accent={(counts.queried || 0) > 0 ? '#dc2626' : '#d1d5db'} />
         <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#059669" />
       </div>
