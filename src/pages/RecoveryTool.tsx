@@ -616,11 +616,12 @@ export default function RecoveryToolPage() {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               <button
                 onClick={() => downloadSession(s)}
                 style={{
                   flex: 1,
+                  minWidth: 90,
                   padding: '10px',
                   borderRadius: 8,
                   border: '1px solid #1a73e8',
@@ -638,6 +639,7 @@ export default function RecoveryToolPage() {
                 disabled={!user || uploadingId === s.sessionId}
                 style={{
                   flex: 1,
+                  minWidth: 90,
                   padding: '10px',
                   borderRadius: 8,
                   border: 'none',
@@ -649,6 +651,24 @@ export default function RecoveryToolPage() {
                 }}
               >
                 {uploadingId === s.sessionId ? '⏳ Uploading...' : '☁️ Upload'}
+              </button>
+              <button
+                onClick={() => emailSession(s)}
+                disabled={!user || emailingId === s.sessionId}
+                style={{
+                  flex: 1,
+                  minWidth: 90,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: '1px solid #1565c0',
+                  background: !user ? '#ccc' : '#e3f2fd',
+                  color: !user ? '#999' : '#1565c0',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: !user ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {emailingId === s.sessionId ? '⏳ Sending...' : '📧 Email Me'}
               </button>
             </div>
           </div>
