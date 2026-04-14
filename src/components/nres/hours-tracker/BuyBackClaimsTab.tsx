@@ -656,9 +656,28 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   };
 
   // Filter claims by access then practice/status (use effective overrides for test mode)
-  const accessFilteredClaims = claims.filter(c =>
-    !c.practice_key || effectivePracticeKeys.includes(c.practice_key as string)
-  );
+  // Apply role-based visibility: restrict which statuses each role can see
+  const getVisibleStatuses = (): string[] | null => {
+    const role = testActive ? testMode.role : null;
+    if (role === 'pml_director') return ['verified', 'approved', 'invoiced', 'paid', 'queried'];
+    if (role === 'pml_finance') return ['approved', 'invoiced', 'paid'];
+    if (role === 'mgmt_lead') return ['submitted', 'verified', 'approved', 'invoiced', 'paid', 'queried'];
+    if (role === 'practice') return null; // practice sees own claims (filtered by practice key)
+    // For real (non-test) users, apply role restrictions
+    if (!testActive) {
+      if (isPMLDirector && !isSuperAdmin && !isManagementLead) return ['verified', 'approved', 'invoiced', 'paid', 'queried'];
+      if (isPMLFinance && !isSuperAdmin && !isManagementLead && !isPMLDirector) return ['approved', 'invoiced', 'paid'];
+      if (isManagementLead && !isSuperAdmin) return ['submitted', 'verified', 'approved', 'invoiced', 'paid', 'queried'];
+    }
+    return null; // admin/super_admin sees all
+  };
+  const visibleStatuses = getVisibleStatuses();
+
+  const accessFilteredClaims = claims.filter(c => {
+    if (c.practice_key && !effectivePracticeKeys.includes(c.practice_key as string)) return false;
+    if (visibleStatuses && !visibleStatuses.includes(c.status)) return false;
+    return true;
+  });
   const practiceFilteredClaims = effectiveFilterPractice === 'all'
     ? accessFilteredClaims
     : accessFilteredClaims.filter(c => c.practice_key === effectiveFilterPractice);
