@@ -7,12 +7,8 @@ import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 interface BuyBackPracticeDashboardProps {
   claims: BuyBackClaim[];
   practiceKey: string;
-  userId?: string;
-  userEmail?: string;
-  rateParams?: RateParams;
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
-  onDelete?: (id: string) => void;
   savingClaim?: boolean;
 }
 
