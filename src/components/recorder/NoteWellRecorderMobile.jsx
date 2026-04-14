@@ -402,7 +402,7 @@ function SyncProgressBar({ progress }) {
   );
 }
 
-function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing }) {
+function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const colors = {
@@ -419,6 +419,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
   const isOldAndDone = ageMs > 24 * 60 * 60 * 1000 && (rec.status === "transcribed" || rec.meetingId);
   const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
   const showExpandableActions = rec.status === "transcribed" && rec.meetingId;
+  const showTooShortActions = rec.status === "too_short";
 
   return (
     <div style={{background:"white",borderRadius:16,padding:"12px 14px",marginBottom:8,
@@ -470,7 +471,7 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
 
         <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
           {/* Expandable actions toggle for transcribed recordings */}
-          {showExpandableActions && (
+          {(showExpandableActions || showTooShortActions) && (
             <button onClick={()=>setActionsOpen(o=>!o)} style={{
               width:28,height:28,borderRadius:8,border:"1px solid rgba(21,101,192,0.15)",
               background:actionsOpen?"rgba(21,101,192,0.1)":"rgba(21,101,192,0.04)",
@@ -478,11 +479,11 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
               fontSize:14,color:"#1565c0",fontWeight:700,transition:"all 0.2s",
             }}>⋯</button>
           )}
-          {(rec.status==="local"||rec.status==="error"||(rec.status==="transcribed"&&!rec.meetingId)) && (
+          {(rec.status==="local"||rec.status==="error"||rec.status==="too_short"||(rec.status==="transcribed"&&!rec.meetingId)) && (
             <button onClick={()=>onSync(rec)} style={{
               padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
               background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
-            }}>{rec.status==="transcribed"?"⟳ Create Meeting":"↑ Sync"}</button>
+            }}>{rec.status==="transcribed"?"⟳ Create Meeting":rec.status==="too_short"?"⟳ Re-sync":"↑ Sync"}</button>
           )}
           {confirmDelete ? (
             <div style={{display:"flex",gap:4,alignItems:"center"}}>
@@ -513,19 +514,34 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
       </div>
 
       {/* Expandable actions panel */}
-      {showExpandableActions && actionsOpen && (
+      {(showExpandableActions || showTooShortActions) && actionsOpen && (
         <div style={{
           marginTop:8,padding:"8px 6px",borderRadius:10,
           background:"#f8fafc",border:"1px solid rgba(21,101,192,0.08)",
           display:"flex",gap:8,flexWrap:"wrap",
           animation:"fadeIn 0.15s ease-out",
         }}>
-          <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
+          {showExpandableActions && <button onClick={()=>onRetranscribe?.(rec)} disabled={isRetranscribing} style={{
             padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(245,158,11,0.4)",
             background:isRetranscribing?"rgba(245,158,11,0.15)":"rgba(245,158,11,0.08)",
             cursor:isRetranscribing?"not-allowed":"pointer",fontSize:11,color:"#b45309",fontWeight:700,fontFamily:"inherit",
             opacity:isRetranscribing?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
-          }}>{isRetranscribing?"⏳ Processing…":"⟳ Reprocess"}</button>
+          }}>{isRetranscribing?"⏳ Processing…":"⟳ Reprocess"}</button>}
+
+          {showTooShortActions && <button onClick={()=>onForceRetry?.(rec)} disabled={isForceRetrying} style={{
+            padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.4)",
+            background:isForceRetrying?"rgba(21,101,192,0.15)":"linear-gradient(135deg, #1565c0, #0288d1)",
+            cursor:isForceRetrying?"not-allowed":"pointer",fontSize:11,color:"white",fontWeight:700,fontFamily:"inherit",
+            opacity:isForceRetrying?0.7:1,transition:"all 0.2s",whiteSpace:"nowrap",
+            boxShadow:"0 2px 6px rgba(21,101,192,0.3)",
+          }}>{isForceRetrying?"⏳ Retrying…":"⟳ Force Retry"}</button>}
+
+          <button onClick={()=>onDownloadAudio?.(rec)} style={{
+            padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(22,163,74,0.4)",
+            background:"rgba(22,163,74,0.08)",
+            cursor:"pointer",fontSize:11,color:"#15803d",fontWeight:700,fontFamily:"inherit",
+            transition:"all 0.2s",whiteSpace:"nowrap",
+          }}>💾 Download</button>
 
           <button onClick={()=>onEmailAudio?.(rec)} disabled={isEmailing} style={{
             padding:"6px 12px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
@@ -537,6 +553,21 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
       )}
 
       {/* Cleanup reminder for old transcribed recordings */}
+
+      {/* Too short — help text */}
+      {showTooShortActions && !actionsOpen && (
+        <div style={{
+          marginTop:8,padding:"8px 10px",borderRadius:10,
+          background:"linear-gradient(135deg, #fef3c7, #fff7ed)",
+          border:"1px solid rgba(245,158,11,0.25)",
+          animation:"fadeIn 0.15s ease-out",
+        }}>
+          <div style={{fontSize:11,color:"#92400e",lineHeight:1.4}}>
+            ⚠️ Transcription returned too few words. Tap <strong>⋯</strong> for recovery options: Force Retry, Download, or Email the audio.
+          </div>
+        </div>
+      )}
+
       {isOldAndDone && (
         <div style={{
           marginTop:8, padding:"8px 10px", borderRadius:10,
