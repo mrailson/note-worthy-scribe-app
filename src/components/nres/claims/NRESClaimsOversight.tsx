@@ -35,6 +35,8 @@ export function NRESClaimsOversight() {
     let filtered = claims;
     if (claimsRole === 'practice') {
       filtered = claims.filter(c => c.practice_id === effectivePracticeId);
+    } else if (claimsRole === 'verifier') {
+      filtered = claims.filter(c => ['submitted', 'verified', 'approved', 'invoice_created', 'scheduled', 'paid'].includes(c.status));
     } else if (claimsRole === 'approver') {
       filtered = claims.filter(c => ['verified', 'approved', 'invoice_created', 'scheduled', 'paid'].includes(c.status));
     } else if (claimsRole === 'finance') {
