@@ -21,9 +21,11 @@ export class AudioProcessor {
         console.log(`📦 File exceeds ${(MAX_BASE64_RAW_SIZE / 1024 / 1024).toFixed(0)}MB — using storage upload path`);
         const tempPath = `temp-transcribe/${crypto.randomUUID().substring(0, 8)}/${file.name}`;
 
+        // Browser WebM files may report video/webm — normalise to audio/webm for storage
+        const uploadMime = (file.type === 'video/webm') ? 'audio/webm' : (file.type || 'audio/mpeg');
         const { error: uploadError } = await supabase.storage
           .from('audio-imports')
-          .upload(tempPath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
+          .upload(tempPath, file, { contentType: uploadMime, upsert: false });
 
         if (uploadError) {
           throw new Error(`Failed to upload audio for transcription: ${uploadError.message}`);
