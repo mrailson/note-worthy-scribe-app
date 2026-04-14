@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Plus, Send, Pencil, Clock, Reply } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { getPracticeName, NRES_PRACTICES, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
-import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
-import { calculateStaffMonthlyAmount } from '@/hooks/useNRESBuyBackClaims';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply } from 'lucide-react';
+import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
+import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
@@ -332,7 +330,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   const isDraft = claim.status === 'draft';
   const isQueried = claim.status === 'queried';
   const needsAction = isDraft || isQueried;
-  const displayStatus = toDisplayStatus(claim.status);
   const monthLabel = getClaimMonthLabel(claim);
 
   const staffDets = (claim.staff_details || []) as any[];
