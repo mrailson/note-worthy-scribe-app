@@ -433,6 +433,12 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{practiceName}</span>
           <span style={{ fontSize: 13, color: '#6b7280' }}>{monthLabel}</span>
+          {(() => {
+            const cfg = claim.claim_type === 'additional'
+              ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
+              : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
+            return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
+          })()}
           <StatusBadge status={displayStatus} />
           {over && (
             <span className="inline-flex items-center gap-1 text-amber-600 text-[11px] font-medium">
@@ -505,7 +511,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                   const claimedAmt = s.claimed_amount ?? maxAmt;
                   const lineOver = claimedAmt > maxAmt && maxAmt > 0;
                   const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail, isAdmin);
-                  const glCat = s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical');
+                  const glCat = s.gl_code || s.gl_category || (s.staff_role === 'GP' ? '5421' : '—');
                   const hoursWorked = s.allocation_type === 'hours' ? `${s.allocation_value ?? 0} hrs/wk` : s.allocation_type === 'sessions' ? `${s.allocation_value ?? 0} sessions` : s.allocation_type === 'daily' ? `${s.allocation_value ?? 0} days` : `${s.allocation_value ?? 0} WTE`;
                   const totalHrs = s.allocation_type === 'hours' ? (s.allocation_value ?? 0) : null;
 

@@ -99,6 +99,17 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+const ClaimTypeBadge = ({ type }: { type?: string }) => {
+  const cfg = type === 'additional'
+    ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
+    : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+      {cfg.label}
+    </span>
+  );
+};
+
 const EvidencePill = ({ label, met }: { label: string; met: boolean }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 500, background: met ? '#ecfdf5' : '#fef2f2', color: met ? '#059669' : '#dc2626', border: `1px solid ${met ? '#a7f3d0' : '#fecaca'}` }}>
     {met ? '✓' : '✗'} {label}
@@ -296,6 +307,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{practiceName(claim.practice_key)}</span>
           <span style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'monospace' }}>{practiceCode(claim.practice_key)}</span>
           <span style={{ fontSize: 13, color: '#6b7280' }}>{getClaimMonthLabel(claim)}</span>
+          <ClaimTypeBadge type={claim.claim_type} />
           <StatusBadge status={claim.status} />
           {isSubmitted && <span style={{ fontSize: 11, color: '#0369a1', fontWeight: 500 }}>Needs verification</span>}
         </div>
