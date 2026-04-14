@@ -88,7 +88,7 @@ export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPra
     accountName: 'Bugbrooke Medical Practice',
   },
   denton: {
-    bankName: '',
+    bankName: 'Denton Village Surgery',
     sortCode: '60-16-45',
     accountNumber: '68190611',
     accountName: 'Denton Village Surgery',
