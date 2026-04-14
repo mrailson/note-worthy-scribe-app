@@ -93,6 +93,30 @@ export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPra
     accountNumber: '68190611',
     accountName: 'Denton Village Surgery',
   },
+  brackley: {
+    bankName: '',
+    sortCode: '',
+    accountNumber: '',
+    accountName: 'Brackley Medical Centre',
+  },
+  springfield: {
+    bankName: '',
+    sortCode: '',
+    accountNumber: '',
+    accountName: 'Springfield Surgery',
+  },
+  towcester: {
+    bankName: '',
+    sortCode: '',
+    accountNumber: '',
+    accountName: 'Towcester Medical Centre',
+  },
+  brook: {
+    bankName: '',
+    sortCode: '',
+    accountNumber: '',
+    accountName: 'Brook Health Centre',
+  },
 };
 
 /** Get the display name for a practice key, checking both NRES and ENN practices */
