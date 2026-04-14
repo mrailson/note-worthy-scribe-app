@@ -789,6 +789,27 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     );
   }
 
+  if (showVerifierDashboard) {
+    return (
+      <div className="space-y-6">
+        {isAdmin && (
+          <TestModeBar
+            state={testMode}
+            onChange={setTestMode}
+            practiceKeys={ALL_PRACTICE_KEYS}
+            practiceNames={ALL_PRACTICES}
+          />
+        )}
+        <BuyBackVerifierDashboard
+          claims={accessFilteredClaims}
+          onVerify={verifyClaim}
+          onReturnToPractice={(id, notes) => queryClaim(id, notes)}
+          savingClaim={savingClaim}
+        />
+      </div>
+    );
+  }
+
   if (showPMLDashboard) {
     return (
       <div className="space-y-6">
