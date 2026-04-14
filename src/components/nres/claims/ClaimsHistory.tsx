@@ -87,13 +87,7 @@ export function ClaimsHistory({
 
       {/* Quick filter pills */}
       <div className="flex gap-1 mb-3 flex-wrap">
-        {[
-          { key: 'all', label: `All (${statusCounts.all})` },
-          { key: 'in_progress', label: `In Progress (${statusCounts.in_progress})` },
-          ...Object.entries(STATUS_CONFIG)
-            .filter(([k]) => k !== 'draft' || role === 'practice' || role === 'super_admin')
-            .map(([key, cfg]) => ({ key, label: `${cfg.label} (${statusCounts[key] || 0})`, cfg })),
-        ].map(item => (
+        {getFilterPills(role, claims, statusCounts).map(item => (
           <button
             key={item.key}
             onClick={() => setStatusFilter(item.key)}
@@ -101,8 +95,8 @@ export function ClaimsHistory({
             style={
               statusFilter === item.key
                 ? { background: '#005eb8', color: '#fff' }
-                : 'cfg' in item && item.cfg
-                ? { background: item.cfg.bg, color: item.cfg.color }
+                : item.bg
+                ? { background: item.bg, color: item.color }
                 : { background: '#f1f5f9', color: '#64748b' }
             }
           >
