@@ -1,44 +1,57 @@
 
 
-## Plan: Simplify Create Claims to Single-Entry Submissions
+## Plan: PML Director & PML Finance Claims Visibility and Actions
 
-### What's changing
+### Current State
 
-The current "Create Claims" UI uses a two-step flow: add lines to a staging table, then click "Declare & Submit" on each one individually. This is confusing because it looks like a batch system but each line is already independent.
+The claims pipeline is: **Draft → Submitted → Verified → Approved → Invoice Created → Scheduled → Paid**
 
-The new design will be a single-entry form: fill in one staff member's details, click "Declare & Submit", and it creates one claim line in the database. The form then resets for the next entry. Each submission = one claim = one invoice.
+Currently:
+- **PML Director** (`approver` role): can only see and approve claims at `verified` status
+- **PML Finance** (`finance` role): can see `approved` onwards and process invoice/schedule/paid steps
+- Both roles see ALL claims (no status filtering in the UI — only practice role is filtered)
 
-### Changes
+The issue is primarily about **what claims each role sees** and ensuring the workflow matches your description.
 
-**File: `src/components/nres/claims/CreateClaimPanel.tsx`** (rewrite)
+### What Will Change
 
-- Remove the `lines` array state and staging table entirely
-- Replace with a single inline form with all fields (Staff Member, Category, Role, GL Code, Allocation, Max Rate) in a clean grid layout
-- Single "Declare & Submit" button at the bottom
-- On submit: creates the claim line and immediately submits it (same logic as current `handleDeclareAndSubmit`)
-- Form resets after successful submission
-- Add a success toast confirming the claim ref
-- Keep month/year selectors and practice display at the top
+#### 1. PML Director Visibility (in `NRESClaimsOversight.tsx`)
+- Filter `visibleClaims` for the `approver` role to show:
+  - **Verified** claims (awaiting their approval)
+  - **Approved, Invoice Created, Scheduled, Paid** claims (previously approved — full downstream visibility)
+- This means they will NOT see drafts or submitted (pre-verification) claims
+- They CAN approve verified claims and raise queries on them
 
-The hook (`useNRESClaims.ts`) and all other components remain unchanged -- the backend already treats each `claim_lines` row as an independent entity with its own `claim_ref`, status pipeline, and eventual invoice path.
+#### 2. PML Finance Visibility (in `NRESClaimsOversight.tsx`)
+- Filter `visibleClaims` for the `finance` role to show only:
+  - **Approved, Invoice Created, Scheduled, Paid** claims
+- They will NOT see drafts, submitted, or verified claims
+- They handle all three steps: Invoice Created → Scheduled → Paid (already works)
 
-### UI layout (approximate)
+#### 3. Query Ability for PML Director (in `useNRESClaims.ts`)
+- Already partially working — the `canQuery` function allows `approver` to query `verified` claims
+- No changes needed here
+
+#### 4. Summary Cards Update
+- Update `ClaimsSummaryCards` to show relevant counts per role (only counting visible statuses)
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/nres/claims/NRESClaimsOversight.tsx` | Add status-based filtering for `approver` and `finance` roles in `visibleClaims` |
+| `src/components/nres/claims/ClaimsSummaryCards.tsx` | May need minor adjustments if it shows irrelevant status counts |
+
+### Technical Detail
+
+In `NRESClaimsOversight.tsx`, the `visibleClaims` memo becomes:
 
 ```text
-┌─────────────────────────────────────────────────┐
-│ 📋 Create Claim — Brackley & Towcester PCN Ltd  │
-│                                                 │
-│ Claim Month: [April ▾]  Year: [2026 ▾]         │
-│                                                 │
-│ ┌─────────────┬─────────────┬─────────────┐     │
-│ │ Staff Member│ Category    │ Role        │     │
-│ │ [________] │ [▾ Select]  │ [▾ Select]  │     │
-│ ├─────────────┼─────────────┼─────────────┤     │
-│ │ GL Code     │ Allocation  │ Max Rate £  │     │
-│ │ [▾ Select]  │ [________] │ [________]  │     │
-│ └─────────────┴─────────────┴─────────────┘     │
-│                                                 │
-│              [✓ Declare & Submit]                │
-└─────────────────────────────────────────────────┘
+practice  → filter by selected practice
+approver  → filter to verified, approved, invoice_created, scheduled, paid
+finance   → filter to approved, invoice_created, scheduled, paid
+super_admin / verifier → show all (no filter)
 ```
+
+This is a UI-only change — no database migrations needed. The `getAction` and `canQuery` functions already correctly restrict what each role can *do*; this plan only changes what they can *see*.
 
