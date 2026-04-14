@@ -539,12 +539,8 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 export function BuyBackPracticeDashboard({
   claims,
   practiceKey,
-  userId,
-  userEmail,
-  rateParams,
   onSubmit,
   onResubmit,
-  onDelete,
   savingClaim,
 }: BuyBackPracticeDashboardProps) {
   const [statusFilter, setStatusFilter] = useState('all');
