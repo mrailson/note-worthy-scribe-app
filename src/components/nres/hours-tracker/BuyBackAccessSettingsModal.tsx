@@ -945,14 +945,39 @@ function EmailSettingsPanel() {
             />
           </div>
           {sendingDisabled && (
-            <div className="mt-3 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2">
-              <div className="flex items-start gap-2">
-                <Info className="h-3.5 w-3.5 text-red-600 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-red-800 dark:text-red-300">
-                  <strong>All emails are suppressed.</strong> No submission, approval, verification, or invoice emails will be sent. Turn this off before going live.
-                </p>
+            <>
+              {/* Allow Invoice Email Exception */}
+              <div className="mt-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-2 flex-1 mr-3">
+                    <FileText className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300">Allow Invoice PDF Emails</p>
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-0.5">
+                        When enabled, the invoice PDF email (sent during PML Finance processing) will still be sent even while all other emails are suppressed.
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings.allow_invoice_email_when_suppressed}
+                    onCheckedChange={(checked) => toggleAllowInvoiceWhenSuppressed(checked)}
+                    disabled={saving}
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="mt-3 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-3 py-2">
+                <div className="flex items-start gap-2">
+                  <Info className="h-3.5 w-3.5 text-red-600 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-red-800 dark:text-red-300">
+                    <strong>{settings.allow_invoice_email_when_suppressed ? 'Most emails are suppressed.' : 'All emails are suppressed.'}</strong>
+                    {settings.allow_invoice_email_when_suppressed
+                      ? ' Only invoice PDF emails will be sent. All other notifications (submission, approval, verification) are suppressed.'
+                      : ' No submission, approval, verification, or invoice emails will be sent. Turn this off before going live.'}
+                  </p>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
