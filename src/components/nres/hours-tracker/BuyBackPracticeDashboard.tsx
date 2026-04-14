@@ -356,6 +356,12 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
         />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{monthLabel}</span>
+          {(() => {
+            const cfg = claim.claim_type === 'additional'
+              ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
+              : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
+            return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
+          })()}
           <StatusBadge status={claim.status} />
           {isQueried && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: '#dc2626' }}>
