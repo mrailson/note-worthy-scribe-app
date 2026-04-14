@@ -24,11 +24,56 @@ interface ClaimsHistoryProps {
 
 const IN_PROGRESS = ['submitted', 'verified', 'approved', 'invoice_created', 'scheduled'];
 
+// Grouped filter keys for role-specific views
+const GROUPED_FILTERS: Record<string, string[]> = {
+  awaiting_pml_approval: ['verified'],
+  awaiting_finance: ['approved', 'invoice_created', 'scheduled'],
+  approved_and_paid: ['approved', 'invoice_created', 'scheduled', 'paid'],
+  finance_pipeline: ['approved', 'invoice_created', 'scheduled'],
+};
+
+interface FilterPill {
+  key: string;
+  label: string;
+  bg?: string;
+  color?: string;
+}
+
+function getFilterPills(role: ClaimsRole, claims: ClaimLine[], statusCounts: Record<string, number>): FilterPill[] {
+  if (role === 'approver') {
+    const awaitingCount = statusCounts['verified'] || 0;
+    const financeCount = (statusCounts['approved'] || 0) + (statusCounts['invoice_created'] || 0) + (statusCounts['scheduled'] || 0);
+    const paidCount = statusCounts['paid'] || 0;
+    return [
+      { key: 'awaiting_pml_approval', label: `Awaiting PML Approval (${awaitingCount})`, bg: '#ede9fe', color: '#7c3aed' },
+      { key: 'awaiting_finance', label: `Approved — Awaiting Finance (${financeCount})`, bg: '#fef3c7', color: '#d97706' },
+      { key: 'approved_and_paid', label: `Approved & Paid (${financeCount + paidCount})`, bg: '#d1fae5', color: '#059669' },
+      { key: 'all', label: `All (${statusCounts.all})` },
+    ];
+  }
+  if (role === 'finance') {
+    return [
+      { key: 'finance_pipeline', label: `Awaiting Processing (${(statusCounts['approved'] || 0) + (statusCounts['invoice_created'] || 0) + (statusCounts['scheduled'] || 0)})`, bg: '#fef3c7', color: '#d97706' },
+      { key: 'paid', label: `Paid (${statusCounts['paid'] || 0})`, bg: '#bbf7d0', color: '#16a34a' },
+      { key: 'all', label: `All (${statusCounts.all})` },
+    ];
+  }
+  // Default pills for other roles
+  return [
+    { key: 'all', label: `All (${statusCounts.all})` },
+    { key: 'in_progress', label: `In Progress (${statusCounts.in_progress})` },
+    ...Object.entries(STATUS_CONFIG)
+      .filter(([k]) => k !== 'draft' || role === 'practice' || role === 'super_admin')
+      .map(([key, cfg]) => ({ key, label: `${cfg.label} (${statusCounts[key] || 0})`, bg: cfg.bg, color: cfg.color })),
+  ];
+}
+
 export function ClaimsHistory({
   claims, practices, role, evidence, auditLog, saving,
   getAction, canQuery, onAdvanceStatus, onResubmit, onQuery, onExpandClaim,
 }: ClaimsHistoryProps) {
-  const [statusFilter, setStatusFilter] = useState('all');
+  const defaultFilter = role === 'approver' ? 'awaiting_pml_approval' : role === 'finance' ? 'finance_pipeline' : 'all';
+  const [statusFilter, setStatusFilter] = useState(defaultFilter);
   const [practiceFilter, setPracticeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -37,6 +82,9 @@ export function ClaimsHistory({
 
   const filtered = useMemo(() => {
     return claims.filter(c => {
+      // Check grouped filters first
+      const groupedStatuses = GROUPED_FILTERS[statusFilter];
+      if (groupedStatuses) return groupedStatuses.includes(c.status);
       if (statusFilter === 'in_progress') return IN_PROGRESS.includes(c.status);
       if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       if (practiceFilter !== 'all' && c.practice_id !== practiceFilter) return false;
@@ -87,13 +135,7 @@ export function ClaimsHistory({
 
       {/* Quick filter pills */}
       <div className="flex gap-1 mb-3 flex-wrap">
-        {[
-          { key: 'all', label: `All (${statusCounts.all})` },
-          { key: 'in_progress', label: `In Progress (${statusCounts.in_progress})` },
-          ...Object.entries(STATUS_CONFIG)
-            .filter(([k]) => k !== 'draft' || role === 'practice' || role === 'super_admin')
-            .map(([key, cfg]) => ({ key, label: `${cfg.label} (${statusCounts[key] || 0})`, cfg })),
-        ].map(item => (
+        {getFilterPills(role, claims, statusCounts).map(item => (
           <button
             key={item.key}
             onClick={() => setStatusFilter(item.key)}
@@ -101,8 +143,8 @@ export function ClaimsHistory({
             style={
               statusFilter === item.key
                 ? { background: '#005eb8', color: '#fff' }
-                : 'cfg' in item && item.cfg
-                ? { background: item.cfg.bg, color: item.cfg.color }
+                : item.bg
+                ? { background: item.bg, color: item.color }
                 : { background: '#f1f5f9', color: '#64748b' }
             }
           >
