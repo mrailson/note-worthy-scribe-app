@@ -187,8 +187,8 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   const hasOverRate = staffDetails.some(s => (s.claimed_amount ?? 0) > (s.calculated_amount ?? s.claimed_amount ?? 0));
 
   const viewCfg = VIEW_CONFIG[view];
-  const showDirectorActions = view === 'director' && claim.status === 'submitted';
-  const showFinanceActions = view === 'finance' && (claim.status === 'verified' || claim.status === 'queried');
+  const showDirectorActions = view === 'director' && (claim.status === 'submitted' || claim.status === 'verified' || claim.status === 'queried');
+  const showFinanceActions = view === 'finance' && (claim.status === 'verified' || claim.status === 'queried' || claim.status === 'approved');
 
   // Evidence / requirements
   const hasPartA = claim.declaration_confirmed;
@@ -364,7 +364,12 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           {showDirectorActions && (
             <div className="mt-4 flex gap-2 items-center pt-3.5 border-t border-gray-100">
               <span className="text-[13px] font-semibold text-gray-700 mr-2">Director Review:</span>
-              <ActionBtn label="Verify" color="#059669" bg="#ecfdf5" onClick={() => handleAction('verify')} disabled={saving} />
+              {claim.status === 'submitted' && (
+                <ActionBtn label="Verify" color="#059669" bg="#ecfdf5" onClick={() => handleAction('verify')} disabled={saving} />
+              )}
+              {(claim.status === 'verified' || claim.status === 'queried') && (
+                <ActionBtn label="Approve" color="#059669" bg="#ecfdf5" onClick={() => handleAction('approve')} disabled={saving} />
+              )}
               <ActionBtn label="Query" color="#d97706" bg="#fffbeb" onClick={() => handleAction('query')} disabled={saving || !reviewNotes.trim()} />
               <ActionBtn label="Reject" color="#dc2626" bg="#fef2f2" onClick={() => handleAction('reject')} disabled={saving || !reviewNotes.trim()} />
               <input
