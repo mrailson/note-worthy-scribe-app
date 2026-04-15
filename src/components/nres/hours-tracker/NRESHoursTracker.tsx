@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { ClaimsUserGuide } from './ClaimsUserGuide';
