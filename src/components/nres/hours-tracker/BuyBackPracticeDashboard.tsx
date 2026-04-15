@@ -328,7 +328,30 @@ function InlineClaimPanel({
 
   const isLocum = staffMember.staff_category === 'gp_locum';
   const configuredSessions = staffMember.allocation_value || 0;
-  const sessionRate = staffMember.hourly_rate || 0;
+  // Derive the authoritative per-session rate from master settings (rateParams)
+  // rather than the potentially stale hourly_rate stored on the staff record.
+  // calculateStaffMonthlyAmount with allocation_value:1 gives exactly one session's worth
+  // at the current master rate for this role.
+  const sessionRate = useMemo(() => {
+    if (!isLocum) return staffMember.hourly_rate || 0;
+    // Try master settings via role config first
+    if (rateParams?.getRoleConfig) {
+      const cfg = rateParams.getRoleConfig(staffMember.staff_role);
+      if (cfg?.annual_rate && cfg.annual_rate > 0) return cfg.annual_rate;
+    }
+    // Fall back: derive from calculateStaffMonthlyAmount for 1 unit
+    if (rateParams) {
+      const oneUnit = calculateStaffMonthlyAmount(
+        { ...staffMember, allocation_value: 1 },
+        monthDate,
+        staffMember.start_date,
+        rateParams
+      );
+      if (oneUnit > 0) return oneUnit;
+    }
+    // Final fallback to stored rate
+    return staffMember.hourly_rate || 0;
+  }, [isLocum, staffMember, monthDate, rateParams]);
 
   const [locumSessions, setLocumSessions] = useState<number>(configuredSessions);
   const [locumClaimAmount, setLocumClaimAmount] = useState<number>(0);
