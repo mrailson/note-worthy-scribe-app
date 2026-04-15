@@ -11,10 +11,11 @@ import { WorkflowModal } from "@/components/nres/WorkflowModal";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
+import { NRESDigitalAndFinance } from "@/components/nres/NRESDigitalAndFinance";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock, Monitor } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,6 @@ const NRESDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleRefresh = useCallback(() => {
-    // Simulate data refresh with slight variations
     setConsultations([...mockConsultations]);
     setMetrics({ ...mockMetrics });
     
@@ -74,6 +74,10 @@ const NRESDashboard = () => {
               <LayoutGrid className="w-4 h-4" />
               Dashboard
             </TabsTrigger>
+            <TabsTrigger value="digital" className="gap-2">
+              <Monitor className="w-4 h-4" />
+              IT &amp; Reporting
+            </TabsTrigger>
             <TabsTrigger value="hours-tracker" className="gap-2">
               <Clock className="w-4 h-4" />
               Claims &amp; Oversight
@@ -103,8 +107,6 @@ const NRESDashboard = () => {
                 </Button>
               </Link>
             </div>
-
-
 
             <DashboardHeader
               selectedPractice={selectedPractice}
@@ -218,6 +220,10 @@ const NRESDashboard = () => {
             <div className="text-center text-sm text-muted-foreground pb-4">
               <p>NHS Rural East & South Neighbourhood • Real-time Results Management</p>
             </div>
+          </TabsContent>
+
+          <TabsContent value="digital">
+            <NRESDigitalAndFinance />
           </TabsContent>
 
           <TabsContent value="hours-tracker">
