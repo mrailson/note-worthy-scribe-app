@@ -1942,9 +1942,9 @@ function StaffRosterSection({
 }
 
 // --- History Summary (preserved) ---
-function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
+function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; hidePeriodFilter?: boolean }) {
   const [period, setPeriod] = useState('all');
-  const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
+  const periodClaims = hidePeriodFilter ? claims : filterByPeriod(claims, period);
 
   const byMonth = useMemo(() => {
     const m: Record<string, any> = {};
@@ -2009,18 +2009,22 @@ function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
   return (
     <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' as const, gap: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Claims History</div>
-        <div style={{ display: 'flex', gap: 3 }}>
-          {PERIOD_OPTIONS.map((p) => (
-            <button key={p.key} onClick={() => setPeriod(p.key)} style={{
-              padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: period === p.key ? 600 : 400,
-              border: `1px solid ${period === p.key ? '#005eb8' : '#e5e7eb'}`,
-              background: period === p.key ? '#eff6ff' : '#fff',
-              color: period === p.key ? '#005eb8' : '#6b7280',
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}>{p.label}</button>
-          ))}
-        </div>
+        {!hidePeriodFilter && (
+          <>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Claims History</div>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {PERIOD_OPTIONS.map((p) => (
+                <button key={p.key} onClick={() => setPeriod(p.key)} style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: period === p.key ? 600 : 400,
+                  border: `1px solid ${period === p.key ? '#005eb8' : '#e5e7eb'}`,
+                  background: period === p.key ? '#eff6ff' : '#fff',
+                  color: period === p.key ? '#005eb8' : '#6b7280',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}>{p.label}</button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -2075,7 +2079,7 @@ function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
   );
 }
 
-type ClaimsView = 'cards' | 'invoices' | 'spreadsheet';
+type ClaimsView = 'summary' | 'cards' | 'invoices' | 'spreadsheet';
 
 function ClaimsViewSwitcher({
   claims,
@@ -2096,7 +2100,7 @@ function ClaimsViewSwitcher({
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
 }) {
-  const [view, setView] = useState<ClaimsView>('cards');
+  const [view, setView] = useState<ClaimsView>('summary');
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
@@ -2216,18 +2220,19 @@ function ClaimsViewSwitcher({
   };
 
   const VIEW_TABS: { key: ClaimsView; label: string; icon: string }[] = [
+    { key: 'summary', label: 'Summary', icon: '📋' },
     { key: 'cards', label: 'Cards', icon: '🃏' },
     { key: 'invoices', label: 'Invoices', icon: '📄' },
     { key: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
   ];
 
   return (
-    <div style={{ marginTop: 20 }}>
+    <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,.04)' }}>
 
       {/* Section header with view switcher + period filter */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
 
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>All Claims</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Claims</div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* Period filter */}
@@ -2266,6 +2271,11 @@ function ClaimsViewSwitcher({
         <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
           No claims in this period.
         </div>
+      )}
+
+      {/* ── SUMMARY VIEW ───────────────────────────────────────── */}
+      {view === 'summary' && (
+        <HistorySummary claims={periodClaims} hidePeriodFilter />
       )}
 
       {/* ── CARDS VIEW ────────────────────────────────────────── */}
@@ -2978,24 +2988,17 @@ export function BuyBackPracticeDashboard({
       {/* Separator */}
       <div style={{ height: 1, background: '#e5e7eb', margin: '8px 0 20px' }} />
 
-      {/* Claims History Summary */}
-      <HistorySummary claims={practiceClaims} />
-
-      {/* Claims list with view switcher */}
-      {practiceClaims.length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <ClaimsViewSwitcher
-            claims={practiceClaims}
-            practiceKey={practiceKey}
-            practiceName={practiceName}
-            onToggleCard={(id) => setExpandedClaimId(expandedClaimId === id ? null : id)}
-            expandedClaimId={expandedClaimId}
-            onSubmit={onSubmit}
-            onResubmit={onResubmit}
-            saving={savingClaim}
-          />
-        </div>
-      )}
+      {/* Unified Claims section */}
+      <ClaimsViewSwitcher
+        claims={practiceClaims}
+        practiceKey={practiceKey}
+        practiceName={practiceName}
+        onToggleCard={(id) => setExpandedClaimId(expandedClaimId === id ? null : id)}
+        expandedClaimId={expandedClaimId}
+        onSubmit={onSubmit}
+        onResubmit={onResubmit}
+        saving={savingClaim}
+      />
 
       {/* Footer */}
       <div style={{
