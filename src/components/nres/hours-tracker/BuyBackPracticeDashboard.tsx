@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Zap } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
@@ -324,6 +324,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   saving?: boolean;
 }) {
   const [queryResponse, setQueryResponse] = useState('');
+  const [testFilling, setTestFilling] = useState(false);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const staffCount = claimStaffCount(claim);
@@ -336,11 +337,35 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 
   const { uploading, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, getFilesForStaff } = useNRESClaimEvidence(claim.id);
   const { getConfigForCategory } = useNRESEvidenceConfig();
-  const { allComplete: evidenceComplete } = useStaffLineEvidenceComplete(
+  const { allComplete: evidenceComplete, totalMandatory, totalUploaded } = useStaffLineEvidenceComplete(
     staffDets,
     getUploadedTypesForStaff,
     getConfigForCategory
   );
+
+  /** Test helper: creates a tiny dummy PDF and uploads it for every missing mandatory slot */
+  const handleTestFillAll = useCallback(async () => {
+    if (testFilling) return;
+    setTestFilling(true);
+    try {
+      for (let idx = 0; idx < staffDets.length; idx++) {
+        const s = staffDets[idx];
+        const rawCat = s.staff_category === 'gp_locum' ? 'buyback' : (s.staff_category || 'buyback');
+        const mandatoryTypes = getConfigForCategory(rawCat).filter((t: any) => t.is_mandatory);
+        const alreadyUploaded = getUploadedTypesForStaff(idx);
+
+        for (const cfg of mandatoryTypes) {
+          if (alreadyUploaded[cfg.evidence_type]) continue;
+          // Create a small test PDF blob
+          const pdfContent = `%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\nxref\n0 4\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n0\n%%EOF`;
+          const testFile = new File([pdfContent], `TEST-${cfg.evidence_type}-staff${idx}.pdf`, { type: 'application/pdf' });
+          await uploadEvidence(cfg.evidence_type, testFile, idx, true);
+        }
+      }
+    } finally {
+      setTestFilling(false);
+    }
+  }, [staffDets, getConfigForCategory, getUploadedTypesForStaff, uploadEvidence, testFilling]);
 
   return (
     <div style={{
@@ -506,9 +531,19 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           {isDraft && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               {!evidenceComplete && (
-                <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 500 }}>
-                  Upload all required evidence before submitting
-                </span>
+                <>
+                  <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 500 }}>
+                    Upload all required evidence before submitting ({totalUploaded}/{totalMandatory})
+                  </span>
+                  <ActionBtn
+                    label={testFilling ? 'Filling…' : 'Test Fill All Evidence'}
+                    color="#d97706"
+                    bg="#fffbeb"
+                    icon={<Zap className="w-3.5 h-3.5" />}
+                    onClick={handleTestFillAll}
+                    disabled={testFilling || uploading}
+                  />
+                </>
               )}
               <ActionBtn
                 label="Submit Claim"
