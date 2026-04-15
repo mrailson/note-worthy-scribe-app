@@ -359,14 +359,45 @@ function TitleModal({ duration, chunkCount, totalSize, onSave, onDiscard, onCont
             ▶ Continue Recording
           </button>
         )}
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={onDiscard} style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:14,fontWeight:600,color:"#64748b",fontFamily:"inherit"}}>
-            Discard
-          </button>
-          <button onClick={()=>onSave(title)} style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:14,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(21,101,192,0.4)"}}>
-            Save Recording
-          </button>
-        </div>
+        {confirmingDiscard ? (
+          <div style={{borderRadius:12,border:"1.5px solid #fca5a5",background:"#fef2f2",padding:"14px 16px",marginTop:4}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#991b1b",marginBottom:6,display:"flex",alignItems:"center",gap:6}}>
+              ⚠️ Delete this {Math.floor(duration/60) > 0 ? Math.floor(duration/60)+"m " : ""}{duration%60}s recording?
+            </div>
+            <div style={{fontSize:12,color:"#b91c1c",marginBottom:14,lineHeight:1.5}}>
+              This recording will be permanently lost. This cannot be undone.
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button
+                onClick={() => setConfirmingDiscard(false)}
+                style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #d1d5db",background:"white",cursor:"pointer",fontSize:14,fontWeight:600,color:"#374151",fontFamily:"inherit"}}
+              >
+                Keep it
+              </button>
+              <button
+                onClick={onDiscard}
+                style={{flex:1,padding:"12px",borderRadius:10,border:"none",background:"#dc2626",cursor:"pointer",fontSize:14,fontWeight:600,color:"white",fontFamily:"inherit"}}
+              >
+                Yes, delete it
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{display:"flex",gap:10}}>
+            <button
+              onClick={() => needsConfirm ? setConfirmingDiscard(true) : onDiscard()}
+              style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:14,fontWeight:600,color:"#64748b",fontFamily:"inherit"}}
+            >
+              Discard
+            </button>
+            <button
+              onClick={() => onSave(title)}
+              style={{flex:2,padding:"13px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:14,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(21,101,192,0.4)"}}
+            >
+              Save Recording
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
