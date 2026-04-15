@@ -1,34 +1,28 @@
 
 
-# Move Help & Settings Icons Inline with Title
+## Problem
 
-## Summary
-Remove the separate toolbar row from `NRESHoursTracker` and render the Help (?) and Settings (⚙) icons inline with the "Buy-Back Claims" title in each sub-dashboard. This saves vertical space and keeps actions contextually close to the heading.
+When an admin deletes a test claim, it appears that the associated staff member (e.g. Olivia Dove) also disappears. Investigation reveals:
 
-## Approach
-Pass `onGuideOpen` and `onSettingsOpen` callbacks (plus a `showSettings` boolean) from `NRESHoursTracker` → `BuyBackClaimsTab` → each sub-dashboard, then render the icon buttons in each dashboard's existing title row.
+1. **No database cascade** — deleting a claim does NOT cascade to `nres_buyback_staff` at the DB level.
+2. **The real issue**: The `onRemoveStaff` prop (which calls `removeStaff` from `useNRESBuyBackStaff`) is passed to the Practice Dashboard for ALL users, including admins. Admins have a visible "Remove staff" button (trash icon) next to each staff member. If an admin clicks this — even accidentally — it permanently deletes the staff record from the database. RLS policies explicitly allow admins to delete any staff (`is_nres_admin()`).
+3. Additionally, `removeStaffFromClaim` in `useNRESBuyBackClaims` (line 442-454) will delete the entire claim if the last staff line is removed, but this doesn't touch the `nres_buyback_staff` table.
 
-## Changes
+## Plan
 
-### File 1: `src/components/nres/hours-tracker/NRESHoursTracker.tsx`
-- Remove the toolbar `<div className="flex items-center gap-2">` block (lines 35–59)
-- Pass new props to `BuyBackClaimsTab`: `onGuideOpen`, `onSettingsOpen`, `showSettings`
+### Changes to `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`
+- **Stop passing `onRemoveStaff` to admins**: Only pass `removeStaff` as `onRemoveStaff` when the user is the practice owner (non-admin), not when they are viewing as admin. This prevents admins from accidentally deleting practice staff entries.
 
-### File 2: `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`
-- Extend the component's props to accept `onGuideOpen?: () => void`, `onSettingsOpen?: () => void`, `showSettings?: boolean`
-- In the Admin header row (line ~891), add the help/settings icon buttons after the ADMIN badge
-- Pass same props through to `BuyBackPracticeDashboard`, `BuyBackVerifierDashboard`, `BuyBackPMLDashboard`
+### Changes to `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`
+- **Hide the remove staff button for admins**: In the `StaffRowCard` component, only show the trash/remove button when the current user is the staff owner (not an admin viewing another practice's staff). Add an `isOwner` or `adminViewing` prop to control this.
 
-### File 3: `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`
-- Accept `onGuideOpen`, `onSettingsOpen`, `showSettings` props
-- In the title row (line ~2035–2038), add small icon buttons after the NRES badge
+### Changes to `src/hooks/useNRESBuyBackStaff.ts`
+- **Guard `removeStaff` against admin usage on other users' staff**: Add a safety check so that even if called, admins cannot delete staff belonging to other users. The function should only allow deletion when `user_id` matches the current user, regardless of admin status.
 
-### File 4: `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx`
-- Same pattern — add icon buttons inline with the title row (line ~519–522)
+### Summary of protections
+- UI: Admins won't see the remove button for staff they don't own
+- Hook: `removeStaff` will always filter by `user_id` (no admin bypass for deletion)
+- DB: RLS remains unchanged (defence in depth — the hook guard is the primary protection)
 
-### File 5: `src/components/nres/hours-tracker/BuyBackPMLDashboard.tsx`
-- Same pattern — add icon buttons inline with the title row (line ~818–821)
-
-## Button style
-Small inline icon buttons matching the existing design language — subtle outline style, ~20px, sitting right after the role badge in the title row. Consistent across all four dashboard views.
+No database migration needed.
 
