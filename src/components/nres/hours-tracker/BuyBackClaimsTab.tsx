@@ -441,7 +441,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, user?.email, user?.user_metadata?.full_name]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
-  const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries, verifyMeetingEntries, returnMeetingEntries } = useNRESMeetingLog();
+  const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries, verifyMeetingEntries, returnMeetingEntries, approveMeetingEntries, rejectMeetingEntries, queryMeetingEntries } = useNRESMeetingLog();
 
   // New claim state — declared early so bank holidays can reference claimMonth
   const [claimMonth, setClaimMonth] = useState(() => {
