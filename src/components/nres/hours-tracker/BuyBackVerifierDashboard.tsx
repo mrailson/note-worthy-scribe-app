@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -13,6 +14,9 @@ interface VerifierDashboardProps {
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
   showSettings?: boolean;
+  meetingEntries?: MeetingLogEntry[];
+  onVerifyMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
+  onReturnMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -469,11 +473,189 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
   );
 };
 
+// ─── Meeting Verifier Card ────────────────────────────────────────────────────
+const MeetingVerifierCard = ({ entries, expanded, onToggle, onVerify, onReturn, saving }: {
+  entries: MeetingLogEntry[];
+  expanded: boolean;
+  onToggle: () => void;
+  onVerify: (ids: string[], notes?: string) => Promise<any>;
+  onReturn: (ids: string[], notes?: string) => Promise<any>;
+  saving: boolean;
+}) => {
+  const [notes, setNotes] = useState('');
+  const personName = entries[0]?.person_name || '—';
+  const practiceCode = entries[0]?.billing_org_code || '';
+  const practiceName_ = Object.entries(NRES_ODS_CODES as Record<string, string>).find(([, v]) => v === practiceCode)?.[0];
+  const practiceLabel = practiceName_ ? (NRES_PRACTICES as Record<string, string>)[practiceName_] || practiceName_ : practiceCode;
+  const claimMonth = entries[0]?.claim_month || '';
+  const monthLabel = (() => {
+    if (!claimMonth) return '—';
+    const d = new Date(claimMonth + (claimMonth.length <= 7 ? '-01' : ''));
+    return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  })();
+  const totalHours = entries.reduce((s, e) => s + e.hours, 0);
+  const totalAmount = entries.reduce((s, e) => s + e.total_amount, 0);
+  const ids = entries.map(e => e.id);
+  const allSubmitted = entries.every(e => e.status === 'submitted');
+
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 12,
+      border: `1px solid ${allSubmitted ? '#7dd3fc' : '#e5e7eb'}`,
+      overflow: 'hidden',
+      boxShadow: allSubmitted ? '0 0 0 1px #bae6fd, 0 2px 8px rgba(14,165,233,0.06)' : '0 1px 3px rgba(0,0,0,0.04)',
+    }}>
+      <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+        <span style={{ color: '#9ca3af', flexShrink: 0 }}>
+          {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </span>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+          <Calendar className="w-4 h-4" style={{ color: '#0369a1', flexShrink: 0 }} />
+          <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{personName}</span>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>{practiceLabel}</span>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>{monthLabel}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#0369a1', background: '#e0f2fe', border: '1px solid #bae6fd' }}>
+            Meeting Attendance
+          </span>
+          <StatusBadge status={entries[0]?.status || 'submitted'} />
+          {allSubmitted && <span style={{ fontSize: 11, color: '#0369a1', fontWeight: 500 }}>Needs verification</span>}
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 100 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmt(totalAmount)}</div>
+          <div style={{ fontSize: 11, color: '#9ca3af' }}>{entries.length} meeting{entries.length !== 1 ? 's' : ''} · {totalHours.toFixed(1)} hrs</div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div style={{ borderTop: '1px solid #f3f4f6', padding: '0 18px 18px' }}>
+          {/* Metadata */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, padding: '14px 0 12px', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
+            <InfoBlock label="Person" value={personName} />
+            <InfoBlock label="Practice" value={practiceLabel} sub={practiceCode} />
+            <InfoBlock label="Period" value={monthLabel} />
+            <InfoBlock label="Rate" value={`${fmt(entries[0]?.hourly_rate || 0)}/hr`} />
+          </div>
+
+          {/* Meeting line items */}
+          <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  {['Meeting', 'Date', 'Hours', 'Amount'].map((h, i) => (
+                    <th key={h} style={{ textAlign: i >= 2 ? 'right' : 'left', padding: '7px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry, idx) => (
+                  <tr key={entry.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{entry.description || 'Meeting'}</td>
+                    <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>{new Date(entry.work_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{entry.hours.toFixed(1)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#111827' }}>{fmt(entry.total_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2} style={{ padding: '10px' }} />
+                  <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>Total</td>
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>{fmt(totalAmount)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Action bar — submitted entries only */}
+          {allSubmitted && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Shield className="w-4 h-4" /> Verification Decision
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => onVerify(ids, notes || undefined)}
+                  disabled={saving}
+                  style={{
+                    padding: '7px 18px', borderRadius: 8, border: '1.5px solid #059669',
+                    background: '#059669', color: '#fff',
+                    fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 5, opacity: saving ? 0.6 : 1,
+                  }}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" /> Verify & Forward to Director
+                </button>
+                <button
+                  onClick={() => onReturn(ids, notes || undefined)}
+                  disabled={saving}
+                  style={{
+                    padding: '7px 18px', borderRadius: 8, border: '1.5px solid #d97706',
+                    background: '#fffbeb', color: '#d97706',
+                    fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 5, opacity: saving ? 0.6 : 1,
+                  }}
+                >
+                  Return to Practice
+                </button>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  placeholder="Notes for practice or Director…"
+                  style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Already verified */}
+          {!allSubmitted && entries[0]?.status === 'verified' && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#059669' }}>
+              <ShieldCheck className="w-3.5 h-3.5" /> Verified — awaiting Director review
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
-export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim, onGuideOpen, onSettingsOpen, showSettings }: VerifierDashboardProps) {
+export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim, onGuideOpen, onSettingsOpen, showSettings, meetingEntries, onVerifyMeetingEntries, onReturnMeetingEntries }: VerifierDashboardProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+
+  // Group meeting entries by person + claim_month for verifier view
+  const visibleMeetingGroups = useMemo(() => {
+    if (!meetingEntries) return [];
+    const visible = meetingEntries.filter(e =>
+      ['submitted', 'verified', 'approved', 'queried', 'paid'].includes(e.status)
+    );
+    const groups: Record<string, MeetingLogEntry[]> = {};
+    visible.forEach(e => {
+      const key = `${e.person_name}__${e.claim_month?.slice(0, 7) || ''}__${e.billing_org_code || ''}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(e);
+    });
+    return Object.values(groups);
+  }, [meetingEntries]);
+
+  const filteredMeetingGroups = useMemo(() => {
+    return visibleMeetingGroups.filter(group => {
+      const status = group[0]?.status || 'submitted';
+      if (statusFilter !== 'all' && status !== statusFilter) return false;
+      if (search) {
+        const practiceCode_ = group[0]?.billing_org_code || '';
+        const practiceName__ = Object.entries(NRES_ODS_CODES as Record<string, string>).find(([, v]) => v === practiceCode_)?.[0];
+        const label = practiceName__ ? (NRES_PRACTICES as Record<string, string>)[practiceName__] || '' : '';
+        if (!label.toLowerCase().includes(search.toLowerCase()) && !group[0]?.person_name.toLowerCase().includes(search.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [visibleMeetingGroups, statusFilter, search]);
+
+  const submittedMeetingCount = visibleMeetingGroups.filter(g => g[0]?.status === 'submitted').length;
 
   // Only show statuses relevant to verifier
   const visibleClaims = claims.filter(c =>
@@ -543,11 +725,13 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
       </div>
 
       {/* Queue alert */}
-      {submittedClaims.length > 0 && (
+      {(submittedClaims.length > 0 || submittedMeetingCount > 0) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', marginBottom: 16, borderRadius: 10, background: '#f0f9ff', border: '1px solid #bae6fd', fontSize: 13, color: '#0c4a6e' }}>
           <Shield className="w-4 h-4 flex-shrink-0" />
           <span>
-            <strong>{submittedClaims.length} claim{submittedClaims.length !== 1 ? 's' : ''} awaiting your verification</strong> — {fmtShort(submittedTotal)} across {uniqueSubmittedPractices} practice{uniqueSubmittedPractices !== 1 ? 's' : ''}
+            <strong>{submittedClaims.length + submittedMeetingCount} item{(submittedClaims.length + submittedMeetingCount) !== 1 ? 's' : ''} awaiting your verification</strong>
+            {submittedClaims.length > 0 && <> — {fmtShort(submittedTotal)} across {uniqueSubmittedPractices} practice{uniqueSubmittedPractices !== 1 ? 's' : ''}</>}
+            {submittedMeetingCount > 0 && <> · {submittedMeetingCount} meeting claim{submittedMeetingCount !== 1 ? 's' : ''}</>}
           </span>
         </div>
       )}
@@ -602,29 +786,47 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
         </div>
       </div>
 
-      {/* Claims list */}
+      {/* Claims & Meeting entries list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && filteredMeetingGroups.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb' }}>
             No claims match the current filters.
           </div>
-        ) : filtered.map(c => (
-          <VerifierClaimCard
-            key={c.id}
-            claim={c}
-            expanded={expandedId === c.id}
-            onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-            onVerify={onVerify}
-            onReturn={onReturnToPractice}
-            saving={savingClaim}
-          />
-        ))}
+        ) : (
+          <>
+            {filtered.map(c => (
+              <VerifierClaimCard
+                key={c.id}
+                claim={c}
+                expanded={expandedId === c.id}
+                onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                onVerify={onVerify}
+                onReturn={onReturnToPractice}
+                saving={savingClaim}
+              />
+            ))}
+            {filteredMeetingGroups.map((group, idx) => {
+              const groupKey = `meeting-${group[0]?.person_name}-${group[0]?.claim_month}`;
+              return (
+                <MeetingVerifierCard
+                  key={groupKey}
+                  entries={group}
+                  expanded={expandedId === groupKey}
+                  onToggle={() => setExpandedId(expandedId === groupKey ? null : groupKey)}
+                  onVerify={onVerifyMeetingEntries || (async () => {})}
+                  onReturn={onReturnMeetingEntries || (async () => {})}
+                  saving={savingClaim}
+                />
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* Footer */}
       <div style={{ marginTop: 20, padding: '12px 0', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
         <span>NRES New Models of Care — Managerial Lead Verification Queue</span>
-        <span>{filtered.length} claim{filtered.length !== 1 ? 's' : ''} shown</span>
+        <span>{filtered.length + filteredMeetingGroups.length} item{(filtered.length + filteredMeetingGroups.length) !== 1 ? 's' : ''} shown</span>
       </div>
     </div>
   );

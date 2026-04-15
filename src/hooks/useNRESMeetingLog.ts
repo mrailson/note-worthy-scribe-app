@@ -166,6 +166,66 @@ export function useNRESMeetingLog() {
     }
   }, [entries, user?.email]);
 
+  /** Verify meeting entries (submitted → verified) */
+  const verifyMeetingEntries = useCallback(async (ids: string[], notes?: string): Promise<boolean> => {
+    if (!user?.email) return false;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_management_time')
+        .update({
+          status: 'verified',
+          verified_by: user.email,
+          verified_at: new Date().toISOString(),
+          notes: notes || null,
+        })
+        .in('id', ids);
+      if (error) throw error;
+      setEntries(prev => prev.map(e =>
+        ids.includes(e.id)
+          ? { ...e, status: 'verified' as const, notes: notes || e.notes }
+          : e
+      ));
+      toast.success(`${ids.length} meeting ${ids.length === 1 ? 'entry' : 'entries'} verified`);
+      return true;
+    } catch (e) {
+      console.error('[useNRESMeetingLog] verify error', e);
+      toast.error('Failed to verify entries');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.email]);
+
+  /** Return meeting entries to practice (submitted → queried) */
+  const returnMeetingEntries = useCallback(async (ids: string[], notes?: string): Promise<boolean> => {
+    if (!user?.email) return false;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_management_time')
+        .update({
+          status: 'queried',
+          query_notes: notes || null,
+        })
+        .in('id', ids);
+      if (error) throw error;
+      setEntries(prev => prev.map(e =>
+        ids.includes(e.id)
+          ? { ...e, status: 'queried' as const, query_notes: notes || null } as any
+          : e
+      ));
+      toast.success(`${ids.length} meeting ${ids.length === 1 ? 'entry' : 'entries'} returned to practice`);
+      return true;
+    } catch (e) {
+      console.error('[useNRESMeetingLog] return error', e);
+      toast.error('Failed to return entries');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.email]);
+
   return {
     entries,
     loading,
@@ -175,6 +235,8 @@ export function useNRESMeetingLog() {
     addMeetingEntry,
     deleteMeetingEntry,
     submitMonthEntries,
+    verifyMeetingEntries,
+    returnMeetingEntries,
     refetch: fetchEntries,
   };
 }
