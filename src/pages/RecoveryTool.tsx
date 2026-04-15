@@ -194,6 +194,10 @@ export default function RecoveryToolPage() {
   const [emailingId, setEmailingId] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<Record<string, string>>({});
   const [lsSession, setLsSession] = useState<any>(null);
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+  const [reprocessSegments, setReprocessSegments] = useState<ReprocessSegmentResult[]>([]);
+  const [reprocessDone, setReprocessDone] = useState(0);
+  const [reprocessTotal, setReprocessTotal] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
