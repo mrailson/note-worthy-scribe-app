@@ -80,10 +80,15 @@ Include ALL member practices in the PCN. Return only valid JSON, nothing else.`,
 
     const data = await upstream.json();
 
+    console.log("[pcn-data-search] Anthropic status:", upstream.status);
+    console.log("[pcn-data-search] Stop reason:", data.stop_reason);
+
     const text = (data.content ?? [])
       .filter((b: any) => b.type === "text")
       .map((b: any) => b.text)
       .join("\n");
+
+    console.log("[pcn-data-search] Raw text response:", text.substring(0, 500));
 
     const match = text.match(/\{[\s\S]*\}/);
 
