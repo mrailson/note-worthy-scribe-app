@@ -5108,9 +5108,12 @@ export const MeetingRecorder = ({
       
       // Stop backup recorder (short meeting = no successful transcript)
       if (isBackupActive) {
-        stopBackup(false, user?.id, capturedMeetingId || undefined).catch(err =>
-          console.warn('[MeetingRecorder] Backup stop error:', err)
-        );
+        try {
+          await stopBackup(false, user?.id, capturedMeetingId || undefined);
+          console.log('[MeetingRecorder] Backup flushed for short meeting');
+        } catch (err) {
+          console.warn('[MeetingRecorder] Backup stop error:', err);
+        }
       }
       
       setIsRecording(false);
@@ -5171,10 +5174,13 @@ export const MeetingRecorder = ({
       }
       
       // Show toast for short meeting (deduped)
-      showToast.info('Meeting was too short to save (minimum 100 words required)', {
+      const backupMsg = isBackupActive || segmentCount > 0
+        ? ' Your audio was backed up — use Recovery Tool to retrieve it.'
+        : '';
+      showToast.info(`Meeting was too short to save (minimum 100 words).${backupMsg}`, {
         section: 'meeting_manager',
         id: 'short_meeting_notice',
-        duration: 4000,
+        duration: backupMsg ? 7000 : 4000,
       });
       
       return;

@@ -43,6 +43,7 @@ export function useBackupRecorder() {
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const isPausedRef = useRef(false);
+  const isStoppingRef = useRef(false);
   // Track when the last non-trivial data chunk was received
   const lastDataTimestampRef = useRef(0);
   // Track if we've logged a stale-stream warning
@@ -272,6 +273,11 @@ export function useBackupRecorder() {
     userId?: string,
     meetingId?: string,
   ) => {
+    if (isStoppingRef.current) {
+      console.warn('[BackupRecorder] stopBackup already in progress — ignoring duplicate call');
+      return;
+    }
+    isStoppingRef.current = true;
     console.log('[BackupRecorder] stopBackup called:', { transcriptSuccessful, userId, meetingId, sessionId: sessionIdRef.current });
 
     if (rotationTimerRef.current) {
@@ -343,6 +349,7 @@ export function useBackupRecorder() {
 
     sessionIdRef.current = null;
     streamRef.current = null;
+    isStoppingRef.current = false;
   }, [saveCurrentSegment]);
 
   const pauseBackup = useCallback(() => {
