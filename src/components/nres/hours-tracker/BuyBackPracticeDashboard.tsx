@@ -410,7 +410,7 @@ function InlineClaimPanel({
 
   // Sync to calculatedAmount whenever it changes
   useEffect(() => {
-    setStandardClaimedAmount(calculatedAmount);
+    setStandardClaimedAmount(Math.round(calculatedAmount * 100) / 100);
   }, [calculatedAmount]);
 
   const handleCreateDraft = async () => {
@@ -883,7 +883,7 @@ function InlineClaimPanel({
                         </div>
                         {standardClaimedAmount < calculatedAmount && (
                           <button
-                            onClick={() => setStandardClaimedAmount(calculatedAmount)}
+                            onClick={() => setStandardClaimedAmount(Math.round(calculatedAmount * 100) / 100)}
                             style={{ padding: '6px 12px', borderRadius: 6, border: `1px solid ${catAccentColor}40`, background: `${catAccentColor}08`, color: catAccentColor, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
                           >
                             Use max ({fmtGBP(calculatedAmount)})
