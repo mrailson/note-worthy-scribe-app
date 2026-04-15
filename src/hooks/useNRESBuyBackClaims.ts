@@ -335,9 +335,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     try {
       setSaving(true);
       const claim = claims.find(c => c.id === id);
+
+      // Auto-confirm declaration if not already confirmed
       if (!claim?.declaration_confirmed) {
-        toast.error('You must confirm the declaration before submitting');
-        return;
+        await supabase
+          .from('nres_buyback_claims')
+          .update({ declaration_confirmed: true })
+          .eq('id', id);
       }
 
       let query = supabase
