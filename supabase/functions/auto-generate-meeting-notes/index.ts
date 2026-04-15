@@ -302,6 +302,46 @@ serve(async (req) => {
 
       if (existingSummary) {
         console.log('📝 Notes already exist for meeting, skipping generation');
+
+        // Even when skipping notes, ensure the meeting has a descriptive title
+        const genericTitlePatterns = [
+          /^Meeting\s*-\s*\w{3},/i,
+          /^Meeting\s*-\s*\w+day/i,
+          /^Meeting\s*-\s*\d{1,2}(st|nd|rd|th)/i,
+          /^New\s+Meeting/i,
+          /^Untitled/i,
+          /^Meeting\s+\d+$/i,
+          /^Meeting$/i,
+        ];
+        const currentTitle = meeting.title?.trim() || '';
+        const isGenericTitle = genericTitlePatterns.some(p => p.test(currentTitle));
+
+        if (isGenericTitle) {
+          console.log('🏷️ Title is still generic despite notes existing, triggering title generation:', currentTitle);
+          try {
+            const transcript = initialTranscriptData?.transcript || '';
+            const { data: titleResult, error: titleError } = await supabase.functions.invoke(
+              'generate-meeting-title',
+              {
+                body: {
+                  transcript: transcript.substring(0, 10000),
+                  currentTitle: meeting.title,
+                  meetingId: meetingId
+                }
+              }
+            );
+            if (!titleError && titleResult?.title && titleResult.title !== meeting.title) {
+              await supabase
+                .from('meetings')
+                .update({ title: titleResult.title })
+                .eq('id', meetingId);
+              console.log('✅ Meeting title updated on early-exit path:', titleResult.title);
+            }
+          } catch (titleErr) {
+            console.warn('⚠️ Title generation on early-exit failed (non-fatal):', titleErr);
+          }
+        }
+
         return new Response(
           JSON.stringify({ message: 'Notes already exist', skipped: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
