@@ -315,6 +315,16 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     }
   };
 
+  const isStreamingHtmlArtifact = message.isStreaming && (() => {
+    const c = throttledContent.trimStart();
+    return (
+      c.startsWith('<!DOCTYPE') ||
+      c.startsWith('<html') ||
+      c.startsWith('```html') ||
+      (c.includes('<head>') && c.includes('<body>')) ||
+      (c.includes('<html') && c.length < 2000)
+    );
+  })();
 
   const messageRef = React.useRef<HTMLDivElement>(null);
 
@@ -916,12 +926,33 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   >
                     {renderedAssistantMarkdown ? (
                       <div className="relative">
-                        <div dangerouslySetInnerHTML={{ __html: renderedAssistantMarkdown }} />
-                        {message.isStreaming && (
-                          <span
-                            className="inline-block w-2 h-4 align-text-bottom ml-1 bg-primary/80 animate-pulse"
-                            aria-hidden="true"
-                          />
+                        {isStreamingHtmlArtifact ? (
+                          <div className="flex flex-col items-start gap-3 py-3">
+                            <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </div>
+                              <span className="font-medium text-foreground">Building your response…</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
+                              Notewell AI is generating your document. It will appear fully formatted in just a moment — please don't close this window.
+                            </p>
+                            <div className="h-1.5 w-48 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }} />
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div dangerouslySetInnerHTML={{ __html: renderedAssistantMarkdown }} />
+                            {message.isStreaming && (
+                              <span
+                                className="inline-block w-2 h-4 align-text-bottom ml-1 bg-primary/80 animate-pulse"
+                                aria-hidden="true"
+                              />
+                            )}
+                          </>
                         )}
                       </div>
                     ) : message.isStreaming ? (
