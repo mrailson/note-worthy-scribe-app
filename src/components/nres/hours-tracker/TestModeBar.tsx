@@ -1,9 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
-import { FlaskConical, RotateCcw, Building2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { RotateCcw, Eye } from 'lucide-react';
 
 export type TestRole = 'admin' | 'practice' | 'mgmt_lead' | 'pml_director' | 'pml_finance';
 
@@ -13,12 +9,12 @@ export interface TestModeState {
   selectedPractice?: string;
 }
 
-const ROLE_OPTIONS: { value: TestRole; label: string; icon: string }[] = [
-  { value: 'admin', label: 'Admin', icon: '👑' },
-  { value: 'practice', label: 'Practice', icon: '🏥' },
-  { value: 'mgmt_lead', label: 'Mgmt Lead', icon: '📋' },
-  { value: 'pml_director', label: 'PML Director', icon: '✅' },
-  { value: 'pml_finance', label: 'PML Finance', icon: '💰' },
+const ROLE_OPTIONS: { value: TestRole; label: string; shortLabel: string; color: string }[] = [
+  { value: 'admin',        label: 'Admin',        shortLabel: 'Admin',    color: '#374151' },
+  { value: 'practice',     label: 'Practice',     shortLabel: 'Practice', color: '#0369a1' },
+  { value: 'mgmt_lead',    label: 'Mgmt Lead',    shortLabel: 'Mgmt',     color: '#7c3aed' },
+  { value: 'pml_director', label: 'PML Director', shortLabel: 'Director', color: '#059669' },
+  { value: 'pml_finance',  label: 'PML Finance',  shortLabel: 'Finance',  color: '#d97706' },
 ];
 
 interface TestModeBarProps {
@@ -31,128 +27,143 @@ interface TestModeBarProps {
 export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: TestModeBarProps) {
   const isOverriding = state.enabled && state.role !== 'admin';
   const activeRole = ROLE_OPTIONS.find(r => r.value === state.role);
-  const [showPractice, setShowPractice] = useState(state.role === 'practice');
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [showPractice, setShowPractice] = useState(state.role === 'practice' && state.enabled);
 
   useEffect(() => {
-    setShowPractice(state.role === 'practice');
-  }, [state.role]);
-
-  const handleToggle = (enabled: boolean) => {
-    onChange({ ...state, enabled, role: enabled ? state.role : 'admin' });
-  };
+    setShowPractice(state.role === 'practice' && state.enabled);
+  }, [state.role, state.enabled]);
 
   const handleRoleChange = (role: TestRole) => {
     onChange({
       enabled: true,
       role,
-      selectedPractice: role === 'practice' ? (state.selectedPractice || practiceKeys[0]) : undefined,
+      selectedPractice: role === 'practice'
+        ? (state.selectedPractice || practiceKeys[0])
+        : undefined,
     });
   };
 
+  const handleReset = () => onChange({ enabled: true, role: 'admin' });
+
   return (
-    <div
-      className={cn(
-        "rounded-lg border transition-all duration-300 overflow-hidden",
-        isOverriding
-          ? "border-amber-300/80 bg-gradient-to-r from-amber-50/80 to-orange-50/50 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-700/60 shadow-sm shadow-amber-200/30"
-          : "border-border/60 bg-muted/30"
-      )}
-    >
-      {/* Compact top bar */}
-      <div className="flex items-center gap-2.5 px-3 py-1.5">
-        <FlaskConical className={cn(
-          "h-3.5 w-3.5 shrink-0 transition-colors duration-200",
-          isOverriding ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
-        )} />
-
-        <span className={cn(
-          "text-[11px] font-semibold tracking-wide uppercase shrink-0 transition-colors duration-200",
-          isOverriding ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"
-        )}>
-          Test
-        </span>
-
-        <Switch
-          checked={state.enabled}
-          onCheckedChange={handleToggle}
-          className="scale-75 origin-left shrink-0"
-        />
-
-        {/* Inline role selector — segmented control style */}
-        <div
-          className={cn(
-            "flex items-center gap-0.5 rounded-md bg-background/80 border border-border/50 p-0.5 transition-all duration-300",
-            !state.enabled && "opacity-40 pointer-events-none"
-          )}
-        >
-          {ROLE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => handleRoleChange(opt.value)}
-              className={cn(
-                "px-2 py-0.5 rounded text-[10px] font-medium transition-all duration-200 whitespace-nowrap",
-                state.role === opt.value
-                  ? "bg-amber-500 text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-              )}
-              title={opt.label}
-            >
-              <span className="mr-0.5">{opt.icon}</span>
-              <span className="hidden sm:inline">{opt.label}</span>
-            </button>
-          ))}
+    <div style={{
+      fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif",
+      borderRadius: 10,
+      border: isOverriding ? `1px solid ${activeRole?.color}40` : '1px solid #e5e7eb',
+      background: isOverriding ? `${activeRole?.color}08` : '#fafafa',
+      overflow: 'hidden',
+      transition: 'border-color 0.2s, background 0.2s',
+    }}>
+      {/* Main bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', flexWrap: 'wrap' as const }}>
+        {/* Label */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+          <Eye style={{ width: 13, height: 13, color: isOverriding ? activeRole?.color : '#9ca3af' }} />
+          <span style={{ fontSize: 11, fontWeight: 600, color: isOverriding ? activeRole?.color : '#9ca3af', letterSpacing: '0.01em' }}>
+            Preview as:
+          </span>
         </div>
 
-        {/* Active role badge — shows when overriding */}
-        {isOverriding && (
-          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300/50 text-[10px] px-1.5 py-0 animate-fade-in">
-            {activeRole?.icon} {activeRole?.label}
-            {state.role === 'practice' && state.selectedPractice && (
-              <span className="ml-1 opacity-70">· {practiceNames[state.selectedPractice]?.split(' ')[0] || state.selectedPractice}</span>
-            )}
-          </Badge>
-        )}
+        {/* Role pills */}
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const, flex: 1 }}>
+          {ROLE_OPTIONS.map(opt => {
+            const active = state.role === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => handleRoleChange(opt.value)}
+                style={{
+                  padding: '4px 11px',
+                  borderRadius: 100,
+                  fontSize: 11,
+                  fontWeight: active ? 600 : 400,
+                  border: `1px solid ${active ? opt.color : '#d1d5db'}`,
+                  background: active ? `${opt.color}12` : '#fff',
+                  color: active ? opt.color : '#6b7280',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  whiteSpace: 'nowrap' as const,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                {opt.shortLabel}
+                {active && opt.value !== 'admin' && (
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: opt.color, flexShrink: 0,
+                  }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Reset */}
+        {/* Active indicator + reset */}
         {isOverriding && (
-          <button
-            onClick={() => onChange({ enabled: true, role: 'admin' })}
-            className="ml-auto text-amber-600/70 hover:text-amber-700 dark:text-amber-400/70 dark:hover:text-amber-300 transition-colors"
-            title="Reset to Admin"
-          >
-            <RotateCcw className="h-3 w-3" />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 600,
+              color: activeRole?.color,
+              padding: '3px 10px', borderRadius: 100,
+              background: `${activeRole?.color}12`,
+              border: `1px solid ${activeRole?.color}40`,
+              whiteSpace: 'nowrap' as const,
+            }}>
+              Viewing as {activeRole?.label}
+              {state.role === 'practice' && state.selectedPractice && (
+                <span style={{ fontWeight: 400, opacity: 0.75 }}>
+                  {' · '}{practiceNames[state.selectedPractice]?.split(' ')[0] || state.selectedPractice}
+                </span>
+              )}
+            </span>
+            <button
+              onClick={handleReset}
+              title="Back to Admin view"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8,
+                border: '1px solid #d1d5db', background: '#fff',
+                color: '#6b7280', fontSize: 11, fontWeight: 500,
+                cursor: 'pointer', whiteSpace: 'nowrap' as const,
+              }}
+            >
+              <RotateCcw style={{ width: 11, height: 11 }} />
+              Reset
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Practice selector — slides open when Practice role selected */}
-      <div
-        ref={contentRef}
-        className={cn(
-          "grid transition-all duration-300 ease-out",
-          showPractice && state.enabled
-            ? "grid-rows-[1fr] opacity-100"
-            : "grid-rows-[0fr] opacity-0"
-        )}
-      >
-        <div className="overflow-hidden">
-          <div className="flex items-center gap-2 px-3 pb-2 pt-0.5">
-            <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
-            <Select
-              value={state.selectedPractice || ''}
-              onValueChange={v => onChange({ ...state, selectedPractice: v })}
-            >
-              <SelectTrigger className="h-7 text-xs flex-1 max-w-[280px]">
-                <SelectValue placeholder="Select practice…" />
-              </SelectTrigger>
-              <SelectContent>
-                {practiceKeys.map(k => (
-                  <SelectItem key={k} value={k} className="text-xs">{practiceNames[k]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Practice selector — slides open when Practice selected */}
+      <div style={{
+        maxHeight: showPractice ? 52 : 0,
+        opacity: showPractice ? 1 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 0.25s ease, opacity 0.2s ease',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '0 14px 10px',
+          borderTop: `1px solid ${activeRole?.color}20`,
+        }}>
+          <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' as const }}>Practice:</span>
+          <select
+            value={state.selectedPractice || ''}
+            onChange={e => onChange({ ...state, selectedPractice: e.target.value })}
+            style={{
+              padding: '5px 10px', borderRadius: 8,
+              border: '1px solid #d1d5db', background: '#fff',
+              fontSize: 12, color: '#374151',
+              cursor: 'pointer', outline: 'none',
+              maxWidth: 280, flex: 1,
+            }}
+          >
+            {practiceKeys.map(k => (
+              <option key={k} value={k}>{practiceNames[k]}</option>
+            ))}
+          </select>
         </div>
       </div>
     </div>
