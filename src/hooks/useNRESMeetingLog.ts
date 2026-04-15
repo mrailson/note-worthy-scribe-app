@@ -226,6 +226,95 @@ export function useNRESMeetingLog() {
     }
   }, [user?.email]);
 
+  /** Approve meeting entries (verified → approved) */
+  const approveMeetingEntries = useCallback(async (ids: string[], notes?: string): Promise<boolean> => {
+    if (!user?.email) return false;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_management_time')
+        .update({
+          status: 'approved',
+          approved_by: user.email,
+          approved_at: new Date().toISOString(),
+          notes: notes || null,
+        })
+        .in('id', ids);
+      if (error) throw error;
+      setEntries(prev => prev.map(e =>
+        ids.includes(e.id)
+          ? { ...e, status: 'approved' as const, notes: notes || e.notes }
+          : e
+      ));
+      toast.success(`${ids.length} meeting ${ids.length === 1 ? 'entry' : 'entries'} approved`);
+      return true;
+    } catch (e) {
+      console.error('[useNRESMeetingLog] approve error', e);
+      toast.error('Failed to approve entries');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.email]);
+
+  /** Reject meeting entries (→ rejected) */
+  const rejectMeetingEntries = useCallback(async (ids: string[], notes?: string): Promise<boolean> => {
+    if (!user?.email) return false;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_management_time')
+        .update({
+          status: 'rejected',
+          notes: notes || null,
+        })
+        .in('id', ids);
+      if (error) throw error;
+      setEntries(prev => prev.map(e =>
+        ids.includes(e.id)
+          ? { ...e, status: 'rejected' as const, notes: notes || e.notes }
+          : e
+      ));
+      toast.success(`${ids.length} meeting ${ids.length === 1 ? 'entry' : 'entries'} rejected`);
+      return true;
+    } catch (e) {
+      console.error('[useNRESMeetingLog] reject error', e);
+      toast.error('Failed to reject entries');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.email]);
+
+  /** Query meeting entries from Director (verified → queried) */
+  const queryMeetingEntries = useCallback(async (ids: string[], notes?: string): Promise<boolean> => {
+    if (!user?.email) return false;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_management_time')
+        .update({
+          status: 'queried',
+          query_notes: notes || null,
+        })
+        .in('id', ids);
+      if (error) throw error;
+      setEntries(prev => prev.map(e =>
+        ids.includes(e.id)
+          ? { ...e, status: 'queried' as const } as any
+          : e
+      ));
+      toast.success(`${ids.length} meeting ${ids.length === 1 ? 'entry' : 'entries'} queried`);
+      return true;
+    } catch (e) {
+      console.error('[useNRESMeetingLog] query error', e);
+      toast.error('Failed to query entries');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.email]);
+
   return {
     entries,
     loading,
@@ -237,6 +326,9 @@ export function useNRESMeetingLog() {
     submitMonthEntries,
     verifyMeetingEntries,
     returnMeetingEntries,
+    approveMeetingEntries,
+    rejectMeetingEntries,
+    queryMeetingEntries,
     refetch: fetchEntries,
   };
 }

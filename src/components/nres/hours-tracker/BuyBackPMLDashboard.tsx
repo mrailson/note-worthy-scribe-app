@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark, HelpCircle, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getPracticeName, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
+import { getPracticeName, NRES_PRACTICE_BANK_DETAILS, NRES_ODS_CODES } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
+import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
@@ -13,6 +14,7 @@ type PMLView = 'director' | 'finance';
 
 interface BuyBackPMLDashboardProps {
   claims: BuyBackClaim[];
+  meetingEntries?: MeetingLogEntry[];
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
@@ -26,6 +28,9 @@ interface BuyBackPMLDashboardProps {
   onReject: (id: string, notes: string) => void;
   onMarkPaid?: (id: string, notes?: string) => void;
   onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
+  onApproveMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
+  onQueryMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
+  onRejectMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
   savingClaim?: boolean;
   defaultView?: PMLView;
   onGuideOpen?: () => void;
@@ -739,9 +744,134 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   );
 }
 
+// ─── Meeting Claim Card (for PML Director) ──────────────────────────────────
+function MeetingClaimCard({ group, view, expanded, onToggle, onApprove, onQuery, onReject, saving }: {
+  group: { key: string; person_name: string; practice_name: string; claim_month: string; month_label: string; entries: MeetingLogEntry[]; total_hours: number; total_amount: number; status: string };
+  view: PMLView;
+  expanded: boolean;
+  onToggle: () => void;
+  onApprove?: (ids: string[], notes?: string) => Promise<boolean>;
+  onQuery?: (ids: string[], notes?: string) => Promise<boolean>;
+  onReject?: (ids: string[], notes?: string) => Promise<boolean>;
+  saving?: boolean;
+}) {
+  const [reviewNotes, setReviewNotes] = useState('');
+  const displayStatus = toDisplayStatus(group.status);
+  const needsAction = view === 'director' && (displayStatus === 'awaiting_review' || displayStatus === 'queried');
+  const highlightColor = '#93c5fd';
+  const glowColor = 'rgba(59,130,246,0.06)';
+  const ids = group.entries.map(e => e.id);
+
+  const handleAction = async (action: 'approve' | 'query' | 'reject') => {
+    if (action === 'approve' && onApprove) { await onApprove(ids, reviewNotes || undefined); setReviewNotes(''); }
+    if (action === 'query' && onQuery && reviewNotes.trim()) { await onQuery(ids, reviewNotes); setReviewNotes(''); }
+    if (action === 'reject' && onReject && reviewNotes.trim()) { await onReject(ids, reviewNotes); setReviewNotes(''); }
+  };
+
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 12,
+      border: `1px solid ${needsAction ? highlightColor : '#e5e7eb'}`,
+      overflow: 'hidden',
+      boxShadow: needsAction ? `0 0 0 1px ${highlightColor}, 0 2px 8px ${glowColor}` : '0 1px 3px rgba(0,0,0,0.04)',
+    }}>
+      <button onClick={onToggle} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '14px 18px', border: 'none', background: 'transparent',
+        cursor: 'pointer', textAlign: 'left', fontSize: 14,
+      }}>
+        <ChevronDown className={cn('w-[18px] h-[18px] text-gray-400 transition-transform duration-200', expanded && 'rotate-180')} />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+          <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{group.practice_name}</span>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>{group.month_label}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#0369a1', background: '#e0f2fe', border: '1px solid #bae6fd' }}>Meeting Attendance</span>
+          <StatusBadge status={displayStatus} />
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(group.total_amount)}</div>
+          <div style={{ fontSize: 11, color: '#9ca3af' }}>{group.entries.length} meeting{group.entries.length !== 1 ? 's' : ''} · {group.total_hours.toFixed(1)} hrs</div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div style={{ borderTop: '1px solid #f3f4f6', padding: '0 18px 18px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, padding: '14px 0 12px', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
+            <InfoBlock label="Person" value={group.person_name} />
+            <InfoBlock label="Practice" value={group.practice_name} />
+            <InfoBlock label="Period" value={group.month_label} />
+            <InfoBlock label="Rate" value={group.entries[0] ? `${fmtGBP(group.entries[0].hourly_rate)}/hr` : '—'} />
+          </div>
+
+          {/* Meeting line items */}
+          <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  {['Meeting', 'Date', 'Hours', 'Rate', 'Amount'].map((h, i) => (
+                    <th key={h} style={{
+                      textAlign: i >= 2 ? 'right' : 'left', padding: '7px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {group.entries.map(entry => (
+                  <tr key={entry.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{entry.description || 'Meeting'}</td>
+                    <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
+                      {new Date(entry.work_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{entry.hours.toFixed(1)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#374151' }}>{fmtGBP(entry.hourly_rate)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#111827' }}>{fmtGBP(entry.total_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2} style={{ padding: '10px' }} />
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{group.total_hours.toFixed(1)}</td>
+                  <td style={{ padding: '10px' }} />
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
+                    {fmtGBP(group.total_amount)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Director action bar */}
+          {view === 'director' && (displayStatus === 'awaiting_review' || displayStatus === 'queried') && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Director Decision</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <ActionBtn label="Approve" color="#059669" bg="#ecfdf5" bold onClick={() => handleAction('approve')} disabled={saving} />
+                <ActionBtn label="Query" color="#d97706" bg="#fffbeb" onClick={() => handleAction('query')} disabled={saving || !reviewNotes.trim()} />
+                <ActionBtn label="Reject" color="#dc2626" bg="#fef2f2" onClick={() => handleAction('reject')} disabled={saving || !reviewNotes.trim()} />
+                <input type="text" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+                  placeholder="Notes (required for Query / Reject)…"
+                  style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+              </div>
+            </div>
+          )}
+
+          {view === 'finance' && (displayStatus === 'awaiting_review' || displayStatus === 'queried') && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9ca3af' }}>
+              <Lock className="w-3.5 h-3.5 text-gray-300" />
+              <span>Awaiting PML Director decision before payment can be processed</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export function BuyBackPMLDashboard({
   claims,
+  meetingEntries,
   userId,
   userEmail,
   isAdmin,
@@ -755,6 +885,9 @@ export function BuyBackPMLDashboard({
   onReject,
   onMarkPaid,
   onSchedulePayment,
+  onApproveMeetingEntries,
+  onQueryMeetingEntries,
+  onRejectMeetingEntries,
   savingClaim,
   defaultView,
   onGuideOpen,
@@ -768,29 +901,72 @@ export function BuyBackPMLDashboard({
 
   const cfg = ROLE_CONFIG[view];
 
+  // Group meeting entries by person+month+practice (only non-draft)
+  const meetingGroups = useMemo(() => {
+    if (!meetingEntries?.length) return [];
+    const validStatuses = ['submitted', 'verified', 'approved', 'queried', 'rejected', 'paid'];
+    const filtered = meetingEntries.filter(e => validStatuses.includes(e.status));
+    const byKey: Record<string, typeof filtered> = {};
+    filtered.forEach(e => {
+      const key = `${e.person_name}|${e.billing_org_code}|${(e.claim_month || '').slice(0, 7)}`;
+      if (!byKey[key]) byKey[key] = [];
+      byKey[key].push(e);
+    });
+    return Object.entries(byKey).map(([key, entries]) => {
+      const first = entries[0];
+      const practiceKey = Object.entries(NRES_ODS_CODES).find(([, code]) => code === first.billing_org_code)?.[0] || '';
+      const cm = (first.claim_month || '').slice(0, 7);
+      // Use the "worst" status (verified > submitted)
+      const statusPriority: Record<string, number> = { queried: 0, submitted: 1, verified: 2, approved: 3, paid: 4, rejected: 5 };
+      const worstStatus = entries.reduce((s, e) => statusPriority[e.status] < statusPriority[s] ? e.status : s, entries[0].status);
+      return {
+        key,
+        person_name: first.person_name,
+        practice_name: practiceKey ? getPracticeName(practiceKey) : first.billing_org_code || 'Unknown',
+        billing_org_code: first.billing_org_code || '',
+        claim_month: cm,
+        month_label: cm ? format(new Date(cm + '-01'), 'MMMM yyyy') : '—',
+        entries,
+        total_hours: entries.reduce((s, e) => s + e.hours, 0),
+        total_amount: entries.reduce((s, e) => s + e.total_amount, 0),
+        status: worstStatus,
+      };
+    });
+  }, [meetingEntries]);
+
   // Map all claims to display statuses
   const displayClaims = useMemo(() =>
     claims.filter(c => c.status !== 'draft'),
     [claims]
   );
 
-  // Status counts
+  // Status counts (including meeting groups)
   const counts = useMemo(() => {
-    const m: Record<string, number> = { all: displayClaims.length };
+    const m: Record<string, number> = { all: displayClaims.length + meetingGroups.length };
     displayClaims.forEach(c => {
       const ds = toDisplayStatus(c.status);
       m[ds] = (m[ds] || 0) + 1;
     });
+    meetingGroups.forEach(g => {
+      const ds = toDisplayStatus(g.status);
+      m[ds] = (m[ds] || 0) + 1;
+    });
     return m;
-  }, [displayClaims]);
+  }, [displayClaims, meetingGroups]);
 
-  // KPI totals
+  // KPI totals (including meeting groups)
   const totals = useMemo(() => {
-    const awaitingVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'awaiting_review' || toDisplayStatus(c.status) === 'queried').reduce((a, c) => a + claimTotal(c), 0);
-    const approvedVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'approved').reduce((a, c) => a + claimTotal(c), 0);
-    const paidVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'paid').reduce((a, c) => a + claimTotal(c), 0);
+    let awaitingVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'awaiting_review' || toDisplayStatus(c.status) === 'queried').reduce((a, c) => a + claimTotal(c), 0);
+    let approvedVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'approved').reduce((a, c) => a + claimTotal(c), 0);
+    let paidVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'paid').reduce((a, c) => a + claimTotal(c), 0);
+    meetingGroups.forEach(g => {
+      const ds = toDisplayStatus(g.status);
+      if (ds === 'awaiting_review' || ds === 'queried') awaitingVal += g.total_amount;
+      else if (ds === 'approved') approvedVal += g.total_amount;
+      else if (ds === 'paid') paidVal += g.total_amount;
+    });
     return { awaiting: awaitingVal, approved: approvedVal, paid: paidVal };
-  }, [displayClaims]);
+  }, [displayClaims, meetingGroups]);
 
   // Filtered claims
   const filteredClaims = useMemo(() =>
@@ -803,6 +979,16 @@ export function BuyBackPMLDashboard({
       return true;
     }),
     [displayClaims, statusFilter, searchTerm]
+  );
+
+  // Filtered meeting groups
+  const filteredMeetingGroups = useMemo(() =>
+    meetingGroups.filter(g => {
+      if (statusFilter !== 'all' && toDisplayStatus(g.status) !== statusFilter) return false;
+      if (searchTerm && !g.practice_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      return true;
+    }),
+    [meetingGroups, statusFilter, searchTerm]
   );
 
   const switchView = (v: PMLView) => {
@@ -956,32 +1142,49 @@ export function BuyBackPMLDashboard({
 
       {/* Claims list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filteredClaims.length === 0 ? (
+        {filteredClaims.length === 0 && filteredMeetingGroups.length === 0 ? (
           <div style={{
             padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14,
             background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb',
           }}>
             No claims match the current filters.
           </div>
-        ) : filteredClaims.map(c => (
-          <ClaimCard
-            key={c.id}
-            claim={c}
-            view={view}
-            expanded={expandedId === c.id}
-            onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-            userId={userId}
-            userEmail={userEmail}
-            isAdmin={isAdmin}
-            rateParams={rateParams}
-            onApprove={onApprove}
-            onQuery={onQuery}
-            onReject={onReject}
-            onMarkPaid={onMarkPaid}
-            onSchedulePayment={onSchedulePayment}
-            saving={savingClaim}
-          />
-        ))}
+        ) : (
+          <>
+            {filteredClaims.map(c => (
+              <ClaimCard
+                key={c.id}
+                claim={c}
+                view={view}
+                expanded={expandedId === c.id}
+                onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                userId={userId}
+                userEmail={userEmail}
+                isAdmin={isAdmin}
+                rateParams={rateParams}
+                onApprove={onApprove}
+                onQuery={onQuery}
+                onReject={onReject}
+                onMarkPaid={onMarkPaid}
+                onSchedulePayment={onSchedulePayment}
+                saving={savingClaim}
+              />
+            ))}
+            {filteredMeetingGroups.map(g => (
+              <MeetingClaimCard
+                key={`meeting-${g.key}`}
+                group={g}
+                view={view}
+                expanded={expandedId === `meeting-${g.key}`}
+                onToggle={() => setExpandedId(expandedId === `meeting-${g.key}` ? null : `meeting-${g.key}`)}
+                onApprove={onApproveMeetingEntries}
+                onQuery={onQueryMeetingEntries}
+                onReject={onRejectMeetingEntries}
+                saving={savingClaim}
+              />
+            ))}
+          </>
+        )}
       </div>
 
       {/* Footer */}
@@ -990,7 +1193,7 @@ export function BuyBackPMLDashboard({
         display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af',
       }}>
         <span>NRES New Models of Care — {cfg.label} Claims Pipeline</span>
-        <span>{filteredClaims.length} claim{filteredClaims.length !== 1 ? 's' : ''} shown</span>
+        <span>{filteredClaims.length + filteredMeetingGroups.length} claim{(filteredClaims.length + filteredMeetingGroups.length) !== 1 ? 's' : ''} shown</span>
       </div>
     </div>
   );
