@@ -812,13 +812,26 @@ export const AudioBackupManager = () => {
                         </div>
 
                         {reprocessDone > 0 && (
-                          <div className="text-sm font-medium pt-1 border-t">
-                            Running total:{' '}
-                            {reprocessSegments
-                              .filter(s => s.status === 'success')
-                              .reduce((sum, s) => sum + (s.wordCount || 0), 0)
-                              .toLocaleString()}{' '}
-                            words
+                          <div className="text-sm font-medium pt-1 border-t flex items-center justify-between">
+                            <span>
+                              Running total:{' '}
+                              {reprocessSegments
+                                .filter(s => s.status === 'success')
+                                .reduce((sum, s) => sum + (s.wordCount || 0), 0)
+                                .toLocaleString()}{' '}
+                              words
+                            </span>
+                            {!reprocessRunning && reprocessSegments.some(s => s.status === 'error') && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => retryFailedSegments(backup.id, backup.meeting_id, backup.file_path)}
+                                className="flex items-center gap-1"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                Retry Failed
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
