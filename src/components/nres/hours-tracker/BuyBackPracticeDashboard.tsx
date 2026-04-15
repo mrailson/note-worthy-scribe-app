@@ -37,6 +37,7 @@ interface BuyBackPracticeDashboardProps {
 // --- Constants ---
 const DECLARATION_TEXT = "I confirm that all staff listed are working 100% on SDA (Part A) during their funded hours, with no LTC (Part B) activity, in accordance with the ICB-approved buy-back rules.";
 const LOCUM_DECLARATION_TEXT = "I confirm this GP locum provided additional sessional SDA capacity. This claim represents the actual cost of sessions worked and does not exceed the ICB-approved maximum reimbursement rate. GP locums are by definition providing Part A SDA additional resource only — there is no LTC (Part B) activity.";
+const MANAGEMENT_DECLARATION_TEXT = "I confirm this resource has been assigned to the NRES New Models of Care programme and the claim is aligned to the agreed rates, terms, and on-cost calculations as approved by the ICB.";
 const PILOT_START = new Date(2026, 3, 1); // 1 April 2026
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
@@ -345,6 +346,7 @@ function InlineClaimPanel({
   useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
 
   const isLocum = staffMember.staff_category === 'gp_locum';
+  const isManagement = staffMember.staff_category === 'management';
   const configuredSessions = staffMember.allocation_value || 0;
   // Derive the authoritative per-session rate from master settings (rateParams)
   // rather than the potentially stale hourly_rate stored on the staff record.
