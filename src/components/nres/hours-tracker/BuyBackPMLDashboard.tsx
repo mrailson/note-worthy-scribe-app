@@ -27,7 +27,7 @@ interface BuyBackPMLDashboardProps {
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onMarkPaid?: (id: string, notes?: string) => void;
-  onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
+  onSchedulePayment?: (id: string, date: string, bacsRef?: string, poRef?: string, payMethod?: string, notes?: string) => void;
   onApproveMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
   onQueryMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
   onRejectMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
