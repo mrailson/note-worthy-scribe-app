@@ -44,6 +44,7 @@ const MobileTranslation = lazy(() => import("./pages/MobileTranslation"));
 const PatientLanguageSelection = lazy(() => import("./pages/PatientLanguageSelection"));
 const GPGenie = lazy(() => import("./pages/GPGenie"));
 const NewRecorder = lazy(() => import("./pages/NewRecorder"));
+const PCNCalculator = lazy(() => import("./pages/PCNCalculator"));
 const CSOReport = lazy(() => import("./pages/CSOReport"));
 const DPIA = lazy(() => import("./pages/DPIA"));
 const DTACAssessment = lazy(() => import("./pages/DTACAssessment"));
@@ -280,6 +281,7 @@ const App = () => {
                 <Route path="/patient-language" element={<PatientLanguageSelection />} />
                 <Route path="/gp-genie" element={<GPGenie />} />
                 <Route path="/new-recorder" element={<NewRecorder />} />
+                <Route path="/pcn-calculator" element={<PCNCalculator />} />
                 <Route path="/recovery-tool" element={<RecoveryTool />} />
                 <Route path="/ai4pm" element={
                   <ProtectedRoute requiredModule="enhanced_access">
