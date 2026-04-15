@@ -229,6 +229,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/ai4gp" element={<AI4GP />} />
+                <Route path="/pcn-calculator" element={<PCNCalculator />} />
                 <Route path="/voice-agent" element={<VoiceAgent />} />
                 <Route path="/voice-hub" element={<NotewellVoiceHub />} />
                 <Route path="/gp-scribe" element={<Navigate to="/scribe" replace />} />
