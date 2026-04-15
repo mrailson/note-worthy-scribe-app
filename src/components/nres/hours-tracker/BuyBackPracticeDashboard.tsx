@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
@@ -22,6 +22,8 @@ interface BuyBackPracticeDashboardProps {
   onResubmit?: (id: string, notes?: string) => void;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  onRemoveStaff?: (id: string) => Promise<void>;
+  onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   savingClaim?: boolean;
   savingStaff?: boolean;
@@ -566,7 +568,164 @@ function InlineClaimPanel({
   );
 }
 
-// --- Staff Roster Section ---
+// --- Staff Actions (Edit / Remove) ---
+function StaffActions({
+  member,
+  category,
+  onRemoveStaff,
+  onUpdateStaff,
+  staffRoles,
+}: {
+  member: BuyBackStaffMember;
+  category: string;
+  onRemoveStaff?: (id: string) => Promise<void>;
+  onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
+  staffRoles?: string[];
+}) {
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editRole, setEditRole] = useState(member.staff_role);
+  const [editAllocType, setEditAllocType] = useState(member.allocation_type || 'sessions');
+  const [editAllocValue, setEditAllocValue] = useState(String(member.allocation_value ?? ''));
+  const [saving, setSaving] = useState(false);
+
+  // Management roles are config-driven; don't allow edit/remove
+  if (category === 'management') {
+    return <span style={{ fontSize: 10, color: '#d1d5db' }}>—</span>;
+  }
+
+  if (confirmRemove) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <button
+          onClick={async () => {
+            if (onRemoveStaff) {
+              setSaving(true);
+              await onRemoveStaff(member.id);
+              setSaving(false);
+            }
+            setConfirmRemove(false);
+          }}
+          disabled={saving}
+          style={{
+            padding: '3px 8px', borderRadius: 5, border: '1px solid #fca5a5',
+            background: '#fef2f2', color: '#dc2626', fontSize: 10, fontWeight: 600,
+            cursor: 'pointer', opacity: saving ? 0.5 : 1,
+          }}
+        >
+          {saving ? '...' : 'Yes'}
+        </button>
+        <button
+          onClick={() => setConfirmRemove(false)}
+          style={{
+            padding: '3px 8px', borderRadius: 5, border: '1px solid #d1d5db',
+            background: '#fff', color: '#6b7280', fontSize: 10, fontWeight: 500, cursor: 'pointer',
+          }}
+        >
+          No
+        </button>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+        <select
+          value={editRole}
+          onChange={e => setEditRole(e.target.value)}
+          style={{ padding: '2px 4px', borderRadius: 4, border: '1px solid #d1d5db', fontSize: 10, maxWidth: 90 }}
+        >
+          {(staffRoles || ['GP', 'ANP', 'Pharmacist', 'Nurse', 'HCA', 'Paramedic', 'Admin']).map(r => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+        <input
+          value={editAllocValue}
+          onChange={e => setEditAllocValue(e.target.value)}
+          style={{ padding: '2px 4px', borderRadius: 4, border: '1px solid #d1d5db', fontSize: 10, width: 40, textAlign: 'center' }}
+          placeholder="Qty"
+        />
+        <select
+          value={editAllocType}
+          onChange={e => setEditAllocType(e.target.value as any)}
+          style={{ padding: '2px 4px', borderRadius: 4, border: '1px solid #d1d5db', fontSize: 10, maxWidth: 70 }}
+        >
+          <option value="sessions">sess</option>
+          <option value="wte">WTE</option>
+          <option value="hours">hrs</option>
+          <option value="daily">days</option>
+        </select>
+        <button
+          onClick={async () => {
+            if (onUpdateStaff) {
+              setSaving(true);
+              await onUpdateStaff(member.id, {
+                staff_role: editRole,
+                allocation_type: editAllocType as any,
+                allocation_value: Number(editAllocValue) || member.allocation_value,
+              });
+              setSaving(false);
+            }
+            setEditing(false);
+          }}
+          disabled={saving}
+          style={{
+            padding: '2px 6px', borderRadius: 4, border: 'none',
+            background: '#059669', color: '#fff', fontSize: 10, fontWeight: 600,
+            cursor: 'pointer', opacity: saving ? 0.5 : 1,
+          }}
+        >
+          {saving ? '...' : '✓'}
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          style={{
+            padding: '2px 6px', borderRadius: 4, border: '1px solid #d1d5db',
+            background: '#fff', color: '#6b7280', fontSize: 10, cursor: 'pointer',
+          }}
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center' }}>
+      {onUpdateStaff && (
+        <button
+          onClick={() => setEditing(true)}
+          title="Edit staff member"
+          style={{
+            padding: 4, borderRadius: 4, border: 'none', background: 'transparent',
+            color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#3b82f6')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}
+        >
+          <Pencil style={{ width: 13, height: 13 }} />
+        </button>
+      )}
+      {onRemoveStaff && (
+        <button
+          onClick={() => setConfirmRemove(true)}
+          title="Remove staff member"
+          style={{
+            padding: 4, borderRadius: 4, border: 'none', background: 'transparent',
+            color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}
+        >
+          <Trash2 style={{ width: 13, height: 13 }} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+
 function StaffRosterSection({
   title,
   category,
@@ -576,6 +735,8 @@ function StaffRosterSection({
   onClickClaim,
   activeClaimKey,
   onAddStaff,
+  onRemoveStaff,
+  onUpdateStaff,
   staffRoles,
   showAddButton,
   rateParams,
@@ -593,6 +754,8 @@ function StaffRosterSection({
   onClickClaim: (key: string) => void;
   activeClaimKey: string | null;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  onRemoveStaff?: (id: string) => Promise<void>;
+  onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
   staffRoles?: string[];
   showAddButton: boolean;
   rateParams?: RateParams;
@@ -676,6 +839,9 @@ function StaffRosterSection({
                     </th>
                   );
                 })}
+                <th style={{ textAlign: 'center', padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb', width: 70 }}>
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -718,6 +884,15 @@ function StaffRosterSection({
                           isCurrentMonth={isCurrentMo}
                         />
                       ))}
+                      <td style={{ padding: '6px 8px', textAlign: 'center', whiteSpace: 'nowrap' as const }}>
+                        <StaffActions
+                          member={member}
+                          category={category}
+                          onRemoveStaff={onRemoveStaff}
+                          onUpdateStaff={onUpdateStaff}
+                          staffRoles={staffRoles}
+                        />
+                      </td>
                     </tr>
                     {/* Inline claim panel */}
                     {activeMonth && (
@@ -1139,6 +1314,8 @@ export function BuyBackPracticeDashboard({
   onResubmit,
   onCreateClaim,
   onAddStaff,
+  onRemoveStaff,
+  onUpdateStaff,
   confirmDeclaration,
   savingClaim,
   savingStaff,
@@ -1224,6 +1401,8 @@ export function BuyBackPracticeDashboard({
     onClickClaim: handleClickClaim,
     activeClaimKey,
     onAddStaff,
+    onRemoveStaff,
+    onUpdateStaff,
     staffRoles,
     rateParams,
     onCreateClaim,
