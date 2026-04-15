@@ -12,19 +12,6 @@ import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 // --- Types ---
 type PMLView = 'director' | 'finance';
 
-interface MeetingClaimGroup {
-  key: string;
-  person_name: string;
-  practice_name: string;
-  billing_org_code: string;
-  claim_month: string;
-  month_label: string;
-  entries: MeetingLogEntry[];
-  total_hours: number;
-  total_amount: number;
-  status: string; // verified, approved, queried, etc.
-}
-
 interface BuyBackPMLDashboardProps {
   claims: BuyBackClaim[];
   meetingEntries?: MeetingLogEntry[];
