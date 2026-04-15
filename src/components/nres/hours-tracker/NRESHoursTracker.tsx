@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { BuyBackClaimsTab } from './BuyBackClaimsTab';
 import { BuyBackAccessSettingsModal } from './BuyBackAccessSettingsModal';
 import { ClaimsUserGuide } from './ClaimsUserGuide';
