@@ -847,6 +847,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           onGuideOpen={onGuideOpen}
           onSettingsOpen={onSettingsOpen}
           showSettings={showSettings}
+          meetingEntries={meetingLogEntries}
+          onVerifyMeetingEntries={async (ids, notes) => { await verifyMeetingEntries(ids, notes); }}
+          onReturnMeetingEntries={async (ids, notes) => { await returnMeetingEntries(ids, notes); }}
         />
       </div>
     );
