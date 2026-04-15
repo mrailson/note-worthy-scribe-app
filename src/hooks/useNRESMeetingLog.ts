@@ -77,7 +77,6 @@ export function useNRESMeetingLog() {
     if (!user?.id) return null;
     const { practiceKey, roleConfig, meetingName, meetingDate, hours, claimMonth } = params;
     const odsCode = NRES_ODS_CODES[practiceKey] || roleConfig.billing_org_code || '';
-    const totalAmount = hours * roleConfig.hourly_rate;
     try {
       setSaving(true);
       const { data, error } = await (supabase as any)
@@ -93,7 +92,6 @@ export function useNRESMeetingLog() {
           billing_entity: roleConfig.billing_entity,
           billing_org_code: odsCode,
           hourly_rate: roleConfig.hourly_rate,
-          total_amount: totalAmount,
           status: 'draft',
         })
         .select()
