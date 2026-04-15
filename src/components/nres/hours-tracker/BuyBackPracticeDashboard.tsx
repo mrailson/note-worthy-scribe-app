@@ -682,6 +682,9 @@ function StaffRosterSection({
                     </th>
                   );
                 })}
+                <th style={{ textAlign: 'center', padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb', width: 70 }}>
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -724,6 +727,15 @@ function StaffRosterSection({
                           isCurrentMonth={isCurrentMo}
                         />
                       ))}
+                      <td style={{ padding: '6px 8px', textAlign: 'center', whiteSpace: 'nowrap' as const }}>
+                        <StaffActions
+                          member={member}
+                          category={category}
+                          onRemoveStaff={onRemoveStaff}
+                          onUpdateStaff={onUpdateStaff}
+                          staffRoles={staffRoles}
+                        />
+                      </td>
                     </tr>
                     {/* Inline claim panel */}
                     {activeMonth && (
