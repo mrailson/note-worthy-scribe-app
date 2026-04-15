@@ -339,7 +339,7 @@ function InlineClaimPanel({
   monthLabel: string;
   existingClaim: BuyBackClaim | null;
   rateParams?: RateParams;
-  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string) => void;
@@ -358,6 +358,9 @@ function InlineClaimPanel({
   const isLocum = staffMember.staff_category === 'gp_locum';
   const isManagement = staffMember.staff_category === 'management';
   const isMeeting = staffMember.staff_category === 'meeting';
+
+  // Claimed amount state for standard (non-locum, non-meeting) claims
+  const [standardClaimedAmount, setStandardClaimedAmount] = useState<number>(0);
   const meetingRate = staffMember.hourly_rate || 0;
   const [meetingHours, setMeetingHours] = useState<number>(0);
   const meetingMaxAmount = useMemo(() => meetingHours * meetingRate, [meetingHours, meetingRate]);
@@ -404,6 +407,11 @@ function InlineClaimPanel({
     if (!rateParams) return 0;
     return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
   }, [staffMember, monthDate, rateParams]);
+
+  // Sync to calculatedAmount whenever it changes
+  useEffect(() => {
+    setStandardClaimedAmount(calculatedAmount);
+  }, [calculatedAmount]);
 
   const handleCreateDraft = async () => {
     if (!onCreateClaim || creating) return;
