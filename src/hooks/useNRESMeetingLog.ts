@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
 import { NRES_ODS_CODES } from '@/data/nresPractices';
+import { generateInvoiceNumber } from '@/utils/invoiceNumberGenerator';
+import { generateMeetingInvoicePdf } from '@/utils/meetingInvoicePdfGenerator';
 import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 
 export interface MeetingLogEntry {
