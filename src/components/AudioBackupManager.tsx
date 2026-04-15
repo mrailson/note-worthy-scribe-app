@@ -191,6 +191,36 @@ export const AudioBackupManager = () => {
     }
   };
 
+  // Helper: invoke transcribe with retry + backoff
+  const transcribeWithRetry = async (filePath: string, segmentIndex: number, maxAttempts = 3): Promise<{ text: string; wordCount: number }> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        if (attempt > 1) {
+          setReprocessSegments(prev =>
+            prev.map(seg => seg.index === segmentIndex
+              ? { ...seg, status: 'processing', error: `retrying (${attempt}/${maxAttempts})…` }
+              : seg)
+          );
+          await new Promise(r => setTimeout(r, 3000)); // 3s backoff
+        }
+
+        const { data: txData, error: txErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+          body: { action: 'transcribe', backupId: filePath, segmentIndex }
+        });
+
+        if (txErr || !txData?.success) {
+          throw new Error(txData?.error || txErr?.message || 'Transcription failed');
+        }
+
+        return { text: txData.text || '', wordCount: txData.wordCount || 0 };
+      } catch (err) {
+        if (attempt === maxAttempts) throw err;
+        console.warn(`Segment ${segmentIndex} attempt ${attempt} failed, retrying…`);
+      }
+    }
+    throw new Error('Unreachable');
+  };
+
   const reprocessAudio = async (backupId: string, meetingId: string, filePath: string) => {
     setReprocessing(backupId);
     setReprocessRunning(true);
@@ -221,45 +251,43 @@ export const AudioBackupManager = () => {
       }));
       setReprocessSegments(initialResults);
 
-      const transcripts: string[] = [];
+      const transcripts: string[] = new Array(segments.length).fill('');
       let completedCount = 0;
 
-      // Step 2: Transcribe each segment one by one
+      // Step 2: Transcribe each segment one by one with retry
       for (let i = 0; i < segments.length; i++) {
-        // Mark current as processing
+        // 1s delay between segments to prevent function boot storms
+        if (i > 0) await new Promise(r => setTimeout(r, 1000));
+
+        const startTime = Date.now();
         setReprocessSegments(prev =>
           prev.map(seg => seg.index === i ? { ...seg, status: 'processing' } : seg)
         );
 
         try {
-          const { data: txData, error: txErr } = await supabase.functions.invoke('reprocess-audio-segment', {
-            body: { action: 'transcribe', backupId: filePath, segmentIndex: i }
-          });
+          const result = await transcribeWithRetry(filePath, i);
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
 
-          if (txErr || !txData?.success) {
-            throw new Error(txData?.error || txErr?.message || 'Transcription failed');
-          }
-
-          transcripts.push(txData.text || '');
+          transcripts[i] = result.text;
           completedCount++;
           setReprocessDone(completedCount);
 
           setReprocessSegments(prev =>
             prev.map(seg =>
               seg.index === i
-                ? { ...seg, status: 'success', text: txData.text, wordCount: txData.wordCount }
+                ? { ...seg, status: 'success', text: result.text, wordCount: result.wordCount, error: `${elapsed}s` }
                 : seg
             )
           );
         } catch (segErr: any) {
-          transcripts.push('');
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
           completedCount++;
           setReprocessDone(completedCount);
 
           setReprocessSegments(prev =>
             prev.map(seg =>
               seg.index === i
-                ? { ...seg, status: 'error', error: segErr?.message || 'Failed' }
+                ? { ...seg, status: 'error', error: `${segErr?.message || 'Failed'} (${elapsed}s)` }
                 : seg
             )
           );
@@ -292,6 +320,70 @@ export const AudioBackupManager = () => {
       setReprocessing(null);
       setReprocessRunning(false);
     }
+  };
+
+  // Retry only failed segments
+  const retryFailedSegments = async (backupId: string, meetingId: string, filePath: string) => {
+    const failedIndices = reprocessSegments.filter(s => s.status === 'error').map(s => s.index);
+    if (failedIndices.length === 0) return;
+
+    setReprocessing(backupId);
+    setReprocessRunning(true);
+
+    for (const i of failedIndices) {
+      if (i > 0) await new Promise(r => setTimeout(r, 1000));
+
+      const startTime = Date.now();
+      setReprocessSegments(prev =>
+        prev.map(seg => seg.index === i ? { ...seg, status: 'processing', error: undefined } : seg)
+      );
+
+      try {
+        const result = await transcribeWithRetry(filePath, i);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+
+        setReprocessSegments(prev =>
+          prev.map(seg =>
+            seg.index === i
+              ? { ...seg, status: 'success', text: result.text, wordCount: result.wordCount, error: `${elapsed}s` }
+              : seg
+          )
+        );
+      } catch (segErr: any) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+        setReprocessSegments(prev =>
+          prev.map(seg =>
+            seg.index === i
+              ? { ...seg, status: 'error', error: `${segErr?.message || 'Failed'} (${elapsed}s)` }
+              : seg
+          )
+        );
+      }
+    }
+
+    // Re-save with all successful segments
+    const allTexts = reprocessSegments.map(s => s.text || '');
+    // Update with latest from state — need to read from current
+    setReprocessSegments(prev => {
+      const fullTranscript = prev.filter(s => s.status === 'success').map(s => s.text || '').join(' ').trim();
+      const totalWords = fullTranscript.split(/\s+/).filter(w => w.length > 0).length;
+
+      if (fullTranscript.length > 0) {
+        supabase.functions.invoke('reprocess-audio-segment', {
+          body: { action: 'save', meetingId, fullTranscript, wordCount: totalWords }
+        }).then(({ data, error }) => {
+          if (error || !data?.success) {
+            toast.error('Failed to save updated transcript');
+          } else {
+            toast.success(`Saved updated transcript — ${totalWords.toLocaleString()} words`);
+          }
+        });
+      }
+      return prev;
+    });
+
+    setReprocessing(null);
+    setReprocessRunning(false);
   };
 
   const deleteOldAudioBackups = async (cutoffHours: number = 24) => {

@@ -96,7 +96,13 @@ Deno.serve(async (req) => {
         return json({ error: `Download failed: ${dlErr?.message || "no data"}` }, 500);
       }
 
-      console.log(`🎙️ Transcribing segment ${segmentIndex} (${(audioData.size / 1024 / 1024).toFixed(1)} MB)`);
+      const sizeMB = audioData.size / 1024 / 1024;
+      console.log(`🎙️ Transcribing segment ${segmentIndex} (${sizeMB.toFixed(1)} MB)`);
+
+      // Guard rail: reject segments over 20 MB
+      if (sizeMB > 20) {
+        return json({ error: `Segment ${segmentIndex} is ${sizeMB.toFixed(1)} MB — too large (max 20 MB)` }, 400);
+      }
 
       // Send to OpenAI Whisper
       const openaiKey = Deno.env.get("OPENAI_API_KEY");
@@ -113,6 +119,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { Authorization: `Bearer ${openaiKey}` },
         body: formData,
+        signal: AbortSignal.timeout(120_000), // 2-minute timeout for clear error
       });
 
       if (!whisperRes.ok) {
