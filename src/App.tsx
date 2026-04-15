@@ -44,6 +44,7 @@ const MobileTranslation = lazy(() => import("./pages/MobileTranslation"));
 const PatientLanguageSelection = lazy(() => import("./pages/PatientLanguageSelection"));
 const GPGenie = lazy(() => import("./pages/GPGenie"));
 const NewRecorder = lazy(() => import("./pages/NewRecorder"));
+const PCNCalculator = lazy(() => import("./pages/PCNCalculator"));
 const CSOReport = lazy(() => import("./pages/CSOReport"));
 const DPIA = lazy(() => import("./pages/DPIA"));
 const DTACAssessment = lazy(() => import("./pages/DTACAssessment"));
@@ -96,7 +97,7 @@ const CSOTrainingContentExport = lazy(() => import("./pages/CSOTrainingContentEx
 const UsingAiNhs = lazy(() => import("./pages/UsingAiNhs"));
 const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
-const PCNCalculator = lazy(() => import("./pages/PCNCalculator"));
+
 const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
 const LGCaptureLanding = lazy(() => import("./pages/LGCaptureLanding"));
 const LGCaptureStart = lazy(() => import("./pages/LGCaptureStart"));
@@ -229,7 +230,7 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/ai4gp" element={<AI4GP />} />
-                <Route path="/pcn-calculator" element={<PCNCalculator />} />
+                
                 <Route path="/voice-agent" element={<VoiceAgent />} />
                 <Route path="/voice-hub" element={<NotewellVoiceHub />} />
                 <Route path="/gp-scribe" element={<Navigate to="/scribe" replace />} />
@@ -280,6 +281,7 @@ const App = () => {
                 <Route path="/patient-language" element={<PatientLanguageSelection />} />
                 <Route path="/gp-genie" element={<GPGenie />} />
                 <Route path="/new-recorder" element={<NewRecorder />} />
+                <Route path="/pcn-calculator" element={<PCNCalculator />} />
                 <Route path="/recovery-tool" element={<RecoveryTool />} />
                 <Route path="/ai4pm" element={
                   <ProtectedRoute requiredModule="enhanced_access">
