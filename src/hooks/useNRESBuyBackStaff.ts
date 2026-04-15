@@ -120,16 +120,12 @@ export function useNRESBuyBackStaff() {
   const removeStaff = async (id: string) => {
     if (!user?.id) return;
     try {
-      let query = supabase
+      // Always filter by user_id — admins must not delete other users' staff
+      const { error } = await supabase
         .from('nres_buyback_staff')
         .delete()
-        .eq('id', id);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { error } = await query;
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
       setStaff(prev => prev.filter(s => s.id !== id));
       toast.success('Staff member removed');
