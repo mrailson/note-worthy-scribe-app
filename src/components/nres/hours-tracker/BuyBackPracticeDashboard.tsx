@@ -822,16 +822,95 @@ function StaffRosterSection({
           </span>
         </div>
         {showAddButton && onAddStaff && (
-          <button style={{
+          <button onClick={() => setShowAddForm(prev => !prev)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-            borderRadius: 6, border: `1px solid ${accent}40`, background: '#fff',
+            borderRadius: 6, border: `1px solid ${accent}40`, background: showAddForm ? `${accent}15` : '#fff',
             color: accent, fontSize: 11, fontWeight: 600, cursor: 'pointer',
           }}>
             <Plus style={{ width: 11, height: 11 }} />
-            Add {category === 'gp_locum' ? 'Locum' : 'Staff'}
+            {showAddForm ? 'Cancel' : `Add ${category === 'gp_locum' ? 'Locum' : 'Staff'}`}
           </button>
         )}
       </div>
+
+      {showAddForm && onAddStaff && (
+        <div style={{ padding: '12px 14px', background: '#fafbfc', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
+            <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Name</div>
+              <input
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                placeholder={`e.g. ${category === 'gp_locum' ? 'Dr J Smith' : 'Sarah Jones'}`}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+              />
+            </div>
+            <div style={{ flex: '1 1 120px', minWidth: 100 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Role</div>
+              {staffRoles && staffRoles.length > 0 ? (
+                <select
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="">Select role</option>
+                  {staffRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  placeholder="e.g. GP Standard"
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+                />
+              )}
+            </div>
+            <div style={{ flex: '0 1 100px', minWidth: 80 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Allocation type</div>
+              <select
+                value={addAllocType}
+                onChange={(e) => setAddAllocType(e.target.value as any)}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+              >
+                <option value="sessions">Sessions</option>
+                <option value="wte">WTE</option>
+                <option value="hours">Hours/wk</option>
+                <option value="daily">Days/mo</option>
+              </select>
+            </div>
+            <div style={{ flex: '0 1 70px', minWidth: 60 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Value</div>
+              <input
+                type="number"
+                value={addAllocValue}
+                onChange={(e) => setAddAllocValue(e.target.value)}
+                placeholder="e.g. 4"
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
+              />
+            </div>
+            {category === 'gp_locum' && (
+              <div style={{ flex: '0 1 80px', minWidth: 70 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Day rate £</div>
+                <input
+                  type="number"
+                  value={addHourlyRate}
+                  onChange={(e) => setAddHourlyRate(e.target.value)}
+                  placeholder="e.g. 750"
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
+                />
+              </div>
+            )}
+            <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addAllocValue} style={{
+              padding: '7px 16px', borderRadius: 7, border: 'none', background: accent,
+              color: '#fff', fontSize: 12, fontWeight: 600, cursor: addSaving ? 'not-allowed' : 'pointer',
+              opacity: (addSaving || !addName.trim() || !addAllocValue) ? 0.5 : 1,
+            }}>
+              {addSaving ? 'Saving…' : 'Add'}
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {staffList.length === 0 ? (
         <div style={{
