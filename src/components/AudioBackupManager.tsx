@@ -362,7 +362,7 @@ export const AudioBackupManager = () => {
     }
 
     // Re-save with all successful segments
-    const allTexts = reprocessSegments.map(s => s.text || '');
+    // Update with latest from state — need to read from current
     // Update with latest from state — need to read from current
     setReprocessSegments(prev => {
       const fullTranscript = prev.filter(s => s.status === 'success').map(s => s.text || '').join(' ').trim();
