@@ -421,7 +421,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   );
 }
 
-export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhoodName?: 'NRES' | 'ENN' } = {}) {
+export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSettingsOpen, showSettings }: { neighbourhoodName?: 'NRES' | 'ENN'; onGuideOpen?: () => void; onSettingsOpen?: () => void; showSettings?: boolean } = {}) {
   const isENN = neighbourhoodName === 'ENN';
   const practiceCount = isENN ? '10' : '7';
   const contractValue = isENN ? '£2.38M' : '£2.34M';
@@ -811,6 +811,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               rateParams
             );
           }}
+          onGuideOpen={onGuideOpen}
+          onSettingsOpen={onSettingsOpen}
+          showSettings={showSettings}
         />
       </div>
     );
@@ -832,6 +835,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           onVerify={verifyClaim}
           onReturnToPractice={(id, notes) => queryClaim(id, notes)}
           savingClaim={savingClaim}
+          onGuideOpen={onGuideOpen}
+          onSettingsOpen={onSettingsOpen}
+          showSettings={showSettings}
         />
       </div>
     );
@@ -873,6 +879,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           })}
           savingClaim={savingClaim}
           defaultView={pmlDashboardView as 'director' | 'finance'}
+          onGuideOpen={onGuideOpen}
+          onSettingsOpen={onSettingsOpen}
+          showSettings={showSettings}
         />
       </div>
     );
