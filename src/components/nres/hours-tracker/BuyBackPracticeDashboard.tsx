@@ -1958,8 +1958,22 @@ export function BuyBackPracticeDashboard({
   // Convert management roles to staff-like shape
   const managementStaff = useMemo<BuyBackStaffMember[]>(() => {
     if (!managementRoles) return staff.filter(s => s.staff_category === 'management' && s.is_active);
+    // Get this practice's ODS code for billing_org_code matching
+    const practiceOdsCode = NRES_ODS_CODES[practiceKey] || '';
     const fromConfig = managementRoles
-      .filter(r => r.is_active && (!r.member_practice || r.member_practice === practiceKey))
+      .filter(r => {
+        if (!r.is_active) return false;
+        const hasBillingOrg = !!r.billing_org_code;
+        const hasMemberPractice = !!r.member_practice;
+        // If neither assignment field is set → show for all practices (unassigned / global)
+        if (!hasBillingOrg && !hasMemberPractice) return true;
+        // Match on billing_org_code (primary — already populated in settings)
+        if (hasBillingOrg && practiceOdsCode && r.billing_org_code === practiceOdsCode) return true;
+        // Match on member_practice key (secondary fallback)
+        if (hasMemberPractice && r.member_practice === practiceKey) return true;
+        // Has an assignment but doesn't match this practice → exclude
+        return false;
+      })
       .map((r): BuyBackStaffMember => ({
         id: r.key,
         user_id: '',
