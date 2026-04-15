@@ -2984,12 +2984,11 @@ export function BuyBackPracticeDashboard({
       )}
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 20 }}>
         <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted to NRES" />
         <KpiCard label="Awaiting Verification" value={counts.submitted || 0} sub={fmtShort(totals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES Verification" />
         <KpiCard label="Awaiting Approval" value={counts.verified || 0} sub={fmtShort(totals.verified)} accent="#7c3aed" tooltip="Verified by NRES, awaiting PML Finance Director Approval" />
-        <KpiCard label="Approved" value={counts.approved || 0} sub={fmtShort(totals.approved)} accent="#059669" tooltip="Approved by PML Finance Director, ready for invoicing" />
-        <KpiCard label="Invoiced" value={counts.invoiced || 0} sub={fmtShort(totals.invoiced)} accent="#d97706" tooltip="Invoice created and scheduled for payment" />
+        <KpiCard label="Invoiced" value={(counts.approved || 0) + (counts.invoiced || 0)} sub={fmtShort(totals.approved + totals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" />
         <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" />
         <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" />
       </div>
