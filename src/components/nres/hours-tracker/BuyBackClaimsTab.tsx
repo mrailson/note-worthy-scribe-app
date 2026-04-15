@@ -765,6 +765,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
     : (isPMLFinance ? 'finance' : 'director');
 
   if (showPracticeDashboard) {
+    const practiceStaff = activeStaff.filter(
+      s => s.practice_key === testMode.selectedPractice
+    );
+
     return (
       <div className="space-y-6">
         {isAdmin && (
@@ -778,12 +782,20 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         <BuyBackPracticeDashboard
           claims={claims}
           practiceKey={testMode.selectedPractice!}
+          staff={practiceStaff}
           onSubmit={submitClaim}
-          onResubmit={(id, notes) => {
-            // Resubmit queried claim
-            submitClaim(id);
+          onResubmit={(id) => submitClaim(id)}
+          onCreateClaim={(monthDate, staffMember) => {
+            const amt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
+            return createClaim(monthDate, [staffMember], amt, amt, testMode.selectedPractice, rateParams);
           }}
+          onAddStaff={addStaff}
+          staffRoles={staffRoles}
+          rateParams={rateParams}
+          managementRoles={rateSettings.management_roles_config}
           savingClaim={savingClaim}
+          savingStaff={savingStaff}
+          confirmDeclaration={confirmDeclaration}
         />
       </div>
     );
