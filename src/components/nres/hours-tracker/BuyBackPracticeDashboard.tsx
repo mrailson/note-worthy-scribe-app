@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Zap } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, Trash2, User, AlertCircle } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
+import { calculateStaffMonthlyAmount } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
@@ -13,30 +14,46 @@ import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidence
 interface BuyBackPracticeDashboardProps {
   claims: BuyBackClaim[];
   practiceKey: string;
-  staff?: BuyBackStaffMember[];
-  onSubmit?: (id: string) => void;
-  onResubmit?: (id: string, notes?: string) => void;
-  onCreateClaim?: (monthDate: Date, staffMember: BuyBackStaffMember) => Promise<any>;
-  onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  staff: BuyBackStaffMember[];
   staffRoles?: string[];
   rateParams?: RateParams;
   managementRoles?: ManagementRoleConfig[];
+  onSubmit?: (id: string) => void;
+  onResubmit?: (id: string, notes?: string) => void;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   savingClaim?: boolean;
   savingStaff?: boolean;
-  confirmDeclaration?: (id: string, confirmed: boolean) => Promise<any>;
 }
 
-// --- Status config ---
+// --- Constants ---
+const DECLARATION_TEXT = "I confirm that all staff listed are working 100% on SDA (Part A) during their funded hours, with no LTC (Part B) activity, in accordance with the ICB-approved buy-back rules.";
+const PILOT_START = new Date(2026, 3, 1); // 1 April 2026
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
   draft: { label: 'Draft', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', dot: '#9ca3af' },
   submitted: { label: 'Submitted', color: '#0369a1', bg: '#f0f9ff', border: '#7dd3fc', dot: '#38bdf8' },
-  awaiting_review: { label: 'Awaiting Approval', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
-  verified: { label: 'Awaiting Approval', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
+  verified: { label: 'Pending', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
   approved: { label: 'Approved', color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd', dot: '#8b5cf6' },
-  queried: { label: 'Queried', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444' },
+  queried: { label: 'Queried!', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444' },
   paid: { label: 'Paid', color: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '#22c55e' },
-  rejected: { label: 'Rejected', color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626' },
   invoiced: { label: 'Invoiced', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', dot: '#f59e0b' },
+  rejected: { label: 'Rejected', color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626' },
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  buyback: '#0d9488',
+  gp_locum: '#d97706',
+  new_sda: '#7c3aed',
+  management: '#005eb8',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  buyback: 'Buy-Back',
+  gp_locum: 'GP Locum',
+  new_sda: 'New SDA',
+  management: 'Management Recovery',
 };
 
 const PERIOD_OPTIONS = [
@@ -57,12 +74,12 @@ function fmtShort(n: number): string {
 
 function claimTotal(claim: BuyBackClaim): number {
   const staffDets = (claim.staff_details || []) as any[];
-  return staffDets.reduce((sum, s) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
+  return staffDets.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
 }
 
 function claimHours(claim: BuyBackClaim): number {
   const staffDets = (claim.staff_details || []) as any[];
-  return staffDets.reduce((sum, s) => sum + (s.total_hours ?? s.allocation_value ?? 0), 0);
+  return staffDets.reduce((sum: number, s: any) => sum + (s.total_hours ?? s.allocation_value ?? 0), 0);
 }
 
 function claimStaffCount(claim: BuyBackClaim): number {
@@ -91,7 +108,6 @@ function getClaimMonthParts(claim: BuyBackClaim): { month: number; year: number 
   return { month: d.getMonth(), year: d.getFullYear() };
 }
 
-/** Map internal status to display status for practice view */
 function toDisplayStatus(s: string): string {
   if (s === 'verified') return 'awaiting_review';
   return s;
@@ -118,44 +134,45 @@ function filterByPeriod(claims: BuyBackClaim[], periodKey: string): BuyBackClaim
   });
 }
 
+function getAllocDisplay(allocType: string, allocValue: number): string {
+  switch (allocType) {
+    case 'sessions': return `${allocValue} sess/mo`;
+    case 'wte': return `${allocValue} WTE`;
+    case 'hours': return `${allocValue} hrs/wk`;
+    case 'daily': return `${allocValue} days/mo`;
+    default: return `${allocValue}`;
+  }
+}
+
+function getClaimMonths(): { label: string; monthDate: string; month: number; year: number }[] {
+  const months: { label: string; monthDate: string; month: number; year: number }[] = [];
+  const now = new Date();
+  for (let i = 2; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    if (d < PILOT_START) continue;
+    const label = d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+    const monthDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    months.push({ label, monthDate, month: d.getMonth(), year: d.getFullYear() });
+  }
+  return months;
+}
+
+function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaffMember, monthDate: string): BuyBackClaim | null {
+  return claims.find(c => {
+    if (c.claim_month.slice(0, 7) !== monthDate.slice(0, 7)) return false;
+    const dets = (c.staff_details || []) as any[];
+    return dets.some((s: any) => s.staff_name === staffMember.staff_name && s.staff_role === staffMember.staff_role);
+  }) || null;
+}
+
 // --- Sub-components ---
-
-function StatusBadge({ status }: { status: string }) {
-  const displayStatus = toDisplayStatus(status);
-  const cfg = STATUS_CONFIG[displayStatus] || STATUS_CONFIG.draft;
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap"
-      style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`, lineHeight: '16px' }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
-      {cfg.label}
-    </span>
-  );
-}
-
-function EvidencePill({ label, met }: { label: string; met: boolean }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium"
-      style={{
-        background: met ? '#ecfdf5' : '#fef2f2',
-        color: met ? '#059669' : '#dc2626',
-        border: `1px solid ${met ? '#a7f3d0' : '#fecaca'}`,
-      }}
-    >
-      {met ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-      {label}
-    </span>
-  );
-}
 
 function KpiCard({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: string }) {
   return (
     <div style={{ background: '#fff', borderRadius: 10, padding: '14px 16px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
       <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500, marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 700, color: accent, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{sub}</div>
+      {sub && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }
@@ -170,27 +187,566 @@ function InfoBlock({ label, value, sub, highlight }: { label: string; value: str
   );
 }
 
-function ActionBtn({ label, color, bg, bold, icon, onClick, disabled }: {
-  label: string; color: string; bg?: string; bold?: boolean; icon?: React.ReactNode; onClick?: () => void; disabled?: boolean;
-}) {
+function EvidencePill({ label, met }: { label: string; met: boolean }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center gap-1.5 cursor-pointer transition-all border-none"
-      style={{
-        padding: '7px 18px', borderRadius: 8, border: `1.5px solid ${color}`,
-        background: bold ? color : (bg || '#fff'), color: bold ? '#fff' : color,
-        fontSize: 13, fontWeight: 600, opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-      }}
-    >
-      {icon}{label}
-    </button>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 4,
+      fontSize: 11, fontWeight: 500,
+      background: met ? '#ecfdf5' : '#fef2f2',
+      color: met ? '#059669' : '#dc2626',
+      border: `1px solid ${met ? '#a7f3d0' : '#fecaca'}`,
+    }}>
+      {met ? <CheckCircle2 style={{ width: 12, height: 12 }} /> : <XCircle style={{ width: 12, height: 12 }} />}
+      {label}
+    </span>
   );
 }
 
-// --- History Summary ---
+function StatusPill({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 100,
+      fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap' as const,
+      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`,
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+      {cfg.label}
+    </span>
+  );
+}
+
+// --- Month Status Cell ---
+function MonthStatusCell({
+  claim,
+  monthDate,
+  staffMember,
+  onClickClaim,
+  activeClaimKey,
+  isCurrentMonth,
+}: {
+  claim: BuyBackClaim | null;
+  monthDate: string;
+  staffMember: BuyBackStaffMember;
+  onClickClaim: (key: string) => void;
+  activeClaimKey: string | null;
+  isCurrentMonth: boolean;
+}) {
+  const cellKey = `${staffMember.id}_${monthDate}`;
+  const isActive = activeClaimKey === cellKey;
+
+  if (claim) {
+    return (
+      <td style={{ padding: '8px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
+        <button
+          onClick={() => onClickClaim(cellKey)}
+          style={{
+            cursor: 'pointer', border: 'none', background: 'transparent', padding: 0,
+            opacity: isActive ? 1 : 0.9,
+          }}
+        >
+          <StatusPill status={claim.status} />
+        </button>
+      </td>
+    );
+  }
+
+  // No claim yet — show "Claim" button
+  const now = new Date();
+  const [y, m] = monthDate.split('-').map(Number);
+  const isFuture = y > now.getFullYear() || (y === now.getFullYear() && m > now.getMonth() + 1);
+
+  if (isFuture) {
+    return (
+      <td style={{ padding: '8px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
+        <span style={{ fontSize: 11, color: '#d1d5db' }}>—</span>
+      </td>
+    );
+  }
+
+  return (
+    <td style={{ padding: '8px 6px', textAlign: 'center', verticalAlign: 'middle' }}>
+      <button
+        onClick={() => onClickClaim(cellKey)}
+        style={{
+          padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+          border: `1px solid ${isCurrentMonth ? '#93c5fd' : '#d1d5db'}`,
+          background: isCurrentMonth ? '#eff6ff' : '#fff',
+          color: isCurrentMonth ? '#2563eb' : '#6b7280',
+          cursor: 'pointer', transition: 'all 0.15s',
+          display: 'inline-flex', alignItems: 'center', gap: 3,
+        }}
+      >
+        <Plus style={{ width: 10, height: 10 }} />
+        Claim
+      </button>
+    </td>
+  );
+}
+
+// --- Inline Claim Panel ---
+function InlineClaimPanel({
+  staffMember,
+  monthDate,
+  monthLabel,
+  existingClaim,
+  rateParams,
+  onCreateClaim,
+  onSubmit,
+  onResubmit,
+  confirmDeclaration,
+  onClose,
+  saving,
+}: {
+  staffMember: BuyBackStaffMember;
+  monthDate: string;
+  monthLabel: string;
+  existingClaim: BuyBackClaim | null;
+  rateParams?: RateParams;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onSubmit?: (id: string) => void;
+  onResubmit?: (id: string, notes?: string) => void;
+  confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
+  onClose: () => void;
+  saving?: boolean;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [declared, setDeclared] = useState(false);
+  const [queryResponse, setQueryResponse] = useState('');
+  const [localClaim, setLocalClaim] = useState<BuyBackClaim | null>(existingClaim);
+
+  useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
+
+  const calculatedAmount = useMemo(() => {
+    if (!rateParams) return 0;
+    return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
+  }, [staffMember, monthDate, rateParams]);
+
+  const handleCreateDraft = async () => {
+    if (!onCreateClaim || creating) return;
+    setCreating(true);
+    try {
+      const result = await onCreateClaim(monthDate, staffMember);
+      if (result) setLocalClaim(result);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!localClaim || !onSubmit) return;
+    if (confirmDeclaration) {
+      await confirmDeclaration(localClaim.id, true);
+    }
+    onSubmit(localClaim.id);
+  };
+
+  const claim = localClaim;
+  const isDraft = claim?.status === 'draft';
+  const isQueried = claim?.status === 'queried';
+
+  // Evidence hooks — only active when we have a claim
+  const claimIdForEvidence = claim?.id || '__none__';
+  const staffDets = claim ? ((claim.staff_details || []) as any[]) : [];
+  const { uploading, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, getFilesForStaff } = useNRESClaimEvidence(claimIdForEvidence);
+  const { getConfigForCategory } = useNRESEvidenceConfig();
+  const { allComplete: evidenceComplete, totalMandatory, totalUploaded } = useStaffLineEvidenceComplete(
+    staffDets, getUploadedTypesForStaff, getConfigForCategory
+  );
+
+  return (
+    <tr>
+      <td colSpan={6} style={{ padding: 0 }}>
+        <div style={{
+          margin: '0 12px 10px', padding: '16px 18px', borderRadius: 10,
+          background: '#fafbfc', border: '1px solid #e5e7eb',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
+                Claim for {monthLabel} — {staffMember.staff_name}
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>
+                {staffMember.staff_role} · {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
+              </div>
+            </div>
+            <button onClick={onClose} style={{
+              padding: '4px 10px', borderRadius: 6, border: '1px solid #d1d5db',
+              background: '#fff', fontSize: 11, color: '#6b7280', cursor: 'pointer', fontWeight: 500,
+            }}>
+              Close
+            </button>
+          </div>
+
+          {/* No claim yet — create draft */}
+          {!claim && (
+            <div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 12,
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Calculated Amount</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                    {fmtGBP(calculatedAmount)}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                    Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleCreateDraft}
+                disabled={creating || saving}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                  borderRadius: 8, border: 'none', background: '#005eb8', color: '#fff',
+                  fontSize: 13, fontWeight: 600, cursor: creating ? 'not-allowed' : 'pointer',
+                  opacity: creating ? 0.6 : 1,
+                }}
+              >
+                {creating ? 'Creating…' : 'Create Draft'}
+              </button>
+            </div>
+          )}
+
+          {/* Draft — evidence + declare + submit */}
+          {isDraft && claim && (
+            <div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 12,
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Claim Amount</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                    {fmtGBP(claimTotal(claim))}
+                  </div>
+                </div>
+                <StatusPill status="draft" />
+              </div>
+
+              {/* Evidence */}
+              <div style={{ marginBottom: 12 }}>
+                {staffDets.map((s: any, idx: number) => (
+                  <StaffLineEvidence
+                    key={idx}
+                    staffCategory={s.staff_category === 'gp_locum' ? 'buyback' : (s.staff_category || 'buyback')}
+                    staffIndex={idx}
+                    staffName={s.staff_name}
+                    staffRole={s.staff_role}
+                    uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+                    allFilesForStaff={getFilesForStaff(idx)}
+                    canEdit
+                    uploading={uploading}
+                    onUpload={uploadEvidence}
+                    onDelete={deleteEvidence}
+                    onDownload={getDownloadUrl}
+                  />
+                ))}
+              </div>
+
+              {/* Declaration */}
+              <div style={{
+                padding: '12px 14px', borderRadius: 8, marginBottom: 12,
+                background: declared ? '#f0fdf4' : '#fafafa',
+                border: `1px solid ${declared ? '#bbf7d0' : '#e5e7eb'}`,
+                transition: 'all 0.2s',
+              }}>
+                <label style={{ display: 'flex', gap: 10, cursor: 'pointer', fontSize: 12, color: '#374151', lineHeight: 1.5 }}>
+                  <input
+                    type="checkbox"
+                    checked={declared}
+                    onChange={(e) => setDeclared(e.target.checked)}
+                    style={{ marginTop: 2, accentColor: '#005eb8' }}
+                  />
+                  <span>{DECLARATION_TEXT}</span>
+                </label>
+              </div>
+
+              {/* Submit */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {!evidenceComplete && (
+                  <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 500 }}>
+                    Evidence: {totalUploaded}/{totalMandatory} uploaded
+                  </span>
+                )}
+                <button
+                  onClick={handleSubmit}
+                  disabled={saving || !declared || !evidenceComplete}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                    borderRadius: 8, border: 'none',
+                    background: (saving || !declared || !evidenceComplete) ? '#94a3b8' : '#005eb8',
+                    color: '#fff', fontSize: 13, fontWeight: 600,
+                    cursor: (saving || !declared || !evidenceComplete) ? 'not-allowed' : 'pointer',
+                    opacity: (saving || !declared || !evidenceComplete) ? 0.6 : 1,
+                  }}
+                >
+                  <Send style={{ width: 14, height: 14 }} />
+                  Submit Claim →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Queried — respond */}
+          {isQueried && claim && (
+            <div>
+              {claim.query_notes && (
+                <div style={{
+                  padding: '12px 14px', borderRadius: 8, marginBottom: 12,
+                  background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13,
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <AlertTriangle style={{ width: 14, height: 14 }} /> Query from PML Director
+                  </div>
+                  {claim.query_notes}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
+                <input
+                  type="text"
+                  value={queryResponse}
+                  onChange={(e) => setQueryResponse(e.target.value)}
+                  placeholder="Your response to the query…"
+                  style={{
+                    flex: 1, minWidth: 220, padding: '8px 12px', borderRadius: 8,
+                    border: '1px solid #d1d5db', fontSize: 13, outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => { onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
+                  disabled={saving}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 16px',
+                    borderRadius: 8, border: 'none', background: '#059669', color: '#fff',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <Reply style={{ width: 14, height: 14 }} />
+                  Resubmit
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Submitted/verified/approved/paid/invoiced — read-only */}
+          {claim && !isDraft && !isQueried && (
+            <div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb',
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Claim Amount</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                    {fmtGBP(claimTotal(claim))}
+                  </div>
+                </div>
+                <StatusPill status={claim.status} />
+              </div>
+              {claim.submitted_at && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>
+                  Submitted {dateStr(claim.submitted_at)}
+                </div>
+              )}
+              {claim.paid_at && (
+                <div style={{ marginTop: 4, fontSize: 12, color: '#166534', fontWeight: 500 }}>
+                  Paid {shortDate(claim.paid_at)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// --- Staff Roster Section ---
+function StaffRosterSection({
+  title,
+  category,
+  staffList,
+  claims,
+  claimMonths,
+  onClickClaim,
+  activeClaimKey,
+  onAddStaff,
+  staffRoles,
+  showAddButton,
+  rateParams,
+  onCreateClaim,
+  onSubmit,
+  onResubmit,
+  confirmDeclaration,
+  saving,
+}: {
+  title: string;
+  category: string;
+  staffList: BuyBackStaffMember[];
+  claims: BuyBackClaim[];
+  claimMonths: { label: string; monthDate: string; month: number; year: number }[];
+  onClickClaim: (key: string) => void;
+  activeClaimKey: string | null;
+  onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  staffRoles?: string[];
+  showAddButton: boolean;
+  rateParams?: RateParams;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onSubmit?: (id: string) => void;
+  onResubmit?: (id: string, notes?: string) => void;
+  confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
+  saving?: boolean;
+}) {
+  const accent = CATEGORY_COLORS[category] || '#6b7280';
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      {/* Section header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px', borderLeft: `4px solid ${accent}`,
+        background: `${accent}08`, borderRadius: '0 8px 8px 0', marginBottom: 8,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{title}</span>
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 100,
+            background: accent, color: '#fff',
+          }}>
+            {staffList.length}
+          </span>
+        </div>
+        {showAddButton && onAddStaff && (
+          <button style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px',
+            borderRadius: 6, border: `1px solid ${accent}40`, background: '#fff',
+            color: accent, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          }}>
+            <Plus style={{ width: 11, height: 11 }} />
+            Add {category === 'gp_locum' ? 'Locum' : 'Staff'}
+          </button>
+        )}
+      </div>
+
+      {staffList.length === 0 ? (
+        <div style={{
+          padding: '24px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 13,
+          background: '#fafafa', borderRadius: 8, border: '1px dashed #d1d5db',
+        }}>
+          <User style={{ width: 20, height: 20, margin: '0 auto 6px', color: '#d1d5db' }} />
+          <div>No {CATEGORY_LABELS[category]?.toLowerCase() || category} staff added yet</div>
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb' }}>
+                  Name
+                </th>
+                <th style={{ textAlign: 'left', padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb' }}>
+                  Role
+                </th>
+                <th style={{ textAlign: 'left', padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb' }}>
+                  Allocation
+                </th>
+                {claimMonths.map(cm => {
+                  const isCurrentMo = cm.monthDate.slice(0, 7) === currentMonthStr;
+                  const isLastMo = cm.monthDate.slice(0, 7) === lastMonthStr;
+                  return (
+                    <th key={cm.monthDate} style={{
+                      textAlign: 'center', padding: '6px 10px', fontSize: 10, fontWeight: 600,
+                      color: isCurrentMo ? '#2563eb' : isLastMo ? '#92400e' : '#9ca3af',
+                      textTransform: 'uppercase' as const, letterSpacing: '0.04em',
+                      borderBottom: '2px solid #e5e7eb',
+                      background: isCurrentMo ? '#eff6ff' : isLastMo ? '#fffbeb' : 'transparent',
+                    }}>
+                      <div>{cm.label}</div>
+                      {isCurrentMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#93c5fd', marginTop: 1 }}>This month</div>}
+                      {isLastMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#fcd34d', marginTop: 1 }}>Last month</div>}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {staffList.map(member => {
+                const rowCells = claimMonths.map(cm => {
+                  const claim = findClaimForStaffMonth(claims, member, cm.monthDate);
+                  const isCurrentMo = cm.monthDate.slice(0, 7) === currentMonthStr;
+                  return { cm, claim, isCurrentMo };
+                });
+
+                const activeMonth = claimMonths.find(cm => activeClaimKey === `${member.id}_${cm.monthDate}`);
+                const activeClaim = activeMonth ? findClaimForStaffMonth(claims, member, activeMonth.monthDate) : null;
+
+                return (
+                  <React.Fragment key={member.id}>
+                    <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' as const }}>
+                        {member.staff_name}
+                      </td>
+                      <td style={{ padding: '10px' }}>
+                        <span style={{
+                          display: 'inline-block', padding: '2px 8px', borderRadius: 6,
+                          fontSize: 11, fontWeight: 500, background: `${accent}10`, color: accent,
+                          border: `1px solid ${accent}30`,
+                        }}>
+                          {member.staff_role}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px', fontSize: 12, color: '#6b7280', whiteSpace: 'nowrap' as const }}>
+                        {getAllocDisplay(member.allocation_type, member.allocation_value)}
+                      </td>
+                      {rowCells.map(({ cm, claim, isCurrentMo }) => (
+                        <MonthStatusCell
+                          key={cm.monthDate}
+                          claim={claim}
+                          monthDate={cm.monthDate}
+                          staffMember={member}
+                          onClickClaim={onClickClaim}
+                          activeClaimKey={activeClaimKey}
+                          isCurrentMonth={isCurrentMo}
+                        />
+                      ))}
+                    </tr>
+                    {/* Inline claim panel */}
+                    {activeMonth && (
+                      <InlineClaimPanel
+                        staffMember={member}
+                        monthDate={activeMonth.monthDate}
+                        monthLabel={activeMonth.label}
+                        existingClaim={activeClaim}
+                        rateParams={rateParams}
+                        onCreateClaim={onCreateClaim}
+                        onSubmit={onSubmit}
+                        onResubmit={onResubmit}
+                        confirmDeclaration={confirmDeclaration}
+                        onClose={() => onClickClaim('')}
+                        saving={saving}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- History Summary (preserved) ---
 function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
   const [period, setPeriod] = useState('all');
   const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
@@ -257,7 +813,7 @@ function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
 
   return (
     <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' as const, gap: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Claims History</div>
         <div style={{ display: 'flex', gap: 3 }}>
           {PERIOD_OPTIONS.map((p) => (
@@ -278,8 +834,8 @@ function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
               {COLS.map((col) => (
                 <th key={col.key} style={{
                   textAlign: col.align, padding: '7px 8px', fontSize: 10, fontWeight: 600,
-                  color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em',
-                  borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap', width: col.w,
+                  color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em',
+                  borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap' as const, width: col.w,
                 }}>{col.label}</th>
               ))}
             </tr>
@@ -294,7 +850,7 @@ function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
                     padding: '8px 8px', textAlign: col.align,
                     fontVariantNumeric: col.key !== 'month' ? 'tabular-nums' : undefined,
                     fontWeight: col.key === 'month' || col.key === 'total' ? 600 : 400,
-                    color: cellColor(row, col), whiteSpace: 'nowrap',
+                    color: cellColor(row, col), whiteSpace: 'nowrap' as const,
                   }}>{cellVal(row, col)}</td>
                 ))}
               </tr>
@@ -324,7 +880,7 @@ function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
   );
 }
 
-// --- Claim Card ---
+// --- Claim Card (preserved) ---
 function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
@@ -334,7 +890,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   saving?: boolean;
 }) {
   const [queryResponse, setQueryResponse] = useState('');
-  const [testFilling, setTestFilling] = useState(false);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const staffCount = claimStaffCount(claim);
@@ -348,34 +903,8 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   const { uploading, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, getFilesForStaff } = useNRESClaimEvidence(claim.id);
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const { allComplete: evidenceComplete, totalMandatory, totalUploaded } = useStaffLineEvidenceComplete(
-    staffDets,
-    getUploadedTypesForStaff,
-    getConfigForCategory
+    staffDets, getUploadedTypesForStaff, getConfigForCategory
   );
-
-  /** Test helper: creates a tiny dummy PDF and uploads it for every missing mandatory slot */
-  const handleTestFillAll = useCallback(async () => {
-    if (testFilling) return;
-    setTestFilling(true);
-    try {
-      for (let idx = 0; idx < staffDets.length; idx++) {
-        const s = staffDets[idx];
-        const rawCat = s.staff_category === 'gp_locum' ? 'buyback' : (s.staff_category || 'buyback');
-        const mandatoryTypes = getConfigForCategory(rawCat).filter((t: any) => t.is_mandatory);
-        const alreadyUploaded = getUploadedTypesForStaff(idx);
-
-        for (const cfg of mandatoryTypes) {
-          if (alreadyUploaded[cfg.evidence_type]) continue;
-          // Create a small test PDF blob
-          const pdfContent = `%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\nxref\n0 4\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n0\n%%EOF`;
-          const testFile = new File([pdfContent], `TEST-${cfg.evidence_type}-staff${idx}.pdf`, { type: 'application/pdf' });
-          await uploadEvidence(cfg.evidence_type, testFile, idx, true);
-        }
-      }
-    } finally {
-      setTestFilling(false);
-    }
-  }, [staffDets, getConfigForCategory, getUploadedTypesForStaff, uploadEvidence, testFilling]);
 
   return (
     <div style={{
@@ -387,17 +916,19 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
         : '0 1px 3px rgba(0,0,0,0.04)',
       transition: 'box-shadow 0.2s',
     }}>
-      {/* Collapsed header */}
       <button onClick={onToggle} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
         padding: '14px 18px', border: 'none', background: 'transparent',
         cursor: 'pointer', textAlign: 'left',
       }}>
         <ChevronDown
-          className="w-4 h-4 text-slate-400 flex-shrink-0 transition-transform"
-          style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+          style={{
+            width: 16, height: 16, color: '#94a3b8', flexShrink: 0,
+            transition: 'transform 0.2s',
+            transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+          }}
         />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, minWidth: 0 }}>
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{monthLabel}</span>
           {(() => {
             const cfg = claim.claim_type === 'additional'
@@ -405,10 +936,10 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
             return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
           })()}
-          <StatusBadge status={claim.status} />
+          <StatusPill status={claim.status} />
           {isQueried && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: '#dc2626' }}>
-              <AlertTriangle className="w-3 h-3" /> Action required
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 500, color: '#dc2626' }}>
+              <AlertTriangle style={{ width: 12, height: 12 }} /> Action required
             </span>
           )}
           {isDraft && <span style={{ fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>Not yet submitted</span>}
@@ -419,12 +950,10 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
         </div>
       </button>
 
-      {/* Expanded */}
       {expanded && (
         <div style={{ borderTop: '1px solid #f3f4f6', padding: '0 18px 18px' }}>
-          {/* Status timeline */}
           <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 20, padding: '14px 0 12px',
+            display: 'flex', flexWrap: 'wrap' as const, gap: 20, padding: '14px 0 12px',
             fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6',
           }}>
             {claim.submitted_at && <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />}
@@ -436,20 +965,18 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             </div>
           </div>
 
-          {/* Director query — needs response */}
           {isQueried && claim.query_notes && (
             <div style={{
               marginTop: 10, padding: '12px 14px', borderRadius: 8, fontSize: 13,
               background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b',
             }}>
               <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <AlertTriangle className="w-3.5 h-3.5" /> Query from PML Director
+                <AlertTriangle style={{ width: 14, height: 14 }} /> Query from PML Director
               </div>
               {claim.query_notes}
             </div>
           )}
 
-          {/* Part B substantiation */}
           {claim.verified_notes && (
             <div style={{
               marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
@@ -459,7 +986,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             </div>
           )}
 
-          {/* Finance notes */}
           {claim.payment_notes && (
             <div style={{
               marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
@@ -469,7 +995,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             </div>
           )}
 
-          {/* Line items table */}
           <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -478,8 +1003,8 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                     <th key={h} style={{
                       textAlign: i >= 3 ? 'right' : 'left', padding: '7px 10px',
                       fontSize: 11, fontWeight: 600, color: '#6b7280',
-                      textTransform: 'uppercase', letterSpacing: '0.04em',
-                      borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap',
+                      textTransform: 'uppercase' as const, letterSpacing: '0.04em',
+                      borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap' as const,
                     }}>{h}</th>
                   ))}
                 </tr>
@@ -506,7 +1031,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               <tfoot>
                 <tr>
                   <td colSpan={3} style={{ padding: '10px' }} />
-                  <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>Total</td>
+                  <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
                   <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
                     {fmtGBP(total)}
                   </td>
@@ -515,7 +1040,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             </table>
           </div>
 
-          {/* Staff-line evidence upload */}
           {(isDraft || isQueried) && (
             <div style={{ marginTop: 12 }}>
               {staffDets.map((s: any, idx: number) => (
@@ -537,43 +1061,35 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             </div>
           )}
 
-          {/* Action bar — draft */}
           {isDraft && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
               {!evidenceComplete && (
-                <>
-                  <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 500 }}>
-                    Upload all required evidence before submitting ({totalUploaded}/{totalMandatory})
-                  </span>
-                  <ActionBtn
-                    label={testFilling ? 'Filling…' : 'Test Fill All Evidence'}
-                    color="#d97706"
-                    bg="#fffbeb"
-                    icon={<Zap className="w-3.5 h-3.5" />}
-                    onClick={handleTestFillAll}
-                    disabled={testFilling || uploading}
-                  />
-                </>
+                <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 500 }}>
+                  Upload all required evidence before submitting ({totalUploaded}/{totalMandatory})
+                </span>
               )}
-              <ActionBtn
-                label="Submit Claim"
-                color="#005eb8"
-                bg="#eff6ff"
-                bold
-                icon={<Send className="w-3.5 h-3.5" />}
+              <button
                 onClick={() => onSubmit?.(claim.id)}
                 disabled={saving || !evidenceComplete}
-              />
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 18px',
+                  borderRadius: 8, border: 'none', background: '#005eb8', color: '#fff',
+                  fontSize: 13, fontWeight: 600, cursor: (saving || !evidenceComplete) ? 'not-allowed' : 'pointer',
+                  opacity: (saving || !evidenceComplete) ? 0.5 : 1,
+                }}
+              >
+                <Send style={{ width: 14, height: 14 }} />
+                Submit Claim
+              </button>
             </div>
           )}
 
-          {/* Action bar — queried */}
           {isQueried && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Reply className="w-3.5 h-3.5" /> Respond to Query
+                <Reply style={{ width: 14, height: 14 }} /> Respond to Query
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
                 <input
                   type="text"
                   value={queryResponse}
@@ -581,29 +1097,28 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                   placeholder="Your response to the PML Director query…"
                   style={{ flex: 1, minWidth: 250, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
-                <ActionBtn
-                  label="Resubmit"
-                  color="#059669"
-                  bg="#ecfdf5"
-                  bold
-                  icon={<Send className="w-3.5 h-3.5" />}
-                  onClick={() => {
-                    onResubmit?.(claim.id, queryResponse);
-                    setQueryResponse('');
-                  }}
+                <button
+                  onClick={() => { onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
                   disabled={saving}
-                />
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 18px',
+                    borderRadius: 8, border: 'none', background: '#059669', color: '#fff',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <Send style={{ width: 14, height: 14 }} />
+                  Resubmit
+                </button>
               </div>
             </div>
           )}
 
-          {/* Submitted — awaiting */}
           {claim.status === 'submitted' && (
             <div style={{
               marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6',
               display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9ca3af',
             }}>
-              <Clock className="w-3.5 h-3.5" /> Awaiting verification by Managerial Lead before Director review
+              <Clock style={{ width: 14, height: 14 }} /> Awaiting verification by Managerial Lead before Director review
             </div>
           )}
         </div>
@@ -616,25 +1131,27 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 export function BuyBackPracticeDashboard({
   claims,
   practiceKey,
-  staff: _staff,
+  staff,
+  staffRoles,
+  rateParams,
+  managementRoles,
   onSubmit,
   onResubmit,
-  onCreateClaim: _onCreateClaim,
-  onAddStaff: _onAddStaff,
-  staffRoles: _staffRoles,
-  rateParams: _rateParams,
-  managementRoles: _managementRoles,
+  onCreateClaim,
+  onAddStaff,
+  confirmDeclaration,
   savingClaim,
-  savingStaff: _savingStaff,
-  confirmDeclaration: _confirmDeclaration,
+  savingStaff,
 }: BuyBackPracticeDashboardProps) {
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeClaimKey, setActiveClaimKey] = useState<string | null>(null);
+  const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
 
   const practiceName = getPracticeName(practiceKey);
   const practiceCode = NRES_ODS_CODES[practiceKey] || '—';
   const contact = NRES_PRACTICE_CONTACTS[practiceKey as keyof typeof NRES_PRACTICE_CONTACTS];
   const managerName = contact?.practiceManager || '—';
+
+  const claimMonths = useMemo(() => getClaimMonths(), []);
 
   // Filter claims for this practice
   const practiceClaims = useMemo(() =>
@@ -642,28 +1159,42 @@ export function BuyBackPracticeDashboard({
     [claims, practiceKey]
   );
 
-  const filtered = useMemo(() => {
-    if (statusFilter === 'all') return practiceClaims;
-    if (statusFilter === 'awaiting_review') return practiceClaims.filter(c => c.status === 'verified' || c.status === 'submitted');
-    return practiceClaims.filter(c => c.status === statusFilter);
-  }, [practiceClaims, statusFilter]);
+  // Group staff by category
+  const buybackStaff = useMemo(() => staff.filter(s => s.staff_category === 'buyback' && s.is_active), [staff]);
+  const gpLocumStaff = useMemo(() => staff.filter(s => s.staff_category === 'gp_locum' && s.is_active), [staff]);
+  const newSdaStaff = useMemo(() => staff.filter(s => s.staff_category === 'new_sda' && s.is_active), [staff]);
 
-  // Sort: drafts & queried first
-  const sortedClaims = useMemo(() => {
-    const order: Record<string, number> = { draft: 0, queried: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
-    return [...filtered].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
-  }, [filtered]);
+  // Convert management roles to staff-like shape
+  const managementStaff = useMemo<BuyBackStaffMember[]>(() => {
+    if (!managementRoles) return staff.filter(s => s.staff_category === 'management' && s.is_active);
+    const fromConfig = managementRoles
+      .filter(r => r.is_active)
+      .map((r): BuyBackStaffMember => ({
+        id: r.key,
+        user_id: '',
+        practice_id: null,
+        staff_name: r.person_name,
+        staff_role: 'NRES Management',
+        allocation_type: 'hours' as const,
+        allocation_value: r.max_hours_per_week,
+        hourly_rate: r.hourly_rate,
+        is_active: true,
+        staff_category: 'management' as const,
+        practice_key: practiceKey,
+        start_date: null,
+        created_at: '',
+        updated_at: '',
+      }));
+    const fromStaff = staff.filter(s => s.staff_category === 'management' && s.is_active);
+    // Merge, avoiding duplicates by name
+    const names = new Set(fromConfig.map(s => s.staff_name));
+    return [...fromConfig, ...fromStaff.filter(s => !names.has(s.staff_name))];
+  }, [managementRoles, staff, practiceKey]);
 
+  // KPI counts
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: practiceClaims.length };
-    practiceClaims.forEach((c) => {
-      const ds = toDisplayStatus(c.status);
-      m[ds] = (m[ds] || 0) + 1;
-      // Also count raw status
-      m[c.status] = (m[c.status] || 0) + 1;
-    });
-    // Merge submitted + verified into awaiting_review
-    m.awaiting_review = (m.awaiting_review || 0) + (m.submitted || 0);
+    practiceClaims.forEach(c => { m[c.status] = (m[c.status] || 0) + 1; });
     return m;
   }, [practiceClaims]);
 
@@ -675,18 +1206,32 @@ export function BuyBackPracticeDashboard({
     return { draft, pending, queried, paid };
   }, [practiceClaims]);
 
-  const actionCount = (counts.draft || 0) + (counts.queried || 0);
+  const queriedCount = counts.queried || 0;
 
-  const statusFilters = [
-    { key: 'all', label: 'All' },
-    { key: 'draft', label: 'Draft', color: '#6b7280' },
-    { key: 'submitted', label: 'Submitted', color: '#0369a1' },
-    { key: 'awaiting_review', label: 'Awaiting Approval', color: '#2563eb' },
-    { key: 'approved', label: 'Approved', color: '#7c3aed' },
-    { key: 'queried', label: 'Queried', color: '#dc2626' },
-    { key: 'paid', label: 'Paid', color: '#166534' },
-    { key: 'rejected', label: 'Rejected', color: '#991b1b' },
-  ];
+  const handleClickClaim = (key: string) => {
+    setActiveClaimKey(prev => prev === key ? null : key);
+  };
+
+  // Claims history — all non-draft claims
+  const historyClaims = useMemo(() => {
+    const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
+    return [...practiceClaims].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
+  }, [practiceClaims]);
+
+  const rosterSectionProps = {
+    claims: practiceClaims,
+    claimMonths,
+    onClickClaim: handleClickClaim,
+    activeClaimKey,
+    onAddStaff,
+    staffRoles,
+    rateParams,
+    onCreateClaim,
+    onSubmit,
+    onResubmit,
+    confirmDeclaration,
+    saving: savingClaim,
+  };
 
   return (
     <div style={{
@@ -694,15 +1239,17 @@ export function BuyBackPracticeDashboard({
       maxWidth: 1000, margin: '0 auto', padding: '28px 16px',
       color: '#111827',
     }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      {/* Page header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' as const, gap: 12 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
             <div style={{ width: 6, height: 26, background: '#005eb8', borderRadius: 3 }} />
             <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Buy-Back Claims</h1>
             <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 9px', borderRadius: 100, background: '#005eb8', color: '#fff', letterSpacing: '0.03em' }}>NRES</span>
           </div>
-          <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>Submit, manage and track your practice claims</p>
+          <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>
+            Submit, manage and track your practice claims
+          </p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{practiceName}</div>
@@ -710,85 +1257,97 @@ export function BuyBackPracticeDashboard({
         </div>
       </div>
 
-      {/* Action required banner */}
-      {actionCount > 0 && (
+      {/* Queried alert banner */}
+      {queriedCount > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 16px', marginBottom: 16, borderRadius: 10,
           background: '#fffbeb', border: '1px solid #fde68a',
           fontSize: 13, color: '#92400e',
         }}>
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle style={{ width: 16, height: 16, flexShrink: 0 }} />
           <span>
-            <strong>{actionCount} claim{actionCount !== 1 ? 's' : ''} need your attention</strong>
-            {(counts.draft || 0) > 0 && <span> · {counts.draft} draft{counts.draft !== 1 ? 's' : ''} to complete</span>}
-            {(counts.queried || 0) > 0 && <span> · {counts.queried} quer{counts.queried !== 1 ? 'ies' : 'y'} to respond to</span>}
+            <strong>{queriedCount} claim{queriedCount !== 1 ? 's' : ''} need your attention</strong>
+            {' — please respond to the PML Director queries below'}
           </span>
         </div>
       )}
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
         <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#6b7280' : '#d1d5db'} />
-        <KpiCard label="In Pipeline" value={counts.awaiting_review || 0} sub={fmtShort(totals.pending)} accent="#2563eb" />
-        <KpiCard label="Queried" value={counts.queried || 0} sub={fmtShort(totals.queried)} accent={(counts.queried || 0) > 0 ? '#dc2626' : '#d1d5db'} />
+        <KpiCard label="In Pipeline" value={(counts.submitted || 0) + (counts.verified || 0)} sub={fmtShort(totals.pending)} accent="#2563eb" />
+        <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} />
         <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#059669" />
       </div>
 
+      {/* Staff Roster */}
+      <div style={{
+        background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb',
+        padding: '20px 20px 14px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: 20,
+      }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>Staff Roster</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>
+            Manage the staff included in your monthly buy-back claims
+          </div>
+        </div>
+
+        <StaffRosterSection
+          title="Buy-Back"
+          category="buyback"
+          staffList={buybackStaff}
+          showAddButton
+          {...rosterSectionProps}
+        />
+        <StaffRosterSection
+          title="GP Locum"
+          category="gp_locum"
+          staffList={gpLocumStaff}
+          showAddButton
+          {...rosterSectionProps}
+        />
+        <StaffRosterSection
+          title="New SDA"
+          category="new_sda"
+          staffList={newSdaStaff}
+          showAddButton
+          {...rosterSectionProps}
+        />
+        <StaffRosterSection
+          title="Management Recovery"
+          category="management"
+          staffList={managementStaff}
+          showAddButton={false}
+          {...rosterSectionProps}
+        />
+      </div>
+
+      {/* Separator */}
+      <div style={{ height: 1, background: '#e5e7eb', margin: '8px 0 20px' }} />
+
       {/* Claims History Summary */}
-      <div style={{ marginBottom: 16 }}>
-        <HistorySummary claims={practiceClaims} />
-      </div>
-
-      {/* Claims header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>Claims</div>
-      </div>
-
-      {/* Status filter */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
-        {statusFilters.map((f) => {
-          const count = f.key === 'all' ? counts.all : (counts[f.key] || 0);
-          if (f.key !== 'all' && count === 0) return null;
-          return (
-            <button key={f.key} onClick={() => setStatusFilter(f.key)} style={{
-              padding: '5px 12px', borderRadius: 100, fontSize: 11,
-              fontWeight: statusFilter === f.key ? 600 : 400,
-              border: `1px solid ${statusFilter === f.key ? (f.color || '#374151') : '#d1d5db'}`,
-              background: statusFilter === f.key ? `${f.color || '#374151'}12` : '#fff',
-              color: statusFilter === f.key ? (f.color || '#374151') : '#6b7280',
-              cursor: 'pointer', transition: 'all 0.15s',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-            }}>
-              {f.label}
-              <span style={{
-                fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 100,
-                background: statusFilter === f.key ? (f.color || '#374151') : '#e5e7eb',
-                color: statusFilter === f.key ? '#fff' : '#6b7280',
-              }}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      <HistorySummary claims={practiceClaims} />
 
       {/* Claims list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {sortedClaims.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb' }}>
-            No claims match the current filter.
+      {historyClaims.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginBottom: 12 }}>All Claims</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {historyClaims.map(c => (
+              <PracticeClaimCard
+                key={c.id}
+                claim={c}
+                expanded={expandedClaimId === c.id}
+                onToggle={() => setExpandedClaimId(expandedClaimId === c.id ? null : c.id)}
+                onSubmit={onSubmit}
+                onResubmit={onResubmit}
+                saving={savingClaim}
+              />
+            ))}
           </div>
-        ) : sortedClaims.map((c) => (
-          <PracticeClaimCard
-            key={c.id}
-            claim={c}
-            expanded={expandedId === c.id}
-            onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-            onSubmit={onSubmit}
-            onResubmit={onResubmit}
-            saving={savingClaim}
-          />
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{
@@ -796,7 +1355,7 @@ export function BuyBackPracticeDashboard({
         display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af',
       }}>
         <span>NRES New Models of Care — {practiceName} Claims</span>
-        <span>{sortedClaims.length} claim{sortedClaims.length !== 1 ? 's' : ''} shown</span>
+        <span>{staff.length} staff · {practiceClaims.length} claim{practiceClaims.length !== 1 ? 's' : ''}</span>
       </div>
     </div>
   );
