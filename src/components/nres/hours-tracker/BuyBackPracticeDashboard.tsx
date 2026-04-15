@@ -745,6 +745,7 @@ function StaffRosterSection({
   onSubmit,
   onResubmit,
   confirmDeclaration,
+  practiceKey,
   saving,
 }: {
   title: string;
@@ -764,6 +765,7 @@ function StaffRosterSection({
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
+  practiceKey?: string;
   saving?: boolean;
 }) {
   const accent = CATEGORY_COLORS[category] || '#6b7280';
@@ -771,6 +773,36 @@ function StaffRosterSection({
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addRole, setAddRole] = useState('');
+  const [addAllocType, setAddAllocType] = useState<'sessions'|'wte'|'hours'|'daily'>('sessions');
+  const [addAllocValue, setAddAllocValue] = useState('');
+  const [addHourlyRate, setAddHourlyRate] = useState('');
+  const [addSaving, setAddSaving] = useState(false);
+
+  const handleAddStaff = async () => {
+    if (!addName.trim() || !addRole || !addAllocValue) return;
+    setAddSaving(true);
+    try {
+      await onAddStaff?.({
+        staff_name: addName.trim(),
+        staff_role: addRole,
+        allocation_type: addAllocType,
+        allocation_value: Number(addAllocValue),
+        hourly_rate: Number(addHourlyRate) || 0,
+        is_active: true,
+        staff_category: category as any,
+        practice_key: practiceKey || null,
+        start_date: null,
+      });
+      setAddName(''); setAddRole(''); setAddAllocValue(''); setAddHourlyRate('');
+      setShowAddForm(false);
+    } finally {
+      setAddSaving(false);
+    }
+  };
 
   return (
     <div style={{ marginBottom: 18 }}>
@@ -790,16 +822,95 @@ function StaffRosterSection({
           </span>
         </div>
         {showAddButton && onAddStaff && (
-          <button style={{
+          <button onClick={() => setShowAddForm(prev => !prev)} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px',
-            borderRadius: 6, border: `1px solid ${accent}40`, background: '#fff',
+            borderRadius: 6, border: `1px solid ${accent}40`, background: showAddForm ? `${accent}15` : '#fff',
             color: accent, fontSize: 11, fontWeight: 600, cursor: 'pointer',
           }}>
             <Plus style={{ width: 11, height: 11 }} />
-            Add {category === 'gp_locum' ? 'Locum' : 'Staff'}
+            {showAddForm ? 'Cancel' : `Add ${category === 'gp_locum' ? 'Locum' : 'Staff'}`}
           </button>
         )}
       </div>
+
+      {showAddForm && onAddStaff && (
+        <div style={{ padding: '12px 14px', background: '#fafbfc', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
+            <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Name</div>
+              <input
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                placeholder={`e.g. ${category === 'gp_locum' ? 'Dr J Smith' : 'Sarah Jones'}`}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+              />
+            </div>
+            <div style={{ flex: '1 1 120px', minWidth: 100 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Role</div>
+              {staffRoles && staffRoles.length > 0 ? (
+                <select
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="">Select role</option>
+                  {staffRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  placeholder="e.g. GP Standard"
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+                />
+              )}
+            </div>
+            <div style={{ flex: '0 1 100px', minWidth: 80 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Allocation type</div>
+              <select
+                value={addAllocType}
+                onChange={(e) => setAddAllocType(e.target.value as any)}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+              >
+                <option value="sessions">Sessions</option>
+                <option value="wte">WTE</option>
+                <option value="hours">Hours/wk</option>
+                <option value="daily">Days/mo</option>
+              </select>
+            </div>
+            <div style={{ flex: '0 1 70px', minWidth: 60 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Value</div>
+              <input
+                type="number"
+                value={addAllocValue}
+                onChange={(e) => setAddAllocValue(e.target.value)}
+                placeholder="e.g. 4"
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
+              />
+            </div>
+            {category === 'gp_locum' && (
+              <div style={{ flex: '0 1 80px', minWidth: 70 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Day rate £</div>
+                <input
+                  type="number"
+                  value={addHourlyRate}
+                  onChange={(e) => setAddHourlyRate(e.target.value)}
+                  placeholder="e.g. 750"
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
+                />
+              </div>
+            )}
+            <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addAllocValue} style={{
+              padding: '7px 16px', borderRadius: 7, border: 'none', background: accent,
+              color: '#fff', fontSize: 12, fontWeight: 600, cursor: addSaving ? 'not-allowed' : 'pointer',
+              opacity: (addSaving || !addName.trim() || !addAllocValue) ? 0.5 : 1,
+            }}>
+              {addSaving ? 'Saving…' : 'Add'}
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {staffList.length === 0 ? (
         <div style={{
@@ -1120,9 +1231,16 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           )}
           {isDraft && <span style={{ fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>Not yet submitted</span>}
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 100 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>{staffCount} staff · {hours.toFixed(1)} hrs</div>
+        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 100, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>
+            <div style={{ fontSize: 11, color: '#9ca3af' }}>{staffCount} staff · {hours.toFixed(1)} hrs</div>
+          </div>
+          {claim.invoice_number && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <InvoiceDownloadLink claim={claim} />
+            </div>
+          )}
         </div>
       </button>
 
@@ -1134,8 +1252,13 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           }}>
             {claim.submitted_at && <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
+            {(claim as any).approved_by_email && <InfoBlock label="Approved by" value={(claim as any).approved_by_email.split('@')[0].replace(/\./g,' ').replace(/\w/g, (c: string) => c.toUpperCase())} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />}
+            {(claim as any).expected_payment_date && !claim.paid_at && (
+              <InfoBlock label="Scheduled payment" value={shortDate((claim as any).expected_payment_date)} highlight="#d97706" />
+            )}
+            {(claim as any).bacs_reference && <InfoBlock label="BACS ref" value={(claim as any).bacs_reference} />}
+            {claim.paid_at && <InfoBlock label="Paid" value={shortDate((claim as any).actual_payment_date || claim.paid_at)} highlight="#166534" sub={claim.paid_by ? claim.paid_by.split('@')[0] : undefined} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
-            {claim.paid_at && <InfoBlock label="Paid" value={shortDate(claim.paid_at)} highlight="#166534" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Evidence" met={evidenceComplete} />
             </div>
@@ -1346,7 +1469,7 @@ export function BuyBackPracticeDashboard({
   const managementStaff = useMemo<BuyBackStaffMember[]>(() => {
     if (!managementRoles) return staff.filter(s => s.staff_category === 'management' && s.is_active);
     const fromConfig = managementRoles
-      .filter(r => r.is_active)
+      .filter(r => r.is_active && (!r.member_practice || r.member_practice === practiceKey))
       .map((r): BuyBackStaffMember => ({
         id: r.key,
         user_id: '',
@@ -1399,6 +1522,7 @@ export function BuyBackPracticeDashboard({
   const rosterSectionProps = {
     claims: practiceClaims,
     claimMonths,
+    practiceKey,
     onClickClaim: handleClickClaim,
     activeClaimKey,
     onAddStaff,
