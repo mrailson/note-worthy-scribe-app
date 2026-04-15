@@ -798,6 +798,19 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           savingClaim={savingClaim}
           savingStaff={savingStaff}
           confirmDeclaration={confirmDeclaration}
+          onDeleteClaim={async (id: string) => { await deleteClaim(id); }}
+          onCreateLocumClaim={async (monthDate: string, staffMember: any, actualSessions: number, claimedAmount: number) => {
+            const modifiedStaff = { ...staffMember, allocation_value: actualSessions };
+            const maxAmount = actualSessions * (staffMember.hourly_rate || 0);
+            return createClaim(
+              monthDate,
+              [modifiedStaff],
+              claimedAmount,
+              maxAmount,
+              testMode.selectedPractice,
+              rateParams
+            );
+          }}
         />
       </div>
     );
