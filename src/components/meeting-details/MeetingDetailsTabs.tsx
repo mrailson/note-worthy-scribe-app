@@ -8,6 +8,7 @@ import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { MeetingQAPanel } from "./MeetingQAPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ensureMeetingTitle } from "@/utils/manualTriggerNotes";
 interface MeetingDetailsTabsProps {
   meetingId: string;
   meetingTitle: string;
@@ -134,6 +135,9 @@ export const MeetingDetailsTabs = ({
       });
 
       if (error) throw error;
+
+      // Safety net: ensure meeting title is descriptive even if notes were skipped
+      ensureMeetingTitle(meetingId).catch(err => console.warn('⚠️ Title safety net failed:', err));
 
       toast.success('Note generation started! This may take a few moments.');
     } catch (error: any) {
