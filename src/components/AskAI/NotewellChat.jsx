@@ -23,6 +23,7 @@ const NHS = {
 const DEFAULT_SETTINGS = {
   responseLength:"balanced", tone:"professional", includeUserContext:true,
   fontSize:"medium", sidebarMode:"collapsed", compactMessages:false, showClinicalCaveats:true,
+  useLetterhead:true, showDocFooter:true,
 };
 const FONT_SCALE = { small:0.84, medium:0.91, large:0.98 };
 
@@ -507,7 +508,7 @@ const INSTRUCTION_SUGGESTIONS=[
   "Start every response with a one-sentence summary before the detail.",
 ];
 
-function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"}){
+function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile",settings=DEFAULT_SETTINGS,saveSettings}){
   const [tab,setTab]=useState(initialTab);
   const [pt,setPt]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [it,setIt]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
@@ -558,7 +559,7 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
             <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"8px 12px",fontSize:"1rem",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           </div>
           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"],["kb","📚 Knowledge Base"]].map(([t,l])=>(
+            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"],["kb","📚 Knowledge Base"],["documents","📄 Documents"]].map(([t,l])=>(
               <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",minHeight:36}}>{l}</button>
             ))}
           </div>
@@ -596,6 +597,47 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
               <div style={{fontWeight:700,fontSize:"0.77rem",color:"#003087",marginBottom:7}}>💡 Quick-add</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {INSTRUCTION_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setIt,it,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"6px 11px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>46?s.slice(0,46)+"…":s}</button>)}
+              </div>
+            </div>
+          )}
+          {tab==="documents"&&(
+            <div>
+              <div style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",marginBottom:5}}>Word Document Settings</div>
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 14px",lineHeight:1.55}}>Control what appears in downloaded Word documents.</p>
+              {[
+                {key:"useLetterhead", label:"Practice letterhead", desc:"Show your practice name, address, logo and contact details at the top of every Word document."},
+                {key:"showDocFooter", label:"Document footer", desc:"Show author, job title and Notewell compliance information at the bottom of every Word document."},
+              ].map(({key,label,desc})=>{
+                const val = settings?.[key] !== false;
+                return(
+                  <div key={key} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 14px",background:"#F8FAFC",borderRadius:9,border:"1.5px solid #E8EDEE",marginBottom:10}}>
+                    <button
+                      onClick={()=>saveSettings&&saveSettings({[key]:!val})}
+                      style={{
+                        flexShrink:0, marginTop:2,
+                        width:42, height:24, borderRadius:12, border:"none", cursor:"pointer",
+                        background:val?"#005EB8":"#D1D5DB", position:"relative", transition:"background .2s",
+                      }}
+                    >
+                      <span style={{
+                        position:"absolute", top:3, left:val?20:3,
+                        width:18, height:18, borderRadius:9,
+                        background:"#fff", transition:"left .2s",
+                        boxShadow:"0 1px 3px rgba(0,0,0,0.2)",
+                        display:"block",
+                      }}/>
+                    </button>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:"0.81rem",color:"#003087",marginBottom:2}}>{label}</div>
+                      <div style={{fontSize:"0.72rem",color:"#425563",lineHeight:1.5}}>{desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{background:"#EDF4FF",borderLeft:"3px solid #005EB8",padding:"8px 12px",borderRadius:"0 6px 6px 0",marginTop:6}}>
+                <p style={{margin:0,fontSize:"0.74rem",color:"#003087",lineHeight:1.5}}>
+                  💡 Tip: turn off the letterhead for internal notes and working documents. Leave it on for letters, policies and documents you'll share externally.
+                </p>
               </div>
             </div>
           )}
@@ -704,7 +746,7 @@ function GuideModal({user,onClose,vp}){
 
 // ── Artifact Panel ────────────────────────────────────────────────────────────
 // FIX 1: Enhanced PPTX download with spinner, error display, success confirmation, timeout
-function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth}){
+function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth,settings=DEFAULT_SETTINGS,saveSettings}){
   const [gen,setGen]=useState(false);const [err,setErr]=useState(null);const [done,setDone]=useState(null);
   const [genLabel,setGenLabel]=useState(null);
   const type=ARTIFACT_TYPES[artifact.type]||ARTIFACT_TYPES.docx;const isImg=artifact.type==="image";
@@ -1354,7 +1396,12 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources, latestMe
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function NotewellChat({ user, onNavigateHome }) {
   const vp=useViewport();
-  const [settings]=useState(()=>{try{const s=localStorage.getItem("nw_ai_settings");return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
+  const [settings, setSettings]=useState(()=>{try{const s=localStorage.getItem("nw_ai_settings");return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
+  const saveSettings = (patch) => {
+    const next = {...settings, ...patch};
+    setSettings(next);
+    try{ localStorage.setItem("nw_ai_settings", JSON.stringify(next)); }catch{}
+  };
   const [conversations,setConversations]=useState(()=>loadHistory());
   const [activeConvId,setActiveConvId]=useState(null);
   const [messages,setMessages]=useState([]);
@@ -1622,7 +1669,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       `}</style>
 
       {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}} vp={vp}/>}
-      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp} onNavigateHome={onNavigateHome} initialTab={profileInitialTab}/>}
+      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp} onNavigateHome={onNavigateHome} initialTab={profileInitialTab} settings={settings} saveSettings={saveSettings}/>}
 
       <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)} onNavigateHome={onNavigateHome} onOpenKB={()=>{setProfileInitialTab("kb");setShowProfile(true);}}/>
 
@@ -1756,7 +1803,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
             <div style={{width:2,height:40,background:NHS.paleGrey,borderRadius:2}}/>
           </div>
           <div style={{width:panelWidth,minWidth:MIN_PANEL_W,maxWidth:MAX_PANEL_W,flexShrink:0,animation:"nwSlideIn .22s ease",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={panelWidth} onSetWidth={savePanelWidth}/>
+            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={panelWidth} onSetWidth={savePanelWidth} settings={settings} saveSettings={saveSettings}/>
           </div>
         </>
       )}
@@ -1764,7 +1811,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       {activeArtifact&&(vp==="compact"||vp==="mobile")&&(
         <div style={{position:"fixed",inset:0,zIndex:999,background:"rgba(0,0,0,.45)",animation:"nwFadeIn .2s ease"}} onClick={()=>setActiveArtifact(null)}>
           <div style={{position:"absolute",right:0,top:0,bottom:0,width:"90vw",maxWidth:480,background:"#fff",animation:"nwSlideIn .22s ease",display:"flex",flexDirection:"column",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
-            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={480} onSetWidth={null}/>
+            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={480} onSetWidth={null} settings={settings} saveSettings={saveSettings}/>
           </div>
         </div>
       )}
