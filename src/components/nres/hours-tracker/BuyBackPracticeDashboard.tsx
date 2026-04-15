@@ -1679,7 +1679,10 @@ function StaffRosterSection({
           cursor: 'pointer', userSelect: 'none' as const,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          title={!sectionOpen && staffList.length > 0 ? staffList.map(s => s.staff_name).join(', ') : undefined}
+        >
           <ChevronDown style={{
             width: 14, height: 14, color: accent, flexShrink: 0,
             transition: 'transform 0.2s',
@@ -1692,6 +1695,11 @@ function StaffRosterSection({
           }}>
             {staffList.length}
           </span>
+          {!sectionOpen && staffList.length > 0 && (
+            <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 4, maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+              {staffList.map(s => s.staff_name).join(', ')}
+            </span>
+          )}
         </div>
         {showAddButton && onAddStaff && (
           <button onClick={(e) => { e.stopPropagation(); setShowAddForm(prev => !prev); }} style={{
