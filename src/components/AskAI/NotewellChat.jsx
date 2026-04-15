@@ -102,17 +102,78 @@ function parseArtifact(text){
 function stripArtifact(t){return t.replace(/\n?<<ARTIFACT_START>>[\s\S]*?<<ARTIFACT_END>>\n?/g,"").trim();}
 
 function isSalutation(s){const sals=['mr','mrs','ms','miss','dr','prof','rev','sir','mx'];return sals.includes((s||'').trim().toLowerCase().replace(/\./g,''));}
-function generateDocxBlob(a){
-  const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const body=(a.sections||[]).map(s=>{switch(s.type){case"h1":return`<h1>${esc(s.text)}</h1>`;case"h2":return`<h2>${esc(s.text)}</h2>`;case"h3":return`<h3>${esc(s.text)}</h3>`;case"p":return`<p>${esc(s.text)}</p>`;case"bullets":return`<ul>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`;case"numbered":return`<ol>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ol>`;case"callout":case"callout_info":return`<div style="background:#EDF4FF;border-left:4px solid #005EB8;padding:8pt 12pt;margin:10pt 0"><p style="margin:0">${esc(s.text)}</p></div>`;case"callout_warning":return`<div style="background:#FFF8E1;border-left:4px solid #FFB81C;padding:8pt 12pt;margin:10pt 0"><p style="margin:0 0 4pt 0;font-weight:700;color:#7A5700">⚠ ${esc(s.title||'Important')}</p><p style="margin:0">${esc(s.text)}</p></div>`;case"callout_danger":return`<div style="background:#FFF0F0;border-left:4px solid #DA291C;padding:8pt 12pt;margin:10pt 0"><p style="margin:0 0 4pt 0;font-weight:700;color:#B71C1C">🚨 ${esc(s.title||'Critical')}</p><p style="margin:0">${esc(s.text)}</p></div>`;case"callout_success":return`<div style="background:#E8F5E9;border-left:4px solid #009639;padding:8pt 12pt;margin:10pt 0"><p style="margin:0 0 4pt 0;font-weight:700;color:#1B5E20">✓ ${esc(s.title||'Note')}</p><p style="margin:0">${esc(s.text)}</p></div>`;case"hr":return`<hr style="border:none;border-top:1.5px solid #C8D3DC;margin:16pt 0">`;case"recipient":return`<div style="margin:12pt 0 16pt 0"><p style="white-space:pre-line;line-height:1.6;margin:0">${esc(s.address||'')}</p>${s.salutation?`<p style="margin:14pt 0 0 0">${esc(s.salutation)}</p>`:''}</div>`;case"signature":return`<div style="margin:24pt 0 0 0"><p style="margin:0 0 24pt 0">${esc(s.closing||'Yours sincerely,')}</p><p style="margin:0;font-weight:700">${esc(s.name||a.meta?.author||'')}</p>${s.jobTitle||a.meta?.jobTitle?`<p style="margin:2pt 0 0 0;color:#005EB8">${esc(s.jobTitle||a.meta?.jobTitle||'')}</p>`:''} ${s.organisation||a.meta?.organisation?`<p style="margin:2pt 0 0 0;color:#425563">${esc(s.organisation||a.meta?.organisation||'')}</p>`:''}</div>`;case"checklist":return`<table style="border:none;margin:10pt 0">${(s.items||[]).map(i=>{const txt=typeof i==='string'?i:i.text||i;const chk=typeof i==='object'&&i.checked;return`<tr><td style="border:none;width:20pt;vertical-align:top;padding:3pt 4pt;font-size:12pt">${chk?'☑':'☐'}</td><td style="border:none;vertical-align:top;padding:3pt 4pt">${esc(txt)}</td></tr>`;}).join('')}</table>`;case"doccontrol":{const fields=[['Document Title',esc(a.title||s.title||'')],['Version',esc(s.version||'1.0')],['Date',esc(s.date||new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}))],['Author',esc(s.author||a.meta?.author||'')],['Review Date',esc(s.reviewDate||'')],['Approved By',esc(s.approvedBy||'')],['Status',esc(s.status||'Draft')]].filter(([,v])=>v);return`<h2 style="font-size:13pt;color:#003087;margin-bottom:8pt">Document Control</h2><table style="width:60%;margin-bottom:16pt">${fields.map(([k,v])=>`<tr><td style="background:#005EB8;color:#fff;font-weight:700;padding:5pt 8pt;width:40%">${k}</td><td style="padding:5pt 8pt">${v}</td></tr>`).join('')}</table>`;}case"table":{const cw=s.colWidths;const colgroupHtml=cw?`<colgroup>${cw.map(w=>`<col style="width:${w}%">`).join('')}</colgroup>`:'';return`<table>${colgroupHtml}<thead><tr>${(s.headers||[]).map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${(s.rows||[]).map((r,ri)=>{const hl=s.rowHighlights&&s.rowHighlights[String(ri)];const bg=hl==='warning'?' style="background:#FFF8E1"':hl==='danger'?' style="background:#FFF0F0"':hl==='success'?' style="background:#E8F5E9"':'';return`<tr${bg}>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`;}).join("")}</tbody></table>`;}case"pagebreak":return`<br style="page-break-before:always">`;default:return"";}}).join("\n");
-  const m=a.meta||{};
-  const logoHtml=m.logoUrl?'<img src="'+esc(m.logoUrl)+'" alt="'+esc(m.organisation||'')+'" style="height:48px;max-width:160px;object-fit:contain;display:block;margin-bottom:5pt"/>':'';
-  const contactParts=[];if(m.phone)contactParts.push(esc(m.phone));if(m.email)contactParts.push(esc(m.email));if(m.website)contactParts.push(esc(m.website));
-  const contactLine=contactParts.join(' &nbsp;&middot;&nbsp; ');
-  const letterhead='<table style="width:100%;border-collapse:collapse;border:none;margin-bottom:12pt"><tr><td style="border:none;vertical-align:top;padding:0;width:60%">'+logoHtml+'<div style="font-size:13pt;font-weight:700;color:#003087;margin-bottom:2pt">'+esc(m.organisation||'')+'</div>'+(m.address?'<div style="font-size:9pt;color:#425563;line-height:1.5;white-space:pre-line">'+esc(m.address)+'</div>':'')+(contactLine?'<div style="font-size:9pt;color:#425563;margin-top:3pt">'+contactLine+'</div>':'')+'</td><td style="border:none;vertical-align:top;text-align:right;padding:0">'+(m.author?'<div style="font-size:9pt;color:#425563;margin-bottom:3pt">'+esc(m.senderLabel||m.author)+'</div>':'')+(m.jobTitle&&!isSalutation(m.jobTitle)?'<div style="font-size:9pt;color:#003087;font-weight:600">'+esc(m.jobTitle)+'</div>':'')+'<div style="font-size:9pt;color:#888;margin-top:6pt">'+(m.date||new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}))+'</div></td></tr></table><div style="border-top:2.5px solid #005EB8;margin-bottom:14pt"></div><h1 style="font-size:16pt;color:#003087;border:none;padding:0;margin-top:0">'+esc(a.title||'Document')+'</h1>';
-  const footer=`<div class="footer">${esc(m.author||"")}${m.jobTitle&&!isSalutation(m.jobTitle)?` · ${esc(m.jobTitle)}`:""}${m.organisation?` · ${esc(m.organisation)}`:""}${contactLine?`<br>${contactLine}`:""}<br>Generated by Notewell AI · DCB0129/DCB0160 · MHRA Class I · ICO ZB226324 · Always apply professional judgement.</div>`;
-  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>@page{margin:2cm}body{font-family:Arial,sans-serif;font-size:11pt;color:#231F20}h1{font-size:18pt;color:#003087;border-bottom:2px solid #005EB8;padding-bottom:4pt;margin-top:0}h2{font-size:14pt;color:#003087;margin-top:16pt}h3{font-size:12pt;color:#005EB8;margin-top:12pt}p{line-height:1.6;margin:6pt 0}ul,ol{margin:6pt 0;padding-left:24pt}li{margin:3pt 0;line-height:1.5}table{border-collapse:collapse;width:100%;margin:12pt 0}th{background:#005EB8;color:#fff;padding:6pt 8pt;font-size:10pt;text-align:left}td{border:1px solid #C8D3DC;padding:5pt 8pt;font-size:10pt;vertical-align:top}tr:nth-child(even)td{background:#F0F4F8}.footer{font-size:8pt;color:#999;border-top:1px solid #ddd;margin-top:24pt;padding-top:6pt}</style></head><body>${letterhead}${body}${footer}</body></html>`;
-  return new Blob([html],{type:"application/msword"});
+async function generateDocxBlob(a, docSettings={}){
+  const esc = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const addrHtml = s => String(s||"").split(/\n/).map(l=>esc(l.trim())).filter(Boolean).join("<br>");
+
+  const body = (a.sections||[]).map(s=>{
+    switch(s.type){
+      case"h1":    return`<h1>${esc(s.text)}</h1>`;
+      case"h2":    return`<h2>${esc(s.text)}</h2>`;
+      case"h3":    return`<h3>${esc(s.text)}</h3>`;
+      case"p":     return`<p>${esc(s.text)}</p>`;
+      case"bullets":  return`<ul>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`;
+      case"numbered": return`<ol>${(s.items||[]).map(i=>`<li>${esc(i)}</li>`).join("")}</ol>`;
+      case"callout":
+      case"callout_info": return`<div style="background:#EDF4FF;border-left:4px solid #005EB8;padding:8pt 12pt;margin:10pt 0"><p style="margin:0">${esc(s.text)}</p></div>`;
+      case"callout_warning": return`<div style="background:#FFF8E1;border-left:4px solid #FFB81C;padding:8pt 12pt;margin:10pt 0"><p style="margin:0 0 4pt 0;font-weight:700;color:#7A5700">⚠ ${esc(s.title||"Important")}</p><p style="margin:0">${esc(s.text)}</p></div>`;
+      case"callout_danger":  return`<div style="background:#FFF0F0;border-left:4px solid #DA291C;padding:8pt 12pt;margin:10pt 0"><p style="margin:0 0 4pt 0;font-weight:700;color:#B71C1C">🚨 ${esc(s.title||"Critical")}</p><p style="margin:0">${esc(s.text)}</p></div>`;
+      case"callout_success": return`<div style="background:#E8F5E9;border-left:4px solid #009639;padding:8pt 12pt;margin:10pt 0"><p style="margin:0 0 4pt 0;font-weight:700;color:#1B5E20">✓ ${esc(s.title||"Note")}</p><p style="margin:0">${esc(s.text)}</p></div>`;
+      case"table":{
+        const cw = s.colWidths;
+        const cg = cw?`<colgroup>${cw.map(w=>`<col style="width:${w}%">`).join("")}</colgroup>`:"";
+        return`<table>${cg}<thead><tr>${(s.headers||[]).map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${(s.rows||[]).map((r,ri)=>{const hl=s.rowHighlights&&s.rowHighlights[String(ri)];const bg=hl==="warning"?' style="background:#FFF8E1"':hl==="danger"?' style="background:#FFF0F0"':hl==="success"?' style="background:#E8F5E9"':"";return`<tr${bg}>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`;}).join("")}</tbody></table>`;
+      }
+      case"hr":        return`<hr style="border:none;border-top:1.5px solid #C8D3DC;margin:16pt 0">`;
+      case"pagebreak": return`<br style="page-break-before:always">`;
+      case"recipient": return`<div style="margin:12pt 0 16pt 0"><p style="line-height:1.6;margin:0">${addrHtml(s.address)}</p>${s.salutation?`<p style="margin:14pt 0 0 0">${esc(s.salutation)}</p>`:""}</div>`;
+      case"signature": return`<div style="margin:24pt 0 0 0"><p style="margin:0 0 24pt 0">${esc(s.closing||"Yours sincerely,")}</p><p style="margin:0;font-weight:700">${esc(s.name||a.meta?.author||"")}</p>${(s.jobTitle||a.meta?.jobTitle)?`<p style="margin:2pt 0 0 0;color:#005EB8">${esc(s.jobTitle||a.meta?.jobTitle||"")}</p>`:""}${(s.organisation||a.meta?.organisation)?`<p style="margin:2pt 0 0 0;color:#425563">${esc(s.organisation||a.meta?.organisation||"")}</p>`:""}</div>`;
+      case"checklist": return`<table style="border:none;margin:10pt 0">${(s.items||[]).map(i=>{const txt=typeof i==="string"?i:i.text||i;const chk=typeof i==="object"&&i.checked;return`<tr><td style="border:none;width:20pt;vertical-align:top;padding:3pt 4pt;font-size:12pt">${chk?"☑":"☐"}</td><td style="border:none;vertical-align:top;padding:3pt 4pt">${esc(txt)}</td></tr>`;}).join("")}</table>`;
+      case"doccontrol":{
+        const fields=[["Document Title",esc(a.title||s.title||"")],["Version",esc(s.version||"1.0")],["Date",esc(s.date||new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}))],["Author",esc(s.author||a.meta?.author||"")],["Review Date",esc(s.reviewDate||"")],["Approved By",esc(s.approvedBy||"")],["Status",esc(s.status||"Draft")]].filter(([,v])=>v);
+        return`<h2 style="font-size:13pt;color:#003087;margin-bottom:8pt">Document Control</h2><table style="width:60%;margin-bottom:16pt">${fields.map(([k,v])=>`<tr><td style="background:#005EB8;color:#fff;font-weight:700;padding:5pt 8pt;width:40%">${k}</td><td style="padding:5pt 8pt">${v}</td></tr>`).join("")}</table>`;
+      }
+      default: return"";
+    }
+  }).join("\n");
+
+  const m = a.meta || {};
+  const useLetterhead = docSettings.useLetterhead !== false;
+  const showDocFooter = docSettings.showDocFooter !== false;
+
+  let logoHtml = "";
+  if(useLetterhead && m.logoUrl){
+    try{
+      const resp = await fetch(m.logoUrl);
+      if(resp.ok){
+        const blob = await resp.blob();
+        const b64 = await new Promise(res=>{
+          const r=new FileReader();
+          r.onload=()=>res(r.result);
+          r.readAsDataURL(blob);
+        });
+        logoHtml = `<img src="${b64}" alt="${esc(m.organisation||"")}" style="height:48px;max-width:160px;object-fit:contain;display:block;margin-bottom:5pt"/>`;
+      }
+    }catch{}
+  }
+
+  const contactParts = [];
+  if(m.phone)   contactParts.push(esc(m.phone));
+  if(m.email)   contactParts.push(`<a href="mailto:${esc(m.email)}" style="color:#005EB8">${esc(m.email)}</a>`);
+  if(m.website) contactParts.push(`<a href="${esc(m.website)}" style="color:#005EB8">${esc(m.website)}</a>`);
+  const contactLine = contactParts.join("  &middot;  ");
+
+  const addrHtml2 = m.address ? `<div style="font-size:9pt;color:#425563;line-height:1.5">${String(m.address).split(/\n/).map(l=>esc(l.trim())).filter(Boolean).join("<br>")}</div>` : "";
+
+  const letterhead = useLetterhead ? `<table style="width:100%;border-collapse:collapse;border:none;margin-bottom:12pt"><tr><td style="border:none;vertical-align:top;padding:0;width:60%">${logoHtml}<div style="font-size:13pt;font-weight:700;color:#003087;margin-bottom:2pt">${esc(m.organisation||"")}</div>${addrHtml2}${contactLine?`<div style="font-size:9pt;color:#425563;margin-top:3pt">${contactLine}</div>`:""}</td><td style="border:none;vertical-align:top;text-align:right;padding:0">${m.author?`<div style="font-size:9pt;color:#425563;margin-bottom:3pt">${esc(m.senderLabel||m.author)}</div>`:""}${m.jobTitle&&!isSalutation(m.jobTitle)?`<div style="font-size:9pt;color:#003087;font-weight:600">${esc(m.jobTitle)}</div>`:""}<div style="font-size:9pt;color:#888;margin-top:6pt">${m.date||new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div></td></tr></table><div style="border-top:2.5px solid #005EB8;margin-bottom:14pt"></div><h1 style="font-size:16pt;color:#003087;border:none;padding:0;margin-top:0">${esc(a.title||"Document")}</h1>` : `<h1>${esc(a.title||"Document")}</h1>`;
+
+  const footer = showDocFooter
+    ? `<div class="footer">${esc(m.author||"")}${m.jobTitle&&!isSalutation(m.jobTitle)?` &middot; ${esc(m.jobTitle)}`:""}${m.organisation?` &middot; ${esc(m.organisation)}`:""}${contactLine?`<br>${contactLine}`:""}<br>Generated by Notewell AI &middot; DCB0129/DCB0160 &middot; MHRA Class I &middot; ICO ZB226324 &middot; Always apply professional judgement.</div>`
+    : "";
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>@page{margin:2cm}body{font-family:Arial,sans-serif;font-size:11pt;color:#231F20}h1{font-size:18pt;color:#003087;border-bottom:2px solid #005EB8;padding-bottom:4pt;margin-top:0}h2{font-size:14pt;color:#003087;margin-top:16pt}h3{font-size:12pt;color:#005EB8;margin-top:12pt}p{line-height:1.6;margin:6pt 0}ul,ol{margin:6pt 0;padding-left:24pt}li{margin:3pt 0;line-height:1.5}table{border-collapse:collapse;width:100%;margin:12pt 0}th{background:#005EB8;color:#fff;padding:6pt 8pt;font-size:10pt;text-align:left}td{border:1px solid #C8D3DC;padding:5pt 8pt;font-size:10pt;vertical-align:top}tr:nth-child(even) td{background:#F0F4F8}.footer{font-size:8pt;color:#999;border-top:1px solid #ddd;margin-top:24pt;padding-top:6pt}</style></head><body>${letterhead}${body}${footer}</body></html>`;
+
+  return new Blob([html], {type:"application/msword"});
 }
 function generateXlsxBlob(a){
   const wb = XLSX.utils.book_new();
@@ -755,7 +816,7 @@ function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth,settings=DEFAU
     if(artifact.type==="pptx") setGenLabel("Building presentation...");
     else setGenLabel("Generating...");
     try{
-      if(artifact.type==="docx")triggerDownload(generateDocxBlob(artifact),(artifact.filename||"document")+".doc");
+      if(artifact.type==="docx")triggerDownload(await generateDocxBlob(artifact, settings),(artifact.filename||"document")+".doc");
       else if(artifact.type==="xlsx")triggerDownload(generateXlsxBlob(artifact),(artifact.filename||"report")+".xlsx");
       else if(artifact.type==="pptx")triggerDownload(await generatePptxBlob(artifact),(artifact.filename||"presentation")+".pptx");
       else if(isImg){if(fmt==="png")await downloadPng(artifact);else downloadSvg(artifact);}
