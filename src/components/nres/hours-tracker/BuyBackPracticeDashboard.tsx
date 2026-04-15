@@ -1524,7 +1524,9 @@ function StaffRosterSection({
                         </span>
                       </td>
                       <td style={{ padding: '10px', fontSize: 12, color: '#6b7280', whiteSpace: 'nowrap' as const }}>
-                        {getAllocDisplay(member.allocation_type, member.allocation_value)}
+                        {member.staff_category === 'meeting'
+                          ? `${fmtGBP(member.hourly_rate || 0)}/hr · variable`
+                          : getAllocDisplay(member.allocation_type, member.allocation_value)}
                       </td>
                       {rowCells.map(({ cm, claim, isCurrentMo }) => (
                         <MonthStatusCell
@@ -2046,41 +2048,38 @@ export function BuyBackPracticeDashboard({
 
   // Convert management roles to staff-like shape
   const managementStaff = useMemo<BuyBackStaffMember[]>(() => {
-    if (!managementRoles) return staff.filter(s => s.staff_category === 'management' && s.is_active);
-    // Get this practice's ODS code for billing_org_code matching
     const practiceOdsCode = NRES_ODS_CODES[practiceKey] || '';
+    if (!managementRoles) return staff.filter(s => (s.staff_category === 'management' || s.staff_category === 'meeting') && s.is_active);
     const fromConfig = managementRoles
       .filter(r => {
         if (!r.is_active) return false;
         const hasBillingOrg = !!r.billing_org_code;
         const hasMemberPractice = !!r.member_practice;
-        // If neither assignment field is set → show for all practices (unassigned / global)
         if (!hasBillingOrg && !hasMemberPractice) return true;
-        // Match on billing_org_code (primary — already populated in settings)
         if (hasBillingOrg && practiceOdsCode && r.billing_org_code === practiceOdsCode) return true;
-        // Match on member_practice key (secondary fallback)
         if (hasMemberPractice && r.member_practice === practiceKey) return true;
-        // Has an assignment but doesn't match this practice → exclude
         return false;
       })
-      .map((r): BuyBackStaffMember => ({
-        id: r.key,
-        user_id: '',
-        practice_id: null,
-        staff_name: r.person_name,
-        staff_role: 'NRES Management',
-        allocation_type: 'hours' as const,
-        allocation_value: r.max_hours_per_week,
-        hourly_rate: r.hourly_rate,
-        is_active: true,
-        staff_category: 'management' as const,
-        practice_key: practiceKey,
-        start_date: null,
-        created_at: '',
-        updated_at: '',
-      }));
-    const fromStaff = staff.filter(s => s.staff_category === 'management' && s.is_active);
-    // Merge, avoiding duplicates by name
+      .map((r): BuyBackStaffMember => {
+        const isMeetingRole = r.role_type === 'attending_meeting';
+        return {
+          id: r.key,
+          user_id: '',
+          practice_id: null,
+          staff_name: r.person_name,
+          staff_role: isMeetingRole ? r.label : 'NRES Management',
+          allocation_type: 'hours' as const,
+          allocation_value: isMeetingRole ? 0 : r.max_hours_per_week,
+          hourly_rate: r.hourly_rate,
+          is_active: true,
+          staff_category: isMeetingRole ? 'meeting' as const : 'management' as const,
+          practice_key: practiceKey,
+          start_date: null,
+          created_at: '',
+          updated_at: '',
+        };
+      });
+    const fromStaff = staff.filter(s => (s.staff_category === 'management' || s.staff_category === 'meeting') && s.is_active);
     const names = new Set(fromConfig.map(s => s.staff_name));
     return [...fromConfig, ...fromStaff.filter(s => !names.has(s.staff_name))];
   }, [managementRoles, staff, practiceKey]);
