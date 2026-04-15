@@ -10,6 +10,9 @@ interface VerifierDashboardProps {
   onVerify: (claimId: string, notes?: string) => Promise<any>;
   onReturnToPractice: (claimId: string, notes?: string) => Promise<any>;
   savingClaim: boolean;
+  onGuideOpen?: () => void;
+  onSettingsOpen?: () => void;
+  showSettings?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

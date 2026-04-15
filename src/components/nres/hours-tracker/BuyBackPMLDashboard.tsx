@@ -28,6 +28,9 @@ interface BuyBackPMLDashboardProps {
   onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
   savingClaim?: boolean;
   defaultView?: PMLView;
+  onGuideOpen?: () => void;
+  onSettingsOpen?: () => void;
+  showSettings?: boolean;
 }
 
 // --- Mapped status: internal 'verified' → display 'awaiting_review' for Director ---

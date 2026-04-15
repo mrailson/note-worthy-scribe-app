@@ -29,6 +29,9 @@ interface BuyBackPracticeDashboardProps {
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   savingClaim?: boolean;
   savingStaff?: boolean;
+  onGuideOpen?: () => void;
+  onSettingsOpen?: () => void;
+  showSettings?: boolean;
 }
 
 // --- Constants ---
