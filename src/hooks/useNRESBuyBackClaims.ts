@@ -373,11 +373,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .update({ status: 'submitted', submitted_at: new Date().toISOString(), submitted_by_email: user.email || null })
         .eq('id', id);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
@@ -421,11 +417,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .update({ claimed_amount: amount })
         .eq('id', id);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
@@ -450,11 +442,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .update({ staff_details: updatedDetails, claimed_amount: totalClaimed })
         .eq('id', claimId);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === claimId ? (data as BuyBackClaim) : c));
@@ -485,11 +473,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .update({ staff_details: updatedDetails, calculated_amount: totalCalc, claimed_amount: totalClaimed })
         .eq('id', claimId);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === claimId ? (data as BuyBackClaim) : c));
@@ -513,11 +497,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .update({ staff_details: updatedDetails })
         .eq('id', claimId);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === claimId ? (data as BuyBackClaim) : c));
@@ -595,11 +575,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .update({ staff_details: updatedDetails, calculated_amount: newCalculated, claimed_amount: newClaimed })
         .eq('id', claimId);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { error } = await query;
       if (error) throw error;
     } catch (error) {
@@ -615,11 +591,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .update({ declaration_confirmed: confirmed })
         .eq('id', id);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { data, error } = await query.select().single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === id ? (data as BuyBackClaim) : c));
@@ -635,11 +607,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .from('nres_buyback_claims')
         .delete()
         .eq('id', id);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
+      // RLS enforces practice-level permissions
       const { error } = await query;
       if (error) throw error;
       setClaims(prev => prev.filter(c => c.id !== id));
