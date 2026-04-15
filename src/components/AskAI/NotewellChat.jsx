@@ -114,9 +114,135 @@ function generateDocxBlob(a){
   return new Blob([html],{type:"application/msword"});
 }
 function generateXlsxBlob(a){
-  const wb=XLSX.utils.book_new();
-  for(const sheet of(a.sheets||[])){const ws=XLSX.utils.aoa_to_sheet([sheet.headers||[],...(sheet.rows||[])]);if(sheet.columnWidths)ws["!cols"]=sheet.columnWidths.map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,sheet.name||"Sheet1");}
-  return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const wb = XLSX.utils.book_new();
+  const NHS_GREEN  = "217346";
+  const NHS_LGREEN = "E8F5EC";
+  const NHS_TOTAL  = "C6EFCE";
+  const WHITE      = "FFFFFF";
+  const BORDER     = { style:"thin", color:{ rgb:"C8D8C8" } };
+  const cellBorder = { top:BORDER, bottom:BORDER, left:BORDER, right:BORDER };
+  for(const sheet of (a.sheets||[])){
+    const headers = sheet.headers || [];
+    const dataRows = sheet.rows || [];
+    const numRows = dataRows.length;
+    const numCols = headers.length;
+    // Build totals row if requested or if sheet has totalsRow flag
+    let totalsRow = null;
+    if(sheet.totalsRow && numRows > 0){
+      totalsRow = headers.map((h,ci) => {
+        // Sum numeric-looking columns
+        const vals = dataRows.map(r => r[ci]);
+        const allNum = vals.every(v => v === null || v === undefined || typeof v === "number");
+        if(allNum && vals.some(v => typeof v === "number")){
+          const col = XLSX.utils.encode_col(ci);
+          return { f: `SUM(${col}2:${col}${numRows+1})` };
+        }
+        return ci === 0 ? "TOTALS" : "";
+      });
+    }
+    // Build the AOA for aoa_to_sheet (headers + data rows only)
+    const aoa = [headers, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // Style header row
+    for(let ci = 0; ci < numCols; ci++){
+      const addr = XLSX.utils.encode_cell({ r:0, c:ci });
+      if(!ws[addr]) ws[addr] = { v: headers[ci], t:"s" };
+      ws[addr].s = {
+        font:  { bold:true, color:{ rgb:WHITE }, name:"Calibri", sz:10 },
+        fill:  { fgColor:{ rgb:NHS_GREEN }, patternType:"solid" },
+        alignment: { horizontal:"left", vertical:"center", wrapText:true },
+        border: cellBorder,
+      };
+    }
+    // Style data rows + apply number formats
+    for(let ri = 0; ri < numRows; ri++){
+      for(let ci = 0; ci < numCols; ci++){
+        const addr = XLSX.utils.encode_cell({ r:ri+1, c:ci });
+        if(!ws[addr]) continue;
+        const raw = dataRows[ri][ci];
+        const isEven = ri % 2 === 0;
+        const cellStyle = {
+          font: { name:"Calibri", sz:10 },
+          fill: { fgColor:{ rgb: isEven ? WHITE : "F0F8F0" }, patternType:"solid" },
+          alignment: { vertical:"center", wrapText:false },
+          border: cellBorder,
+        };
+        const hdr = (headers[ci]||"").toLowerCase();
+        const isCurrency = /£|cost|amount|pay|salary|rate|fee|budget|spend|price/.test(hdr);
+        const isPct      = /%|percent|proportion/.test(hdr);
+        const isDate     = /date/.test(hdr);
+        if(isCurrency && typeof raw === "number"){
+          cellStyle.numFmt = '"£"#,##0.00';
+          ws[addr].t = "n";
+        } else if(isPct && typeof raw === "number"){
+          cellStyle.numFmt = '0.00"%"';
+          ws[addr].t = "n";
+        } else if(isDate && typeof raw === "string" && /^\d{2}\/\d{2}\/\d{4}$/.test(raw)){
+          cellStyle.alignment.horizontal = "center";
+        } else if(typeof raw === "number"){
+          cellStyle.numFmt = "#,##0.00";
+          ws[addr].t = "n";
+        }
+        ws[addr].s = cellStyle;
+      }
+    }
+    // Inject formula cells from the formulas array
+    if(sheet.formulas && Array.isArray(sheet.formulas)){
+      for(const f of sheet.formulas){
+        if(!f.cell || !f.formula) continue;
+        ws[f.cell] = {
+          t: "n",
+          f: f.formula.replace(/^=/, ""),
+          s: {
+            font: { name:"Calibri", sz:10, bold: f.bold||false },
+            fill: { fgColor:{ rgb: f.highlight ? "FFF2CC" : WHITE }, patternType:"solid" },
+            numFmt: f.numFmt || (f.formula.toLowerCase().includes("sum") ? '"£"#,##0.00' : "General"),
+            border: cellBorder,
+          }
+        };
+      }
+    }
+    // Append totals row at the bottom
+    if(totalsRow){
+      const totalsRowIndex = numRows + 1;
+      totalsRow.forEach((val, ci) => {
+        const addr = XLSX.utils.encode_cell({ r: totalsRowIndex, c: ci });
+        const isFormulaCell = val && typeof val === "object" && val.f;
+        ws[addr] = isFormulaCell
+          ? { t:"n", f: val.f, s:{
+              font:{ bold:true, name:"Calibri", sz:10 },
+              fill:{ fgColor:{ rgb:NHS_TOTAL }, patternType:"solid" },
+              numFmt:'"£"#,##0.00',
+              border:cellBorder,
+            }}
+          : { t:"s", v: val||"", s:{
+              font:{ bold:true, name:"Calibri", sz:10 },
+              fill:{ fgColor:{ rgb:NHS_TOTAL }, patternType:"solid" },
+              border:cellBorder,
+            }};
+      });
+      const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+      range.e.r = totalsRowIndex;
+      ws["!ref"] = XLSX.utils.encode_range(range);
+    }
+    // Column widths
+    if(sheet.columnWidths){
+      ws["!cols"] = sheet.columnWidths.map(w => ({ wch: w }));
+    }
+    // Freeze top row
+    ws["!freeze"] = { xSplit:0, ySplit:1, topLeftCell:"A2", activePane:"bottomLeft", state:"frozen" };
+    // Autofilter on header row
+    const lastCol = XLSX.utils.encode_col(numCols - 1);
+    const lastDataRow = numRows + 1;
+    ws["!autofilter"] = { ref: `A1:${lastCol}${lastDataRow}` };
+    // Row height for header
+    ws["!rows"] = [{ hpt: 20 }, ...Array(numRows).fill({ hpt: 16 })];
+    XLSX.utils.book_append_sheet(wb, ws, sheet.name || "Sheet1");
+  }
+  return new Blob(
+    [XLSX.write(wb, { bookType:"xlsx", type:"array", cellStyles:true })],
+    { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+  );
 }
 async function generatePptxBlob(a){
   const pptx=new pptxgen();pptx.layout="LAYOUT_WIDE";
@@ -210,7 +336,16 @@ Give 1-2 sentence confirmation then append:
 
 DOCX: {"type":"docx","title":"...","filename":"kebab","meta":{"author":"${authorName}","jobTitle":"${resolvedJobTitle||"NHS Staff"}","organisation":"${user.practice.name}","address":"${user.practice.address||""}","phone":"${user.practice.phone||""}","email":"${user.practice.email||""}","website":"${user.practice.website||""}","logoUrl":"${user.practice.logoUrl||""}","senderLabel":"${authorName}","date":"${new Date().toLocaleDateString("en-GB")}"},"sections":[{"type":"h1","text":"..."},{"type":"h2","text":"..."},{"type":"p","text":"..."},{"type":"bullets","items":["..."]},{"type":"numbered","items":["..."]},{"type":"callout","text":"..."},{"type":"table","headers":["A","B"],"rows":[["val","val"]]},{"type":"pagebreak"}]}
 Always use meta.jobTitle for the author role in sign-offs. Never write placeholder text like [Your Job Title], [Job Title], [Role], or [Title] — the real values are always provided in meta.
-XLSX: {"type":"xlsx","title":"...","filename":"kebab","sheets":[{"name":"Sheet1","headers":["Col A","Col B"],"rows":[["data","data"]],"columnWidths":[25,20]}]}
+XLSX: {"type":"xlsx","title":"...","filename":"kebab","sheets":[{"name":"Sheet1","headers":["Col A","Col B","Cost (£)"],"rows":[["data","data",1500],["data","data",null]],"columnWidths":[25,20,14],"formulas":[{"cell":"C3","formula":"=SUM(C2:C2)","numFmt":"\\"£\\"#,##0.00"}],"totalsRow":true}]}
+XLSX RULES:
+- For calculated cells, put null in rows and add a formula entry instead
+- Use formulas for: SUM totals, running totals, COUNTIF counts, IF status checks, VLOOKUP lookups, percentage calculations, date differences with DATEDIF, weighted averages
+- For currency columns name headers with £ or "cost/amount/pay/salary/rate/fee/budget" — they auto-format as £
+- For percentage columns name headers with "%" or "percent" — they auto-format as %
+- Set totalsRow:true on any sheet with numeric columns — it adds a SUM row automatically
+- Always provide columnWidths — aim for 12-25 characters depending on content
+- Use multiple sheets when data naturally separates (e.g. Summary + Detail + Lookup tabs)
+- For VLOOKUP: source data goes on a lookup sheet, formulas reference it cross-sheet e.g. =VLOOKUP(A2,Lookup!A:B,2,FALSE)
 PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."]},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
 IMAGE: {"type":"image","title":"...","filename":"kebab","alt":"description","svg":"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'>...</svg>"}
 SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Escape quotes as \\".
