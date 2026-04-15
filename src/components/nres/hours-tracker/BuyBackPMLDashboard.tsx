@@ -478,6 +478,15 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             <InfoBlock label="Verified by" value={claim.verified_by || '—'} sub={dateStr(claim.verified_at)} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
+            {(claim as any).approved_by_email && (
+              <InfoBlock label="Approved by" value={(claim as any).approved_by_email.split('@')[0].replace(/\./g,' ').replace(/\w/g, (c: string) => c.toUpperCase())} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />
+            )}
+            {(claim as any).expected_payment_date && !claim.paid_at && (
+              <InfoBlock label="Scheduled payment" value={new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB')} highlight="#d97706" />
+            )}
+            {(claim as any).bacs_reference && (
+              <InfoBlock label="BACS ref" value={(claim as any).bacs_reference} />
+            )}
             {claim.paid_at && <InfoBlock label="Paid" value={new Date(claim.paid_at).toLocaleDateString('en-GB')} highlight="#166534" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Part A" met={!!hasPartA} />
