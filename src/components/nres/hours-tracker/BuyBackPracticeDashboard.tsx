@@ -1245,8 +1245,13 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           }}>
             {claim.submitted_at && <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
+            {(claim as any).approved_by_email && <InfoBlock label="Approved by" value={(claim as any).approved_by_email.split('@')[0].replace(/\./g,' ').replace(/\w/g, (c: string) => c.toUpperCase())} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />}
+            {(claim as any).expected_payment_date && !claim.paid_at && (
+              <InfoBlock label="Scheduled payment" value={shortDate((claim as any).expected_payment_date)} highlight="#d97706" />
+            )}
+            {(claim as any).bacs_reference && <InfoBlock label="BACS ref" value={(claim as any).bacs_reference} />}
+            {claim.paid_at && <InfoBlock label="Paid" value={shortDate((claim as any).actual_payment_date || claim.paid_at)} highlight="#166534" sub={claim.paid_by ? claim.paid_by.split('@')[0] : undefined} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
-            {claim.paid_at && <InfoBlock label="Paid" value={shortDate(claim.paid_at)} highlight="#166534" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Evidence" met={evidenceComplete} />
             </div>
