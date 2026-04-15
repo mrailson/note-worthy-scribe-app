@@ -1372,49 +1372,30 @@ function StaffActions({
 
 
 function StaffRosterSection({
-  title,
-  category,
-  staffList,
-  claims,
-  claimMonths,
-  onClickClaim,
-  activeClaimKey,
-  onAddStaff,
-  onRemoveStaff,
-  onUpdateStaff,
-  staffRoles,
-  showAddButton,
-  rateParams,
-  onCreateClaim,
-  onCreateLocumClaim,
-  onDeleteClaim,
-  onSubmit,
-  onResubmit,
-  confirmDeclaration,
-  practiceKey,
-  saving,
+  title, category, staffList, claims, claimMonths, onClickClaim, activeClaimKey,
+  onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, showAddButton, rateParams,
+  onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit,
+  confirmDeclaration, practiceKey, saving,
+  meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries, canAddOnBehalf, managementRoles,
 }: {
-  title: string;
-  category: string;
-  staffList: BuyBackStaffMember[];
-  claims: BuyBackClaim[];
+  title: string; category: string; staffList: BuyBackStaffMember[]; claims: BuyBackClaim[];
   claimMonths: { label: string; monthDate: string; month: number; year: number }[];
-  onClickClaim: (key: string) => void;
-  activeClaimKey: string | null;
+  onClickClaim: (key: string) => void; activeClaimKey: string | null;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onRemoveStaff?: (id: string) => Promise<void>;
   onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
-  staffRoles?: string[];
-  showAddButton: boolean;
-  rateParams?: RateParams;
+  staffRoles?: string[]; showAddButton: boolean; rateParams?: RateParams;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
-  onSubmit?: (id: string) => void;
-  onResubmit?: (id: string, notes?: string) => void;
+  onSubmit?: (id: string) => void; onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
-  practiceKey?: string;
-  saving?: boolean;
+  practiceKey?: string; saving?: boolean;
+  meetingLogEntries?: MeetingLogEntry[];
+  onAddMeetingEntry?: (practiceKey: string, roleConfig: ManagementRoleConfig, meetingName: string, meetingDate: string, hours: number) => Promise<void>;
+  onDeleteMeetingEntry?: (id: string) => Promise<void>;
+  onSubmitMeetingEntries?: (practiceKey: string, claimMonth: string) => Promise<void>;
+  canAddOnBehalf?: boolean; managementRoles?: ManagementRoleConfig[];
 }) {
   const accent = CATEGORY_COLORS[category] || '#6b7280';
   const now = new Date();
