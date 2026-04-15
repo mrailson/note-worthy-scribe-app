@@ -1399,6 +1399,7 @@ export function BuyBackPracticeDashboard({
   const rosterSectionProps = {
     claims: practiceClaims,
     claimMonths,
+    practiceKey,
     onClickClaim: handleClickClaim,
     activeClaimKey,
     onAddStaff,
