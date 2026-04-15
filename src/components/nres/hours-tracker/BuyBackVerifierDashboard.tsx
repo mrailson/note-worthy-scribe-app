@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -13,6 +14,9 @@ interface VerifierDashboardProps {
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
   showSettings?: boolean;
+  meetingEntries?: MeetingLogEntry[];
+  onVerifyMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
+  onReturnMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
