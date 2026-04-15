@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ensureMeetingTitle } from "@/utils/manualTriggerNotes";
 import { MobileMeetingList } from "@/components/mobile-meetings/MobileMeetingList";
 import { MobileMeetingDetail } from "@/components/mobile-meetings/MobileMeetingDetail";
 import { MobileExportSheet } from "@/components/mobile-meetings/MobileExportSheet";

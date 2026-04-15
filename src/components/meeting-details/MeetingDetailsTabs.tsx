@@ -8,6 +8,7 @@ import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { MeetingQAPanel } from "./MeetingQAPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ensureMeetingTitle } from "@/utils/manualTriggerNotes";
 interface MeetingDetailsTabsProps {
   meetingId: string;
   meetingTitle: string;
