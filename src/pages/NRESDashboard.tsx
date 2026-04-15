@@ -80,7 +80,7 @@ const NRESDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="hours-tracker" className="gap-2">
               <Clock className="w-4 h-4" />
-              Claims &amp; Oversight
+              SDA Claims
             </TabsTrigger>
             <TabsTrigger value="document-vault" className="gap-2">
               <FolderLock className="w-4 h-4" />
