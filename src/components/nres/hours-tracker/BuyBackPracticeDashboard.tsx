@@ -773,7 +773,36 @@ function StaffRosterSection({
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
 
-  return (
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addRole, setAddRole] = useState('');
+  const [addAllocType, setAddAllocType] = useState<'sessions'|'wte'|'hours'|'daily'>('sessions');
+  const [addAllocValue, setAddAllocValue] = useState('');
+  const [addHourlyRate, setAddHourlyRate] = useState('');
+  const [addSaving, setAddSaving] = useState(false);
+
+  const handleAddStaff = async () => {
+    if (!addName.trim() || !addRole || !addAllocValue) return;
+    setAddSaving(true);
+    try {
+      await onAddStaff?.({
+        staff_name: addName.trim(),
+        staff_role: addRole,
+        allocation_type: addAllocType,
+        allocation_value: Number(addAllocValue),
+        hourly_rate: Number(addHourlyRate) || 0,
+        is_active: true,
+        staff_category: category as any,
+        practice_key: practiceKey || null,
+        start_date: null,
+      });
+      setAddName(''); setAddRole(''); setAddAllocValue(''); setAddHourlyRate('');
+      setShowAddForm(false);
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
     <div style={{ marginBottom: 18 }}>
       {/* Section header */}
       <div style={{
