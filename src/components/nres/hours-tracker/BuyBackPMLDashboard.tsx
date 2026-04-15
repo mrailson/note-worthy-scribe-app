@@ -666,70 +666,233 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             </div>
           )}
 
-          {/* Finance action bar — Process Payment on approved claims */}
-          {view === 'finance' && displayStatus === 'approved' && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>Payment Processing</div>
+          {/* Finance payment processing panel */}
+          {view === 'finance' && (displayStatus === 'approved' || isPaidFull) && (() => {
+            const steps = [
+              { key: 'received', label: 'Received', color: '#0369a1' },
+              { key: 'scheduled', label: 'Scheduled', color: '#d97706' },
+              { key: 'payment_sent', label: 'Paid', color: '#166534' },
+            ];
+            const currentStep = isPaidFull ? 2 : isScheduled ? 1 : isReceived ? 0 : -1;
 
-              {/* Mode toggle */}
-              <div style={{ display: 'inline-flex', background: '#f3f4f6', borderRadius: 8, padding: 3, marginBottom: 12, gap: 2 }}>
-                {(['schedule', 'pay'] as const).map(m => (
-                  <button key={m} onClick={() => setPayMode(m)} style={{
-                    padding: '6px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: payMode === m ? 600 : 400,
-                    background: payMode === m ? '#fff' : 'transparent',
-                    color: payMode === m ? '#111827' : '#6b7280',
-                    cursor: 'pointer', boxShadow: payMode === m ? '0 1px 3px rgba(0,0,0,.08)' : 'none',
-                    transition: 'all .15s',
-                  }}>
-                    {m === 'schedule' ? '📅 Schedule Payment' : '✓ Mark as Paid'}
-                  </button>
-                ))}
+            return (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
+                {/* Step indicator */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 18, padding: '0 20px' }}>
+                  {steps.map((s, i) => {
+                    const done = currentStep >= i;
+                    const active = currentStep === i;
+                    return (
+                      <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <div style={{
+                            width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 12, fontWeight: 700,
+                            background: done ? s.color : '#f3f4f6',
+                            color: done ? '#fff' : '#9ca3af',
+                            border: active ? `2px solid ${s.color}` : 'none',
+                            boxShadow: active ? `0 0 0 3px ${s.color}22` : 'none',
+                            transition: 'all 0.3s',
+                          }}>
+                            {done ? (currentStep > i ? '✓' : String(i + 1)) : String(i + 1)}
+                          </div>
+                          <span style={{ fontSize: 10, fontWeight: done ? 600 : 400, color: done ? s.color : '#9ca3af', whiteSpace: 'nowrap' }}>{s.label}</span>
+                        </div>
+                        {i < steps.length - 1 && (
+                          <div style={{ width: 40, height: 3, borderRadius: 2, background: currentStep > i ? steps[i].color : '#e5e7eb', maxWidth: 60, marginBottom: 14, transition: 'background 0.3s' }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* STATE 1: Not yet received */}
+                {!isReceived && !isPaidFull && (
+                  <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>
+                      Claim approved by PML Director. Acknowledge receipt to begin payment processing.
+                    </div>
+                    <button
+                      onClick={() => onMarkPaid && onMarkPaid(claim.id, 'received')}
+                      disabled={saving}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 22px',
+                        borderRadius: 9, border: 'none', background: '#0369a1', color: '#fff',
+                        fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+                        opacity: saving ? 0.6 : 1, letterSpacing: '-0.01em',
+                      }}
+                    >
+                      ✓ Received &amp; Processing
+                    </button>
+                  </div>
+                )}
+
+                {/* STATE 2: Received, schedule payment */}
+                {isReceived && !isScheduled && !isPaidFull && (
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>Schedule payment run</div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Payment date</div>
+                        <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
+                          style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', cursor: 'pointer' }} />
+                      </div>
+                      <div style={{ flex: '1 1 120px', minWidth: 120 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>BACS / Cheque ref</div>
+                        <input value={bacsRef} onChange={e => setBacsRef(e.target.value)} placeholder="e.g. NRES-APR26-003"
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                      </div>
+                      <div style={{ flex: '1 1 120px', minWidth: 120 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>PO reference</div>
+                        <input value={poRef} onChange={e => setPoRef(e.target.value)} placeholder="Optional"
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Method</div>
+                        <select value={payMethod} onChange={e => setPayMethod(e.target.value)}
+                          style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}>
+                          <option>BACS</option>
+                          <option>CHAPS</option>
+                          <option>Cheque</option>
+                          <option>Other</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => {
+                          if (!schedDate || !onSchedulePayment) return;
+                          onSchedulePayment(claim.id, schedDate, bacsRef || undefined, poRef || undefined, payMethod || undefined, financeNote || undefined);
+                        }}
+                        disabled={saving || !schedDate}
+                        style={{
+                          padding: '9px 20px', borderRadius: 8, border: 'none',
+                          background: (!schedDate || saving) ? '#94a3b8' : '#d97706',
+                          color: '#fff', fontSize: 13, fontWeight: 600,
+                          cursor: (!schedDate || saving) ? 'not-allowed' : 'pointer',
+                          opacity: (!schedDate || saving) ? 0.6 : 1,
+                        }}
+                      >
+                        📅 Schedule Payment
+                      </button>
+                      <input value={financeNote} onChange={e => setFinanceNote(e.target.value)} placeholder="Optional note…"
+                        style={{ flex: 1, minWidth: 140, padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 12, outline: 'none' }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* STATE 3: Scheduled, confirm payment sent */}
+                {isScheduled && !isPaidFull && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Payment scheduled</span>
+                      {(claim as any).expected_payment_date && (
+                        <span style={{ fontSize: 12, color: '#d97706', fontWeight: 500 }}>
+                          {new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                      )}
+                      {(claim as any).bacs_reference && <span style={{ fontSize: 11, color: '#6b7280' }}>BACS: {(claim as any).bacs_reference}</span>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Actual payment date</div>
+                        <input type="date" value={actualDate} onChange={e => setActualDate(e.target.value)}
+                          style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid #86efac', fontSize: 13, outline: 'none', cursor: 'pointer' }} />
+                      </div>
+                      <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Confirm BACS ref</div>
+                        <input value={bacsRef} onChange={e => setBacsRef(e.target.value)} placeholder="BACS reference"
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #86efac', fontSize: 13, outline: 'none' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => {
+                          if (onMarkPaid) onMarkPaid(claim.id, `Paid ${actualDate}${bacsRef ? ' · BACS: ' + bacsRef : ''}${financeNote ? ' · ' + financeNote : ''}`);
+                        }}
+                        disabled={saving}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                          borderRadius: 8, border: 'none', background: saving ? '#94a3b8' : '#166534',
+                          color: '#fff', fontSize: 13, fontWeight: 700,
+                          cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+                        }}
+                      >
+                        ✓ Confirm Payment Sent
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (onSchedulePayment) onSchedulePayment(claim.id, '', undefined, undefined, undefined, 'Rescheduled');
+                        }}
+                        style={{ padding: '8px 14px', borderRadius: 7, border: '1px solid #d1d5db', background: '#fff', color: '#6b7280', fontSize: 12, cursor: 'pointer' }}
+                      >
+                        Reschedule
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STATE 4: Paid — audit summary */}
+                {isPaidFull && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>✓ Payment Complete</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12, color: '#374151' }}>
+                      {(claim as any).actual_payment_date && (
+                        <div>
+                          <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>Paid on</div>
+                          <div style={{ fontWeight: 600 }}>{new Date((claim as any).actual_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                        </div>
+                      )}
+                      {(claim as any).bacs_reference && (
+                        <div>
+                          <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>BACS ref</div>
+                          <div style={{ fontWeight: 600 }}>{(claim as any).bacs_reference}</div>
+                        </div>
+                      )}
+                      {(claim as any).pml_po_reference && (
+                        <div>
+                          <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>PO ref</div>
+                          <div style={{ fontWeight: 600 }}>{(claim as any).pml_po_reference}</div>
+                        </div>
+                      )}
+                      {(claim as any).payment_method && (
+                        <div>
+                          <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>Method</div>
+                          <div style={{ fontWeight: 600 }}>{(claim as any).payment_method}</div>
+                        </div>
+                      )}
+                      {claim.paid_by && (
+                        <div>
+                          <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500 }}>Processed by</div>
+                          <div style={{ fontWeight: 600 }}>{claim.paid_by.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}</div>
+                        </div>
+                      )}
+                    </div>
+                    {Array.isArray((claim as any).payment_audit_trail) && (claim as any).payment_audit_trail.length > 0 && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', marginBottom: 4 }}>Payment history</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {((claim as any).payment_audit_trail as any[]).map((t: any, i: number) => (
+                            <div key={i} style={{ fontSize: 11, color: '#374151', display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#9ca3af', flexShrink: 0 }} />
+                              <span style={{ color: '#9ca3af' }}>
+                                {t.timestamp ? new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                              </span>
+                              <span>{(t.status || '').replace(/_/g, ' ')}</span>
+                              {t.user_email && <span style={{ color: '#9ca3af' }}>· {t.user_email.split('@')[0].replace(/\./g, ' ')}</span>}
+                              {t.notes && <span style={{ color: '#6b7280', fontStyle: 'italic' }}>· {t.notes}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-
-              {payMode === 'schedule' && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
-                  <div style={{ minWidth: 140 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Scheduled payment date</div>
-                    <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
-                      style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', cursor: 'pointer' }} />
-                  </div>
-                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>BACS reference (optional)</div>
-                    <input value={bacsRef} onChange={e => setBacsRef(e.target.value)}
-                      placeholder="e.g. NRES-APR26-001"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
-                  </div>
-                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Note (optional)</div>
-                    <input value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
-                      placeholder="e.g. April BACS run"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
-                  </div>
-                  <ActionBtn label="Schedule Payment" color="#d97706" bg="#fffbeb" bold
-                    onClick={() => handleAction('mark_paid')} disabled={saving || !payDate} />
-                </div>
-              )}
-
-              {payMode === 'pay' && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
-                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>BACS reference</div>
-                    <input value={bacsRef} onChange={e => setBacsRef(e.target.value)}
-                      placeholder="e.g. NRES-APR26-001"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
-                  </div>
-                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Payment note</div>
-                    <input value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
-                      placeholder="Invoice ref / payment confirmation"
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
-                  </div>
-                  <ActionBtn label="Mark as Paid" color="#166534" bg="#f0fdf4" bold
-                    onClick={() => handleAction('mark_paid')} disabled={saving} />
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           {/* Finance view-only notice on claims awaiting director review */}
           {view === 'finance' && (displayStatus === 'awaiting_review' || displayStatus === 'queried') && (
