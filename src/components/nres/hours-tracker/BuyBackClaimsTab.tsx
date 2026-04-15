@@ -750,10 +750,19 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   })();
 
   // Determine if the Practice Dashboard should be shown
+  // True for: (a) admin in test mode previewing as practice, OR
+  // (b) non-admin user who has practice-level access assignments and no elevated system role
   const showPracticeDashboard = (() => {
     if (testActive && testMode.role === 'practice' && testMode.selectedPractice) return true;
+    // Real practice users: not admin, not PML, not verifier/management lead — but have practice assignments
+    if (!isAdmin && !isPMLDirector && !isPMLFinance && !isManagementLead && !isSuperAdmin && hasAnyAssignment) return true;
     return false;
   })();
+
+  // The practice key to show in the practice dashboard
+  const practiceDashboardKey = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? testMode.selectedPractice
+    : myPractices[0] || '';
 
   // Determine if the Verifier Dashboard should be shown
   const showVerifierDashboard = (() => {
@@ -768,8 +777,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
 
   if (showPracticeDashboard) {
     const practiceStaff = activeStaff.filter(
-      s => s.practice_key === testMode.selectedPractice
+      s => s.practice_key === practiceDashboardKey
     );
+    const canSubmitForPractice = submitPracticeKeys.includes(practiceDashboardKey);
 
     return (
       <div className="space-y-6">
@@ -783,29 +793,28 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
         )}
         <BuyBackPracticeDashboard
           claims={claims}
-          practiceKey={testMode.selectedPractice!}
+          practiceKey={practiceDashboardKey}
           staff={practiceStaff}
-          onSubmit={submitClaim}
-          onResubmit={(id) => submitClaim(id)}
-          onCreateClaim={(monthDate, staffMember, claimedAmount) => {
+          onSubmit={canSubmitForPractice ? submitClaim : undefined}
+          onResubmit={canSubmitForPractice ? (id) => submitClaim(id) : undefined}
+          onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount) => {
             const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
-            // Use the practice-entered claimed amount if provided and valid, capped at the max
             const actualClaimed = (claimedAmount && claimedAmount > 0 && claimedAmount <= maxAmt)
               ? claimedAmount
               : maxAmt;
-            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, testMode.selectedPractice, rateParams);
-          }}
-          onAddStaff={addStaff}
-          onRemoveStaff={isAdmin ? undefined : removeStaff}
-          onUpdateStaff={updateStaff}
+            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams);
+          } : undefined}
+          onAddStaff={canSubmitForPractice ? addStaff : undefined}
+          onRemoveStaff={isAdmin ? undefined : (canSubmitForPractice ? removeStaff : undefined)}
+          onUpdateStaff={canSubmitForPractice ? updateStaff : undefined}
           staffRoles={staffRoles}
           rateParams={rateParams}
           managementRoles={rateSettings.management_roles_config}
           savingClaim={savingClaim}
           savingStaff={savingStaff}
-          confirmDeclaration={confirmDeclaration}
-          onDeleteClaim={async (id: string) => { await deleteClaim(id); }}
-          onCreateLocumClaim={async (monthDate: string, staffMember: any, actualSessions: number, claimedAmount: number) => {
+          confirmDeclaration={canSubmitForPractice ? confirmDeclaration : undefined}
+          onDeleteClaim={canSubmitForPractice ? async (id: string) => { await deleteClaim(id); } : undefined}
+          onCreateLocumClaim={canSubmitForPractice ? async (monthDate: string, staffMember: any, actualSessions: number, claimedAmount: number) => {
             const modifiedStaff = { ...staffMember, allocation_value: actualSessions };
             const maxAmount = actualSessions * (staffMember.hourly_rate || 0);
             return createClaim(
@@ -813,20 +822,20 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
               [modifiedStaff],
               claimedAmount,
               maxAmount,
-              testMode.selectedPractice,
+              practiceDashboardKey,
               rateParams
             );
-          }}
+          } : undefined}
           onGuideOpen={onGuideOpen}
           onSettingsOpen={onSettingsOpen}
           showSettings={showSettings}
           meetingLogEntries={meetingLogEntries}
           canAddOnBehalf={isAdmin}
-          onAddMeetingEntry={async (practiceKey, roleConfig, meetingName, meetingDate, hours) => {
+          onAddMeetingEntry={canSubmitForPractice ? async (practiceKey, roleConfig, meetingName, meetingDate, hours) => {
             await addMeetingEntry({ practiceKey, roleConfig, meetingName, meetingDate, hours, claimMonth: meetingDate.slice(0, 7) + '-01', addedByAdmin: isAdmin });
-          }}
-          onDeleteMeetingEntry={async (id) => { await deleteMeetingEntry(id); }}
-          onSubmitMeetingEntries={async (practiceKey, claimMonth) => { await submitMonthEntries(practiceKey, claimMonth, user?.email); }}
+          } : undefined}
+          onDeleteMeetingEntry={canSubmitForPractice ? async (id) => { await deleteMeetingEntry(id); } : undefined}
+          onSubmitMeetingEntries={canSubmitForPractice ? async (practiceKey, claimMonth) => { await submitMonthEntries(practiceKey, claimMonth, user?.email); } : undefined}
         />
       </div>
     );
