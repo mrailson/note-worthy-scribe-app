@@ -868,6 +868,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
         )}
         <BuyBackPMLDashboard
           claims={accessFilteredClaims}
+          meetingEntries={meetingLogEntries}
           userId={user?.id}
           userEmail={user?.email}
           isAdmin={isAdmin}
@@ -889,6 +890,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             payment_notes: notes || undefined,
             payment_status: 'scheduled',
           })}
+          onApproveMeetingEntries={approveMeetingEntries}
+          onQueryMeetingEntries={queryMeetingEntries}
+          onRejectMeetingEntries={rejectMeetingEntries}
           savingClaim={savingClaim}
           defaultView={pmlDashboardView as 'director' | 'finance'}
           onGuideOpen={onGuideOpen}
