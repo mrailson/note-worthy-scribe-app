@@ -589,7 +589,11 @@ function StaffActions({
   const [editAllocValue, setEditAllocValue] = useState(String(member.allocation_value ?? ''));
   const [saving, setSaving] = useState(false);
 
-  // Management roles now support edit/remove like other categories
+  // Config-driven management roles (id is a key like "nres_cd", not a UUID) — don't allow edit/remove
+  const isConfigDriven = category === 'management' && member.user_id === '' && member.created_at === '';
+  if (isConfigDriven) {
+    return <span style={{ fontSize: 10, color: '#d1d5db' }}>—</span>;
+  }
 
   if (confirmRemove) {
     return (
