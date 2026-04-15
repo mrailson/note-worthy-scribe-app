@@ -764,6 +764,7 @@ function StaffRosterSection({
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
+  practiceKey?: string;
   saving?: boolean;
 }) {
   const accent = CATEGORY_COLORS[category] || '#6b7280';
