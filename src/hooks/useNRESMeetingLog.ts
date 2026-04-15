@@ -132,10 +132,10 @@ export function useNRESMeetingLog() {
     const drafts = entries.filter(e =>
       e.billing_org_code === odsCode &&
       (e.claim_month?.slice(0, 7) || '') === cm &&
-      e.status === 'draft'
+      (e.status === 'draft' || e.status === 'queried')
     );
     if (drafts.length === 0) {
-      toast.error('No draft meeting entries to submit for this month');
+      toast.error('No draft or queried meeting entries to submit for this month');
       return false;
     }
     try {
