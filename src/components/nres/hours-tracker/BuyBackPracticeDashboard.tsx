@@ -3,6 +3,9 @@ import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply }
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
+import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
+import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
+import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
@@ -331,9 +334,13 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 
   const staffDets = (claim.staff_details || []) as any[];
 
-  // Check Part A/B evidence
-  const hasPartA = staffDets.length > 0;
-  const hasPartB = !!claim.review_notes || !!claim.verified_notes; // proxy for part B
+  const { uploading, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, getFilesForStaff } = useNRESClaimEvidence(claim.id);
+  const { getConfigForCategory } = useNRESEvidenceConfig();
+  const { allComplete: evidenceComplete } = useStaffLineEvidenceComplete(
+    staffDets,
+    getUploadedTypesForStaff,
+    getConfigForCategory
+  );
 
   return (
     <div style={{
@@ -390,8 +397,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             {claim.paid_at && <InfoBlock label="Paid" value={shortDate(claim.paid_at)} highlight="#166534" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              <EvidencePill label="Part A" met={hasPartA} />
-              <EvidencePill label="Part B" met={hasPartB} />
+              <EvidencePill label="Evidence" met={evidenceComplete} />
             </div>
           </div>
 
@@ -415,14 +421,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0c4a6e',
             }}>
               <strong>Part B Substantiation:</strong> {claim.verified_notes}
-            </div>
-          )}
-          {hasPartA && !hasPartB && isDraft && (
-            <div style={{
-              marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
-              background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
-            }}>
-              <strong>Part B Evidence Required:</strong> You need to provide Part B substantiation before this claim can be submitted.
             </div>
           )}
 
