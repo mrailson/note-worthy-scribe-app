@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText, Download } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { calculateStaffMonthlyAmount } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
+import { exportClaimsDetail } from '@/utils/buybackExcelExport';
+import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
@@ -2073,6 +2075,333 @@ function HistorySummary({ claims }: { claims: BuyBackClaim[] }) {
   );
 }
 
+type ClaimsView = 'cards' | 'invoices' | 'spreadsheet';
+
+function ClaimsViewSwitcher({
+  claims,
+  practiceKey,
+  practiceName,
+  onToggleCard,
+  expandedClaimId,
+  onSubmit,
+  onResubmit,
+  saving,
+}: {
+  claims: BuyBackClaim[];
+  practiceKey: string;
+  practiceName: string;
+  onToggleCard: (id: string) => void;
+  expandedClaimId: string | null;
+  onSubmit?: (id: string) => void;
+  onResubmit?: (id: string, notes?: string) => void;
+  saving?: boolean;
+}) {
+  const [view, setView] = useState<ClaimsView>('cards');
+  const [period, setPeriod] = useState('all');
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
+
+  const sorted = useMemo(() => {
+    const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
+    return [...periodClaims].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
+  }, [periodClaims]);
+
+  const invoicedClaims = useMemo(() => sorted.filter(c => c.invoice_number && (c.status === 'invoiced' || c.status === 'paid')), [sorted]);
+
+  const handleExcelExport = () => {
+    exportClaimsDetail(sorted, practiceKey);
+  };
+
+  const handleDownloadAll = async () => {
+    if (invoicedClaims.length === 0) return;
+    setDownloadingAll(true);
+    try {
+      for (let i = 0; i < invoicedClaims.length; i++) {
+        const claim = invoicedClaims[i];
+        if (!claim.invoice_number) continue;
+        const doc = generateInvoicePdf({ claim, invoiceNumber: claim.invoice_number, neighbourhoodName: 'NRES' });
+        doc.save(`${claim.invoice_number}.pdf`);
+        if (i < invoicedClaims.length - 1) await new Promise(r => setTimeout(r, 400));
+      }
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
+  const handleDownloadOne = (claim: BuyBackClaim) => {
+    if (!claim.invoice_number) return;
+    const doc = generateInvoicePdf({ claim, invoiceNumber: claim.invoice_number, neighbourhoodName: 'NRES' });
+    doc.save(`${claim.invoice_number}.pdf`);
+  };
+
+  const statusColor = (status: string) => {
+    const m: Record<string, string> = { draft: '#6b7280', submitted: '#2563eb', verified: '#7c3aed', approved: '#7c3aed', invoiced: '#d97706', paid: '#059669', queried: '#dc2626', rejected: '#dc2626' };
+    return m[status] || '#6b7280';
+  };
+
+  const catColor = (cat: string) => {
+    const m: Record<string, string> = { buyback: '#0d9488', new_sda: '#7c3aed', gp_locum: '#d97706', management: '#005eb8', meeting: '#0369a1' };
+    return m[cat] || '#6b7280';
+  };
+
+  const catLabel = (cat: string) => {
+    const m: Record<string, string> = { buyback: 'Buy-Back', new_sda: 'New SDA', gp_locum: 'GP Locum', management: 'NRES Management', meeting: 'Meeting' };
+    return m[cat] || cat;
+  };
+
+  const VIEW_TABS: { key: ClaimsView; label: string; icon: string }[] = [
+    { key: 'cards', label: 'Cards', icon: '🃏' },
+    { key: 'invoices', label: 'Invoices', icon: '📄' },
+    { key: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
+  ];
+
+  return (
+    <div style={{ marginTop: 20 }}>
+
+      {/* Section header with view switcher + period filter */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>All Claims</div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* Period filter */}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {PERIOD_OPTIONS.map(p => (
+              <button key={p.key} onClick={() => setPeriod(p.key)} style={{
+                padding: '4px 9px', borderRadius: 5, fontSize: 11, fontWeight: period === p.key ? 600 : 400,
+                border: `1px solid ${period === p.key ? '#005eb8' : '#e5e7eb'}`,
+                background: period === p.key ? '#eff6ff' : '#fff',
+                color: period === p.key ? '#005eb8' : '#6b7280', cursor: 'pointer',
+              }}>{p.label}</button>
+            ))}
+          </div>
+
+          {/* View tabs */}
+          <div style={{ display: 'flex', gap: 2, background: '#f3f4f6', borderRadius: 8, padding: 2 }}>
+            {VIEW_TABS.map(t => (
+              <button key={t.key} onClick={() => setView(t.key)} style={{
+                padding: '5px 12px', borderRadius: 6, border: 'none', fontSize: 11,
+                fontWeight: view === t.key ? 600 : 400,
+                background: view === t.key ? '#fff' : 'transparent',
+                color: view === t.key ? '#111827' : '#6b7280',
+                cursor: 'pointer', boxShadow: view === t.key ? '0 1px 3px rgba(0,0,0,.08)' : 'none',
+                transition: 'all .15s', display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+
+        </div>
+
+      </div>
+
+      {sorted.length === 0 && (
+        <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+          No claims in this period.
+        </div>
+      )}
+
+      {/* ── CARDS VIEW ────────────────────────────────────────── */}
+      {view === 'cards' && sorted.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sorted.map(c => (
+            <PracticeClaimCard
+              key={c.id}
+              claim={c}
+              expanded={expandedClaimId === c.id}
+              onToggle={() => onToggleCard(c.id)}
+              onSubmit={onSubmit}
+              onResubmit={onResubmit}
+              saving={saving}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── INVOICES VIEW ─────────────────────────────────────── */}
+      {view === 'invoices' && (
+        <div>
+          {/* Download all bar */}
+          {invoicedClaims.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f5f3ff', borderRadius: 8, marginBottom: 10, border: '1px solid #e9d5ff' }}>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>
+                {invoicedClaims.length} invoice{invoicedClaims.length !== 1 ? 's' : ''} available
+                {' · '}total {fmtGBP(invoicedClaims.reduce((s, c) => s + claimTotal(c), 0))}
+              </span>
+              <button onClick={handleDownloadAll} disabled={downloadingAll} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 14px', borderRadius: 6, border: '1px solid #c4b5fd', background: '#7c3aed', color: '#fff', fontSize: 11, fontWeight: 600, cursor: downloadingAll ? 'wait' : 'pointer', opacity: downloadingAll ? 0.7 : 1 }}>
+                <Download style={{ width: 13, height: 13 }} />
+                {downloadingAll ? 'Downloading…' : `Download All (${invoicedClaims.length})`}
+              </button>
+            </div>
+          )}
+
+          {/* Invoice rows */}
+          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+            {sorted.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>No invoices in this period.</div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                      {['Month', 'Staff Member', 'Category', 'Invoice No.', 'Amount', 'Status', 'Download'].map((h, i) => (
+                        <th key={h} style={{ padding: '8px 10px', textAlign: i >= 4 ? 'right' : 'left', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', whiteSpace: 'nowrap' as const }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map(c => {
+                      const staffDets = (c.staff_details as any[]) || [];
+                      const firstName = staffDets[0]?.staff_name || '—';
+                      const moreName = staffDets.length > 1 ? ` +${staffDets.length - 1}` : '';
+                      const primaryCat = staffDets[0]?.staff_category || '';
+                      const monthLabel = getClaimMonthLabel(c);
+                      const hasInvoice = !!c.invoice_number;
+                      return (
+                        <tr key={c.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' as const }}>{monthLabel}</td>
+                          <td style={{ padding: '8px 10px' }}>{firstName}{moreName}</td>
+                          <td style={{ padding: '8px 10px' }}>
+                            <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: catColor(primaryCat), background: `${catColor(primaryCat)}14` }}>
+                              {catLabel(primaryCat)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11 }}>
+                            {c.invoice_number || <span style={{ color: '#d1d5db', fontStyle: 'italic' }}>No invoice yet</span>}
+                          </td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>{fmtGBP(claimTotal(c))}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: statusColor(c.status), background: `${statusColor(c.status)}14` }}>
+                              {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            {hasInvoice ? (
+                              <button onClick={() => handleDownloadOne(c)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #e9d5ff', background: '#f5f3ff', color: '#7c3aed', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                                <Download style={{ width: 11, height: 11 }} /> PDF
+                              </button>
+                            ) : (
+                              <span style={{ color: '#d1d5db', fontSize: 11 }}>Pending</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
+                      <td colSpan={4} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280' }}>
+                        {sorted.length} claim{sorted.length !== 1 ? 's' : ''} · {invoicedClaims.length} invoiced
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>
+                        {fmtGBP(sorted.reduce((s, c) => s + claimTotal(c), 0))}
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── SPREADSHEET VIEW ──────────────────────────────────── */}
+      {view === 'spreadsheet' && (
+        <div>
+          {/* Export bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, marginBottom: 10, border: '1px solid #bbf7d0' }}>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>
+              {sorted.length} claim{sorted.length !== 1 ? 's' : ''} · {sorted.reduce((s, c) => s + ((c.staff_details as any[]) || []).length, 0)} staff lines
+            </span>
+            <button onClick={handleExcelExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 14px', borderRadius: 6, border: '1px solid #86efac', background: '#166534', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+              <FileText style={{ width: 13, height: 13 }} />
+              Export to Excel
+            </button>
+          </div>
+
+          {/* Flat table — one row per staff line */}
+          <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                    {['Month', 'Staff Name', 'Role', 'Category', 'Allocation', 'Max £', 'Claimed £', 'Invoice No.', 'Status', 'Paid Date'].map((h, i) => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: i >= 5 ? 'right' : 'left', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', whiteSpace: 'nowrap' as const }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.flatMap(c => {
+                    const staffDets = (c.staff_details as any[]) || [];
+                    const monthLabel = getClaimMonthLabel(c);
+                    return staffDets.map((s: any, idx: number) => {
+                      const allocDisplay = s.allocation_type === 'sessions' ? `${s.allocation_value} sess/mo`
+                        : s.allocation_type === 'wte' ? `${s.allocation_value} WTE`
+                        : s.allocation_type === 'hours' ? `${s.allocation_value} hrs/wk`
+                        : `${s.allocation_value}`;
+                      const maxAmt = s.calculated_amount ?? s.claimed_amount ?? 0;
+                      const claimedAmt = s.claimed_amount ?? maxAmt;
+                      const isBelow = claimedAmt < maxAmt && maxAmt > 0;
+                      return (
+                        <tr key={`${c.id}-${idx}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' as const }}>{monthLabel}</td>
+                          <td style={{ padding: '8px 10px', fontWeight: 500 }}>{s.staff_name || '—'}</td>
+                          <td style={{ padding: '8px 10px' }}>{s.staff_role || '—'}</td>
+                          <td style={{ padding: '8px 10px' }}>
+                            <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: catColor(s.staff_category), background: `${catColor(s.staff_category)}14` }}>
+                              {catLabel(s.staff_category)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 10px' }}>{allocDisplay}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'monospace', fontSize: 11 }}>{fmtGBP(maxAmt)}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
+                            {fmtGBP(claimedAmt)}
+                            {isBelow && <span style={{ color: '#d97706', fontSize: 9, marginLeft: 4 }}>(below max)</span>}
+                          </td>
+                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11 }}>{c.invoice_number || '—'}</td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                            <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: statusColor(c.status), background: `${statusColor(c.status)}14` }}>
+                              {c.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: 11 }}>
+                            {c.paid_at ? new Date(c.paid_at).toLocaleDateString('en-GB') : '—'}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
+                    <td colSpan={5} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280' }}>
+                      {sorted.length} claims · {sorted.reduce((s, c) => s + ((c.staff_details as any[]) || []).length, 0)} staff lines
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>
+                      {fmtGBP(sorted.reduce((s, c) => s + ((c.staff_details as any[]) || []).reduce((a: number, l: any) => a + (l.calculated_amount ?? l.claimed_amount ?? 0), 0), 0))}
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>
+                      {fmtGBP(sorted.reduce((s, c) => s + claimTotal(c), 0))}
+                    </td>
+                    <td colSpan={3}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 8, fontSize: 11, color: '#9ca3af', fontStyle: 'italic' }}>
+            The Excel export includes full audit details including submission dates, verifier, approver, GL codes and calculation notes.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Claim Card (preserved) ---
 function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, saving }: {
   claim: BuyBackClaim;
@@ -2571,23 +2900,19 @@ export function BuyBackPracticeDashboard({
       {/* Claims History Summary */}
       <HistorySummary claims={practiceClaims} />
 
-      {/* Claims list */}
-      {historyClaims.length > 0 && (
+      {/* Claims list with view switcher */}
+      {practiceClaims.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginBottom: 12 }}>All Claims</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {historyClaims.map(c => (
-              <PracticeClaimCard
-                key={c.id}
-                claim={c}
-                expanded={expandedClaimId === c.id}
-                onToggle={() => setExpandedClaimId(expandedClaimId === c.id ? null : c.id)}
-                onSubmit={onSubmit}
-                onResubmit={onResubmit}
-                saving={savingClaim}
-              />
-            ))}
-          </div>
+          <ClaimsViewSwitcher
+            claims={practiceClaims}
+            practiceKey={practiceKey}
+            practiceName={practiceName}
+            onToggleCard={(id) => setExpandedClaimId(expandedClaimId === id ? null : id)}
+            expandedClaimId={expandedClaimId}
+            onSubmit={onSubmit}
+            onResubmit={onResubmit}
+            saving={savingClaim}
+          />
         </div>
       )}
 
