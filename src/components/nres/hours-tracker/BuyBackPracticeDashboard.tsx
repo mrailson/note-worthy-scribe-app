@@ -423,32 +423,149 @@ function InlineClaimPanel({
           {/* No claim yet — create draft */}
           {!claim && (
             <div>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 12,
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Calculated Amount</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtGBP(calculatedAmount)}
+              {isLocum ? (
+                /* ── Locum: sessions + amount entry ── */
+                <div>
+                  {/* Step 1: Actual sessions */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Step 1 — Actual sessions worked this month
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={locumSessions}
+                          onChange={e => setLocumSessions(Math.max(0, Number(e.target.value)))}
+                          style={{
+                            width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db',
+                            fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        />
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>sessions</span>
+                        {sessionRate > 0 && (
+                          <>
+                            <span style={{ fontSize: 12, color: '#9ca3af' }}>×</span>
+                            <span style={{ fontSize: 13, color: '#6b7280' }}>{fmtGBP(sessionRate)}/session</span>
+                            <span style={{ fontSize: 12, color: '#9ca3af' }}>=</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                              max {fmtGBP(locumMaxAmount)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {configuredSessions > 0 && locumSessions !== configuredSessions && (
+                        <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                          (configured: {configuredSessions} sess/mo)
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                    Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
+                  {/* Step 2: Actual claim amount */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Step 2 — Actual invoice amount to claim
+                    </div>
+                    <div style={{ background: '#fff', padding: '12px 14px', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 16, color: '#374151', fontWeight: 500 }}>£</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={locumMaxAmount}
+                            step="0.01"
+                            value={locumClaimAmount}
+                            onChange={e => {
+                              const v = Math.min(Number(e.target.value), locumMaxAmount);
+                              setLocumClaimAmount(Math.max(0, v));
+                            }}
+                            style={{
+                              width: 110, padding: '7px 10px', borderRadius: 7,
+                              border: `1px solid ${locumClaimAmount >= locumMaxAmount ? '#d97706' : '#d1d5db'}`,
+                              fontSize: 18, fontWeight: 700, textAlign: 'right',
+                              outline: 'none', fontVariantNumeric: 'tabular-nums',
+                            }}
+                          />
+                        </div>
+                        <button
+                          onClick={() => setLocumClaimAmount(locumMaxAmount)}
+                          style={{
+                            padding: '6px 12px', borderRadius: 6,
+                            border: '1px solid #d97706', background: '#fffbeb',
+                            color: '#92400e', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          }}
+                        >
+                          Use max ({fmtGBP(locumMaxAmount)})
+                        </button>
+                        {locumClaimAmount < locumMaxAmount && locumClaimAmount > 0 && (
+                          <span style={{ fontSize: 11, color: '#059669', fontWeight: 500 }}>
+                            £{(locumMaxAmount - locumClaimAmount).toFixed(2)} below max
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>
+                        Max claimable is {fmtGBP(locumMaxAmount)} — enter the actual locum invoice amount. You cannot claim above the ICB-approved maximum rate.
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    onClick={async () => {
+                      if (!onCreateLocumClaim || creating || locumSessions <= 0 || locumClaimAmount <= 0) return;
+                      setCreating(true);
+                      try {
+                        const result = await onCreateLocumClaim(monthDate, staffMember, locumSessions, locumClaimAmount);
+                        if (result) setLocalClaim(result);
+                      } finally {
+                        setCreating(false);
+                      }
+                    }}
+                    disabled={creating || saving || locumSessions <= 0 || locumClaimAmount <= 0}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                      borderRadius: 8, border: 'none', background: '#005eb8', color: '#fff',
+                      fontSize: 13, fontWeight: 600,
+                      cursor: creating || locumSessions <= 0 || locumClaimAmount <= 0 ? 'not-allowed' : 'pointer',
+                      opacity: creating || locumSessions <= 0 || locumClaimAmount <= 0 ? 0.55 : 1,
+                    }}
+                  >
+                    {creating ? 'Creating…' : 'Create Draft'}
+                  </button>
                 </div>
-              </div>
-              <button
-                onClick={handleCreateDraft}
-                disabled={creating || saving}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
-                  borderRadius: 8, border: 'none', background: '#005eb8', color: '#fff',
-                  fontSize: 13, fontWeight: 600, cursor: creating ? 'not-allowed' : 'pointer',
-                  opacity: creating ? 0.6 : 1,
-                }}
-              >
-                {creating ? 'Creating…' : 'Create Draft'}
-              </button>
+              ) : (
+                /* ── Standard: show calculated amount ── */
+                <div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                    background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 12,
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Calculated Amount</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                        {fmtGBP(calculatedAmount)}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                        Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCreateDraft}
+                    disabled={creating || saving}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                      borderRadius: 8, border: 'none', background: '#005eb8', color: '#fff',
+                      fontSize: 13, fontWeight: 600, cursor: creating ? 'not-allowed' : 'pointer',
+                      opacity: creating ? 0.6 : 1,
+                    }}
+                  >
+                    {creating ? 'Creating…' : 'Create Draft'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
