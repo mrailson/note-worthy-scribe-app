@@ -128,9 +128,10 @@ export function useNRESMeetingLog() {
   /** Submit all draft entries for a practice+month combination */
   const submitMonthEntries = useCallback(async (practiceKey: string, claimMonth: string, submittedBy?: string): Promise<boolean> => {
     const odsCode = NRES_ODS_CODES[practiceKey] || '';
+    const cm = claimMonth.slice(0, 7);
     const drafts = entries.filter(e =>
       e.billing_org_code === odsCode &&
-      e.claim_month === claimMonth &&
+      (e.claim_month?.slice(0, 7) || '') === cm &&
       e.status === 'draft'
     );
     if (drafts.length === 0) {
