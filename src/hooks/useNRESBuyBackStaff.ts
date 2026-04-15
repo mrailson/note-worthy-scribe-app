@@ -41,19 +41,43 @@ export function useNRESBuyBackStaff() {
 
     try {
       setLoading(true);
-      let query = supabase
-        .from('nres_buyback_staff')
-        .select('*')
-        .order('staff_name');
 
-      // Non-admins only see their own staff
-      if (!isAdmin(user.email)) {
-        query = query.eq('user_id', user.id);
+      if (isAdmin(user.email)) {
+        // Admins see all staff
+        const { data, error } = await supabase
+          .from('nres_buyback_staff')
+          .select('*')
+          .order('staff_name');
+        if (error) throw error;
+        setStaff((data || []) as BuyBackStaffMember[]);
+      } else {
+        // Non-admins: fetch practice keys they have access to, then load staff for those practices + own staff
+        const { data: accessRows } = await supabase
+          .from('nres_buyback_access')
+          .select('practice_key')
+          .eq('user_id', user.id);
+        const practiceKeys = [...new Set((accessRows || []).map(r => r.practice_key))];
+
+        if (practiceKeys.length > 0) {
+          const { data, error } = await supabase
+            .from('nres_buyback_staff')
+            .select('*')
+            .or(`user_id.eq.${user.id},practice_key.in.(${practiceKeys.join(',')})`)
+            .order('staff_name');
+          if (error) throw error;
+          setStaff((data || []) as BuyBackStaffMember[]);
+        } else {
+          // No practice access — only own staff
+          const { data, error } = await supabase
+            .from('nres_buyback_staff')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('staff_name');
+          if (error) throw error;
+          setStaff((data || []) as BuyBackStaffMember[]);
+        }
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setStaff((data || []) as BuyBackStaffMember[]);
       hasFetchedRef.current = true;
     } catch (error) {
       console.error('Error fetching buyback staff:', error);
@@ -94,16 +118,13 @@ export function useNRESBuyBackStaff() {
     if (!user?.id) return null;
     try {
       setSaving(true);
-      let query = supabase
+      // RLS enforces practice-level permissions — no client-side owner check needed
+      const { data, error } = await supabase
         .from('nres_buyback_staff')
         .update(updates)
-        .eq('id', id);
-
-      if (!admin) {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data, error } = await query.select().single();
+        .eq('id', id)
+        .select()
+        .single();
       if (error) throw error;
       setStaff(prev => prev.map(s => s.id === id ? (data as BuyBackStaffMember) : s));
       toast.success('Staff member updated');
@@ -120,12 +141,11 @@ export function useNRESBuyBackStaff() {
   const removeStaff = async (id: string) => {
     if (!user?.id) return;
     try {
-      // Always filter by user_id — admins must not delete other users' staff
+      // RLS enforces practice-level permissions — no client-side owner check needed
       const { error } = await supabase
         .from('nres_buyback_staff')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
       if (error) throw error;
       setStaff(prev => prev.filter(s => s.id !== id));
       toast.success('Staff member removed');
