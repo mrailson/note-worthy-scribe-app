@@ -63,7 +63,7 @@ export function NRESDigitalAndFinance({
     saving: savingEntry,
     addEntry,
     updateEntry,
-    totalHours,
+    
   } = useNRESHoursTracker();
 
   const {
