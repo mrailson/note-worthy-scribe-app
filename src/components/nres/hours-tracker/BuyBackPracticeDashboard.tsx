@@ -339,7 +339,7 @@ function InlineClaimPanel({
   monthLabel: string;
   existingClaim: BuyBackClaim | null;
   rateParams?: RateParams;
-  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string) => void;
@@ -358,6 +358,9 @@ function InlineClaimPanel({
   const isLocum = staffMember.staff_category === 'gp_locum';
   const isManagement = staffMember.staff_category === 'management';
   const isMeeting = staffMember.staff_category === 'meeting';
+
+  // Claimed amount state for standard (non-locum, non-meeting) claims
+  const [standardClaimedAmount, setStandardClaimedAmount] = useState<number>(0);
   const meetingRate = staffMember.hourly_rate || 0;
   const [meetingHours, setMeetingHours] = useState<number>(0);
   const meetingMaxAmount = useMemo(() => meetingHours * meetingRate, [meetingHours, meetingRate]);
@@ -405,6 +408,11 @@ function InlineClaimPanel({
     return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
   }, [staffMember, monthDate, rateParams]);
 
+  // Sync to calculatedAmount whenever it changes
+  useEffect(() => {
+    setStandardClaimedAmount(calculatedAmount);
+  }, [calculatedAmount]);
+
   const handleCreateDraft = async () => {
     if (!onCreateClaim || creating) return;
     setCreating(true);
@@ -450,6 +458,98 @@ function InlineClaimPanel({
   const { allComplete: evidenceComplete, totalMandatory, totalUploaded } = useStaffLineEvidenceComplete(
     staffDets, getUploadedTypesForStaff, getConfigForCategory
   );
+
+  const getCalcBreakdown = () => {
+    if (!rateParams) return null;
+    const role = staffMember.staff_role;
+    const allocType = staffMember.allocation_type;
+    const allocValue = staffMember.allocation_value;
+    const roleConfig = rateParams.getRoleConfig?.(role);
+    const annualRate = rateParams.getRoleAnnualRate?.(role) ?? 0;
+    const includesOnCosts = roleConfig?.includes_on_costs !== false;
+    const multiplier = includesOnCosts ? (rateParams.onCostMultiplier ?? 1) : 1;
+    const niPct = rateParams.employerNiPct ?? 13.8;
+    const penPct = rateParams.employerPensionPct ?? 14.38;
+    const annualWithOnCosts = annualRate * multiplier;
+    const niAmount = annualRate * (niPct / 100);
+    const penAmount = annualRate * (penPct / 100);
+    const totalOnCostAmount = niAmount + penAmount;
+
+    if (allocType === 'sessions') {
+      return {
+        primary: [
+          { label: `${allocValue} session${allocValue !== 1 ? 's' : ''}`, accent: true },
+          { label: '×' },
+          { label: `${fmtGBP(annualRate)}/yr`, accent: true },
+          { label: '÷' },
+          { label: '12 months', accent: true },
+          { label: includesOnCosts ? `× ${multiplier.toFixed(4)} on-costs` : '(excl. on-costs)', accent: includesOnCosts },
+          { label: '=' },
+          { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
+        ],
+        breakdown: includesOnCosts ? [
+          { l: `Base annual salary (${role})`, r: fmtGBP(annualRate) + '/yr' },
+          { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
+          { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
+          { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+          { l: `Monthly max (× ${allocValue} sess ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
+        ] : [
+          { l: `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${fmtGBP(annualRate)}/yr ÷ 12`, r: fmtGBP(calculatedAmount) + '/month', bold: true },
+        ],
+      };
+    }
+
+    if (allocType === 'wte') {
+      return {
+        primary: [
+          { label: `${allocValue} WTE`, accent: true },
+          { label: '×' },
+          { label: `${fmtGBP(annualRate)}/yr`, accent: true },
+          { label: includesOnCosts ? `× ${multiplier.toFixed(4)} on-costs` : '(excl. on-costs)', accent: includesOnCosts },
+          { label: '÷' },
+          { label: '12 months', accent: true },
+          { label: '=' },
+          { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
+        ],
+        breakdown: includesOnCosts ? [
+          { l: `Base annual salary (${role})`, r: fmtGBP(annualRate) + '/yr' },
+          { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
+          { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
+          { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+          { l: `Monthly max (${allocValue} WTE × total ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
+        ] : null,
+      };
+    }
+
+    if (allocType === 'hours') {
+      const wteRatio = (allocValue / 37.5);
+      return {
+        primary: [
+          { label: `${allocValue} hrs/wk`, accent: true },
+          { label: '÷ 37.5 =' },
+          { label: `${wteRatio.toFixed(2)} WTE`, accent: true },
+          { label: '×' },
+          { label: `${fmtGBP(annualRate)}/yr`, accent: true },
+          { label: includesOnCosts ? `× ${multiplier.toFixed(4)} on-costs` : '', accent: includesOnCosts },
+          { label: '÷ 12' },
+          { label: '=' },
+          { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
+        ],
+        breakdown: includesOnCosts ? [
+          { l: `Base annual salary (${role})`, r: fmtGBP(annualRate) + '/yr' },
+          { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
+          { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
+          { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+          { l: `Monthly max (${wteRatio.toFixed(2)} WTE × total ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
+        ] : null,
+      };
+    }
+
+    return null;
+  };
+
+  const calcBreakdownData = (!isLocum && !isMeeting) ? getCalcBreakdown() : null;
+  const catAccentColor = CATEGORY_COLORS[staffMember.staff_category] || '#7c3aed';
 
   return (
     <tr>
@@ -668,77 +768,153 @@ function InlineClaimPanel({
               ) : (
                 /* ── Standard: show calculated amount ── */
                 <div>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                    background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 12,
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Calculated Amount</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums', marginBottom: 6 }}>
-                        {fmtGBP(calculatedAmount)}
+                  {/* Amount header */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Maximum claimable</div>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtGBP(calculatedAmount)}
+                    </div>
+                  </div>
+
+                  {/* Management breakdown (existing rich rows) */}
+                  {(staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && rateParams?.workingWeeksInMonth && staffMember.hourly_rate ? (() => {
+                    const ww = rateParams.workingWeeksInMonth!;
+                    const baseRate = staffMember.hourly_rate;
+                    const multiplier = rateParams.onCostMultiplier ?? 1;
+                    const effectiveRate = baseRate * multiplier;
+                    const weeklyHours = staffMember.allocation_value;
+                    const niPct = rateParams.employerNiPct ?? 13.8;
+                    const penPct = rateParams.employerPensionPct ?? 14.38;
+                    const bhCount = rateParams.bankHolidaysInMonth ?? 0;
+                    const bhDetails = (rateParams as any).bankHolidayDetails as { name: string; formatted: string }[] | undefined;
+                    const fullMonth = new Date(monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                    return (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8, fontSize: 13 }}>
+                          <span style={{ fontWeight: 700, color: '#005eb8' }}>{weeklyHours} hrs/wk</span>
+                          <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
+                          <span style={{ fontWeight: 700, color: '#005eb8' }}>{ww.toFixed(1)} working weeks in {fullMonth}</span>
+                          <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
+                          <span style={{ fontWeight: 700, color: '#005eb8' }}>{fmtGBP(effectiveRate)}/hr</span>
+                          <span style={{ color: '#9ca3af', fontSize: 11 }}>(incl. on-costs)</span>
+                          <span style={{ color: '#9ca3af', fontSize: 11 }}>=</span>
+                          <span style={{ fontWeight: 700, color: '#111827', borderLeft: '2px solid #005eb8', paddingLeft: 8, fontSize: 14 }}>{fmtGBP(calculatedAmount)}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const, padding: '6px 10px', background: '#eff6ff', borderRadius: 7, fontSize: 11, color: '#374151' }}>
+                          <span>Base rate {fmtGBP(baseRate)}/hr</span>
+                          <span style={{ color: '#9ca3af' }}>×</span>
+                          <span>{multiplier.toFixed(4)} on-costs</span>
+                          <span style={{ color: '#9ca3af' }}>(NI {niPct}% + Pension {penPct}%)</span>
+                          <span style={{ color: '#9ca3af' }}>=</span>
+                          <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
+                          {bhCount > 0 && (
+                            <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 600, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 6px' }}>
+                              {bhCount} bank hol{bhCount > 1 ? 's' : ''} excluded{bhDetails && bhDetails.length > 0 ? ` (${bhDetails.map((b: { name: string }) => b.name).join(', ')})` : ''}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {/* Management: show full working-weeks breakdown */}
-                      {(staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && rateParams?.workingWeeksInMonth && staffMember.hourly_rate ? (() => {
-                        const ww = rateParams.workingWeeksInMonth!;
-                        const baseRate = staffMember.hourly_rate;
-                        const multiplier = rateParams.onCostMultiplier ?? 1;
-                        const effectiveRate = baseRate * multiplier;
-                        const weeklyHours = staffMember.allocation_value;
-                        const niPct = rateParams.employerNiPct ?? 13.8;
-                        const penPct = rateParams.employerPensionPct ?? 14.38;
-                        const bhCount = rateParams.bankHolidaysInMonth ?? 0;
-                        const bhDetails = (rateParams as any).bankHolidayDetails as { name: string; formatted: string }[] | undefined;
-                        const fullMonth = new Date(monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-                        return (
-                          <div>
-                            {/* Primary calculation row */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8, fontSize: 13 }}>
-                              <span style={{ fontWeight: 700, color: '#005eb8' }}>{weeklyHours} hrs/wk</span>
-                              <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
-                              <span style={{ fontWeight: 700, color: '#005eb8' }}>{ww.toFixed(1)} working weeks in {fullMonth}</span>
-                              <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
-                              <span style={{ fontWeight: 700, color: '#005eb8' }}>{fmtGBP(effectiveRate)}/hr</span>
-                              <span style={{ color: '#9ca3af', fontSize: 11 }}>(incl. on-costs)</span>
-                              <span style={{ color: '#9ca3af', fontSize: 11 }}>=</span>
-                              <span style={{ fontWeight: 700, color: '#111827', borderLeft: '2px solid #005eb8', paddingLeft: 8, fontSize: 14 }}>
-                                {fmtGBP(calculatedAmount)}
-                              </span>
-                            </div>
-                            {/* On-costs breakdown row */}
-                            <div style={{
-                              display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const,
-                              padding: '6px 10px', background: '#eff6ff', borderRadius: 7,
-                              fontSize: 11, color: '#374151',
+                    );
+                  })() : calcBreakdownData ? (
+                    /* SDA / Buy-Back breakdown */
+                    <div style={{ marginBottom: 12 }}>
+                      {/* Primary formula row */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, fontSize: 12, marginBottom: 8 }}>
+                        {calcBreakdownData.primary.map((item, i) => (
+                          item.label ? (
+                            <span key={i} style={{
+                              fontWeight: item.result ? 700 : item.accent ? 700 : 400,
+                              color: item.result ? '#111827' : item.accent ? catAccentColor : '#9ca3af',
+                              borderLeft: item.result ? `2px solid ${catAccentColor}` : 'none',
+                              paddingLeft: item.result ? 7 : 0,
+                              fontSize: item.result ? 13 : 12,
+                            }}>{item.label}</span>
+                          ) : null
+                        ))}
+                      </div>
+                      {/* On-costs breakdown box */}
+                      {calcBreakdownData.breakdown && (
+                        <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 8, padding: '10px 12px', fontSize: 11 }}>
+                          {calcBreakdownData.breakdown.map((row, i) => (
+                            <div key={i} style={{
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                              padding: '2px 0',
+                              borderTop: row.bold ? `1px solid ${catAccentColor}20` : 'none',
+                              marginTop: row.bold ? 4 : 0,
+                              paddingTop: row.bold ? 5 : 2,
                             }}>
-                              <span>Base rate {fmtGBP(baseRate)}/hr</span>
-                              <span style={{ color: '#9ca3af' }}>×</span>
-                              <span>{multiplier.toFixed(4)} on-costs</span>
-                              <span style={{ color: '#9ca3af' }}>(Employer NI {niPct}% + Pension {penPct}%)</span>
-                              <span style={{ color: '#9ca3af' }}>=</span>
-                              <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
-                              {bhCount > 0 && (
-                                <span style={{
-                                  marginLeft: 4, fontSize: 10, fontWeight: 600,
-                                  background: '#fef3c7', color: '#92400e',
-                                  border: '1px solid #fde68a', borderRadius: 4, padding: '1px 6px',
-                                }}>
-                                  {bhCount} bank hol{bhCount > 1 ? 's' : ''} excluded
-                                  {bhDetails && bhDetails.length > 0 ? ` (${bhDetails.map((b: { name: string }) => b.name).join(', ')})` : ''}
-                                </span>
-                              )}
+                              <span style={{ color: '#6b7280' }}>{row.l}</span>
+                              <span style={{ fontWeight: row.bold ? 700 : 500, color: row.bold ? catAccentColor : '#374151', fontSize: row.large ? 13 : 11 }}>{row.r}</span>
                             </div>
-                          </div>
-                        );
-                      })() : (
-                        /* Standard allocation display for non-management */
-                        <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                          Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
+                          ))}
                         </div>
                       )}
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 10 }}>
+                      Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
+                    </div>
+                  )}
+
+                  {/* Actual claimed amount input — for all non-management categories */}
+                  {staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management' && calculatedAmount > 0 && (
+                    <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Amount to claim this month</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' as const }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 15, color: '#374151', fontWeight: 500 }}>£</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={calculatedAmount}
+                            step="0.01"
+                            value={standardClaimedAmount}
+                            onChange={e => {
+                              const v = Math.min(Number(e.target.value), calculatedAmount);
+                              setStandardClaimedAmount(Math.max(0, v));
+                            }}
+                            style={{
+                              width: 120, padding: '7px 10px', borderRadius: 7,
+                              border: `1px solid ${standardClaimedAmount < calculatedAmount && standardClaimedAmount > 0 ? '#d1d5db' : catAccentColor + '60'}`,
+                              fontSize: 18, fontWeight: 700, textAlign: 'right',
+                              outline: 'none', fontVariantNumeric: 'tabular-nums',
+                            }}
+                          />
+                        </div>
+                        {standardClaimedAmount < calculatedAmount && (
+                          <button
+                            onClick={() => setStandardClaimedAmount(calculatedAmount)}
+                            style={{ padding: '6px 12px', borderRadius: 6, border: `1px solid ${catAccentColor}40`, background: `${catAccentColor}08`, color: catAccentColor, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Use max ({fmtGBP(calculatedAmount)})
+                          </button>
+                        )}
+                        {standardClaimedAmount < calculatedAmount && standardClaimedAmount > 0 && (
+                          <span style={{ fontSize: 11, color: '#059669', fontWeight: 500 }}>
+                            {fmtGBP(calculatedAmount - standardClaimedAmount)} below max
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
+                        Maximum claimable is {fmtGBP(calculatedAmount)}. Enter a lower amount if your actual staff cost is less this month.
+                      </p>
+                    </div>
+                  )}
+
                   <button
-                    onClick={handleCreateDraft}
+                    onClick={async () => {
+                      if (!onCreateClaim || creating) return;
+                      setCreating(true);
+                      try {
+                        const amountToUse = (staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management')
+                          ? (standardClaimedAmount > 0 ? standardClaimedAmount : calculatedAmount)
+                          : calculatedAmount;
+                        const result = await onCreateClaim(monthDate, staffMember, amountToUse);
+                        if (result) setLocalClaim(result);
+                      } finally {
+                        setCreating(false);
+                      }
+                    }}
                     disabled={creating || saving}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
