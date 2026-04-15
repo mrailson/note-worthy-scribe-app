@@ -751,6 +751,7 @@ export function BuyBackPMLDashboard({
   onApprove,
   onReject,
   onMarkPaid,
+  onSchedulePayment,
   savingClaim,
   defaultView,
 }: BuyBackPMLDashboardProps) {
