@@ -7,9 +7,7 @@ import { ClaimsUserGuide } from './ClaimsUserGuide';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Settings, HelpCircle } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 
 interface NRESHoursTrackerProps {
   hideEvidenceLibrary?: boolean;
