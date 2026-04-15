@@ -23,6 +23,7 @@ const NHS = {
 const DEFAULT_SETTINGS = {
   responseLength:"balanced", tone:"professional", includeUserContext:true,
   fontSize:"medium", sidebarMode:"collapsed", compactMessages:false, showClinicalCaveats:true,
+  useLetterhead:true, showDocFooter:true,
 };
 const FONT_SCALE = { small:0.84, medium:0.91, large:0.98 };
 
@@ -507,7 +508,7 @@ const INSTRUCTION_SUGGESTIONS=[
   "Start every response with a one-sentence summary before the detail.",
 ];
 
-function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"}){
+function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile",settings=DEFAULT_SETTINGS,saveSettings}){
   const [tab,setTab]=useState(initialTab);
   const [pt,setPt]=useState(()=>{try{return localStorage.getItem(PROFILE_KEY)||"";}catch{return "";}});
   const [it,setIt]=useState(()=>{try{return localStorage.getItem(INSTRUCTIONS_KEY)||"";}catch{return "";}});
@@ -558,7 +559,7 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile"})
             <button onClick={onClose} style={{background:"rgba(255,255,255,.15)",border:"none",cursor:"pointer",color:"#fff",borderRadius:8,padding:"8px 12px",fontSize:"1rem",minWidth:44,minHeight:44,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           </div>
           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"],["kb","📚 Knowledge Base"]].map(([t,l])=>(
+            {[["profile","👤 My Profile"],["instructions","⚙️ Instructions"],["kb","📚 Knowledge Base"],["documents","📄 Documents"]].map(([t,l])=>(
               <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"none",cursor:"pointer",borderRadius:20,fontSize:"0.77rem",fontWeight:tab===t?700:400,background:tab===t?"rgba(255,255,255,.25)":"transparent",color:"#fff",minHeight:36}}>{l}</button>
             ))}
           </div>
@@ -704,7 +705,7 @@ function GuideModal({user,onClose,vp}){
 
 // ── Artifact Panel ────────────────────────────────────────────────────────────
 // FIX 1: Enhanced PPTX download with spinner, error display, success confirmation, timeout
-function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth}){
+function ArtifactPanel({artifact,onClose,vp,panelWidth,onSetWidth,settings=DEFAULT_SETTINGS,saveSettings}){
   const [gen,setGen]=useState(false);const [err,setErr]=useState(null);const [done,setDone]=useState(null);
   const [genLabel,setGenLabel]=useState(null);
   const type=ARTIFACT_TYPES[artifact.type]||ARTIFACT_TYPES.docx;const isImg=artifact.type==="image";
@@ -1354,7 +1355,12 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources, latestMe
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function NotewellChat({ user, onNavigateHome }) {
   const vp=useViewport();
-  const [settings]=useState(()=>{try{const s=localStorage.getItem("nw_ai_settings");return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
+  const [settings, setSettings]=useState(()=>{try{const s=localStorage.getItem("nw_ai_settings");return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}});
+  const saveSettings = (patch) => {
+    const next = {...settings, ...patch};
+    setSettings(next);
+    try{ localStorage.setItem("nw_ai_settings", JSON.stringify(next)); }catch{}
+  };
   const [conversations,setConversations]=useState(()=>loadHistory());
   const [activeConvId,setActiveConvId]=useState(null);
   const [messages,setMessages]=useState([]);
