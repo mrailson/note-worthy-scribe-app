@@ -24,6 +24,8 @@ interface BuyBackPracticeDashboardProps {
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onRemoveStaff?: (id: string) => Promise<void>;
   onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
+  onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
+  onDeleteClaim?: (id: string) => Promise<void>;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   savingClaim?: boolean;
   savingStaff?: boolean;
@@ -31,6 +33,7 @@ interface BuyBackPracticeDashboardProps {
 
 // --- Constants ---
 const DECLARATION_TEXT = "I confirm that all staff listed are working 100% on SDA (Part A) during their funded hours, with no LTC (Part B) activity, in accordance with the ICB-approved buy-back rules.";
+const LOCUM_DECLARATION_TEXT = "I confirm this GP locum provided additional sessional SDA capacity. This claim represents the actual cost of sessions worked and does not exceed the ICB-approved maximum reimbursement rate. GP locums are by definition providing Part A SDA additional resource only — there is no LTC (Part B) activity.";
 const PILOT_START = new Date(2026, 3, 1); // 1 April 2026
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
@@ -294,6 +297,8 @@ function InlineClaimPanel({
   existingClaim,
   rateParams,
   onCreateClaim,
+  onCreateLocumClaim,
+  onDeleteClaim,
   onSubmit,
   onResubmit,
   confirmDeclaration,
@@ -306,6 +311,8 @@ function InlineClaimPanel({
   existingClaim: BuyBackClaim | null;
   rateParams?: RateParams;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
+  onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
@@ -318,6 +325,23 @@ function InlineClaimPanel({
   const [localClaim, setLocalClaim] = useState<BuyBackClaim | null>(existingClaim);
 
   useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
+
+  const isLocum = staffMember.staff_category === 'gp_locum';
+  const configuredSessions = staffMember.allocation_value || 0;
+  const sessionRate = staffMember.hourly_rate || 0;
+
+  const [locumSessions, setLocumSessions] = useState<number>(configuredSessions);
+  const [locumClaimAmount, setLocumClaimAmount] = useState<number>(0);
+  const [deletingDraft, setDeletingDraft] = useState(false);
+
+  const locumMaxAmount = useMemo(() => locumSessions * sessionRate, [locumSessions, sessionRate]);
+
+  useEffect(() => {
+    setLocumClaimAmount(prev => {
+      if (prev === 0 || prev > locumMaxAmount) return locumMaxAmount;
+      return prev;
+    });
+  }, [locumMaxAmount]);
 
   const calculatedAmount = useMemo(() => {
     if (!rateParams) return 0;
@@ -341,6 +365,20 @@ function InlineClaimPanel({
       await confirmDeclaration(localClaim.id, true);
     }
     onSubmit(localClaim.id);
+  };
+
+  const handleDeleteDraft = async () => {
+    if (!localClaim || !onDeleteClaim) return;
+    setDeletingDraft(true);
+    try {
+      await onDeleteClaim(localClaim.id);
+      setLocalClaim(null);
+      setLocumSessions(configuredSessions);
+      setLocumClaimAmount(locumMaxAmount);
+      setDeclared(false);
+    } finally {
+      setDeletingDraft(false);
+    }
   };
 
   const claim = localClaim;
