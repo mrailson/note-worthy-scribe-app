@@ -26,6 +26,7 @@ export const MobileRecordingState: React.FC<MobileRecordingStateProps> = ({
   currentPartial = '',
 }) => {
   const [showTranscript, setShowTranscript] = useState(false);
+  const [confirmingStop, setConfirmingStop] = useState(false);
   const { recordingDuration } = useMeetingSetup();
 
   const mm = String(Math.floor(recordingDuration / 60)).padStart(2, '0');
@@ -144,7 +145,45 @@ export const MobileRecordingState: React.FC<MobileRecordingStateProps> = ({
       </div>
 
       {/* Controls */}
-      <div className="nw-rec-controls">
+      <div className="nw-rec-controls" style={{ position: 'relative' }}>
+        {confirmingStop && (
+          <div style={{
+            position: 'absolute', bottom: '90px', left: 16, right: 16,
+            background: '#fff', borderRadius: 16,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            padding: '20px 18px', zIndex: 100,
+            border: '1px solid #e5e7eb',
+          }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginBottom: 6, textAlign: 'center' }}>
+              Stop recording?
+            </p>
+            <p style={{ fontSize: 12, color: '#6b7280', textAlign: 'center', marginBottom: 18 }}>
+              Your notes will be generated. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmingStop(false)}
+                style={{
+                  flex: 1, padding: '13px 0', borderRadius: 12,
+                  background: '#f3f4f6', border: 'none',
+                  fontSize: 15, fontWeight: 600, color: '#374151', cursor: 'pointer',
+                }}
+              >
+                Keep recording
+              </button>
+              <button
+                onClick={() => { setConfirmingStop(false); onStopRecording(); }}
+                style={{
+                  flex: 1, padding: '13px 0', borderRadius: 12,
+                  background: '#dc2626', border: 'none',
+                  fontSize: 15, fontWeight: 600, color: '#fff', cursor: 'pointer',
+                }}
+              >
+                Stop &amp; save
+              </button>
+            </div>
+          </div>
+        )}
         <div style={{ textAlign: 'center' }}>
           <button className="nw-rec-secondary" aria-label="Pause">
             <Pause size={22} fill="currentColor" stroke="none" />
@@ -152,7 +191,11 @@ export const MobileRecordingState: React.FC<MobileRecordingStateProps> = ({
           <div className="nw-rec-control-label">Pause</div>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <button className="nw-rec-stop" onClick={onStopRecording} aria-label="Stop recording">
+          <button
+            className="nw-rec-stop"
+            onClick={() => setConfirmingStop(true)}
+            aria-label="Stop recording"
+          >
             <div className="nw-rec-stop-inner" />
           </button>
           <div className="nw-rec-control-label">Stop</div>
