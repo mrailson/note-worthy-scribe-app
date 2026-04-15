@@ -613,6 +613,7 @@ export default function RecoveryToolPage() {
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>🔧 Recording Recovery Tool</h1>
       <p style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
         Scans IndexedDB for stranded offline recordings that were not synced to the server.
+        {' '}<Link to="/new-recorder" style={{ color: '#1565c0', textDecoration: 'underline' }}>← Back to Meeting Service</Link>
       </p>
 
       <div style={{
