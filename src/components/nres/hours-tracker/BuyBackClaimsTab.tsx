@@ -786,8 +786,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
           onSubmit={submitClaim}
           onResubmit={(id) => submitClaim(id)}
           onCreateClaim={(monthDate, staffMember) => {
-            const amt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
-            return createClaim(monthDate, [staffMember], amt, amt, testMode.selectedPractice, rateParams);
+            const monthStr = monthDate instanceof Date ? monthDate.toISOString().slice(0, 7) : String(monthDate);
+            const amt = calculateStaffMonthlyAmount(staffMember, monthStr, staffMember.start_date, rateParams);
+            return createClaim(monthStr, [staffMember], amt, amt, testMode.selectedPractice, rateParams);
           }}
           onAddStaff={addStaff}
           staffRoles={staffRoles}

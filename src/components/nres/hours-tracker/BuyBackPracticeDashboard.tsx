@@ -616,9 +616,17 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 export function BuyBackPracticeDashboard({
   claims,
   practiceKey,
+  staff: _staff,
   onSubmit,
   onResubmit,
+  onCreateClaim: _onCreateClaim,
+  onAddStaff: _onAddStaff,
+  staffRoles: _staffRoles,
+  rateParams: _rateParams,
+  managementRoles: _managementRoles,
   savingClaim,
+  savingStaff: _savingStaff,
+  confirmDeclaration: _confirmDeclaration,
 }: BuyBackPracticeDashboardProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
