@@ -725,11 +725,13 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
       </div>
 
       {/* Queue alert */}
-      {submittedClaims.length > 0 && (
+      {(submittedClaims.length > 0 || submittedMeetingCount > 0) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', marginBottom: 16, borderRadius: 10, background: '#f0f9ff', border: '1px solid #bae6fd', fontSize: 13, color: '#0c4a6e' }}>
           <Shield className="w-4 h-4 flex-shrink-0" />
           <span>
-            <strong>{submittedClaims.length} claim{submittedClaims.length !== 1 ? 's' : ''} awaiting your verification</strong> — {fmtShort(submittedTotal)} across {uniqueSubmittedPractices} practice{uniqueSubmittedPractices !== 1 ? 's' : ''}
+            <strong>{submittedClaims.length + submittedMeetingCount} item{(submittedClaims.length + submittedMeetingCount) !== 1 ? 's' : ''} awaiting your verification</strong>
+            {submittedClaims.length > 0 && <> — {fmtShort(submittedTotal)} across {uniqueSubmittedPractices} practice{uniqueSubmittedPractices !== 1 ? 's' : ''}</>}
+            {submittedMeetingCount > 0 && <> · {submittedMeetingCount} meeting claim{submittedMeetingCount !== 1 ? 's' : ''}</>}
           </span>
         </div>
       )}
