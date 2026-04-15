@@ -1131,7 +1131,7 @@ function MeetingAttendanceLog({
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmtGBP(entry.total_amount)}</span>
                     <span style={{ fontSize: 10, fontWeight: 600, color: statusColor(entry.status), textTransform: 'uppercase' as const, flexShrink: 0 }}>{entry.status}</span>
-                    {entry.status === 'draft' && (
+                    {editableStatuses.includes(entry.status) && (
                       <button onClick={() => onDelete(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: 16, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }}
                         onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = '#dc2626'}
                         onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = '#d1d5db'}
@@ -1140,6 +1140,11 @@ function MeetingAttendanceLog({
                   </div>
                 ))}
               </div>
+              {hasQueriedEntries && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, color: '#991b1b' }}>
+                  <strong>⚠ Queried:</strong> One or more entries have been returned by the verifier. You may delete and re-log them, or resubmit as-is.
+                </div>
+              )}
             </div>
           )}
           {!isFullySubmitted && (
