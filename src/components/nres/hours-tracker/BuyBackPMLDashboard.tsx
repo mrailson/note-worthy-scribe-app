@@ -415,7 +415,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   const hasPartA = claim.declaration_confirmed;
   const hasPartB = staffDetails.length > 0;
 
-  const handleAction = (action: 'approve' | 'query' | 'reject' | 'mark_paid') => {
+  const handleAction = (action: 'approve' | 'query' | 'reject') => {
     if (action === 'approve') onApprove(claim.id, reviewNotes || undefined);
     if (action === 'query' && onQuery) {
       if (!reviewNotes.trim()) return;
@@ -425,17 +425,14 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
       if (!reviewNotes.trim()) return;
       onReject(claim.id, reviewNotes);
     }
-    if (action === 'mark_paid' && payMode === 'pay' && onMarkPaid) {
-      onMarkPaid(claim.id, reviewNotes || undefined);
-      setBacsRef(''); setPayDate(''); setReviewNotes('');
-    }
-    if (action === 'mark_paid' && payMode === 'schedule' && onSchedulePayment) {
-      if (!payDate) return;
-      onSchedulePayment(claim.id, payDate, bacsRef || undefined, reviewNotes || undefined);
-      setBacsRef(''); setPayDate(''); setReviewNotes('');
-    }
-    if (action !== 'mark_paid') setReviewNotes('');
+    setReviewNotes('');
   };
+
+  // Derived payment state
+  const payStatus = (claim as any).payment_status || (displayStatus === 'approved' ? 'pending' : '');
+  const isReceived = payStatus === 'received' || payStatus === 'scheduled' || payStatus === 'payment_sent';
+  const isScheduled = payStatus === 'scheduled';
+  const isPaidFull = displayStatus === 'paid' || payStatus === 'payment_sent';
 
   const sessionCount = staffDetails.reduce((sum, s) => sum + (s.allocation_type === 'sessions' ? (s.allocation_value ?? 0) : s.allocation_type === 'daily' ? (s.allocation_value ?? 0) : 0), 0);
 
