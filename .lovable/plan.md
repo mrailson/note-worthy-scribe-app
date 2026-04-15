@@ -1,68 +1,38 @@
 
 
-# Chunk-by-Chunk Audio Reprocessing with Live Progress
+# Fix Audio Reprocessing: Add Retries and Timeout Handling
 
 ## Problem
-The `reprocess-audio-backup` edge function tries to process all 7-8 audio segments in one call and times out (~150s limit). Downloading + transcribing 40+ MB of audio in a single function invocation is unreliable.
-
-## Solution: One Segment Per Call, Client Drives the Loop
-
-The client calls a lightweight edge function once per segment, displays each result live, and saves the combined transcript at the end.
-
-```text
-Client (AudioBackupManager)          Edge Function (reprocess-audio-segment)
-─────────────────────────────        ─────────────────────────────────────
-1. Call: action='list'               → Lists folder, returns file names + sizes
-2. For each segment:
-   Call: action='transcribe', idx=N  → Downloads 1 file, calls Whisper, returns text
-   Show segment N result in UI
-   Append to running transcript
-3. Call: action='save'               → Saves combined transcript to meetings table
-```
+Segment 2 failed with "Failed to send a request to the Edge Function" — the Whisper API call for 5.6 MB segments can take 60-120+ seconds, causing edge function timeouts. Once one call times out, the error propagates. There's no retry logic, so a transient timeout kills the segment permanently.
 
 ## Changes
 
-### 1. New edge function: `reprocess-audio-segment/index.ts`
-Three actions:
-- **`list`** — Takes `backupId`, lists storage folder, returns array of `{ name, size }` for audio files
-- **`transcribe`** — Takes `backupId` + `segmentIndex`, downloads that one file, sends to Whisper via FormData, returns `{ text, wordCount }`
-- **`save`** — Takes `meetingId` + `fullTranscript`, updates `meetings.whisper_transcript_text` and `word_count`
+### 1. Edge function: `reprocess-audio-segment/index.ts`
+- Add an `AbortSignal.timeout(120_000)` to the Whisper fetch call so we get a clear timeout error rather than a generic failure
+- If the segment is >20 MB, return an error suggesting it's too large (guard rail)
 
-Each transcribe call handles only one ~5 MB segment — well within timeout.
+### 2. Client: `AudioBackupManager.tsx` — add retry with backoff
+- Wrap each segment's `supabase.functions.invoke` call in a retry loop (up to 2 retries with 3s delay)
+- On retry, update segment status to show "retrying (attempt 2/3)…"
+- Add a "Retry Failed" button after completion that re-runs only the failed segments
+- Add a small delay (1s) between sequential segment calls to avoid hammering the function
 
-### 2. Update `AudioBackupManager.tsx` — `reprocessAudio()`
-Replace the single function call with a client-side loop:
-- Call `list` to get segment count
-- Loop through segments sequentially, calling `transcribe` for each
-- Show a live progress card with:
-  - Progress bar ("Segment 3 of 8")
-  - Per-segment status: ✅ green tick + word count + first 60 chars, or ❌ red cross
-  - Running total word count
-  - ⏳ spinner on current segment
-- After all segments complete, call `save` with combined transcript
-- Individual segment failures don't block others — user sees which failed and can retry
+### 3. UI improvements in `AudioBackupManager.tsx`
+- Show a "Retry Failed Segments" button after the loop completes if any segments have `status: 'error'`
+- When clicking retry, only re-invoke the failed segment indices, updating results in place
+- Show elapsed time per segment so user can see progress isn't stuck
 
-### Progress UI (compact, inline in existing card)
+## Technical detail
 
 ```text
-┌─ Reprocessing Audio ───────────────────────────────────┐
-│ ████████████░░░░░░░░░  3 of 8 segments                 │
-│                                                         │
-│ ✅ Segment 1 — 1,842 words  "Good morning everyone..."  │
-│ ✅ Segment 2 — 2,105 words  "The next item on the..."   │
-│ ✅ Segment 3 — 1,923 words  "Moving to the budget..."   │
-│ ⏳ Segment 4 — processing...                            │
-│ ⬜ Segment 5                                            │
-│ ⬜ Segment 6                                            │
-│ ⬜ Segment 7                                            │
-│ ⬜ Segment 8                                            │
-│                                                         │
-│ Running total: 5,870 words                              │
-└─────────────────────────────────────────────────────────┘
+Per-segment flow:
+  attempt 1 → timeout/fail → wait 3s → attempt 2 → timeout/fail → wait 3s → attempt 3 → mark error
+  
+Between segments:
+  wait 1s before starting next (prevents concurrent function boot storms)
 ```
 
 ### Files
-1. **New**: `supabase/functions/reprocess-audio-segment/index.ts`
-2. **Edit**: `src/components/AudioBackupManager.tsx` — new reprocessing loop + progress UI
-3. Old `reprocess-audio-backup` function remains as-is (no changes needed)
+1. **Edit**: `supabase/functions/reprocess-audio-segment/index.ts` — add fetch timeout signal
+2. **Edit**: `src/components/AudioBackupManager.tsx` — retry logic + retry-failed button + inter-segment delay
 
