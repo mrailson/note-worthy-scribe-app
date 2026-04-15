@@ -2880,7 +2880,7 @@ export function BuyBackPracticeDashboard({
       else if (c.status === 'submitted') t.submitted += v;
       else if (c.status === 'verified') t.verified += v;
       else if (c.status === 'approved') t.approved += v;
-      else if (c.status === 'invoice_created' || c.status === 'scheduled') t.invoiced += v;
+      else if ((c.status as string) === 'invoice_created' || (c.status as string) === 'scheduled') t.invoiced += v;
       else if (c.status === 'paid') t.paid += v;
       else if (c.status === 'queried') t.queried += v;
     });
