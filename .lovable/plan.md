@@ -1,64 +1,34 @@
 
 
-# Restructure NRES Dashboard: Claims-Only Tab + IT & Reporting
+# Move Help & Settings Icons Inline with Title
 
 ## Summary
-Move the "Finance, Governance & Insurance" sub-tab out of Claims & Oversight into a new "IT & Reporting" top-level tab on the NRES Dashboard. Claims & Oversight becomes a clean, claims-only page.
+Remove the separate toolbar row from `NRESHoursTracker` and render the Help (?) and Settings (⚙) icons inline with the "Buy-Back Claims" title in each sub-dashboard. This saves vertical space and keeps actions contextually close to the heading.
 
-## Current structure
-```text
-NRESDashboard tabs:
-├─ Dashboard
-├─ Claims & Oversight  →  NRESHoursTracker
-│   ├─ SDA Resource & Buy-Back Claims  (BuyBackClaimsTab)
-│   └─ Finance, Governance & Insurance
-│       ├─ Finance & Governance
-│       ├─ Pre Go-Live Time & Expenses
-│       ├─ Risks & Mitigation
-│       ├─ Evidence Library
-│       └─ Workforce
-└─ Document Vault
-```
-
-## Proposed structure
-```text
-NRESDashboard tabs:
-├─ Dashboard
-├─ IT & Reporting
-│   ├─ Digital Integration   (SDADigitalIntegration — same as SDADashboard)
-│   ├─ Finance & Governance
-│   ├─ Pre Go-Live Time & Expenses
-│   ├─ Risks & Mitigation
-│   ├─ Evidence Library
-│   └─ Workforce
-├─ Claims & Oversight  →  NRESHoursTracker (claims only)
-└─ Document Vault
-```
+## Approach
+Pass `onGuideOpen` and `onSettingsOpen` callbacks (plus a `showSettings` boolean) from `NRESHoursTracker` → `BuyBackClaimsTab` → each sub-dashboard, then render the icon buttons in each dashboard's existing title row.
 
 ## Changes
 
-### File 1: `src/pages/NRESDashboard.tsx`
-- Add `Monitor` icon import and `SDADigitalIntegration` import
-- Add a new top-level tab: `{ value: "digital", label: "IT & Reporting", icon: Monitor }`
-- Reorder tabs: Dashboard → IT & Reporting → Claims & Oversight → Document Vault
-- Add `<TabsContent value="digital">` rendering a new `NRESDigitalAndFinance` component (or inline the sub-tabs)
-- The digital tab will contain the `SDADigitalIntegration` component plus all the Finance/Governance sub-tabs currently in NRESHoursTracker
+### File 1: `src/components/nres/hours-tracker/NRESHoursTracker.tsx`
+- Remove the toolbar `<div className="flex items-center gap-2">` block (lines 35–59)
+- Pass new props to `BuyBackClaimsTab`: `onGuideOpen`, `onSettingsOpen`, `showSettings`
 
-### File 2: `src/components/nres/hours-tracker/NRESHoursTracker.tsx`
-- Remove the `TabsList` with "SDA Resource & Buy-Back Claims" and "Finance, Governance & Insurance" toggle
-- Remove all Finance-related imports (`SDAFinanceGovernance`, `SDARisksMitigation`, `SDAEvidenceLibrary`, `SDAWorkforceInnovation`, time/expense components)
-- Remove the `financeSubTab` state and all the Finance tab content (lines 188-330)
-- The component now renders only the Buy-Back claims content directly (guide button, settings button, `BuyBackClaimsTab`, and the access settings modal)
-- Remove unused hooks/state (`useNRESUserSettings`, `useNRESHoursTracker`, `useNRESExpenses`, `useNRESClaimants`, expenses/claimants states)
+### File 2: `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`
+- Extend the component's props to accept `onGuideOpen?: () => void`, `onSettingsOpen?: () => void`, `showSettings?: boolean`
+- In the Admin header row (line ~891), add the help/settings icon buttons after the ADMIN badge
+- Pass same props through to `BuyBackPracticeDashboard`, `BuyBackVerifierDashboard`, `BuyBackPMLDashboard`
 
-### File 3 (new): `src/components/nres/NRESDigitalAndFinance.tsx`
-- New component containing the `SDADigitalIntegration` plus Finance sub-tabs
-- Sub-tabs: Digital Integration | Finance & Governance | Pre Go-Live Time & Expenses | Risks & Mitigation | Evidence Library | Workforce
-- Moves all the Finance/Governance logic from NRESHoursTracker (time tracking, expenses, claimants, admin reports) into this component
-- Receives `neighbourhoodName`, `hideEvidenceLibrary`, `interactiveInsurance` and other relevant props
+### File 3: `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`
+- Accept `onGuideOpen`, `onSettingsOpen`, `showSettings` props
+- In the title row (line ~2035–2038), add small icon buttons after the NRES badge
 
-### No changes to
-- SDADashboard or ENNDashboard
-- BuyBackClaimsTab or any claims components
-- Any hooks or data files
+### File 4: `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx`
+- Same pattern — add icon buttons inline with the title row (line ~519–522)
+
+### File 5: `src/components/nres/hours-tracker/BuyBackPMLDashboard.tsx`
+- Same pattern — add icon buttons inline with the title row (line ~818–821)
+
+## Button style
+Small inline icon buttons matching the existing design language — subtle outline style, ~20px, sitting right after the role badge in the title row. Consistent across all four dashboard views.
 
