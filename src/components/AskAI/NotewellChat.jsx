@@ -747,7 +747,8 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile",s
               <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 14px",lineHeight:1.55}}>Control what appears in downloaded Word documents.</p>
               {[
                 {key:"useLetterhead", label:"Practice letterhead", desc:"Show your practice name, address, logo and contact details at the top of every Word document."},
-                {key:"includeLogoInDocx", label:"Include practice logo in exported documents", desc:"When enabled, your practice logo appears in the header of downloaded Word documents. Disable to export clean documents without a logo."},
+                {key:"includeLogoInDocx", label:"Include practice logo in documents", desc:"When enabled, your practice logo appears in the header of downloaded Word documents. Disable to export clean documents without a logo."},
+                {key:"includePracticeDetails", label:"Include practice details in document header", desc:"When enabled, the document header shows the practice name, address, phone, email and website. Disable to omit practice details from the header."},
                 {key:"showDocFooter", label:"Document footer", desc:"Show author, job title and Notewell compliance information at the bottom of every Word document."},
               ].map(({key,label,desc})=>{
                 const val = settings?.[key] !== false;
