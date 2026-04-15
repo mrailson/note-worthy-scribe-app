@@ -55,7 +55,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   buyback: 'Buy-Back',
   gp_locum: 'GP Locum',
   new_sda: 'New SDA',
-  management: 'Management Recovery',
+  management: 'NRES Management & Meeting Attendance',
 };
 
 const PERIOD_OPTIONS = [
@@ -589,10 +589,7 @@ function StaffActions({
   const [editAllocValue, setEditAllocValue] = useState(String(member.allocation_value ?? ''));
   const [saving, setSaving] = useState(false);
 
-  // Management roles are config-driven; don't allow edit/remove
-  if (category === 'management') {
-    return <span style={{ fontSize: 10, color: '#d1d5db' }}>—</span>;
-  }
+  // Management roles now support edit/remove like other categories
 
   if (confirmRemove) {
     return (
@@ -1494,10 +1491,10 @@ export function BuyBackPracticeDashboard({
           {...rosterSectionProps}
         />
         <StaffRosterSection
-          title="Management Recovery"
+          title="NRES Management & Meeting Attendance Claims"
           category="management"
           staffList={managementStaff}
-          showAddButton={false}
+          showAddButton
           {...rosterSectionProps}
         />
       </div>
