@@ -9,6 +9,15 @@ interface RecoveryChunk {
   timestamp: number;
 }
 
+interface ReprocessSegmentResult {
+  index: number;
+  status: 'pending' | 'processing' | 'success' | 'error';
+  text?: string;
+  wordCount?: number;
+  fileName?: string;
+  error?: string;
+}
+
 interface MobileRecordingChunk {
   index: number;
   arrayBuffer: ArrayBuffer;
