@@ -245,24 +245,115 @@ function generateXlsxBlob(a){
   );
 }
 async function generatePptxBlob(a){
-  const pptx=new pptxgen();pptx.layout="LAYOUT_WIDE";
-  const DARK="003087",MID="005EB8",WHITE="FFFFFF",GREY="425563";
-  (a.slides||[]).forEach((slide,idx)=>{
-    const s=pptx.addSlide();const dark=idx===0||idx===(a.slides.length-1);
-    s.background={fill:dark?DARK:WHITE};
-    s.addShape('rect',{x:0,y:0,w:"100%",h:0.08,fill:{color:MID},line:{type:"none"}});
-    s.addShape('rect',{x:0,y:6.9,w:"100%",h:0.25,fill:{color:dark?"002060":"F0F4F8"},line:{type:"none"}});
-    s.addText("Notewell AI · DCB0129/DCB0160 · NHS Primary Care",{x:0.3,y:6.92,w:9,h:0.18,fontSize:7,color:dark?"6699CC":GREY,fontFace:"Arial",italic:true});
-    s.addText(`${idx+1}/${a.slides.length}`,{x:9.5,y:6.92,w:0.8,h:0.18,fontSize:7,color:dark?"6699CC":GREY,fontFace:"Arial",align:"right"});
-    const TC=dark?WHITE:DARK;
+  const pptx = new pptxgen();
+  pptx.layout = "LAYOUT_WIDE";
+  const DARK = "003087", MID = "005EB8", WHITE = "FFFFFF", GREY = "425563";
+  (a.slides || []).forEach((slide, idx) => {
+    const s = pptx.addSlide();
+    const dark = idx === 0 || idx === (a.slides.length - 1);
+    s.background = { fill: dark ? DARK : WHITE };
+    // Top accent bar
+    s.addShape('rect', { x:0, y:0, w:"100%", h:0.08, fill:{color:MID}, line:{type:"none"} });
+    // Footer bar
+    s.addShape('rect', { x:0, y:6.9, w:"100%", h:0.25, fill:{color:dark?"002060":"F0F4F8"}, line:{type:"none"} });
+    s.addText("Notewell AI · DCB0129/DCB0160 · NHS Primary Care", {
+      x:0.3, y:6.92, w:9, h:0.18,
+      fontSize:7, color:dark?"6699CC":GREY, fontFace:"Arial", italic:true
+    });
+    s.addText(`${idx+1}/${a.slides.length}`, {
+      x:9.5, y:6.92, w:0.8, h:0.18,
+      fontSize:7, color:dark?"6699CC":GREY, fontFace:"Arial", align:"right"
+    });
+    const TC = dark ? WHITE : DARK;
     switch(slide.layout){
-      case"title":s.addShape('rect',{x:0.5,y:1.5,w:9.3,h:3.8,fill:{color:"002060"},line:{color:"41B6E6",pt:1},rounding:true});s.addText(slide.title||"",{x:0.8,y:1.9,w:8.7,h:1.8,fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true});if(slide.subtitle)s.addText(slide.subtitle,{x:0.8,y:3.7,w:8.7,h:0.9,fontSize:16,color:"41B6E6",fontFace:"Arial",align:"center",wrap:true});if(slide.meta)s.addText(slide.meta,{x:0.8,y:5.4,w:8.7,h:0.6,fontSize:11,color:"8899AA",fontFace:"Arial",align:"center"});break;
-      case"stat":s.addText(slide.title||"",{x:0.4,y:0.15,w:9.5,h:0.7,fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true});s.addShape('rect',{x:0.4,y:0.9,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});const stats=slide.stats||[];const cw=9.4/Math.max(stats.length,1);stats.forEach((st,i)=>{const x=0.4+i*cw;s.addShape('rect',{x:x+0.1,y:1.1,w:cw-0.2,h:4.0,fill:{color:dark?"002060":"EDF4FF"},line:{color:MID,pt:1},rounding:true});s.addText(st.value||"",{x:x+0.1,y:1.5,w:cw-0.2,h:1.8,fontSize:52,bold:true,color:MID,fontFace:"Arial Black",align:"center",valign:"middle"});s.addText(st.label||"",{x:x+0.1,y:3.3,w:cw-0.2,h:0.8,fontSize:12,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true});});break;
-      case"two-col":s.addText(slide.title||"",{x:0.4,y:0.15,w:9.5,h:0.75,fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true});s.addShape('rect',{x:0.4,y:0.95,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});["left","right"].forEach((side,i)=>{const col=slide[side]||{};const xOff=i===0?0.4:5.2;if(col.heading){s.addShape('rect',{x:xOff,y:1.1,w:4.4,h:0.4,fill:{color:MID},line:{type:"none"},rounding:true});s.addText(col.heading,{x:xOff+0.1,y:1.12,w:4.2,h:0.36,fontSize:12,bold:true,color:WHITE,fontFace:"Arial",valign:"middle"});}if(col.bullets?.length){s.addText(col.bullets.map(b=>({text:"  "+b,options:{bullet:{type:"bullet",code:"2022",color:MID},fontSize:12,color:dark?WHITE:"231F20",fontFace:"Arial",paraSpaceAfter:5}})),{x:xOff,y:1.6,w:4.4,h:5,wrap:true,valign:"top"});}});s.addShape('rect',{x:4.95,y:1.0,w:0.03,h:5.8,fill:{color:"DDDDDD"},line:{type:"none"}});break;
-      default:s.addText(slide.title||"",{x:0.4,y:0.2,w:9.5,h:0.8,fontSize:28,bold:true,color:TC,fontFace:"Arial Black",wrap:true});s.addShape('rect',{x:0.4,y:1.05,w:9.5,h:0.03,fill:{color:MID},line:{type:"none"}});if(slide.bullets?.length){s.addText(slide.bullets.map(b=>({text:"  "+b,options:{bullet:{type:"bullet",code:"2022",color:MID},fontSize:14,color:dark?WHITE:"231F20",fontFace:"Arial",paraSpaceAfter:6}})),{x:0.4,y:1.2,w:9.4,h:5.5,fontFace:"Arial",wrap:true,valign:"top"});}else if(slide.body)s.addText(slide.body,{x:0.4,y:1.2,w:9.4,h:5.5,fontSize:14,color:dark?WHITE:"231F20",fontFace:"Arial",wrap:true,valign:"top"});
+      case "title":
+        s.addShape('rect', { x:0.5,y:1.5,w:9.3,h:3.8, fill:{color:"002060"}, line:{color:"41B6E6",pt:1}, rounding:true });
+        s.addText(slide.title||"", { x:0.8,y:1.9,w:8.7,h:1.8, fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true });
+        if(slide.subtitle) s.addText(slide.subtitle, { x:0.8,y:3.7,w:8.7,h:0.9, fontSize:16,color:"41B6E6",fontFace:"Arial",align:"center",wrap:true });
+        if(slide.meta) s.addText(slide.meta, { x:0.8,y:5.4,w:8.7,h:0.6, fontSize:11,color:"8899AA",fontFace:"Arial",align:"center" });
+        break;
+      case "stat":
+        s.addText(slide.title||"", { x:0.4,y:0.15,w:9.5,h:0.7, fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true });
+        s.addShape('rect', { x:0.4,y:0.9,w:9.5,h:0.03, fill:{color:MID},line:{type:"none"} });
+        const stats = slide.stats || [];
+        const cw = 9.4 / Math.max(stats.length, 1);
+        stats.forEach((st, i) => {
+          const x = 0.4 + i * cw;
+          s.addShape('rect', { x:x+0.1,y:1.1,w:cw-0.2,h:4.0, fill:{color:dark?"002060":"EDF4FF"}, line:{color:MID,pt:1}, rounding:true });
+          s.addText(st.value||"", { x:x+0.1,y:1.5,w:cw-0.2,h:1.8, fontSize:52,bold:true,color:MID,fontFace:"Arial Black",align:"center",valign:"middle" });
+          s.addText(st.label||"", { x:x+0.1,y:3.3,w:cw-0.2,h:0.8, fontSize:12,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true });
+        });
+        break;
+      case "two-col":
+        s.addText(slide.title||"", { x:0.4,y:0.15,w:9.5,h:0.75, fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true });
+        s.addShape('rect', { x:0.4,y:0.95,w:9.5,h:0.03, fill:{color:MID},line:{type:"none"} });
+        ["left","right"].forEach((side,i) => {
+          const col = slide[side] || {};
+          const xOff = i === 0 ? 0.4 : 5.2;
+          if(col.heading){
+            s.addShape('rect', { x:xOff,y:1.1,w:4.4,h:0.4, fill:{color:MID},line:{type:"none"},rounding:true });
+            s.addText(col.heading, { x:xOff+0.1,y:1.12,w:4.2,h:0.36, fontSize:12,bold:true,color:WHITE,fontFace:"Arial",valign:"middle" });
+          }
+          if(col.bullets?.length){
+            s.addText(
+              col.bullets.map(b => ({ text:"  "+b, options:{ bullet:{type:"bullet",code:"2022",color:MID}, fontSize:12, color:dark?WHITE:"231F20", fontFace:"Arial", paraSpaceAfter:5 }})),
+              { x:xOff, y:1.6, w:4.4, h:5, wrap:true, valign:"top" }
+            );
+          }
+        });
+        s.addShape('rect', { x:4.95,y:1.0,w:0.03,h:5.8, fill:{color:"DDDDDD"},line:{type:"none"} });
+        break;
+      default: {
+        // Title
+        s.addText(slide.title||"", { x:0.4,y:0.2,w:9.5,h:0.8, fontSize:28,bold:true,color:TC,fontFace:"Arial Black",wrap:true });
+        // Separator bar under title
+        s.addShape('rect', { x:0.4,y:1.06,w:9.5,h:0.03, fill:{color:MID},line:{type:"none"} });
+        if(slide.bullets?.length){
+          const count = slide.bullets.length;
+          // Dynamic font size — fewer bullets = bigger, more bullets = smaller
+          const fontSize =
+            count <= 2 ? 20 :
+            count === 3 ? 17 :
+            count === 4 ? 15 :
+            count <= 6 ? 13 : 11;
+          // Dynamic paragraph spacing — fewer bullets = more air
+          const paraSpaceAfter =
+            count <= 2 ? 20 :
+            count === 3 ? 14 :
+            count === 4 ? 10 :
+            count <= 6 ? 6 : 4;
+          // Content starts slightly lower for breathing room after separator
+          const contentY = 1.22;
+          s.addText(
+            slide.bullets.map((b, bi) => ({
+              text: "  " + b,
+              options: {
+                bullet: { type:"bullet", code:"2022", color:MID },
+                // First bullet is slightly larger and bold — acts as a lead statement
+                fontSize: bi === 0 && count >= 2 ? fontSize + 2 : fontSize,
+                bold: bi === 0 && count >= 2,
+                color: dark ? WHITE : (bi === 0 ? DARK : "231F20"),
+                fontFace: "Arial",
+                paraSpaceAfter,
+              }
+            })),
+            { x:0.4, y:contentY, w:9.4, h:5.5, fontFace:"Arial", wrap:true, valign:"top" }
+          );
+        } else if(slide.body){
+          s.addText(slide.body, { x:0.4,y:1.25,w:9.4,h:5.5, fontSize:14,color:dark?WHITE:"231F20",fontFace:"Arial",wrap:true,valign:"top" });
+        }
+        break;
+      }
+    }
+    // Speaker notes — wire up if the AI provides them
+    if(slide.notes){
+      s.addNotes(slide.notes);
     }
   });
-  return new Blob([await pptx.write({outputType:"arraybuffer"})],{type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"});
+  return new Blob(
+    [await pptx.write({ outputType:"arraybuffer" })],
+    { type:"application/vnd.openxmlformats-officedocument.presentationml.presentation" }
+  );
 }
 function downloadSvg(a){triggerDownload(new Blob([a.svg],{type:"image/svg+xml"}),(a.filename||"diagram")+".svg");}
 async function downloadPng(a){
@@ -346,7 +437,14 @@ XLSX RULES:
 - Always provide columnWidths — aim for 12-25 characters depending on content
 - Use multiple sheets when data naturally separates (e.g. Summary + Detail + Lookup tabs)
 - For VLOOKUP: source data goes on a lookup sheet, formulas reference it cross-sheet e.g. =VLOOKUP(A2,Lookup!A:B,2,FALSE)
-PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."]},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
+PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."],"notes":"speaker notes here"},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
+PPTX RULES:
+- Maximum 4 bullets per content slide — split into multiple slides if more content
+- Fewer bullets = bigger, bolder text — aim for 3-4 per slide for best visual impact
+- Always add a "notes" field on each content slide with presenter talking points
+- Use "stat" layout for slides with 2-4 key numbers/metrics
+- Use "two-col" layout for comparisons, before/after, pros/cons
+- First and last slides auto-render as dark NHS navy — always use "title" layout for slide 1
 IMAGE: {"type":"image","title":"...","filename":"kebab","alt":"description","svg":"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'>...</svg>"}
 SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Escape quotes as \\".
 
