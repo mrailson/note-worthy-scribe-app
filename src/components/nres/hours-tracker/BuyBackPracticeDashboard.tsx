@@ -666,6 +666,13 @@ function InlineClaimPanel({
                       <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
                         Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
                       </div>
+                      {isManagement && staffMember.hourly_rate && rateParams?.onCostMultiplier && (
+                        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, padding: '6px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #f1f5f9' }}>
+                          Hourly rate: <strong>{fmtGBP(staffMember.hourly_rate)}</strong>
+                          {' × '}{rateParams.onCostMultiplier.toFixed(4)} on-costs
+                          {' = '}<strong>{fmtGBP(staffMember.hourly_rate * rateParams.onCostMultiplier)}/hr</strong> (incl. employer NI &amp; pension)
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button
