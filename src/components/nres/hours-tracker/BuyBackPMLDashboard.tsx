@@ -386,13 +386,20 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   onQuery?: (id: string, notes: string) => void;
   onReject: (id: string, notes: string) => void;
   onMarkPaid?: (id: string, notes?: string) => void;
-  onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
+  onSchedulePayment?: (id: string, date: string, bacsRef?: string, poRef?: string, payMethod?: string, notes?: string) => void;
   saving?: boolean;
 }) {
   const [reviewNotes, setReviewNotes] = useState('');
-  const [payDate, setPayDate] = useState('');
-  const [bacsRef, setBacsRef] = useState('');
-  const [payMode, setPayMode] = useState<'schedule'|'pay'>('schedule');
+
+  // Finance payment state
+  const [schedDate, setSchedDate] = useState(
+    (claim as any).expected_payment_date ? (claim as any).expected_payment_date.slice(0, 10) : ''
+  );
+  const [bacsRef, setBacsRef] = useState((claim as any).bacs_reference || '');
+  const [poRef, setPoRef] = useState((claim as any).pml_po_reference || '');
+  const [payMethod, setPayMethod] = useState((claim as any).payment_method || 'BACS');
+  const [actualDate, setActualDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [financeNote, setFinanceNote] = useState('');
   const staffDetails = (claim.staff_details || []) as any[];
   const practiceName = getPracticeName(claim.practice_key);
   const monthLabel = format(new Date(claim.claim_month), 'MMMM yyyy');
