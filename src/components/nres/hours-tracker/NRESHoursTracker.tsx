@@ -7,9 +7,7 @@ import { ClaimsUserGuide } from './ClaimsUserGuide';
 import { useNRESSystemRoles } from '@/hooks/useNRESSystemRoles';
 import { useNRESBuyBackAccess } from '@/hooks/useNRESBuyBackAccess';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Settings, HelpCircle } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 
 interface NRESHoursTrackerProps {
   hideEvidenceLibrary?: boolean;
@@ -29,35 +27,10 @@ export function NRESHoursTracker({ neighbourhoodName = 'NRES' }: NRESHoursTracke
   const { staffRoles, settings: rateSettings, onCostMultiplier } = useNRESBuyBackRateSettings();
   const { isSuperAdmin, isManagementLead } = useNRESSystemRoles();
   const isENN = neighbourhoodName === 'ENN';
+  const showSettings = !!(admin || isSuperAdmin || isManagementLead);
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => setGuideOpen(true)}>
-                <HelpCircle className="w-3.5 h-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs">Claims Guide</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        {(admin || isSuperAdmin || isManagementLead) && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" className="text-xs" onClick={() => setSettingsOpen(true)}>
-                  <Settings className="w-3.5 h-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">Access Settings</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
-
       {/* Claims User Guide Modal */}
       <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
@@ -78,7 +51,12 @@ export function NRESHoursTracker({ neighbourhoodName = 'NRES' }: NRESHoursTracke
       </Dialog>
 
       {/* Buy-Back Claims */}
-      <BuyBackClaimsTab neighbourhoodName={neighbourhoodName} />
+      <BuyBackClaimsTab
+        neighbourhoodName={neighbourhoodName}
+        onGuideOpen={() => setGuideOpen(true)}
+        onSettingsOpen={() => setSettingsOpen(true)}
+        showSettings={showSettings}
+      />
 
       {/* Access Settings Modal */}
       <BuyBackAccessSettingsModal

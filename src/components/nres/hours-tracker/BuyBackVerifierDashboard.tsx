@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -10,6 +10,9 @@ interface VerifierDashboardProps {
   onVerify: (claimId: string, notes?: string) => Promise<any>;
   onReturnToPractice: (claimId: string, notes?: string) => Promise<any>;
   savingClaim: boolean;
+  onGuideOpen?: () => void;
+  onSettingsOpen?: () => void;
+  showSettings?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -467,7 +470,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
 };
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
-export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim }: VerifierDashboardProps) {
+export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim, onGuideOpen, onSettingsOpen, showSettings }: VerifierDashboardProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -520,6 +523,16 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
             <div style={{ width: 6, height: 26, background: '#005eb8', borderRadius: 3 }} />
             <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Buy-Back Claims</h1>
             <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 9px', borderRadius: 100, background: '#005eb8', color: '#fff', letterSpacing: '0.03em' }}>NRES</span>
+            {onGuideOpen && (
+              <button onClick={onGuideOpen} title="Claims Guide" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280', marginLeft: 2 }}>
+                <HelpCircle style={{ width: 14, height: 14 }} />
+              </button>
+            )}
+            {showSettings && onSettingsOpen && (
+              <button onClick={onSettingsOpen} title="Access Settings" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280' }}>
+                <Settings style={{ width: 14, height: 14 }} />
+              </button>
+            )}
           </div>
           <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>Verify submitted claims before Director review</p>
         </div>
