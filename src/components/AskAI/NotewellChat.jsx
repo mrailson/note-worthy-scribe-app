@@ -440,8 +440,11 @@ const IMAGE_GEN_PATTERNS = [
   /generate\s+(?:an?\s+)?image/i,
   /create\s+(?:an?\s+)?photo/i,
   /make\s+(?:an?\s+)?picture/i,
-  /\bdraw\b/i,
-  /\billustrate\b/i,
+  // Narrowed: only match "draw" when followed by visual content words
+  // Prevents false positives on "draw up minutes", "draw blood", "draw a conclusion"
+  /\bdraw\s+(?:an?\s+)?(?:image|picture|sketch|illustration|portrait|logo|icon|banner|poster|graphic)\b/i,
+  // Narrowed: only match "illustrate" when it refers to an actual image
+  /\billustrate\s+(?:this\s+)?(?:with\s+)?(?:an?\s+)?(?:image|picture|diagram|visual|graphic)\b/i,
   /\bAI\s+image\s+of\b/i,
   /\bimage\s+of\b/i,
   /\bphoto\s+of\b/i,
