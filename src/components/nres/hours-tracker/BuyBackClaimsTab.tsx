@@ -26,6 +26,7 @@ import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
+import { useNRESMeetingLog } from '@/hooks/useNRESMeetingLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -440,6 +441,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, user?.email, user?.user_metadata?.full_name]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
+  const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries } = useNRESMeetingLog();
 
   // New claim state — declared early so bank holidays can reference claimMonth
   const [claimMonth, setClaimMonth] = useState(() => {
@@ -814,6 +816,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           onGuideOpen={onGuideOpen}
           onSettingsOpen={onSettingsOpen}
           showSettings={showSettings}
+          meetingLogEntries={meetingLogEntries}
+          canAddOnBehalf={isAdmin}
+          onAddMeetingEntry={async (practiceKey, roleConfig, meetingName, meetingDate, hours) => {
+            await addMeetingEntry({ practiceKey, roleConfig, meetingName, meetingDate, hours, claimMonth: meetingDate.slice(0, 7) + '-01', addedByAdmin: isAdmin });
+          }}
+          onDeleteMeetingEntry={async (id) => { await deleteMeetingEntry(id); }}
+          onSubmitMeetingEntries={async (practiceKey, claimMonth) => { await submitMonthEntries(practiceKey, claimMonth, user?.email); }}
         />
       </div>
     );
