@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { listAllSessions, getSegments, updateSession, type BackupSession, type BackupSegment } from '@/utils/offlineAudioStore';
 
