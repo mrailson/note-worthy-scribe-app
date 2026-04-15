@@ -803,7 +803,85 @@ export default function RecoveryToolPage() {
               >
                 {emailingId === s.sessionId ? '⏳ Sending...' : '📧 Email Me'}
               </button>
+              <button
+                onClick={() => reprocessSession(s)}
+                disabled={!user || reprocessingId === s.sessionId}
+                style={{
+                  flex: 1,
+                  minWidth: 90,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: !user || reprocessingId === s.sessionId ? '#ccc' : '#2e7d32',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: !user || reprocessingId === s.sessionId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {reprocessingId === s.sessionId ? '⏳ Reprocessing...' : '🔄 Reprocess'}
+              </button>
             </div>
+
+            {/* Chunk-by-chunk reprocessing progress */}
+            {reprocessingId === s.sessionId && reprocessSegments.length > 0 && (
+              <div style={{
+                marginTop: 10,
+                padding: 12,
+                borderRadius: 8,
+                background: '#f5f5f5',
+                border: '1px solid #e0e0e0',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                  Reprocessing: {reprocessDone} of {reprocessTotal} segments
+                </div>
+                {/* Progress bar */}
+                <div style={{
+                  height: 6,
+                  borderRadius: 3,
+                  background: '#e0e0e0',
+                  marginBottom: 10,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${reprocessTotal > 0 ? (reprocessDone / reprocessTotal) * 100 : 0}%`,
+                    background: '#1a73e8',
+                    borderRadius: 3,
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+                {/* Per-segment status */}
+                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                  {reprocessSegments.map((seg) => (
+                    <div key={seg.index} style={{ fontSize: 12, lineHeight: 1.8, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                      <span style={{ flexShrink: 0 }}>
+                        {seg.status === 'success' && '✅'}
+                        {seg.status === 'error' && '❌'}
+                        {seg.status === 'processing' && '⏳'}
+                        {seg.status === 'pending' && '⬜'}
+                      </span>
+                      <span>
+                        <strong>Segment {seg.index + 1}</strong>
+                        {seg.status === 'success' && (
+                          <span style={{ color: '#555' }}>
+                            {' — '}{seg.wordCount?.toLocaleString()} words
+                            {seg.text && <em style={{ marginLeft: 4 }}>"{seg.text.slice(0, 50)}…"</em>}
+                          </span>
+                        )}
+                        {seg.status === 'processing' && <span style={{ color: '#888' }}> — processing…</span>}
+                        {seg.status === 'error' && <span style={{ color: '#c62828' }}> — {seg.error}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {reprocessDone > 0 && (
+                  <div style={{ fontSize: 12, fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: '1px solid #e0e0e0' }}>
+                    Running total: {reprocessSegments.filter(s => s.status === 'success').reduce((sum, s) => sum + (s.wordCount || 0), 0).toLocaleString()} words
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
