@@ -803,6 +803,7 @@ function StaffRosterSection({
     }
   };
 
+  return (
     <div style={{ marginBottom: 18 }}>
       {/* Section header */}
       <div style={{
