@@ -659,6 +659,71 @@ function InlineClaimPanel({
                     {creating ? 'Creating…' : 'Create Draft'}
                   </button>
                 </div>
+              ) : isMeeting ? (
+                /* ── Meeting attendance: actual hours input ── */
+                <div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Hours attended this month
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={meetingHours || ''}
+                          onChange={e => setMeetingHours(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          style={{
+                            width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db',
+                            fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        />
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>hours</span>
+                        {meetingRate > 0 && meetingHours > 0 && (
+                          <>
+                            <span style={{ fontSize: 12, color: '#9ca3af' }}>×</span>
+                            <span style={{ fontSize: 13, color: '#6b7280' }}>{fmtGBP(meetingRate)}/hr</span>
+                            <span style={{ fontSize: 12, color: '#9ca3af' }}>=</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: '#0369a1', fontVariantNumeric: 'tabular-nums' }}>
+                              {fmtGBP(meetingMaxAmount)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {meetingRate > 0 && (
+                        <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                          Rate: {fmtGBP(meetingRate)}/hr (ICB-approved)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!onCreateLocumClaim || creating || meetingHours <= 0) return;
+                      setCreating(true);
+                      try {
+                        const meetingStaff = { ...staffMember, allocation_value: meetingHours };
+                        const result = await onCreateLocumClaim(monthDate, meetingStaff, meetingHours, meetingMaxAmount);
+                        if (result) setLocalClaim(result);
+                      } finally {
+                        setCreating(false);
+                      }
+                    }}
+                    disabled={creating || saving || meetingHours <= 0}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                      borderRadius: 8, border: 'none', background: '#0369a1', color: '#fff',
+                      fontSize: 13, fontWeight: 600,
+                      cursor: creating || meetingHours <= 0 ? 'not-allowed' : 'pointer',
+                      opacity: creating || meetingHours <= 0 ? 0.55 : 1,
+                    }}
+                  >
+                    {creating ? 'Creating…' : 'Create Draft'}
+                  </button>
+                </div>
               ) : (
                 /* ── Standard: show calculated amount ── */
                 <div>
