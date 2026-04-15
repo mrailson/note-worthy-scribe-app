@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2, Download, HardDrive, FolderOpen, Search, FileAudio } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { StorageBackupBrowser } from './admin/StorageBackupBrowser';
@@ -58,6 +59,21 @@ export const AudioBackupManager = () => {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [storageStats, setStorageStats] = useState<StorageStats>({ totalFiles: 0, totalSize: 0, totalMeetings: 0 });
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Chunk-by-chunk reprocessing state
+  interface SegmentResult {
+    index: number;
+    status: 'pending' | 'processing' | 'success' | 'error';
+    text?: string;
+    wordCount?: number;
+    fileName?: string;
+    error?: string;
+  }
+  const [reprocessSegments, setReprocessSegments] = useState<SegmentResult[]>([]);
+  const [reprocessTotal, setReprocessTotal] = useState(0);
+  const [reprocessDone, setReprocessDone] = useState(0);
+  const [reprocessRunning, setReprocessRunning] = useState(false);
+  const [reprocessMeetingId, setReprocessMeetingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAudioBackups();
@@ -175,27 +191,97 @@ export const AudioBackupManager = () => {
     }
   };
 
-  const reprocessAudio = async (backupId: string) => {
+  const reprocessAudio = async (backupId: string, meetingId: string, filePath: string) => {
     setReprocessing(backupId);
+    setReprocessRunning(true);
+    setReprocessMeetingId(meetingId);
+    setReprocessSegments([]);
+    setReprocessTotal(0);
+    setReprocessDone(0);
+
     try {
-      toast.info('Starting audio reprocessing — this may take a few minutes for multiple segments…');
-      
-      const { data, error } = await supabase.functions.invoke('reprocess-audio-backup', {
-        body: { backupId }
+      // Step 1: List segments
+      toast.info('Listing audio segments…');
+      const { data: listData, error: listErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+        body: { action: 'list', backupId: filePath }
       });
 
-      if (error) throw error;
+      if (listErr || !listData?.success) {
+        throw new Error(listData?.error || listErr?.message || 'Failed to list segments');
+      }
 
-      if (data?.success) {
-        const msg = data.processedSegments && data.totalSegments
-          ? `Reprocessed ${data.processedSegments}/${data.totalSegments} audio segments — ${data.wordCount?.toLocaleString() || '?'} words recovered`
-          : 'Audio reprocessed successfully';
-        toast.success(msg);
-        if (data.failedSegments > 0) {
-          toast.warning(`${data.failedSegments} segment(s) could not be transcribed`);
+      const segments = listData.segments as { name: string; size: number; fullPath: string }[];
+      setReprocessTotal(segments.length);
+
+      // Initialise segment results
+      const initialResults: SegmentResult[] = segments.map((s, i) => ({
+        index: i,
+        status: 'pending' as const,
+        fileName: s.name,
+      }));
+      setReprocessSegments(initialResults);
+
+      const transcripts: string[] = [];
+      let completedCount = 0;
+
+      // Step 2: Transcribe each segment one by one
+      for (let i = 0; i < segments.length; i++) {
+        // Mark current as processing
+        setReprocessSegments(prev =>
+          prev.map(seg => seg.index === i ? { ...seg, status: 'processing' } : seg)
+        );
+
+        try {
+          const { data: txData, error: txErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+            body: { action: 'transcribe', backupId: filePath, segmentIndex: i }
+          });
+
+          if (txErr || !txData?.success) {
+            throw new Error(txData?.error || txErr?.message || 'Transcription failed');
+          }
+
+          transcripts.push(txData.text || '');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'success', text: txData.text, wordCount: txData.wordCount }
+                : seg
+            )
+          );
+        } catch (segErr: any) {
+          transcripts.push('');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'error', error: segErr?.message || 'Failed' }
+                : seg
+            )
+          );
+        }
+      }
+
+      // Step 3: Save combined transcript
+      const fullTranscript = transcripts.filter(t => t).join(' ').trim();
+      const totalWords = fullTranscript.split(/\s+/).filter(w => w.length > 0).length;
+
+      if (fullTranscript.length > 0) {
+        const { data: saveData, error: saveErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+          body: { action: 'save', meetingId, fullTranscript, wordCount: totalWords }
+        });
+
+        if (saveErr || !saveData?.success) {
+          toast.error('Transcription completed but failed to save: ' + (saveData?.error || saveErr?.message));
+        } else {
+          toast.success(`Reprocessed ${segments.length} segments — ${totalWords.toLocaleString()} words saved`);
         }
       } else {
-        throw new Error(data?.error || 'Reprocessing failed');
+        toast.warning('No transcript text was recovered from any segment');
       }
 
       await fetchAudioBackups();
@@ -204,6 +290,7 @@ export const AudioBackupManager = () => {
       toast.error('Failed to reprocess audio: ' + (error?.message || 'Unknown error'));
     } finally {
       setReprocessing(null);
+      setReprocessRunning(false);
     }
   };
 
@@ -569,7 +656,7 @@ export const AudioBackupManager = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => reprocessAudio(backup.id)}
+                        onClick={() => reprocessAudio(backup.id, backup.meeting_id, backup.file_path)}
                         disabled={reprocessing === backup.id}
                       >
                         {reprocessing === backup.id ? (
@@ -580,6 +667,70 @@ export const AudioBackupManager = () => {
                         Reprocess Audio
                       </Button>
                     </div>
+
+                    {/* Chunk-by-chunk progress UI */}
+                    {reprocessing === backup.id && reprocessSegments.length > 0 && (
+                      <div className="mt-4 space-y-3 border rounded-lg p-4 bg-muted/30">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium">Reprocessing Audio</span>
+                            <span className="text-muted-foreground">
+                              {reprocessDone} of {reprocessTotal} segments
+                            </span>
+                          </div>
+                          <Progress value={reprocessTotal > 0 ? (reprocessDone / reprocessTotal) * 100 : 0} />
+                        </div>
+
+                        <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                          {reprocessSegments.map((seg) => (
+                            <div key={seg.index} className="flex items-start gap-2 text-sm">
+                              {seg.status === 'success' && (
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                              )}
+                              {seg.status === 'error' && (
+                                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                              )}
+                              {seg.status === 'processing' && (
+                                <Loader2 className="h-4 w-4 animate-spin text-primary mt-0.5 shrink-0" />
+                              )}
+                              {seg.status === 'pending' && (
+                                <div className="h-4 w-4 rounded-full border border-muted-foreground/30 mt-0.5 shrink-0" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <span className="font-medium">Segment {seg.index + 1}</span>
+                                {seg.status === 'success' && (
+                                  <span className="text-muted-foreground">
+                                    {' — '}{seg.wordCount?.toLocaleString()} words
+                                    {seg.text && (
+                                      <span className="italic ml-1">
+                                        "{seg.text.slice(0, 60)}…"
+                                      </span>
+                                    )}
+                                  </span>
+                                )}
+                                {seg.status === 'processing' && (
+                                  <span className="text-muted-foreground"> — processing…</span>
+                                )}
+                                {seg.status === 'error' && (
+                                  <span className="text-destructive"> — {seg.error}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {reprocessDone > 0 && (
+                          <div className="text-sm font-medium pt-1 border-t">
+                            Running total:{' '}
+                            {reprocessSegments
+                              .filter(s => s.status === 'success')
+                              .reduce((sum, s) => sum + (s.wordCount || 0), 0)
+                              .toLocaleString()}{' '}
+                            words
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
