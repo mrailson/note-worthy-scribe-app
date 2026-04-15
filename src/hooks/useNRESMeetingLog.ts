@@ -24,6 +24,7 @@ export interface MeetingLogEntry {
   status: 'draft' | 'submitted' | 'verified' | 'approved' | 'queried' | 'invoiced' | 'paid' | 'rejected';
   submitted_at: string | null;
   submitted_by: string | null;
+  invoice_number: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
