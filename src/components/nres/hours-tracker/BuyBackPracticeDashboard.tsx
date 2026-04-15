@@ -1051,13 +1051,15 @@ function MeetingAttendanceLog({
   const [declared, setDeclared] = useState(false);
 
   const monthEntries = entries.filter(e => (e.claim_month?.slice(0, 7) || '') === monthDate.slice(0, 7));
-  const draftEntries = monthEntries.filter(e => e.status === 'draft');
-  const submittedEntries = monthEntries.filter(e => e.status !== 'draft');
+  const editableStatuses = ['draft', 'queried'];
+  const draftEntries = monthEntries.filter(e => editableStatuses.includes(e.status));
+  const submittedEntries = monthEntries.filter(e => !editableStatuses.includes(e.status));
   const totalHours = monthEntries.reduce((s, e) => s + e.hours, 0);
   const draftHours = draftEntries.reduce((s, e) => s + e.hours, 0);
   const draftAmount = draftEntries.reduce((s, e) => s + e.total_amount, 0);
   const rate = staffMember.hourly_rate || 0;
   const isFullySubmitted = draftEntries.length === 0 && submittedEntries.length > 0;
+  const hasQueriedEntries = monthEntries.some(e => e.status === 'queried');
 
   const handleAdd = async () => {
     if (!meetingName.trim() || !meetingDate || !meetingHours) return;
@@ -1129,7 +1131,7 @@ function MeetingAttendanceLog({
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmtGBP(entry.total_amount)}</span>
                     <span style={{ fontSize: 10, fontWeight: 600, color: statusColor(entry.status), textTransform: 'uppercase' as const, flexShrink: 0 }}>{entry.status}</span>
-                    {entry.status === 'draft' && (
+                    {editableStatuses.includes(entry.status) && (
                       <button onClick={() => onDelete(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: 16, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }}
                         onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = '#dc2626'}
                         onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = '#d1d5db'}
@@ -1138,6 +1140,11 @@ function MeetingAttendanceLog({
                   </div>
                 ))}
               </div>
+              {hasQueriedEntries && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, color: '#991b1b' }}>
+                  <strong>⚠ Queried:</strong> One or more entries have been returned by the verifier. You may delete and re-log them, or resubmit as-is.
+                </div>
+              )}
             </div>
           )}
           {!isFullySubmitted && (
