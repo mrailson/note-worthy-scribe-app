@@ -1209,6 +1209,9 @@ function StaffRosterSection({
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
 
+  // Collapsed by default when no staff; open when staff exist
+  const [sectionOpen, setSectionOpen] = useState(staffList.length > 0);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [addName, setAddName] = useState('');
   const [addRole, setAddRole] = useState('');
@@ -1241,13 +1244,22 @@ function StaffRosterSection({
 
   return (
     <div style={{ marginBottom: 18 }}>
-      {/* Section header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 14px', borderLeft: `4px solid ${accent}`,
-        background: `${accent}08`, borderRadius: '0 8px 8px 0', marginBottom: 8,
-      }}>
+      {/* Section header — click to toggle */}
+      <div
+        onClick={() => setSectionOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', borderLeft: `4px solid ${accent}`,
+          background: `${accent}08`, borderRadius: '0 8px 8px 0', marginBottom: 8,
+          cursor: 'pointer', userSelect: 'none' as const,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ChevronDown style={{
+            width: 14, height: 14, color: accent, flexShrink: 0,
+            transition: 'transform 0.2s',
+            transform: sectionOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+          }} />
           <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{title}</span>
           <span style={{
             fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 100,
@@ -1257,7 +1269,7 @@ function StaffRosterSection({
           </span>
         </div>
         {showAddButton && onAddStaff && (
-          <button onClick={() => setShowAddForm(prev => !prev)} style={{
+          <button onClick={(e) => { e.stopPropagation(); setShowAddForm(prev => !prev); }} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px',
             borderRadius: 6, border: `1px solid ${accent}40`, background: showAddForm ? `${accent}15` : '#fff',
             color: accent, fontSize: 11, fontWeight: 600, cursor: 'pointer',
@@ -1347,6 +1359,8 @@ function StaffRosterSection({
       )}
 
 
+      {sectionOpen && (
+        <>
       {staffList.length === 0 ? (
         <div style={{
           padding: '24px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 13,
@@ -1465,6 +1479,8 @@ function StaffRosterSection({
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </div>
   );
@@ -1624,6 +1640,18 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 
   const staffDets = (claim.staff_details || []) as any[];
 
+  // Staff names for collapsed summary — show up to 2 names
+  const staffNames = staffDets.map((s: any) => s.staff_name).filter(Boolean);
+  const staffSummary = staffNames.length === 0 ? null
+    : staffNames.length === 1 ? staffNames[0]
+    : staffNames.length === 2 ? staffNames.join(' & ')
+    : staffNames.slice(0, 2).join(', ') + ` +${staffNames.length - 2} more`;
+
+  // Primary category from first staff member
+  const primaryCategory = staffDets[0]?.staff_category as string | undefined;
+  const categoryLabel = CATEGORY_LABELS[primaryCategory || ''] || null;
+  const categoryColor = CATEGORY_COLORS[primaryCategory || ''] || '#6b7280';
+
   const { uploading, uploadEvidence, deleteEvidence, getDownloadUrl, getUploadedTypesForStaff, getFilesForStaff } = useNRESClaimEvidence(claim.id);
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const { allComplete: evidenceComplete, totalMandatory, totalUploaded } = useStaffLineEvidenceComplete(
@@ -1654,12 +1682,25 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
         />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, minWidth: 0 }}>
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{monthLabel}</span>
-          {(() => {
-            const cfg = claim.claim_type === 'additional'
-              ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
-              : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
-            return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
-          })()}
+          {/* Staff name — most important identifier */}
+          {staffSummary && (
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{staffSummary}</span>
+          )}
+          {/* Category badge using CATEGORY_LABELS + CATEGORY_COLORS for consistency */}
+          {categoryLabel ? (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6,
+              fontSize: 10, fontWeight: 600,
+              color: categoryColor, background: `${categoryColor}12`, border: `1px solid ${categoryColor}30`,
+            }}>{categoryLabel}</span>
+          ) : (
+            (() => {
+              const cfg = claim.claim_type === 'additional'
+                ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
+                : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
+              return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
+            })()
+          )}
           <StatusPill status={claim.status} />
           {isQueried && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 500, color: '#dc2626' }}>
@@ -1668,10 +1709,14 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           )}
           {isDraft && <span style={{ fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>Not yet submitted</span>}
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 100, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>
-            <div style={{ fontSize: 11, color: '#9ca3af' }}>{staffCount} staff · {hours.toFixed(1)} hrs</div>
+            <div style={{ fontSize: 11, color: '#9ca3af' }}>
+              {staffDets[0]?.staff_role && `${staffDets[0].staff_role}`}
+              {staffDets[0]?.staff_role && staffCount > 1 && ` +${staffCount - 1}`}
+              {!staffDets[0]?.staff_role && `${staffCount} staff`}
+            </div>
           </div>
           {claim.invoice_number && (
             <div onClick={(e) => e.stopPropagation()}>
