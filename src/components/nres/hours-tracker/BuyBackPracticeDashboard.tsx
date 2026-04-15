@@ -674,17 +674,65 @@ function InlineClaimPanel({
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Calculated Amount</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums', marginBottom: 6 }}>
                         {fmtGBP(calculatedAmount)}
                       </div>
-                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                        Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
-                      </div>
-                      {isManagement && staffMember.hourly_rate && rateParams?.onCostMultiplier && (
-                        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, padding: '6px 10px', background: '#f8fafc', borderRadius: 6, border: '1px solid #f1f5f9' }}>
-                          Hourly rate: <strong>{fmtGBP(staffMember.hourly_rate)}</strong>
-                          {' × '}{rateParams.onCostMultiplier.toFixed(4)} on-costs
-                          {' = '}<strong>{fmtGBP(staffMember.hourly_rate * rateParams.onCostMultiplier)}/hr</strong> (incl. employer NI &amp; pension)
+                      {/* Management: show full working-weeks breakdown */}
+                      {(staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && rateParams?.workingWeeksInMonth && staffMember.hourly_rate ? (() => {
+                        const ww = rateParams.workingWeeksInMonth!;
+                        const baseRate = staffMember.hourly_rate;
+                        const multiplier = rateParams.onCostMultiplier ?? 1;
+                        const effectiveRate = baseRate * multiplier;
+                        const weeklyHours = staffMember.allocation_value;
+                        const niPct = rateParams.employerNiPct ?? 13.8;
+                        const penPct = rateParams.employerPensionPct ?? 14.38;
+                        const bhCount = rateParams.bankHolidaysInMonth ?? 0;
+                        const bhDetails = (rateParams as any).bankHolidayDetails as { name: string; formatted: string }[] | undefined;
+                        const fullMonth = new Date(monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                        return (
+                          <div>
+                            {/* Primary calculation row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8, fontSize: 13 }}>
+                              <span style={{ fontWeight: 700, color: '#005eb8' }}>{weeklyHours} hrs/wk</span>
+                              <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
+                              <span style={{ fontWeight: 700, color: '#005eb8' }}>{ww.toFixed(1)} working weeks in {fullMonth}</span>
+                              <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
+                              <span style={{ fontWeight: 700, color: '#005eb8' }}>{fmtGBP(effectiveRate)}/hr</span>
+                              <span style={{ color: '#9ca3af', fontSize: 11 }}>(incl. on-costs)</span>
+                              <span style={{ color: '#9ca3af', fontSize: 11 }}>=</span>
+                              <span style={{ fontWeight: 700, color: '#111827', borderLeft: '2px solid #005eb8', paddingLeft: 8, fontSize: 14 }}>
+                                {fmtGBP(calculatedAmount)}
+                              </span>
+                            </div>
+                            {/* On-costs breakdown row */}
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const,
+                              padding: '6px 10px', background: '#eff6ff', borderRadius: 7,
+                              fontSize: 11, color: '#374151',
+                            }}>
+                              <span>Base rate {fmtGBP(baseRate)}/hr</span>
+                              <span style={{ color: '#9ca3af' }}>×</span>
+                              <span>{multiplier.toFixed(4)} on-costs</span>
+                              <span style={{ color: '#9ca3af' }}>(Employer NI {niPct}% + Pension {penPct}%)</span>
+                              <span style={{ color: '#9ca3af' }}>=</span>
+                              <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
+                              {bhCount > 0 && (
+                                <span style={{
+                                  marginLeft: 4, fontSize: 10, fontWeight: 600,
+                                  background: '#fef3c7', color: '#92400e',
+                                  border: '1px solid #fde68a', borderRadius: 4, padding: '1px 6px',
+                                }}>
+                                  {bhCount} bank hol{bhCount > 1 ? 's' : ''} excluded
+                                  {bhDetails && bhDetails.length > 0 ? ` (${bhDetails.map((b: { name: string }) => b.name).join(', ')})` : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })() : (
+                        /* Standard allocation display for non-management */
+                        <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                          Based on {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)} allocation
                         </div>
                       )}
                     </div>
