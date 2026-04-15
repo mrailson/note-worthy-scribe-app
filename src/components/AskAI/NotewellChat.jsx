@@ -1953,7 +1953,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       )}
       {/* Artifact panel — mobile/compact overlay */}
       {activeArtifact&&(vp==="compact"||vp==="mobile")&&(
-        <div style={{position:"fixed",inset:0,zIndex:999,background:"rgba(0,0,0,.45)",animation:"nwFadeIn .2s ease"}} onClick={()=>setActiveArtifact(null)}>
+        <div style={{position:"fixed",left:0,right:0,top:48,bottom:0,zIndex:50,background:"rgba(0,0,0,.45)",animation:"nwFadeIn .2s ease"}} onClick={()=>setActiveArtifact(null)}>
           <div style={{position:"absolute",right:0,top:0,bottom:0,width:"90vw",maxWidth:480,background:"#fff",animation:"nwSlideIn .22s ease",display:"flex",flexDirection:"column",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
             <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={480} onSetWidth={null} settings={settings} saveSettings={saveSettings}/>
           </div>
