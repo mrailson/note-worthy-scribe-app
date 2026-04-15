@@ -2100,12 +2100,77 @@ function ClaimsViewSwitcher({
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
+  // Spreadsheet sort & filter state
+  const [sortCol, setSortCol] = useState<string>('month');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterRole, setFilterRole] = useState<string>('all');
+  const [filterName, setFilterName] = useState<string>('all');
+
   const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
 
   const sorted = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
     return [...periodClaims].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
   }, [periodClaims]);
+
+  // Flatten staff lines for spreadsheet
+  type FlatLine = { claimId: string; claim: BuyBackClaim; staff: any; monthLabel: string; monthDate: string; allocDisplay: string; maxAmt: number; claimedAmt: number; isBelow: boolean };
+  const flatLines = useMemo<FlatLine[]>(() => {
+    return sorted.flatMap(c => {
+      const staffDets = (c.staff_details as any[]) || [];
+      const monthLabel = getClaimMonthLabel(c);
+      return staffDets.map((s: any) => {
+        const allocDisplay = s.allocation_type === 'sessions' ? `${s.allocation_value} sess/mo`
+          : s.allocation_type === 'wte' ? `${s.allocation_value} WTE`
+          : s.allocation_type === 'hours' ? `${s.allocation_value} hrs/wk`
+          : `${s.allocation_value}`;
+        const maxAmt = s.calculated_amount ?? s.claimed_amount ?? 0;
+        const claimedAmt = s.claimed_amount ?? maxAmt;
+        return { claimId: c.id, claim: c, staff: s, monthLabel, monthDate: c.claim_month, allocDisplay, maxAmt, claimedAmt, isBelow: claimedAmt < maxAmt && maxAmt > 0 };
+      });
+    });
+  }, [sorted]);
+
+  // Unique values for filter dropdowns
+  const uniqueCategories = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_category).filter(Boolean))].sort(), [flatLines]);
+  const uniqueRoles = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_role).filter(Boolean))].sort(), [flatLines]);
+  const uniqueNames = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_name).filter(Boolean))].sort(), [flatLines]);
+
+  // Filtered + sorted flat lines
+  const filteredLines = useMemo(() => {
+    let lines = flatLines;
+    if (filterCategory !== 'all') lines = lines.filter(l => l.staff.staff_category === filterCategory);
+    if (filterRole !== 'all') lines = lines.filter(l => l.staff.staff_role === filterRole);
+    if (filterName !== 'all') lines = lines.filter(l => l.staff.staff_name === filterName);
+
+    const cmp = (a: FlatLine, b: FlatLine): number => {
+      let av: any, bv: any;
+      switch (sortCol) {
+        case 'month': av = a.monthDate; bv = b.monthDate; break;
+        case 'name': av = (a.staff.staff_name || '').toLowerCase(); bv = (b.staff.staff_name || '').toLowerCase(); break;
+        case 'role': av = (a.staff.staff_role || '').toLowerCase(); bv = (b.staff.staff_role || '').toLowerCase(); break;
+        case 'category': av = (a.staff.staff_category || '').toLowerCase(); bv = (b.staff.staff_category || '').toLowerCase(); break;
+        case 'allocation': av = a.staff.allocation_value ?? 0; bv = b.staff.allocation_value ?? 0; break;
+        case 'max': av = a.maxAmt; bv = b.maxAmt; break;
+        case 'claimed': av = a.claimedAmt; bv = b.claimedAmt; break;
+        case 'invoice': av = a.claim.invoice_number || ''; bv = b.claim.invoice_number || ''; break;
+        case 'status': av = a.claim.status; bv = b.claim.status; break;
+        case 'paid': av = a.claim.paid_at || ''; bv = b.claim.paid_at || ''; break;
+        default: av = a.monthDate; bv = b.monthDate;
+      }
+      if (av < bv) return sortAsc ? -1 : 1;
+      if (av > bv) return sortAsc ? 1 : -1;
+      return 0;
+    };
+    return [...lines].sort(cmp);
+  }, [flatLines, filterCategory, filterRole, filterName, sortCol, sortAsc]);
+
+  const handleSort = (col: string) => {
+    if (sortCol === col) { setSortAsc(!sortAsc); } else { setSortCol(col); setSortAsc(true); }
+  };
+
+  const sortArrow = (col: string) => sortCol === col ? (sortAsc ? ' ▲' : ' ▼') : '';
 
   const invoicedClaims = useMemo(() => sorted.filter(c => c.invoice_number && (c.status === 'invoiced' || c.status === 'paid')), [sorted]);
 
