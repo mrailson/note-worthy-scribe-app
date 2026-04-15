@@ -1634,8 +1634,8 @@ function StaffRosterSection({
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
 
-  // Collapsed by default when no staff; open when staff exist
-  const [sectionOpen, setSectionOpen] = useState(staffList.length > 0);
+  // Always collapsed by default for a cleaner view
+  const [sectionOpen, setSectionOpen] = useState(false);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [addName, setAddName] = useState('');
