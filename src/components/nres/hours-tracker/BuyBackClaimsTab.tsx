@@ -852,6 +852,12 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
             payment_status: 'payment_sent',
             payment_notes: notes || undefined,
           })}
+          onSchedulePayment={(id: string, date: string, bacsRef?: string, notes?: string) => updatePaymentStatus(id, {
+            expected_payment_date: date,
+            bacs_reference: bacsRef || undefined,
+            payment_notes: notes || undefined,
+            payment_status: 'scheduled',
+          })}
           savingClaim={savingClaim}
           defaultView={pmlDashboardView as 'director' | 'finance'}
         />
