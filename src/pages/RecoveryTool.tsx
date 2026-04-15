@@ -9,6 +9,15 @@ interface RecoveryChunk {
   timestamp: number;
 }
 
+interface ReprocessSegmentResult {
+  index: number;
+  status: 'pending' | 'processing' | 'success' | 'error';
+  text?: string;
+  wordCount?: number;
+  fileName?: string;
+  error?: string;
+}
+
 interface MobileRecordingChunk {
   index: number;
   arrayBuffer: ArrayBuffer;
@@ -185,6 +194,10 @@ export default function RecoveryToolPage() {
   const [emailingId, setEmailingId] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<Record<string, string>>({});
   const [lsSession, setLsSession] = useState<any>(null);
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+  const [reprocessSegments, setReprocessSegments] = useState<ReprocessSegmentResult[]>([]);
+  const [reprocessDone, setReprocessDone] = useState(0);
+  const [reprocessTotal, setReprocessTotal] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -468,6 +481,126 @@ export default function RecoveryToolPage() {
     }
   }, [user]);
 
+  const reprocessSession = useCallback(async (s: RecoveryDBSession) => {
+    if (!user) {
+      alert('You must be logged in to reprocess.');
+      return;
+    }
+
+    // Determine meeting ID and file path from upload status or session data
+    const meetingId = s.session?.meetingId || s.mobileRecording?.meetingId;
+    const uploadMsg = uploadStatus[s.sessionId] || '';
+    const extractedMeetingId = uploadMsg.match(/Meeting ID: ([a-f0-9-]+)/)?.[1];
+    const finalMeetingId = meetingId || extractedMeetingId;
+
+    if (!finalMeetingId) {
+      alert('Please upload this session first before reprocessing.');
+      return;
+    }
+
+    // Build the file path pattern used during upload
+    const { mimeType } = getSessionBlobs(s);
+    const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+    const filePath = `${user.id}/${finalMeetingId}/backup-segment-0.${ext}`;
+
+    setReprocessingId(s.sessionId);
+    setReprocessSegments([]);
+    setReprocessDone(0);
+    setReprocessTotal(0);
+    setUploadStatus(prev => ({ ...prev, [s.sessionId]: '🔄 Listing audio segments…' }));
+
+    try {
+      // Step 1: List segments
+      const { data: listData, error: listErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+        body: { action: 'list', backupId: filePath }
+      });
+
+      if (listErr || !listData?.success) {
+        throw new Error(listData?.error || listErr?.message || 'Failed to list segments');
+      }
+
+      const segments = listData.segments as { name: string; size: number; fullPath: string }[];
+      setReprocessTotal(segments.length);
+
+      const initialResults: ReprocessSegmentResult[] = segments.map((seg, i) => ({
+        index: i,
+        status: 'pending' as const,
+        fileName: seg.name,
+      }));
+      setReprocessSegments(initialResults);
+
+      const transcripts: string[] = [];
+      let completedCount = 0;
+
+      // Step 2: Transcribe each segment
+      for (let i = 0; i < segments.length; i++) {
+        setReprocessSegments(prev =>
+          prev.map(seg => seg.index === i ? { ...seg, status: 'processing' } : seg)
+        );
+        setUploadStatus(prev => ({ ...prev, [s.sessionId]: `🎙️ Transcribing segment ${i + 1} of ${segments.length}…` }));
+
+        try {
+          const { data: txData, error: txErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+            body: { action: 'transcribe', backupId: filePath, segmentIndex: i }
+          });
+
+          if (txErr || !txData?.success) {
+            throw new Error(txData?.error || txErr?.message || 'Transcription failed');
+          }
+
+          transcripts.push(txData.text || '');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'success', text: txData.text, wordCount: txData.wordCount }
+                : seg
+            )
+          );
+        } catch (segErr: any) {
+          transcripts.push('');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'error', error: segErr?.message || 'Failed' }
+                : seg
+            )
+          );
+        }
+      }
+
+      // Step 3: Save combined transcript
+      const fullTranscript = transcripts.filter(t => t).join(' ').trim();
+      const totalWords = fullTranscript.split(/\s+/).filter(w => w.length > 0).length;
+
+      if (fullTranscript.length > 0) {
+        setUploadStatus(prev => ({ ...prev, [s.sessionId]: '💾 Saving transcript…' }));
+
+        const { error: saveErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+          body: { action: 'save', meetingId: finalMeetingId, fullTranscript, wordCount: totalWords }
+        });
+
+        if (saveErr) {
+          setUploadStatus(prev => ({ ...prev, [s.sessionId]: `⚠️ Transcribed ${totalWords.toLocaleString()} words but save failed` }));
+        } else {
+          setUploadStatus(prev => ({ ...prev, [s.sessionId]: `✅ Reprocessed! ${totalWords.toLocaleString()} words saved` }));
+        }
+      } else {
+        setUploadStatus(prev => ({ ...prev, [s.sessionId]: '⚠️ No transcript text recovered from segments' }));
+      }
+    } catch (err: any) {
+      console.error('Reprocess failed:', err);
+      setUploadStatus(prev => ({ ...prev, [s.sessionId]: `❌ Reprocess failed: ${err.message}` }));
+    } finally {
+      setReprocessingId(null);
+    }
+  }, [user, uploadStatus]);
+
   return (
     <div style={{
       padding: '16px',
@@ -670,7 +803,85 @@ export default function RecoveryToolPage() {
               >
                 {emailingId === s.sessionId ? '⏳ Sending...' : '📧 Email Me'}
               </button>
+              <button
+                onClick={() => reprocessSession(s)}
+                disabled={!user || reprocessingId === s.sessionId}
+                style={{
+                  flex: 1,
+                  minWidth: 90,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: !user || reprocessingId === s.sessionId ? '#ccc' : '#2e7d32',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: !user || reprocessingId === s.sessionId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {reprocessingId === s.sessionId ? '⏳ Reprocessing...' : '🔄 Reprocess'}
+              </button>
             </div>
+
+            {/* Chunk-by-chunk reprocessing progress */}
+            {reprocessingId === s.sessionId && reprocessSegments.length > 0 && (
+              <div style={{
+                marginTop: 10,
+                padding: 12,
+                borderRadius: 8,
+                background: '#f5f5f5',
+                border: '1px solid #e0e0e0',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                  Reprocessing: {reprocessDone} of {reprocessTotal} segments
+                </div>
+                {/* Progress bar */}
+                <div style={{
+                  height: 6,
+                  borderRadius: 3,
+                  background: '#e0e0e0',
+                  marginBottom: 10,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${reprocessTotal > 0 ? (reprocessDone / reprocessTotal) * 100 : 0}%`,
+                    background: '#1a73e8',
+                    borderRadius: 3,
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+                {/* Per-segment status */}
+                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                  {reprocessSegments.map((seg) => (
+                    <div key={seg.index} style={{ fontSize: 12, lineHeight: 1.8, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                      <span style={{ flexShrink: 0 }}>
+                        {seg.status === 'success' && '✅'}
+                        {seg.status === 'error' && '❌'}
+                        {seg.status === 'processing' && '⏳'}
+                        {seg.status === 'pending' && '⬜'}
+                      </span>
+                      <span>
+                        <strong>Segment {seg.index + 1}</strong>
+                        {seg.status === 'success' && (
+                          <span style={{ color: '#555' }}>
+                            {' — '}{seg.wordCount?.toLocaleString()} words
+                            {seg.text && <em style={{ marginLeft: 4 }}>"{seg.text.slice(0, 50)}…"</em>}
+                          </span>
+                        )}
+                        {seg.status === 'processing' && <span style={{ color: '#888' }}> — processing…</span>}
+                        {seg.status === 'error' && <span style={{ color: '#c62828' }}> — {seg.error}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {reprocessDone > 0 && (
+                  <div style={{ fontSize: 12, fontWeight: 600, marginTop: 8, paddingTop: 8, borderTop: '1px solid #e0e0e0' }}>
+                    Running total: {reprocessSegments.filter(s => s.status === 'success').reduce((sum, s) => sum + (s.wordCount || 0), 0).toLocaleString()} words
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
