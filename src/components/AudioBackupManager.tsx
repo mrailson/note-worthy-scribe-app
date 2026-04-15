@@ -17,7 +17,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2, Download, HardDrive, FolderOpen, Search, FileAudio } from 'lucide-react';
+import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2, Download, HardDrive, FolderOpen, Search, FileAudio, Square, CircleDot } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { StorageBackupBrowser } from './admin/StorageBackupBrowser';
