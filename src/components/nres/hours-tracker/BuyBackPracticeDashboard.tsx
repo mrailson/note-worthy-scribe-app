@@ -2904,7 +2904,7 @@ export function BuyBackPracticeDashboard({
       else if (l.status === 'submitted') t.submitted += l.amount;
       else if (l.status === 'verified') t.verified += l.amount;
       else if (l.status === 'approved') t.approved += l.amount;
-      else if ((l.status as string) === 'invoice_created' || (l.status as string) === 'scheduled') t.invoiced += l.amount;
+      else if (l.status === 'invoiced') t.invoiced += l.amount;
       else if (l.status === 'paid') t.paid += l.amount;
       else if (l.status === 'queried') t.queried += l.amount;
     });
