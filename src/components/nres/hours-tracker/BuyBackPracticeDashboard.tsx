@@ -1051,13 +1051,15 @@ function MeetingAttendanceLog({
   const [declared, setDeclared] = useState(false);
 
   const monthEntries = entries.filter(e => (e.claim_month?.slice(0, 7) || '') === monthDate.slice(0, 7));
-  const draftEntries = monthEntries.filter(e => e.status === 'draft');
-  const submittedEntries = monthEntries.filter(e => e.status !== 'draft');
+  const editableStatuses = ['draft', 'queried'];
+  const draftEntries = monthEntries.filter(e => editableStatuses.includes(e.status));
+  const submittedEntries = monthEntries.filter(e => !editableStatuses.includes(e.status));
   const totalHours = monthEntries.reduce((s, e) => s + e.hours, 0);
   const draftHours = draftEntries.reduce((s, e) => s + e.hours, 0);
   const draftAmount = draftEntries.reduce((s, e) => s + e.total_amount, 0);
   const rate = staffMember.hourly_rate || 0;
   const isFullySubmitted = draftEntries.length === 0 && submittedEntries.length > 0;
+  const hasQueriedEntries = monthEntries.some(e => e.status === 'queried');
 
   const handleAdd = async () => {
     if (!meetingName.trim() || !meetingDate || !meetingHours) return;
