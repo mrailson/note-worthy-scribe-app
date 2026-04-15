@@ -786,29 +786,47 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
         </div>
       </div>
 
-      {/* Claims list */}
+      {/* Claims & Meeting entries list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && filteredMeetingGroups.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb' }}>
             No claims match the current filters.
           </div>
-        ) : filtered.map(c => (
-          <VerifierClaimCard
-            key={c.id}
-            claim={c}
-            expanded={expandedId === c.id}
-            onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-            onVerify={onVerify}
-            onReturn={onReturnToPractice}
-            saving={savingClaim}
-          />
-        ))}
+        ) : (
+          <>
+            {filtered.map(c => (
+              <VerifierClaimCard
+                key={c.id}
+                claim={c}
+                expanded={expandedId === c.id}
+                onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                onVerify={onVerify}
+                onReturn={onReturnToPractice}
+                saving={savingClaim}
+              />
+            ))}
+            {filteredMeetingGroups.map((group, idx) => {
+              const groupKey = `meeting-${group[0]?.person_name}-${group[0]?.claim_month}`;
+              return (
+                <MeetingVerifierCard
+                  key={groupKey}
+                  entries={group}
+                  expanded={expandedId === groupKey}
+                  onToggle={() => setExpandedId(expandedId === groupKey ? null : groupKey)}
+                  onVerify={onVerifyMeetingEntries || (async () => {})}
+                  onReturn={onReturnMeetingEntries || (async () => {})}
+                  saving={savingClaim}
+                />
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* Footer */}
       <div style={{ marginTop: 20, padding: '12px 0', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
         <span>NRES New Models of Care — Managerial Lead Verification Queue</span>
-        <span>{filtered.length} claim{filtered.length !== 1 ? 's' : ''} shown</span>
+        <span>{filtered.length + filteredMeetingGroups.length} item{(filtered.length + filteredMeetingGroups.length) !== 1 ? 's' : ''} shown</span>
       </div>
     </div>
   );
