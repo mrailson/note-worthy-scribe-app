@@ -213,6 +213,5 @@ export const MobileRecordingState: React.FC<MobileRecordingStateProps> = ({
         </div>
       </div>
     </div>
-    </div>
   );
 };
