@@ -750,10 +750,19 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   })();
 
   // Determine if the Practice Dashboard should be shown
+  // True for: (a) admin in test mode previewing as practice, OR
+  // (b) non-admin user who has practice-level access assignments and no elevated system role
   const showPracticeDashboard = (() => {
     if (testActive && testMode.role === 'practice' && testMode.selectedPractice) return true;
+    // Real practice users: not admin, not PML, not verifier/management lead — but have practice assignments
+    if (!isAdmin && !isPMLDirector && !isPMLFinance && !isManagementLead && !isSuperAdmin && hasAnyAssignment) return true;
     return false;
   })();
+
+  // The practice key to show in the practice dashboard
+  const practiceDashboardKey = testActive && testMode.role === 'practice' && testMode.selectedPractice
+    ? testMode.selectedPractice
+    : myPractices[0] || '';
 
   // Determine if the Verifier Dashboard should be shown
   const showVerifierDashboard = (() => {
