@@ -99,7 +99,53 @@ function parseArtifact(text){
   if(svgMatch){try{return JSON.parse(raw);}catch{try{const w=raw.replace(/"svg"\s*:\s*"[\s\S]*?"(?=\s*[,}])/,'"svg":"__SVG__"');const obj=JSON.parse(w);obj.svg=svgMatch[1].replace(/\\n/g,"\n").replace(/\\t/g,"\t").replace(/\\"/g,'"');return obj;}catch{return null;}}}
   try{return JSON.parse(raw);}catch{return null;}
 }
-function stripArtifact(t){return t.replace(/\n?<<ARTIFACT_START>>[\s\S]*?<<ARTIFACT_END>>\n?/g,"").trim();}
+function stripArtifact(t){
+  // Strip complete artifact blocks
+  let s = t.replace(/\n?<<ARTIFACT_START>>[\s\S]*?<<ARTIFACT_END>>\n?/g,"").trim();
+  // Also strip incomplete artifact blocks (during streaming, END hasn't arrived yet)
+  s = s.replace(/\n?<<ARTIFACT_START>>[\s\S]*$/g,"").trim();
+  return s;
+}
+function hasArtifactStart(t){return t.includes("<<ARTIFACT_START>>");}
+function hasArtifactEnd(t){return t.includes("<<ARTIFACT_END>>");}
+function InlineArtifactCard({artifact,streaming,onOpen}){
+  const t = artifact ? ARTIFACT_TYPES[artifact.type] : null;
+  const typeLabel = t?.label || "Document";
+  const typeIcon = t?.icon || "📄";
+  const colour = t?.colour || "#005EB8";
+  if(streaming && !artifact){
+    // Streaming: we saw <<ARTIFACT_START>> but no <<ARTIFACT_END>> yet
+    return(
+      <div style={{background:"#fff",border:"1.5px solid #E8EDEE",borderLeft:`4px solid #005EB8`,borderRadius:8,padding:"14px 16px",margin:"10px 0",display:"flex",alignItems:"center",gap:12}}>
+        <span style={{fontSize:"1.4rem",animation:"nwSpin .8s linear infinite",display:"inline-block"}}>📄</span>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,fontSize:"0.84rem",color:"#003087"}}>Generating document…</div>
+          <div style={{fontSize:"0.72rem",color:"#425563",marginTop:2}}>Building your document, please wait</div>
+        </div>
+        <span style={{display:"inline-block",width:8,height:8,borderRadius:4,background:"#005EB8",animation:"nwBlink .8s step-end infinite"}}/>
+      </div>
+    );
+  }
+  if(!artifact) return null;
+  return(
+    <div onClick={()=>onOpen?.(artifact)} style={{background:"#fff",border:"1.5px solid "+colour+"33",borderLeft:"4px solid "+colour,borderRadius:8,padding:"14px 16px",margin:"10px 0",cursor:"pointer",transition:"all .17s"}}
+      onMouseEnter={e=>{e.currentTarget.style.background=colour+"08";e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,.08)";}}
+      onMouseLeave={e=>{e.currentTarget.style.background="#fff";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <span style={{fontSize:"1.6rem"}}>{typeIcon}</span>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,fontSize:"0.84rem",color:colour}}>{artifact.title||"Document"}</div>
+          <div style={{fontSize:"0.69rem",color:"#425563",marginTop:1}}>{artifact.filename||"document"}{t?.ext||""}</div>
+          <div style={{fontSize:"0.69rem",color:"#8896A6",marginTop:2}}>{typeLabel} — ready to download</div>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={e=>{e.stopPropagation();onOpen?.(artifact);}} style={{background:colour,color:"#fff",border:"none",borderRadius:7,padding:"7px 16px",cursor:"pointer",fontWeight:600,fontSize:"0.77rem",minHeight:34}}>⬇ Download</button>
+          <button onClick={e=>{e.stopPropagation();onOpen?.(artifact);}} style={{background:"#F0F4F8",color:colour,border:`1.5px solid ${colour}33`,borderRadius:7,padding:"7px 14px",cursor:"pointer",fontWeight:600,fontSize:"0.77rem",minHeight:34}}>Preview</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function isSalutation(s){const sals=['mr','mrs','ms','miss','dr','prof','rev','sir','mx'];return sals.includes((s||'').trim().toLowerCase().replace(/\./g,''));}
 async function generateDocxBlob(a, docSettings={}){
@@ -952,9 +998,11 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp,
     <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
       <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3,textAlign:isUser?"right":"left"}}>{isUser?user.name:"Notewell AI"} · {fmt(msg.timestamp)}</div>
       {msg.files?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:5,justifyContent:isUser?"flex-end":"flex-start"}}>{msg.files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name}{f.size&&<span style={{color:NHS.midGrey}}> {fmtSize(f.size)}</span>}</div>)}</div>}
-      {msg.artifact&&<div onClick={()=>onOpenArtifact?.(msg.artifact)} style={{display:"flex",alignItems:"center",gap:7,background:ARTIFACT_TYPES[msg.artifact.type]?.colour+"13",border:`1.5px solid ${ARTIFACT_TYPES[msg.artifact.type]?.colour}44`,borderRadius:8,padding:"6px 10px",marginBottom:5,cursor:"pointer",transition:"all .17s"}} onMouseEnter={e=>{e.currentTarget.style.background=ARTIFACT_TYPES[msg.artifact.type]?.colour+"25";e.currentTarget.style.transform="translateY(-1px)";}} onMouseLeave={e=>{e.currentTarget.style.background=ARTIFACT_TYPES[msg.artifact.type]?.colour+"13";e.currentTarget.style.transform="translateY(0)";}}><span style={{fontSize:"1rem"}}>{ARTIFACT_TYPES[msg.artifact.type]?.icon}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.79rem",color:ARTIFACT_TYPES[msg.artifact.type]?.colour}}>{msg.artifact.title}</div><div style={{fontSize:"0.69rem",color:NHS.midGrey}}>{ARTIFACT_TYPES[msg.artifact.type]?.label} · click to view →</div></div></div>}
-      <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
-        {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/><span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/></>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
+      {/* Inline artifact card: streaming (loading) or completed */}
+      {!isUser && !msg.artifact && msg.streaming && hasArtifactStart(msg.content) && <InlineArtifactCard streaming artifact={null}/>}
+      {!isUser && msg.artifact && <InlineArtifactCard artifact={msg.artifact} onOpen={onOpenArtifact}/>}
+      <div style={{background:isUser?NHS.blue:"#fff",color:isUser?"#fff":NHS.darkGrey,borderRadius:isUser?"15px 15px 4px 15px":"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:isUser?"none":`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`,...(!isUser && !display.trim() ? {display:"none"} : {})}}>
+        {isUser?<span style={{whiteSpace:"pre-wrap"}}>{display}</span>:msg.streaming?<><span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>{!hasArtifactStart(msg.content)&&<span style={{display:"inline-block",width:6,height:13,background:NHS.blue,marginLeft:2,borderRadius:2,animation:"nwBlink .8s step-end infinite",verticalAlign:"text-bottom"}}/>}</>:<span dangerouslySetInnerHTML={{__html:renderMd(display)}}/>}
       </div>
       {/* KB source chips */}
       {!isUser&&!msg.streaming&&msg.kbSources?.length>0&&(
