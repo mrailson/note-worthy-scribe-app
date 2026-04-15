@@ -2124,26 +2124,11 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 
 // --- Main Dashboard ---
 export function BuyBackPracticeDashboard({
-  claims,
-  practiceKey,
-  staff,
-  staffRoles,
-  rateParams,
-  managementRoles,
-  onSubmit,
-  onResubmit,
-  onCreateClaim,
-  onCreateLocumClaim,
-  onDeleteClaim,
-  onAddStaff,
-  onRemoveStaff,
-  onUpdateStaff,
-  confirmDeclaration,
-  savingClaim,
-  savingStaff,
-  onGuideOpen,
-  onSettingsOpen,
-  showSettings,
+  claims, practiceKey, staff, staffRoles, rateParams, managementRoles,
+  onSubmit, onResubmit, onCreateClaim, onCreateLocumClaim, onDeleteClaim,
+  onAddStaff, onRemoveStaff, onUpdateStaff, confirmDeclaration,
+  savingClaim, savingStaff, onGuideOpen, onSettingsOpen, showSettings,
+  meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries, canAddOnBehalf,
 }: BuyBackPracticeDashboardProps) {
   const [activeClaimKey, setActiveClaimKey] = useState<string | null>(null);
   const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
@@ -2232,23 +2217,13 @@ export function BuyBackPracticeDashboard({
   }, [practiceClaims]);
 
   const rosterSectionProps = {
-    claims: practiceClaims,
-    claimMonths,
-    practiceKey,
-    onClickClaim: handleClickClaim,
-    activeClaimKey,
-    onAddStaff,
-    onRemoveStaff,
-    onUpdateStaff,
-    staffRoles,
-    rateParams,
-    onCreateClaim,
-    onCreateLocumClaim,
-    onDeleteClaim,
-    onSubmit,
-    onResubmit,
-    confirmDeclaration,
-    saving: savingClaim,
+    claims: practiceClaims, claimMonths, practiceKey,
+    onClickClaim: handleClickClaim, activeClaimKey,
+    onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, rateParams,
+    onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit,
+    confirmDeclaration, saving: savingClaim,
+    meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries,
+    canAddOnBehalf, managementRoles,
   };
 
   return (
