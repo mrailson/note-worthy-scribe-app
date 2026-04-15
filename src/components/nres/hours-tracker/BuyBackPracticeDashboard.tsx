@@ -2099,7 +2099,7 @@ function ClaimsViewSwitcher({
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
 }) {
-  const [view, setView] = useState<ClaimsView>('summary');
+  const [view, setView] = useState<ClaimsView>('spreadsheet');
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
