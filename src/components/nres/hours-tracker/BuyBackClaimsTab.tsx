@@ -787,9 +787,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           staff={practiceStaff}
           onSubmit={submitClaim}
           onResubmit={(id) => submitClaim(id)}
-          onCreateClaim={(monthDate, staffMember) => {
-            const amt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
-            return createClaim(monthDate, [staffMember], amt, amt, testMode.selectedPractice, rateParams);
+          onCreateClaim={(monthDate, staffMember, claimedAmount) => {
+            const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
+            // Use the practice-entered claimed amount if provided and valid, capped at the max
+            const actualClaimed = (claimedAmount && claimedAmount > 0 && claimedAmount <= maxAmt)
+              ? claimedAmount
+              : maxAmt;
+            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, testMode.selectedPractice, rateParams);
           }}
           onAddStaff={addStaff}
           onRemoveStaff={removeStaff}
