@@ -2448,37 +2448,18 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
       })()}
 
       {/* Declaration & Submit */}
-      <div className="px-3 py-3 flex items-center justify-between border-t bg-muted/10">
-        <div className="flex items-center gap-3">
-          {canEdit ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-2 cursor-help">
-                    <Checkbox
-                      checked={claim.declaration_confirmed}
-                      onCheckedChange={checked => onConfirmDeclaration(claim.id, !!checked)}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {claimCategory === 'buyback' || claimCategory === 'mixed'
-                        ? "I confirm that all staff listed are delivering SDA (Part A) activity during their attributed hours. I confirm that matching Part B (LTC) provision has been delivered and the supporting evidence has been uploaded. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed."
-                        : "I confirm all staff listed are working 100% on SDA (Part A) during their funded hours. The practice has verified the professional qualifications, registration status, and competencies of all staff members listed in this claim."
-                      }
-                      {staffDetails.some((s: any) => s.staff_category === 'meeting') && (
-                        <> For meeting attendance lines, I confirm that signed attendance registers are held on file at the practice.</>
-                      )}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs text-xs">
-                  {DECLARATION_TEXT}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : null}
-        </div>
-        {canEdit && (
-          <div className="flex items-center gap-2">
+      {canEdit && (
+        <div className="px-3 py-3 border-t bg-muted/10 space-y-2">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            {claimCategory === 'buyback' || claimCategory === 'mixed'
+              ? "By submitting this claim you confirm that all staff listed are delivering SDA (Part A) activity during their attributed hours, that matching Part B (LTC) provision has been delivered and the supporting evidence has been uploaded, and that the practice has verified the professional qualifications, registration status, and competencies of all staff members listed."
+              : "By submitting this claim you confirm all staff listed are working 100% on SDA (Part A) during their funded hours and the practice has verified the professional qualifications, registration status, and competencies of all staff members listed."
+            }
+            {staffDetails.some((s: any) => s.staff_category === 'meeting') && (
+              <> For meeting attendance lines, you confirm that signed attendance registers are held on file at the practice.</>
+            )}
+          </p>
+          <div className="flex items-center justify-end gap-2">
             {!evidenceComplete && (
               <span className="text-[10px] text-red-500">Upload all required evidence first</span>
             )}
@@ -2487,12 +2468,12 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                 {unacknowledgedTotal} role requirement{unacknowledgedTotal !== 1 ? 's' : ''} need confirming
               </span>
             )}
-            <Button size="sm" onClick={() => onSubmit(claim.id)} disabled={!claim.declaration_confirmed || !evidenceComplete || unacknowledgedTotal > 0}>
-              <Send className="w-3 h-3 mr-1" /> Submit
+            <Button size="sm" onClick={() => { if (!claim.declaration_confirmed) { onConfirmDeclaration(claim.id, true); } onSubmit(claim.id); }} disabled={!evidenceComplete || unacknowledgedTotal > 0}>
+              <Send className="w-3 h-3 mr-1" /> Submit Claim
             </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Verifier Actions (Buy-Back: Submitted → Verified) */}
       {canVerifyClaim && (
