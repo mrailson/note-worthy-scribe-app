@@ -1155,32 +1155,49 @@ export function BuyBackPMLDashboard({
 
       {/* Claims list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filteredClaims.length === 0 ? (
+        {filteredClaims.length === 0 && filteredMeetingGroups.length === 0 ? (
           <div style={{
             padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14,
             background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb',
           }}>
             No claims match the current filters.
           </div>
-        ) : filteredClaims.map(c => (
-          <ClaimCard
-            key={c.id}
-            claim={c}
-            view={view}
-            expanded={expandedId === c.id}
-            onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-            userId={userId}
-            userEmail={userEmail}
-            isAdmin={isAdmin}
-            rateParams={rateParams}
-            onApprove={onApprove}
-            onQuery={onQuery}
-            onReject={onReject}
-            onMarkPaid={onMarkPaid}
-            onSchedulePayment={onSchedulePayment}
-            saving={savingClaim}
-          />
-        ))}
+        ) : (
+          <>
+            {filteredClaims.map(c => (
+              <ClaimCard
+                key={c.id}
+                claim={c}
+                view={view}
+                expanded={expandedId === c.id}
+                onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                userId={userId}
+                userEmail={userEmail}
+                isAdmin={isAdmin}
+                rateParams={rateParams}
+                onApprove={onApprove}
+                onQuery={onQuery}
+                onReject={onReject}
+                onMarkPaid={onMarkPaid}
+                onSchedulePayment={onSchedulePayment}
+                saving={savingClaim}
+              />
+            ))}
+            {filteredMeetingGroups.map(g => (
+              <MeetingClaimCard
+                key={`meeting-${g.key}`}
+                group={g}
+                view={view}
+                expanded={expandedId === `meeting-${g.key}`}
+                onToggle={() => setExpandedId(expandedId === `meeting-${g.key}` ? null : `meeting-${g.key}`)}
+                onApprove={onApproveMeetingEntries}
+                onQuery={onQueryMeetingEntries}
+                onReject={onRejectMeetingEntries}
+                saving={savingClaim}
+              />
+            ))}
+          </>
+        )}
       </div>
 
       {/* Footer */}
@@ -1189,7 +1206,7 @@ export function BuyBackPMLDashboard({
         display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af',
       }}>
         <span>NRES New Models of Care — {cfg.label} Claims Pipeline</span>
-        <span>{filteredClaims.length} claim{filteredClaims.length !== 1 ? 's' : ''} shown</span>
+        <span>{filteredClaims.length + filteredMeetingGroups.length} claim{(filteredClaims.length + filteredMeetingGroups.length) !== 1 ? 's' : ''} shown</span>
       </div>
     </div>
   );
