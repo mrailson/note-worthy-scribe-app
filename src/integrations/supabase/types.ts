@@ -13718,6 +13718,10 @@ export type Database = {
         Returns: boolean
       }
       has_nres_access: { Args: { check_user_id?: string }; Returns: boolean }
+      has_nres_buyback_access: {
+        Args: { _practice_key: string; _roles?: string[]; _user_id: string }
+        Returns: boolean
+      }
       has_nres_claims_role: {
         Args: { _role: string; _user_email: string }
         Returns: boolean
