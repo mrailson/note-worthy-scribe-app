@@ -297,7 +297,7 @@ class TemplateRenderer {
         y: 4.2,
         w: 10.33,
         h: 0.8,
-        fontSize: this.template.style === 'bright' ? 26 : 24,
+        fontSize: this.template.style === 'bright' ? 24 : 22,
         color: this.template.textColor,
         fontFace: this.template.fonts.body,
         align: 'center'
@@ -672,39 +672,70 @@ class TemplateRenderer {
       if (slideData.content && slideData.content.length > 0) {
         const layout = LayoutEngine.calculateOptimalLayout(slideData.content);
         const contentToShow = layout.slides[0].content;
-        
+        const bulletCount = contentToShow.length;
+
+        // Dynamic font size: fewer bullets = bigger text, more bullets = smaller text
+        const dynamicFontSize = bulletCount <= 2 ? Math.min(contentFontSize + 4, 22)
+          : bulletCount === 3 ? Math.min(contentFontSize + 2, 20)
+          : bulletCount >= 5 ? Math.max(contentFontSize - 2, 13)
+          : contentFontSize;
+
+        // Dynamic spacing: fewer bullets get more breathing room
+        const bulletSpacing = bulletCount <= 2 ? 0.85
+          : bulletCount === 3 ? 0.72
+          : bulletCount === 4 ? 0.62
+          : 0.52;
+
+        // Add a coloured rule under the slide title for visual separation
+        slide.addShape(this.pptx.ShapeType.rect, {
+          x: 1,
+          y: 1.72,
+          w: contentWidth,
+          h: 0.04,
+          fill: { color: this.template.primaryColor, transparency: 40 },
+          line: { width: 0 }
+        });
+
+        // Content starts lower to allow breathing room after separator
+        const contentStartY = 1.9;
+
         contentToShow.forEach((point, index) => {
           const cleanText = LayoutEngine.formatTextForPowerPoint(point);
-          const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, hasImage ? 60 : 85);
-          
+          // Increase truncation limit significantly — NHS content needs full sentences
+          const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, hasImage ? 90 : 130);
+          const isLeadStatement = index === 0 && bulletCount >= 2;
+
           const textConfig: any = {
             x: 1,
-            y: 1.8 + (index * 0.35),
+            y: contentStartY + (index * bulletSpacing),
             w: contentWidth,
-            h: 0.3,
-            fontSize: contentFontSize,
+            h: bulletSpacing - 0.05,
+            fontSize: isLeadStatement ? dynamicFontSize + 1 : dynamicFontSize,
+            bold: isLeadStatement,
             fontFace: this.template.fonts.body,
             bullet: { type: 'bullet' },
-            lineSpacing: 20,
+            lineSpacing: dynamicFontSize <= 14 ? 16 : 20,
             wrap: true,
             breakLine: true,
-            color: this.template.textColor
+            color: isLeadStatement
+              ? this.template.headingColor
+              : this.template.textColor
           };
-          
+
           if (this.template.style === 'bright' && index % 2 === 1) {
             textConfig.color = this.template.accentColor;
           }
-          
+
           slide.addText(optimizedText, textConfig);
         });
-        
+
         if (layout.slides.length > 1) {
-          slide.addText('(Content continues...)', {
-            x: 1.5,
-            y: 6.0,
+          slide.addText('(Content continues on next slide)', {
+            x: 1,
+            y: 6.5,
             w: contentWidth,
             h: 0.3,
-            fontSize: 14,
+            fontSize: 11,
             fontFace: this.template.fonts.body,
             color: this.template.footerColor,
             italic: true
