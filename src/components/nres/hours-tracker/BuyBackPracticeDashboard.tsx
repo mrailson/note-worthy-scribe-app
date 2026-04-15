@@ -749,7 +749,7 @@ function InlineClaimPanel({
                     onChange={(e) => setDeclared(e.target.checked)}
                     style={{ marginTop: 2, accentColor: '#005eb8' }}
                   />
-                  <span>{isLocum ? LOCUM_DECLARATION_TEXT : DECLARATION_TEXT}</span>
+                  <span>{isLocum ? LOCUM_DECLARATION_TEXT : isManagement ? MANAGEMENT_DECLARATION_TEXT : DECLARATION_TEXT}</span>
                 </label>
               </div>
 
