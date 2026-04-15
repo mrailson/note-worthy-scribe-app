@@ -26,6 +26,7 @@ export const MobileRecordingState: React.FC<MobileRecordingStateProps> = ({
   currentPartial = '',
 }) => {
   const [showTranscript, setShowTranscript] = useState(false);
+  const [confirmingStop, setConfirmingStop] = useState(false);
   const { recordingDuration } = useMeetingSetup();
 
   const mm = String(Math.floor(recordingDuration / 60)).padStart(2, '0');
