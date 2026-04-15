@@ -577,10 +577,17 @@ function InlineClaimPanel({
                 background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 12,
               }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Claim Amount</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>
+                    {isLocum ? 'Claiming' : 'Claim Amount'}
+                  </div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                     {fmtGBP(claimTotal(claim))}
                   </div>
+                  {isLocum && sessionRate > 0 && (
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                      {(claim.staff_details as any[])?.[0]?.allocation_value || locumSessions} sessions · max {fmtGBP(((claim.staff_details as any[])?.[0]?.allocation_value || locumSessions) * sessionRate)}
+                    </div>
+                  )}
                 </div>
                 <StatusPill status="draft" />
               </div>
@@ -619,32 +626,49 @@ function InlineClaimPanel({
                     onChange={(e) => setDeclared(e.target.checked)}
                     style={{ marginTop: 2, accentColor: '#005eb8' }}
                   />
-                  <span>{DECLARATION_TEXT}</span>
+                  <span>{isLocum ? LOCUM_DECLARATION_TEXT : DECLARATION_TEXT}</span>
                 </label>
               </div>
 
               {/* Submit */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {!evidenceComplete && (
-                  <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 500 }}>
-                    Evidence: {totalUploaded}/{totalMandatory} uploaded
-                  </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const, justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {!evidenceComplete && (
+                    <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 500 }}>
+                      Evidence: {totalUploaded}/{totalMandatory} uploaded
+                    </span>
+                  )}
+                  <button
+                    onClick={handleSubmit}
+                    disabled={saving || !declared || !evidenceComplete}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                      borderRadius: 8, border: 'none',
+                      background: (saving || !declared || !evidenceComplete) ? '#94a3b8' : '#005eb8',
+                      color: '#fff', fontSize: 13, fontWeight: 600,
+                      cursor: (saving || !declared || !evidenceComplete) ? 'not-allowed' : 'pointer',
+                      opacity: (saving || !declared || !evidenceComplete) ? 0.6 : 1,
+                    }}
+                  >
+                    <Send style={{ width: 14, height: 14 }} />
+                    Submit Claim →
+                  </button>
+                </div>
+                {onDeleteClaim && (
+                  <button
+                    onClick={handleDeleteDraft}
+                    disabled={deletingDraft}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                      borderRadius: 7, border: '1px solid #fca5a5', background: '#fff',
+                      color: '#dc2626', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                      opacity: deletingDraft ? 0.5 : 1,
+                    }}
+                  >
+                    <Trash2 style={{ width: 12, height: 12 }} />
+                    {deletingDraft ? 'Deleting…' : 'Delete Draft'}
+                  </button>
                 )}
-                <button
-                  onClick={handleSubmit}
-                  disabled={saving || !declared || !evidenceComplete}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
-                    borderRadius: 8, border: 'none',
-                    background: (saving || !declared || !evidenceComplete) ? '#94a3b8' : '#005eb8',
-                    color: '#fff', fontSize: 13, fontWeight: 600,
-                    cursor: (saving || !declared || !evidenceComplete) ? 'not-allowed' : 'pointer',
-                    opacity: (saving || !declared || !evidenceComplete) ? 0.6 : 1,
-                  }}
-                >
-                  <Send style={{ width: 14, height: 14 }} />
-                  Submit Claim →
-                </button>
               </div>
             </div>
           )}
