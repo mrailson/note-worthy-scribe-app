@@ -243,12 +243,68 @@ export function useNRESMeetingLog() {
         })
         .in('id', ids);
       if (error) throw error;
+
+      // Get the approved entries for invoice generation
+      const approvedEntries = entries.filter(e => ids.includes(e.id));
+
       setEntries(prev => prev.map(e =>
         ids.includes(e.id)
           ? { ...e, status: 'approved' as const, notes: notes || e.notes }
           : e
       ));
-      toast.success(`${ids.length} meeting ${ids.length === 1 ? 'entry' : 'entries'} approved`);
+      toast.success(`${ids.length} meeting ${ids.length === 1 ? 'entry' : 'entries'} approved — generating invoice...`);
+
+      // Generate invoice for the approved meeting entries
+      if (approvedEntries.length > 0) {
+        try {
+          // Derive practice key from ODS code
+          const odsCode = approvedEntries[0].billing_org_code || '';
+          const practiceKey = Object.entries(NRES_ODS_CODES).find(([, v]) => v === odsCode)?.[0] || '';
+          const claimMonth = approvedEntries[0].claim_month || approvedEntries[0].work_date;
+
+          const invoiceNum = await generateInvoiceNumber('NRES', practiceKey, claimMonth);
+          const pdfDoc = generateMeetingInvoicePdf({
+            entries: approvedEntries,
+            practiceKey,
+            invoiceNumber: invoiceNum,
+            claimMonth,
+            neighbourhoodName: 'NRES',
+          });
+          const pdfBlob = pdfDoc.output('blob');
+
+          // Upload to Supabase Storage
+          const pdfPath = `invoices/${invoiceNum}.pdf`;
+          const { error: uploadError } = await supabase.storage
+            .from('nres-claim-evidence')
+            .upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+          if (uploadError) {
+            console.error('Failed to upload meeting invoice PDF:', uploadError);
+          }
+
+          // Update all entries with invoice number and invoiced status
+          const { error: invoiceError } = await (supabase as any)
+            .from('nres_management_time')
+            .update({
+              status: 'invoiced',
+              invoice_number: invoiceNum,
+            })
+            .in('id', ids);
+
+          if (!invoiceError) {
+            setEntries(prev => prev.map(e =>
+              ids.includes(e.id)
+                ? { ...e, status: 'invoiced' as const, invoice_number: invoiceNum }
+                : e
+            ));
+            toast.success(`Invoice ${invoiceNum} generated for meeting attendance`);
+          }
+        } catch (invoiceErr) {
+          console.error('[useNRESMeetingLog] invoice generation error', invoiceErr);
+          toast.error('Entries approved but invoice generation failed');
+        }
+      }
+
       return true;
     } catch (e) {
       console.error('[useNRESMeetingLog] approve error', e);
@@ -257,7 +313,7 @@ export function useNRESMeetingLog() {
     } finally {
       setSaving(false);
     }
-  }, [user?.email]);
+  }, [user?.email, entries]);
 
   /** Reject meeting entries (→ rejected) */
   const rejectMeetingEntries = useCallback(async (ids: string[], notes?: string): Promise<boolean> => {
