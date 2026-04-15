@@ -1122,6 +1122,9 @@ function InlineClaimPanel({
 
             if (!isInvoicedOrPaid) {
               // Simple view for submitted/verified/approved
+              const claimedAmt = claimTotal(claim);
+              const maxAmt = isLocum ? locumMaxAmount : (isMeeting ? meetingMaxAmount : calculatedAmount);
+              const belowMax = maxAmt > 0 && claimedAmt < maxAmt ? maxAmt - claimedAmt : 0;
               return (
                 <div>
                   <div style={{
@@ -1131,11 +1134,117 @@ function InlineClaimPanel({
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Claim Amount</div>
                       <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
-                        {fmtGBP(claimTotal(claim))}
+                        {fmtGBP(claimedAmt)}
                       </div>
                     </div>
                     <StatusPill status={claim.status} />
                   </div>
+
+                  {/* Calculation breakdown */}
+                  {maxAmt > 0 && (
+                    <div style={{ marginTop: 10, padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: 8 }}>
+                        Claim Calculation
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: '#6b7280' }}>Max claimable:</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(maxAmt)}</span>
+                      </div>
+                      {belowMax > 0 && (
+                        <div style={{ fontSize: 11, color: '#059669', fontWeight: 500, marginBottom: 6 }}>
+                          Practice claimed {fmtGBP(claimedAmt)} — {fmtGBP(belowMax)} below maximum
+                        </div>
+                      )}
+                      {/* Locum breakdown */}
+                      {isLocum && sessionRate > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, fontSize: 12, marginBottom: 4 }}>
+                          <span style={{ fontWeight: 600, color: catAccentColor }}>{configuredSessions} session{configuredSessions !== 1 ? 's' : ''}</span>
+                          <span style={{ color: '#9ca3af' }}>×</span>
+                          <span style={{ fontWeight: 600, color: catAccentColor }}>{fmtGBP(sessionRate)}/session</span>
+                          <span style={{ color: '#9ca3af' }}>=</span>
+                          <span style={{ fontWeight: 700, color: '#111827' }}>{fmtGBP(maxAmt)}</span>
+                        </div>
+                      )}
+                      {/* Management breakdown */}
+                      {!isLocum && !isMeeting && (staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && rateParams?.workingWeeksInMonth && staffMember.hourly_rate ? (() => {
+                        const ww = rateParams.workingWeeksInMonth!;
+                        const baseRate = staffMember.hourly_rate;
+                        const multiplier = rateParams.onCostMultiplier ?? 1;
+                        const effectiveRate = baseRate * multiplier;
+                        const weeklyHours = staffMember.allocation_value;
+                        const niPct = rateParams.employerNiPct ?? 13.8;
+                        const penPct = rateParams.employerPensionPct ?? 14.38;
+                        return (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, fontSize: 12, marginBottom: 4 }}>
+                              <span style={{ fontWeight: 600, color: '#005eb8' }}>{weeklyHours} hrs/wk</span>
+                              <span style={{ color: '#9ca3af' }}>×</span>
+                              <span style={{ fontWeight: 600, color: '#005eb8' }}>{ww.toFixed(1)} weeks</span>
+                              <span style={{ color: '#9ca3af' }}>×</span>
+                              <span style={{ fontWeight: 600, color: '#005eb8' }}>{fmtGBP(effectiveRate)}/hr</span>
+                              <span style={{ color: '#9ca3af', fontSize: 10 }}>(incl. on-costs)</span>
+                              <span style={{ color: '#9ca3af' }}>=</span>
+                              <span style={{ fontWeight: 700, color: '#111827' }}>{fmtGBP(maxAmt)}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, padding: '5px 8px', background: '#eff6ff', borderRadius: 6, fontSize: 10, color: '#374151' }}>
+                              <span>Base {fmtGBP(baseRate)}/hr</span>
+                              <span style={{ color: '#9ca3af' }}>×</span>
+                              <span>{multiplier.toFixed(4)} on-costs (NI {niPct}% + Pension {penPct}%)</span>
+                              <span style={{ color: '#9ca3af' }}>=</span>
+                              <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
+                            </div>
+                          </div>
+                        );
+                      })() : null}
+                      {/* Standard (SDA/Buy-Back) formula + on-costs */}
+                      {!isLocum && !isMeeting && calcBreakdownData && !(staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && (
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, fontSize: 12, marginBottom: 6 }}>
+                            {calcBreakdownData.primary.map((item, i) => (
+                              item.label ? (
+                                <span key={i} style={{
+                                  fontWeight: item.result ? 700 : item.accent ? 700 : 400,
+                                  color: item.result ? '#111827' : item.accent ? catAccentColor : '#9ca3af',
+                                  borderLeft: item.result ? `2px solid ${catAccentColor}` : 'none',
+                                  paddingLeft: item.result ? 6 : 0,
+                                  fontSize: item.result ? 13 : 12,
+                                }}>{item.label}</span>
+                              ) : null
+                            ))}
+                          </div>
+                          {calcBreakdownData.breakdown && (
+                            <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11 }}>
+                              {calcBreakdownData.breakdown.map((row, i) => (
+                                <div key={i} style={{
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                                  padding: '2px 0',
+                                  borderTop: row.bold ? `1px solid ${catAccentColor}20` : 'none',
+                                  marginTop: row.bold ? 3 : 0,
+                                  paddingTop: row.bold ? 4 : 2,
+                                }}>
+                                  <span style={{ color: '#6b7280' }}>{row.l}</span>
+                                  <span style={{ fontWeight: row.bold ? 700 : 500, color: row.bold ? catAccentColor : '#374151', fontSize: row.large ? 13 : 11 }}>{row.r}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {/* Meeting breakdown */}
+                      {isMeeting && meetingRate > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, fontSize: 12 }}>
+                          <span style={{ fontWeight: 600, color: catAccentColor }}>{fmtGBP(meetingRate)}/hr</span>
+                          <span style={{ color: '#9ca3af', fontSize: 10 }}>meeting attendance rate</span>
+                        </div>
+                      )}
+                      {/* What this covers */}
+                      <div style={{ marginTop: 6, fontSize: 10, color: '#9ca3af' }}>
+                        {staffMember.staff_role} · {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
+                        {staffMember.staff_category && ` · ${CATEGORY_LABELS[staffMember.staff_category] || staffMember.staff_category}`}
+                      </div>
+                    </div>
+                  )}
+
                   {claim.submitted_at && <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>Submitted {dateStr(claim.submitted_at)}</div>}
                 </div>
               );
