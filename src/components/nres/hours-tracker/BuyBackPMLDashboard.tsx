@@ -962,6 +962,7 @@ export function BuyBackPMLDashboard({
             onQuery={onQuery}
             onReject={onReject}
             onMarkPaid={onMarkPaid}
+            onSchedulePayment={onSchedulePayment}
             saving={savingClaim}
           />
         ))}
