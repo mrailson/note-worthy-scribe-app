@@ -237,19 +237,44 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
     try {
       setLoading(true);
-      let query = supabase
-        .from('nres_buyback_claims')
-        .select('*')
-        .order('claim_month', { ascending: false });
 
       // Users with a system role OR in NRES_ADMIN_EMAILS see all claims
-      if (!isAdmin(user.email) && !hasElevatedAccess) {
-        query = query.eq('user_id', user.id);
+      if (isAdmin(user.email) || hasElevatedAccess) {
+        const { data, error } = await supabase
+          .from('nres_buyback_claims')
+          .select('*')
+          .order('claim_month', { ascending: false });
+        if (error) throw error;
+        setClaims((data || []) as BuyBackClaim[]);
+      } else {
+        // Non-admin: fetch own claims + claims for practices they have access to
+        const { data: accessRows } = await supabase
+          .from('nres_buyback_access')
+          .select('practice_key')
+          .eq('user_id', user.id);
+        const practiceKeys = [...new Set((accessRows || []).map(r => r.practice_key))];
+
+        if (practiceKeys.length > 0) {
+          // Fetch claims the user created OR claims belonging to their assigned practices
+          const { data, error } = await supabase
+            .from('nres_buyback_claims')
+            .select('*')
+            .or(`user_id.eq.${user.id},practice_key.in.(${practiceKeys.join(',')})`)
+            .order('claim_month', { ascending: false });
+          if (error) throw error;
+          setClaims((data || []) as BuyBackClaim[]);
+        } else {
+          // No practice access — just own claims
+          const { data, error } = await supabase
+            .from('nres_buyback_claims')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('claim_month', { ascending: false });
+          if (error) throw error;
+          setClaims((data || []) as BuyBackClaim[]);
+        }
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setClaims((data || []) as BuyBackClaim[]);
       hasFetchedRef.current = true;
     } catch (error) {
       console.error('Error fetching buyback claims:', error);
