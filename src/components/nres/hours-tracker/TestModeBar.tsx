@@ -54,49 +54,71 @@ export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: Te
   };
 
   // Collapsed state — just show Eye icon (+ active role badge if overriding)
+  // When Practice is active, always show the practice dropdown even when collapsed
   if (!expanded) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <button
-          onClick={() => setExpanded(true)}
-          title="Preview as different role"
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '5px 10px', borderRadius: 8,
-            border: isOverriding ? `1px solid ${activeRole?.color}40` : '1px solid #d1d5db',
-            background: isOverriding ? `${activeRole?.color}08` : '#fafafa',
-            cursor: 'pointer', transition: 'all 0.15s',
-          }}
-        >
-          <Eye style={{ width: 14, height: 14, color: isOverriding ? activeRole?.color : '#9ca3af' }} />
-          {isOverriding ? (
-            <span style={{ fontSize: 11, fontWeight: 600, color: activeRole?.color }}>
-              {activeRole?.shortLabel}
-              {state.role === 'practice' && state.selectedPractice && (
-                <span style={{ fontWeight: 400, opacity: 0.75 }}>
-                  {' · '}{practiceNames[state.selectedPractice]?.split(' ')[0] || ''}
-                </span>
-              )}
-            </span>
-          ) : (
-            <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af' }}>Preview</span>
-          )}
-        </button>
-        {isOverriding && (
+      <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 0, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={handleReset}
-            title="Back to Admin view"
+            onClick={() => setExpanded(true)}
+            title="Preview as different role"
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '4px 8px', borderRadius: 6,
-              border: '1px solid #d1d5db', background: '#fff',
-              color: '#6b7280', fontSize: 10, fontWeight: 500,
-              cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '5px 10px', borderRadius: 8,
+              border: isOverriding ? `1px solid ${activeRole?.color}40` : '1px solid #d1d5db',
+              background: isOverriding ? `${activeRole?.color}08` : '#fafafa',
+              cursor: 'pointer', transition: 'all 0.15s',
             }}
           >
-            <RotateCcw style={{ width: 10, height: 10 }} />
-            Reset
+            <Eye style={{ width: 14, height: 14, color: isOverriding ? activeRole?.color : '#9ca3af' }} />
+            {isOverriding ? (
+              <span style={{ fontSize: 11, fontWeight: 600, color: activeRole?.color }}>
+                {activeRole?.shortLabel}
+              </span>
+            ) : (
+              <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af' }}>Preview</span>
+            )}
           </button>
+          {isOverriding && (
+            <button
+              onClick={handleReset}
+              title="Back to Admin view"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 8px', borderRadius: 6,
+                border: '1px solid #d1d5db', background: '#fff',
+                color: '#6b7280', fontSize: 10, fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              <RotateCcw style={{ width: 10, height: 10 }} />
+              Reset
+            </button>
+          )}
+        </div>
+        {/* Always show practice dropdown when Practice role is active */}
+        {state.role === 'practice' && state.enabled && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '6px 0 0',
+          }}>
+            <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' as const }}>Practice:</span>
+            <select
+              value={state.selectedPractice || ''}
+              onChange={e => onChange({ ...state, selectedPractice: e.target.value })}
+              style={{
+                padding: '5px 10px', borderRadius: 8,
+                border: '1px solid #d1d5db', background: '#fff',
+                fontSize: 12, color: '#374151',
+                cursor: 'pointer', outline: 'none',
+                maxWidth: 280,
+              }}
+            >
+              {practiceKeys.map(k => (
+                <option key={k} value={k}>{practiceNames[k]}</option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
     );
