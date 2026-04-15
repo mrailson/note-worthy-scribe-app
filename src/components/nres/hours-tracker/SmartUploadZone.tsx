@@ -20,6 +20,7 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
   const instanceId = useRef(`suz-${++idCounter}`);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pastedThumbnailUrl, setPastedThumbnailUrl] = useState<string | null>(null);
   const [pasteFlash, setPasteFlash] = useState(false);
 
   const activate = useCallback(() => {
@@ -77,10 +78,21 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
       if (files.length > 0) {
         e.preventDefault();
         if (compact) {
-          // Auto-upload immediately in compact mode
-          onFilesSelected(multiple ? files : [files[0]]);
-          setPasteFlash(true);
-          setTimeout(() => setPasteFlash(false), 2000);
+          const firstFile = files[0];
+          onFilesSelected(multiple ? files : [firstFile]);
+          // Show thumbnail for images
+          if (firstFile.type.startsWith('image/')) {
+            const url = URL.createObjectURL(firstFile);
+            setPastedThumbnailUrl(url);
+            setPasteFlash(true);
+            setTimeout(() => {
+              setPasteFlash(false);
+              setPastedThumbnailUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+            }, 4000);
+          } else {
+            setPasteFlash(true);
+            setTimeout(() => setPasteFlash(false), 4000);
+          }
         } else if (multiple) {
           setPendingFiles(prev => [...prev, ...files]);
         } else {
@@ -131,7 +143,10 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
           Upload
         </Button>
         {pasteFlash ? (
-          <span className="text-[10px] text-green-600 font-medium flex items-center gap-0.5 animate-in fade-in">
+          <span className="text-[10px] text-green-600 font-medium flex items-center gap-1 animate-in fade-in">
+            {pastedThumbnailUrl && (
+              <img src={pastedThumbnailUrl} alt="Pasted preview" className="w-8 h-8 rounded border border-border object-cover" />
+            )}
             <CheckCircle2 className="w-3 h-3" /> Screenshot pasted!
           </span>
         ) : (
