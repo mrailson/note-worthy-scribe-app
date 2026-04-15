@@ -600,6 +600,47 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile",s
               </div>
             </div>
           )}
+          {tab==="documents"&&(
+            <div>
+              <div style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",marginBottom:5}}>Word Document Settings</div>
+              <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 14px",lineHeight:1.55}}>Control what appears in downloaded Word documents.</p>
+              {[
+                {key:"useLetterhead", label:"Practice letterhead", desc:"Show your practice name, address, logo and contact details at the top of every Word document."},
+                {key:"showDocFooter", label:"Document footer", desc:"Show author, job title and Notewell compliance information at the bottom of every Word document."},
+              ].map(({key,label,desc})=>{
+                const val = settings?.[key] !== false;
+                return(
+                  <div key={key} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 14px",background:"#F8FAFC",borderRadius:9,border:"1.5px solid #E8EDEE",marginBottom:10}}>
+                    <button
+                      onClick={()=>saveSettings&&saveSettings({[key]:!val})}
+                      style={{
+                        flexShrink:0, marginTop:2,
+                        width:42, height:24, borderRadius:12, border:"none", cursor:"pointer",
+                        background:val?"#005EB8":"#D1D5DB", position:"relative", transition:"background .2s",
+                      }}
+                    >
+                      <span style={{
+                        position:"absolute", top:3, left:val?20:3,
+                        width:18, height:18, borderRadius:9,
+                        background:"#fff", transition:"left .2s",
+                        boxShadow:"0 1px 3px rgba(0,0,0,0.2)",
+                        display:"block",
+                      }}/>
+                    </button>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:"0.81rem",color:"#003087",marginBottom:2}}>{label}</div>
+                      <div style={{fontSize:"0.72rem",color:"#425563",lineHeight:1.5}}>{desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{background:"#EDF4FF",borderLeft:"3px solid #005EB8",padding:"8px 12px",borderRadius:"0 6px 6px 0",marginTop:6}}>
+                <p style={{margin:0,fontSize:"0.74rem",color:"#003087",lineHeight:1.5}}>
+                  💡 Tip: turn off the letterhead for internal notes and working documents. Leave it on for letters, policies and documents you'll share externally.
+                </p>
+              </div>
+            </div>
+          )}
           {tab==="kb"&&(
             <div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
@@ -1628,7 +1669,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       `}</style>
 
       {showGuide&&<GuideModal user={user} onClose={()=>{setShowGuide(false);localStorage.setItem("nw_ai_welcomed","1");}} vp={vp}/>}
-      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp} onNavigateHome={onNavigateHome} initialTab={profileInitialTab}/>}
+      {showProfile&&<UserProfileModal user={user} onClose={handleProfileSaved} vp={vp} onNavigateHome={onNavigateHome} initialTab={profileInitialTab} settings={settings} saveSettings={saveSettings}/>}
 
       <Sidebar conversations={conversations} activeId={activeConvId} onSelect={selectConv} onNew={newConv} onDelete={deleteConv} user={user} settings={settings} vp={vp} forceOpen={sidebarForceOpen} onToggle={()=>setSidebarForceOpen(o=>!o)} onNavigateHome={onNavigateHome} onOpenKB={()=>{setProfileInitialTab("kb");setShowProfile(true);}}/>
 
@@ -1762,7 +1803,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
             <div style={{width:2,height:40,background:NHS.paleGrey,borderRadius:2}}/>
           </div>
           <div style={{width:panelWidth,minWidth:MIN_PANEL_W,maxWidth:MAX_PANEL_W,flexShrink:0,animation:"nwSlideIn .22s ease",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={panelWidth} onSetWidth={savePanelWidth}/>
+            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={panelWidth} onSetWidth={savePanelWidth} settings={settings} saveSettings={saveSettings}/>
           </div>
         </>
       )}
@@ -1770,7 +1811,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
       {activeArtifact&&(vp==="compact"||vp==="mobile")&&(
         <div style={{position:"fixed",inset:0,zIndex:999,background:"rgba(0,0,0,.45)",animation:"nwFadeIn .2s ease"}} onClick={()=>setActiveArtifact(null)}>
           <div style={{position:"absolute",right:0,top:0,bottom:0,width:"90vw",maxWidth:480,background:"#fff",animation:"nwSlideIn .22s ease",display:"flex",flexDirection:"column",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
-            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={480} onSetWidth={null}/>
+            <ArtifactPanel artifact={activeArtifact} onClose={()=>setActiveArtifact(null)} vp={vp} panelWidth={480} onSetWidth={null} settings={settings} saveSettings={saveSettings}/>
           </div>
         </div>
       )}
