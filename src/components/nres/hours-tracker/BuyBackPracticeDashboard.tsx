@@ -936,6 +936,8 @@ function StaffRosterSection({
   showAddButton,
   rateParams,
   onCreateClaim,
+  onCreateLocumClaim,
+  onDeleteClaim,
   onSubmit,
   onResubmit,
   confirmDeclaration,
@@ -956,6 +958,8 @@ function StaffRosterSection({
   showAddButton: boolean;
   rateParams?: RateParams;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
+  onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
@@ -1209,6 +1213,8 @@ function StaffRosterSection({
                         existingClaim={activeClaim}
                         rateParams={rateParams}
                         onCreateClaim={onCreateClaim}
+                        onCreateLocumClaim={onCreateLocumClaim}
+                        onDeleteClaim={onDeleteClaim}
                         onSubmit={onSubmit}
                         onResubmit={onResubmit}
                         confirmDeclaration={confirmDeclaration}
@@ -1631,6 +1637,8 @@ export function BuyBackPracticeDashboard({
   onSubmit,
   onResubmit,
   onCreateClaim,
+  onCreateLocumClaim,
+  onDeleteClaim,
   onAddStaff,
   onRemoveStaff,
   onUpdateStaff,
@@ -1725,6 +1733,8 @@ export function BuyBackPracticeDashboard({
     staffRoles,
     rateParams,
     onCreateClaim,
+    onCreateLocumClaim,
+    onDeleteClaim,
     onSubmit,
     onResubmit,
     confirmDeclaration,
