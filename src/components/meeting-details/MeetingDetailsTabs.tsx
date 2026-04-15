@@ -135,6 +135,9 @@ export const MeetingDetailsTabs = ({
 
       if (error) throw error;
 
+      // Safety net: ensure meeting title is descriptive even if notes were skipped
+      ensureMeetingTitle(meetingId).catch(err => console.warn('⚠️ Title safety net failed:', err));
+
       toast.success('Note generation started! This may take a few moments.');
     } catch (error: any) {
       console.error('Error generating notes:', error);

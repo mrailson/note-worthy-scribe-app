@@ -451,6 +451,9 @@ const MeetingHistory = () => {
         console.log('🎉 Notes generation started successfully');
         showToast.success('Notes are being generated in the background', { section: 'meeting_manager' });
       }
+
+      // Safety net: ensure meeting title is descriptive even if notes were skipped
+      ensureMeetingTitle(meetingId).catch(err => console.warn('⚠️ Title safety net failed:', err));
     } catch (error: any) {
       console.error('❌ Error triggering notes generation:', error);
       showToast.error('Failed to start notes generation', { section: 'meeting_manager' });
