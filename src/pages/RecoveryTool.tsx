@@ -481,6 +481,126 @@ export default function RecoveryToolPage() {
     }
   }, [user]);
 
+  const reprocessSession = useCallback(async (s: RecoveryDBSession) => {
+    if (!user) {
+      alert('You must be logged in to reprocess.');
+      return;
+    }
+
+    // Determine meeting ID and file path from upload status or session data
+    const meetingId = s.session?.meetingId || s.mobileRecording?.meetingId;
+    const uploadMsg = uploadStatus[s.sessionId] || '';
+    const extractedMeetingId = uploadMsg.match(/Meeting ID: ([a-f0-9-]+)/)?.[1];
+    const finalMeetingId = meetingId || extractedMeetingId;
+
+    if (!finalMeetingId) {
+      alert('Please upload this session first before reprocessing.');
+      return;
+    }
+
+    // Build the file path pattern used during upload
+    const { mimeType } = getSessionBlobs(s);
+    const ext = mimeType.includes('mp4') ? 'mp4' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+    const filePath = `${user.id}/${finalMeetingId}/backup-segment-0.${ext}`;
+
+    setReprocessingId(s.sessionId);
+    setReprocessSegments([]);
+    setReprocessDone(0);
+    setReprocessTotal(0);
+    setUploadStatus(prev => ({ ...prev, [s.sessionId]: '🔄 Listing audio segments…' }));
+
+    try {
+      // Step 1: List segments
+      const { data: listData, error: listErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+        body: { action: 'list', backupId: filePath }
+      });
+
+      if (listErr || !listData?.success) {
+        throw new Error(listData?.error || listErr?.message || 'Failed to list segments');
+      }
+
+      const segments = listData.segments as { name: string; size: number; fullPath: string }[];
+      setReprocessTotal(segments.length);
+
+      const initialResults: ReprocessSegmentResult[] = segments.map((seg, i) => ({
+        index: i,
+        status: 'pending' as const,
+        fileName: seg.name,
+      }));
+      setReprocessSegments(initialResults);
+
+      const transcripts: string[] = [];
+      let completedCount = 0;
+
+      // Step 2: Transcribe each segment
+      for (let i = 0; i < segments.length; i++) {
+        setReprocessSegments(prev =>
+          prev.map(seg => seg.index === i ? { ...seg, status: 'processing' } : seg)
+        );
+        setUploadStatus(prev => ({ ...prev, [s.sessionId]: `🎙️ Transcribing segment ${i + 1} of ${segments.length}…` }));
+
+        try {
+          const { data: txData, error: txErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+            body: { action: 'transcribe', backupId: filePath, segmentIndex: i }
+          });
+
+          if (txErr || !txData?.success) {
+            throw new Error(txData?.error || txErr?.message || 'Transcription failed');
+          }
+
+          transcripts.push(txData.text || '');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'success', text: txData.text, wordCount: txData.wordCount }
+                : seg
+            )
+          );
+        } catch (segErr: any) {
+          transcripts.push('');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'error', error: segErr?.message || 'Failed' }
+                : seg
+            )
+          );
+        }
+      }
+
+      // Step 3: Save combined transcript
+      const fullTranscript = transcripts.filter(t => t).join(' ').trim();
+      const totalWords = fullTranscript.split(/\s+/).filter(w => w.length > 0).length;
+
+      if (fullTranscript.length > 0) {
+        setUploadStatus(prev => ({ ...prev, [s.sessionId]: '💾 Saving transcript…' }));
+
+        const { error: saveErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+          body: { action: 'save', meetingId: finalMeetingId, fullTranscript, wordCount: totalWords }
+        });
+
+        if (saveErr) {
+          setUploadStatus(prev => ({ ...prev, [s.sessionId]: `⚠️ Transcribed ${totalWords.toLocaleString()} words but save failed` }));
+        } else {
+          setUploadStatus(prev => ({ ...prev, [s.sessionId]: `✅ Reprocessed! ${totalWords.toLocaleString()} words saved` }));
+        }
+      } else {
+        setUploadStatus(prev => ({ ...prev, [s.sessionId]: '⚠️ No transcript text recovered from segments' }));
+      }
+    } catch (err: any) {
+      console.error('Reprocess failed:', err);
+      setUploadStatus(prev => ({ ...prev, [s.sessionId]: `❌ Reprocess failed: ${err.message}` }));
+    } finally {
+      setReprocessingId(null);
+    }
+  }, [user, uploadStatus]);
+
   return (
     <div style={{
       padding: '16px',
