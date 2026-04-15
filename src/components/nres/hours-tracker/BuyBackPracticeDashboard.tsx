@@ -203,14 +203,28 @@ function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaf
 // --- Sub-components ---
 
 function KpiCard({ label, value, sub, accent, tooltip }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string }) {
+  const [hover, setHover] = React.useState(false);
   return (
     <div
-      title={tooltip}
-      style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)', cursor: tooltip ? 'help' : 'default', borderLeft: `3px solid ${accent || '#e5e7eb'}` }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)', cursor: tooltip ? 'help' : 'default', borderLeft: `3px solid ${accent || '#e5e7eb'}`, position: 'relative' as const }}
     >
       <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, color: accent, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
       {sub && <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>{sub}</div>}
+      {tooltip && hover && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+          marginBottom: 6, padding: '8px 12px', borderRadius: 8,
+          background: '#1e293b', color: '#fff', fontSize: 11, lineHeight: 1.4,
+          whiteSpace: 'normal' as const, width: 200, textAlign: 'center' as const,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 50, pointerEvents: 'none' as const,
+        }}>
+          {tooltip}
+          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #1e293b' }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -2865,27 +2879,37 @@ export function BuyBackPracticeDashboard({
     return [...fromConfig, ...fromStaff.filter(s => !names.has(s.staff_name))];
   }, [managementRoles, staff, practiceKey]);
 
-  // KPI counts
-  const counts = useMemo(() => {
-    const m: Record<string, number> = { all: practiceClaims.length };
-    practiceClaims.forEach(c => { m[c.status] = (m[c.status] || 0) + 1; });
-    return m;
+  // Flatten claims to individual staff lines for accurate KPI counts
+  const kpiLines = useMemo(() => {
+    return practiceClaims.flatMap(c => {
+      const staffDets = (c.staff_details as any[]) || [];
+      return staffDets.map((s: any) => ({
+        status: c.status,
+        amount: s.claimed_amount ?? s.calculated_amount ?? 0,
+      }));
+    });
   }, [practiceClaims]);
+
+  // KPI counts per status (line-level)
+  const counts = useMemo(() => {
+    const m: Record<string, number> = { all: kpiLines.length };
+    kpiLines.forEach(l => { m[l.status] = (m[l.status] || 0) + 1; });
+    return m;
+  }, [kpiLines]);
 
   const totals = useMemo(() => {
     const t = { draft: 0, submitted: 0, verified: 0, approved: 0, invoiced: 0, paid: 0, queried: 0 };
-    practiceClaims.forEach(c => {
-      const v = claimTotal(c);
-      if (c.status === 'draft') t.draft += v;
-      else if (c.status === 'submitted') t.submitted += v;
-      else if (c.status === 'verified') t.verified += v;
-      else if (c.status === 'approved') t.approved += v;
-      else if ((c.status as string) === 'invoice_created' || (c.status as string) === 'scheduled') t.invoiced += v;
-      else if (c.status === 'paid') t.paid += v;
-      else if (c.status === 'queried') t.queried += v;
+    kpiLines.forEach(l => {
+      if (l.status === 'draft') t.draft += l.amount;
+      else if (l.status === 'submitted') t.submitted += l.amount;
+      else if (l.status === 'verified') t.verified += l.amount;
+      else if (l.status === 'approved') t.approved += l.amount;
+      else if ((l.status as string) === 'invoice_created' || (l.status as string) === 'scheduled') t.invoiced += l.amount;
+      else if (l.status === 'paid') t.paid += l.amount;
+      else if (l.status === 'queried') t.queried += l.amount;
     });
     return t;
-  }, [practiceClaims]);
+  }, [kpiLines]);
 
   const queriedCount = counts.queried || 0;
 
