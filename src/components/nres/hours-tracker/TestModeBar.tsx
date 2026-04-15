@@ -28,6 +28,7 @@ export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: Te
   const isOverriding = state.enabled && state.role !== 'admin';
   const activeRole = ROLE_OPTIONS.find(r => r.value === state.role);
   const [showPractice, setShowPractice] = useState(state.role === 'practice' && state.enabled);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     setShowPractice(state.role === 'practice' && state.enabled);
@@ -41,10 +42,67 @@ export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: Te
         ? (state.selectedPractice || practiceKeys[0])
         : undefined,
     });
+    // Auto-collapse after selecting a non-practice role (practice stays open for selector)
+    if (role !== 'practice') {
+      setExpanded(false);
+    }
   };
 
-  const handleReset = () => onChange({ enabled: true, role: 'admin' });
+  const handleReset = () => {
+    onChange({ enabled: true, role: 'admin' });
+    setExpanded(false);
+  };
 
+  // Collapsed state — just show Eye icon (+ active role badge if overriding)
+  if (!expanded) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <button
+          onClick={() => setExpanded(true)}
+          title="Preview as different role"
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '5px 10px', borderRadius: 8,
+            border: isOverriding ? `1px solid ${activeRole?.color}40` : '1px solid #d1d5db',
+            background: isOverriding ? `${activeRole?.color}08` : '#fafafa',
+            cursor: 'pointer', transition: 'all 0.15s',
+          }}
+        >
+          <Eye style={{ width: 14, height: 14, color: isOverriding ? activeRole?.color : '#9ca3af' }} />
+          {isOverriding ? (
+            <span style={{ fontSize: 11, fontWeight: 600, color: activeRole?.color }}>
+              {activeRole?.shortLabel}
+              {state.role === 'practice' && state.selectedPractice && (
+                <span style={{ fontWeight: 400, opacity: 0.75 }}>
+                  {' · '}{practiceNames[state.selectedPractice]?.split(' ')[0] || ''}
+                </span>
+              )}
+            </span>
+          ) : (
+            <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af' }}>Preview</span>
+          )}
+        </button>
+        {isOverriding && (
+          <button
+            onClick={handleReset}
+            title="Back to Admin view"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '4px 8px', borderRadius: 6,
+              border: '1px solid #d1d5db', background: '#fff',
+              color: '#6b7280', fontSize: 10, fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            <RotateCcw style={{ width: 10, height: 10 }} />
+            Reset
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Expanded state — full bar
   return (
     <div style={{
       fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif",
@@ -53,16 +111,24 @@ export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: Te
       background: isOverriding ? `${activeRole?.color}08` : '#fafafa',
       overflow: 'hidden',
       transition: 'border-color 0.2s, background 0.2s',
+      marginBottom: 8,
     }}>
       {/* Main bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', flexWrap: 'wrap' as const }}>
-        {/* Label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+        {/* Label — clickable to collapse */}
+        <button
+          onClick={() => setExpanded(false)}
+          title="Collapse preview bar"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          }}
+        >
           <Eye style={{ width: 13, height: 13, color: isOverriding ? activeRole?.color : '#9ca3af' }} />
           <span style={{ fontSize: 11, fontWeight: 600, color: isOverriding ? activeRole?.color : '#9ca3af', letterSpacing: '0.01em' }}>
             Preview as:
           </span>
-        </div>
+        </button>
 
         {/* Role pills */}
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const, flex: 1 }}>
