@@ -178,17 +178,30 @@ export const AudioBackupManager = () => {
   const reprocessAudio = async (backupId: string) => {
     setReprocessing(backupId);
     try {
+      toast.info('Starting audio reprocessing — this may take a few minutes for multiple segments…');
+      
       const { data, error } = await supabase.functions.invoke('reprocess-audio-backup', {
         body: { backupId }
       });
 
       if (error) throw error;
 
-      toast.success('Audio reprocessed successfully');
-      await fetchAudioBackups(); // Refresh the list
-    } catch (error) {
+      if (data?.success) {
+        const msg = data.processedSegments && data.totalSegments
+          ? `Reprocessed ${data.processedSegments}/${data.totalSegments} audio segments — ${data.wordCount?.toLocaleString() || '?'} words recovered`
+          : 'Audio reprocessed successfully';
+        toast.success(msg);
+        if (data.failedSegments > 0) {
+          toast.warning(`${data.failedSegments} segment(s) could not be transcribed`);
+        }
+      } else {
+        throw new Error(data?.error || 'Reprocessing failed');
+      }
+
+      await fetchAudioBackups();
+    } catch (error: any) {
       console.error('Error reprocessing audio:', error);
-      toast.error('Failed to reprocess audio');
+      toast.error('Failed to reprocess audio: ' + (error?.message || 'Unknown error'));
     } finally {
       setReprocessing(null);
     }
