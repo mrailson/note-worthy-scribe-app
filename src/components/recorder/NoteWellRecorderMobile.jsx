@@ -335,6 +335,9 @@ function TitleModal({ duration, chunkCount, totalSize, onSave, onDiscard, onCont
   const [title, setTitle] = useState(
     `Meeting ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"})} ${new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`
   );
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const DISCARD_THRESHOLD_SECS = 30;
+  const needsConfirm = duration >= DISCARD_THRESHOLD_SECS;
   return (
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(15,23,42,0.6)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:60,padding:"24px 16px"}}>
       <div style={{background:"white",borderRadius:20,padding:"22px 18px 28px",width:"100%",maxWidth:400,animation:"slideUp 0.25s ease-out",marginBottom:"env(safe-area-inset-bottom, 0px)"}}>
