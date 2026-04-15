@@ -22,9 +22,6 @@ interface NRESHoursTrackerProps {
 }
 
 export function NRESHoursTracker({ neighbourhoodName = 'NRES' }: NRESHoursTrackerProps = {}) {
-  const { user } = useAuth();
-  const isAdmin = !!user?.email && NRES_ADMIN_EMAILS.includes(user.email.toLowerCase());
-
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
 
