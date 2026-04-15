@@ -231,15 +231,17 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   }, [user?.email]);
 
-  const fetchClaims = useCallback(async (forceRefresh = false) => {
+  const fetchClaims = useCallback(async (forceRefresh = false, elevatedOverride?: boolean) => {
     if (!user?.id) return;
     if (!forceRefresh && hasFetchedRef.current) return;
+
+    const elevated = elevatedOverride ?? hasElevatedAccess;
 
     try {
       setLoading(true);
 
       // Users with a system role OR in NRES_ADMIN_EMAILS see all claims
-      if (isAdmin(user.email) || hasElevatedAccess) {
+      if (isAdmin(user.email) || elevated) {
         const { data, error } = await supabase
           .from('nres_buyback_claims')
           .select('*')
@@ -287,15 +289,15 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
   useEffect(() => {
     if (user?.id) fetchClaims();
     return () => { hasFetchedRef.current = false; };
-  }, [user?.id]);
+  }, [user?.id, fetchClaims]);
 
   // Re-fetch when elevated access is detected (initial fetch may have been user-scoped)
   useEffect(() => {
     if (hasElevatedAccess && user?.id) {
       hasFetchedRef.current = false;
-      fetchClaims(true);
+      fetchClaims(true, true);
     }
-  }, [hasElevatedAccess]);
+  }, [hasElevatedAccess, user?.id, fetchClaims]);
 
   const createClaim = async (
     claimMonth: string,
