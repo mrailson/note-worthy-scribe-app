@@ -2109,6 +2109,7 @@ function ClaimsViewSwitcher({
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterName, setFilterName] = useState<string>('all');
+  const [filterMonth, setFilterMonth] = useState<string>('all');
 
   const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
 
@@ -2139,10 +2140,20 @@ function ClaimsViewSwitcher({
   const uniqueCategories = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_category).filter(Boolean))].sort(), [flatLines]);
   const uniqueRoles = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_role).filter(Boolean))].sort(), [flatLines]);
   const uniqueNames = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_name).filter(Boolean))].sort(), [flatLines]);
+  const uniqueMonths = useMemo(() => {
+    const months = [...new Set(flatLines.map(l => l.monthLabel).filter(Boolean))];
+    const monthOrder = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return months.sort((a, b) => {
+      const [am, ay] = [monthOrder.indexOf(a.split(' ')[0]), parseInt(a.split(' ')[1])];
+      const [bm, by] = [monthOrder.indexOf(b.split(' ')[0]), parseInt(b.split(' ')[1])];
+      return by !== ay ? by - ay : bm - am;
+    });
+  }, [flatLines]);
 
   // Filtered + sorted flat lines
   const filteredLines = useMemo(() => {
     let lines = flatLines;
+    if (filterMonth !== 'all') lines = lines.filter(l => l.monthLabel === filterMonth);
     if (filterCategory !== 'all') lines = lines.filter(l => l.staff.staff_category === filterCategory);
     if (filterRole !== 'all') lines = lines.filter(l => l.staff.staff_role === filterRole);
     if (filterName !== 'all') lines = lines.filter(l => l.staff.staff_name === filterName);
@@ -2167,7 +2178,7 @@ function ClaimsViewSwitcher({
       return 0;
     };
     return [...lines].sort(cmp);
-  }, [flatLines, filterCategory, filterRole, filterName, sortCol, sortAsc]);
+  }, [flatLines, filterMonth, filterCategory, filterRole, filterName, sortCol, sortAsc]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) { setSortAsc(!sortAsc); } else { setSortCol(col); setSortAsc(true); }
@@ -2387,6 +2398,10 @@ function ClaimsViewSwitcher({
         <div>
           {/* Filter bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff' }}>
+              <option value="all">All Months</option>
+              {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
             <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff' }}>
               <option value="all">All Categories</option>
               {uniqueCategories.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}
@@ -2399,8 +2414,8 @@ function ClaimsViewSwitcher({
               <option value="all">All Staff</option>
               {uniqueNames.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
-            {(filterCategory !== 'all' || filterRole !== 'all' || filterName !== 'all') && (
-              <button onClick={() => { setFilterCategory('all'); setFilterRole('all'); setFilterName('all'); }} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+            {(filterMonth !== 'all' || filterCategory !== 'all' || filterRole !== 'all' || filterName !== 'all') && (
+              <button onClick={() => { setFilterMonth('all'); setFilterCategory('all'); setFilterRole('all'); setFilterName('all'); }} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                 Clear Filters
               </button>
             )}
