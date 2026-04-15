@@ -1346,7 +1346,7 @@ export function BuyBackPracticeDashboard({
   const managementStaff = useMemo<BuyBackStaffMember[]>(() => {
     if (!managementRoles) return staff.filter(s => s.staff_category === 'management' && s.is_active);
     const fromConfig = managementRoles
-      .filter(r => r.is_active)
+      .filter(r => r.is_active && (!r.member_practice || r.member_practice === practiceKey))
       .map((r): BuyBackStaffMember => ({
         id: r.key,
         user_id: '',
