@@ -39,6 +39,7 @@ const DECLARATION_TEXT = "I confirm that all staff listed are working 100% on SD
 const BUYBACK_DECLARATION_TEXT = "I confirm that the staff listed are existing practice employees released from core practice duties to deliver SDA during the periods claimed. The claimed amount reflects the genuine backfill cost to the practice. I confirm no LTC activity was undertaken during the bought-back sessions and that Part B supporting evidence is attached or will be provided on request.";
 const LOCUM_DECLARATION_TEXT = "I confirm this GP locum provided additional sessional SDA capacity. This claim represents the actual cost of sessions worked and does not exceed the ICB-approved maximum reimbursement rate. GP locums are by definition providing Part A SDA additional resource only — there is no LTC (Part B) activity.";
 const MANAGEMENT_DECLARATION_TEXT = "I confirm this resource has been assigned to the NRES New Models of Care programme and the claim is aligned to the agreed rates, terms, and on-cost calculations as approved by the ICB.";
+const MEETING_DECLARATION_TEXT = "I confirm that the attendance recorded above is accurate and that the meeting(s) listed related to NRES SDA programme business. The amount claimed is based on the ICB-approved rate for this role and the actual hours attended. No other NRES hours are included in this claim.";
 const PILOT_START = new Date(2026, 3, 1); // 1 April 2026
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
@@ -57,13 +58,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   gp_locum: '#d97706',
   new_sda: '#7c3aed',
   management: '#005eb8',
+  meeting: '#0369a1',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   buyback: 'Buy-Back',
   gp_locum: 'GP Locum',
   new_sda: 'New SDA',
-  management: 'NRES Management & Meeting Attendance',
+  management: 'NRES Management',
+  meeting: 'Meeting Attendance',
 };
 
 const PERIOD_OPTIONS = [
@@ -348,6 +351,10 @@ function InlineClaimPanel({
 
   const isLocum = staffMember.staff_category === 'gp_locum';
   const isManagement = staffMember.staff_category === 'management';
+  const isMeeting = staffMember.staff_category === 'meeting';
+  const meetingRate = staffMember.hourly_rate || 0;
+  const [meetingHours, setMeetingHours] = useState<number>(0);
+  const meetingMaxAmount = useMemo(() => meetingHours * meetingRate, [meetingHours, meetingRate]);
   const configuredSessions = staffMember.allocation_value || 0;
   // Derive the authoritative per-session rate from master settings (rateParams)
   // rather than the potentially stale hourly_rate stored on the staff record.
@@ -652,6 +659,71 @@ function InlineClaimPanel({
                     {creating ? 'Creating…' : 'Create Draft'}
                   </button>
                 </div>
+              ) : isMeeting ? (
+                /* ── Meeting attendance: actual hours input ── */
+                <div>
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                      Hours attended this month
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={meetingHours || ''}
+                          onChange={e => setMeetingHours(Math.max(0, Number(e.target.value)))}
+                          placeholder="0"
+                          style={{
+                            width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db',
+                            fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        />
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>hours</span>
+                        {meetingRate > 0 && meetingHours > 0 && (
+                          <>
+                            <span style={{ fontSize: 12, color: '#9ca3af' }}>×</span>
+                            <span style={{ fontSize: 13, color: '#6b7280' }}>{fmtGBP(meetingRate)}/hr</span>
+                            <span style={{ fontSize: 12, color: '#9ca3af' }}>=</span>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: '#0369a1', fontVariantNumeric: 'tabular-nums' }}>
+                              {fmtGBP(meetingMaxAmount)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {meetingRate > 0 && (
+                        <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                          Rate: {fmtGBP(meetingRate)}/hr (ICB-approved)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!onCreateLocumClaim || creating || meetingHours <= 0) return;
+                      setCreating(true);
+                      try {
+                        const meetingStaff = { ...staffMember, allocation_value: meetingHours };
+                        const result = await onCreateLocumClaim(monthDate, meetingStaff, meetingHours, meetingMaxAmount);
+                        if (result) setLocalClaim(result);
+                      } finally {
+                        setCreating(false);
+                      }
+                    }}
+                    disabled={creating || saving || meetingHours <= 0}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
+                      borderRadius: 8, border: 'none', background: '#0369a1', color: '#fff',
+                      fontSize: 13, fontWeight: 600,
+                      cursor: creating || meetingHours <= 0 ? 'not-allowed' : 'pointer',
+                      opacity: creating || meetingHours <= 0 ? 0.55 : 1,
+                    }}
+                  >
+                    {creating ? 'Creating…' : 'Create Draft'}
+                  </button>
+                </div>
               ) : (
                 /* ── Standard: show calculated amount ── */
                 <div>
@@ -757,7 +829,7 @@ function InlineClaimPanel({
                     onChange={(e) => setDeclared(e.target.checked)}
                     style={{ marginTop: 2, accentColor: '#005eb8' }}
                   />
-                  <span>{isLocum ? LOCUM_DECLARATION_TEXT : isManagement ? MANAGEMENT_DECLARATION_TEXT : staffMember.staff_category === 'buyback' ? BUYBACK_DECLARATION_TEXT : DECLARATION_TEXT}</span>
+                  <span>{isLocum ? LOCUM_DECLARATION_TEXT : isMeeting ? MEETING_DECLARATION_TEXT : isManagement ? MANAGEMENT_DECLARATION_TEXT : staffMember.staff_category === 'buyback' ? BUYBACK_DECLARATION_TEXT : DECLARATION_TEXT}</span>
                 </label>
               </div>
 
@@ -1452,7 +1524,9 @@ function StaffRosterSection({
                         </span>
                       </td>
                       <td style={{ padding: '10px', fontSize: 12, color: '#6b7280', whiteSpace: 'nowrap' as const }}>
-                        {getAllocDisplay(member.allocation_type, member.allocation_value)}
+                        {member.staff_category === 'meeting'
+                          ? `${fmtGBP(member.hourly_rate || 0)}/hr · variable`
+                          : getAllocDisplay(member.allocation_type, member.allocation_value)}
                       </td>
                       {rowCells.map(({ cm, claim, isCurrentMo }) => (
                         <MonthStatusCell
@@ -1974,41 +2048,38 @@ export function BuyBackPracticeDashboard({
 
   // Convert management roles to staff-like shape
   const managementStaff = useMemo<BuyBackStaffMember[]>(() => {
-    if (!managementRoles) return staff.filter(s => s.staff_category === 'management' && s.is_active);
-    // Get this practice's ODS code for billing_org_code matching
     const practiceOdsCode = NRES_ODS_CODES[practiceKey] || '';
+    if (!managementRoles) return staff.filter(s => (s.staff_category === 'management' || s.staff_category === 'meeting') && s.is_active);
     const fromConfig = managementRoles
       .filter(r => {
         if (!r.is_active) return false;
         const hasBillingOrg = !!r.billing_org_code;
         const hasMemberPractice = !!r.member_practice;
-        // If neither assignment field is set → show for all practices (unassigned / global)
         if (!hasBillingOrg && !hasMemberPractice) return true;
-        // Match on billing_org_code (primary — already populated in settings)
         if (hasBillingOrg && practiceOdsCode && r.billing_org_code === practiceOdsCode) return true;
-        // Match on member_practice key (secondary fallback)
         if (hasMemberPractice && r.member_practice === practiceKey) return true;
-        // Has an assignment but doesn't match this practice → exclude
         return false;
       })
-      .map((r): BuyBackStaffMember => ({
-        id: r.key,
-        user_id: '',
-        practice_id: null,
-        staff_name: r.person_name,
-        staff_role: 'NRES Management',
-        allocation_type: 'hours' as const,
-        allocation_value: r.max_hours_per_week,
-        hourly_rate: r.hourly_rate,
-        is_active: true,
-        staff_category: 'management' as const,
-        practice_key: practiceKey,
-        start_date: null,
-        created_at: '',
-        updated_at: '',
-      }));
-    const fromStaff = staff.filter(s => s.staff_category === 'management' && s.is_active);
-    // Merge, avoiding duplicates by name
+      .map((r): BuyBackStaffMember => {
+        const isMeetingRole = r.role_type === 'attending_meeting';
+        return {
+          id: r.key,
+          user_id: '',
+          practice_id: null,
+          staff_name: r.person_name,
+          staff_role: isMeetingRole ? r.label : 'NRES Management',
+          allocation_type: 'hours' as const,
+          allocation_value: isMeetingRole ? 0 : r.max_hours_per_week,
+          hourly_rate: r.hourly_rate,
+          is_active: true,
+          staff_category: isMeetingRole ? 'meeting' as const : 'management' as const,
+          practice_key: practiceKey,
+          start_date: null,
+          created_at: '',
+          updated_at: '',
+        };
+      });
+    const fromStaff = staff.filter(s => (s.staff_category === 'management' || s.staff_category === 'meeting') && s.is_active);
     const names = new Set(fromConfig.map(s => s.staff_name));
     return [...fromConfig, ...fromStaff.filter(s => !names.has(s.staff_name))];
   }, [managementRoles, staff, practiceKey]);
