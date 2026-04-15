@@ -656,7 +656,7 @@ export const AudioBackupManager = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => reprocessAudio(backup.id)}
+                        onClick={() => reprocessAudio(backup.id, backup.meeting_id, backup.file_path)}
                         disabled={reprocessing === backup.id}
                       >
                         {reprocessing === backup.id ? (
@@ -667,6 +667,70 @@ export const AudioBackupManager = () => {
                         Reprocess Audio
                       </Button>
                     </div>
+
+                    {/* Chunk-by-chunk progress UI */}
+                    {reprocessing === backup.id && reprocessSegments.length > 0 && (
+                      <div className="mt-4 space-y-3 border rounded-lg p-4 bg-muted/30">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium">Reprocessing Audio</span>
+                            <span className="text-muted-foreground">
+                              {reprocessDone} of {reprocessTotal} segments
+                            </span>
+                          </div>
+                          <Progress value={reprocessTotal > 0 ? (reprocessDone / reprocessTotal) * 100 : 0} />
+                        </div>
+
+                        <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                          {reprocessSegments.map((seg) => (
+                            <div key={seg.index} className="flex items-start gap-2 text-sm">
+                              {seg.status === 'success' && (
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                              )}
+                              {seg.status === 'error' && (
+                                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                              )}
+                              {seg.status === 'processing' && (
+                                <Loader2 className="h-4 w-4 animate-spin text-primary mt-0.5 shrink-0" />
+                              )}
+                              {seg.status === 'pending' && (
+                                <div className="h-4 w-4 rounded-full border border-muted-foreground/30 mt-0.5 shrink-0" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <span className="font-medium">Segment {seg.index + 1}</span>
+                                {seg.status === 'success' && (
+                                  <span className="text-muted-foreground">
+                                    {' — '}{seg.wordCount?.toLocaleString()} words
+                                    {seg.text && (
+                                      <span className="italic ml-1">
+                                        "{seg.text.slice(0, 60)}…"
+                                      </span>
+                                    )}
+                                  </span>
+                                )}
+                                {seg.status === 'processing' && (
+                                  <span className="text-muted-foreground"> — processing…</span>
+                                )}
+                                {seg.status === 'error' && (
+                                  <span className="text-destructive"> — {seg.error}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {reprocessDone > 0 && (
+                          <div className="text-sm font-medium pt-1 border-t">
+                            Running total:{' '}
+                            {reprocessSegments
+                              .filter(s => s.status === 'success')
+                              .reduce((sum, s) => sum + (s.wordCount || 0), 0)
+                              .toLocaleString()}{' '}
+                            words
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
