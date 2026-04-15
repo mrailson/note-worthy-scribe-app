@@ -757,9 +757,134 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   );
 }
 
+// ─── Meeting Claim Card (for PML Director) ──────────────────────────────────
+function MeetingClaimCard({ group, view, expanded, onToggle, onApprove, onQuery, onReject, saving }: {
+  group: { key: string; person_name: string; practice_name: string; claim_month: string; month_label: string; entries: MeetingLogEntry[]; total_hours: number; total_amount: number; status: string };
+  view: PMLView;
+  expanded: boolean;
+  onToggle: () => void;
+  onApprove?: (ids: string[], notes?: string) => Promise<boolean>;
+  onQuery?: (ids: string[], notes?: string) => Promise<boolean>;
+  onReject?: (ids: string[], notes?: string) => Promise<boolean>;
+  saving?: boolean;
+}) {
+  const [reviewNotes, setReviewNotes] = useState('');
+  const displayStatus = toDisplayStatus(group.status);
+  const needsAction = view === 'director' && (displayStatus === 'awaiting_review' || displayStatus === 'queried');
+  const highlightColor = '#93c5fd';
+  const glowColor = 'rgba(59,130,246,0.06)';
+  const ids = group.entries.map(e => e.id);
+
+  const handleAction = async (action: 'approve' | 'query' | 'reject') => {
+    if (action === 'approve' && onApprove) { await onApprove(ids, reviewNotes || undefined); setReviewNotes(''); }
+    if (action === 'query' && onQuery && reviewNotes.trim()) { await onQuery(ids, reviewNotes); setReviewNotes(''); }
+    if (action === 'reject' && onReject && reviewNotes.trim()) { await onReject(ids, reviewNotes); setReviewNotes(''); }
+  };
+
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 12,
+      border: `1px solid ${needsAction ? highlightColor : '#e5e7eb'}`,
+      overflow: 'hidden',
+      boxShadow: needsAction ? `0 0 0 1px ${highlightColor}, 0 2px 8px ${glowColor}` : '0 1px 3px rgba(0,0,0,0.04)',
+    }}>
+      <button onClick={onToggle} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '14px 18px', border: 'none', background: 'transparent',
+        cursor: 'pointer', textAlign: 'left', fontSize: 14,
+      }}>
+        <ChevronDown className={cn('w-[18px] h-[18px] text-gray-400 transition-transform duration-200', expanded && 'rotate-180')} />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+          <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{group.practice_name}</span>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>{group.month_label}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: '#0369a1', background: '#e0f2fe', border: '1px solid #bae6fd' }}>Meeting Attendance</span>
+          <StatusBadge status={displayStatus} />
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(group.total_amount)}</div>
+          <div style={{ fontSize: 11, color: '#9ca3af' }}>{group.entries.length} meeting{group.entries.length !== 1 ? 's' : ''} · {group.total_hours.toFixed(1)} hrs</div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div style={{ borderTop: '1px solid #f3f4f6', padding: '0 18px 18px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, padding: '14px 0 12px', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
+            <InfoBlock label="Person" value={group.person_name} />
+            <InfoBlock label="Practice" value={group.practice_name} />
+            <InfoBlock label="Period" value={group.month_label} />
+            <InfoBlock label="Rate" value={group.entries[0] ? `${fmtGBP(group.entries[0].hourly_rate)}/hr` : '—'} />
+          </div>
+
+          {/* Meeting line items */}
+          <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  {['Meeting', 'Date', 'Hours', 'Rate', 'Amount'].map((h, i) => (
+                    <th key={h} style={{
+                      textAlign: i >= 2 ? 'right' : 'left', padding: '7px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {group.entries.map(entry => (
+                  <tr key={entry.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{entry.description || 'Meeting'}</td>
+                    <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
+                      {new Date(entry.work_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{entry.hours.toFixed(1)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#374151' }}>{fmtGBP(entry.hourly_rate)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#111827' }}>{fmtGBP(entry.total_amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2} style={{ padding: '10px' }} />
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#374151', fontVariantNumeric: 'tabular-nums' }}>{group.total_hours.toFixed(1)}</td>
+                  <td style={{ padding: '10px' }} />
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
+                    {fmtGBP(group.total_amount)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Director action bar */}
+          {view === 'director' && (displayStatus === 'awaiting_review' || displayStatus === 'queried') && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Director Decision</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <ActionBtn label="Approve" color="#059669" bg="#ecfdf5" bold onClick={() => handleAction('approve')} disabled={saving} />
+                <ActionBtn label="Query" color="#d97706" bg="#fffbeb" onClick={() => handleAction('query')} disabled={saving || !reviewNotes.trim()} />
+                <ActionBtn label="Reject" color="#dc2626" bg="#fef2f2" onClick={() => handleAction('reject')} disabled={saving || !reviewNotes.trim()} />
+                <input type="text" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+                  placeholder="Notes (required for Query / Reject)…"
+                  style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+              </div>
+            </div>
+          )}
+
+          {view === 'finance' && (displayStatus === 'awaiting_review' || displayStatus === 'queried') && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9ca3af' }}>
+              <Lock className="w-3.5 h-3.5 text-gray-300" />
+              <span>Awaiting PML Director decision before payment can be processed</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export function BuyBackPMLDashboard({
   claims,
+  meetingEntries,
   userId,
   userEmail,
   isAdmin,
@@ -773,6 +898,9 @@ export function BuyBackPMLDashboard({
   onReject,
   onMarkPaid,
   onSchedulePayment,
+  onApproveMeetingEntries,
+  onQueryMeetingEntries,
+  onRejectMeetingEntries,
   savingClaim,
   defaultView,
   onGuideOpen,
