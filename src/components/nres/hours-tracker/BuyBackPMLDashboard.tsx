@@ -25,6 +25,7 @@ interface BuyBackPMLDashboardProps {
   onApprove: (id: string, notes?: string) => void;
   onReject: (id: string, notes: string) => void;
   onMarkPaid?: (id: string, notes?: string) => void;
+  onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
   savingClaim?: boolean;
   defaultView?: PMLView;
 }
@@ -364,7 +365,7 @@ function PracticeSummary({ claims }: { claims: BuyBackClaim[] }) {
 }
 
 // ─── Claim Card ───────────────────────────────────────────────────────────────
-function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin, rateParams, onApprove, onQuery, onReject, onMarkPaid, saving }: {
+function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin, rateParams, onApprove, onQuery, onReject, onMarkPaid, onSchedulePayment, saving }: {
   claim: BuyBackClaim;
   view: PMLView;
   expanded: boolean;
@@ -377,9 +378,13 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   onQuery?: (id: string, notes: string) => void;
   onReject: (id: string, notes: string) => void;
   onMarkPaid?: (id: string, notes?: string) => void;
+  onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
   saving?: boolean;
 }) {
   const [reviewNotes, setReviewNotes] = useState('');
+  const [payDate, setPayDate] = useState('');
+  const [bacsRef, setBacsRef] = useState('');
+  const [payMode, setPayMode] = useState<'schedule'|'pay'>('schedule');
   const staffDetails = (claim.staff_details || []) as any[];
   const practiceName = getPracticeName(claim.practice_key);
   const monthLabel = format(new Date(claim.claim_month), 'MMMM yyyy');
@@ -405,10 +410,16 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
       if (!reviewNotes.trim()) return;
       onReject(claim.id, reviewNotes);
     }
-    if (action === 'mark_paid' && onMarkPaid) {
+    if (action === 'mark_paid' && payMode === 'pay' && onMarkPaid) {
       onMarkPaid(claim.id, reviewNotes || undefined);
+      setBacsRef(''); setPayDate(''); setReviewNotes('');
     }
-    setReviewNotes('');
+    if (action === 'mark_paid' && payMode === 'schedule' && onSchedulePayment) {
+      if (!payDate) return;
+      onSchedulePayment(claim.id, payDate, bacsRef || undefined, reviewNotes || undefined);
+      setBacsRef(''); setPayDate(''); setReviewNotes('');
+    }
+    if (action !== 'mark_paid') setReviewNotes('');
   };
 
   const sessionCount = staffDetails.reduce((sum, s) => sum + (s.allocation_type === 'sessions' ? (s.allocation_value ?? 0) : s.allocation_type === 'daily' ? (s.allocation_value ?? 0) : 0), 0);
@@ -467,6 +478,15 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             <InfoBlock label="Verified by" value={claim.verified_by || '—'} sub={dateStr(claim.verified_at)} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
+            {(claim as any).approved_by_email && (
+              <InfoBlock label="Approved by" value={(claim as any).approved_by_email.split('@')[0].replace(/\./g,' ').replace(/\w/g, (c: string) => c.toUpperCase())} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />
+            )}
+            {(claim as any).expected_payment_date && !claim.paid_at && (
+              <InfoBlock label="Scheduled payment" value={new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB')} highlight="#d97706" />
+            )}
+            {(claim as any).bacs_reference && (
+              <InfoBlock label="BACS ref" value={(claim as any).bacs_reference} />
+            )}
             {claim.paid_at && <InfoBlock label="Paid" value={new Date(claim.paid_at).toLocaleDateString('en-GB')} highlight="#166534" />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Part A" met={!!hasPartA} />
@@ -637,18 +657,65 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           {/* Finance action bar — Process Payment on approved claims */}
           {view === 'finance' && displayStatus === 'approved' && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Payment Processing</span>
-                <ActionBtn label="Mark as Paid" color="#166534" bg="#f0fdf4" bold
-                  onClick={() => handleAction('mark_paid')} disabled={saving} />
-                <input
-                  type="text"
-                  value={reviewNotes}
-                  onChange={e => setReviewNotes(e.target.value)}
-                  placeholder="Invoice ref / payment note…"
-                  style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
-                />
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>Payment Processing</div>
+
+              {/* Mode toggle */}
+              <div style={{ display: 'inline-flex', background: '#f3f4f6', borderRadius: 8, padding: 3, marginBottom: 12, gap: 2 }}>
+                {(['schedule', 'pay'] as const).map(m => (
+                  <button key={m} onClick={() => setPayMode(m)} style={{
+                    padding: '6px 16px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: payMode === m ? 600 : 400,
+                    background: payMode === m ? '#fff' : 'transparent',
+                    color: payMode === m ? '#111827' : '#6b7280',
+                    cursor: 'pointer', boxShadow: payMode === m ? '0 1px 3px rgba(0,0,0,.08)' : 'none',
+                    transition: 'all .15s',
+                  }}>
+                    {m === 'schedule' ? '📅 Schedule Payment' : '✓ Mark as Paid'}
+                  </button>
+                ))}
               </div>
+
+              {payMode === 'schedule' && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
+                  <div style={{ minWidth: 140 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Scheduled payment date</div>
+                    <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', cursor: 'pointer' }} />
+                  </div>
+                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>BACS reference (optional)</div>
+                    <input value={bacsRef} onChange={e => setBacsRef(e.target.value)}
+                      placeholder="e.g. NRES-APR26-001"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                  </div>
+                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Note (optional)</div>
+                    <input value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+                      placeholder="e.g. April BACS run"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                  </div>
+                  <ActionBtn label="Schedule Payment" color="#d97706" bg="#fffbeb" bold
+                    onClick={() => handleAction('mark_paid')} disabled={saving || !payDate} />
+                </div>
+              )}
+
+              {payMode === 'pay' && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
+                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>BACS reference</div>
+                    <input value={bacsRef} onChange={e => setBacsRef(e.target.value)}
+                      placeholder="e.g. NRES-APR26-001"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                  </div>
+                  <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Payment note</div>
+                    <input value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}
+                      placeholder="Invoice ref / payment confirmation"
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                  </div>
+                  <ActionBtn label="Mark as Paid" color="#166534" bg="#f0fdf4" bold
+                    onClick={() => handleAction('mark_paid')} disabled={saving} />
+                </div>
+              )}
             </div>
           )}
 
@@ -684,6 +751,7 @@ export function BuyBackPMLDashboard({
   onApprove,
   onReject,
   onMarkPaid,
+  onSchedulePayment,
   savingClaim,
   defaultView,
 }: BuyBackPMLDashboardProps) {
@@ -894,6 +962,7 @@ export function BuyBackPMLDashboard({
             onQuery={onQuery}
             onReject={onReject}
             onMarkPaid={onMarkPaid}
+            onSchedulePayment={onSchedulePayment}
             saving={savingClaim}
           />
         ))}
