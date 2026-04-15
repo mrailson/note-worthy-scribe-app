@@ -81,7 +81,6 @@ const PERIOD_OPTIONS = [
   { key: 'this_month', label: 'This Month' },
   { key: 'last_month', label: 'Last Month' },
   { key: 'ytd', label: 'YTD 26/27' },
-  { key: 'prev_fy', label: 'FY 25/26' },
   { key: 'all', label: 'All Time' },
 ];
 
