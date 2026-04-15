@@ -1,28 +1,28 @@
 
 
-## Problem
+## Why the Meeting Title Didn't Generate
 
-When an admin deletes a test claim, it appears that the associated staff member (e.g. Olivia Dove) also disappears. Investigation reveals:
+**Root cause**: Two issues combine to leave the title as the generic default:
 
-1. **No database cascade** — deleting a claim does NOT cascade to `nres_buyback_staff` at the DB level.
-2. **The real issue**: The `onRemoveStaff` prop (which calls `removeStaff` from `useNRESBuyBackStaff`) is passed to the Practice Dashboard for ALL users, including admins. Admins have a visible "Remove staff" button (trash icon) next to each staff member. If an admin clicks this — even accidentally — it permanently deletes the staff record from the database. RLS policies explicitly allow admins to delete any staff (`is_nres_admin()`).
-3. Additionally, `removeStaffFromClaim` in `useNRESBuyBackClaims` (line 442-454) will delete the entire claim if the last staff line is removed, but this doesn't touch the `nres_buyback_staff` table.
+1. **Early exit skips title generation**: When `auto-generate-meeting-notes` is called with `forceRegenerate: false` and notes already exist, it returns at line 305 — **before** reaching the title generation code at line 1463. So the manual Generate button never triggers title generation if notes already exist.
+
+2. **Safety net not connected**: The `ensureMeetingTitle()` function in `manualTriggerNotes.ts` exists specifically to catch this scenario, but it's only called from `manualTriggerAutoNotes()` (used by the recovery helper). The Generate buttons in MeetingHistory and MeetingDetailsTabs call `auto-generate-meeting-notes` directly and never invoke `ensureMeetingTitle`.
+
+---
 
 ## Plan
 
-### Changes to `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`
-- **Stop passing `onRemoveStaff` to admins**: Only pass `removeStaff` as `onRemoveStaff` when the user is the practice owner (non-admin), not when they are viewing as admin. This prevents admins from accidentally deleting practice staff entries.
+### Change 1 — `src/pages/MeetingHistory.tsx`
+After the `auto-generate-meeting-notes` call completes (success or failure), add a call to `ensureMeetingTitle(meetingId)` as a safety net. Import `ensureMeetingTitle` from `@/utils/manualTriggerNotes`.
 
-### Changes to `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`
-- **Hide the remove staff button for admins**: In the `StaffRowCard` component, only show the trash/remove button when the current user is the staff owner (not an admin viewing another practice's staff). Add an `isOwner` or `adminViewing` prop to control this.
+### Change 2 — `src/components/meeting-details/MeetingDetailsTabs.tsx`
+Same fix: after calling `auto-generate-meeting-notes`, add `ensureMeetingTitle(meetingId)`. Import `ensureMeetingTitle` from `@/utils/manualTriggerNotes`.
 
-### Changes to `src/hooks/useNRESBuyBackStaff.ts`
-- **Guard `removeStaff` against admin usage on other users' staff**: Add a safety check so that even if called, admins cannot delete staff belonging to other users. The function should only allow deletion when `user_id` matches the current user, regardless of admin status.
+### Change 3 — `supabase/functions/auto-generate-meeting-notes/index.ts`
+In the early-exit block (lines 296–309), before returning the "skipped" response, add a title check: if the meeting title matches a generic pattern (e.g. starts with "Meeting -"), call `generate-meeting-title` to fix it even though notes generation is skipped. This ensures title generation happens regardless of whether notes are regenerated.
 
-### Summary of protections
-- UI: Admins won't see the remove button for staff they don't own
-- Hook: `removeStaff` will always filter by `user_id` (no admin bypass for deletion)
-- DB: RLS remains unchanged (defence in depth — the hook guard is the primary protection)
-
-No database migration needed.
+### Summary
+- **Edge function**: Even when skipping note generation, check and fix generic titles
+- **Client-side**: Both Generate buttons get the `ensureMeetingTitle` safety net
+- No new files, no schema changes
 
