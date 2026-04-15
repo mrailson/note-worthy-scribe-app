@@ -846,7 +846,24 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1000, margin: '0 auto', padding: '28px 16px' }}>
+      {/* Page header — admin view */}
+      {!testActive && effectiveIsAdmin && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 6, height: 26, background: '#005eb8', borderRadius: 3 }} />
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', margin: 0 }}>Buy-Back &amp; Claims</h1>
+              <span style={{ fontSize: 10, fontWeight: 600, background: '#005eb8', color: '#fff', borderRadius: 100, padding: '2px 8px', letterSpacing: 0.5 }}>ADMIN</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>{practiceFilteredClaims.length} claim{practiceFilteredClaims.length !== 1 ? 's' : ''}</span>
+              <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500, letterSpacing: 0.3 }}>NRES New Models of Care</span>
+            </div>
+          </div>
+          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Manage staff, create and review claims across all practices</p>
+        </div>
+      )}
       {/* Test Mode Bar — admin only */}
       {isAdmin && (
         <TestModeBar
@@ -858,22 +875,47 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
       )}
 
 
-      {effectiveIsAdmin && !testActive && (
-        <div className="flex items-center gap-3">
-          <Label className="text-sm font-medium">Filter by Practice:</Label>
-          <Select value={filterPractice} onValueChange={setFilterPractice}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="All practices" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Practices</SelectItem>
-              {effectivePracticeKeys.map(k => (
-                <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
+      {effectiveIsAdmin && !testActive && (() => {
+        const pendingVal = practiceFilteredClaims.filter(c => c.status === 'submitted' || c.status === 'verified').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
+        const queriedVal = practiceFilteredClaims.filter(c => c.status === 'queried').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
+        const approvedVal = practiceFilteredClaims.filter(c => c.status === 'approved' || c.status === 'invoiced').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
+        const paidVal = practiceFilteredClaims.filter(c => c.status === 'paid').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
+        const fmt = (n:number) => '£'+n.toLocaleString('en-GB',{minimumFractionDigits:0});
+        return (
+          <>
+            {/* KPI cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+              {[
+                { label:'Pending Review', value:statusCounts.submitted+(statusCounts.verified||0), sub:fmt(pendingVal), accent:(statusCounts.submitted||0)>0?'#2563eb':'#9ca3af' },
+                { label:'Queried', value:statusCounts.queried, sub:fmt(queriedVal), accent:statusCounts.queried>0?'#dc2626':'#9ca3af' },
+                { label:'Approved', value:(statusCounts.approved||0)+(statusCounts.invoiced||0), sub:fmt(approvedVal), accent:'#7c3aed' },
+                { label:'Paid', value:statusCounts.paid, sub:fmt(paidVal), accent:'#059669' },
+              ].map(k => (
+                <div key={k.label} style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:10, padding:'14px 16px', boxShadow:'0 1px 2px rgba(0,0,0,0.03)' }}>
+                  <div style={{ fontSize:11, color:'#6b7280', fontWeight:500, marginBottom:4 }}>{k.label}</div>
+                  <div style={{ fontSize:28, fontWeight:700, color:k.accent, lineHeight:1 }}>{k.value}</div>
+                  <div style={{ fontSize:12, color:'#9ca3af', marginTop:4 }}>{k.sub}</div>
+                </div>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+            </div>
+            {/* Practice filter */}
+            <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+              <Label className="text-sm font-medium">Filter by Practice:</Label>
+              <Select value={filterPractice} onValueChange={setFilterPractice}>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="All practices" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Practices</SelectItem>
+                  {effectivePracticeKeys.map(k => (
+                    <SelectItem key={k} value={k}>{ALL_PRACTICES[k]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes */}
       {effectiveShowStaffMgmt && (
@@ -1086,44 +1128,58 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
               <CardTitle className="text-lg">
                 {filteredClaims.some(c => c.status === 'draft') ? 'Current Claim' : 'Claims History'}
               </CardTitle>
-              <Badge variant="secondary" className="ml-auto text-xs">{filteredClaims.length}</Badge>
+              <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, background: '#f1f5f9', color: '#475569', borderRadius: 100, padding: '2px 10px' }}>
+                {filteredClaims.length}
+              </span>
             </button>
           </CollapsibleTrigger>
           {claimsHistoryOpen && effectiveIsAdmin && (!testActive || testMode.role === 'pml_finance' || testMode.role === 'pml_director') && (
-            <div className="flex flex-wrap gap-2 mt-2 items-center justify-between">
-              <div className="flex flex-wrap gap-2 items-center">
+            <div style={{ marginTop: 12 }}>
+              {/* Status pill filters */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {([
-                  { key: 'all', label: 'All' },
-                  { key: 'submitted', label: 'Outstanding' },
-                  { key: 'verified', label: 'Verified' },
-                  { key: 'approved', label: 'Approved' },
-                  { key: 'queried', label: 'Queried' },
-                  { key: 'invoiced', label: 'Invoiced' },
-                  { key: 'paid', label: 'Paid' },
-                  { key: 'rejected', label: 'Rejected' },
-                  { key: 'draft', label: 'Draft' },
-                ] as const).filter(({ key }) => key === 'all' || statusCounts[key] > 0).map(({ key, label }) => (
-                  <Button
-                    key={key}
-                    size="sm"
-                    variant={filterStatus === key ? 'default' : 'outline'}
-                    className="text-xs"
-                    onClick={() => setFilterStatus(key)}
-                  >
-                    {label}
-                    <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
-                      {statusCounts[key]}
-                    </Badge>
-                  </Button>
-                ))}
+                  { key:'all', label:'All', color:'#374151' },
+                  { key:'submitted', label:'Outstanding', color:'#2563eb' },
+                  { key:'verified', label:'Verified', color:'#0369a1' },
+                  { key:'approved', label:'Approved', color:'#7c3aed' },
+                  { key:'queried', label:'Queried', color:'#dc2626' },
+                  { key:'invoiced', label:'Invoiced', color:'#d97706' },
+                  { key:'paid', label:'Paid', color:'#166534' },
+                  { key:'rejected', label:'Rejected', color:'#991b1b' },
+                  { key:'draft', label:'Draft', color:'#6b7280' },
+                ] as const).filter(({ key }) => key === 'all' || statusCounts[key] > 0).map(({ key, label, color }) => {
+                  const active = filterStatus === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setFilterStatus(key)}
+                      style={{
+                        padding:'5px 12px', borderRadius:100, fontSize:11,
+                        fontWeight: active ? 600 : 400,
+                        border:`1px solid ${active ? color : '#d1d5db'}`,
+                        background: active ? `${color}12` : '#fff',
+                        color: active ? color : '#6b7280',
+                        cursor:'pointer', transition:'all 0.15s',
+                        display:'inline-flex', alignItems:'center', gap:5,
+                      }}
+                    >
+                      {label}
+                      <span style={{ fontSize:10, borderRadius:100, padding:'1px 5px', background: active ? color : '#f1f5f9', color: active ? '#fff' : '#6b7280', fontWeight:600 }}>
+                        {statusCounts[key]}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              {effectiveIsAdmin && (
-                <div className="flex gap-2 items-center">
-                  <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}>
-                    <Download className="w-3 h-3" /> Export Detail
-                  </Button>
-                </div>
-              )}
+              {/* Action buttons */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={() => exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus)}
+                  style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'6px 14px', borderRadius:8, border:'1px solid #d1d5db', background:'#fff', color:'#374151', fontSize:12, fontWeight:500, cursor:'pointer' }}
+                >
+                  <Download className="w-3 h-3" /> Export Detail
+                </button>
+              </div>
             </div>
           )}
         </CardHeader>
@@ -1210,6 +1266,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES' }: { neighbourhood
         </>
       )}
 
+      {/* Footer */}
+      {effectiveIsAdmin && !testActive && (
+        <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>NRES New Models of Care — Admin View</span>
+          <span style={{ fontSize: 11, color: '#9ca3af' }}>{filteredClaims.length} claim{filteredClaims.length !== 1 ? 's' : ''} shown · {practiceFilteredClaims.length} total</span>
+        </div>
+      )}
     </div>
   );
 }
