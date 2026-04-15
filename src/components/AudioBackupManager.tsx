@@ -60,6 +60,21 @@ export const AudioBackupManager = () => {
   const [storageStats, setStorageStats] = useState<StorageStats>({ totalFiles: 0, totalSize: 0, totalMeetings: 0 });
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Chunk-by-chunk reprocessing state
+  interface SegmentResult {
+    index: number;
+    status: 'pending' | 'processing' | 'success' | 'error';
+    text?: string;
+    wordCount?: number;
+    fileName?: string;
+    error?: string;
+  }
+  const [reprocessSegments, setReprocessSegments] = useState<SegmentResult[]>([]);
+  const [reprocessTotal, setReprocessTotal] = useState(0);
+  const [reprocessDone, setReprocessDone] = useState(0);
+  const [reprocessRunning, setReprocessRunning] = useState(false);
+  const [reprocessMeetingId, setReprocessMeetingId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchAudioBackups();
     fetchAutoDeleteSetting();
