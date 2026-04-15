@@ -1,57 +1,64 @@
 
 
-## Plan: PML Director & PML Finance Claims Visibility and Actions
+# Restructure NRES Dashboard: Claims-Only Tab + IT & Reporting
 
-### Current State
+## Summary
+Move the "Finance, Governance & Insurance" sub-tab out of Claims & Oversight into a new "IT & Reporting" top-level tab on the NRES Dashboard. Claims & Oversight becomes a clean, claims-only page.
 
-The claims pipeline is: **Draft → Submitted → Verified → Approved → Invoice Created → Scheduled → Paid**
-
-Currently:
-- **PML Director** (`approver` role): can only see and approve claims at `verified` status
-- **PML Finance** (`finance` role): can see `approved` onwards and process invoice/schedule/paid steps
-- Both roles see ALL claims (no status filtering in the UI — only practice role is filtered)
-
-The issue is primarily about **what claims each role sees** and ensuring the workflow matches your description.
-
-### What Will Change
-
-#### 1. PML Director Visibility (in `NRESClaimsOversight.tsx`)
-- Filter `visibleClaims` for the `approver` role to show:
-  - **Verified** claims (awaiting their approval)
-  - **Approved, Invoice Created, Scheduled, Paid** claims (previously approved — full downstream visibility)
-- This means they will NOT see drafts or submitted (pre-verification) claims
-- They CAN approve verified claims and raise queries on them
-
-#### 2. PML Finance Visibility (in `NRESClaimsOversight.tsx`)
-- Filter `visibleClaims` for the `finance` role to show only:
-  - **Approved, Invoice Created, Scheduled, Paid** claims
-- They will NOT see drafts, submitted, or verified claims
-- They handle all three steps: Invoice Created → Scheduled → Paid (already works)
-
-#### 3. Query Ability for PML Director (in `useNRESClaims.ts`)
-- Already partially working — the `canQuery` function allows `approver` to query `verified` claims
-- No changes needed here
-
-#### 4. Summary Cards Update
-- Update `ClaimsSummaryCards` to show relevant counts per role (only counting visible statuses)
-
-### Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/nres/claims/NRESClaimsOversight.tsx` | Add status-based filtering for `approver` and `finance` roles in `visibleClaims` |
-| `src/components/nres/claims/ClaimsSummaryCards.tsx` | May need minor adjustments if it shows irrelevant status counts |
-
-### Technical Detail
-
-In `NRESClaimsOversight.tsx`, the `visibleClaims` memo becomes:
-
+## Current structure
 ```text
-practice  → filter by selected practice
-approver  → filter to verified, approved, invoice_created, scheduled, paid
-finance   → filter to approved, invoice_created, scheduled, paid
-super_admin / verifier → show all (no filter)
+NRESDashboard tabs:
+├─ Dashboard
+├─ Claims & Oversight  →  NRESHoursTracker
+│   ├─ SDA Resource & Buy-Back Claims  (BuyBackClaimsTab)
+│   └─ Finance, Governance & Insurance
+│       ├─ Finance & Governance
+│       ├─ Pre Go-Live Time & Expenses
+│       ├─ Risks & Mitigation
+│       ├─ Evidence Library
+│       └─ Workforce
+└─ Document Vault
 ```
 
-This is a UI-only change — no database migrations needed. The `getAction` and `canQuery` functions already correctly restrict what each role can *do*; this plan only changes what they can *see*.
+## Proposed structure
+```text
+NRESDashboard tabs:
+├─ Dashboard
+├─ IT & Reporting
+│   ├─ Digital Integration   (SDADigitalIntegration — same as SDADashboard)
+│   ├─ Finance & Governance
+│   ├─ Pre Go-Live Time & Expenses
+│   ├─ Risks & Mitigation
+│   ├─ Evidence Library
+│   └─ Workforce
+├─ Claims & Oversight  →  NRESHoursTracker (claims only)
+└─ Document Vault
+```
+
+## Changes
+
+### File 1: `src/pages/NRESDashboard.tsx`
+- Add `Monitor` icon import and `SDADigitalIntegration` import
+- Add a new top-level tab: `{ value: "digital", label: "IT & Reporting", icon: Monitor }`
+- Reorder tabs: Dashboard → IT & Reporting → Claims & Oversight → Document Vault
+- Add `<TabsContent value="digital">` rendering a new `NRESDigitalAndFinance` component (or inline the sub-tabs)
+- The digital tab will contain the `SDADigitalIntegration` component plus all the Finance/Governance sub-tabs currently in NRESHoursTracker
+
+### File 2: `src/components/nres/hours-tracker/NRESHoursTracker.tsx`
+- Remove the `TabsList` with "SDA Resource & Buy-Back Claims" and "Finance, Governance & Insurance" toggle
+- Remove all Finance-related imports (`SDAFinanceGovernance`, `SDARisksMitigation`, `SDAEvidenceLibrary`, `SDAWorkforceInnovation`, time/expense components)
+- Remove the `financeSubTab` state and all the Finance tab content (lines 188-330)
+- The component now renders only the Buy-Back claims content directly (guide button, settings button, `BuyBackClaimsTab`, and the access settings modal)
+- Remove unused hooks/state (`useNRESUserSettings`, `useNRESHoursTracker`, `useNRESExpenses`, `useNRESClaimants`, expenses/claimants states)
+
+### File 3 (new): `src/components/nres/NRESDigitalAndFinance.tsx`
+- New component containing the `SDADigitalIntegration` plus Finance sub-tabs
+- Sub-tabs: Digital Integration | Finance & Governance | Pre Go-Live Time & Expenses | Risks & Mitigation | Evidence Library | Workforce
+- Moves all the Finance/Governance logic from NRESHoursTracker (time tracking, expenses, claimants, admin reports) into this component
+- Receives `neighbourhoodName`, `hideEvidenceLibrary`, `interactiveInsurance` and other relevant props
+
+### No changes to
+- SDADashboard or ENNDashboard
+- BuyBackClaimsTab or any claims components
+- Any hooks or data files
 
