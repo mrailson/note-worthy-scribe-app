@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Zap } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
-import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
+import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
+import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
@@ -11,9 +13,17 @@ import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidence
 interface BuyBackPracticeDashboardProps {
   claims: BuyBackClaim[];
   practiceKey: string;
+  staff?: BuyBackStaffMember[];
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onCreateClaim?: (monthDate: Date, staffMember: BuyBackStaffMember) => Promise<any>;
+  onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  staffRoles?: string[];
+  rateParams?: RateParams;
+  managementRoles?: ManagementRoleConfig[];
   savingClaim?: boolean;
+  savingStaff?: boolean;
+  confirmDeclaration?: (id: string, confirmed: boolean) => Promise<any>;
 }
 
 // --- Status config ---
@@ -606,9 +616,17 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 export function BuyBackPracticeDashboard({
   claims,
   practiceKey,
+  staff: _staff,
   onSubmit,
   onResubmit,
+  onCreateClaim: _onCreateClaim,
+  onAddStaff: _onAddStaff,
+  staffRoles: _staffRoles,
+  rateParams: _rateParams,
+  managementRoles: _managementRoles,
   savingClaim,
+  savingStaff: _savingStaff,
+  confirmDeclaration: _confirmDeclaration,
 }: BuyBackPracticeDashboardProps) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
