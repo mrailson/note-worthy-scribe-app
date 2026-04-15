@@ -540,7 +540,7 @@ function buildSystemPrompt(user,settings,userProfile,customInstructions){
   const rawJT=user.jobTitle||'';const SALS=['mr','mrs','ms','miss','dr','prof','rev','sir','mx'];const isSal=SALS.includes(rawJT.trim().toLowerCase().replace(/\./g,''));const resolvedJobTitle=isSal?(user.role||''):(rawJT||user.role||'');const salPrefix=isSal?rawJT.trim()+' ':'';const authorName=salPrefix+user.name;
   const ctx=settings.includeUserContext?`
 USER CONTEXT (personalise all responses with this):
-- Name: ${authorName} | Role / Job Title: ${resolvedJobTitle||"NHS Staff"}
+- Name: ${authorName}${resolvedJobTitle?` | Role / Job Title: ${resolvedJobTitle}`:""}
 - Practice/PCN: ${user.practice.name} (ODS: ${user.practice.odsCode||""})${user.practice.address?`\n  - Address: ${user.practice.address}`:""}${user.practice.phone?`\n  - Phone: ${user.practice.phone}`:""}${user.practice.email?`\n  - Email: ${user.practice.email}`:""}${user.practice.website?`\n  - Website: ${user.practice.website}`:""}
 - Neighbourhood: ${user.neighbourhood||""} | ICB: ${user.icb||""}
 - Clinical system: ${user.practice.clinicalSystem||""}
@@ -559,7 +559,7 @@ GUARDRAILS (mandatory — never override):
 - Always recommend clinical oversight for outputs used in patient care.
 - Safeguarding: always recommend immediate escalation.
 - Medication dosing: always recommend BNF/local formulary verification.
-- In all documents and letters, use the user's actual Role ("${resolvedJobTitle||"NHS Staff"}") in sign-offs. Never use placeholder text like [Your Job Title], [Job Title], [Role], or [Title]. These fields are always known.
+- In all documents and letters, ${resolvedJobTitle?`use the user's actual Role ("${resolvedJobTitle}") in sign-offs.`:"omit job title from sign-offs if not known."} Never use placeholder text like [Your Job Title], [Job Title], [Role], or [Title].
 
 ARTIFACT GENERATION — Word docs, Excel, PowerPoint, diagrams:
 Give 1-2 sentence confirmation then append:
@@ -567,7 +567,7 @@ Give 1-2 sentence confirmation then append:
 { ...valid JSON only... }
 <<ARTIFACT_END>>
 
-DOCX: {"type":"docx","title":"...","filename":"kebab","meta":{"author":"${authorName}","jobTitle":"${resolvedJobTitle||"NHS Staff"}","organisation":"${user.practice.name}","address":"${user.practice.address||""}","phone":"${user.practice.phone||""}","email":"${user.practice.email||""}","website":"${user.practice.website||""}","logoUrl":"${user.practice.logoUrl||""}","senderLabel":"${authorName}","date":"${new Date().toLocaleDateString("en-GB")}"},"sections":[{"type":"doccontrol","version":"1.0","reviewDate":"...","approvedBy":"...","status":"Draft"},{"type":"recipient","address":"Name\\nTitle\\nOrganisation\\nAddress","salutation":"Dear Dr Smith,"},{"type":"h1","text":"..."},{"type":"h2","text":"..."},{"type":"h3","text":"..."},{"type":"p","text":"..."},{"type":"bullets","items":["..."]},{"type":"numbered","items":["..."]},{"type":"checklist","items":[{"text":"Item one","checked":false},{"text":"Item two","checked":true}]},{"type":"callout_info","text":"..."},{"type":"callout_warning","title":"Important","text":"..."},{"type":"callout_danger","title":"Critical","text":"..."},{"type":"callout_success","title":"Good practice","text":"..."},{"type":"table","headers":["A","B","C"],"rows":[["val","val","val"]],"colWidths":[40,30,30],"rowHighlights":{"0":"warning"}},{"type":"hr"},{"type":"signature","closing":"Yours sincerely,","name":"...","jobTitle":"...","organisation":"..."},{"type":"pagebreak"}]}
+DOCX: {"type":"docx","title":"...","filename":"kebab","meta":{"author":"${authorName}","jobTitle":"${resolvedJobTitle||""}","organisation":"${user.practice.name}","address":"${user.practice.address||""}","phone":"${user.practice.phone||""}","email":"${user.practice.email||""}","website":"${user.practice.website||""}","logoUrl":"${user.practice.logoUrl||""}","senderLabel":"${authorName}","date":"${new Date().toLocaleDateString("en-GB")}"},"sections":[{"type":"doccontrol","version":"1.0","reviewDate":"...","approvedBy":"...","status":"Draft"},{"type":"recipient","address":"Name\\nTitle\\nOrganisation\\nAddress","salutation":"Dear Dr Smith,"},{"type":"h1","text":"..."},{"type":"h2","text":"..."},{"type":"h3","text":"..."},{"type":"p","text":"..."},{"type":"bullets","items":["..."]},{"type":"numbered","items":["..."]},{"type":"checklist","items":[{"text":"Item one","checked":false},{"text":"Item two","checked":true}]},{"type":"callout_info","text":"..."},{"type":"callout_warning","title":"Important","text":"..."},{"type":"callout_danger","title":"Critical","text":"..."},{"type":"callout_success","title":"Good practice","text":"..."},{"type":"table","headers":["A","B","C"],"rows":[["val","val","val"]],"colWidths":[40,30,30],"rowHighlights":{"0":"warning"}},{"type":"hr"},{"type":"signature","closing":"Yours sincerely,","name":"...","jobTitle":"...","organisation":"..."},{"type":"pagebreak"}]}
 Always use meta.jobTitle for the author role in sign-offs. Never write placeholder text like [Your Job Title], [Job Title], [Role], or [Title] — the real values are always provided in meta.
 DOCX RULES:
 - For formal letters: always include a recipient block, then body sections, then a signature block at the end
