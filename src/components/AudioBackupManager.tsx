@@ -191,27 +191,97 @@ export const AudioBackupManager = () => {
     }
   };
 
-  const reprocessAudio = async (backupId: string) => {
+  const reprocessAudio = async (backupId: string, meetingId: string, filePath: string) => {
     setReprocessing(backupId);
+    setReprocessRunning(true);
+    setReprocessMeetingId(meetingId);
+    setReprocessSegments([]);
+    setReprocessTotal(0);
+    setReprocessDone(0);
+
     try {
-      toast.info('Starting audio reprocessing — this may take a few minutes for multiple segments…');
-      
-      const { data, error } = await supabase.functions.invoke('reprocess-audio-backup', {
-        body: { backupId }
+      // Step 1: List segments
+      toast.info('Listing audio segments…');
+      const { data: listData, error: listErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+        body: { action: 'list', backupId: filePath }
       });
 
-      if (error) throw error;
+      if (listErr || !listData?.success) {
+        throw new Error(listData?.error || listErr?.message || 'Failed to list segments');
+      }
 
-      if (data?.success) {
-        const msg = data.processedSegments && data.totalSegments
-          ? `Reprocessed ${data.processedSegments}/${data.totalSegments} audio segments — ${data.wordCount?.toLocaleString() || '?'} words recovered`
-          : 'Audio reprocessed successfully';
-        toast.success(msg);
-        if (data.failedSegments > 0) {
-          toast.warning(`${data.failedSegments} segment(s) could not be transcribed`);
+      const segments = listData.segments as { name: string; size: number; fullPath: string }[];
+      setReprocessTotal(segments.length);
+
+      // Initialise segment results
+      const initialResults: SegmentResult[] = segments.map((s, i) => ({
+        index: i,
+        status: 'pending' as const,
+        fileName: s.name,
+      }));
+      setReprocessSegments(initialResults);
+
+      const transcripts: string[] = [];
+      let completedCount = 0;
+
+      // Step 2: Transcribe each segment one by one
+      for (let i = 0; i < segments.length; i++) {
+        // Mark current as processing
+        setReprocessSegments(prev =>
+          prev.map(seg => seg.index === i ? { ...seg, status: 'processing' } : seg)
+        );
+
+        try {
+          const { data: txData, error: txErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+            body: { action: 'transcribe', backupId: filePath, segmentIndex: i }
+          });
+
+          if (txErr || !txData?.success) {
+            throw new Error(txData?.error || txErr?.message || 'Transcription failed');
+          }
+
+          transcripts.push(txData.text || '');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'success', text: txData.text, wordCount: txData.wordCount }
+                : seg
+            )
+          );
+        } catch (segErr: any) {
+          transcripts.push('');
+          completedCount++;
+          setReprocessDone(completedCount);
+
+          setReprocessSegments(prev =>
+            prev.map(seg =>
+              seg.index === i
+                ? { ...seg, status: 'error', error: segErr?.message || 'Failed' }
+                : seg
+            )
+          );
+        }
+      }
+
+      // Step 3: Save combined transcript
+      const fullTranscript = transcripts.filter(t => t).join(' ').trim();
+      const totalWords = fullTranscript.split(/\s+/).filter(w => w.length > 0).length;
+
+      if (fullTranscript.length > 0) {
+        const { data: saveData, error: saveErr } = await supabase.functions.invoke('reprocess-audio-segment', {
+          body: { action: 'save', meetingId, fullTranscript, wordCount: totalWords }
+        });
+
+        if (saveErr || !saveData?.success) {
+          toast.error('Transcription completed but failed to save: ' + (saveData?.error || saveErr?.message));
+        } else {
+          toast.success(`Reprocessed ${segments.length} segments — ${totalWords.toLocaleString()} words saved`);
         }
       } else {
-        throw new Error(data?.error || 'Reprocessing failed');
+        toast.warning('No transcript text was recovered from any segment');
       }
 
       await fetchAudioBackups();
@@ -220,6 +290,7 @@ export const AudioBackupManager = () => {
       toast.error('Failed to reprocess audio: ' + (error?.message || 'Unknown error'));
     } finally {
       setReprocessing(null);
+      setReprocessRunning(false);
     }
   };
 
