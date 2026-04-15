@@ -1,34 +1,33 @@
 
 
-# Fix Ctrl+V Screenshot Paste in SmartUploadZone
+# Add Thumbnail Preview for Pasted Screenshots
 
-## Problem
+## What changes
 
-Two bugs prevent Ctrl+V paste from working properly:
+When a user pastes a screenshot via Ctrl+V in compact mode, show a small thumbnail of the pasted image alongside the "Screenshot pasted!" confirmation. This gives immediate visual feedback that the correct image was captured.
 
-1. **Compact mode silently drops pasted files** — When `compact={true}` (used in all staff evidence rows), pasted files are added to `pendingFiles` state but the compact UI never renders the pending list or upload button. Files vanish silently.
+## Approach
 
-2. **Multiple global listeners conflict** — Every `SmartUploadZone` instance registers a `document.addEventListener('paste', ...)`. When 10+ staff rows exist, a single Ctrl+V fires into ALL zones simultaneously, causing duplicates or race conditions.
+In `SmartUploadZone.tsx`:
 
-## Fix (single file: `SmartUploadZone.tsx`)
+1. **Add `pastedThumbnailUrl` state** — stores a temporary `URL.createObjectURL()` blob URL of the last pasted image file
+2. **Set it in the paste handler** — when a file is pasted in compact mode, generate a blob URL before calling `onFilesSelected`
+3. **Render a thumbnail** — in the compact `pasteFlash` branch, show a 32x32px rounded thumbnail next to the "Screenshot pasted!" text
+4. **Clean up** — revoke the object URL when the flash timer expires (after ~4 seconds, extended from 2s so users can actually see it) or on unmount
 
-### 1. Auto-upload pasted files in compact mode
-When `compact` is true, bypass `pendingFiles` and call `onFilesSelected()` directly on paste — same as the `multiple=false` path. This gives instant upload with no extra click.
+## Visual result
 
-### 2. Scope paste to focused zone only
-Replace the global `document` paste listener with a scoped approach:
-- Track whether the zone (or its parent container) was the last one interacted with (clicked/focused)
-- Only the "active" zone processes Ctrl+V
-- Use a module-level variable (`activeZoneId`) so only one zone responds
+```text
+[Upload] [📷 32px thumb] ✓ Screenshot pasted!
+```
 
-### 3. Add visual feedback
-In compact mode, show a brief toast or inline flash ("Screenshot pasted!") so users know it worked.
+The thumbnail appears for ~4 seconds alongside the success message, then fades back to the "Click here, then Ctrl+V" hint.
 
 ## Technical detail
 
-- Add a unique `id` ref per SmartUploadZone instance
-- On focus/click of the zone area, set `activeZoneId = thisId`
-- In the paste handler, check `activeZoneId === thisId` before processing
-- In compact mode, call `onFilesSelected(files)` directly instead of `setPendingFiles`
-- All changes confined to `src/components/nres/hours-tracker/SmartUploadZone.tsx`
+- Use `URL.createObjectURL(file)` for the thumbnail — no network request needed
+- Revoke with `URL.revokeObjectURL()` on cleanup to prevent memory leaks
+- Only show thumbnail for image files (check `file.type.startsWith('image/')`)
+- For non-image pastes, keep the existing text-only confirmation
+- Single file change: `src/components/nres/hours-tracker/SmartUploadZone.tsx`
 
