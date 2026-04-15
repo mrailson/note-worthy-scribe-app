@@ -710,6 +710,21 @@ function InlineClaimPanel({
                   <Reply style={{ width: 14, height: 14 }} />
                   Resubmit
                 </button>
+                  {onDeleteClaim && (
+                    <button
+                      onClick={handleDeleteDraft}
+                      disabled={deletingDraft}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                        borderRadius: 7, border: '1px solid #fca5a5', background: '#fff',
+                        color: '#dc2626', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                        opacity: deletingDraft ? 0.5 : 1,
+                      }}
+                    >
+                      <Trash2 style={{ width: 12, height: 12 }} />
+                      {deletingDraft ? 'Deleting…' : 'Delete & Restart'}
+                    </button>
+                  )}
               </div>
             </div>
           )}
