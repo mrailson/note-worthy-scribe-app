@@ -480,9 +480,36 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             </table>
           </div>
 
+          {/* Staff-line evidence upload */}
+          {(isDraft || isQueried) && (
+            <div style={{ marginTop: 12 }}>
+              {staffDets.map((s: any, idx: number) => (
+                <StaffLineEvidence
+                  key={idx}
+                  staffCategory={s.staff_category === 'gp_locum' ? 'buyback' : (s.staff_category || 'buyback')}
+                  staffIndex={idx}
+                  staffName={s.staff_name}
+                  staffRole={s.staff_role}
+                  uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+                  allFilesForStaff={getFilesForStaff(idx)}
+                  canEdit
+                  uploading={uploading}
+                  onUpload={uploadEvidence}
+                  onDelete={deleteEvidence}
+                  onDownload={getDownloadUrl}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Action bar — draft */}
           {isDraft && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              {!evidenceComplete && (
+                <span style={{ fontSize: 12, color: '#dc2626', fontWeight: 500 }}>
+                  Upload all required evidence before submitting
+                </span>
+              )}
               <ActionBtn
                 label="Submit Claim"
                 color="#005eb8"
@@ -490,7 +517,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                 bold
                 icon={<Send className="w-3.5 h-3.5" />}
                 onClick={() => onSubmit?.(claim.id)}
-                disabled={saving}
+                disabled={saving || !evidenceComplete}
               />
             </div>
           )}
