@@ -1651,23 +1651,41 @@ function StaffRosterSection({
                         />
                       </td>
                     </tr>
-                    {/* Inline claim panel */}
+                    {/* Meeting log or standard claim panel */}
                     {activeMonth && (
-                      <InlineClaimPanel
-                        staffMember={member}
-                        monthDate={activeMonth.monthDate}
-                        monthLabel={activeMonth.label}
-                        existingClaim={activeClaim}
-                        rateParams={rateParams}
-                        onCreateClaim={onCreateClaim}
-                        onCreateLocumClaim={onCreateLocumClaim}
-                        onDeleteClaim={onDeleteClaim}
-                        onSubmit={onSubmit}
-                        onResubmit={onResubmit}
-                        confirmDeclaration={confirmDeclaration}
-                        onClose={() => onClickClaim('')}
-                        saving={saving}
-                      />
+                      member.staff_category === 'meeting' ? (
+                        <MeetingAttendanceLog
+                          staffMember={member}
+                          monthDate={activeMonth.monthDate}
+                          monthLabel={activeMonth.label}
+                          practiceKey={practiceKey || ''}
+                          entries={meetingLogEntries || []}
+                          onAdd={async (name, date, hours) => {
+                            const cfg = managementRoles?.find(r => r.key === member.id);
+                            if (cfg && onAddMeetingEntry) await onAddMeetingEntry(practiceKey || '', cfg, name, date, hours);
+                          }}
+                          onDelete={async (id) => { if (onDeleteMeetingEntry) await onDeleteMeetingEntry(id); }}
+                          onSubmit={async () => { if (onSubmitMeetingEntries) await onSubmitMeetingEntries(practiceKey || '', activeMonth.monthDate.slice(0, 7)); }}
+                          saving={saving}
+                          canAddOnBehalf={canAddOnBehalf}
+                        />
+                      ) : (
+                        <InlineClaimPanel
+                          staffMember={member}
+                          monthDate={activeMonth.monthDate}
+                          monthLabel={activeMonth.label}
+                          existingClaim={activeClaim}
+                          rateParams={rateParams}
+                          onCreateClaim={onCreateClaim}
+                          onCreateLocumClaim={onCreateLocumClaim}
+                          onDeleteClaim={onDeleteClaim}
+                          onSubmit={onSubmit}
+                          onResubmit={onResubmit}
+                          confirmDeclaration={confirmDeclaration}
+                          onClose={() => onClickClaim('')}
+                          saving={saving}
+                        />
+                      )
                     )}
                   </React.Fragment>
                 );
