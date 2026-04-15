@@ -2100,12 +2100,77 @@ function ClaimsViewSwitcher({
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
+  // Spreadsheet sort & filter state
+  const [sortCol, setSortCol] = useState<string>('month');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterRole, setFilterRole] = useState<string>('all');
+  const [filterName, setFilterName] = useState<string>('all');
+
   const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
 
   const sorted = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
     return [...periodClaims].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
   }, [periodClaims]);
+
+  // Flatten staff lines for spreadsheet
+  type FlatLine = { claimId: string; claim: BuyBackClaim; staff: any; monthLabel: string; monthDate: string; allocDisplay: string; maxAmt: number; claimedAmt: number; isBelow: boolean };
+  const flatLines = useMemo<FlatLine[]>(() => {
+    return sorted.flatMap(c => {
+      const staffDets = (c.staff_details as any[]) || [];
+      const monthLabel = getClaimMonthLabel(c);
+      return staffDets.map((s: any) => {
+        const allocDisplay = s.allocation_type === 'sessions' ? `${s.allocation_value} sess/mo`
+          : s.allocation_type === 'wte' ? `${s.allocation_value} WTE`
+          : s.allocation_type === 'hours' ? `${s.allocation_value} hrs/wk`
+          : `${s.allocation_value}`;
+        const maxAmt = s.calculated_amount ?? s.claimed_amount ?? 0;
+        const claimedAmt = s.claimed_amount ?? maxAmt;
+        return { claimId: c.id, claim: c, staff: s, monthLabel, monthDate: c.claim_month, allocDisplay, maxAmt, claimedAmt, isBelow: claimedAmt < maxAmt && maxAmt > 0 };
+      });
+    });
+  }, [sorted]);
+
+  // Unique values for filter dropdowns
+  const uniqueCategories = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_category).filter(Boolean))].sort(), [flatLines]);
+  const uniqueRoles = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_role).filter(Boolean))].sort(), [flatLines]);
+  const uniqueNames = useMemo(() => [...new Set(flatLines.map(l => l.staff.staff_name).filter(Boolean))].sort(), [flatLines]);
+
+  // Filtered + sorted flat lines
+  const filteredLines = useMemo(() => {
+    let lines = flatLines;
+    if (filterCategory !== 'all') lines = lines.filter(l => l.staff.staff_category === filterCategory);
+    if (filterRole !== 'all') lines = lines.filter(l => l.staff.staff_role === filterRole);
+    if (filterName !== 'all') lines = lines.filter(l => l.staff.staff_name === filterName);
+
+    const cmp = (a: FlatLine, b: FlatLine): number => {
+      let av: any, bv: any;
+      switch (sortCol) {
+        case 'month': av = a.monthDate; bv = b.monthDate; break;
+        case 'name': av = (a.staff.staff_name || '').toLowerCase(); bv = (b.staff.staff_name || '').toLowerCase(); break;
+        case 'role': av = (a.staff.staff_role || '').toLowerCase(); bv = (b.staff.staff_role || '').toLowerCase(); break;
+        case 'category': av = (a.staff.staff_category || '').toLowerCase(); bv = (b.staff.staff_category || '').toLowerCase(); break;
+        case 'allocation': av = a.staff.allocation_value ?? 0; bv = b.staff.allocation_value ?? 0; break;
+        case 'max': av = a.maxAmt; bv = b.maxAmt; break;
+        case 'claimed': av = a.claimedAmt; bv = b.claimedAmt; break;
+        case 'invoice': av = a.claim.invoice_number || ''; bv = b.claim.invoice_number || ''; break;
+        case 'status': av = a.claim.status; bv = b.claim.status; break;
+        case 'paid': av = a.claim.paid_at || ''; bv = b.claim.paid_at || ''; break;
+        default: av = a.monthDate; bv = b.monthDate;
+      }
+      if (av < bv) return sortAsc ? -1 : 1;
+      if (av > bv) return sortAsc ? 1 : -1;
+      return 0;
+    };
+    return [...lines].sort(cmp);
+  }, [flatLines, filterCategory, filterRole, filterName, sortCol, sortAsc]);
+
+  const handleSort = (col: string) => {
+    if (sortCol === col) { setSortAsc(!sortAsc); } else { setSortCol(col); setSortAsc(true); }
+  };
+
+  const sortArrow = (col: string) => sortCol === col ? (sortAsc ? ' ▲' : ' ▼') : '';
 
   const invoicedClaims = useMemo(() => sorted.filter(c => c.invoice_number && (c.status === 'invoiced' || c.status === 'paid')), [sorted]);
 
@@ -2311,11 +2376,27 @@ function ClaimsViewSwitcher({
       {/* ── SPREADSHEET VIEW ──────────────────────────────────── */}
       {view === 'spreadsheet' && (
         <div>
-          {/* Export bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, marginBottom: 10, border: '1px solid #bbf7d0' }}>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>
-              {sorted.length} claim{sorted.length !== 1 ? 's' : ''} · {sorted.reduce((s, c) => s + ((c.staff_details as any[]) || []).length, 0)} staff lines
-            </span>
+          {/* Filter bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff' }}>
+              <option value="all">All Categories</option>
+              {uniqueCategories.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}
+            </select>
+            <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff' }}>
+              <option value="all">All Roles</option>
+              {uniqueRoles.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <select value={filterName} onChange={e => setFilterName(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff' }}>
+              <option value="all">All Staff</option>
+              {uniqueNames.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            {(filterCategory !== 'all' || filterRole !== 'all' || filterName !== 'all') && (
+              <button onClick={() => { setFilterCategory('all'); setFilterRole('all'); setFilterName('all'); }} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                Clear Filters
+              </button>
+            )}
+            <div style={{ flex: 1 }} />
+            <span style={{ fontSize: 11, color: '#9ca3af' }}>{filteredLines.length} of {flatLines.length} lines</span>
             <button onClick={handleExcelExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 14px', borderRadius: 6, border: '1px solid #86efac', background: '#166534', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
               <FileText style={{ width: 13, height: 13 }} />
               Export to Excel
@@ -2328,63 +2409,63 @@ function ClaimsViewSwitcher({
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                    {['Month', 'Staff Name', 'Role', 'Category', 'Allocation', 'Max £', 'Claimed £', 'Invoice No.', 'Status', 'Paid Date'].map((h, i) => (
-                      <th key={h} style={{ padding: '8px 10px', textAlign: i >= 5 ? 'right' : 'left', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', whiteSpace: 'nowrap' as const }}>{h}</th>
+                    {([
+                      { key: 'month', label: 'Month', align: 'left' },
+                      { key: 'name', label: 'Staff Name', align: 'left' },
+                      { key: 'role', label: 'Role', align: 'left' },
+                      { key: 'category', label: 'Category', align: 'left' },
+                      { key: 'allocation', label: 'Allocation', align: 'left' },
+                      { key: 'max', label: 'Max £', align: 'right' },
+                      { key: 'claimed', label: 'Claimed £', align: 'right' },
+                      { key: 'invoice', label: 'Invoice No.', align: 'left' },
+                      { key: 'status', label: 'Status', align: 'right' },
+                      { key: 'paid', label: 'Paid Date', align: 'right' },
+                    ] as const).map(col => (
+                      <th key={col.key} onClick={() => handleSort(col.key)} style={{ padding: '8px 10px', textAlign: col.align as any, fontSize: 10, fontWeight: 600, color: sortCol === col.key ? '#111827' : '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', whiteSpace: 'nowrap' as const, cursor: 'pointer', userSelect: 'none' }}>
+                        {col.label}{sortArrow(col.key)}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.flatMap(c => {
-                    const staffDets = (c.staff_details as any[]) || [];
-                    const monthLabel = getClaimMonthLabel(c);
-                    return staffDets.map((s: any, idx: number) => {
-                      const allocDisplay = s.allocation_type === 'sessions' ? `${s.allocation_value} sess/mo`
-                        : s.allocation_type === 'wte' ? `${s.allocation_value} WTE`
-                        : s.allocation_type === 'hours' ? `${s.allocation_value} hrs/wk`
-                        : `${s.allocation_value}`;
-                      const maxAmt = s.calculated_amount ?? s.claimed_amount ?? 0;
-                      const claimedAmt = s.claimed_amount ?? maxAmt;
-                      const isBelow = claimedAmt < maxAmt && maxAmt > 0;
-                      return (
-                        <tr key={`${c.id}-${idx}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                          <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' as const }}>{monthLabel}</td>
-                          <td style={{ padding: '8px 10px', fontWeight: 500 }}>{s.staff_name || '—'}</td>
-                          <td style={{ padding: '8px 10px' }}>{s.staff_role || '—'}</td>
-                          <td style={{ padding: '8px 10px' }}>
-                            <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: catColor(s.staff_category), background: `${catColor(s.staff_category)}14` }}>
-                              {catLabel(s.staff_category)}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 10px' }}>{allocDisplay}</td>
-                          <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'monospace', fontSize: 11 }}>{fmtGBP(maxAmt)}</td>
-                          <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
-                            {fmtGBP(claimedAmt)}
-                            {isBelow && <span style={{ color: '#d97706', fontSize: 9, marginLeft: 4 }}>(below max)</span>}
-                          </td>
-                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11 }}>{c.invoice_number || '—'}</td>
-                          <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                            <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: statusColor(c.status), background: `${statusColor(c.status)}14` }}>
-                              {c.status}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: 11 }}>
-                            {c.paid_at ? new Date(c.paid_at).toLocaleDateString('en-GB') : '—'}
-                          </td>
-                        </tr>
-                      );
-                    });
-                  })}
+                  {filteredLines.map((l, idx) => (
+                    <tr key={`${l.claimId}-${idx}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' as const }}>{l.monthLabel}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 500 }}>{l.staff.staff_name || '—'}</td>
+                      <td style={{ padding: '8px 10px' }}>{l.staff.staff_role || '—'}</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: catColor(l.staff.staff_category), background: `${catColor(l.staff.staff_category)}14` }}>
+                          {catLabel(l.staff.staff_category)}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>{l.allocDisplay}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'monospace', fontSize: 11 }}>{fmtGBP(l.maxAmt)}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>
+                        {fmtGBP(l.claimedAmt)}
+                        {l.isBelow && <span style={{ color: '#d97706', fontSize: 9, marginLeft: 4 }}>(below max)</span>}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11 }}>{l.claim.invoice_number || '—'}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                        <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: statusColor(l.claim.status), background: `${statusColor(l.claim.status)}14` }}>
+                          {l.claim.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: 11 }}>
+                        {l.claim.paid_at ? new Date(l.claim.paid_at).toLocaleDateString('en-GB') : '—'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
                     <td colSpan={5} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280' }}>
-                      {sorted.length} claims · {sorted.reduce((s, c) => s + ((c.staff_details as any[]) || []).length, 0)} staff lines
+                      {filteredLines.length} line{filteredLines.length !== 1 ? 's' : ''}
                     </td>
                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>
-                      {fmtGBP(sorted.reduce((s, c) => s + ((c.staff_details as any[]) || []).reduce((a: number, l: any) => a + (l.calculated_amount ?? l.claimed_amount ?? 0), 0), 0))}
+                      {fmtGBP(filteredLines.reduce((s, l) => s + l.maxAmt, 0))}
                     </td>
                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>
-                      {fmtGBP(sorted.reduce((s, c) => s + claimTotal(c), 0))}
+                      {fmtGBP(filteredLines.reduce((s, l) => s + l.claimedAmt, 0))}
                     </td>
                     <td colSpan={3}></td>
                   </tr>
