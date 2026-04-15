@@ -410,10 +410,16 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
       if (!reviewNotes.trim()) return;
       onReject(claim.id, reviewNotes);
     }
-    if (action === 'mark_paid' && onMarkPaid) {
+    if (action === 'mark_paid' && payMode === 'pay' && onMarkPaid) {
       onMarkPaid(claim.id, reviewNotes || undefined);
+      setBacsRef(''); setPayDate(''); setReviewNotes('');
     }
-    setReviewNotes('');
+    if (action === 'mark_paid' && payMode === 'schedule' && onSchedulePayment) {
+      if (!payDate) return;
+      onSchedulePayment(claim.id, payDate, bacsRef || undefined, reviewNotes || undefined);
+      setBacsRef(''); setPayDate(''); setReviewNotes('');
+    }
+    if (action !== 'mark_paid') setReviewNotes('');
   };
 
   const sessionCount = staffDetails.reduce((sum, s) => sum + (s.allocation_type === 'sessions' ? (s.allocation_value ?? 0) : s.allocation_type === 'daily' ? (s.allocation_value ?? 0) : 0), 0);
