@@ -870,7 +870,7 @@ function InlineClaimPanel({
                             step="0.01"
                             value={standardClaimedAmount}
                             onChange={e => {
-                              const v = Math.min(Number(e.target.value), calculatedAmount);
+                              const v = Math.round(Math.min(Number(e.target.value), calculatedAmount) * 100) / 100;
                               setStandardClaimedAmount(Math.max(0, v));
                             }}
                             style={{
