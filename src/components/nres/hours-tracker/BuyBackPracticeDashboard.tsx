@@ -1709,14 +1709,14 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           )}
           {isDraft && <span style={{ fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>Not yet submitted</span>}
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
+        <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div>
             <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>
             <div style={{ fontSize: 11, color: '#9ca3af' }}>
               {staffDets[0]?.staff_role && `${staffDets[0].staff_role}`}
               {staffDets[0]?.staff_role && staffCount > 1 && ` +${staffCount - 1}`}
               {!staffDets[0]?.staff_role && `${staffCount} staff`}
             </div>
-          </div>
           </div>
           {claim.invoice_number && (
             <div onClick={(e) => e.stopPropagation()}>
