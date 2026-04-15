@@ -43,7 +43,7 @@ const buildFallbackUser = (authUser: { email?: string | null; user_metadata?: Re
   return {
     name,
     initials: getInitials(name),
-    role: "NHS Staff",
+    role: "",
     jobTitle: "",
     practice: {
       name: "NHS Primary Care",
