@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark, HelpCircle, Settings } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark, HelpCircle, Settings, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getPracticeName, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
+import { getPracticeName, NRES_PRACTICE_BANK_DETAILS, NRES_ODS_CODES } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
+import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
