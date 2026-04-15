@@ -365,7 +365,7 @@ function PracticeSummary({ claims }: { claims: BuyBackClaim[] }) {
 }
 
 // ─── Claim Card ───────────────────────────────────────────────────────────────
-function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin, rateParams, onApprove, onQuery, onReject, onMarkPaid, saving }: {
+function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin, rateParams, onApprove, onQuery, onReject, onMarkPaid, onSchedulePayment, saving }: {
   claim: BuyBackClaim;
   view: PMLView;
   expanded: boolean;
@@ -378,9 +378,13 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   onQuery?: (id: string, notes: string) => void;
   onReject: (id: string, notes: string) => void;
   onMarkPaid?: (id: string, notes?: string) => void;
+  onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
   saving?: boolean;
 }) {
   const [reviewNotes, setReviewNotes] = useState('');
+  const [payDate, setPayDate] = useState('');
+  const [bacsRef, setBacsRef] = useState('');
+  const [payMode, setPayMode] = useState<'schedule'|'pay'>('schedule');
   const staffDetails = (claim.staff_details || []) as any[];
   const practiceName = getPracticeName(claim.practice_key);
   const monthLabel = format(new Date(claim.claim_month), 'MMMM yyyy');
