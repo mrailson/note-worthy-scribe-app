@@ -626,6 +626,37 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
+  // Group meeting entries by person + claim_month for verifier view
+  const visibleMeetingGroups = useMemo(() => {
+    if (!meetingEntries) return [];
+    const visible = meetingEntries.filter(e =>
+      ['submitted', 'verified', 'approved', 'queried', 'paid'].includes(e.status)
+    );
+    const groups: Record<string, MeetingLogEntry[]> = {};
+    visible.forEach(e => {
+      const key = `${e.person_name}__${e.claim_month?.slice(0, 7) || ''}__${e.billing_org_code || ''}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(e);
+    });
+    return Object.values(groups);
+  }, [meetingEntries]);
+
+  const filteredMeetingGroups = useMemo(() => {
+    return visibleMeetingGroups.filter(group => {
+      const status = group[0]?.status || 'submitted';
+      if (statusFilter !== 'all' && status !== statusFilter) return false;
+      if (search) {
+        const practiceCode_ = group[0]?.billing_org_code || '';
+        const practiceName__ = Object.entries(NRES_ODS_CODES as Record<string, string>).find(([, v]) => v === practiceCode_)?.[0];
+        const label = practiceName__ ? (NRES_PRACTICES as Record<string, string>)[practiceName__] || '' : '';
+        if (!label.toLowerCase().includes(search.toLowerCase()) && !group[0]?.person_name.toLowerCase().includes(search.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [visibleMeetingGroups, statusFilter, search]);
+
+  const submittedMeetingCount = visibleMeetingGroups.filter(g => g[0]?.status === 'submitted').length;
+
   // Only show statuses relevant to verifier
   const visibleClaims = claims.filter(c =>
     ['submitted', 'verified', 'awaiting_review', 'approved', 'queried', 'paid', 'rejected', 'invoiced'].includes(c.status)
