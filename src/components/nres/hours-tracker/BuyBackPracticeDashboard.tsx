@@ -39,6 +39,7 @@ const DECLARATION_TEXT = "I confirm that all staff listed are working 100% on SD
 const BUYBACK_DECLARATION_TEXT = "I confirm that the staff listed are existing practice employees released from core practice duties to deliver SDA during the periods claimed. The claimed amount reflects the genuine backfill cost to the practice. I confirm no LTC activity was undertaken during the bought-back sessions and that Part B supporting evidence is attached or will be provided on request.";
 const LOCUM_DECLARATION_TEXT = "I confirm this GP locum provided additional sessional SDA capacity. This claim represents the actual cost of sessions worked and does not exceed the ICB-approved maximum reimbursement rate. GP locums are by definition providing Part A SDA additional resource only — there is no LTC (Part B) activity.";
 const MANAGEMENT_DECLARATION_TEXT = "I confirm this resource has been assigned to the NRES New Models of Care programme and the claim is aligned to the agreed rates, terms, and on-cost calculations as approved by the ICB.";
+const MEETING_DECLARATION_TEXT = "I confirm that the attendance recorded above is accurate and that the meeting(s) listed related to NRES SDA programme business. The amount claimed is based on the ICB-approved rate for this role and the actual hours attended. No other NRES hours are included in this claim.";
 const PILOT_START = new Date(2026, 3, 1); // 1 April 2026
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
@@ -57,13 +58,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   gp_locum: '#d97706',
   new_sda: '#7c3aed',
   management: '#005eb8',
+  meeting: '#0369a1',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   buyback: 'Buy-Back',
   gp_locum: 'GP Locum',
   new_sda: 'New SDA',
-  management: 'NRES Management & Meeting Attendance',
+  management: 'NRES Management',
+  meeting: 'Meeting Attendance',
 };
 
 const PERIOD_OPTIONS = [
@@ -348,6 +351,10 @@ function InlineClaimPanel({
 
   const isLocum = staffMember.staff_category === 'gp_locum';
   const isManagement = staffMember.staff_category === 'management';
+  const isMeeting = staffMember.staff_category === 'meeting';
+  const meetingRate = staffMember.hourly_rate || 0;
+  const [meetingHours, setMeetingHours] = useState<number>(0);
+  const meetingMaxAmount = useMemo(() => meetingHours * meetingRate, [meetingHours, meetingRate]);
   const configuredSessions = staffMember.allocation_value || 0;
   // Derive the authoritative per-session rate from master settings (rateParams)
   // rather than the potentially stale hourly_rate stored on the staff record.
@@ -757,7 +764,7 @@ function InlineClaimPanel({
                     onChange={(e) => setDeclared(e.target.checked)}
                     style={{ marginTop: 2, accentColor: '#005eb8' }}
                   />
-                  <span>{isLocum ? LOCUM_DECLARATION_TEXT : isManagement ? MANAGEMENT_DECLARATION_TEXT : staffMember.staff_category === 'buyback' ? BUYBACK_DECLARATION_TEXT : DECLARATION_TEXT}</span>
+                  <span>{isLocum ? LOCUM_DECLARATION_TEXT : isMeeting ? MEETING_DECLARATION_TEXT : isManagement ? MANAGEMENT_DECLARATION_TEXT : staffMember.staff_category === 'buyback' ? BUYBACK_DECLARATION_TEXT : DECLARATION_TEXT}</span>
                 </label>
               </div>
 
