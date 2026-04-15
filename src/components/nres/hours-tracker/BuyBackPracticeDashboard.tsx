@@ -440,23 +440,96 @@ function InlineClaimPanel({
           background: '#fafbfc', border: '1px solid #e5e7eb',
           boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
         }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
-                Claim for {monthLabel} — {staffMember.staff_name}
+          {/* Header — clear claim context */}
+          {(() => {
+            // Full month name from monthDate ("2026-04-01" → "April 2026")
+            const fullMonth = new Date(monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            const practiceName = staffMember.practice_key ? getPracticeName(staffMember.practice_key) : null;
+            const fyYear = (() => {
+              const d = new Date(monthDate + 'T12:00:00');
+              const m = d.getMonth(); // 0-indexed
+              const y = d.getFullYear();
+              return m >= 3 ? `${y}/${String(y+1).slice(2)}` : `${y-1}/${String(y).slice(2)}`;
+            })();
+            // Category accent colour matching the section
+            const catColor = CATEGORY_COLORS[staffMember.staff_category] || '#6b7280';
+            const catLabel = CATEGORY_LABELS[staffMember.staff_category] || staffMember.staff_category;
+            // Current claim status for the badge
+            const currentStatus = existingClaim?.status || 'new';
+            const statusLabel = currentStatus === 'new' ? 'Not yet claimed'
+              : currentStatus === 'draft' ? 'Draft'
+              : currentStatus === 'submitted' ? 'Submitted'
+              : currentStatus === 'queried' ? 'Queried'
+              : currentStatus === 'invoiced' ? 'Invoiced'
+              : currentStatus === 'paid' ? 'Paid'
+              : currentStatus;
+            return (
+              <div style={{
+                background: '#fff',
+                borderRadius: 10,
+                border: `1px solid ${catColor}30`,
+                borderLeft: `4px solid ${catColor}`,
+                padding: '14px 16px',
+                marginBottom: 14,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                  <div>
+                    {/* Month prominently */}
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em', marginBottom: 5 }}>
+                      {fullMonth}
+                    </div>
+                    {/* Category + status pills */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100,
+                        background: `${catColor}15`, color: catColor, border: `1px solid ${catColor}30`,
+                      }}>
+                        {catLabel}
+                      </span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 500, padding: '2px 9px', borderRadius: 100,
+                        background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb',
+                      }}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    style={{
+                      padding: '5px 12px', borderRadius: 7, border: '1px solid #d1d5db',
+                      background: '#fff', fontSize: 11, color: '#6b7280',
+                      cursor: 'pointer', fontWeight: 500, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+                {/* Context rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: '1px solid #f3f4f6', paddingTop: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 12 }}>
+                    <span style={{ color: '#9ca3af', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 54, flexShrink: 0 }}>Staff</span>
+                    <span style={{ fontWeight: 600, color: '#111827' }}>{staffMember.staff_name}</span>
+                    <span style={{ color: '#9ca3af' }}>·</span>
+                    <span style={{ color: '#6b7280' }}>{staffMember.staff_role}</span>
+                    <span style={{ color: '#9ca3af' }}>·</span>
+                    <span style={{ color: '#6b7280' }}>{getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}</span>
+                  </div>
+                  {practiceName && (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 12 }}>
+                      <span style={{ color: '#9ca3af', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 54, flexShrink: 0 }}>Practice</span>
+                      <span style={{ fontWeight: 500, color: '#005eb8' }}>{practiceName}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 12 }}>
+                    <span style={{ color: '#9ca3af', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 54, flexShrink: 0 }}>Period</span>
+                    <span style={{ color: '#6b7280' }}>{fullMonth} — NRES SDA Programme {fyYear}</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 1 }}>
-                {staffMember.staff_role} · {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
-              </div>
-            </div>
-            <button onClick={onClose} style={{
-              padding: '4px 10px', borderRadius: 6, border: '1px solid #d1d5db',
-              background: '#fff', fontSize: 11, color: '#6b7280', cursor: 'pointer', fontWeight: 500,
-            }}>
-              Close
-            </button>
-          </div>
+            );
+          })()}
 
           {/* No claim yet — create draft */}
           {!claim && (
