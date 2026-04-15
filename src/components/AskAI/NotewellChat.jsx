@@ -23,7 +23,7 @@ const NHS = {
 const DEFAULT_SETTINGS = {
   responseLength:"balanced", tone:"professional", includeUserContext:true,
   fontSize:"medium", sidebarMode:"collapsed", compactMessages:false, showClinicalCaveats:true,
-  useLetterhead:true, showDocFooter:true,
+  useLetterhead:true, showDocFooter:true, includeLogoInDocx:true,
 };
 const FONT_SCALE = { small:0.84, medium:0.91, large:0.98 };
 
@@ -106,9 +106,11 @@ async function generateDocxBlob(a, docSettings={}){
   const esc = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const addrHtml = s => String(s||"").split(/\n/).map(l=>esc(l.trim())).filter(Boolean).join("<br>");
 
-  const body = (a.sections||[]).map(s=>{
+  const useLetterheadEarly = docSettings.useLetterhead !== false;
+  const titleText = a.title||"Document";
+  const body = (a.sections||[]).map((s,si)=>{
     switch(s.type){
-      case"h1":    return`<h1>${esc(s.text)}</h1>`;
+      case"h1":    if(useLetterheadEarly && si===0 && (s.text||"").trim()===titleText.trim()) return""; return`<h1>${esc(s.text)}</h1>`;
       case"h2":    return`<h2>${esc(s.text)}</h2>`;
       case"h3":    return`<h3>${esc(s.text)}</h3>`;
       case"p":     return`<p>${esc(s.text)}</p>`;
@@ -140,21 +142,46 @@ async function generateDocxBlob(a, docSettings={}){
   const m = a.meta || {};
   const useLetterhead = docSettings.useLetterhead !== false;
   const showDocFooter = docSettings.showDocFooter !== false;
+  const includeLogo = docSettings.includeLogoInDocx !== false;
 
   let logoHtml = "";
-  if(useLetterhead && m.logoUrl){
+  if(useLetterhead && includeLogo && m.logoUrl){
     try{
       const resp = await fetch(m.logoUrl);
       if(resp.ok){
         const blob = await resp.blob();
-        const b64 = await new Promise(res=>{
-          const r=new FileReader();
-          r.onload=()=>res(r.result);
-          r.readAsDataURL(blob);
+        // Resize logo to max 320px wide before embedding to keep file size small
+        const resizedB64 = await new Promise((resolve, reject)=>{
+          const reader = new FileReader();
+          reader.onload = ()=>{
+            const img = new Image();
+            img.onload = ()=>{
+              const MAX_W = 320, MAX_H = 96;
+              let w = img.width, h = img.height;
+              if(w > MAX_W || h > MAX_H){
+                const scale = Math.min(MAX_W/w, MAX_H/h);
+                w = Math.round(w*scale); h = Math.round(h*scale);
+              }
+              const c = document.createElement("canvas");
+              c.width = w; c.height = h;
+              const ctx = c.getContext("2d");
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = "high";
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve({dataUrl: c.toDataURL("image/png", 0.9), w, h});
+            };
+            img.onerror = ()=>reject(new Error("logo load failed"));
+            img.src = reader.result;
+          };
+          reader.onerror = ()=>reject(reader.error);
+          reader.readAsDataURL(blob);
         });
-        logoHtml = `<img src="${b64}" alt="${esc(m.organisation||"")}" style="height:48px;max-width:160px;object-fit:contain;display:block;margin-bottom:5pt"/>`;
+        // Use HTML width/height attributes (Word ignores CSS for images)
+        const dispW = Math.min(resizedB64.w, 160);
+        const dispH = Math.round((dispW / resizedB64.w) * resizedB64.h);
+        logoHtml = `<img src="${resizedB64.dataUrl}" alt="${esc(m.organisation||"")}" width="${dispW}" height="${dispH}" style="height:${dispH}px;max-width:${dispW}px;object-fit:contain;display:block;margin-bottom:5pt"/>`;
       }
-    }catch{}
+    }catch(e){console.warn("Logo embed failed:",e);}
   }
 
   const contactParts = [];
@@ -670,6 +697,7 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile",s
               <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 14px",lineHeight:1.55}}>Control what appears in downloaded Word documents.</p>
               {[
                 {key:"useLetterhead", label:"Practice letterhead", desc:"Show your practice name, address, logo and contact details at the top of every Word document."},
+                {key:"includeLogoInDocx", label:"Include practice logo in exported documents", desc:"When enabled, your practice logo appears in the header of downloaded Word documents. Disable to export clean documents without a logo."},
                 {key:"showDocFooter", label:"Document footer", desc:"Show author, job title and Notewell compliance information at the bottom of every Word document."},
               ].map(({key,label,desc})=>{
                 const val = settings?.[key] !== false;
