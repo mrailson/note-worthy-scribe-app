@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
@@ -22,6 +22,8 @@ interface BuyBackPracticeDashboardProps {
   onResubmit?: (id: string, notes?: string) => void;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  onRemoveStaff?: (id: string) => Promise<void>;
+  onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   savingClaim?: boolean;
   savingStaff?: boolean;
@@ -576,6 +578,8 @@ function StaffRosterSection({
   onClickClaim,
   activeClaimKey,
   onAddStaff,
+  onRemoveStaff,
+  onUpdateStaff,
   staffRoles,
   showAddButton,
   rateParams,
@@ -593,6 +597,8 @@ function StaffRosterSection({
   onClickClaim: (key: string) => void;
   activeClaimKey: string | null;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
+  onRemoveStaff?: (id: string) => Promise<void>;
+  onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
   staffRoles?: string[];
   showAddButton: boolean;
   rateParams?: RateParams;
