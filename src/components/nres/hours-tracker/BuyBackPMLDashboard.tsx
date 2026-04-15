@@ -667,7 +667,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           )}
 
           {/* Finance payment processing panel */}
-          {view === 'finance' && (displayStatus === 'approved' || isPaidFull) && (() => {
+          {view === 'finance' && (displayStatus === 'approved' || displayStatus === 'invoiced' || isPaidFull) && (() => {
             const steps = [
               { key: 'received', label: 'Received', color: '#0369a1' },
               { key: 'scheduled', label: 'Scheduled', color: '#d97706' },
