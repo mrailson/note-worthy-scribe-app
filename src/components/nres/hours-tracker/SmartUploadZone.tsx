@@ -1,6 +1,10 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { Upload, Image, FileText, Loader2, X } from 'lucide-react';
+import { Upload, Image, FileText, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// Module-level active zone tracker — only one zone responds to Ctrl+V
+let activeZoneId: string | null = null;
+let idCounter = 0;
 
 interface SmartUploadZoneProps {
   onFilesSelected: (files: File[]) => void;
@@ -13,8 +17,14 @@ interface SmartUploadZoneProps {
 export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple = true, compact = false }: SmartUploadZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const instanceId = useRef(`suz-${++idCounter}`);
   const [isDragging, setIsDragging] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pasteFlash, setPasteFlash] = useState(false);
+
+  const activate = useCallback(() => {
+    activeZoneId = instanceId.current;
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -34,17 +44,19 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      if (multiple) {
+      if (multiple && !compact) {
         setPendingFiles(prev => [...prev, ...files]);
       } else {
-        onFilesSelected([files[0]]);
+        onFilesSelected(multiple ? files : [files[0]]);
       }
     }
-  }, [multiple, onFilesSelected]);
+  }, [multiple, compact, onFilesSelected]);
 
-  // Clipboard paste handler
+  // Clipboard paste handler — scoped to active zone only
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
+      if (activeZoneId !== instanceId.current) return;
+
       const items = e.clipboardData?.items;
       if (!items) return;
 
@@ -64,7 +76,12 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
 
       if (files.length > 0) {
         e.preventDefault();
-        if (multiple) {
+        if (compact) {
+          // Auto-upload immediately in compact mode
+          onFilesSelected(multiple ? files : [files[0]]);
+          setPasteFlash(true);
+          setTimeout(() => setPasteFlash(false), 2000);
+        } else if (multiple) {
           setPendingFiles(prev => [...prev, ...files]);
         } else {
           onFilesSelected([files[0]]);
@@ -74,15 +91,15 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
 
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
-  }, [multiple, onFilesSelected]);
+  }, [multiple, compact, onFilesSelected]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      if (multiple) {
+      if (multiple && !compact) {
         setPendingFiles(prev => [...prev, ...files]);
       } else {
-        onFilesSelected([files[0]]);
+        onFilesSelected(multiple ? files : [files[0]]);
       }
     }
     e.target.value = '';
@@ -101,19 +118,31 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2">
+      <div
+        className="flex items-center gap-2"
+        onClick={activate}
+        onFocus={activate}
+        tabIndex={0}
+        role="button"
+      >
         <input ref={fileInputRef} type="file" className="hidden" accept={accept} multiple={multiple} onChange={handleFileChange} />
         <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
           {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
           Upload
         </Button>
-        <span className="text-[10px] text-muted-foreground">or Ctrl+V to paste</span>
+        {pasteFlash ? (
+          <span className="text-[10px] text-green-600 font-medium flex items-center gap-0.5 animate-in fade-in">
+            <CheckCircle2 className="w-3 h-3" /> Screenshot pasted!
+          </span>
+        ) : (
+          <span className="text-[10px] text-muted-foreground">Click here, then Ctrl+V to paste</span>
+        )}
       </div>
     );
   }
 
   return (
-    <div ref={dropZoneRef}>
+    <div ref={dropZoneRef} onClick={activate} onFocus={activate}>
       <input ref={fileInputRef} type="file" className="hidden" accept={accept || '.pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif'} multiple={multiple} onChange={handleFileChange} />
 
       <div
