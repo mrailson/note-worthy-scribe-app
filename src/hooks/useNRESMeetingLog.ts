@@ -1,0 +1,181 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { NRES_ADMIN_EMAILS } from '@/data/nresAdminEmails';
+import { NRES_ODS_CODES } from '@/data/nresPractices';
+import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
+
+export interface MeetingLogEntry {
+  id: string;
+  user_id: string;
+  management_role_key: string;
+  person_name: string;
+  work_date: string;
+  hours: number;
+  description: string | null;
+  claim_month: string | null;
+  billing_entity: string | null;
+  billing_org_code: string | null;
+  hourly_rate: number;
+  total_amount: number;
+  status: 'draft' | 'submitted' | 'verified' | 'approved' | 'queried' | 'invoiced' | 'paid' | 'rejected';
+  submitted_at: string | null;
+  submitted_by: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useNRESMeetingLog() {
+  const { user } = useAuth();
+  const [entries, setEntries] = useState<MeetingLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const isAdmin = user?.email ? NRES_ADMIN_EMAILS.includes(user.email.toLowerCase()) : false;
+
+  const fetchEntries = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      // Only fetch attending_meeting type entries (identified by role_key prefix or description)
+      // We filter in-memory by role_type after fetch since DB has no role_type column
+      const { data, error } = await (supabase as any)
+        .from('nres_management_time')
+        .select('*')
+        .order('work_date', { ascending: false });
+      if (error) throw error;
+      setEntries((data || []) as MeetingLogEntry[]);
+    } catch (e) {
+      console.error('[useNRESMeetingLog] fetch error', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => { if (user?.id) fetchEntries(); }, [user?.id, fetchEntries]);
+
+  /** Get entries for a specific practice (filtered by billing_org_code) and claim month */
+  const getEntriesForPractice = useCallback((practiceKey: string, claimMonth: string): MeetingLogEntry[] => {
+    const odsCode = NRES_ODS_CODES[practiceKey] || '';
+    return entries.filter(e =>
+      e.billing_org_code === odsCode &&
+      e.claim_month === claimMonth
+    );
+  }, [entries]);
+
+  /** Add a meeting attendance entry */
+  const addMeetingEntry = useCallback(async (params: {
+    practiceKey: string;
+    roleConfig: ManagementRoleConfig;
+    meetingName: string;
+    meetingDate: string;
+    hours: number;
+    claimMonth: string;
+    addedByAdmin?: boolean;
+  }): Promise<MeetingLogEntry | null> => {
+    if (!user?.id) return null;
+    const { practiceKey, roleConfig, meetingName, meetingDate, hours, claimMonth } = params;
+    const odsCode = NRES_ODS_CODES[practiceKey] || roleConfig.billing_org_code || '';
+    const totalAmount = hours * roleConfig.hourly_rate;
+    try {
+      setSaving(true);
+      const { data, error } = await (supabase as any)
+        .from('nres_management_time')
+        .insert({
+          user_id: user.id,
+          management_role_key: roleConfig.key,
+          person_name: roleConfig.person_name,
+          work_date: meetingDate,
+          hours,
+          description: meetingName,
+          claim_month: claimMonth,
+          billing_entity: roleConfig.billing_entity,
+          billing_org_code: odsCode,
+          hourly_rate: roleConfig.hourly_rate,
+          total_amount: totalAmount,
+          status: 'draft',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setEntries(prev => [data as MeetingLogEntry, ...prev]);
+      toast.success('Meeting logged');
+      return data as MeetingLogEntry;
+    } catch (e: any) {
+      console.error('[useNRESMeetingLog] addEntry error', e);
+      toast.error('Failed to log meeting');
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
+  /** Delete a draft entry */
+  const deleteMeetingEntry = useCallback(async (id: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('nres_management_time')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setEntries(prev => prev.filter(e => e.id !== id));
+      toast.success('Entry removed');
+    } catch (e) {
+      console.error('[useNRESMeetingLog] delete error', e);
+      toast.error('Failed to remove entry');
+    }
+  }, []);
+
+  /** Submit all draft entries for a practice+month combination */
+  const submitMonthEntries = useCallback(async (practiceKey: string, claimMonth: string, submittedBy?: string): Promise<boolean> => {
+    const odsCode = NRES_ODS_CODES[practiceKey] || '';
+    const drafts = entries.filter(e =>
+      e.billing_org_code === odsCode &&
+      e.claim_month === claimMonth &&
+      e.status === 'draft'
+    );
+    if (drafts.length === 0) {
+      toast.error('No draft meeting entries to submit for this month');
+      return false;
+    }
+    try {
+      setSaving(true);
+      const ids = drafts.map(e => e.id);
+      const { error } = await (supabase as any)
+        .from('nres_management_time')
+        .update({
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+          submitted_by: submittedBy || user?.email || '',
+        })
+        .in('id', ids);
+      if (error) throw error;
+      setEntries(prev => prev.map(e =>
+        ids.includes(e.id)
+          ? { ...e, status: 'submitted' as const, submitted_at: new Date().toISOString(), submitted_by: submittedBy || user?.email || '' }
+          : e
+      ));
+      toast.success(`${drafts.length} meeting ${drafts.length === 1 ? 'entry' : 'entries'} submitted for ${claimMonth}`);
+      return true;
+    } catch (e) {
+      console.error('[useNRESMeetingLog] submit error', e);
+      toast.error('Failed to submit entries');
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [entries, user?.email]);
+
+  return {
+    entries,
+    loading,
+    saving,
+    isAdmin,
+    getEntriesForPractice,
+    addMeetingEntry,
+    deleteMeetingEntry,
+    submitMonthEntries,
+    refetch: fetchEntries,
+  };
+}
