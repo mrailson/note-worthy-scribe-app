@@ -202,12 +202,15 @@ function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaf
 
 // --- Sub-components ---
 
-function KpiCard({ label, value, sub, accent }: { label: string; value: string | number; sub?: string; accent?: string }) {
+function KpiCard({ label, value, sub, accent, tooltip }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 10, padding: '14px 16px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-      <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: accent, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{sub}</div>}
+    <div
+      title={tooltip}
+      style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)', cursor: tooltip ? 'help' : 'default', borderLeft: `3px solid ${accent || '#e5e7eb'}` }}
+    >
+      <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: accent, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }
@@ -2870,11 +2873,18 @@ export function BuyBackPracticeDashboard({
   }, [practiceClaims]);
 
   const totals = useMemo(() => {
-    const draft = practiceClaims.filter(c => c.status === 'draft').reduce((a, c) => a + claimTotal(c), 0);
-    const pending = practiceClaims.filter(c => ['submitted', 'verified'].includes(c.status)).reduce((a, c) => a + claimTotal(c), 0);
-    const queried = practiceClaims.filter(c => c.status === 'queried').reduce((a, c) => a + claimTotal(c), 0);
-    const paid = practiceClaims.filter(c => c.status === 'paid').reduce((a, c) => a + claimTotal(c), 0);
-    return { draft, pending, queried, paid };
+    const t = { draft: 0, submitted: 0, verified: 0, approved: 0, invoiced: 0, paid: 0, queried: 0 };
+    practiceClaims.forEach(c => {
+      const v = claimTotal(c);
+      if (c.status === 'draft') t.draft += v;
+      else if (c.status === 'submitted') t.submitted += v;
+      else if (c.status === 'verified') t.verified += v;
+      else if (c.status === 'approved') t.approved += v;
+      else if ((c.status as string) === 'invoice_created' || (c.status as string) === 'scheduled') t.invoiced += v;
+      else if (c.status === 'paid') t.paid += v;
+      else if (c.status === 'queried') t.queried += v;
+    });
+    return t;
   }, [practiceClaims]);
 
   const queriedCount = counts.queried || 0;
@@ -2950,11 +2960,14 @@ export function BuyBackPracticeDashboard({
       )}
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
-        <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#6b7280' : '#d1d5db'} />
-        <KpiCard label="In Pipeline" value={(counts.submitted || 0) + (counts.verified || 0)} sub={fmtShort(totals.pending)} accent="#2563eb" />
-        <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} />
-        <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#059669" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 20 }}>
+        <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted to NRES" />
+        <KpiCard label="Awaiting Verification" value={counts.submitted || 0} sub={fmtShort(totals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES Verification" />
+        <KpiCard label="Awaiting Approval" value={counts.verified || 0} sub={fmtShort(totals.verified)} accent="#7c3aed" tooltip="Verified by NRES, awaiting PML Finance Director Approval" />
+        <KpiCard label="Approved" value={counts.approved || 0} sub={fmtShort(totals.approved)} accent="#059669" tooltip="Approved by PML Finance Director, ready for invoicing" />
+        <KpiCard label="Invoiced" value={(counts.invoice_created || 0) + (counts.scheduled || 0)} sub={fmtShort(totals.invoiced)} accent="#d97706" tooltip="Invoice created and scheduled for payment" />
+        <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" />
+        <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" />
       </div>
 
       {/* Staff Roster */}
