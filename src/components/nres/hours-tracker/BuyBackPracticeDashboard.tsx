@@ -102,6 +102,21 @@ function shortDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-GB');
 }
 
+/** Convert an NHS email to a readable name: "andrew.moore@nhs.net" → "Andrew Moore" */
+function emailToName(email: string | null | undefined): string {
+  if (!email) return '—';
+  const local = email.split('@')[0];
+  return local.split('.').map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+}
+
+/** Compute due date: invoice date + 30 days */
+function dueDate(invoiceDate: string | null | undefined): string {
+  if (!invoiceDate) return '—';
+  const d = new Date(invoiceDate);
+  d.setDate(d.getDate() + 30);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function getClaimMonthLabel(claim: BuyBackClaim): string {
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const d = new Date(claim.claim_month);
@@ -752,33 +767,159 @@ function InlineClaimPanel({
             </div>
           )}
 
-          {/* Submitted/verified/approved/paid/invoiced — read-only */}
-          {claim && !isDraft && !isQueried && (
-            <div>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb',
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Claim Amount</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtGBP(claimTotal(claim))}
+          {/* Submitted/verified/approved/paid/invoiced — rich panel for invoiced/paid, simple for earlier statuses */}
+          {claim && !isDraft && !isQueried && (() => {
+            const isInvoicedOrPaid = claim.status === 'invoiced' || claim.status === 'paid';
+            const isPaid = claim.status === 'paid';
+
+            if (!isInvoicedOrPaid) {
+              // Simple view for submitted/verified/approved
+              return (
+                <div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                    background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb',
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Claim Amount</div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                        {fmtGBP(claimTotal(claim))}
+                      </div>
+                    </div>
+                    <StatusPill status={claim.status} />
                   </div>
+                  {claim.submitted_at && <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>Submitted {dateStr(claim.submitted_at)}</div>}
                 </div>
-                <StatusPill status={claim.status} />
+              );
+            }
+
+            // Build audit timeline for paid status
+            const trail: { label: string; detail?: string; time?: string | null; color?: string }[] = [];
+            if (claim.submitted_at) trail.push({ label: 'Submitted by practice', time: claim.submitted_at, color: '#6b7280' });
+            if (claim.verified_by) trail.push({ label: `Verified by ${emailToName(claim.verified_by)} (Management Lead)`, time: claim.verified_at, color: '#0369a1' });
+            if (claim.approved_by_email) trail.push({ label: `Approved by ${emailToName(claim.approved_by_email)} (PML Director)`, time: (claim as any).approved_at, color: '#7c3aed' });
+            if (claim.invoice_generated_at) trail.push({ label: `Invoice ${claim.invoice_number || ''} generated`, time: claim.invoice_generated_at, color: '#d97706' });
+            if (claim.expected_payment_date && !isPaid) trail.push({ label: 'Payment scheduled by PML Finance', detail: `Due ${new Date(claim.expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, time: null, color: '#d97706' });
+            if (isPaid) trail.push({ label: `Payment sent${claim.bacs_reference ? ` · BACS: ${claim.bacs_reference}` : ''}`, detail: claim.paid_by ? `Processed by ${emailToName(claim.paid_by)} (PML Finance)` : undefined, time: claim.actual_payment_date || claim.paid_at, color: '#059669' });
+
+            return (
+              <div>
+
+                {/* Invoice header card */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+                  background: isPaid ? '#f0fdf4' : '#fffbeb', borderRadius: 10,
+                  border: `1px solid ${isPaid ? '#86efac' : '#fcd34d'}`, marginBottom: 14,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' as const, color: isPaid ? '#166534' : '#92400e' }}>
+                        {isPaid
+                          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                               <CheckCircle2 style={{ width: 13, height: 13 }} /> PAID
+                            </span>
+                          : 'INVOICED'
+                        }
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtGBP(claimTotal(claim))}
+                    </div>
+                    {claim.invoice_number && (
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 3 }}>
+                        Invoice {claim.invoice_number}
+                        {claim.invoice_generated_at && ` · ${new Date(claim.invoice_generated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                      </div>
+                    )}
+                  </div>
+                  {claim.invoice_number && (
+                    <InvoiceDownloadLink claim={claim} />
+                  )}
+                </div>
+
+                {/* Detail grid */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10,
+                  padding: '12px 14px', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 14,
+                }}>
+                  {/* Approved by */}
+                  {claim.approved_by_email && (
+                    <div>
+                      <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>Approved by</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{emailToName(claim.approved_by_email)}</div>
+                      <div style={{ fontSize: 10, color: '#9ca3af' }}>PML Director</div>
+                      {(claim as any).approved_at && <div style={{ fontSize: 10, color: '#9ca3af' }}>{shortDate((claim as any).approved_at)}</div>}
+                    </div>
+                  )}
+
+                  {/* Payment terms */}
+                  <div>
+                    <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>Payment terms</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Net 30 days</div>
+                    {claim.invoice_generated_at && (
+                      <div style={{ fontSize: 10, color: '#9ca3af' }}>Due by {dueDate(claim.invoice_generated_at)}</div>
+                    )}
+                  </div>
+
+                  {/* Scheduled payment or paid date */}
+                  {isPaid ? (
+                    <div>
+                      <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>Paid</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>{shortDate(claim.actual_payment_date || claim.paid_at)}</div>
+                      {claim.bacs_reference && <div style={{ fontSize: 10, color: '#6b7280' }}>BACS: {claim.bacs_reference}</div>}
+                      {claim.paid_by && <div style={{ fontSize: 10, color: '#9ca3af' }}>{emailToName(claim.paid_by)} · PML Finance</div>}
+                    </div>
+                  ) : claim.expected_payment_date ? (
+                    <div>
+                      <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>Scheduled payment</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#d97706' }}>{new Date(claim.expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                      <div style={{ fontSize: 10, color: '#9ca3af' }}>Set by PML Finance</div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>Payment</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#d97706' }}>Awaiting scheduling</div>
+                      <div style={{ fontSize: 10, color: '#9ca3af' }}>PML Finance to confirm</div>
+                    </div>
+                  )}
+
+                  {/* Payment notes from Finance */}
+                  {claim.payment_notes && (
+                    <div>
+                      <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>Finance note</div>
+                      <div style={{ fontSize: 12, color: '#374151' }}>{claim.payment_notes}</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Audit trail — only shown for paid claims */}
+                {isPaid && trail.length > 0 && (
+                  <div style={{ padding: '10px 14px', background: '#fafbfc', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: 8 }}>
+                      Claim Journey
+                    </div>
+                    <div style={{ position: 'relative' as const }}>
+                      {trail.map((t, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 10, marginBottom: i < trail.length - 1 ? 10 : 0, position: 'relative' as const }}>
+                          {/* Connector line */}
+                          {i < trail.length - 1 && (
+                            <div style={{ position: 'absolute' as const, left: 5, top: 12, bottom: -10, width: 1, background: '#e5e7eb' }} />
+                          )}
+                          {/* Dot */}
+                          <div style={{ width: 11, height: 11, borderRadius: '50%', background: t.color || '#9ca3af', border: '2px solid #fff', boxShadow: '0 0 0 1px #e5e7eb', flexShrink: 0, marginTop: 2 }} />
+                          <div>
+                            <div style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{t.label}</div>
+                            {t.detail && <div style={{ fontSize: 11, color: '#6b7280' }}>{t.detail}</div>}
+                            {t.time && <div style={{ fontSize: 10, color: '#9ca3af' }}>{dateStr(t.time)}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              {claim.submitted_at && (
-                <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>
-                  Submitted {dateStr(claim.submitted_at)}
-                </div>
-              )}
-              {claim.paid_at && (
-                <div style={{ marginTop: 4, fontSize: 12, color: '#166534', fontWeight: 500 }}>
-                  Paid {shortDate(claim.paid_at)}
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })()}
         </div>
       </td>
     </tr>
@@ -1474,13 +1615,13 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6',
           }}>
             {claim.submitted_at && <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />}
-            {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
-            {(claim as any).approved_by_email && <InfoBlock label="Approved by" value={(claim as any).approved_by_email.split('@')[0].replace(/\./g,' ').replace(/\w/g, (c: string) => c.toUpperCase())} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />}
-            {(claim as any).expected_payment_date && !claim.paid_at && (
-              <InfoBlock label="Scheduled payment" value={shortDate((claim as any).expected_payment_date)} highlight="#d97706" />
-            )}
-            {(claim as any).bacs_reference && <InfoBlock label="BACS ref" value={(claim as any).bacs_reference} />}
-            {claim.paid_at && <InfoBlock label="Paid" value={shortDate((claim as any).actual_payment_date || claim.paid_at)} highlight="#166534" sub={claim.paid_by ? claim.paid_by.split('@')[0] : undefined} />}
+            {claim.verified_by && <InfoBlock label="Verified by" value={emailToName(claim.verified_by)} sub={dateStr(claim.verified_at)} />}
+            {claim.approved_by_email && <InfoBlock label="Approved by" value={emailToName(claim.approved_by_email)} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />}
+            {claim.invoice_generated_at && <InfoBlock label="Invoice date" value={shortDate(claim.invoice_generated_at)} />}
+            {claim.invoice_generated_at && <InfoBlock label="Payment terms" value="Net 30 days" sub={`Due ${dueDate(claim.invoice_generated_at)}`} />}
+            {claim.expected_payment_date && !claim.paid_at && <InfoBlock label="Scheduled payment" value={new Date(claim.expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} highlight="#d97706" />}
+            {claim.bacs_reference && <InfoBlock label="BACS ref" value={claim.bacs_reference} />}
+            {claim.paid_at && <InfoBlock label="Paid" value={shortDate(claim.actual_payment_date || claim.paid_at)} highlight="#166534" sub={claim.paid_by ? emailToName(claim.paid_by) + ' · PML Finance' : undefined} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
               <EvidencePill label="Evidence" met={evidenceComplete} />
