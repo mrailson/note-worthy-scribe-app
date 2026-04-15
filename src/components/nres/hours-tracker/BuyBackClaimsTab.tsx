@@ -796,7 +796,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, testMode.selectedPractice, rateParams);
           }}
           onAddStaff={addStaff}
-          onRemoveStaff={removeStaff}
+          onRemoveStaff={isAdmin ? undefined : removeStaff}
           onUpdateStaff={updateStaff}
           staffRoles={staffRoles}
           rateParams={rateParams}
