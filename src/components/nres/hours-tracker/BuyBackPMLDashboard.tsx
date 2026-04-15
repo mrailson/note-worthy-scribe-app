@@ -12,8 +12,22 @@ import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 // --- Types ---
 type PMLView = 'director' | 'finance';
 
+interface MeetingClaimGroup {
+  key: string;
+  person_name: string;
+  practice_name: string;
+  billing_org_code: string;
+  claim_month: string;
+  month_label: string;
+  entries: MeetingLogEntry[];
+  total_hours: number;
+  total_amount: number;
+  status: string; // verified, approved, queried, etc.
+}
+
 interface BuyBackPMLDashboardProps {
   claims: BuyBackClaim[];
+  meetingEntries?: MeetingLogEntry[];
   userId?: string;
   userEmail?: string;
   isAdmin: boolean;
@@ -27,6 +41,9 @@ interface BuyBackPMLDashboardProps {
   onReject: (id: string, notes: string) => void;
   onMarkPaid?: (id: string, notes?: string) => void;
   onSchedulePayment?: (id: string, date: string, bacsRef?: string, notes?: string) => void;
+  onApproveMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
+  onQueryMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
+  onRejectMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
   savingClaim?: boolean;
   defaultView?: PMLView;
   onGuideOpen?: () => void;
