@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings } from 'lucide-react';
+import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
@@ -9,6 +9,8 @@ import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
+import { useNRESMeetingLog } from '@/hooks/useNRESMeetingLog';
+import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
@@ -32,6 +34,11 @@ interface BuyBackPracticeDashboardProps {
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
   showSettings?: boolean;
+  meetingLogEntries?: MeetingLogEntry[];
+  onAddMeetingEntry?: (practiceKey: string, roleConfig: ManagementRoleConfig, meetingName: string, meetingDate: string, hours: number) => Promise<void>;
+  onDeleteMeetingEntry?: (id: string) => Promise<void>;
+  onSubmitMeetingEntries?: (practiceKey: string, claimMonth: string) => Promise<void>;
+  canAddOnBehalf?: boolean;
 }
 
 // --- Constants ---
@@ -659,71 +666,6 @@ function InlineClaimPanel({
                     {creating ? 'Creating…' : 'Create Draft'}
                   </button>
                 </div>
-              ) : isMeeting ? (
-                /* ── Meeting attendance: actual hours input ── */
-                <div>
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                      Hours attended this month
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={meetingHours || ''}
-                          onChange={e => setMeetingHours(Math.max(0, Number(e.target.value)))}
-                          placeholder="0"
-                          style={{
-                            width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db',
-                            fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        />
-                        <span style={{ fontSize: 13, color: '#6b7280' }}>hours</span>
-                        {meetingRate > 0 && meetingHours > 0 && (
-                          <>
-                            <span style={{ fontSize: 12, color: '#9ca3af' }}>×</span>
-                            <span style={{ fontSize: 13, color: '#6b7280' }}>{fmtGBP(meetingRate)}/hr</span>
-                            <span style={{ fontSize: 12, color: '#9ca3af' }}>=</span>
-                            <span style={{ fontSize: 16, fontWeight: 700, color: '#0369a1', fontVariantNumeric: 'tabular-nums' }}>
-                              {fmtGBP(meetingMaxAmount)}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      {meetingRate > 0 && (
-                        <span style={{ fontSize: 11, color: '#9ca3af' }}>
-                          Rate: {fmtGBP(meetingRate)}/hr (ICB-approved)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (!onCreateLocumClaim || creating || meetingHours <= 0) return;
-                      setCreating(true);
-                      try {
-                        const meetingStaff = { ...staffMember, allocation_value: meetingHours };
-                        const result = await onCreateLocumClaim(monthDate, meetingStaff, meetingHours, meetingMaxAmount);
-                        if (result) setLocalClaim(result);
-                      } finally {
-                        setCreating(false);
-                      }
-                    }}
-                    disabled={creating || saving || meetingHours <= 0}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px',
-                      borderRadius: 8, border: 'none', background: '#0369a1', color: '#fff',
-                      fontSize: 13, fontWeight: 600,
-                      cursor: creating || meetingHours <= 0 ? 'not-allowed' : 'pointer',
-                      opacity: creating || meetingHours <= 0 ? 0.55 : 1,
-                    }}
-                  >
-                    {creating ? 'Creating…' : 'Create Draft'}
-                  </button>
-                </div>
               ) : (
                 /* ── Standard: show calculated amount ── */
                 <div>
@@ -1091,6 +1033,246 @@ function InlineClaimPanel({
   );
 }
 
+// --- Meeting Attendance Log ---
+function MeetingAttendanceLog({
+  staffMember,
+  monthDate,
+  monthLabel,
+  practiceKey,
+  roleConfig,
+  entries,
+  onAdd,
+  onDelete,
+  onSubmit,
+  saving,
+  canAddOnBehalf,
+}: {
+  staffMember: BuyBackStaffMember;
+  monthDate: string;
+  monthLabel: string;
+  practiceKey: string;
+  roleConfig?: ManagementRoleConfig;
+  entries: MeetingLogEntry[];
+  onAdd: (meetingName: string, meetingDate: string, hours: number) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onSubmit: () => Promise<void>;
+  saving?: boolean;
+  canAddOnBehalf?: boolean;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [meetingName, setMeetingName] = useState('');
+  const [meetingDate, setMeetingDate] = useState(monthDate.slice(0, 7) + '-01');
+  const [meetingHours, setMeetingHours] = useState('');
+  const [addingSaving, setAddingSaving] = useState(false);
+  const [declared, setDeclared] = useState(false);
+
+  const monthEntries = entries.filter(e => {
+    const em = e.claim_month?.slice(0, 7) || '';
+    const mm = monthDate.slice(0, 7);
+    return em === mm;
+  });
+
+  const draftEntries = monthEntries.filter(e => e.status === 'draft');
+  const submittedEntries = monthEntries.filter(e => e.status !== 'draft');
+  const totalHours = monthEntries.reduce((s, e) => s + e.hours, 0);
+  const totalAmount = monthEntries.reduce((s, e) => s + e.total_amount, 0);
+  const draftHours = draftEntries.reduce((s, e) => s + e.hours, 0);
+  const draftAmount = draftEntries.reduce((s, e) => s + e.total_amount, 0);
+  const rate = staffMember.hourly_rate || 0;
+  const isFullySubmitted = draftEntries.length === 0 && submittedEntries.length > 0;
+
+  const handleAdd = async () => {
+    if (!meetingName.trim() || !meetingDate || !meetingHours) return;
+    setAddingSaving(true);
+    try {
+      await onAdd(meetingName.trim(), meetingDate, Number(meetingHours));
+      setMeetingName(''); setMeetingHours(''); setShowForm(false);
+    } finally {
+      setAddingSaving(false);
+    }
+  };
+
+  const statusColor = (status: string) => {
+    const map: Record<string, string> = { draft: '#6b7280', submitted: '#0369a1', verified: '#7c3aed', approved: '#059669', invoiced: '#d97706', paid: '#166534', queried: '#dc2626' };
+    return map[status] || '#9ca3af';
+  };
+
+  return (
+    <tr>
+      <td colSpan={99} style={{ padding: 0 }}>
+        <div style={{ margin: '0 10px 12px', borderRadius: 12, border: '1px solid #bae6fd', background: '#f0f9ff', overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #bae6fd' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#0c4a6e', marginBottom: 4 }}>
+                  {monthLabel}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: 6 }}>Meeting Attendance</span>
+                  {isFullySubmitted && <span style={{ fontSize: 11, color: '#059669', fontWeight: 500 }}>Submitted</span>}
+                </div>
+              </div>
+              <button onClick={() => onDelete && setShowForm(false)} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #d1d5db', background: '#fff', fontSize: 11, color: '#6b7280', cursor: 'pointer', fontWeight: 500 }}>
+                ✕ Close
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginTop: 10, flexWrap: 'wrap' as const }}>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>
+                <span style={{ fontWeight: 600 }}>Person</span>{' '}
+                {staffMember.staff_name}
+                <span style={{ color: '#d1d5db' }}> · </span>
+                {staffMember.staff_role}
+                <span style={{ color: '#d1d5db' }}> · </span>
+                {fmtGBP(rate)}/hr
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>
+                <span style={{ fontWeight: 600 }}>Practice</span>{' '}
+                {getPracticeName(practiceKey)}
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>
+                <span style={{ fontWeight: 600 }}>Period</span>{' '}
+                {monthLabel} — NRES SDA Programme
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: '14px 18px' }}>
+            {/* Summary strip */}
+            {monthEntries.length > 0 && (
+              <div style={{ display: 'flex', gap: 16, marginBottom: 14, flexWrap: 'wrap' as const }}>
+                <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #e0f2fe', padding: '10px 14px', minWidth: 120 }}>
+                  <div style={{ fontSize: 11, color: '#6b7280' }}>Meetings logged</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#0c4a6e' }}>{monthEntries.length}</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af' }}>{totalHours.toFixed(1)} hrs total</div>
+                </div>
+                {draftEntries.length > 0 && (
+                  <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #fcd34d', padding: '10px 14px', minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: '#92400e' }}>Pending claim</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#92400e' }}>{fmtGBP(draftAmount)}</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{draftHours.toFixed(1)} hrs · {draftEntries.length} {draftEntries.length === 1 ? 'entry' : 'entries'}</div>
+                  </div>
+                )}
+                {submittedEntries.length > 0 && (
+                  <div style={{ background: '#fff', borderRadius: 8, border: '1px solid #86efac', padding: '10px 14px', minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: '#166534' }}>Submitted</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#166534' }}>{fmtGBP(submittedEntries.reduce((s,e)=>s+e.total_amount,0))}</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{submittedEntries.reduce((s,e)=>s+e.hours,0).toFixed(1)} hrs · {submittedEntries.length} {submittedEntries.length===1?'entry':'entries'}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Entry log */}
+            {monthEntries.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Meeting log</div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
+                  {monthEntries.map(entry => (
+                    <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                      <Calendar size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{entry.description || 'Meeting'}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{new Date(entry.work_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · {entry.hours}h</div>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmtGBP(entry.total_amount)}</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: statusColor(entry.status), textTransform: 'uppercase' as const, flexShrink: 0 }}>
+                        {entry.status}
+                      </span>
+                      {entry.status === 'draft' && (
+                        <button onClick={() => onDelete(entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: 16, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }}
+                          onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = '#dc2626'}
+                          onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = '#d1d5db'}
+                        >×</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add meeting form */}
+            {!isFullySubmitted && (
+              <div style={{ marginBottom: 14 }}>
+                {!showForm ? (
+                  <button onClick={() => setShowForm(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 8, border: '1px solid #0369a1', background: '#e0f2fe', color: '#0369a1', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    + Log Meeting
+                  </button>
+                ) : (
+                  <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #e5e7eb', padding: 14 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 10 }}>Log a meeting{canAddOnBehalf ? ' (on behalf of practice)' : ''}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
+                      <div style={{ flex: '2 1 160px' }}>
+                        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 3 }}>Meeting name</div>
+                        <input value={meetingName} onChange={e => setMeetingName(e.target.value)} placeholder="e.g. NRES Programme Board" onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                      </div>
+                      <div style={{ flex: '1 1 120px' }}>
+                        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 3 }}>Date</div>
+                        <input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)}
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
+                      </div>
+                      <div style={{ flex: '0 0 80px' }}>
+                        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 3 }}>Hours</div>
+                        <input type="number" min="0" step="0.5" value={meetingHours} onChange={e => setMeetingHours(e.target.value)} placeholder="e.g. 2"
+                          style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }} />
+                      </div>
+                      {meetingHours && Number(meetingHours) > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', padding: '7px 0' }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#0369a1' }}>{fmtGBP(Number(meetingHours) * rate)}</span>
+                        </div>
+                      )}
+                      <button onClick={handleAdd} disabled={addingSaving || !meetingName.trim() || !meetingHours} style={{ padding: '7px 16px', borderRadius: 7, border: 'none', background: (!meetingName.trim() || !meetingHours) ? '#94a3b8' : '#0369a1', color: '#fff', fontSize: 12, fontWeight: 600, cursor: (!meetingName.trim() || !meetingHours) ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+                        {addingSaving ? 'Saving…' : 'Save'}
+                      </button>
+                      <button onClick={() => setShowForm(false)} style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid #d1d5db', background: '#fff', color: '#6b7280', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Submit section — only show if draft entries exist */}
+            {draftEntries.length > 0 && (
+              <div style={{ borderTop: '1px solid #bae6fd', paddingTop: 14 }}>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ display: 'flex', gap: 8, fontSize: 11, color: '#374151', cursor: 'pointer', alignItems: 'flex-start' }}>
+                    <input type="checkbox" checked={declared} onChange={e => setDeclared(e.target.checked)} style={{ marginTop: 2, accentColor: '#0369a1' }} />
+                    <span>{MEETING_DECLARATION_TEXT}</span>
+                  </label>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    Submitting {draftEntries.length} {draftEntries.length === 1 ? 'entry' : 'entries'} totalling {fmtGBP(draftAmount)}
+                  </div>
+                  <button onClick={() => { if (declared) onSubmit(); }} disabled={saving || !declared}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', borderRadius: 8, border: 'none', background: (saving || !declared) ? '#94a3b8' : '#0369a1', color: '#fff', fontSize: 13, fontWeight: 600, cursor: (saving || !declared) ? 'not-allowed' : 'pointer', opacity: (saving || !declared) ? 0.6 : 1 }}>
+                    <Send size={14} />
+                    Submit {draftEntries.length > 0 ? `${draftEntries.length} ${draftEntries.length === 1 ? 'entry' : 'entries'}` : 'for ' + monthLabel} →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isFullySubmitted && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #86efac' }}>
+                <CheckCircle2 size={16} style={{ color: '#059669' }} />
+                <span style={{ fontSize: 12, color: '#166534' }}>All entries submitted for {monthLabel}. Awaiting verification.</span>
+              </div>
+            )}
+
+            {monthEntries.length === 0 && (
+              <div style={{ padding: '16px 14px', background: '#fff', borderRadius: 8, border: '1px dashed #d1d5db', textAlign: 'center' as const, color: '#9ca3af', fontSize: 12 }}>
+                No meetings logged for {monthLabel} yet. Tap "+ Log Meeting" to add your first entry.
+              </div>
+            )}
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 // --- Staff Actions (Edit / Remove) ---
 function StaffActions({
   member,
@@ -1272,6 +1454,12 @@ function StaffRosterSection({
   confirmDeclaration,
   practiceKey,
   saving,
+  meetingLogEntries,
+  onAddMeetingEntry,
+  onDeleteMeetingEntry,
+  onSubmitMeetingEntries,
+  canAddOnBehalf,
+  managementRoles,
 }: {
   title: string;
   category: string;
@@ -1294,6 +1482,12 @@ function StaffRosterSection({
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   practiceKey?: string;
   saving?: boolean;
+  meetingLogEntries?: MeetingLogEntry[];
+  onAddMeetingEntry?: (practiceKey: string, roleConfig: ManagementRoleConfig, meetingName: string, meetingDate: string, hours: number) => Promise<void>;
+  onDeleteMeetingEntry?: (id: string) => Promise<void>;
+  onSubmitMeetingEntries?: (practiceKey: string, claimMonth: string) => Promise<void>;
+  canAddOnBehalf?: boolean;
+  managementRoles?: ManagementRoleConfig[];
 }) {
   const accent = CATEGORY_COLORS[category] || '#6b7280';
   const now = new Date();
@@ -1549,23 +1743,41 @@ function StaffRosterSection({
                         />
                       </td>
                     </tr>
-                    {/* Inline claim panel */}
+                    {/* Meeting log or standard claim panel */}
                     {activeMonth && (
-                      <InlineClaimPanel
-                        staffMember={member}
-                        monthDate={activeMonth.monthDate}
-                        monthLabel={activeMonth.label}
-                        existingClaim={activeClaim}
-                        rateParams={rateParams}
-                        onCreateClaim={onCreateClaim}
-                        onCreateLocumClaim={onCreateLocumClaim}
-                        onDeleteClaim={onDeleteClaim}
-                        onSubmit={onSubmit}
-                        onResubmit={onResubmit}
-                        confirmDeclaration={confirmDeclaration}
-                        onClose={() => onClickClaim('')}
-                        saving={saving}
-                      />
+                      member.staff_category === 'meeting' ? (
+                        <MeetingAttendanceLog
+                          staffMember={member}
+                          monthDate={activeMonth.monthDate}
+                          monthLabel={activeMonth.label}
+                          practiceKey={practiceKey || ''}
+                          entries={meetingLogEntries || []}
+                          onAdd={async (name, date, hours) => {
+                            const cfg = managementRoles?.find(r => r.key === member.id);
+                            if (cfg && onAddMeetingEntry) await onAddMeetingEntry(practiceKey || '', cfg, name, date, hours);
+                          }}
+                          onDelete={async (id) => { if (onDeleteMeetingEntry) await onDeleteMeetingEntry(id); }}
+                          onSubmit={async () => { if (onSubmitMeetingEntries) await onSubmitMeetingEntries(practiceKey || '', activeMonth.monthDate.slice(0, 7)); }}
+                          saving={saving}
+                          canAddOnBehalf={canAddOnBehalf}
+                        />
+                      ) : (
+                        <InlineClaimPanel
+                          staffMember={member}
+                          monthDate={activeMonth.monthDate}
+                          monthLabel={activeMonth.label}
+                          existingClaim={activeClaim}
+                          rateParams={rateParams}
+                          onCreateClaim={onCreateClaim}
+                          onCreateLocumClaim={onCreateLocumClaim}
+                          onDeleteClaim={onDeleteClaim}
+                          onSubmit={onSubmit}
+                          onResubmit={onResubmit}
+                          confirmDeclaration={confirmDeclaration}
+                          onClose={() => onClickClaim('')}
+                          saving={saving}
+                        />
+                      )
                     )}
                   </React.Fragment>
                 );
@@ -2024,6 +2236,11 @@ export function BuyBackPracticeDashboard({
   onGuideOpen,
   onSettingsOpen,
   showSettings,
+  meetingLogEntries,
+  onAddMeetingEntry,
+  onDeleteMeetingEntry,
+  onSubmitMeetingEntries,
+  canAddOnBehalf,
 }: BuyBackPracticeDashboardProps) {
   const [activeClaimKey, setActiveClaimKey] = useState<string | null>(null);
   const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
@@ -2129,6 +2346,12 @@ export function BuyBackPracticeDashboard({
     onResubmit,
     confirmDeclaration,
     saving: savingClaim,
+    meetingLogEntries,
+    onAddMeetingEntry,
+    onDeleteMeetingEntry,
+    onSubmitMeetingEntries,
+    canAddOnBehalf,
+    managementRoles,
   };
 
   return (
