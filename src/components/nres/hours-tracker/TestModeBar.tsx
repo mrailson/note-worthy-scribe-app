@@ -114,7 +114,7 @@ export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: Te
               Viewing as {activeRole?.label}
               {state.role === 'practice' && state.selectedPractice && (
                 <span style={{ fontWeight: 400, opacity: 0.75 }}>
-                  {' · '}{practiceNames[state.selectedPractice]?.split(' ')[0] || state.selectedPractice}
+                  {' · '}{practiceNames[state.selectedPractice] || state.selectedPractice}
                 </span>
               )}
             </span>
