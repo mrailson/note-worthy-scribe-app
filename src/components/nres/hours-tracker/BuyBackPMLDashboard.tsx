@@ -914,29 +914,72 @@ export function BuyBackPMLDashboard({
 
   const cfg = ROLE_CONFIG[view];
 
+  // Group meeting entries by person+month+practice (only non-draft)
+  const meetingGroups = useMemo(() => {
+    if (!meetingEntries?.length) return [];
+    const validStatuses = ['submitted', 'verified', 'approved', 'queried', 'rejected', 'paid'];
+    const filtered = meetingEntries.filter(e => validStatuses.includes(e.status));
+    const byKey: Record<string, typeof filtered> = {};
+    filtered.forEach(e => {
+      const key = `${e.person_name}|${e.billing_org_code}|${(e.claim_month || '').slice(0, 7)}`;
+      if (!byKey[key]) byKey[key] = [];
+      byKey[key].push(e);
+    });
+    return Object.entries(byKey).map(([key, entries]) => {
+      const first = entries[0];
+      const practiceKey = Object.entries(NRES_ODS_CODES).find(([, code]) => code === first.billing_org_code)?.[0] || '';
+      const cm = (first.claim_month || '').slice(0, 7);
+      // Use the "worst" status (verified > submitted)
+      const statusPriority: Record<string, number> = { queried: 0, submitted: 1, verified: 2, approved: 3, paid: 4, rejected: 5 };
+      const worstStatus = entries.reduce((s, e) => statusPriority[e.status] < statusPriority[s] ? e.status : s, entries[0].status);
+      return {
+        key,
+        person_name: first.person_name,
+        practice_name: practiceKey ? getPracticeName(practiceKey) : first.billing_org_code || 'Unknown',
+        billing_org_code: first.billing_org_code || '',
+        claim_month: cm,
+        month_label: cm ? format(new Date(cm + '-01'), 'MMMM yyyy') : '—',
+        entries,
+        total_hours: entries.reduce((s, e) => s + e.hours, 0),
+        total_amount: entries.reduce((s, e) => s + e.total_amount, 0),
+        status: worstStatus,
+      };
+    });
+  }, [meetingEntries]);
+
   // Map all claims to display statuses
   const displayClaims = useMemo(() =>
     claims.filter(c => c.status !== 'draft'),
     [claims]
   );
 
-  // Status counts
+  // Status counts (including meeting groups)
   const counts = useMemo(() => {
-    const m: Record<string, number> = { all: displayClaims.length };
+    const m: Record<string, number> = { all: displayClaims.length + meetingGroups.length };
     displayClaims.forEach(c => {
       const ds = toDisplayStatus(c.status);
       m[ds] = (m[ds] || 0) + 1;
     });
+    meetingGroups.forEach(g => {
+      const ds = toDisplayStatus(g.status);
+      m[ds] = (m[ds] || 0) + 1;
+    });
     return m;
-  }, [displayClaims]);
+  }, [displayClaims, meetingGroups]);
 
-  // KPI totals
+  // KPI totals (including meeting groups)
   const totals = useMemo(() => {
-    const awaitingVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'awaiting_review' || toDisplayStatus(c.status) === 'queried').reduce((a, c) => a + claimTotal(c), 0);
-    const approvedVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'approved').reduce((a, c) => a + claimTotal(c), 0);
-    const paidVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'paid').reduce((a, c) => a + claimTotal(c), 0);
+    let awaitingVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'awaiting_review' || toDisplayStatus(c.status) === 'queried').reduce((a, c) => a + claimTotal(c), 0);
+    let approvedVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'approved').reduce((a, c) => a + claimTotal(c), 0);
+    let paidVal = displayClaims.filter(c => toDisplayStatus(c.status) === 'paid').reduce((a, c) => a + claimTotal(c), 0);
+    meetingGroups.forEach(g => {
+      const ds = toDisplayStatus(g.status);
+      if (ds === 'awaiting_review' || ds === 'queried') awaitingVal += g.total_amount;
+      else if (ds === 'approved') approvedVal += g.total_amount;
+      else if (ds === 'paid') paidVal += g.total_amount;
+    });
     return { awaiting: awaitingVal, approved: approvedVal, paid: paidVal };
-  }, [displayClaims]);
+  }, [displayClaims, meetingGroups]);
 
   // Filtered claims
   const filteredClaims = useMemo(() =>
@@ -949,6 +992,16 @@ export function BuyBackPMLDashboard({
       return true;
     }),
     [displayClaims, statusFilter, searchTerm]
+  );
+
+  // Filtered meeting groups
+  const filteredMeetingGroups = useMemo(() =>
+    meetingGroups.filter(g => {
+      if (statusFilter !== 'all' && toDisplayStatus(g.status) !== statusFilter) return false;
+      if (searchTerm && !g.practice_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      return true;
+    }),
+    [meetingGroups, statusFilter, searchTerm]
   );
 
   const switchView = (v: PMLView) => {
