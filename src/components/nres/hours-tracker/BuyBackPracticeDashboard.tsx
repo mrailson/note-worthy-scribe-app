@@ -745,6 +745,7 @@ function StaffRosterSection({
   onSubmit,
   onResubmit,
   confirmDeclaration,
+  practiceKey,
   saving,
 }: {
   title: string;
