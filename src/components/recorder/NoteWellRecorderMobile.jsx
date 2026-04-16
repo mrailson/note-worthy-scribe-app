@@ -2975,6 +2975,7 @@ export default function NoteWellRecorder() {
               </div>
             ) : recordings.map(r => (
               <RecordingItem key={r.id} rec={r}
+                progress={r.meetingId ? meetingProgress[r.meetingId] : null}
                 onDelete={deleteRecording} onSync={syncRecording}
                 onPlay={playRecording} isPlaying={playingId===r.id}
                 onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]}
