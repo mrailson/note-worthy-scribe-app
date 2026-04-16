@@ -1,38 +1,45 @@
 
 
-# Fix Audio Reprocessing: Add Retries and Timeout Handling
+# What Happened to Julia Railson's 17K Transcript — Findings and Fix
 
-## Problem
-Segment 2 failed with "Failed to send a request to the Edge Function" — the Whisper API call for 5.6 MB segments can take 60-120+ seconds, causing edge function timeouts. Once one call times out, the error propagates. There's no retry logic, so a transient timeout kills the segment permanently.
+## Investigation Results
 
-## Changes
+The reprocessing **worked** — the 17,611-word transcript was successfully saved to the database. Here's the situation:
 
-### 1. Edge function: `reprocess-audio-segment/index.ts`
-- Add an `AbortSignal.timeout(120_000)` to the Whisper fetch call so we get a clear timeout error rather than a generic failure
-- If the segment is >20 MB, return an error suggesting it's too large (guard rail)
+1. **Original meeting** (`018e8d4e...`) has been **deleted** from the `meetings` table. Its 173 legacy chunks (only 7,262 words from fragmented live capture) still exist as orphaned records.
 
-### 2. Client: `AudioBackupManager.tsx` — add retry with backoff
-- Wrap each segment's `supabase.functions.invoke` call in a retry loop (up to 2 retries with 3s delay)
-- On retry, update segment status to show "retrying (attempt 2/3)…"
-- Add a "Retry Failed" button after completion that re-runs only the failed segments
-- Add a small delay (1s) between sequential segment calls to avoid hammering the function
+2. **Two new meetings were created** from the audio backup reprocessing:
+   - `d8924703...` — 16,240 words (created 15 Apr 19:25)
+   - `fd41b67d...` — 17,611 words (created 15 Apr 19:45)
 
-### 3. UI improvements in `AudioBackupManager.tsx`
-- Show a "Retry Failed Segments" button after the loop completes if any segments have `status: 'error'`
-- When clicking retry, only re-invoke the failed segment indices, updating results in place
-- Show elapsed time per segment so user can see progress isn't stuck
+3. **The transcript content looks clean** — it starts naturally ("I've got this one on, Sarah...") and ends properly ("Are we finished? Yeah, we are."). No garbled text in the database.
 
-## Technical detail
+4. **Notes haven't been generated** — `notes_generation_status` is `not_started` on both meetings, so no meeting notes have been created from the new transcript yet.
 
-```text
-Per-segment flow:
-  attempt 1 → timeout/fail → wait 3s → attempt 2 → timeout/fail → wait 3s → attempt 3 → mark error
-  
-Between segments:
-  wait 1s before starting next (prevents concurrent function boot storms)
-```
+5. **Generic title** — both meetings are titled "Meeting 15 Apr 18:21" instead of the original descriptive title.
 
-### Files
-1. **Edit**: `supabase/functions/reprocess-audio-segment/index.ts` — add fetch timeout signal
-2. **Edit**: `src/components/AudioBackupManager.tsx` — retry logic + retry-failed button + inter-segment delay
+## What "Distorted" Likely Means
+
+The old meeting's notes were generated from the **original 7,262-word fragmented live transcript** (173 tiny chunks, many only 3 words). If you're still viewing the old notes/output rather than the new meeting, that would explain the distortion — the original chunks were extremely fragmentary.
+
+## Recommended Actions
+
+### 1. Rename the correct meeting
+Update meeting `fd41b67d-bf11-41f3-80bf-2447e5f75863` title to "Health, Equalities, & Prevention Group" (or similar) so it's identifiable.
+
+### 2. Generate notes from the 17K transcript
+Trigger notes generation on meeting `fd41b67d...` — this has the fullest transcript (17,611 words) and should produce high-quality output for a 1hr 50min meeting.
+
+### 3. Delete the duplicate
+Remove the slightly shorter duplicate (`d8924703...`, 16,240 words) to avoid confusion.
+
+### 4. Clean up orphaned chunks
+The 173 legacy chunks for the deleted original meeting `018e8d4e...` can be purged.
+
+## Technical Changes (if you want me to proceed)
+
+- A single SQL migration to rename the meeting, delete the duplicate, and clean up orphan chunks
+- Trigger notes generation via the existing edge function
+
+Shall I proceed with these cleanup steps?
 
