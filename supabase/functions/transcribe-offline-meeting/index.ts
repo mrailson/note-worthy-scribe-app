@@ -186,10 +186,13 @@ serve(async (req) => {
 
     if (meetingError || !meeting) throw new Error("Meeting not found");
 
-    // Ownership check: if caller is NOT the service role, verify they own the meeting
+    // Ownership check: skip for service role key and anon key (cron/trigger calls)
     const authHeader = req.headers.get("authorization") || "";
     const bearerToken = authHeader.replace(/^Bearer\s+/i, "");
-    if (bearerToken && bearerToken !== serviceKey) {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isInternalCall = !bearerToken || bearerToken === serviceKey || bearerToken === anonKey;
+
+    if (!isInternalCall) {
       const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(bearerToken);
       if (authErr || !callerUser) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
