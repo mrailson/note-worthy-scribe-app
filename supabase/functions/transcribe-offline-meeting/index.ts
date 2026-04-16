@@ -258,7 +258,6 @@ serve(async (req) => {
         user_id: meeting.user_id,
         session_id: sessionId,
         is_final: true,
-        source: "whisper",
         transcriber_type: "whisper",
         word_count: chunkText.split(/\s+/).filter(Boolean).length,
       });
