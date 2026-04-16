@@ -1138,7 +1138,6 @@ export default function NoteWellRecorder() {
           if (navigator.onLine) {
             console.log("[sync] tab restored — checking upload state");
           }
-          }
         }
       }
     };
