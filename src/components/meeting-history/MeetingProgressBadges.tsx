@@ -94,18 +94,7 @@ export const MeetingProgressBadges: React.FC<MeetingProgressBadgesProps> = ({ me
         </span>
       )}
 
-      {/* 3. Notes Ready */}
-      {hasNotes ? (
-        <span className={cn(badgeBase, styles.green)}>
-          <Check size={10} strokeWidth={3} /> Notes
-        </span>
-      ) : (
-        <span className={cn(badgeBase, styles.pending)}>
-          <MoreHorizontal size={10} /> Notes
-        </span>
-      )}
-
-      {/* 4. Email Sent */}
+      {/* Email Sent */}
       {hasEmail ? (
         <span className={cn(badgeBase, styles.green)}>
           <Check size={10} strokeWidth={3} /> Email
