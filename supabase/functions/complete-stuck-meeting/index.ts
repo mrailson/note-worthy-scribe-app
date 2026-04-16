@@ -53,7 +53,7 @@ serve(async (req) => {
     const needsTitle = !meeting.title || hasDefaultTitle;
 
     if (needsNotes || needsTitle) {
-      console.log(`📝 Generating notes/title for ${meetingId}`);
+      console.log(`📝 Generating notes/title for ${meetingId} (needsNotes=${needsNotes}, needsTitle=${needsTitle})`);
       const notesResp = await fetch(`${supabaseUrl}/functions/v1/auto-generate-meeting-notes`, {
         method: "POST",
         headers: {
@@ -75,8 +75,16 @@ serve(async (req) => {
       steps.push("notes_generated");
       console.log(`✅ Notes generated for ${meetingId}`);
 
-      // Wait for notes to settle
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait for title + notes to fully settle in DB before proceeding to email
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Verify the title was actually updated
+      const { data: postNotes } = await supabase
+        .from("meetings")
+        .select("title")
+        .eq("id", meetingId)
+        .single();
+      console.log(`📋 Post-generation title: "${postNotes?.title}"`);
     } else {
       steps.push("notes_already_complete");
     }

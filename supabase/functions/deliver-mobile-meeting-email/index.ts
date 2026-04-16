@@ -31,6 +31,7 @@ serve(async (req: Request) => {
     console.log(`📧 deliver-mobile-meeting-email: processing meeting ${meetingId}`);
 
     // 1. Fetch meeting row (all fields needed for email)
+    // Always read fresh from DB to pick up the latest AI-generated title
     const { data: meeting, error: meetingErr } = await supabase
       .from("meetings")
       .select("id, user_id, title, import_source, notes_email_sent_at, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
@@ -100,17 +101,31 @@ serve(async (req: Request) => {
 
     const senderName = profile?.full_name || userEmail.split("@")[0] || "Notewell AI";
 
-    // 5. Build dates (matching desktop flow exactly)
-    // If the title is still a generic placeholder, try to generate one from the transcript
-    let meetingTitle = meeting.title || "Meeting Notes";
+    // 5. Re-read the title fresh from DB right before building the email
+    // This is the critical safety check: the title may have been updated by
+    // auto-generate-meeting-notes (called by complete-stuck-meeting) since
+    // the initial fetch above. Always prefer the latest DB value.
+    const { data: freshMeeting } = await supabase
+      .from("meetings")
+      .select("title")
+      .eq("id", meetingId)
+      .single();
+
+    let meetingTitle = freshMeeting?.title || meeting.title || "Meeting Notes";
+
+    // Detect generic/default titles including "Meeting DD Mon HH:MM" pattern
     const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
-    if (GENERIC_TITLES.includes(meetingTitle.toLowerCase().trim())) {
-      console.log("⚠️ Title is generic, attempting AI title generation...");
+    const isDefaultTimestamp = /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(meetingTitle.trim());
+    const isGeneric = GENERIC_TITLES.includes(meetingTitle.toLowerCase().trim()) || isDefaultTimestamp;
+
+    if (isGeneric) {
+      console.log(`⚠️ Title is still generic ("${meetingTitle}"), attempting AI title generation...`);
       try {
         const { data: titleResult } = await supabase.functions.invoke("generate-meeting-title", {
           body: { meetingId: meeting.id, currentTitle: meetingTitle },
         });
-        if (titleResult?.title && !GENERIC_TITLES.includes(titleResult.title.toLowerCase().trim())) {
+        if (titleResult?.title && !GENERIC_TITLES.includes(titleResult.title.toLowerCase().trim()) &&
+            !/^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(titleResult.title.trim())) {
           meetingTitle = titleResult.title;
           await supabase.from("meetings").update({ title: meetingTitle }).eq("id", meeting.id);
           console.log("✅ Generated title for email:", meetingTitle);
@@ -119,6 +134,8 @@ serve(async (req: Request) => {
         console.warn("⚠️ Title generation failed, using fallback:", titleErr);
       }
     }
+
+    console.log(`📋 Using title for email: "${meetingTitle}"`);
 
     const meetingDate = meeting.start_time
       ? new Date(meeting.start_time).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
