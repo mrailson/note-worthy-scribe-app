@@ -586,6 +586,47 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
         </div>
       </div>
 
+      {/* Full-width sync button for recordings that need syncing */}
+      {needsSync && (
+        <button
+          onClick={handleSync}
+          disabled={isSyncing}
+          style={{
+            width:"100%",marginTop:8,padding:"10px 14px",borderRadius:10,border:"none",
+            cursor:isSyncing?"not-allowed":"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit",
+            display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+            transition:"all 0.15s ease",
+            ...(rec.status === "error" ? {
+              background:"rgba(220,38,38,0.08)",color:"#dc2626",
+              border:"1.5px solid rgba(220,38,38,0.3)",
+            } : isSyncing ? {
+              background:"rgba(21,101,192,0.08)",color:"#1565c0",
+              border:"1.5px solid rgba(21,101,192,0.2)",opacity:0.8,
+            } : {
+              background:"linear-gradient(135deg,#1565c0,#0288d1)",color:"white",
+              boxShadow:"0 3px 10px rgba(21,101,192,0.35)",
+            }),
+          }}
+          onTouchStart={e => { if (!isSyncing) e.currentTarget.style.transform = "scale(0.97)"; }}
+          onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+        >
+          {rec.status === "error" ? (
+            <>⚠ Sync failed — tap to retry</>
+          ) : isSyncing ? (
+            <>
+              <span style={{width:14,height:14,border:"2px solid rgba(21,101,192,0.3)",borderTopColor:"#1565c0",borderRadius:"50%",animation:"spin 0.8s linear infinite",display:"inline-block"}}/>
+              Syncing…
+            </>
+          ) : rec.status === "transcribed" ? (
+            <>⟳ Create Meeting</>
+          ) : rec.status === "too_short" ? (
+            <>⟳ Re-sync</>
+          ) : (
+            <>⟳ Sync now</>
+          )}
+        </button>
+      )}
+
       {/* Expandable actions panel */}
       {(showExpandableActions || showTooShortActions) && actionsOpen && (
         <div style={{
