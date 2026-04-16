@@ -1482,6 +1482,12 @@ export default function NoteWellRecorder() {
         return;
       }
 
+      // Compute total size for progress
+      const totalBytes = chunks.reduce((sum, ch) => sum + (ch.sizeBytes || ch.arrayBuffer?.byteLength || 0), 0);
+      let uploadedBytes = 0;
+
+      console.log(`[sync] upload started · ${totalChunks} chunks · ${fmtSize(totalBytes)}`);
+
       for (let i = 0; i < totalChunks; i++) {
         const chunk = chunks[i];
         const paddedIndex = String(chunk.index).padStart(3, "0");
@@ -1489,40 +1495,78 @@ export default function NoteWellRecorder() {
         const ext = getChunkFileExtension(mimeType);
         const storagePath = `${sessionId}/chunk_${paddedIndex}.${ext}`;
         const blob = new Blob([chunk.arrayBuffer], { type: mimeType });
+        const chunkSize = blob.size;
 
         setSyncProgress({
           phase: "uploading",
           currentChunk: i + 1,
           totalChunks,
-          percentComplete: Math.round(((i + 1) / totalChunks) * 30),
-          message: `Uploading segment ${i + 1} of ${totalChunks}…`,
+          percentComplete: Math.round((uploadedBytes / totalBytes) * 100),
+          message: `Segment ${i + 1} of ${totalChunks}…`,
+          recordingTitle: rec.title || `Meeting ${fmtDate(rec.createdAt)}`,
+          totalSizeLabel: fmtSize(totalBytes),
+          durationLabel: fmtTime(rec.duration),
         });
 
         let uploadSuccess = false;
         for (let attempt = 1; attempt <= 3; attempt++) {
-          const { error } = await supabase.storage
-            .from("recordings")
-            .upload(storagePath, blob, { contentType: mimeType, upsert: true });
-
-          if (!error) {
+          try {
+            // Use XHR for real byte-level progress
+            await new Promise((resolve, reject) => {
+              const { data: { session: currentSession } } = { data: { session: null } };
+              // Get current session token for auth
+              supabase.auth.getSession().then(({ data: { session: sess } }) => {
+                if (!sess) { reject(new Error("Session expired")); return; }
+                const xhr = new XMLHttpRequest();
+                const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/recordings/${storagePath}`;
+                xhr.open("POST", url, true);
+                xhr.setRequestHeader("Authorization", `Bearer ${sess.access_token}`);
+                xhr.setRequestHeader("x-upsert", "true");
+                xhr.setRequestHeader("Content-Type", mimeType);
+                xhr.upload.onprogress = (e) => {
+                  if (e.lengthComputable) {
+                    const currentChunkProgress = e.loaded;
+                    const totalProgress = uploadedBytes + currentChunkProgress;
+                    const pct = Math.min(99, Math.round((totalProgress / totalBytes) * 100));
+                    console.log(`[sync] upload ${pct}% · chunk ${i + 1}/${totalChunks}`);
+                    setSyncProgress(prev => ({
+                      ...prev,
+                      percentComplete: pct,
+                      message: `Segment ${i + 1} of ${totalChunks}…`,
+                    }));
+                  }
+                };
+                xhr.onload = () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve();
+                  } else {
+                    reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+                  }
+                };
+                xhr.onerror = () => reject(new Error("Network error during upload"));
+                xhr.ontimeout = () => reject(new Error("Upload timed out"));
+                xhr.timeout = 120000; // 2 minutes per chunk
+                xhr.send(blob);
+              }).catch(reject);
+            });
             uploadSuccess = true;
             break;
-          }
-
-          console.warn(`[Sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, error.message);
-          if (attempt < 3) {
-            setSyncProgress({
-              phase: "uploading",
-              currentChunk: i + 1,
-              totalChunks,
-              percentComplete: Math.round(((i + 1) / totalChunks) * 30),
-              message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
-            });
-            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+          } catch (uploadErr) {
+            console.warn(`[sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, uploadErr.message);
+            if (attempt < 3) {
+              setSyncProgress(prev => ({
+                ...prev,
+                message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
+              }));
+              await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+            }
           }
         }
 
         if (!uploadSuccess) throw new Error(`Failed to upload segment ${i + 1} after 3 attempts`);
+
+        uploadedBytes += chunkSize;
+        console.log(`[sync] chunk ${i + 1}/${totalChunks} uploaded · ${fmtSize(uploadedBytes)}/${fmtSize(totalBytes)}`);
 
         uploadedChunks.push({
           index: chunk.index,
@@ -1533,6 +1577,18 @@ export default function NoteWellRecorder() {
           sizeBytes: chunk.sizeBytes || blob.size,
         });
       }
+
+      console.log("[sync] upload complete · all chunks uploaded");
+      setSyncProgress({
+        phase: "uploading",
+        currentChunk: totalChunks,
+        totalChunks,
+        percentComplete: 99,
+        message: "Registering meeting…",
+        recordingTitle: rec.title,
+        totalSizeLabel: fmtSize(totalBytes),
+        durationLabel: fmtTime(rec.duration),
+      });
 
       await dbPatch(rec.id, {
         status: "uploaded",
@@ -1563,12 +1619,15 @@ export default function NoteWellRecorder() {
         .single();
 
       if (meetingErr || !meeting) {
+        console.error("[sync] db row insertion failed:", meetingErr);
         showToast(`Upload succeeded but could not register meeting: ${meetingErr?.message || "unknown"}. Tap Sync again.`, "error");
         await dbPatch(rec.id, { status: "error" });
         await refresh();
         setSyncProgress(null);
         return;
       }
+
+      console.log("[sync] db row inserted · meetingId:", meeting.id);
 
       // Persist chunk metadata server-side so transcribe-offline-meeting can find the chunks
       await persistUploadedChunkMetadata(meeting.id, uploadedChunks, rec.createdAt);
@@ -1577,14 +1636,16 @@ export default function NoteWellRecorder() {
       await dbPatch(rec.id, { meetingId: meeting.id });
       await refresh();
 
+      console.log("[sync] queued for transcription · meetingId:", meeting.id);
+
       // Fire-and-forget: kick off server-side transcription. We intentionally do NOT await completion.
       supabase.functions.invoke("transcribe-offline-meeting", {
         body: { meetingId: meeting.id, chunkIndex: 0 },
       }).catch((err) => {
-        console.warn("[Sync] Transcription dispatch failed (server queue will retry):", err);
+        console.warn("[sync] Transcription dispatch failed (server queue will retry):", err);
       });
 
-      // Surface the "Safe to close" success state
+      // Surface the "Safe to close" success state — now gated on actual upload + DB row + queued status
       const hours = (rec.duration || 0) / 3600;
       const estimateMinutes = hours <= 1 ? 10 : hours <= 2 ? 15 : hours <= 3 ? 20 : 25;
       setSyncProgress({
@@ -1598,7 +1659,7 @@ export default function NoteWellRecorder() {
       });
       showToast("Upload complete — notes will arrive by email", "success");
     } catch (err) {
-      console.error("Sync error:", err);
+      console.error("[sync] error:", err);
       await dbPatch(rec.id, { status: "error" });
       await refresh();
       setSyncProgress(null);
