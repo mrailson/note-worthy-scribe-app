@@ -421,9 +421,25 @@ export function OfflinePipelineTab() {
             <h2 className="text-2xl font-bold">Offline Pipeline</h2>
             <p className="text-sm text-muted-foreground">Last 7 days · Mobile offline recordings</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <RefreshCw className="h-3 w-3" />
-            Auto-refresh · 30s
+          <div className="flex items-center gap-2">
+            {stuckRows.length > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={processingAll}
+                onClick={handleProcessAllStuck}
+              >
+                {processingAll ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Processing…</>
+                ) : (
+                  <><PlayCircle className="h-3.5 w-3.5 mr-1.5" /> Process All Stuck ({stuckRows.length})</>
+                )}
+              </Button>
+            )}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <RefreshCw className="h-3 w-3" />
+              Auto-refresh · 30s
+            </div>
           </div>
         </div>
 
