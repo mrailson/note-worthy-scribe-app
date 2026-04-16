@@ -367,7 +367,7 @@ function TitleModal({ duration, chunkCount, totalSize, autoTitle, onSave, onCont
   );
 }
 
-function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
+function SyncProgressBar({ progress, setSyncProgress, setRecState, onRetryNow }) {
   if (!progress) return null;
 
   if (progress.phase === "safe_to_close") {
@@ -400,6 +400,79 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
     );
   }
 
+  // Error / paused states — specific messaging per failure type
+  if (progress.phase === "paused" || progress.phase === "error") {
+    const errorMessages = {
+      network_drop: { icon: "📡", title: "Upload paused", body: "Your connection dropped. We'll retry automatically when you're back online.", showKeepWaiting: true },
+      timeout: { icon: "⏱️", title: "Upload is taking longer than expected", body: "The server didn't respond in time.", showKeepWaiting: true },
+      server_error: { icon: "🔧", title: "Notewell servers are busy", body: "We'll retry automatically in a moment.", showKeepWaiting: true },
+      auth_expired: { icon: "🔒", title: "Session expired", body: "Please sign in again to sync your recording.", showSignIn: true },
+      zero_bytes: { icon: "⚠️", title: "Recording appears to be empty", body: "This recording contains no audio data.", showDelete: true },
+      quota_exceeded: { icon: "📦", title: "Storage is full", body: "Your Notewell storage is full. Please contact support.", showContactSupport: true },
+      edge_function_timeout: { icon: "✅", title: "Audio uploaded successfully", body: "Transcription is delayed. We'll email you when it's ready.", isPartialSuccess: true },
+      max_retries: { icon: "⚠️", title: "Upload failed after 4 attempts", body: `Error: ${progress.errorDetail || "Network timeout"}. Your recording is safe locally.`, showRetry: true },
+      unknown: { icon: "⚠️", title: "Sync failed", body: progress.errorDetail || "An unexpected error occurred.", showRetry: true },
+    };
+    const errType = progress.errorType || "unknown";
+    const msg = errorMessages[errType] || errorMessages.unknown;
+
+    return (
+      <div style={{margin:"8px 16px 0",background:"white",borderRadius:14,padding:"20px 18px",
+        boxShadow:"0 2px 8px rgba(220,38,38,0.10)",border:`1px solid ${msg.isPartialSuccess ? "rgba(22,163,74,0.18)" : "rgba(220,38,38,0.18)"}`,animation:"fadeIn 0.2s"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+          <span style={{fontSize:28}}>{msg.icon}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:700,color:"#1a2332",marginBottom:4}}>{msg.title}</div>
+            <div style={{fontSize:13,color:"#64748b",lineHeight:1.5,marginBottom:8}}>{msg.body}</div>
+            {progress.recordingTitle && (
+              <div style={{fontSize:12,color:"#94a3b8",marginBottom:2}}>{progress.recordingTitle}</div>
+            )}
+            {(progress.totalSizeLabel || progress.durationLabel) && (
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:8}}>
+                {[progress.totalSizeLabel, progress.durationLabel].filter(Boolean).join(" · ")} · saved locally ✓
+              </div>
+            )}
+            {progress.retryAttempt > 0 && progress.maxRetries && (
+              <div style={{fontSize:11,color:"#f59e0b",fontWeight:600,marginBottom:8}}>
+                Retrying… ({progress.retryAttempt} of {progress.maxRetries})
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,marginTop:4}}>
+          {(msg.showRetry || msg.showKeepWaiting) && (
+            <button onClick={onRetryNow} style={{flex:1,padding:"10px 14px",borderRadius:10,border:"none",
+              background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:13,fontWeight:600,
+              color:"white",fontFamily:"inherit",boxShadow:"0 3px 10px rgba(21,101,192,0.35)"}}>
+              Retry now
+            </button>
+          )}
+          {msg.showKeepWaiting && (
+            <button onClick={() => {}} style={{flex:1,padding:"10px 14px",borderRadius:10,
+              border:"1.5px solid rgba(21,101,192,0.25)",background:"white",cursor:"pointer",fontSize:13,
+              fontWeight:600,color:"#1565c0",fontFamily:"inherit"}}>
+              Keep waiting
+            </button>
+          )}
+          {msg.showSignIn && (
+            <button onClick={() => { setSyncProgress(null); window.location.href = "/auth"; }} style={{flex:1,padding:"10px 14px",borderRadius:10,border:"none",
+              background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:13,fontWeight:600,
+              color:"white",fontFamily:"inherit"}}>
+              Sign in
+            </button>
+          )}
+          {msg.isPartialSuccess && (
+            <button onClick={() => setSyncProgress(null)} style={{flex:1,padding:"10px 14px",borderRadius:10,border:"none",
+              background:"linear-gradient(135deg,#16a34a,#22c55e)",cursor:"pointer",fontSize:13,fontWeight:600,
+              color:"white",fontFamily:"inherit"}}>
+              OK, got it
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Dedicated upload progress screen
   if (progress.phase === "uploading") {
     return (
@@ -425,9 +498,14 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
           <span style={{fontSize:12,fontWeight:600,color:"#1565c0"}}>{progress.percentComplete}%</span>
           <span style={{fontSize:11,color:"#94a3b8"}}>{progress.message}</span>
         </div>
+        {progress.retryAttempt > 0 && (
+          <div style={{marginTop:6,fontSize:11,color:"#f59e0b",fontWeight:600}}>
+            Retrying… ({progress.retryAttempt} of {progress.maxRetries || 4})
+          </div>
+        )}
         <div style={{marginTop:12,display:"flex",alignItems:"center",gap:6,padding:"8px 10px",borderRadius:8,background:"#fef3c7",border:"1px solid rgba(245,158,11,0.25)"}}>
           <span style={{fontSize:14}}>📱</span>
-          <span style={{fontSize:11,color:"#92400e",fontWeight:500}}>Please keep this tab open until upload completes</span>
+          <span style={{fontSize:11,color:"#92400e",fontWeight:500}}>Keep this tab open and screen on for fastest sync</span>
         </div>
       </div>
     );
@@ -462,6 +540,93 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
       )}
     </div>
   );
+}
+
+// ─── Needs Attention section ──────────────────────────────────────────────
+function NeedsAttentionSection({ recordings, onSync, onDelete, onDownloadAudio, onEmailAudio, isEmailing }) {
+  const failedRecs = recordings.filter(r =>
+    r.status === "error" || (r.status === "paused" && r.syncRetryCount >= 4)
+  );
+  if (failedRecs.length === 0) return null;
+
+  return (
+    <div style={{margin:"8px 16px 0"}}>
+      <div style={{
+        background:"white",borderRadius:14,overflow:"hidden",
+        border:"1.5px solid rgba(245,158,11,0.4)",
+        boxShadow:"0 2px 8px rgba(245,158,11,0.10)",
+      }}>
+        <div style={{padding:"10px 14px",background:"linear-gradient(135deg, #fef3c7, #fff7ed)",borderBottom:"1px solid rgba(245,158,11,0.2)",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14}}>⚠</span>
+          <span style={{fontSize:12,fontWeight:700,color:"#92400e",textTransform:"uppercase",letterSpacing:0.5}}>
+            Needs attention ({failedRecs.length})
+          </span>
+        </div>
+        {failedRecs.map(rec => (
+          <div key={rec.id} style={{padding:"12px 14px",borderBottom:"1px solid rgba(245,158,11,0.12)"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#1a2332",marginBottom:2}}>{rec.title || "Untitled recording"}</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:2}}>
+              {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
+            </div>
+            {rec.syncRetryCount > 0 && (
+              <div style={{fontSize:11,color:"#dc2626",marginBottom:2}}>
+                Failed after {rec.syncRetryCount} attempt{rec.syncRetryCount !== 1 ? "s" : ""}
+                {rec.lastSyncError ? ` · ${rec.lastSyncError}` : ""}
+              </div>
+            )}
+            <div style={{display:"flex",gap:6,marginTop:8}}>
+              <button onClick={() => onSync(rec)} style={{
+                padding:"6px 14px",borderRadius:8,border:"none",
+                background:"linear-gradient(135deg,#1565c0,#0288d1)",color:"white",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              }}>Retry</button>
+              <button onClick={() => onDelete(rec.id)} style={{
+                padding:"6px 14px",borderRadius:8,border:"1px solid rgba(220,38,38,0.3)",
+                background:"rgba(220,38,38,0.05)",color:"#dc2626",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              }}>Delete</button>
+              <button onClick={() => onDownloadAudio(rec)} style={{
+                padding:"6px 14px",borderRadius:8,border:"1px solid rgba(21,101,192,0.2)",
+                background:"rgba(21,101,192,0.05)",color:"#1565c0",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              }}>💾</button>
+              <button onClick={() => onEmailAudio(rec)} disabled={isEmailing} style={{
+                padding:"6px 14px",borderRadius:8,border:"1px solid rgba(21,101,192,0.2)",
+                background:"rgba(21,101,192,0.05)",color:"#1565c0",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+                opacity:isEmailing?0.6:1,
+              }}>📧</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Sync diagnostic logger ──────────────────────────────────────────────
+async function logSyncDiagnostic(recId, event) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const getReq = store.get(recId);
+    getReq.onsuccess = () => {
+      const rec = getReq.result;
+      if (!rec) return;
+      const diagnostics = rec.syncDiagnostics || [];
+      diagnostics.push({
+        timestamp: new Date().toISOString(),
+        ...event,
+        networkType: navigator.connection?.effectiveType || "unknown",
+        online: navigator.onLine,
+        userAgent: navigator.userAgent.substring(0, 120),
+      });
+      // Keep last 50 entries
+      if (diagnostics.length > 50) diagnostics.splice(0, diagnostics.length - 50);
+      store.put({ ...rec, syncDiagnostics: diagnostics });
+    };
+  } catch { /* diagnostics are best-effort */ }
 }
 
 function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
@@ -812,17 +977,64 @@ export default function NoteWellRecorder() {
     }
   }, [isLocked, recState, wakeLockSupported]);
 
-  // ── Connectivity (track online status but don't auto-switch mode) ────────
+  // ── Connectivity (track online status + auto-resume queued syncs) ──────
   useEffect(() => {
-    const goOnline  = () => setIsOnline(true);
-    const goOffline = () => { setIsOnline(false); setMode("offline"); };
-    window.addEventListener("online",  goOnline);
+    const goOnline = async () => {
+      setIsOnline(true);
+      // Auto-resume any failed/paused recordings
+      const allRecs = await dbAll();
+      const resumable = allRecs.filter(r => r.status === "error" || r.status === "paused");
+      if (resumable.length > 0) {
+        showToast(`Back online — resuming sync of ${resumable.length} recording${resumable.length > 1 ? "s" : ""}`, "info");
+        // Only auto-retry the first one to avoid overwhelming
+        setTimeout(() => {
+          if (resumable[0]) syncRecording(resumable[0]);
+        }, 1500);
+      }
+    };
+    const goOffline = () => {
+      setIsOnline(false);
+      setMode("offline");
+      // If sync is in progress, show paused state
+      if (syncProgress && syncProgress.phase === "uploading") {
+        setSyncProgress(prev => ({
+          ...prev,
+          phase: "paused",
+          errorType: "network_drop",
+          message: "Connection lost — will resume when back online",
+        }));
+      }
+    };
+    window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
     return () => {
-      window.removeEventListener("online",  goOnline);
+      window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
     };
-  }, []);
+  }, [syncProgress]);
+
+  // ── Page Visibility API (iOS Safari tab suspension) ────────────────────
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab backgrounded — update title as warning
+        if (syncProgress && syncProgress.phase === "uploading") {
+          document.title = "(⏸ Sync paused) Notewell";
+        }
+      } else {
+        // Tab restored — reset title and check upload state
+        document.title = "Notewell AI";
+        if (syncProgress && (syncProgress.phase === "paused" || syncProgress.phase === "uploading")) {
+          // Check if we're still online and should resume
+          if (navigator.onLine) {
+            console.log("[sync] tab restored — checking upload state");
+          }
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [syncProgress]);
 
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
@@ -1374,24 +1586,66 @@ export default function NoteWellRecorder() {
     }
   };
 
-  // ── Sync (chunked) ───────────────────────────────────────────────────────
-  const syncRecording = async (rec) => {
+  // ── Active sync ref for pause/resume ────────────────────────────────────
+  const activeSyncRef = useRef(null); // { rec, abortController, paused }
+
+  // ── Pre-flight validation ──────────────────────────────────────────────
+  const preflightCheck = async (rec) => {
+    // Check device is online
+    if (!navigator.onLine) {
+      showToast("You're offline — connect to WiFi or mobile data to sync", "error");
+      return { ok: false, errorType: "network_drop" };
+    }
+
+    // Check file size > 0
+    const totalSize = (rec.chunks || []).reduce((s, c) => s + (c.sizeBytes || c.arrayBuffer?.byteLength || 0), 0);
+    const singleSize = rec.audioData?.byteLength || 0;
+    if (totalSize === 0 && singleSize === 0) {
+      setSyncProgress({
+        phase: "error", errorType: "zero_bytes", percentComplete: 0,
+        recordingTitle: rec.title, message: "Recording is empty",
+      });
+      await logSyncDiagnostic(rec.id, { event: "preflight_fail", reason: "zero_bytes" });
+      return { ok: false, errorType: "zero_bytes" };
+    }
+
+    // Check file size < 100MB
+    const effectiveSize = totalSize || singleSize;
+    if (effectiveSize > 100 * 1024 * 1024) {
+      showToast("Recording is very large (>100 MB) — sync may take a while on mobile data", "info");
+    }
+
+    // Check auth session is valid
     let user = null;
     try {
       const { data: { session } } = await supabase.auth.refreshSession();
       user = session?.user || null;
     } catch (e) {
-      console.warn("[Sync] Session refresh failed:", e);
+      console.warn("[sync] session refresh failed:", e);
     }
     if (!user) {
-      const { data: { user: fallbackUser } } = await supabase.auth.getUser();
-      user = fallbackUser;
+      try {
+        const { data: { user: fallback } } = await supabase.auth.getUser();
+        user = fallback;
+      } catch { /* */ }
     }
     if (!user) {
-      showToast("Redirecting to sign in…", "info");
-      navigate("/auth", { state: { returnTo: location.pathname } });
-      return;
+      setSyncProgress({
+        phase: "error", errorType: "auth_expired", percentComplete: 0,
+        recordingTitle: rec.title, message: "Session expired",
+      });
+      await logSyncDiagnostic(rec.id, { event: "preflight_fail", reason: "auth_expired" });
+      return { ok: false, errorType: "auth_expired" };
     }
+
+    return { ok: true, user };
+  };
+
+  // ── Sync (chunked) ───────────────────────────────────────────────────────
+  const syncRecording = async (rec) => {
+    const preflight = await preflightCheck(rec);
+    if (!preflight.ok) return;
+    const user = preflight.user;
 
     if (rec.status === "transcribed" && rec.transcript && !rec.meetingId) {
       console.log("[Sync] Resuming meeting creation for already-transcribed recording");
@@ -1509,12 +1763,17 @@ export default function NoteWellRecorder() {
         });
 
         let uploadSuccess = false;
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        const BACKOFF_DELAYS = [0, 2000, 8000, 30000]; // Exponential backoff: immediate, 2s, 8s, 30s
+        const MAX_ATTEMPTS = 4;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
           try {
             // Use XHR for real byte-level progress
+            // NOTE: Supabase Storage's TUS resumable upload protocol is not yet
+            // supported via the JS client in a mobile PWA context. XHR with full
+            // retry is the reliable fallback. Chunked recording already splits
+            // files into 15-min segments (typically <5MB each), reducing the impact
+            // of restarting a single chunk upload.
             await new Promise((resolve, reject) => {
-              const { data: { session: currentSession } } = { data: { session: null } };
-              // Get current session token for auth
               supabase.auth.getSession().then(({ data: { session: sess } }) => {
                 if (!sess) { reject(new Error("Session expired")); return; }
                 const xhr = new XMLHttpRequest();
@@ -1528,42 +1787,103 @@ export default function NoteWellRecorder() {
                     const currentChunkProgress = e.loaded;
                     const totalProgress = uploadedBytes + currentChunkProgress;
                     const pct = Math.min(99, Math.round((totalProgress / totalBytes) * 100));
-                    console.log(`[sync] upload ${pct}% · chunk ${i + 1}/${totalChunks}`);
                     setSyncProgress(prev => ({
                       ...prev,
                       percentComplete: pct,
                       message: `Segment ${i + 1} of ${totalChunks}…`,
+                      retryAttempt: attempt > 1 ? attempt : 0,
+                      maxRetries: MAX_ATTEMPTS,
                     }));
                   }
                 };
                 xhr.onload = () => {
                   if (xhr.status >= 200 && xhr.status < 300) {
                     resolve();
+                  } else if (xhr.status === 401 || xhr.status === 403) {
+                    reject(Object.assign(new Error(`Auth error: ${xhr.status}`), { errorType: "auth_expired" }));
+                  } else if (xhr.status >= 500) {
+                    reject(Object.assign(new Error(`Server error: ${xhr.status}`), { errorType: "server_error" }));
+                  } else if (xhr.status === 413) {
+                    reject(Object.assign(new Error("Storage quota exceeded"), { errorType: "quota_exceeded" }));
                   } else {
                     reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
                   }
                 };
-                xhr.onerror = () => reject(new Error("Network error during upload"));
-                xhr.ontimeout = () => reject(new Error("Upload timed out"));
+                xhr.onerror = () => reject(Object.assign(new Error("Network error during upload"), { errorType: "network_drop" }));
+                xhr.ontimeout = () => reject(Object.assign(new Error("Upload timed out"), { errorType: "timeout" }));
                 xhr.timeout = 120000; // 2 minutes per chunk
                 xhr.send(blob);
               }).catch(reject);
             });
             uploadSuccess = true;
+            console.log(`[sync] chunk ${i + 1} attempt ${attempt} succeeded`);
+            await logSyncDiagnostic(rec.id, { event: "chunk_uploaded", chunk: i + 1, attempt });
             break;
           } catch (uploadErr) {
-            console.warn(`[sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, uploadErr.message);
-            if (attempt < 3) {
+            const errType = uploadErr.errorType || (
+              !navigator.onLine ? "network_drop" :
+              uploadErr.message?.includes("timed out") ? "timeout" :
+              uploadErr.message?.includes("Session expired") ? "auth_expired" : "unknown"
+            );
+            console.warn(`[sync] chunk ${i + 1} attempt ${attempt}/${MAX_ATTEMPTS} failed:`, uploadErr.message, `(${errType})`);
+            await logSyncDiagnostic(rec.id, { event: "chunk_upload_fail", chunk: i + 1, attempt, error: uploadErr.message, errorType: errType });
+
+            // Non-retryable errors
+            if (errType === "auth_expired" || errType === "quota_exceeded") {
+              throw uploadErr;
+            }
+
+            if (attempt < MAX_ATTEMPTS) {
+              const delay = BACKOFF_DELAYS[attempt] || 30000;
               setSyncProgress(prev => ({
                 ...prev,
-                message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
+                phase: "uploading",
+                message: `Retrying segment ${i + 1}…`,
+                retryAttempt: attempt + 1,
+                maxRetries: MAX_ATTEMPTS,
               }));
-              await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+
+              // If offline, wait for reconnection before retrying
+              if (!navigator.onLine) {
+                setSyncProgress(prev => ({
+                  ...prev,
+                  phase: "paused",
+                  errorType: "network_drop",
+                  message: "Waiting for connection…",
+                  recordingTitle: rec.title,
+                  totalSizeLabel: fmtSize(totalBytes),
+                  durationLabel: fmtTime(rec.duration),
+                }));
+                await new Promise(resolve => {
+                  const onOnline = () => { window.removeEventListener("online", onOnline); resolve(); };
+                  window.addEventListener("online", onOnline);
+                  // Also timeout after 5 minutes
+                  setTimeout(() => { window.removeEventListener("online", onOnline); resolve(); }, 300000);
+                });
+              } else {
+                await new Promise(resolve => setTimeout(resolve, delay));
+              }
             }
           }
         }
 
-        if (!uploadSuccess) throw new Error(`Failed to upload segment ${i + 1} after 3 attempts`);
+        if (!uploadSuccess) {
+          // Track retry count in IndexedDB
+          const currentRetries = (rec.syncRetryCount || 0) + 1;
+          await dbPatch(rec.id, { status: "error", syncRetryCount: currentRetries, lastSyncError: "Max retries exceeded" });
+          await refresh();
+          setSyncProgress({
+            phase: "error",
+            errorType: "max_retries",
+            errorDetail: `Segment ${i + 1} failed after ${MAX_ATTEMPTS} attempts`,
+            percentComplete: Math.round((uploadedBytes / totalBytes) * 100),
+            recordingTitle: rec.title,
+            totalSizeLabel: fmtSize(totalBytes),
+            durationLabel: fmtTime(rec.duration),
+          });
+          await logSyncDiagnostic(rec.id, { event: "sync_failed_max_retries", chunk: i + 1, totalAttempts: MAX_ATTEMPTS });
+          return;
+        }
 
         uploadedBytes += chunkSize;
         console.log(`[sync] chunk ${i + 1}/${totalChunks} uploaded · ${fmtSize(uploadedBytes)}/${fmtSize(totalBytes)}`);
@@ -1579,6 +1899,7 @@ export default function NoteWellRecorder() {
       }
 
       console.log("[sync] upload complete · all chunks uploaded");
+      await logSyncDiagnostic(rec.id, { event: "upload_complete", totalChunks, totalBytes: uploadedBytes });
       setSyncProgress({
         phase: "uploading",
         currentChunk: totalChunks,
@@ -1594,6 +1915,8 @@ export default function NoteWellRecorder() {
         status: "uploaded",
         uploadSessionId: sessionId,
         remoteChunkPaths: uploadedChunks.map(c => c.storagePath),
+        syncRetryCount: 0, // Reset on success
+        lastSyncError: null,
       });
       await refresh();
 
@@ -1621,7 +1944,7 @@ export default function NoteWellRecorder() {
       if (meetingErr || !meeting) {
         console.error("[sync] db row insertion failed:", meetingErr);
         showToast(`Upload succeeded but could not register meeting: ${meetingErr?.message || "unknown"}. Tap Sync again.`, "error");
-        await dbPatch(rec.id, { status: "error" });
+        await dbPatch(rec.id, { status: "error", lastSyncError: meetingErr?.message || "DB insert failed" });
         await refresh();
         setSyncProgress(null);
         return;
@@ -1658,13 +1981,28 @@ export default function NoteWellRecorder() {
         meetingId: meeting.id,
       });
       showToast("Upload complete — notes will arrive by email", "success");
+      await logSyncDiagnostic(rec.id, { event: "sync_complete", meetingId: meeting.id });
     } catch (err) {
       console.error("[sync] error:", err);
-      await dbPatch(rec.id, { status: "error" });
+      const errType = err.errorType || (
+        !navigator.onLine ? "network_drop" :
+        err.message?.includes("Session expired") ? "auth_expired" :
+        err.message?.includes("quota") ? "quota_exceeded" :
+        err.message?.includes("5") && err.message?.includes("00") ? "server_error" : "unknown"
+      );
+      const retryCount = (rec.syncRetryCount || 0) + 1;
+      await dbPatch(rec.id, { status: "error", syncRetryCount: retryCount, lastSyncError: err?.message || "Unknown" });
       await refresh();
-      setSyncProgress(null);
-      const msg = err?.message || err?.error_description || "Unknown error";
-      showToast(`Sync failed: ${msg}`, "error");
+      await logSyncDiagnostic(rec.id, { event: "sync_error", error: err?.message, errorType: errType, retryCount });
+      setSyncProgress({
+        phase: "error",
+        errorType: errType,
+        errorDetail: err?.message || "Unknown error",
+        percentComplete: 0,
+        recordingTitle: rec.title,
+        totalSizeLabel: fmtSize(rec.size || 0),
+        durationLabel: fmtTime(rec.duration),
+      });
     }
   };
 
@@ -2143,7 +2481,21 @@ export default function NoteWellRecorder() {
         )}
 
         {/* Sync progress bar */}
-        <SyncProgressBar progress={syncProgress} setSyncProgress={setSyncProgress} setRecState={setRecState} />
+        <SyncProgressBar progress={syncProgress} setSyncProgress={setSyncProgress} setRecState={setRecState} onRetryNow={() => {
+          setSyncProgress(null);
+          const failedRec = recordings.find(r => r.status === "error" || r.status === "paused");
+          if (failedRec) syncRecording(failedRec);
+        }} />
+
+        {/* Needs Attention section for failed syncs */}
+        <NeedsAttentionSection
+          recordings={recordings}
+          onSync={syncRecording}
+          onDelete={deleteRecording}
+          onDownloadAudio={downloadAudioRecording}
+          onEmailAudio={emailAudioRecording}
+          isEmailing={false}
+        />
 
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>

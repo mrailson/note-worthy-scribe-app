@@ -26,7 +26,7 @@ type PipelineState =
   | 'notes_ready_email_pending'
   | 'notes_ready_email_stuck';
 
-type FilterKey = 'all' | 'in_flight' | 'completed' | 'stuck' | 'failed' | 'too_short';
+type FilterKey = 'all' | 'in_flight' | 'completed' | 'stuck' | 'failed' | 'too_short' | 'needs_attention';
 
 interface PipelineRow {
   id: string;
@@ -135,6 +135,7 @@ const FILTER_MAP: Record<FilterKey, PipelineState[]> = {
   stuck: ['stuck_transcription', 'stuck_notes', 'notes_ready_email_stuck'],
   failed: ['failed_notes'],
   too_short: ['too_short'],
+  needs_attention: ['stuck_transcription', 'stuck_notes', 'notes_ready_email_stuck', 'failed_notes'],
 };
 
 type SortField = 'created_at' | 'title' | 'duration_minutes' | 'word_count' | 'user_name';
@@ -213,13 +214,14 @@ export function OfflinePipelineTab() {
   }, [fetchData]);
 
   const counts = useMemo(() => {
-    const c: Record<FilterKey, number> = { all: rows.length, in_flight: 0, completed: 0, stuck: 0, failed: 0, too_short: 0 };
+    const c: Record<FilterKey, number> = { all: rows.length, in_flight: 0, completed: 0, stuck: 0, failed: 0, too_short: 0, needs_attention: 0 };
     rows.forEach(r => {
       if (FILTER_MAP.in_flight.includes(r.pipeline_state)) c.in_flight++;
       if (FILTER_MAP.completed.includes(r.pipeline_state)) c.completed++;
       if (FILTER_MAP.stuck.includes(r.pipeline_state)) c.stuck++;
       if (FILTER_MAP.failed.includes(r.pipeline_state)) c.failed++;
       if (FILTER_MAP.too_short.includes(r.pipeline_state)) c.too_short++;
+      if (FILTER_MAP.needs_attention.includes(r.pipeline_state)) c.needs_attention++;
     });
     return c;
   }, [rows]);
@@ -343,6 +345,7 @@ export function OfflinePipelineTab() {
     { key: 'all', label: 'All' },
     { key: 'in_flight', label: 'In flight' },
     { key: 'completed', label: 'Completed' },
+    { key: 'needs_attention', label: 'Needs attention' },
     { key: 'stuck', label: 'Stuck' },
     { key: 'failed', label: 'Failed' },
     { key: 'too_short', label: 'Too short' },
