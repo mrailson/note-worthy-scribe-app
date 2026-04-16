@@ -1150,6 +1150,47 @@ export default function NoteWellRecorder() {
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
   useEffect(() => { refresh(); }, [refresh]);
 
+  // ── Poll meeting progress for recordings linked to a meeting (notes / email status) ──
+  useEffect(() => {
+    const meetingIds = recordings.map(r => r.meetingId).filter(Boolean);
+    if (meetingIds.length === 0) return;
+
+    let cancelled = false;
+    const fetchProgress = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("meetings")
+          .select("id, word_count, notes_generation_status, notes_email_sent_at")
+          .in("id", meetingIds);
+        if (error || cancelled || !data) return;
+
+        const summaryRes = await supabase
+          .from("meeting_summaries")
+          .select("meeting_id")
+          .in("meeting_id", meetingIds);
+        const summarySet = new Set((summaryRes.data || []).map(s => s.meeting_id));
+
+        const map = {};
+        data.forEach(m => {
+          map[m.id] = {
+            word_count: m.word_count,
+            notes_generation_status: m.notes_generation_status,
+            notes_email_sent_at: m.notes_email_sent_at,
+            summary_exists: summarySet.has(m.id),
+          };
+        });
+        if (!cancelled) setMeetingProgress(map);
+      } catch (e) {
+        console.warn("[progress] fetch failed", e);
+      }
+    };
+
+    fetchProgress();
+    // Poll every 20s while there are pending notes/email
+    const iv = setInterval(fetchProgress, 20000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [recordings]);
+
   // Auto-delete completed recordings (Meeting Created ✓) after 1 hour
   useEffect(() => {
     const ONE_HOUR = 60 * 60 * 1000;
