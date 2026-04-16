@@ -285,6 +285,29 @@ export function useNRESBuyBackRateSettings() {
     }
   }, [user?.id]);
 
+  const updateNotificationSetting = useCallback(async (key: string, value: boolean) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          [key]: value,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+      if (error) throw error;
+      setSettings(prev => ({ ...prev, [key]: value }));
+      toast.success('Notification setting updated');
+    } catch (err) {
+      console.error('Error updating notification setting:', err);
+      toast.error('Failed to update notification setting');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
   return {
     settings,
     loading,
@@ -294,6 +317,7 @@ export function useNRESBuyBackRateSettings() {
     toggleEmailSendingDisabled,
     toggleAllowInvoiceWhenSuppressed,
     updateManagementRoles,
+    updateNotificationSetting,
     onCostMultiplier,
     getRoleConfig,
     getAnnualRate,
