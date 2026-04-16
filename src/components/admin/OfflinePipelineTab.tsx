@@ -443,7 +443,7 @@ export function OfflinePipelineTab() {
                     </TableCell>
                     <TableCell>
                       <a
-                        href={`/meetings/${row.id}`}
+                        href={`/meeting-summary/${row.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm font-medium hover:underline text-primary"
