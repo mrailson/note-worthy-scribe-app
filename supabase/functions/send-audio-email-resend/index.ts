@@ -32,9 +32,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Missing required fields: userEmail, meetingTitle, audioUrl, or scriptText");
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
+      throw new Error("Invalid userEmail format");
+    }
+
     const emailResponse = await resend.emails.send({
       from: "NoteWell AI <onboarding@resend.dev>",
-      to: ["malcolm.railson@gmail.com"],
+      to: [userEmail],
       subject: `Audio Overview: ${meetingTitle}`,
       html: `
         <!DOCTYPE html>
