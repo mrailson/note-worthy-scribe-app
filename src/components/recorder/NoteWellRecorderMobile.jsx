@@ -367,7 +367,7 @@ function TitleModal({ duration, chunkCount, totalSize, autoTitle, onSave, onCont
   );
 }
 
-function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
+function SyncProgressBar({ progress, setSyncProgress, setRecState, onRetryNow }) {
   if (!progress) return null;
 
   if (progress.phase === "safe_to_close") {
@@ -400,6 +400,79 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
     );
   }
 
+  // Error / paused states — specific messaging per failure type
+  if (progress.phase === "paused" || progress.phase === "error") {
+    const errorMessages = {
+      network_drop: { icon: "📡", title: "Upload paused", body: "Your connection dropped. We'll retry automatically when you're back online.", showKeepWaiting: true },
+      timeout: { icon: "⏱️", title: "Upload is taking longer than expected", body: "The server didn't respond in time.", showKeepWaiting: true },
+      server_error: { icon: "🔧", title: "Notewell servers are busy", body: "We'll retry automatically in a moment.", showKeepWaiting: true },
+      auth_expired: { icon: "🔒", title: "Session expired", body: "Please sign in again to sync your recording.", showSignIn: true },
+      zero_bytes: { icon: "⚠️", title: "Recording appears to be empty", body: "This recording contains no audio data.", showDelete: true },
+      quota_exceeded: { icon: "📦", title: "Storage is full", body: "Your Notewell storage is full. Please contact support.", showContactSupport: true },
+      edge_function_timeout: { icon: "✅", title: "Audio uploaded successfully", body: "Transcription is delayed. We'll email you when it's ready.", isPartialSuccess: true },
+      max_retries: { icon: "⚠️", title: "Upload failed after 4 attempts", body: `Error: ${progress.errorDetail || "Network timeout"}. Your recording is safe locally.`, showRetry: true },
+      unknown: { icon: "⚠️", title: "Sync failed", body: progress.errorDetail || "An unexpected error occurred.", showRetry: true },
+    };
+    const errType = progress.errorType || "unknown";
+    const msg = errorMessages[errType] || errorMessages.unknown;
+
+    return (
+      <div style={{margin:"8px 16px 0",background:"white",borderRadius:14,padding:"20px 18px",
+        boxShadow:"0 2px 8px rgba(220,38,38,0.10)",border:`1px solid ${msg.isPartialSuccess ? "rgba(22,163,74,0.18)" : "rgba(220,38,38,0.18)"}`,animation:"fadeIn 0.2s"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+          <span style={{fontSize:28}}>{msg.icon}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:700,color:"#1a2332",marginBottom:4}}>{msg.title}</div>
+            <div style={{fontSize:13,color:"#64748b",lineHeight:1.5,marginBottom:8}}>{msg.body}</div>
+            {progress.recordingTitle && (
+              <div style={{fontSize:12,color:"#94a3b8",marginBottom:2}}>{progress.recordingTitle}</div>
+            )}
+            {(progress.totalSizeLabel || progress.durationLabel) && (
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:8}}>
+                {[progress.totalSizeLabel, progress.durationLabel].filter(Boolean).join(" · ")} · saved locally ✓
+              </div>
+            )}
+            {progress.retryAttempt > 0 && progress.maxRetries && (
+              <div style={{fontSize:11,color:"#f59e0b",fontWeight:600,marginBottom:8}}>
+                Retrying… ({progress.retryAttempt} of {progress.maxRetries})
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,marginTop:4}}>
+          {(msg.showRetry || msg.showKeepWaiting) && (
+            <button onClick={onRetryNow} style={{flex:1,padding:"10px 14px",borderRadius:10,border:"none",
+              background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:13,fontWeight:600,
+              color:"white",fontFamily:"inherit",boxShadow:"0 3px 10px rgba(21,101,192,0.35)"}}>
+              Retry now
+            </button>
+          )}
+          {msg.showKeepWaiting && (
+            <button onClick={() => {}} style={{flex:1,padding:"10px 14px",borderRadius:10,
+              border:"1.5px solid rgba(21,101,192,0.25)",background:"white",cursor:"pointer",fontSize:13,
+              fontWeight:600,color:"#1565c0",fontFamily:"inherit"}}>
+              Keep waiting
+            </button>
+          )}
+          {msg.showSignIn && (
+            <button onClick={() => { setSyncProgress(null); window.location.href = "/auth"; }} style={{flex:1,padding:"10px 14px",borderRadius:10,border:"none",
+              background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:13,fontWeight:600,
+              color:"white",fontFamily:"inherit"}}>
+              Sign in
+            </button>
+          )}
+          {msg.isPartialSuccess && (
+            <button onClick={() => setSyncProgress(null)} style={{flex:1,padding:"10px 14px",borderRadius:10,border:"none",
+              background:"linear-gradient(135deg,#16a34a,#22c55e)",cursor:"pointer",fontSize:13,fontWeight:600,
+              color:"white",fontFamily:"inherit"}}>
+              OK, got it
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Dedicated upload progress screen
   if (progress.phase === "uploading") {
     return (
@@ -425,9 +498,14 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
           <span style={{fontSize:12,fontWeight:600,color:"#1565c0"}}>{progress.percentComplete}%</span>
           <span style={{fontSize:11,color:"#94a3b8"}}>{progress.message}</span>
         </div>
+        {progress.retryAttempt > 0 && (
+          <div style={{marginTop:6,fontSize:11,color:"#f59e0b",fontWeight:600}}>
+            Retrying… ({progress.retryAttempt} of {progress.maxRetries || 4})
+          </div>
+        )}
         <div style={{marginTop:12,display:"flex",alignItems:"center",gap:6,padding:"8px 10px",borderRadius:8,background:"#fef3c7",border:"1px solid rgba(245,158,11,0.25)"}}>
           <span style={{fontSize:14}}>📱</span>
-          <span style={{fontSize:11,color:"#92400e",fontWeight:500}}>Please keep this tab open until upload completes</span>
+          <span style={{fontSize:11,color:"#92400e",fontWeight:500}}>Keep this tab open and screen on for fastest sync</span>
         </div>
       </div>
     );
@@ -462,6 +540,93 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
       )}
     </div>
   );
+}
+
+// ─── Needs Attention section ──────────────────────────────────────────────
+function NeedsAttentionSection({ recordings, onSync, onDelete, onDownloadAudio, onEmailAudio, isEmailing }) {
+  const failedRecs = recordings.filter(r =>
+    r.status === "error" || (r.status === "paused" && r.syncRetryCount >= 4)
+  );
+  if (failedRecs.length === 0) return null;
+
+  return (
+    <div style={{margin:"8px 16px 0"}}>
+      <div style={{
+        background:"white",borderRadius:14,overflow:"hidden",
+        border:"1.5px solid rgba(245,158,11,0.4)",
+        boxShadow:"0 2px 8px rgba(245,158,11,0.10)",
+      }}>
+        <div style={{padding:"10px 14px",background:"linear-gradient(135deg, #fef3c7, #fff7ed)",borderBottom:"1px solid rgba(245,158,11,0.2)",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14}}>⚠</span>
+          <span style={{fontSize:12,fontWeight:700,color:"#92400e",textTransform:"uppercase",letterSpacing:0.5}}>
+            Needs attention ({failedRecs.length})
+          </span>
+        </div>
+        {failedRecs.map(rec => (
+          <div key={rec.id} style={{padding:"12px 14px",borderBottom:"1px solid rgba(245,158,11,0.12)"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#1a2332",marginBottom:2}}>{rec.title || "Untitled recording"}</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:2}}>
+              {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
+            </div>
+            {rec.syncRetryCount > 0 && (
+              <div style={{fontSize:11,color:"#dc2626",marginBottom:2}}>
+                Failed after {rec.syncRetryCount} attempt{rec.syncRetryCount !== 1 ? "s" : ""}
+                {rec.lastSyncError ? ` · ${rec.lastSyncError}` : ""}
+              </div>
+            )}
+            <div style={{display:"flex",gap:6,marginTop:8}}>
+              <button onClick={() => onSync(rec)} style={{
+                padding:"6px 14px",borderRadius:8,border:"none",
+                background:"linear-gradient(135deg,#1565c0,#0288d1)",color:"white",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              }}>Retry</button>
+              <button onClick={() => onDelete(rec.id)} style={{
+                padding:"6px 14px",borderRadius:8,border:"1px solid rgba(220,38,38,0.3)",
+                background:"rgba(220,38,38,0.05)",color:"#dc2626",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              }}>Delete</button>
+              <button onClick={() => onDownloadAudio(rec)} style={{
+                padding:"6px 14px",borderRadius:8,border:"1px solid rgba(21,101,192,0.2)",
+                background:"rgba(21,101,192,0.05)",color:"#1565c0",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              }}>💾</button>
+              <button onClick={() => onEmailAudio(rec)} disabled={isEmailing} style={{
+                padding:"6px 14px",borderRadius:8,border:"1px solid rgba(21,101,192,0.2)",
+                background:"rgba(21,101,192,0.05)",color:"#1565c0",
+                fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+                opacity:isEmailing?0.6:1,
+              }}>📧</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Sync diagnostic logger ──────────────────────────────────────────────
+async function logSyncDiagnostic(recId, event) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const getReq = store.get(recId);
+    getReq.onsuccess = () => {
+      const rec = getReq.result;
+      if (!rec) return;
+      const diagnostics = rec.syncDiagnostics || [];
+      diagnostics.push({
+        timestamp: new Date().toISOString(),
+        ...event,
+        networkType: navigator.connection?.effectiveType || "unknown",
+        online: navigator.onLine,
+        userAgent: navigator.userAgent.substring(0, 120),
+      });
+      // Keep last 50 entries
+      if (diagnostics.length > 50) diagnostics.splice(0, diagnostics.length - 50);
+      store.put({ ...rec, syncDiagnostics: diagnostics });
+    };
+  } catch { /* diagnostics are best-effort */ }
 }
 
 function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
