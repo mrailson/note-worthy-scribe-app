@@ -200,7 +200,7 @@ function HowToClaimTab() {
             <ul className="list-disc list-inside space-y-0.5 text-xs">
               <li>Role is <strong>auto-locked</strong> to "GP Locum" — cannot be changed.</li>
               <li>Choose allocation type: <strong>Days</strong> or <strong>Sessions</strong>.</li>
-              <li>Enter the <strong>total worked that month</strong> (system multiplies by £750/day or £375/session).</li>
+              <li>Enter the <strong>total worked that month</strong> (system multiplies by £750/day or £375/session — 1 session = 4 hrs 10 mins).</li>
               <li>Upload the locum invoice/timesheet as evidence.</li>
             </ul>
           </CalloutBox>
@@ -341,7 +341,9 @@ function RatesTab({ rateSettings, onCostMultiplier }: { rateSettings: RateSettin
               </tr>
             </thead>
             <tbody>
-              {rateSettings.roles_config.map(role => {
+              {rateSettings.roles_config
+                .filter(r => r.key !== 'gp_locum' && r.label.toLowerCase() !== 'gp locum')
+                .map(role => {
                 const niAmt = role.annual_rate * (rateSettings.employer_ni_pct / 100);
                 const penAmt = role.annual_rate * (rateSettings.employer_pension_pct / 100);
                 const totalAnnual = role.annual_rate + niAmt + penAmt;
@@ -386,7 +388,7 @@ function RatesTab({ rateSettings, onCostMultiplier }: { rateSettings: RateSettin
       <div>
         <h4 className="font-semibold text-[#003087] mb-1">Allocation Types</h4>
         <ul className="text-muted-foreground space-y-1">
-          <li><strong>Sessions</strong> — for GPs. 1 session = a half-day. Monthly = sessions × annual rate × on-costs ÷ 12</li>
+          <li><strong>Sessions</strong> — for GPs. 1 session = a half-day (4 hrs 10 mins). Monthly = sessions × annual rate × on-costs ÷ 12</li>
           <li><strong>Hours per week</strong> — for ANPs, ACPs, nurses. Monthly = (hours ÷ 37.5) × annual rate × on-costs ÷ 12</li>
           <li><strong>WTE</strong> — direct proportion. Monthly = WTE × annual rate × on-costs ÷ 12</li>
         </ul>
@@ -419,7 +421,7 @@ function RatesTab({ rateSettings, onCostMultiplier }: { rateSettings: RateSettin
                 <td className="p-2 text-right">23 days</td>
               </tr>
               <tr className="border-t">
-                <td className="p-2 font-medium">Session</td>
+                <td className="p-2 font-medium">Session (4 hrs 10 mins / half-day)</td>
                 <td className="p-2 text-right font-semibold text-primary">{fmtGBP(375)}/session</td>
                 <td className="p-2 text-right text-muted-foreground">None</td>
                 <td className="p-2 text-right">46 sessions</td>
@@ -546,7 +548,7 @@ function ClaimRulesTab() {
         <p className="font-semibold mb-1">👨‍⚕️ GP Locum & 🗣️ Meeting Attendance — Special Rules</p>
         <ul className="list-disc list-inside space-y-0.5 text-xs">
           <li><strong>No Part B evidence required</strong> — these are additional/sessional, not buy-back.</li>
-          <li>The locum daily/session rate (£750 / £375) is a <strong>cap</strong> — claim less if the invoice is lower.</li>
+          <li>The locum daily/session rate (£750/day or £375/session — half-day, 4 hrs 10 mins) is a <strong>cap</strong> — claim less if the invoice is lower.</li>
           <li>Meeting hours are auto-captured — they cannot be edited manually on the claim.</li>
         </ul>
       </CalloutBox>
@@ -627,7 +629,7 @@ function FAQTab() {
     { q: "What's the difference between Buy-Back and New SDA?", a: "Buy-Back = existing staff released from normal work for SDA. You must prove their normal work (Part B/LTC) is being covered. New SDA = newly recruited staff — additional capacity, so no Part B evidence needed." },
     { q: 'Who do I contact if I need help?', a: 'Your NRES Management Lead: Malcolm Railson (malcolm.railson@nhs.net), Amanda Palin (amanda.palin2@nhs.net), or Lucy Hibberd.' },
     { q: 'What is the 30-day claim window?', a: 'You have 30 calendar days from the end of the claim month to submit. For example, an April claim must be submitted by 30th May. If you miss the deadline, contact your Management Lead.' },
-    { q: 'How do GP Locum claims differ from Buy-Back?', a: 'GP Locum is external sessional cover billed at fixed rates (£750/day or £375/session) with no on-costs added. Buy-Back is for existing practice staff released from their normal duties — that requires Part B (LTC) evidence; locum claims do not.' },
+    { q: 'How do GP Locum claims differ from Buy-Back?', a: 'GP Locum is external sessional cover billed at fixed rates — £750/day or £375/session (1 session = a half-day, 4 hrs 10 mins) — with no on-costs added. The session/day rate is a cap; claim less if the invoice is lower. Buy-Back is for existing practice staff released from their normal duties — that requires Part B (LTC) evidence; locum claims do not.' },
     { q: 'How is Meeting Attendance calculated?', a: 'Hours are pulled automatically from the Meeting Schedule attendance log. Each attended hour is multiplied by £85 (GP) or £45 (PM). You do not enter hours manually — the system creates the lines for you.' },
     { q: "Why don't Meeting/Locum claims need Part B evidence?", a: 'Both are additional/sessional time, not buy-back of existing staff. Nothing is being released from normal LTC work, so there is no Part B backfill to evidence.' },
     { q: 'How are NRES Management working weeks calculated?', a: 'The system counts weekdays (Mon–Fri) in the claim month and subtracts any bank holidays that fall on a weekday. Working weeks = working days ÷ 5. Your monthly value = hourly rate × hours/week × working weeks.' },
