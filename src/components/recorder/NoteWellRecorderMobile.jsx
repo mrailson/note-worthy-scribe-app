@@ -2550,6 +2550,29 @@ export default function NoteWellRecorder() {
   const active      = isRecording || isPaused;
   const localCount  = recordings.filter(r => r.status==="local"||r.status==="error").length;
 
+  // ── Pre-flight intercept for mobile devices ──
+  const handleRecordTap = () => {
+    if (!isIdle) {
+      // Already recording — handle pause/resume
+      if (isRecording) pauseRecording();
+      else resumeRecording();
+      return;
+    }
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const alreadyShown = sessionStorage.getItem(SESSION_KEY);
+    if (isMobile && !alreadyShown) {
+      setShowPreFlight(true);
+      return;
+    }
+    startRecording();
+  };
+
+  const handlePreFlightStart = () => {
+    sessionStorage.setItem(SESSION_KEY, "true");
+    setShowPreFlight(false);
+    startRecording();
+  };
+
   return (
     <>
       <style>{`
@@ -2681,13 +2704,24 @@ export default function NoteWellRecorder() {
               {active && (
                 <>
                   <div style={{fontSize:40,fontWeight:700,letterSpacing:-2,fontVariantNumeric:"tabular-nums",
-                    color:isPaused?"#f59e0b":"#1565c0",transition:"color 0.3s"}}>
+                    color:isPaused?"#f59e0b":isPageHidden?"#94a3b8":"#1565c0",transition:"color 0.3s"}}>
                     {fmtDuration(elapsed)}
                   </div>
+                  {/* Paused pill when page is hidden */}
+                  {isPageHidden && isRecording && (
+                    <div style={{
+                      display:"inline-flex",alignItems:"center",gap:4,marginTop:4,marginBottom:4,
+                      padding:"3px 10px",borderRadius:10,fontSize:11,fontWeight:700,
+                      background:"rgba(245,158,11,0.15)",color:"#d97706",
+                      border:"1px solid rgba(245,158,11,0.3)",animation:"pulse 1.5s infinite",
+                    }}>
+                      ⏸ PAUSED
+                    </div>
+                  )}
                   <div style={{fontSize:12,fontWeight:500,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",gap:5,
                     color:isPaused?"#f59e0b":"#16a34a"}}>
-                    {isRecording && <span style={{width:7,height:7,borderRadius:"50%",background:"#dc2626",display:"inline-block",animation:"pulse 1s infinite"}}/>}
-                    {isRecording ? (mode==="live"?"Recording · Transcribing live":"Recording · Saving locally") : "⏸ Paused"}
+                    {isRecording && !isPageHidden && <span style={{width:7,height:7,borderRadius:"50%",background:"#dc2626",display:"inline-block",animation:"pulse 1s infinite"}}/>}
+                    {isRecording ? (isPageHidden ? "" : mode==="live"?"Recording · Transcribing live":"Recording · Saving locally") : "⏸ Paused"}
                   </div>
                   {/* Chunk indicator */}
                   {chunksCompleted > 0 && (
