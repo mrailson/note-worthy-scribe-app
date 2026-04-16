@@ -13,7 +13,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
 } from '@/components/ui/tooltip';
-import { MoreVertical, RefreshCw, ExternalLink, RotateCcw, Mail, Copy, ArrowUpDown } from 'lucide-react';
+import { MoreVertical, RefreshCw, ExternalLink, RotateCcw, Mail, Copy, ArrowUpDown, PlayCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PipelineState =
@@ -147,6 +147,8 @@ export function OfflinePipelineTab() {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortAsc, setSortAsc] = useState(false);
   const [, setLastRefresh] = useState(Date.now());
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [processingAll, setProcessingAll] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -272,6 +274,65 @@ export function OfflinePipelineTab() {
     toast.success('Diagnostic JSON copied to clipboard');
   }
 
+  const isProcessable = (row: PipelineRow) =>
+    ['stuck_transcription', 'stuck_notes', 'failed_notes'].includes(row.pipeline_state) ||
+    ['queued', 'uploaded', 'stuck'].includes(row.status);
+
+  async function handleProcessNow(meetingId: string) {
+    setProcessingIds(prev => new Set(prev).add(meetingId));
+    try {
+      const { error: updateErr } = await supabase
+        .from('meetings')
+        .update({
+          status: 'queued' as any,
+          notes_generation_status: 'not_started' as any,
+        })
+        .eq('id', meetingId);
+      if (updateErr) throw updateErr;
+
+      const { error: invokeErr } = await supabase.functions.invoke(
+        'transcribe-offline-meeting',
+        { body: { meetingId, chunkIndex: 0 } }
+      );
+      if (invokeErr) throw invokeErr;
+
+      toast.success('Transcription started — refresh in 30s');
+      setTimeout(fetchData, 2000);
+    } catch (err: any) {
+      toast.error('Failed to start: ' + err.message);
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(meetingId);
+        return next;
+      });
+    }
+  }
+
+  const stuckRows = useMemo(() => rows.filter(r => isProcessable(r)), [rows]);
+
+  async function handleProcessAllStuck() {
+    if (stuckRows.length === 0) return;
+    setProcessingAll(true);
+    let succeeded = 0;
+    let failed = 0;
+    for (const row of stuckRows) {
+      try {
+        await supabase.from('meetings').update({ status: 'queued' as any, notes_generation_status: 'not_started' as any }).eq('id', row.id);
+        await supabase.functions.invoke('transcribe-offline-meeting', { body: { meetingId: row.id, chunkIndex: 0 } });
+        succeeded++;
+      } catch {
+        failed++;
+      }
+      // small delay between calls
+      await new Promise(r => setTimeout(r, 500));
+    }
+    toast.success(`Processed ${succeeded} meeting${succeeded !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`);
+    setProcessingAll(false);
+    setTimeout(fetchData, 2000);
+  }
+
+
   function initials(name: string): string {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   }
@@ -360,9 +421,25 @@ export function OfflinePipelineTab() {
             <h2 className="text-2xl font-bold">Offline Pipeline</h2>
             <p className="text-sm text-muted-foreground">Last 7 days · Mobile offline recordings</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <RefreshCw className="h-3 w-3" />
-            Auto-refresh · 30s
+          <div className="flex items-center gap-2">
+            {stuckRows.length > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={processingAll}
+                onClick={handleProcessAllStuck}
+              >
+                {processingAll ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Processing…</>
+                ) : (
+                  <><PlayCircle className="h-3.5 w-3.5 mr-1.5" /> Process All Stuck ({stuckRows.length})</>
+                )}
+              </Button>
+            )}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <RefreshCw className="h-3 w-3" />
+              Auto-refresh · 30s
+            </div>
           </div>
         </div>
 
@@ -471,6 +548,17 @@ export function OfflinePipelineTab() {
                           <DropdownMenuItem onClick={() => window.open(`/meeting-summary/${row.id}`, '_blank')}>
                             <ExternalLink className="h-4 w-4 mr-2" /> View meeting
                           </DropdownMenuItem>
+                          {isProcessable(row) && (
+                            <DropdownMenuItem
+                              disabled={processingIds.has(row.id)}
+                              onClick={() => handleProcessNow(row.id)}
+                            >
+                              {processingIds.has(row.id)
+                                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing…</>
+                                : <><PlayCircle className="h-4 w-4 mr-2" /> Process Now</>
+                              }
+                            </DropdownMenuItem>
+                          )}
                           {['stuck_transcription'].includes(row.pipeline_state) && (
                             <DropdownMenuItem onClick={() => retryTranscription(row.id)}>
                               <RotateCcw className="h-4 w-4 mr-2" /> Retry transcription
