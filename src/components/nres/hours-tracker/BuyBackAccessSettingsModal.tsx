@@ -852,14 +852,24 @@ function RatesAndRolesPanel() {
 const EMAIL_TYPES_TABLE = [
   { type: 'Claim Submitted', trigger: 'Claim is submitted', recipient: 'All practice approvers' },
   { type: 'Submission Confirmation', trigger: 'Claim is submitted', recipient: 'The submitting user' },
+  { type: 'Claim Queried', trigger: 'Claim is queried by Director', recipient: 'Submitter & Verifier' },
   { type: 'Claim Approved', trigger: 'Claim is approved', recipient: 'The submitting user' },
   { type: 'Approval Confirmation', trigger: 'Claim is approved', recipient: 'The reviewing approver' },
   { type: 'Claim Declined', trigger: 'Claim is declined', recipient: 'The submitting user' },
   { type: 'Decline Confirmation', trigger: 'Claim is declined', recipient: 'The reviewing approver' },
 ];
 
+const NOTIFICATION_TOGGLES = [
+  { key: 'notify_submitter_on_query', label: 'Notify submitter when claim is queried', group: 'Query' },
+  { key: 'notify_verifier_on_query', label: 'Notify verifier when claim is queried', group: 'Query' },
+  { key: 'notify_submitter_on_approve', label: 'Notify submitter when claim is approved', group: 'Approval' },
+  { key: 'notify_verifier_on_approve', label: 'Notify verifier when claim is approved', group: 'Approval' },
+  { key: 'notify_submitter_on_resubmit', label: 'Notify submitter on resubmit', group: 'Resubmit' },
+  { key: 'notify_director_on_resubmit', label: 'Notify director when queried claim is resubmitted', group: 'Resubmit' },
+];
+
 function EmailSettingsPanel() {
-  const { settings, loading, saving, toggleEmailTestingMode, toggleEmailSendingDisabled, toggleAllowInvoiceWhenSuppressed } = useNRESBuyBackRateSettings();
+  const { settings, loading, saving, toggleEmailTestingMode, toggleEmailSendingDisabled, toggleAllowInvoiceWhenSuppressed, updateNotificationSetting } = useNRESBuyBackRateSettings();
   const { user } = useAuth();
 
   if (loading) {
