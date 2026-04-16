@@ -288,7 +288,7 @@ export function OfflinePipelineTab() {
       const { error: updateErr } = await supabase
         .from('meetings')
         .update({
-          status: 'queued' as any,
+          status: 'pending_transcription' as any,
           notes_generation_status: 'not_started' as any,
         })
         .eq('id', meetingId);
@@ -342,6 +342,9 @@ export function OfflinePipelineTab() {
   }
 
   function renderTranscriptBadge(row: PipelineRow) {
+    if (row.pipeline_state === 'audio_missing') {
+      return <PipelineBadge state="audio_missing" label="Audio missing" />;
+    }
     if (row.pipeline_state === 'stuck_transcription') {
       const mins = Math.floor((Date.now() - new Date(row.created_at).getTime()) / 60000);
       return <PipelineBadge state="stuck_transcription" label={`Stuck ${mins}m`} />;
@@ -349,8 +352,8 @@ export function OfflinePipelineTab() {
     if (row.pipeline_state === 'too_short') {
       return <PipelineBadge state="too_short" label={`${row.word_count || 0} w · short`} />;
     }
-    if (row.status === 'pending_transcription') {
-      return <PipelineBadge state="in_flight" label={`Transcribing`} />;
+    if (row.status === 'pending_transcription' || row.status === 'queued') {
+      return <PipelineBadge state="in_flight" label="Transcribing" />;
     }
     if (row.word_count && row.word_count > 0) {
       return <PipelineBadge state="completed" label={`${row.word_count.toLocaleString()} w`} />;
