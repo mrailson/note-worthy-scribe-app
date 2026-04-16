@@ -130,7 +130,7 @@ export const useMeetingImporter = () => {
             detail_level: 'standard',
             status: 'pending',
             source: 'import'
-          });
+          } as any);
 
         if (queueError) throw queueError;
       } catch (queueError) {

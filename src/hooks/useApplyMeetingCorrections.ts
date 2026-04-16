@@ -126,7 +126,7 @@ export function useApplyMeetingCorrections() {
           if (Object.keys(updates).length > 0) {
             const { data: updatedSummary, error: summaryUpdateError } = await supabase
               .from('meeting_summaries')
-              .update(updates)
+              .update(updates as any)
               .eq('id', s.id)
               .select('id')
               .maybeSingle();

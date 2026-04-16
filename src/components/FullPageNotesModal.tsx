@@ -1588,7 +1588,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Save to database
       const { error } = await supabase
         .from('meetings')
-        .update({ [updateColumn]: enhancedContent })
+        .update({ [updateColumn]: enhancedContent } as any)
         .eq('id', meeting.id);
 
       if (error) throw error;

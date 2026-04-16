@@ -974,7 +974,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
 
       const { error: updateError } = await supabase
         .from('gp_consultation_notes')
-        .update(updatePayload)
+        .update(updatePayload as any)
         .eq('consultation_id', consultationId);
 
       if (updateError) {

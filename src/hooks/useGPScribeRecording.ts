@@ -508,7 +508,7 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null, audio
               transcript: transcript.trim(),
               word_count: wordCount,
               duration_minutes: Math.floor(duration / 60)
-            })
+            } as any)
             .eq('id', meetingIdRef.current);
           
           if (updateError) {
