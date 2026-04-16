@@ -23,13 +23,27 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
   const { meetingId, recipientEmail } = opts;
 
   // 1. Fetch meeting metadata
-  const { data: meeting } = await supabase
+  let { data: meeting } = await supabase
     .from("meetings")
     .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
     .eq("id", meetingId)
     .maybeSingle();
 
-  const meetingTitle = meeting?.title || "Mobile Recording";
+  // If title is still a generic placeholder, wait briefly and re-fetch —
+  // the AI title generation may not have committed yet
+  const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
+  if (!meeting?.title || GENERIC_TITLES.includes(meeting.title.toLowerCase().trim())) {
+    console.log("⏳ Title appears generic, waiting for AI title generation...");
+    await new Promise(r => setTimeout(r, 3000));
+    const { data: refreshed } = await supabase
+      .from("meetings")
+      .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
+      .eq("id", meetingId)
+      .maybeSingle();
+    if (refreshed) meeting = refreshed;
+  }
+
+  const meetingTitle = meeting?.title || "Meeting Notes";
 
   // 2. Fetch summary
   const { data: summary } = await supabase

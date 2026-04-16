@@ -1585,26 +1585,32 @@ export default function NoteWellRecorder() {
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise(r => setTimeout(r, 10000));
 
-      // Also check notes_generation_status on the meeting itself
+      // Check notes_generation_status — wait for 'completed' (not just summary existence)
+      // because the AI-generated title is saved at the same time as status=completed
       const { data: meetingStatus } = await supabase
         .from("meetings")
-        .select("notes_generation_status")
+        .select("notes_generation_status, title")
         .eq("id", meetingId)
         .maybeSingle();
+
       if (meetingStatus?.notes_generation_status === "failed") {
         showToast("Note generation failed — meeting saved without notes", "warning");
         return;
       }
 
-      const { data: summary } = await supabase
-        .from("meeting_summaries")
-        .select("id")
-        .eq("meeting_id", meetingId)
-        .maybeSingle();
-      if (summary) {
-        showToast("Meeting notes generated ✨", "success");
-        triggerPostNoteActions(meetingId);
-        return;
+      // Only trigger email when status is 'completed' — this guarantees
+      // the AI-generated title has been saved to the meetings row
+      if (meetingStatus?.notes_generation_status === "completed") {
+        const { data: summary } = await supabase
+          .from("meeting_summaries")
+          .select("id")
+          .eq("meeting_id", meetingId)
+          .maybeSingle();
+        if (summary) {
+          showToast("Meeting notes generated ✨", "success");
+          triggerPostNoteActions(meetingId);
+          return;
+        }
       }
     }
     showToast("Meeting saved — note generation may still be processing", "warning");
