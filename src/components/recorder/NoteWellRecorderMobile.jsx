@@ -1539,24 +1539,66 @@ export default function NoteWellRecorder() {
     }
   };
 
-  // ── Sync (chunked) ───────────────────────────────────────────────────────
-  const syncRecording = async (rec) => {
+  // ── Active sync ref for pause/resume ────────────────────────────────────
+  const activeSyncRef = useRef(null); // { rec, abortController, paused }
+
+  // ── Pre-flight validation ──────────────────────────────────────────────
+  const preflightCheck = async (rec) => {
+    // Check device is online
+    if (!navigator.onLine) {
+      showToast("You're offline — connect to WiFi or mobile data to sync", "error");
+      return { ok: false, errorType: "network_drop" };
+    }
+
+    // Check file size > 0
+    const totalSize = (rec.chunks || []).reduce((s, c) => s + (c.sizeBytes || c.arrayBuffer?.byteLength || 0), 0);
+    const singleSize = rec.audioData?.byteLength || 0;
+    if (totalSize === 0 && singleSize === 0) {
+      setSyncProgress({
+        phase: "error", errorType: "zero_bytes", percentComplete: 0,
+        recordingTitle: rec.title, message: "Recording is empty",
+      });
+      await logSyncDiagnostic(rec.id, { event: "preflight_fail", reason: "zero_bytes" });
+      return { ok: false, errorType: "zero_bytes" };
+    }
+
+    // Check file size < 100MB
+    const effectiveSize = totalSize || singleSize;
+    if (effectiveSize > 100 * 1024 * 1024) {
+      showToast("Recording is very large (>100 MB) — sync may take a while on mobile data", "info");
+    }
+
+    // Check auth session is valid
     let user = null;
     try {
       const { data: { session } } = await supabase.auth.refreshSession();
       user = session?.user || null;
     } catch (e) {
-      console.warn("[Sync] Session refresh failed:", e);
+      console.warn("[sync] session refresh failed:", e);
     }
     if (!user) {
-      const { data: { user: fallbackUser } } = await supabase.auth.getUser();
-      user = fallbackUser;
+      try {
+        const { data: { user: fallback } } = await supabase.auth.getUser();
+        user = fallback;
+      } catch { /* */ }
     }
     if (!user) {
-      showToast("Redirecting to sign in…", "info");
-      navigate("/auth", { state: { returnTo: location.pathname } });
-      return;
+      setSyncProgress({
+        phase: "error", errorType: "auth_expired", percentComplete: 0,
+        recordingTitle: rec.title, message: "Session expired",
+      });
+      await logSyncDiagnostic(rec.id, { event: "preflight_fail", reason: "auth_expired" });
+      return { ok: false, errorType: "auth_expired" };
     }
+
+    return { ok: true, user };
+  };
+
+  // ── Sync (chunked) ───────────────────────────────────────────────────────
+  const syncRecording = async (rec) => {
+    const preflight = await preflightCheck(rec);
+    if (!preflight.ok) return;
+    const user = preflight.user;
 
     if (rec.status === "transcribed" && rec.transcript && !rec.meetingId) {
       console.log("[Sync] Resuming meeting creation for already-transcribed recording");
