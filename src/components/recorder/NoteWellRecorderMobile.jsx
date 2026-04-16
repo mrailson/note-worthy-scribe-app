@@ -2481,7 +2481,21 @@ export default function NoteWellRecorder() {
         )}
 
         {/* Sync progress bar */}
-        <SyncProgressBar progress={syncProgress} setSyncProgress={setSyncProgress} setRecState={setRecState} />
+        <SyncProgressBar progress={syncProgress} setSyncProgress={setSyncProgress} setRecState={setRecState} onRetryNow={() => {
+          setSyncProgress(null);
+          const failedRec = recordings.find(r => r.status === "error" || r.status === "paused");
+          if (failedRec) syncRecording(failedRec);
+        }} />
+
+        {/* Needs Attention section for failed syncs */}
+        <NeedsAttentionSection
+          recordings={recordings}
+          onSync={syncRecording}
+          onDelete={deleteRecording}
+          onDownloadAudio={downloadAudioRecording}
+          onEmailAudio={emailAudioRecording}
+          isEmailing={false}
+        />
 
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
