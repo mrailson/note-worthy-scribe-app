@@ -924,6 +924,84 @@ function StepsGuide() {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
+// ─── Pre-flight warning modal ─────────────────────────────────────────────
+const SESSION_KEY = "mobile_recording_warning_shown";
+
+function PreFlightWarningModal({ onStart, onCancel }) {
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:"white",borderRadius:"24px 24px 0 0",padding:"20px 20px 28px",width:"100%",maxWidth:480,
+        animation:"slideUp 0.3s ease-out",paddingBottom:"calc(28px + env(safe-area-inset-bottom, 0px))",
+      }}>
+        <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+          <div style={{width:40,height:40,borderRadius:12,background:"rgba(245,158,11,0.12)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div style={{fontSize:17,fontWeight:700,color:"#1a2332",letterSpacing:-0.3}}>Before you start recording</div>
+        </div>
+        <div style={{fontSize:13,color:"#475569",lineHeight:1.7,marginBottom:18}}>
+          For best results during your recording:
+          <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#16a34a",fontWeight:700}}>✓</span> Keep your screen unlocked</div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#16a34a",fontWeight:700}}>✓</span> Don't switch to other apps</div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#16a34a",fontWeight:700}}>✓</span> Stay in this tab/window</div>
+          </div>
+          <div style={{marginTop:10,padding:"8px 10px",borderRadius:10,background:"#fef3c7",border:"1px solid rgba(245,158,11,0.3)",fontSize:12,color:"#92400e",lineHeight:1.5}}>
+            Your phone will keep the screen awake automatically, but if you lock it manually, recording will pause until you unlock again. The timer will show what was actually captured.
+          </div>
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onCancel} style={{flex:1,padding:"13px",borderRadius:14,border:"1.5px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:14,fontWeight:600,color:"#64748b",fontFamily:"inherit"}}>Cancel</button>
+          <button onClick={onStart} style={{flex:1,padding:"13px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:14,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(21,101,192,0.4)"}}>Start Recording</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Suspension warning banner ────────────────────────────────────────────
+function SuspensionWarningBanner({ seconds, onDismiss }) {
+  const formatGap = (s) => {
+    if (s < 60) return `${s} second${s !== 1 ? "s" : ""}`;
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem > 0 ? `${m} min ${rem} sec` : `${m} min`;
+  };
+  return (
+    <div style={{
+      margin:"8px 16px 0",padding:"12px 14px",borderRadius:12,
+      background:"#fef3c7",border:"2px solid #f59e0b",
+      display:"flex",alignItems:"flex-start",gap:8,animation:"fadeIn 0.2s",
+    }}>
+      <span style={{fontSize:16,flexShrink:0,marginTop:1}}>⚠</span>
+      <div style={{flex:1}}>
+        <div style={{fontSize:13,fontWeight:600,color:"#92400e",lineHeight:1.5}}>
+          Recording was paused for {formatGap(seconds)} while the screen was locked or you switched apps. Audio during that period was not captured.
+        </div>
+      </div>
+      <button onClick={onDismiss} style={{background:"none",border:"none",cursor:"pointer",padding:4,color:"#92400e",fontSize:16,fontWeight:700,flexShrink:0}}>×</button>
+    </div>
+  );
+}
+
+// ─── Silent audio keep-alive (HTML Audio element) ─────────────────────────
+const SILENT_WAV = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+let silentAudioEl = null;
+function startSilentAudio() {
+  try {
+    silentAudioEl = new Audio(SILENT_WAV);
+    silentAudioEl.loop = true;
+    silentAudioEl.volume = 0.001;
+    silentAudioEl.play().catch(err => console.warn("Silent audio session failed:", err));
+  } catch (e) { console.warn("Silent audio creation failed:", e); }
+}
+function stopSilentAudio() {
+  if (silentAudioEl) { silentAudioEl.pause(); silentAudioEl.src = ""; silentAudioEl = null; }
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -961,6 +1039,18 @@ export default function NoteWellRecorder() {
   const [wakeLockStatus, setWakeLockStatus] = useState("unsupported"); // unsupported|active|inactive
   const { requestLock, releaseLock, isLocked, isSupported: wakeLockSupported } = useWakeLock();
   const [pendingCount, setPendingCount] = useState(0);
+
+  // ── Pre-flight modal state ──
+  const [showPreFlight, setShowPreFlight] = useState(false);
+
+  // ── Honest timer state (visibility-aware) ──
+  const lastTickRef = useRef(Date.now());
+  const [isPageHidden, setIsPageHidden] = useState(false);
+
+  // ── Suspension detection state ──
+  const hiddenSinceRef = useRef(null);
+  const [suspensionWarning, setSuspensionWarning] = useState(null);
+  const suspensionGapsRef = useRef([]); // [{from, to, seconds}]
 
   // ── Refresh pending-sync count for ConnectionToggle ────────────────────────
   const refreshPendingCount = useCallback(async () => {
