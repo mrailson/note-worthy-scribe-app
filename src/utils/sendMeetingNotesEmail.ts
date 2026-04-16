@@ -72,15 +72,32 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
     throw new Error("No meeting summary found — cannot send email");
   }
 
-  // 3. Resolve sender name
+  // 3. Resolve sender name — prefer the currently authenticated user's profile
+  //    (looked up by user_id), NOT a profile that happens to share the
+  //    recipient's email address. The recipientEmail is just where the notes
+  //    are being delivered; the "from name" must reflect the logged-in user.
   let senderName = opts.senderName;
   if (!senderName) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("email", recipientEmail)
-      .maybeSingle();
-    senderName = profile?.full_name || recipientEmail.split("@")[0] || "Notewell AI";
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (profile?.full_name) {
+          senderName = profile.full_name;
+        } else if (user.email) {
+          senderName = user.email.split("@")[0];
+        }
+      }
+    } catch (e) {
+      console.warn("Could not resolve sender from auth user:", e);
+    }
+    if (!senderName) {
+      senderName = recipientEmail.split("@")[0] || "Notewell AI";
+    }
   }
 
   // 4. Build dates
