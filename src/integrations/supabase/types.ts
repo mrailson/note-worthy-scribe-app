@@ -1222,6 +1222,7 @@ export type Database = {
           practice_id: string
           queried_at: string | null
           queried_by: string | null
+          query_flagged_lines: Json | null
           query_note: string | null
           role: string
           scheduled_at: string | null
@@ -1258,6 +1259,7 @@ export type Database = {
           practice_id: string
           queried_at?: string | null
           queried_by?: string | null
+          query_flagged_lines?: Json | null
           query_note?: string | null
           role: string
           scheduled_at?: string | null
@@ -1294,6 +1296,7 @@ export type Database = {
           practice_id?: string
           queried_at?: string | null
           queried_by?: string | null
+          query_flagged_lines?: Json | null
           query_note?: string | null
           role?: string
           scheduled_at?: string | null
@@ -8395,6 +8398,12 @@ export type Database = {
           management_roles_config: Json
           meeting_gp_rate: number
           meeting_pm_rate: number
+          notify_director_on_resubmit: boolean | null
+          notify_submitter_on_approve: boolean | null
+          notify_submitter_on_query: boolean | null
+          notify_submitter_on_resubmit: boolean | null
+          notify_verifier_on_approve: boolean | null
+          notify_verifier_on_query: boolean | null
           on_costs_pct: number
           roles_config: Json
           updated_at: string | null
@@ -8410,6 +8419,12 @@ export type Database = {
           management_roles_config?: Json
           meeting_gp_rate?: number
           meeting_pm_rate?: number
+          notify_director_on_resubmit?: boolean | null
+          notify_submitter_on_approve?: boolean | null
+          notify_submitter_on_query?: boolean | null
+          notify_submitter_on_resubmit?: boolean | null
+          notify_verifier_on_approve?: boolean | null
+          notify_verifier_on_query?: boolean | null
           on_costs_pct?: number
           roles_config?: Json
           updated_at?: string | null
@@ -8425,6 +8440,12 @@ export type Database = {
           management_roles_config?: Json
           meeting_gp_rate?: number
           meeting_pm_rate?: number
+          notify_director_on_resubmit?: boolean | null
+          notify_submitter_on_approve?: boolean | null
+          notify_submitter_on_query?: boolean | null
+          notify_submitter_on_resubmit?: boolean | null
+          notify_verifier_on_approve?: boolean | null
+          notify_verifier_on_query?: boolean | null
           on_costs_pct?: number
           roles_config?: Json
           updated_at?: string | null
