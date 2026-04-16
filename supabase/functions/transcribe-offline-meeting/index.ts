@@ -239,7 +239,15 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!existing) {
-      const prompt = `NHS primary care meeting transcript.${meeting.title ? ` Meeting: ${meeting.title}.` : ""}`;
+      // Sanitise the title for use as a Whisper prompt — strip times, dates,
+      // and numeric patterns that can seed "1.1.1..." hallucination loops.
+      const safeTitle = (meeting.title || '')
+        .replace(/\d{1,2}:\d{2}(:\d{2})?/g, '')   // strip HH:MM or HH:MM:SS
+        .replace(/\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*/gi, '') // strip "16 Apr"
+        .replace(/\d{4}/g, '')                       // strip years
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      const prompt = `NHS primary care meeting transcript.${safeTitle ? ` Meeting: ${safeTitle}.` : ""}`;
       let chunkText: string;
       try {
         chunkText = await transcribeStoragePath(source.storagePath, source.bucket, prompt);
