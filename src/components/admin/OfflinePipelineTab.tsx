@@ -23,6 +23,7 @@ type PipelineState =
   | 'in_flight'
   | 'failed_notes'
   | 'too_short'
+  | 'audio_missing'
   | 'notes_ready_email_pending'
   | 'notes_ready_email_stuck';
 
