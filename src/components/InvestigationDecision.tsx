@@ -436,7 +436,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
             outcome_letter: letterContent,
             letter_style: letterStyle,
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('id', existingOutcome.id);
 
         if (error) throw error;

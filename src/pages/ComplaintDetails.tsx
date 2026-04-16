@@ -1474,7 +1474,7 @@ const ComplaintDetails = () => {
           .update({ 
             outcome_letter: data.regeneratedLetter,
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('complaint_id', complaint.id)
           .select()
           .maybeSingle();

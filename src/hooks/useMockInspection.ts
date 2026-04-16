@@ -213,7 +213,7 @@ export const useMockInspection = () => {
       
       const { error } = await supabase
         .from('mock_inspection_elements')
-        .update(dbUpdates)
+        .update(dbUpdates as any)
         .eq('id', elementId);
 
       if (error) throw error;

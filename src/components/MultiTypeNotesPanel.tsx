@@ -128,7 +128,7 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
         .update({
           content: enhancedContent,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', currentEnhancingNote.id);
 
       if (error) throw error;

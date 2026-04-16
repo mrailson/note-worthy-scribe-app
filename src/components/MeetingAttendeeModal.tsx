@@ -270,7 +270,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
               .update({ 
                 transcript: updatedTranscript,
                 updated_at: new Date().toISOString()
-              })
+              } as any)
               .eq('id', meetingId);
           }
         }

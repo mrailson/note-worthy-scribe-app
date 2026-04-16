@@ -81,7 +81,7 @@ export const useNRESBoardActions = () => {
 
       const { data, error } = await supabase
         .from("nres_board_actions")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", id)
         .select()
         .single();

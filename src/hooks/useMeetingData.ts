@@ -74,7 +74,7 @@ export const useMeetingData = () => {
             has_attendees: Boolean(data.attendees?.length),
             enhancement_level: 'basic'
           }
-        })
+        } as any)
         .select()
         .single();
 

@@ -128,7 +128,7 @@ async function updateMeetingTranscriptionChunks(
       if (Object.keys(updates).length > 0) {
         const { error: updateError } = await supabase
           .from('meeting_transcription_chunks')
-          .update(updates)
+          .update(updates as any)
           .eq('id', record.id);
         
         if (!updateError) updatedCount++;

@@ -1026,10 +1026,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
        let updateError: any = null;
        const { error } = await supabase
          .from('meetings')
-         .update({ [columnName]: content })
-         .eq('id', currentMeetingId);
+          .update({ [columnName]: content } as any)
+          .eq('id', currentMeetingId);
 
-       updateError = error;
+        updateError = error;
 
        if (updateError) {
          console.warn(`⚠️ Direct update failed for notes style ${styleNumber}, attempting server-side persist...`, updateError);
@@ -1588,7 +1588,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Save to database
       const { error } = await supabase
         .from('meetings')
-        .update({ [updateColumn]: enhancedContent })
+        .update({ [updateColumn]: enhancedContent } as any)
         .eq('id', meeting.id);
 
       if (error) throw error;

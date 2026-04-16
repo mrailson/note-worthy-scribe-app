@@ -351,7 +351,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
           job_status: 'queued',
           error_message: null,
           processing_error: null
-        })
+        } as any)
         .eq('id', patient.id);
 
       if (updateError) throw updateError;

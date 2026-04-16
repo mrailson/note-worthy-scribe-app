@@ -366,7 +366,7 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
           .update({ 
             outcome_letter: letterContent,
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('id', existingOutcome.id)
           .select()
           .maybeSingle();

@@ -375,7 +375,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         status: 'completed',
         duration: `${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')}`,
         word_count: Math.floor(basicTranscript.split(' ').length)
-      }).eq('id', currentMeetingId);
+      } as any).eq('id', currentMeetingId);
 
       if (updateError) {
         throw updateError;
@@ -481,7 +481,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         participants: contextData.participants,
         generated_notes: data?.generatedNotes,
         meeting_context: { ...contextData, enhancement_level: 'enhanced', ai_generated: true }
-      }).eq('id', currentMeetingId);
+      } as any).eq('id', currentMeetingId);
 
       toast({ title: "Success", description: "Enhanced meeting notes generated!" });
       setShowCompletionModal(false);

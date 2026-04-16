@@ -1457,7 +1457,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
       
       const { error: roleError } = await supabase
         .from('user_roles')
-        .update(updateData)
+        .update(updateData as any)
         .eq('user_id', editingUser.user_id);
         
       if (roleError) {

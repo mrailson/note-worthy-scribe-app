@@ -195,7 +195,7 @@ export function MeetingContextEnhancer({
         
         const { error: contextError } = await supabase
           .from('meetings')
-          .update(contextUpdate)
+          .update(contextUpdate as any)
           .eq('id', meetingId);
         
         if (contextError) console.warn('Failed to save additional context:', contextError);
