@@ -73,17 +73,6 @@ const ROUTES: PageRoute[] = [
   { path: '/practice-admin/fridges', component: 'PracticeAdminFridges', hasMenuLink: true, protection: 'Public', description: 'Fridge temperature monitoring admin', category: 'Admin' },
   { path: '/settings', component: 'Settings', hasMenuLink: true, protection: 'Public', description: 'User settings and preferences', category: 'Admin' },
 
-  // LG Capture
-  { path: '/lg-capture', component: 'LGCaptureLanding', hasMenuLink: true, protection: 'Public', description: 'Lloyd George record capture landing', category: 'LG Capture' },
-  { path: '/lg-capture/start', component: 'LGCaptureStart', hasMenuLink: false, protection: 'Public', description: 'Start new LG capture session', category: 'LG Capture' },
-  { path: '/lg-capture/upload', component: 'LGCaptureUpload', hasMenuLink: false, protection: 'Public', description: 'Upload LG record files', category: 'LG Capture' },
-  { path: '/lg-capture/capture/:id', component: 'LGCaptureCamera', hasMenuLink: false, protection: 'Public', description: 'Camera capture for LG records', category: 'LG Capture' },
-  { path: '/lg-capture/demo/:id', component: 'LGCaptureDemoService', hasMenuLink: false, protection: 'Public', description: 'LG capture demo service', category: 'LG Capture' },
-  { path: '/lg-capture/results/:id', component: 'LGCaptureResults', hasMenuLink: false, protection: 'Public', description: 'LG capture results and OCR output', category: 'LG Capture' },
-  { path: '/lg-capture/patients', component: 'LGCapturePatients', hasMenuLink: false, protection: 'Public', description: 'LG capture patient list', category: 'LG Capture' },
-  { path: '/lg-capture/my-stats', component: 'LGCaptureMyStats', hasMenuLink: false, protection: 'Public', description: 'Personal LG capture statistics', category: 'LG Capture' },
-  { path: '/lg-capture/bulk', component: 'LGCaptureBulk', hasMenuLink: false, protection: 'Public', description: 'Bulk LG record processing', category: 'LG Capture' },
-  { path: '/lg-capture/file-view', component: 'LGCaptureFileView', hasMenuLink: false, protection: 'Public', description: 'LG capture file viewer', category: 'LG Capture' },
 
   // CSO Governance
   { path: '/cso-report', component: 'CSOReport', hasMenuLink: true, protection: 'ProtectedRoute (cso_governance_access)', description: 'CSO governance annual report', category: 'CSO Governance' },
