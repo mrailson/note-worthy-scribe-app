@@ -8,7 +8,6 @@ import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSaf
 import { cleanupStaleStorage } from '@/utils/localStorageManager';
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MockInspectionProtectedRoute } from "./components/MockInspectionProtectedRoute";
-import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 import { Loader2 } from "lucide-react";
 
 // Lazy-load all pages to reduce initial bundle size
