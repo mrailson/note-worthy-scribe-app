@@ -506,9 +506,6 @@ verify_jwt = false
 [functions.generate-signed-pdf-server]
 verify_jwt = false
 
-[functions.suggest-signature-positions]
-verify_jwt = false
-
 [functions.summarise-translation-session]
 verify_jwt = false
 
@@ -516,7 +513,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-patient-translation-summary]
-verify_jwt = false
-
-[functions.meeting-notes-quality-gate]
 verify_jwt = false
