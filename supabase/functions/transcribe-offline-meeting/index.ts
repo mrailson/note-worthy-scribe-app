@@ -251,7 +251,7 @@ serve(async (req) => {
         throw transcribeErr;
       }
 
-      await supabase.from("meeting_transcription_chunks").insert({
+      const { error: insertErr } = await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingId,
         chunk_number: source.chunkNumber,
         transcription_text: chunkText,
@@ -262,6 +262,12 @@ serve(async (req) => {
         transcriber_type: "whisper",
         word_count: chunkText.split(/\s+/).filter(Boolean).length,
       });
+
+      if (insertErr) {
+        console.error(`❌ Failed to insert chunk ${source.chunkNumber}:`, insertErr.message);
+        throw new Error(`Chunk insert failed: ${insertErr.message}`);
+      }
+      console.log(`✅ Chunk ${source.chunkNumber} saved (${chunkText.split(/\s+/).filter(Boolean).length} words)`);
     } else {
       console.log(`⏭️ Chunk ${source.chunkNumber} already transcribed, skipping`);
     }
