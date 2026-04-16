@@ -28,6 +28,10 @@ interface Meeting {
   word_count?: number;
   meeting_format?: string;
   meeting_location?: string;
+  notes_generation_status?: string | null;
+  notes_email_sent_at?: string | null;
+  remote_chunk_paths?: string[] | null;
+  mixed_audio_url?: string | null;
 }
 
 interface CompactMeetingListProps {
@@ -137,13 +141,13 @@ export const CompactMeetingList = ({
               )}
               
               {/* Title with format icon */}
-              <div className="flex items-center gap-2 min-w-0">
-                <FormatIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="font-medium truncate">{meeting.title}</span>
-                <NewMeetingBadge createdAt={meeting.created_at} />
-                {meeting.summary_exists && (
-                  <FileText className="h-3.5 w-3.5 text-success shrink-0" />
-                )}
+              <div className="flex items-center gap-2 min-w-0 flex-col sm:flex-row sm:items-center items-start">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FormatIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium truncate">{meeting.title}</span>
+                  <NewMeetingBadge createdAt={meeting.created_at} />
+                </div>
+                <MeetingProgressBadges meeting={meeting} className="shrink-0" />
               </div>
               
               {/* Date */}
