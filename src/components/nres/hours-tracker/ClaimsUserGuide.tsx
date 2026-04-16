@@ -191,6 +191,37 @@ function HowToClaimTab() {
         <Badge variant="outline" className="mb-1 text-[10px]">PML Finance</Badge>
         <p className="text-muted-foreground">Once invoiced, PML processes payment within 30 days. The claim status updates to "Paid" when payment is confirmed.</p>
       </div>
+
+      <div className="pt-2 border-t">
+        <h4 className="font-semibold text-[#003087] mb-2">Category-Specific Workflow Notes</h4>
+        <div className="space-y-2">
+          <CalloutBox type="purple">
+            <p className="font-semibold mb-1">👨‍⚕️ GP Locum claims</p>
+            <ul className="list-disc list-inside space-y-0.5 text-xs">
+              <li>Role is <strong>auto-locked</strong> to "GP Locum" — cannot be changed.</li>
+              <li>Choose allocation type: <strong>Days</strong> or <strong>Sessions</strong>.</li>
+              <li>Enter the <strong>total worked that month</strong> (system multiplies by £750/day or £375/session).</li>
+              <li>Upload the locum invoice/timesheet as evidence.</li>
+            </ul>
+          </CalloutBox>
+          <CalloutBox type="sky">
+            <p className="font-semibold mb-1">🗣️ Meeting Attendance claims</p>
+            <ul className="list-disc list-inside space-y-0.5 text-xs">
+              <li>Hours come <strong>automatically</strong> from the Meeting Schedule attendance log — you do not enter them manually.</li>
+              <li>The system applies £85/hr (GP) or £45/hr (PM) per attended hour.</li>
+              <li>Review the auto-populated lines, then submit.</li>
+            </ul>
+          </CalloutBox>
+          <CalloutBox type="slate">
+            <p className="font-semibold mb-1">🧭 NRES Management claims</p>
+            <ul className="list-disc list-inside space-y-0.5 text-xs">
+              <li>Select the named role from the dropdown — the hourly rate auto-fills.</li>
+              <li>Enter the <strong>hours per week</strong> worked.</li>
+              <li>The system multiplies by working weeks in the month (bank holidays excluded).</li>
+            </ul>
+          </CalloutBox>
+        </div>
+      </div>
     </div>
   );
 }
@@ -240,6 +271,33 @@ function EvidenceTab() {
         <p className="font-semibold mb-2">✨ New SDA Staff — Evidence Checklist</p>
         {renderList(newSdaItems)}
         <p className="mt-2 text-xs">✅ No Part B evidence needed — new SDA staff are additional capacity.</p>
+      </CalloutBox>
+
+      <CalloutBox type="purple">
+        <p className="font-semibold mb-1">👨‍⚕️ GP Locum — Evidence Checklist</p>
+        <ul className="list-disc list-inside space-y-0.5 text-xs">
+          <li><strong>Locum invoice or timesheet (REQUIRED)</strong> — must show name, dates, sessions/days worked.</li>
+          <li>Session/day breakdown matching the claimed amount.</li>
+          <li>No Part B evidence required.</li>
+        </ul>
+      </CalloutBox>
+
+      <CalloutBox type="sky">
+        <p className="font-semibold mb-1">🗣️ Meeting Attendance — Evidence Checklist</p>
+        <ul className="list-disc list-inside space-y-0.5 text-xs">
+          <li>Meeting agenda (uploaded with the meeting record).</li>
+          <li>Attendance log — <strong>auto-captured</strong> from the Meeting Schedule.</li>
+          <li>No Part B evidence required.</li>
+        </ul>
+      </CalloutBox>
+
+      <CalloutBox type="slate">
+        <p className="font-semibold mb-1">🧭 NRES Management — Evidence Checklist</p>
+        <ul className="list-disc list-inside space-y-0.5 text-xs">
+          <li>Timesheet of hours worked per week.</li>
+          <li>Brief activity summary for the month.</li>
+          <li>No Part B evidence required.</li>
+        </ul>
       </CalloutBox>
 
       <div>
@@ -339,6 +397,99 @@ function RatesTab({ rateSettings, onCostMultiplier }: { rateSettings: RateSettin
         <p>If a staff member starts mid-month, set their Start Date. The system automatically calculates a pro-rata amount based on working days from the start date to the end of the month.</p>
         <p className="mt-1 text-xs">Example: Staff member starts 15th April in a 30-day month → 16 working days out of 30 = 53.3% of the full monthly amount.</p>
       </CalloutBox>
+
+      {/* GP Locum rates */}
+      <div className="pt-2 border-t">
+        <h3 className="font-semibold text-[#003087] mb-2">👨‍⚕️ GP Locum Rates</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-2 font-medium">Allocation</th>
+                <th className="text-right p-2 font-medium">Fixed Rate</th>
+                <th className="text-right p-2 font-medium">On-Costs</th>
+                <th className="text-right p-2 font-medium">Max / Month</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t">
+                <td className="p-2 font-medium">Day</td>
+                <td className="p-2 text-right font-semibold text-primary">{fmtGBP(750)}/day</td>
+                <td className="p-2 text-right text-muted-foreground">None</td>
+                <td className="p-2 text-right">23 days</td>
+              </tr>
+              <tr className="border-t">
+                <td className="p-2 font-medium">Session</td>
+                <td className="p-2 text-right font-semibold text-primary">{fmtGBP(375)}/session</td>
+                <td className="p-2 text-right text-muted-foreground">None</td>
+                <td className="p-2 text-right">46 sessions</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1">Locums invoice gross — no employer NI or pension is added. The daily/session rate is a <strong>cap</strong>: claim less if the invoice is lower.</p>
+      </div>
+
+      {/* Meeting Attendance rates */}
+      <div className="pt-2 border-t">
+        <h3 className="font-semibold text-[#003087] mb-2">🗣️ Meeting Attendance Rates</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-2 font-medium">Role</th>
+                <th className="text-right p-2 font-medium">Hourly Rate</th>
+                <th className="text-right p-2 font-medium">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t">
+                <td className="p-2 font-medium">GP</td>
+                <td className="p-2 text-right font-semibold text-primary">{fmtGBP(rateSettings.meeting_gp_rate)}/hr</td>
+                <td className="p-2 text-right text-muted-foreground">Auto from Meeting Schedule</td>
+              </tr>
+              <tr className="border-t">
+                <td className="p-2 font-medium">Practice Manager</td>
+                <td className="p-2 text-right font-semibold text-primary">{fmtGBP(rateSettings.meeting_pm_rate)}/hr</td>
+                <td className="p-2 text-right text-muted-foreground">Auto from Meeting Schedule</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1">Hours are pulled automatically from the Meeting Schedule attendance log.</p>
+      </div>
+
+      {/* NRES Management rates */}
+      <div className="pt-2 border-t">
+        <h3 className="font-semibold text-[#003087] mb-2">🧭 NRES Management Rates</h3>
+        {rateSettings.management_roles_config && rateSettings.management_roles_config.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left p-2 font-medium">Role</th>
+                  <th className="text-left p-2 font-medium">Person</th>
+                  <th className="text-right p-2 font-medium">Hourly Rate</th>
+                  <th className="text-right p-2 font-medium">Max Hours/Week</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rateSettings.management_roles_config.filter(r => r.is_active).map(r => (
+                  <tr key={r.key} className="border-t">
+                    <td className="p-2 font-medium">{r.label}</td>
+                    <td className="p-2 text-muted-foreground">{r.person_name || '—'}</td>
+                    <td className="p-2 text-right font-semibold text-primary">{fmtGBP(r.hourly_rate)}/hr</td>
+                    <td className="p-2 text-right">{r.max_hours_per_week} hrs</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">No management roles configured yet.</p>
+        )}
+        <p className="text-[10px] text-muted-foreground mt-1">Monthly value = hourly rate × hours/week × working weeks in the month (bank holidays excluded).</p>
+      </div>
     </div>
   );
 }
@@ -390,9 +541,24 @@ function ClaimRulesTab() {
         <p className="font-semibold mb-1">📋 Role-Specific Requirements</p>
         <p>Each role has specific ground rules that must be acknowledged before submitting a claim. These appear as a checklist on each staff line in your claim. You must tick every required rule.</p>
       </CalloutBox>
-    </div>
-  );
-}
+
+      <CalloutBox type="purple">
+        <p className="font-semibold mb-1">👨‍⚕️ GP Locum & 🗣️ Meeting Attendance — Special Rules</p>
+        <ul className="list-disc list-inside space-y-0.5 text-xs">
+          <li><strong>No Part B evidence required</strong> — these are additional/sessional, not buy-back.</li>
+          <li>The locum daily/session rate (£750 / £375) is a <strong>cap</strong> — claim less if the invoice is lower.</li>
+          <li>Meeting hours are auto-captured — they cannot be edited manually on the claim.</li>
+        </ul>
+      </CalloutBox>
+
+      <CalloutBox type="slate">
+        <p className="font-semibold mb-1">🧭 NRES Management — Special Rules</p>
+        <ul className="list-disc list-inside space-y-0.5 text-xs">
+          <li>Working weeks per month <strong>auto-exclude bank holidays</strong>.</li>
+          <li>Hours per week must not exceed the configured maximum for the role.</li>
+          <li>Each role is tied to a named person — you cannot reassign without admin.</li>
+        </ul>
+      </CalloutBox>
 
 /* ── Tab 6: Status Guide ────────────────────────────────────────── */
 function StatusGuideTab() {
