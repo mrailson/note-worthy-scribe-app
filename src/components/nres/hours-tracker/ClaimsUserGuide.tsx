@@ -627,6 +627,11 @@ function FAQTab() {
     { q: "What's the difference between Buy-Back and New SDA?", a: "Buy-Back = existing staff released from normal work for SDA. You must prove their normal work (Part B/LTC) is being covered. New SDA = newly recruited staff — additional capacity, so no Part B evidence needed." },
     { q: 'Who do I contact if I need help?', a: 'Your NRES Management Lead: Malcolm Railson (malcolm.railson@nhs.net), Amanda Palin (amanda.palin2@nhs.net), or Lucy Hibberd.' },
     { q: 'What is the 30-day claim window?', a: 'You have 30 calendar days from the end of the claim month to submit. For example, an April claim must be submitted by 30th May. If you miss the deadline, contact your Management Lead.' },
+    { q: 'How do GP Locum claims differ from Buy-Back?', a: 'GP Locum is external sessional cover billed at fixed rates (£750/day or £375/session) with no on-costs added. Buy-Back is for existing practice staff released from their normal duties — that requires Part B (LTC) evidence; locum claims do not.' },
+    { q: 'How is Meeting Attendance calculated?', a: 'Hours are pulled automatically from the Meeting Schedule attendance log. Each attended hour is multiplied by £85 (GP) or £45 (PM). You do not enter hours manually — the system creates the lines for you.' },
+    { q: "Why don't Meeting/Locum claims need Part B evidence?", a: 'Both are additional/sessional time, not buy-back of existing staff. Nothing is being released from normal LTC work, so there is no Part B backfill to evidence.' },
+    { q: 'How are NRES Management working weeks calculated?', a: 'The system counts weekdays (Mon–Fri) in the claim month and subtracts any bank holidays that fall on a weekday. Working weeks = working days ÷ 5. Your monthly value = hourly rate × hours/week × working weeks.' },
+    { q: 'Can one staff member appear in multiple categories?', a: 'Yes — for example, a GP can be Buy-Back staff (for SDA sessions) AND claim Meeting Attendance for governance meetings they attend. Each category is recorded as a separate line with its own evidence and rate.' },
   ];
 
   return (
@@ -661,7 +666,7 @@ export function ClaimsUserGuide({ neighbourhoodName, rateSettings, onCostMultipl
               </div>
               <div>
                 <h2 className="text-lg font-bold text-[#003087] dark:text-blue-300">📘 How the Staff Claims Scheme Works</h2>
-                <p className="text-sm text-muted-foreground">Complete guide — categories, evidence, rates, claim steps, approvals & FAQ</p>
+                <p className="text-sm text-muted-foreground">Complete guide — all 5 claim categories, evidence, rates, claim steps, approvals & FAQ</p>
               </div>
             </div>
             <div className="text-slate-500">
