@@ -2079,7 +2079,7 @@ function StaffRosterSection({
                     </th>
                   );
                 })}
-                <th style={{ textAlign: 'center', padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb', width: 70 }}>
+                <th style={{ textAlign: 'center', padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', borderBottom: '2px solid #e5e7eb', width: 280, minWidth: 280 }}>
                   Actions
                 </th>
               </tr>
