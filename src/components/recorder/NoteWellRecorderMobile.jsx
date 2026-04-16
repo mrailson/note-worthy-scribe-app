@@ -400,6 +400,39 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
     );
   }
 
+  // Dedicated upload progress screen
+  if (progress.phase === "uploading") {
+    return (
+      <div style={{margin:"8px 16px 0",background:"white",borderRadius:14,padding:"20px 18px",
+        boxShadow:"0 2px 8px rgba(21,101,192,0.10)",border:"1px solid rgba(21,101,192,0.15)",animation:"fadeIn 0.2s"}}>
+        <div style={{fontSize:15,fontWeight:700,color:"#1a2332",marginBottom:4}}>Uploading your recording</div>
+        {progress.recordingTitle && (
+          <div style={{fontSize:12,color:"#64748b",marginBottom:2}}>{progress.recordingTitle}</div>
+        )}
+        {(progress.totalSizeLabel || progress.durationLabel) && (
+          <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>
+            {[progress.totalSizeLabel, progress.durationLabel].filter(Boolean).join(" · ")}
+          </div>
+        )}
+        <div style={{width:"100%",height:8,borderRadius:4,background:"#f1f5f9",overflow:"hidden",marginBottom:6}}>
+          <div style={{
+            width:`${progress.percentComplete}%`,height:"100%",borderRadius:4,
+            background:"linear-gradient(90deg, #1565c0, #0288d1)",
+            transition:"width 0.3s ease-out",
+          }}/>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:12,fontWeight:600,color:"#1565c0"}}>{progress.percentComplete}%</span>
+          <span style={{fontSize:11,color:"#94a3b8"}}>{progress.message}</span>
+        </div>
+        <div style={{marginTop:12,display:"flex",alignItems:"center",gap:6,padding:"8px 10px",borderRadius:8,background:"#fef3c7",border:"1px solid rgba(245,158,11,0.25)"}}>
+          <span style={{fontSize:14}}>📱</span>
+          <span style={{fontSize:11,color:"#92400e",fontWeight:500}}>Please keep this tab open until upload completes</span>
+        </div>
+      </div>
+    );
+  }
+
   const phaseColors = {
     uploading: "#1565c0",
     transcribing: "#7c3aed",
@@ -434,12 +467,14 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
 function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [syncClicked, setSyncClicked] = useState(false);
   const colors = {
-    local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally — tap Sync" },
+    local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally" },
     syncing:     { dot:"#1565c0", bg:"rgba(21,101,192,0.08)", border:"rgba(21,101,192,0.2)",   label:"Uploading…" },
+    uploaded:    { dot:"#16a34a", bg:"rgba(22,163,74,0.08)",  border:"rgba(22,163,74,0.2)",    label:"Uploaded ✓" },
     synced:      { dot:"#16a34a", bg:"rgba(22,163,74,0.08)",  border:"rgba(22,163,74,0.2)",    label:"Synced" },
     transcribed: { dot:"#16a34a", bg:"rgba(22,163,74,0.06)",  border:"rgba(22,163,74,0.2)",    label:"Meeting Created ✓" },
-    error:       { dot:"#dc2626", bg:"rgba(220,38,38,0.07)",  border:"rgba(220,38,38,0.2)",    label:"Sync failed — retry?" },
+    error:       { dot:"#dc2626", bg:"rgba(220,38,38,0.07)",  border:"rgba(220,38,38,0.2)",    label:"Sync failed" },
     too_short:   { dot:"#f59e0b", bg:"rgba(245,158,11,0.08)", border:"rgba(245,158,11,0.25)", label:"Too short — no meeting created" },
   };
   const c = colors[rec.status] ?? colors.local;
@@ -449,6 +484,18 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
   const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
   const showExpandableActions = rec.status === "transcribed" && rec.meetingId;
   const showTooShortActions = rec.status === "too_short";
+  const needsSync = rec.status === "local" || rec.status === "error" || rec.status === "too_short" || (rec.status === "transcribed" && !rec.meetingId);
+  const isSyncing = rec.status === "syncing" || syncClicked;
+
+  const handleSync = () => {
+    setSyncClicked(true);
+    onSync(rec);
+  };
+
+  // Reset syncClicked when status changes away from syncing
+  useEffect(() => {
+    if (rec.status !== "syncing") setSyncClicked(false);
+  }, [rec.status]);
 
   return (
     <div style={{background:"white",borderRadius:16,padding:"12px 14px",marginBottom:8,
@@ -477,20 +524,23 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
             {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
             {rec.chunkCount > 1 ? ` · ${rec.chunkCount} segments` : ""}
           </div>
-          <span style={{
-            display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
-            padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
-            background:c.bg,color:c.dot,border:`1px solid ${c.border}`,
-          }}>
-            <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
-              animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
-            {c.label}
-            {rec.status === "transcribed" && rec.transcript && (() => {
-              const wc = rec.transcript.split(/\s+/).filter(Boolean).length;
-              const fmt = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K` : String(wc);
-              return <span style={{marginLeft:2,opacity:0.85}}>· {fmt} Words</span>;
-            })()}
-          </span>
+          {/* Status badge — hide for local/error since sync button replaces it */}
+          {!needsSync && (
+            <span style={{
+              display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
+              padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
+              background:c.bg,color:c.dot,border:`1px solid ${c.border}`,
+            }}>
+              <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
+                animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
+              {c.label}
+              {rec.status === "transcribed" && rec.transcript && (() => {
+                const wc = rec.transcript.split(/\s+/).filter(Boolean).length;
+                const fmt = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K` : String(wc);
+                return <span style={{marginLeft:2,opacity:0.85}}>· {fmt} Words</span>;
+              })()}
+            </span>
+          )}
           {rec.status === "transcribed" && rec.meetingId && (
             <div style={{fontSize:10,color:"#16a34a",marginTop:3,opacity:0.8,lineHeight:1.3}}>
               ✓ You may now safely delete this recording
@@ -507,12 +557,6 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:14,color:"#1565c0",fontWeight:700,transition:"all 0.2s",
             }}>⋯</button>
-          )}
-          {(rec.status==="local"||rec.status==="error"||rec.status==="too_short"||(rec.status==="transcribed"&&!rec.meetingId)) && (
-            <button onClick={()=>onSync(rec)} style={{
-              padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
-              background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
-            }}>{rec.status==="transcribed"?"⟳ Create Meeting":rec.status==="too_short"?"⟳ Re-sync":"↑ Sync"}</button>
           )}
           {confirmDelete ? (
             <div style={{display:"flex",gap:4,alignItems:"center"}}>
@@ -541,6 +585,47 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
           )}
         </div>
       </div>
+
+      {/* Full-width sync button for recordings that need syncing */}
+      {needsSync && (
+        <button
+          onClick={handleSync}
+          disabled={isSyncing}
+          style={{
+            width:"100%",marginTop:8,padding:"10px 14px",borderRadius:10,border:"none",
+            cursor:isSyncing?"not-allowed":"pointer",fontSize:13,fontWeight:700,fontFamily:"inherit",
+            display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+            transition:"all 0.15s ease",
+            ...(rec.status === "error" ? {
+              background:"rgba(220,38,38,0.08)",color:"#dc2626",
+              border:"1.5px solid rgba(220,38,38,0.3)",
+            } : isSyncing ? {
+              background:"rgba(21,101,192,0.08)",color:"#1565c0",
+              border:"1.5px solid rgba(21,101,192,0.2)",opacity:0.8,
+            } : {
+              background:"linear-gradient(135deg,#1565c0,#0288d1)",color:"white",
+              boxShadow:"0 3px 10px rgba(21,101,192,0.35)",
+            }),
+          }}
+          onTouchStart={e => { if (!isSyncing) e.currentTarget.style.transform = "scale(0.97)"; }}
+          onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
+        >
+          {rec.status === "error" ? (
+            <>⚠ Sync failed — tap to retry</>
+          ) : isSyncing ? (
+            <>
+              <span style={{width:14,height:14,border:"2px solid rgba(21,101,192,0.3)",borderTopColor:"#1565c0",borderRadius:"50%",animation:"spin 0.8s linear infinite",display:"inline-block"}}/>
+              Syncing…
+            </>
+          ) : rec.status === "transcribed" ? (
+            <>⟳ Create Meeting</>
+          ) : rec.status === "too_short" ? (
+            <>⟳ Re-sync</>
+          ) : (
+            <>⟳ Sync now</>
+          )}
+        </button>
+      )}
 
       {/* Expandable actions panel */}
       {(showExpandableActions || showTooShortActions) && actionsOpen && (
@@ -1397,6 +1482,12 @@ export default function NoteWellRecorder() {
         return;
       }
 
+      // Compute total size for progress
+      const totalBytes = chunks.reduce((sum, ch) => sum + (ch.sizeBytes || ch.arrayBuffer?.byteLength || 0), 0);
+      let uploadedBytes = 0;
+
+      console.log(`[sync] upload started · ${totalChunks} chunks · ${fmtSize(totalBytes)}`);
+
       for (let i = 0; i < totalChunks; i++) {
         const chunk = chunks[i];
         const paddedIndex = String(chunk.index).padStart(3, "0");
@@ -1404,40 +1495,78 @@ export default function NoteWellRecorder() {
         const ext = getChunkFileExtension(mimeType);
         const storagePath = `${sessionId}/chunk_${paddedIndex}.${ext}`;
         const blob = new Blob([chunk.arrayBuffer], { type: mimeType });
+        const chunkSize = blob.size;
 
         setSyncProgress({
           phase: "uploading",
           currentChunk: i + 1,
           totalChunks,
-          percentComplete: Math.round(((i + 1) / totalChunks) * 30),
-          message: `Uploading segment ${i + 1} of ${totalChunks}…`,
+          percentComplete: Math.round((uploadedBytes / totalBytes) * 100),
+          message: `Segment ${i + 1} of ${totalChunks}…`,
+          recordingTitle: rec.title || `Meeting ${fmtDate(rec.createdAt)}`,
+          totalSizeLabel: fmtSize(totalBytes),
+          durationLabel: fmtTime(rec.duration),
         });
 
         let uploadSuccess = false;
         for (let attempt = 1; attempt <= 3; attempt++) {
-          const { error } = await supabase.storage
-            .from("recordings")
-            .upload(storagePath, blob, { contentType: mimeType, upsert: true });
-
-          if (!error) {
+          try {
+            // Use XHR for real byte-level progress
+            await new Promise((resolve, reject) => {
+              const { data: { session: currentSession } } = { data: { session: null } };
+              // Get current session token for auth
+              supabase.auth.getSession().then(({ data: { session: sess } }) => {
+                if (!sess) { reject(new Error("Session expired")); return; }
+                const xhr = new XMLHttpRequest();
+                const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/recordings/${storagePath}`;
+                xhr.open("POST", url, true);
+                xhr.setRequestHeader("Authorization", `Bearer ${sess.access_token}`);
+                xhr.setRequestHeader("x-upsert", "true");
+                xhr.setRequestHeader("Content-Type", mimeType);
+                xhr.upload.onprogress = (e) => {
+                  if (e.lengthComputable) {
+                    const currentChunkProgress = e.loaded;
+                    const totalProgress = uploadedBytes + currentChunkProgress;
+                    const pct = Math.min(99, Math.round((totalProgress / totalBytes) * 100));
+                    console.log(`[sync] upload ${pct}% · chunk ${i + 1}/${totalChunks}`);
+                    setSyncProgress(prev => ({
+                      ...prev,
+                      percentComplete: pct,
+                      message: `Segment ${i + 1} of ${totalChunks}…`,
+                    }));
+                  }
+                };
+                xhr.onload = () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve();
+                  } else {
+                    reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+                  }
+                };
+                xhr.onerror = () => reject(new Error("Network error during upload"));
+                xhr.ontimeout = () => reject(new Error("Upload timed out"));
+                xhr.timeout = 120000; // 2 minutes per chunk
+                xhr.send(blob);
+              }).catch(reject);
+            });
             uploadSuccess = true;
             break;
-          }
-
-          console.warn(`[Sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, error.message);
-          if (attempt < 3) {
-            setSyncProgress({
-              phase: "uploading",
-              currentChunk: i + 1,
-              totalChunks,
-              percentComplete: Math.round(((i + 1) / totalChunks) * 30),
-              message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
-            });
-            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+          } catch (uploadErr) {
+            console.warn(`[sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, uploadErr.message);
+            if (attempt < 3) {
+              setSyncProgress(prev => ({
+                ...prev,
+                message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
+              }));
+              await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+            }
           }
         }
 
         if (!uploadSuccess) throw new Error(`Failed to upload segment ${i + 1} after 3 attempts`);
+
+        uploadedBytes += chunkSize;
+        console.log(`[sync] chunk ${i + 1}/${totalChunks} uploaded · ${fmtSize(uploadedBytes)}/${fmtSize(totalBytes)}`);
 
         uploadedChunks.push({
           index: chunk.index,
@@ -1448,6 +1577,18 @@ export default function NoteWellRecorder() {
           sizeBytes: chunk.sizeBytes || blob.size,
         });
       }
+
+      console.log("[sync] upload complete · all chunks uploaded");
+      setSyncProgress({
+        phase: "uploading",
+        currentChunk: totalChunks,
+        totalChunks,
+        percentComplete: 99,
+        message: "Registering meeting…",
+        recordingTitle: rec.title,
+        totalSizeLabel: fmtSize(totalBytes),
+        durationLabel: fmtTime(rec.duration),
+      });
 
       await dbPatch(rec.id, {
         status: "uploaded",
@@ -1478,12 +1619,15 @@ export default function NoteWellRecorder() {
         .single();
 
       if (meetingErr || !meeting) {
+        console.error("[sync] db row insertion failed:", meetingErr);
         showToast(`Upload succeeded but could not register meeting: ${meetingErr?.message || "unknown"}. Tap Sync again.`, "error");
         await dbPatch(rec.id, { status: "error" });
         await refresh();
         setSyncProgress(null);
         return;
       }
+
+      console.log("[sync] db row inserted · meetingId:", meeting.id);
 
       // Persist chunk metadata server-side so transcribe-offline-meeting can find the chunks
       await persistUploadedChunkMetadata(meeting.id, uploadedChunks, rec.createdAt);
@@ -1492,14 +1636,16 @@ export default function NoteWellRecorder() {
       await dbPatch(rec.id, { meetingId: meeting.id });
       await refresh();
 
+      console.log("[sync] queued for transcription · meetingId:", meeting.id);
+
       // Fire-and-forget: kick off server-side transcription. We intentionally do NOT await completion.
       supabase.functions.invoke("transcribe-offline-meeting", {
         body: { meetingId: meeting.id, chunkIndex: 0 },
       }).catch((err) => {
-        console.warn("[Sync] Transcription dispatch failed (server queue will retry):", err);
+        console.warn("[sync] Transcription dispatch failed (server queue will retry):", err);
       });
 
-      // Surface the "Safe to close" success state
+      // Surface the "Safe to close" success state — now gated on actual upload + DB row + queued status
       const hours = (rec.duration || 0) / 3600;
       const estimateMinutes = hours <= 1 ? 10 : hours <= 2 ? 15 : hours <= 3 ? 20 : 25;
       setSyncProgress({
@@ -1513,7 +1659,7 @@ export default function NoteWellRecorder() {
       });
       showToast("Upload complete — notes will arrive by email", "success");
     } catch (err) {
-      console.error("Sync error:", err);
+      console.error("[sync] error:", err);
       await dbPatch(rec.id, { status: "error" });
       await refresh();
       setSyncProgress(null);
@@ -1935,6 +2081,7 @@ export default function NoteWellRecorder() {
         @keyframes slideUp   { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
         @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
         @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         * { box-sizing:border-box; margin:0; padding:0; }
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:rgba(21,101,192,0.15);border-radius:4px}
@@ -1951,15 +2098,22 @@ export default function NoteWellRecorder() {
         {/* App header with hamburger menu */}
         <Header />
 
-        {/* Sync badge (shown inline when needed) */}
-        {localCount > 0 && isOnline && (
-          <div style={{padding:"8px 16px 0",display:"flex",justifyContent:"center"}}>
-            <button
-              onClick={() => recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
-              style={{background:"rgba(245,158,11,0.9)",borderRadius:20,padding:"5px 12px",fontSize:11,color:"white",fontWeight:700,border:"none",cursor:"pointer",fontFamily:"inherit"}}
-            >
-              ↑ Sync {localCount}
-            </button>
+        {/* Persistent sync status indicator */}
+        {syncProgress && syncProgress.phase === "uploading" && (
+          <div style={{
+            margin:"0 16px",padding:"6px 12px",borderRadius:10,
+            background:"rgba(21,101,192,0.06)",border:"1px solid rgba(21,101,192,0.12)",
+            display:"flex",alignItems:"center",gap:8,
+          }}>
+            <span style={{fontSize:13}}>📤</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:11,fontWeight:600,color:"#1565c0"}}>
+                1 recording syncing · {syncProgress.percentComplete}%
+              </div>
+              <div style={{width:"100%",height:3,borderRadius:2,background:"#e2e8f0",marginTop:3,overflow:"hidden"}}>
+                <div style={{width:`${syncProgress.percentComplete}%`,height:"100%",borderRadius:2,background:"#1565c0",transition:"width 0.3s ease-out"}}/>
+              </div>
+            </div>
           </div>
         )}
 
