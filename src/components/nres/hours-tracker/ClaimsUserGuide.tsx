@@ -559,6 +559,9 @@ function ClaimRulesTab() {
           <li>Each role is tied to a named person — you cannot reassign without admin.</li>
         </ul>
       </CalloutBox>
+    </div>
+  );
+}
 
 /* ── Tab 6: Status Guide ────────────────────────────────────────── */
 function StatusGuideTab() {
