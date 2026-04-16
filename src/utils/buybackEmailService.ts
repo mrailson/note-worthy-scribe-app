@@ -9,7 +9,8 @@ export type BuyBackEmailType =
   | 'claim_approved'
   | 'approval_confirmation'
   | 'claim_rejected'
-  | 'rejection_confirmation';
+  | 'rejection_confirmation'
+  | 'claim_queried';
 
 export interface BuyBackEmailStaffLine {
   staff_name: string;
@@ -63,6 +64,7 @@ const EMAIL_TYPE_CONFIG: Record<BuyBackEmailType, { subjectAction: string; headi
   approval_confirmation: { subjectAction: 'Approval Recorded', heading: (l) => `${l} Approval Confirmation`, colour: '#16a34a' },
   claim_rejected: { subjectAction: 'Declined', heading: (l) => `Your ${l} Has Been Declined`, colour: '#dc2626' },
   rejection_confirmation: { subjectAction: 'Rejection Recorded', heading: (l) => `${l} Rejection Confirmation`, colour: '#dc2626' },
+  claim_queried: { subjectAction: 'Queried', heading: (l) => `Your ${l} Has Been Queried — Action Required`, colour: '#d97706' },
 };
 
 function formatMonth(claimMonth: string): string {
