@@ -2846,7 +2846,7 @@ export default function NoteWellRecorder() {
                   <div style={{position:"absolute",inset:-16,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.12)",animation:"ripple 3.2s 1s infinite"}}/>
                 </>}
                 <button
-                  onClick={isIdle ? startRecording : isRecording ? pauseRecording : resumeRecording}
+                  onClick={handleRecordTap}
                   onTouchStart={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
                   onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
                   onMouseDown={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
