@@ -69,13 +69,15 @@ function computePipelineState(row: {
   const tenMin = 10 * 60 * 1000;
 
   if (row.notes_email_sent_at && row.has_summary > 0) return 'completed';
+  if (row.status === 'audio_missing') return 'audio_missing';
   if (row.notes_generation_status === 'failed' && row.overview?.toLowerCase().includes('too short')) return 'too_short';
   if (row.notes_generation_status === 'failed' && row.has_summary === 0) return 'failed_notes';
   if (row.status === 'pending_transcription' && (now - createdMs) > thirtyMin) return 'stuck_transcription';
+  if (row.status === 'queued' && (now - createdMs) > thirtyMin) return 'stuck_transcription';
   if (row.notes_generation_status === 'queued' && (now - updatedMs) > thirtyMin && row.has_summary === 0) return 'stuck_notes';
   if (row.has_summary > 0 && !row.notes_email_sent_at && (now - createdMs) <= tenMin) return 'notes_ready_email_pending';
   if (row.has_summary > 0 && !row.notes_email_sent_at && (now - createdMs) > tenMin) return 'notes_ready_email_stuck';
-  if (row.status === 'pending_transcription' || ['queued', 'generating'].includes(row.notes_generation_status || '')) return 'in_flight';
+  if (row.status === 'pending_transcription' || row.status === 'queued' || ['queued', 'generating', 'transcribing'].includes(row.notes_generation_status || '')) return 'in_flight';
   return 'completed';
 }
 
@@ -115,6 +117,7 @@ const stateColours: Record<PipelineState, { bg: string; text: string }> = {
   stuck_transcription: { bg: 'bg-red-50 dark:bg-red-950', text: 'text-red-800 dark:text-red-300' },
   stuck_notes: { bg: 'bg-red-50 dark:bg-red-950', text: 'text-red-800 dark:text-red-300' },
   failed_notes: { bg: 'bg-red-50 dark:bg-red-950', text: 'text-red-800 dark:text-red-300' },
+  audio_missing: { bg: 'bg-orange-50 dark:bg-orange-950', text: 'text-orange-800 dark:text-orange-300' },
   too_short: { bg: 'bg-gray-50 dark:bg-gray-900', text: 'text-gray-600 dark:text-gray-400' },
   notes_ready_email_pending: { bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-800 dark:text-amber-300' },
   notes_ready_email_stuck: { bg: 'bg-red-50 dark:bg-red-950', text: 'text-red-800 dark:text-red-300' },
@@ -134,9 +137,9 @@ const FILTER_MAP: Record<FilterKey, PipelineState[]> = {
   in_flight: ['in_flight'],
   completed: ['completed'],
   stuck: ['stuck_transcription', 'stuck_notes', 'notes_ready_email_stuck'],
-  failed: ['failed_notes'],
+  failed: ['failed_notes', 'audio_missing'],
   too_short: ['too_short'],
-  needs_attention: ['stuck_transcription', 'stuck_notes', 'notes_ready_email_stuck', 'failed_notes'],
+  needs_attention: ['stuck_transcription', 'stuck_notes', 'notes_ready_email_stuck', 'failed_notes', 'audio_missing'],
 };
 
 type SortField = 'created_at' | 'title' | 'duration_minutes' | 'word_count' | 'user_name';
