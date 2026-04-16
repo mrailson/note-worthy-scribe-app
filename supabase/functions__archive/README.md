@@ -82,6 +82,31 @@ To restore any function:
 mv supabase/functions__archive/generate-image supabase/functions/generate-image
 ```
 
+## Tier 4 — Archived 2026-04-16
+
+Zero callers in `src/`, other edge functions, migrations, or cron jobs. Only references were in `EdgeFunctionAuditData.ts` (static audit list, not invocations).
+
+| # | Function Name | Reason |
+|---|---|---|
+| 1 | `ask-ai-chat` | No code refs — superseded by `notewell-ask-ai` |
+| 2 | `assemblyai-transcription-url` | Audit list only — no runtime callers |
+| 3 | `clear-translation-sessions` | Audit list only — no runtime callers |
+| 4 | `deepgram-transcribe` | Audit list only — superseded by `deepgram-direct` |
+| 5 | `delete-translation-session` | Audit list only — no runtime callers |
+| 6 | `explain-unresolved-section` | Audit list only — no runtime callers |
+| 7 | `lg-compress-pdf` | Audit list only — no runtime callers |
+| 8 | `load-translation-sessions` | Audit list only — no runtime callers |
+| 9 | `manage-demo-responses` | Audit list only — no runtime callers |
+| 10 | `meeting-notes-quality-gate` | Config-only entry — no code refs |
+| 11 | `process-notes-queue` | No code refs — superseded by `auto-generate-meeting-notes` |
+| 12 | `re-summarise-complaint` | Audit list only — no runtime callers |
+| 13 | `rebuild-meeting-audio` | Audit list only — no runtime callers |
+| 14 | `recover-meeting` | Audit list only — no runtime callers |
+| 15 | `send-nres-hours-report` | No code refs — unused NRES report sender |
+| 16 | `send-survey-digest` | Audit list only — no runtime callers |
+| 17 | `suggest-signature-positions` | Config-only entry — no code refs |
+| 18 | `update-translation-session` | Audit list only — no runtime callers |
+
 ## Related Documentation
 
 - Tier 1 cleanup record: `docs/edge-function-cleanup/2026-02-07-tier1.md`
