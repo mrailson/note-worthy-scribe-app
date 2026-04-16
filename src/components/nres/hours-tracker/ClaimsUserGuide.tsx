@@ -71,7 +71,7 @@ function OverviewTab({ neighbourhoodName }: { neighbourhoodName: string }) {
         </p>
       </div>
 
-      <h3 className="font-semibold text-[#003087]">Two Categories of Staff</h3>
+      <h3 className="font-semibold text-[#003087]">Five Categories of Claim</h3>
       <CalloutBox type="blue">
         <p className="font-semibold mb-1">🔄 Buy-Back Staff</p>
         <p>Existing practice staff whose time is "bought back" for SDA work. The practice releases them from their normal duties to deliver Part A (SDA) sessions. The practice claims reimbursement for their time at agreed rates.</p>
@@ -85,6 +85,24 @@ function OverviewTab({ neighbourhoodName }: { neighbourhoodName: string }) {
         <p className="font-semibold mb-1">✨ New SDA Staff</p>
         <p>Newly recruited GPs, ACPs, or ANPs hired specifically for the SDA programme. They are <strong>additional</strong> capacity — not bought back from existing practice work.</p>
         <p className="mt-1">✅ No Part B evidence required — they are additional, not replacing existing staff.</p>
+      </CalloutBox>
+
+      <CalloutBox type="purple">
+        <p className="font-semibold mb-1">👨‍⚕️ GP Locum</p>
+        <p>External locum GPs covering SDA sessions when substantive staff are unavailable. Billed at <strong>fixed</strong> rates: <strong>£750/day</strong> or <strong>£375/session</strong>. No on-costs are added (locums invoice gross).</p>
+        <p className="mt-1 text-xs">✅ No Part B evidence required — locums are additional sessional cover, not buy-back.</p>
+      </CalloutBox>
+
+      <CalloutBox type="sky">
+        <p className="font-semibold mb-1">🗣️ Meeting Attendance</p>
+        <p>GPs and Practice Managers paid per attended SDA governance meeting (e.g. clinical leads, neighbourhood board). Rates: <strong>£85/hr</strong> for GPs, <strong>£45/hr</strong> for PMs.</p>
+        <p className="mt-1 text-xs">Hours are pulled <strong>automatically</strong> from the Meeting Schedule attendance log — no manual entry.</p>
+      </CalloutBox>
+
+      <CalloutBox type="slate">
+        <p className="font-semibold mb-1">🧭 NRES Management</p>
+        <p>Time worked by named programme leads (Neighbourhood Manager, Programme Lead, Management Leads). Calculated as <strong>agreed hourly rate × hours per week × working weeks in the month</strong>. Working weeks automatically exclude bank holidays.</p>
+        <p className="mt-1 text-xs">Each role has a person, hourly rate and max hours/week configured in settings.</p>
       </CalloutBox>
 
       <CalloutBox type="red">
