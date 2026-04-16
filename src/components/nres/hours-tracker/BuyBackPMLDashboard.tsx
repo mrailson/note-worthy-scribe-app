@@ -58,7 +58,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 const ROLE_CONFIG = {
   director: {
     label: 'PML Director',
-    subtitle: 'Review, approve or reject claims before payment',
+    subtitle: 'Review, approve or query claims before payment',
     userLabel: 'PML Director',
   },
   finance: {
@@ -390,6 +390,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   saving?: boolean;
 }) {
   const [reviewNotes, setReviewNotes] = useState('');
+  const [flaggedLines, setFlaggedLines] = useState<number[]>([]);
 
   // Finance payment state
   const [schedDate, setSchedDate] = useState(
@@ -415,17 +416,18 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   const hasPartA = claim.declaration_confirmed;
   const hasPartB = staffDetails.length > 0;
 
-  const handleAction = (action: 'approve' | 'query' | 'reject') => {
+  const handleAction = (action: 'approve' | 'query') => {
     if (action === 'approve') onApprove(claim.id, reviewNotes || undefined);
     if (action === 'query' && onQuery) {
       if (!reviewNotes.trim()) return;
-      onQuery(claim.id, reviewNotes);
-    }
-    if (action === 'reject') {
-      if (!reviewNotes.trim()) return;
-      onReject(claim.id, reviewNotes);
+      // Encode flagged lines into query notes
+      const queryPayload = flaggedLines.length > 0
+        ? `${reviewNotes}\n\n[FLAGGED_LINES:${JSON.stringify(flaggedLines)}]`
+        : reviewNotes;
+      onQuery(claim.id, queryPayload);
     }
     setReviewNotes('');
+    setFlaggedLines([]);
   };
 
   // Derived payment state
@@ -637,7 +639,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             </div>
           )}
 
-          {/* Director action bar — Approve / Query / Reject */}
+          {/* Director action bar — Approve / Query (no Reject for Director) */}
           {view === 'director' && (displayStatus === 'awaiting_review' || displayStatus === 'queried') && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
@@ -648,18 +650,39 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                   </span>
                 )}
               </div>
+              {/* Line-level flagging checkboxes */}
+              {reviewNotes.trim() && (
+                <div style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#92400e', marginBottom: 6 }}>Flag specific lines for attention (optional):</div>
+                  {staffDetails.map((s: any, idx: number) => {
+                    const displayName = maskStaffName(s.staff_name, userId, claim.user_id, userEmail, isAdmin);
+                    return (
+                      <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', fontSize: 12, color: '#374151', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={flaggedLines.includes(idx)}
+                          onChange={e => {
+                            if (e.target.checked) setFlaggedLines(prev => [...prev, idx]);
+                            else setFlaggedLines(prev => prev.filter(i => i !== idx));
+                          }}
+                          style={{ accentColor: '#d97706' }}
+                        />
+                        {displayName} — {s.staff_role}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <ActionBtn label="Approve" color="#059669" bg="#ecfdf5" bold={hasPartA && hasPartB}
                   onClick={() => handleAction('approve')} disabled={saving} />
                 <ActionBtn label="Query" color="#d97706" bg="#fffbeb"
                   onClick={() => handleAction('query')} disabled={saving || !reviewNotes.trim()} />
-                <ActionBtn label="Reject" color="#dc2626" bg="#fef2f2"
-                  onClick={() => handleAction('reject')} disabled={saving || !reviewNotes.trim()} />
                 <input
                   type="text"
                   value={reviewNotes}
                   onChange={e => setReviewNotes(e.target.value)}
-                  placeholder="Notes (required for Query / Reject)…"
+                  placeholder="Notes (required for Query)…"
                   style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
               </div>

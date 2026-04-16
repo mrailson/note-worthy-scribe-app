@@ -55,23 +55,34 @@ export function ClaimsSummaryCards({ claims, role }: ClaimsSummaryCardsProps) {
       className="grid gap-2.5 mb-5"
       style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 7)}, 1fr)` }}
     >
-      {cards.map(c => (
-        <div
-          key={c.label}
-          className="bg-white rounded-lg p-3 border border-slate-200 shadow-sm"
-          style={{ borderLeft: `3px solid ${c.color}` }}
-        >
-          <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-            {c.icon} {c.label}
+      {cards.map(c => {
+        const isQueried = c.label.toLowerCase().includes('queried') || c.label.toLowerCase().includes('query');
+        const queriedCount = typeof c.value === 'number' ? c.value : 0;
+        const showPulse = isQueried && queriedCount > 0;
+        return (
+          <div
+            key={c.label}
+            className={`bg-white rounded-lg p-3 border border-slate-200 shadow-sm ${showPulse ? 'ring-2 ring-red-400/50' : ''}`}
+            style={{ borderLeft: `3px solid ${c.color}` }}
+          >
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+              {c.icon} {c.label}
+              {showPulse && (
+                <span className="relative flex h-2 w-2 ml-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                </span>
+              )}
+            </div>
+            <div className="text-xl font-extrabold mt-1" style={{ color: c.color }}>
+              {typeof c.value === 'number' ? c.value : c.value}
+            </div>
+            {'amount' in c && c.amount !== undefined && (
+              <div className="text-[11px] text-slate-400 mt-0.5">{fmt(c.amount as number)}</div>
+            )}
           </div>
-          <div className="text-xl font-extrabold mt-1" style={{ color: c.color }}>
-            {typeof c.value === 'number' ? c.value : c.value}
-          </div>
-          {'amount' in c && c.amount !== undefined && (
-            <div className="text-[11px] text-slate-400 mt-0.5">{fmt(c.amount as number)}</div>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

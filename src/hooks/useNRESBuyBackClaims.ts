@@ -955,6 +955,11 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
     try {
       setSaving(true);
+
+      // Parse flagged lines from notes if present
+      const flaggedMatch = notes.match(/\[FLAGGED_LINES:(\[[\d,]*\])\]/);
+      const flaggedLines: number[] = flaggedMatch ? JSON.parse(flaggedMatch[1]) : [];
+
       const { data, error } = await supabase
         .from('nres_buyback_claims')
         .update({
@@ -962,6 +967,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           queried_by: user.email || null,
           queried_at: new Date().toISOString(),
           query_notes: notes,
+          query_flagged_lines: flaggedLines.length > 0 ? flaggedLines : null,
           declaration_confirmed: false,
         })
         .eq('id', id)
@@ -991,9 +997,9 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           submitterEmail: claim.submitted_by_email || '',
           reviewerEmail: user.email || '',
           reviewerName: emailConfig.currentUserName,
-          reviewNotes: notes,
+          reviewNotes: notes.replace(/\n\n\[FLAGGED_LINES:\[[\d,]*\]\]/, ''),
         };
-        sendBuyBackEmail('claim_rejected', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
+        sendBuyBackEmail('claim_queried' as any, emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
       }
     } catch (error) {
       console.error('Error querying claim:', error);

@@ -48,6 +48,13 @@ export interface RateSettings {
   management_roles_config: ManagementRoleConfig[];
   meeting_gp_rate: number;
   meeting_pm_rate: number;
+  // Notification preferences
+  notify_submitter_on_query: boolean;
+  notify_verifier_on_query: boolean;
+  notify_submitter_on_approve: boolean;
+  notify_verifier_on_approve: boolean;
+  notify_submitter_on_resubmit: boolean;
+  notify_director_on_resubmit: boolean;
 }
 
 const DEFAULT_ROLES: RoleConfig[] = [
@@ -76,6 +83,12 @@ export function useNRESBuyBackRateSettings() {
     management_roles_config: [],
     meeting_gp_rate: 85,
     meeting_pm_rate: 45,
+    notify_submitter_on_query: true,
+    notify_verifier_on_query: true,
+    notify_submitter_on_approve: true,
+    notify_verifier_on_approve: true,
+    notify_submitter_on_resubmit: false,
+    notify_director_on_resubmit: true,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -107,6 +120,12 @@ export function useNRESBuyBackRateSettings() {
           management_roles_config: (data.management_roles_config as ManagementRoleConfig[]) || [],
           meeting_gp_rate: data.meeting_gp_rate ?? 85,
           meeting_pm_rate: data.meeting_pm_rate ?? 45,
+          notify_submitter_on_query: data.notify_submitter_on_query ?? true,
+          notify_verifier_on_query: data.notify_verifier_on_query ?? true,
+          notify_submitter_on_approve: data.notify_submitter_on_approve ?? true,
+          notify_verifier_on_approve: data.notify_verifier_on_approve ?? true,
+          notify_submitter_on_resubmit: data.notify_submitter_on_resubmit ?? false,
+          notify_director_on_resubmit: data.notify_director_on_resubmit ?? true,
         });
       }
       hasFetchedRef.current = true;
@@ -266,6 +285,29 @@ export function useNRESBuyBackRateSettings() {
     }
   }, [user?.id]);
 
+  const updateNotificationSetting = useCallback(async (key: string, value: boolean) => {
+    if (!user?.id) return;
+    try {
+      setSaving(true);
+      const { error } = await (supabase as any)
+        .from('nres_buyback_rate_settings')
+        .upsert({
+          id: 'default',
+          [key]: value,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        });
+      if (error) throw error;
+      setSettings(prev => ({ ...prev, [key]: value }));
+      toast.success('Notification setting updated');
+    } catch (err) {
+      console.error('Error updating notification setting:', err);
+      toast.error('Failed to update notification setting');
+    } finally {
+      setSaving(false);
+    }
+  }, [user?.id]);
+
   return {
     settings,
     loading,
@@ -275,6 +317,7 @@ export function useNRESBuyBackRateSettings() {
     toggleEmailSendingDisabled,
     toggleAllowInvoiceWhenSuppressed,
     updateManagementRoles,
+    updateNotificationSetting,
     onCostMultiplier,
     getRoleConfig,
     getAnnualRate,
