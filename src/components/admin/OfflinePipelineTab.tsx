@@ -280,7 +280,7 @@ export function OfflinePipelineTab() {
 
   const isProcessable = (row: PipelineRow) =>
     ['stuck_transcription', 'stuck_notes', 'failed_notes'].includes(row.pipeline_state) ||
-    ['queued', 'uploaded', 'stuck'].includes(row.status);
+    ['queued', 'pending_transcription'].includes(row.status);
 
   async function handleProcessNow(meetingId: string) {
     setProcessingIds(prev => new Set(prev).add(meetingId));
