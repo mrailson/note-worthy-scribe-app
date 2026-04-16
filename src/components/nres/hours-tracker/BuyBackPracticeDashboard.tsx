@@ -1754,11 +1754,15 @@ function StaffActions({
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', justifyContent: 'center' }}>
         <select
-          value={editRole}
+          value={category === 'gp_locum' ? 'GP Locum' : editRole}
           onChange={e => setEditRole(e.target.value)}
+          disabled={category === 'gp_locum'}
           style={{ padding: '2px 4px', borderRadius: 4, border: '1px solid #d1d5db', fontSize: 10, maxWidth: 90 }}
         >
-          {(staffRoles || ['GP', 'ANP', 'Pharmacist', 'Nurse', 'HCA', 'Paramedic', 'Admin']).map(r => (
+          {(category === 'gp_locum'
+            ? ['GP Locum']
+            : (staffRoles || ['GP', 'ANP', 'Pharmacist', 'Nurse', 'HCA', 'Paramedic', 'Admin'])
+          ).map(r => (
             <option key={r} value={r}>{r}</option>
           ))}
         </select>
