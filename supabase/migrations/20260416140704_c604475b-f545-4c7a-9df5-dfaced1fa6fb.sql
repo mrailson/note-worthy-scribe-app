@@ -1,0 +1,1 @@
+SELECT cron.unschedule('auto-process-stuck-meetings');
