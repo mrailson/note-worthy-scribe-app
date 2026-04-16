@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Upload, RefreshCw, Trash2, CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Upload, RefreshCw, Trash2, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -145,7 +145,7 @@ export function RecordingErrorCard({
   importSource,
   onReprocessComplete,
 }: RecordingErrorCardProps) {
-  const { state, reuploadAudio, reprocessMeeting, deleteMeeting, reset } = useMeetingRecovery(meetingId, onReprocessComplete);
+  const { state, reuploadAudio, reprocessMeeting, deleteMeeting } = useMeetingRecovery(meetingId, onReprocessComplete);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
