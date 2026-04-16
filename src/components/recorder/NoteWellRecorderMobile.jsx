@@ -2650,6 +2650,11 @@ export default function NoteWellRecorder() {
           if (failedRec) syncRecording(failedRec);
         }} />
 
+        {/* Suspension warning banner */}
+        {suspensionWarning && active && (
+          <SuspensionWarningBanner seconds={suspensionWarning.seconds} onDismiss={() => setSuspensionWarning(null)} />
+        )}
+
         {/* Needs Attention section for failed syncs */}
         <NeedsAttentionSection
           recordings={recordings}
@@ -2987,6 +2992,11 @@ export default function NoteWellRecorder() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Pre-flight warning modal */}
+        {showPreFlight && (
+          <PreFlightWarningModal onStart={handlePreFlightStart} onCancel={() => setShowPreFlight(false)} />
         )}
 
         {/* Toast */}
