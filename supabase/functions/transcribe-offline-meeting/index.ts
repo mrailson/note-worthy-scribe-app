@@ -64,6 +64,7 @@ function stitchChunkTexts(chunks: Array<{ chunk_number: number; transcription_te
 }
 
 async function getChunkSources(meetingId: string) {
+  // 1. Check audio_chunks table (desktop recordings)
   const { data: audioChunks, error: chunkError } = await supabase
     .from("audio_chunks")
     .select("chunk_number, audio_blob_path")
@@ -76,6 +77,7 @@ async function getChunkSources(meetingId: string) {
   }
 
   if (audioChunks && audioChunks.length > 0) {
+    console.log(`📦 Found ${audioChunks.length} chunks via audio_chunks table`);
     return audioChunks.map((chunk) => ({
       chunkNumber: chunk.chunk_number,
       storagePath: chunk.audio_blob_path as string,
@@ -83,6 +85,27 @@ async function getChunkSources(meetingId: string) {
     }));
   }
 
+  // 2. Check remote_chunk_paths on the meeting row (mobile offline recordings)
+  const { data: meetingRow, error: meetingErr } = await supabase
+    .from("meetings")
+    .select("remote_chunk_paths")
+    .eq("id", meetingId)
+    .single();
+
+  if (meetingErr) {
+    console.warn("Failed to read meeting remote_chunk_paths:", meetingErr);
+  }
+
+  if (meetingRow?.remote_chunk_paths && Array.isArray(meetingRow.remote_chunk_paths) && meetingRow.remote_chunk_paths.length > 0) {
+    console.log(`📱 Found ${meetingRow.remote_chunk_paths.length} chunks via remote_chunk_paths`);
+    return meetingRow.remote_chunk_paths.map((path: string, index: number) => ({
+      chunkNumber: index,
+      storagePath: path,
+      bucket: "recordings",
+    }));
+  }
+
+  // 3. Check meeting_audio_backups table
   const { data: backups, error: backupError } = await supabase
     .from("meeting_audio_backups")
     .select("file_path")
@@ -94,6 +117,7 @@ async function getChunkSources(meetingId: string) {
   }
 
   if (backups && backups.length > 0) {
+    console.log(`💾 Found ${backups.length} chunks via meeting_audio_backups`);
     return backups.map((backup, index) => ({
       chunkNumber: index,
       storagePath: backup.file_path,
@@ -101,12 +125,17 @@ async function getChunkSources(meetingId: string) {
     }));
   }
 
+  // 4. Fall back to listing the recordings bucket by meeting ID
   const { data: files, error: listErr } = await supabase.storage
     .from("recordings")
     .list(meetingId, { sortBy: { column: "name", order: "asc" } });
 
   if (listErr) {
     throw new Error(`Storage list failed: ${listErr.message}`);
+  }
+
+  if (files && files.length > 0) {
+    console.log(`📂 Found ${files.length} files via bucket listing recordings/${meetingId}/`);
   }
 
   return (files || []).map((file, index) => ({
