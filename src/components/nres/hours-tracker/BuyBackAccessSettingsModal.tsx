@@ -1027,6 +1027,35 @@ function EmailSettingsPanel() {
           </table>
         </div>
       </div>
+
+      <Separator />
+
+      {/* Notification Preferences */}
+      <div>
+        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold mb-2">Notification Preferences</h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Control which automated notifications are sent at each stage of the claims workflow.
+        </p>
+        <div className="space-y-3">
+          {['Query', 'Approval', 'Resubmit'].map(group => (
+            <div key={group} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+              <p className="text-xs font-semibold text-foreground mb-2">{group}</p>
+              <div className="space-y-2">
+                {NOTIFICATION_TOGGLES.filter(t => t.group === group).map(toggle => (
+                  <div key={toggle.key} className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{toggle.label}</span>
+                    <Switch
+                      checked={(settings as any)[toggle.key] ?? true}
+                      onCheckedChange={(checked) => updateNotificationSetting(toggle.key, checked)}
+                      disabled={saving}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
