@@ -13,6 +13,30 @@ interface SendMeetingNotesEmailOpts {
   senderName?: string;
 }
 
+const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
+
+const isDefaultTimestampTitle = (title: string) => /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(title.trim());
+
+const isGenericTitle = (title: string | null | undefined) =>
+  !title || GENERIC_TITLES.includes(title.toLowerCase().trim()) || isDefaultTimestampTitle(title);
+
+const cleanMeetingTitle = (title: string | null | undefined) =>
+  title?.replace(/^\*+\s*/, "").replace(/\*\*/g, "").trim() || "";
+
+const humanizeEmailLocalPart = (email: string | null | undefined) => {
+  const localPart = email?.split("@")[0]?.trim() || "";
+  if (!localPart) return "";
+
+  return localPart
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+};
+
 /**
  * Fetches meeting data + summary, builds HTML + Word attachment,
  * and sends via the send-meeting-email-resend edge function.
@@ -31,11 +55,6 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
 
   // If title is still a generic placeholder, wait briefly and re-fetch —
   // the AI title generation may not have committed yet
-  const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
-  const isDefaultTimestamp = (t: string) => /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(t.trim());
-  const isGenericTitle = (t: string | null | undefined) =>
-    !t || GENERIC_TITLES.includes(t.toLowerCase().trim()) || isDefaultTimestamp(t);
-
   // Retry up to 4 times (≈30s total) waiting for AI title generation to commit.
   // Mobile syncs can take longer for the title-generator edge function to finish.
   const waitsMs = [4000, 6000, 8000, 12000];
@@ -51,10 +70,34 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
     if (refreshed) meeting = refreshed;
   }
   if (isGenericTitle(meeting?.title)) {
+    try {
+      const { data: generatedTitleResult, error: generatedTitleError } = await supabase.functions.invoke<{ title?: string }>(
+        "generate-meeting-title",
+        {
+          body: {
+            meetingId,
+            currentTitle: cleanMeetingTitle(meeting?.title) || "Meeting",
+          },
+        }
+      );
+
+      const generatedTitle = cleanMeetingTitle(generatedTitleResult?.title);
+      if (generatedTitleError) {
+        console.warn("⚠️ Explicit title generation failed:", generatedTitleError);
+      } else if (generatedTitle && !isGenericTitle(generatedTitle)) {
+        meeting = meeting ? { ...meeting, title: generatedTitle } : { title: generatedTitle } as typeof meeting;
+        await supabase.from("meetings").update({ title: generatedTitle }).eq("id", meetingId);
+        console.log(`✅ Generated specific meeting title for email: "${generatedTitle}"`);
+      }
+    } catch (titleErr) {
+      console.warn("⚠️ Could not generate a better meeting title before email send:", titleErr);
+    }
+  }
+  if (isGenericTitle(meeting?.title)) {
     console.warn(`⚠️ Title still generic after retries — sending with "${meeting?.title}"`);
   }
 
-  const meetingTitle = meeting?.title || "Meeting Notes";
+  const meetingTitle = cleanMeetingTitle(meeting?.title) || "Meeting Notes";
 
   // 2. Fetch summary
   const { data: summary } = await supabase
@@ -83,7 +126,21 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
           .maybeSingle();
         if (profile?.full_name) {
           senderName = profile.full_name;
-        } else if (user.email) {
+        } else {
+          const metadata = user.user_metadata as Record<string, unknown> | undefined;
+          const metadataName = [metadata?.full_name, metadata?.name, metadata?.display_name].find(
+            (value): value is string => typeof value === "string" && value.trim().length > 0
+          );
+          if (metadataName) {
+            senderName = metadataName.trim();
+          }
+        }
+
+        if (!senderName && user.email) {
+          senderName = humanizeEmailLocalPart(user.email);
+        }
+
+        if (!senderName && user.email) {
           senderName = user.email.split("@")[0];
         }
       }
@@ -91,7 +148,7 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
       console.warn("Could not resolve sender from auth user:", e);
     }
     if (!senderName) {
-      senderName = recipientEmail.split("@")[0] || "Notewell AI";
+      senderName = humanizeEmailLocalPart(recipientEmail) || recipientEmail.split("@")[0] || "Notewell AI";
     }
   }
 
@@ -126,7 +183,7 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
   let wordAttachment: { content: string; filename: string; type: string } | null = null;
   try {
     const { generateProfessionalWordBlob } = await import("@/utils/generateProfessionalMeetingDocx");
-    const cleanTitle = meetingTitle.replace(/^\*+\s*/, "").replace(/\*\*/g, "").trim();
+    const cleanTitle = cleanMeetingTitle(meetingTitle);
     const parsedDetails = {
       title: cleanTitle,
       date: meetingDate || undefined,

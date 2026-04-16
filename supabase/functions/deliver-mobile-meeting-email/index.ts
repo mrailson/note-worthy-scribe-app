@@ -9,6 +9,30 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
+
+const cleanMeetingTitle = (title: string | null | undefined) =>
+  title?.replace(/^\*+\s*/, "").replace(/\*\*/g, "").trim() || "";
+
+const isGenericMeetingTitle = (title: string | null | undefined) => {
+  const cleaned = cleanMeetingTitle(title);
+  return !cleaned || GENERIC_TITLES.includes(cleaned.toLowerCase()) || /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(cleaned);
+};
+
+const humanizeEmailLocalPart = (email: string | null | undefined) => {
+  const localPart = email?.split("@")[0]?.trim() || "";
+  if (!localPart) return "";
+
+  return localPart
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+};
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -96,10 +120,19 @@ serve(async (req: Request) => {
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name")
-      .eq("id", meeting.user_id)
+      .eq("user_id", meeting.user_id)
       .maybeSingle();
 
-    const senderName = profile?.full_name || userEmail.split("@")[0] || "Notewell AI";
+    const metadata = authUser?.user?.user_metadata as Record<string, unknown> | undefined;
+    const metadataName = [metadata?.full_name, metadata?.name, metadata?.display_name].find(
+      (value): value is string => typeof value === "string" && value.trim().length > 0
+    );
+    const senderName =
+      profile?.full_name?.trim() ||
+      metadataName?.trim() ||
+      humanizeEmailLocalPart(userEmail) ||
+      userEmail.split("@")[0] ||
+      "Notewell AI";
 
     // 5. Re-read the title fresh from DB right before building the email
     // This is the critical safety check: the title may have been updated by
@@ -111,12 +144,10 @@ serve(async (req: Request) => {
       .eq("id", meetingId)
       .single();
 
-    let meetingTitle = freshMeeting?.title || meeting.title || "Meeting Notes";
+    let meetingTitle = cleanMeetingTitle(freshMeeting?.title || meeting.title) || "Meeting Notes";
 
     // Detect generic/default titles including "Meeting DD Mon HH:MM" pattern
-    const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
-    const isDefaultTimestamp = /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(meetingTitle.trim());
-    const isGeneric = GENERIC_TITLES.includes(meetingTitle.toLowerCase().trim()) || isDefaultTimestamp;
+    const isGeneric = isGenericMeetingTitle(meetingTitle);
 
     if (isGeneric) {
       console.log(`⚠️ Title is still generic ("${meetingTitle}"), attempting AI title generation...`);
@@ -124,9 +155,9 @@ serve(async (req: Request) => {
         const { data: titleResult } = await supabase.functions.invoke("generate-meeting-title", {
           body: { meetingId: meeting.id, currentTitle: meetingTitle },
         });
-        if (titleResult?.title && !GENERIC_TITLES.includes(titleResult.title.toLowerCase().trim()) &&
-            !/^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(titleResult.title.trim())) {
-          meetingTitle = titleResult.title;
+        const generatedTitle = cleanMeetingTitle(titleResult?.title);
+        if (generatedTitle && !isGenericMeetingTitle(generatedTitle)) {
+          meetingTitle = generatedTitle;
           await supabase.from("meetings").update({ title: meetingTitle }).eq("id", meeting.id);
           console.log("✅ Generated title for email:", meetingTitle);
         }
@@ -188,7 +219,7 @@ serve(async (req: Request) => {
         // action items are optional
       }
 
-      const cleanTitle = meetingTitle.replace(/^\*+\s*/, "").replace(/\*\*/g, "").trim();
+      const cleanTitle = cleanMeetingTitle(meetingTitle);
 
       const base64Content = await generateMeetingDocxBase64({
         summaryContent: summary.summary,
