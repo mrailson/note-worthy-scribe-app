@@ -2512,19 +2512,57 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* Query notes banner */}
-      {claim.status === 'queried' && claim.query_notes && (
-        <div className="px-3 py-2 border-t bg-orange-50 dark:bg-orange-950/20 text-xs text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 shrink-0" />
-            <div>
-              <span className="font-semibold text-orange-800 dark:text-orange-200">PML Query:</span>
-              <p className="text-orange-700 dark:text-orange-300 mt-0.5">{claim.query_notes}</p>
-              <span className="text-muted-foreground">Queried by: {claim.queried_by} on {claim.queried_at ? format(new Date(claim.queried_at), 'dd/MM/yyyy') + ' at ' + format(new Date(claim.queried_at), 'HH:mm') : '—'}</span>
+      {/* Query notes banner — enhanced with flagged lines */}
+      {claim.status === 'queried' && claim.query_notes && (() => {
+        // Parse flagged lines from query notes
+        const flaggedMatch = claim.query_notes.match(/\[FLAGGED_LINES:(\[[\d,]*\])\]/);
+        const flaggedLineIndices: number[] = flaggedMatch ? JSON.parse(flaggedMatch[1]) : [];
+        const displayNotes = claim.query_notes.replace(/\n\n\[FLAGGED_LINES:\[[\d,]*\]\]/, '');
+        return (
+          <div className="px-3 py-3 border-t bg-red-50 dark:bg-red-950/20">
+            <div className="flex items-start gap-2 mb-2">
+              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <div className="text-sm font-bold text-red-800 dark:text-red-200">⚠️ QUERIED BY DIRECTOR — Action Required</div>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{displayNotes}</p>
+                <span className="text-xs text-muted-foreground mt-1 block">Queried by: {claim.queried_by} on {claim.queried_at ? format(new Date(claim.queried_at), 'dd/MM/yyyy') + ' at ' + format(new Date(claim.queried_at), 'HH:mm') : '—'}</span>
+              </div>
             </div>
+            {flaggedLineIndices.length > 0 && (
+              <div className="mt-2 ml-7 space-y-1">
+                <p className="text-xs font-semibold text-red-800 dark:text-red-200">Flagged Lines:</p>
+                {flaggedLineIndices.map(idx => {
+                  const s = staffDetails[idx];
+                  if (!s) return null;
+                  return (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-red-700 dark:text-red-300 pl-2 border-l-2 border-red-400">
+                      <span className="font-medium">{s.staff_name}</span> — <span>{s.staff_role}</span>
+                      <Badge className="bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200 text-[10px]">Flagged</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {canEdit && (
+              <div className="flex gap-2 mt-3 ml-7">
+                <Button size="sm" variant="default" className="bg-blue-600 hover:bg-blue-700 text-white gap-1" onClick={() => {
+                  if (!claim.declaration_confirmed) { onConfirmDeclaration(claim.id, true); }
+                  onSubmit(claim.id);
+                }}>
+                  <Send className="w-3 h-3" /> Resubmit Claim
+                </Button>
+                <Button size="sm" variant="destructive" className="gap-1" onClick={() => {
+                  if (window.confirm('Delete this queried claim? This cannot be undone.')) {
+                    onDelete(claim.id);
+                  }
+                }}>
+                  <Trash2 className="w-3 h-3" /> Delete Claim
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Rejected claim terminal state */}
       {claim.status === 'rejected' && (
@@ -2657,7 +2695,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* Admin Approval Actions — with Query option */}
+      {/* Admin Approval Actions — with Query option (no Reject for PML Director) */}
       {canApprove && (
         <div className="px-3 py-3 border-t bg-indigo-50/50 dark:bg-indigo-950/20 space-y-2">
           <p className="text-xs font-medium text-indigo-800 dark:text-indigo-200">PML Finance Review</p>
@@ -2665,7 +2703,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             <div className="flex-1">
               <Input
                 className="text-xs"
-                placeholder="Notes (required for Query and Reject)..."
+                placeholder={isPMLDirector && !isSuperAdmin ? "Notes (required for Query)..." : "Notes (required for Query and Reject)..."}
                 value={reviewNotes}
                 onChange={e => setReviewNotes(e.target.value)}
               />
@@ -2676,14 +2714,17 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             <Button size="sm" variant="outline" className="border-orange-400 text-orange-700 hover:bg-orange-50" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onQuery?.(claim.id, reviewNotes); setReviewNotes(''); }}>
               <MessageSquarePlus className="w-3.5 h-3.5 mr-1" /> Query
             </Button>
-            <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }}>
-              <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
-            </Button>
+            {/* Only show Reject for super_admin, hide for PML Director */}
+            {(!isPMLDirector || isSuperAdmin) && (
+              <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }}>
+                <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+              </Button>
+            )}
           </div>
           {showRejectInput && !reviewNotes.trim() && (
-            <p className="text-xs text-destructive">Please enter notes above before querying or rejecting.</p>
+            <p className="text-xs text-destructive">Please enter notes above before querying{(!isPMLDirector || isSuperAdmin) ? ' or rejecting' : ''}.</p>
           )}
-          <p className="text-[10px] text-muted-foreground">Query returns claim for amendment. Reject closes it permanently.</p>
+          <p className="text-[10px] text-muted-foreground">Query returns claim for amendment.{(!isPMLDirector || isSuperAdmin) ? ' Reject closes it permanently.' : ''}</p>
         </div>
       )}
 
