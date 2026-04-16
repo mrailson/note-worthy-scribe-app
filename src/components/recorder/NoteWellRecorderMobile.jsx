@@ -629,7 +629,7 @@ async function logSyncDiagnostic(recId, event) {
   } catch { /* diagnostics are best-effort */ }
 }
 
-function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
+function RecordingItem({ rec, progress, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [syncClicked, setSyncClicked] = useState(false);
