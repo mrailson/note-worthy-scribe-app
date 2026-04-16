@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { StorageBackupBrowser } from './admin/StorageBackupBrowser';
 import { MeetingAudioRecovery } from './admin/MeetingAudioRecovery';
+import { OfflinePipelineTab } from './admin/OfflinePipelineTab';
 
 interface AudioBackup {
   id: string;
@@ -558,7 +559,7 @@ export const AudioBackupManager = () => {
       </Alert>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <FileAudio className="h-4 w-4" />
             Database Records
@@ -570,6 +571,10 @@ export const AudioBackupManager = () => {
           <TabsTrigger value="recovery" className="flex items-center gap-2">
             <Search className="h-4 w-4" />
             Meeting Recovery
+          </TabsTrigger>
+          <TabsTrigger value="pipeline" className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Offline Pipeline
           </TabsTrigger>
         </TabsList>
 
@@ -849,6 +854,10 @@ export const AudioBackupManager = () => {
 
         <TabsContent value="recovery">
           <MeetingAudioRecovery />
+        </TabsContent>
+
+        <TabsContent value="pipeline">
+          <OfflinePipelineTab />
         </TabsContent>
       </Tabs>
     </div>

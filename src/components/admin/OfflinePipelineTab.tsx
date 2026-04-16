@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -145,7 +145,7 @@ export function OfflinePipelineTab() {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortAsc, setSortAsc] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [, setLastRefresh] = useState(Date.now());
 
   const fetchData = useCallback(async () => {
     setLoading(true);
