@@ -7291,6 +7291,7 @@ export type Database = {
           import_metadata: Json | null
           import_source: string | null
           is_paused: boolean | null
+          last_retry_at: string | null
           left_audio_url: string | null
           live_transcript_text: string | null
           location: string | null
@@ -7316,6 +7317,7 @@ export type Database = {
           recording_created_at: string | null
           remote_chunk_paths: string[] | null
           requires_audio_backup: boolean | null
+          retry_count: number | null
           right_audio_url: string | null
           soap_notes: Json | null
           standard_minutes_variations: Json | null
@@ -7362,6 +7364,7 @@ export type Database = {
           import_metadata?: Json | null
           import_source?: string | null
           is_paused?: boolean | null
+          last_retry_at?: string | null
           left_audio_url?: string | null
           live_transcript_text?: string | null
           location?: string | null
@@ -7387,6 +7390,7 @@ export type Database = {
           recording_created_at?: string | null
           remote_chunk_paths?: string[] | null
           requires_audio_backup?: boolean | null
+          retry_count?: number | null
           right_audio_url?: string | null
           soap_notes?: Json | null
           standard_minutes_variations?: Json | null
@@ -7433,6 +7437,7 @@ export type Database = {
           import_metadata?: Json | null
           import_source?: string | null
           is_paused?: boolean | null
+          last_retry_at?: string | null
           left_audio_url?: string | null
           live_transcript_text?: string | null
           location?: string | null
@@ -7458,6 +7463,7 @@ export type Database = {
           recording_created_at?: string | null
           remote_chunk_paths?: string[] | null
           requires_audio_backup?: boolean | null
+          retry_count?: number | null
           right_audio_url?: string | null
           soap_notes?: Json | null
           standard_minutes_variations?: Json | null
