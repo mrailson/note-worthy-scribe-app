@@ -977,17 +977,64 @@ export default function NoteWellRecorder() {
     }
   }, [isLocked, recState, wakeLockSupported]);
 
-  // ── Connectivity (track online status but don't auto-switch mode) ────────
+  // ── Connectivity (track online status + auto-resume queued syncs) ──────
   useEffect(() => {
-    const goOnline  = () => setIsOnline(true);
-    const goOffline = () => { setIsOnline(false); setMode("offline"); };
-    window.addEventListener("online",  goOnline);
+    const goOnline = async () => {
+      setIsOnline(true);
+      // Auto-resume any failed/paused recordings
+      const allRecs = await dbAll();
+      const resumable = allRecs.filter(r => r.status === "error" || r.status === "paused");
+      if (resumable.length > 0) {
+        showToast(`Back online — resuming sync of ${resumable.length} recording${resumable.length > 1 ? "s" : ""}`, "info");
+        // Only auto-retry the first one to avoid overwhelming
+        setTimeout(() => {
+          if (resumable[0]) syncRecording(resumable[0]);
+        }, 1500);
+      }
+    };
+    const goOffline = () => {
+      setIsOnline(false);
+      setMode("offline");
+      // If sync is in progress, show paused state
+      if (syncProgress && syncProgress.phase === "uploading") {
+        setSyncProgress(prev => ({
+          ...prev,
+          phase: "paused",
+          errorType: "network_drop",
+          message: "Connection lost — will resume when back online",
+        }));
+      }
+    };
+    window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
     return () => {
-      window.removeEventListener("online",  goOnline);
+      window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
     };
-  }, []);
+  }, [syncProgress]);
+
+  // ── Page Visibility API (iOS Safari tab suspension) ────────────────────
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab backgrounded — update title as warning
+        if (syncProgress && syncProgress.phase === "uploading") {
+          document.title = "(⏸ Sync paused) Notewell";
+        }
+      } else {
+        // Tab restored — reset title and check upload state
+        document.title = "Notewell AI";
+        if (syncProgress && (syncProgress.phase === "paused" || syncProgress.phase === "uploading")) {
+          // Check if we're still online and should resume
+          if (navigator.onLine) {
+            console.log("[sync] tab restored — checking upload state");
+          }
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [syncProgress]);
 
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
