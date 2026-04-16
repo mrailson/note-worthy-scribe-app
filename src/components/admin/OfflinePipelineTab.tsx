@@ -274,6 +274,65 @@ export function OfflinePipelineTab() {
     toast.success('Diagnostic JSON copied to clipboard');
   }
 
+  const isProcessable = (row: PipelineRow) =>
+    ['stuck_transcription', 'stuck_notes', 'failed_notes'].includes(row.pipeline_state) ||
+    ['queued', 'uploaded', 'stuck'].includes(row.status);
+
+  async function handleProcessNow(meetingId: string) {
+    setProcessingIds(prev => new Set(prev).add(meetingId));
+    try {
+      const { error: updateErr } = await supabase
+        .from('meetings')
+        .update({
+          status: 'queued' as any,
+          notes_generation_status: 'not_started' as any,
+        })
+        .eq('id', meetingId);
+      if (updateErr) throw updateErr;
+
+      const { error: invokeErr } = await supabase.functions.invoke(
+        'transcribe-offline-meeting',
+        { body: { meetingId, chunkIndex: 0 } }
+      );
+      if (invokeErr) throw invokeErr;
+
+      toast.success('Transcription started — refresh in 30s');
+      setTimeout(fetchData, 2000);
+    } catch (err: any) {
+      toast.error('Failed to start: ' + err.message);
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(meetingId);
+        return next;
+      });
+    }
+  }
+
+  const stuckRows = useMemo(() => rows.filter(r => isProcessable(r)), [rows]);
+
+  async function handleProcessAllStuck() {
+    if (stuckRows.length === 0) return;
+    setProcessingAll(true);
+    let succeeded = 0;
+    let failed = 0;
+    for (const row of stuckRows) {
+      try {
+        await supabase.from('meetings').update({ status: 'queued' as any, notes_generation_status: 'not_started' as any }).eq('id', row.id);
+        await supabase.functions.invoke('transcribe-offline-meeting', { body: { meetingId: row.id, chunkIndex: 0 } });
+        succeeded++;
+      } catch {
+        failed++;
+      }
+      // small delay between calls
+      await new Promise(r => setTimeout(r, 500));
+    }
+    toast.success(`Processed ${succeeded} meeting${succeeded !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`);
+    setProcessingAll(false);
+    setTimeout(fetchData, 2000);
+  }
+
+
   function initials(name: string): string {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   }
