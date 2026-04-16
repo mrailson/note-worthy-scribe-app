@@ -465,7 +465,7 @@ export function OfflinePipelineTab() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => window.open(`/meetings/${row.id}`, '_blank')}>
+                          <DropdownMenuItem onClick={() => window.open(`/meeting-summary/${row.id}`, '_blank')}>
                             <ExternalLink className="h-4 w-4 mr-2" /> View meeting
                           </DropdownMenuItem>
                           {['stuck_transcription'].includes(row.pipeline_state) && (
