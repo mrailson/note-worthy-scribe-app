@@ -98,16 +98,6 @@ const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
 
 const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
-const LGCaptureLanding = lazy(() => import("./pages/LGCaptureLanding"));
-const LGCaptureStart = lazy(() => import("./pages/LGCaptureStart"));
-const LGCaptureCamera = lazy(() => import("./pages/LGCaptureCamera"));
-const LGCaptureUpload = lazy(() => import("./pages/LGCaptureUpload"));
-const LGCaptureResults = lazy(() => import("./pages/LGCaptureResults"));
-const LGCapturePatients = lazy(() => import("./pages/LGCapturePatients"));
-const LGCaptureDemoService = lazy(() => import("./pages/LGCaptureDemoService"));
-const LGCaptureFileView = lazy(() => import("./pages/LGCaptureFileView"));
-const LGCaptureMyStats = lazy(() => import("./pages/LGCaptureMyStats"));
-const LGCaptureBulk = lazy(() => import("./pages/LGCaptureBulk"));
 const BPCalculator = lazy(() => import("./pages/BPCalculator"));
 const PublicBPCalculator = lazy(() => import("./pages/PublicBPCalculator"));
 const QuickRecord = lazy(() => import("./pages/QuickRecord"));
