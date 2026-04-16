@@ -797,6 +797,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             onChange={setTestMode}
             practiceKeys={ALL_PRACTICE_KEYS}
             practiceNames={ALL_PRACTICES}
+            hiddenRoles={hiddenTestRoles}
           />
         )}
         <BuyBackPracticeDashboard
@@ -858,6 +859,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             onChange={setTestMode}
             practiceKeys={ALL_PRACTICE_KEYS}
             practiceNames={ALL_PRACTICES}
+            hiddenRoles={hiddenTestRoles}
           />
         )}
         <BuyBackVerifierDashboard
@@ -885,6 +887,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             onChange={setTestMode}
             practiceKeys={ALL_PRACTICE_KEYS}
             practiceNames={ALL_PRACTICES}
+            hiddenRoles={hiddenTestRoles}
           />
         )}
         <BuyBackPMLDashboard
@@ -960,6 +963,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           onChange={setTestMode}
           practiceKeys={ALL_PRACTICE_KEYS}
           practiceNames={ALL_PRACTICES}
+          hiddenRoles={hiddenTestRoles}
         />
       )}
 
