@@ -1989,7 +1989,7 @@ export default function NoteWellRecorder() {
         )}
 
         {/* Sync progress bar */}
-        <SyncProgressBar progress={syncProgress} />
+        <SyncProgressBar progress={syncProgress} setSyncProgress={setSyncProgress} setRecState={setRecState} />
 
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column"}}>
