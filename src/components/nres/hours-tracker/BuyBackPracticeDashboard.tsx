@@ -1752,7 +1752,7 @@ function StaffActions({
 
   if (editing) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', justifyContent: 'center' }}>
         <select
           value={editRole}
           onChange={e => setEditRole(e.target.value)}
