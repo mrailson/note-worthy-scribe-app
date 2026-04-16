@@ -147,6 +147,8 @@ export function OfflinePipelineTab() {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortAsc, setSortAsc] = useState(false);
   const [, setLastRefresh] = useState(Date.now());
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [processingAll, setProcessingAll] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
