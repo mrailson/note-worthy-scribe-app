@@ -1,86 +1,68 @@
 
 
-# Director Query Workflow — Remove Reject, Enhance Query
+## Goal
 
-## Summary
+Update the **Claims Scheme Guide** (the 7-tab modal opened from the SDA & Buy-Back Claims page) so all tabs reflect the latest scheme — specifically extending coverage beyond Buy-Back / New SDA to also document **GP Locum**, **Meeting Attendance**, and **NRES Management** claim categories.
 
-Remove the "Reject" button from the Director's action bar (both PML Dashboard and Admin ClaimCard). Enhance the Query workflow with line-level flagging, prominent visual indicators on the practice dashboard, notification settings in the settings modal, and make queried claims fully inline-editable with resubmit/delete options. Resubmitted claims return to "submitted" status for re-verification.
+## What's missing today
 
-## Changes
+The guide currently only describes Buy-Back and New SDA staff. The system actually supports **5 claim categories**:
+1. Buy-Back (existing — documented)
+2. New SDA (existing — documented)
+3. **GP Locum** — £750/day, £375/session, no on-costs (not in guide)
+4. **Meeting Attendance** — £85/hr GP, £45/hr PM, attendance-driven (not in guide)
+5. **NRES Management** — hourly × weekly hours × working weeks per month (not in guide)
 
-### 1. Remove Reject button from Director views
+## Changes (single file: `src/components/nres/hours-tracker/ClaimsUserGuide.tsx`)
 
-**`BuyBackPMLDashboard.tsx`** — Remove the "Reject" `ActionBtn` from the Director action bar (line ~656). Update placeholder text to "Notes (required for Query)…". Remove `'reject'` from `handleAction`.
+### 1. Overview tab — extend "Categories of Staff"
+Add three new callout boxes after Buy-Back and New SDA:
+- **GP Locum** (purple) — locum cover for SDA sessions, billed at fixed £750/day or £375/session, no on-costs
+- **Meeting Attendance** (sky) — GPs/PMs paid per attended SDA governance meeting at £85/hr (GP) or £45/hr (PM)
+- **NRES Management** (slate) — Neighbourhood Manager / Programme Lead / Mgmt Lead time at agreed hourly rates × hours/week × working weeks in month (excludes bank holidays)
 
-**`BuyBackClaimsTab.tsx`** — In the ClaimCard approver section (~line 2679), remove the Reject button when the user is PML Director (keep it for super_admin). Update help text.
+### 2. How to Claim tab — add category-specific notes
+Append a "Category-Specific Workflow Notes" section explaining:
+- GP Locum: role auto-locked to "GP Locum", choose Days/Sessions, value = total worked that month
+- Meeting Attendance: hours come from the Meeting Schedule log, not manual entry
+- NRES Management: select the named role from the dropdown, hourly rate auto-fills, enter weekly hours
 
-### 2. Add line-level flagging to Query
+### 3. Evidence tab — add category-specific evidence requirements
+New callouts:
+- GP Locum: locum invoice/timesheet (mandatory), session/day breakdown
+- Meeting Attendance: meeting agenda + attendance log (auto-captured from Meeting Schedule)
+- NRES Management: timesheet of hours worked per week + activity summary
 
-**`BuyBackPMLDashboard.tsx`** — Add checkboxes next to each staff line in the Director's expanded claim view, allowing the Director to flag specific lines. Pass flagged line indices as part of the query notes (e.g. `{ notes: "...", flagged_lines: [0, 2] }`).
+### 4. Rates & Caps tab — add three new rate tables
+- **GP Locum rates**: £750/day, £375/session, no on-costs, max 23 days or 46 sessions/month
+- **Meeting Attendance rates**: pulled from `rateSettings.meeting_gp_rate` (£85/hr) and `meeting_pm_rate` (£45/hr)
+- **NRES Management rates**: render `rateSettings.management_roles_config` (person, label, hourly rate, max hours/week)
 
-**`useNRESBuyBackClaims.ts`** — Update `queryClaim` to accept an optional `flaggedLines: number[]` parameter. Store in a new `query_flagged_lines` JSONB column on the claims table.
+### 5. Claim Rules tab — add category nuances
+- GP Locum & Meeting Attendance: no Part B evidence required (additional/sessional, not bought back)
+- NRES Management: working-weeks-per-month auto-excludes bank holidays
+- Locum daily rate is a **cap** — claim less if invoice is lower
 
-**DB Migration** — Add `query_flagged_lines jsonb default null` column to `nres_buyback_claims`.
+### 6. Status Guide tab
+No changes — workflow is identical across all categories.
 
-### 3. Queried claim visual indicators on practice dashboard
+### 7. FAQ tab — add 5 new Q&As
+- "How do GP Locum claims differ from Buy-Back?"
+- "How is Meeting Attendance calculated?"
+- "Why don't Meeting/Locum claims need Part B evidence?"
+- "How are NRES Management working weeks calculated?"
+- "Can one staff member appear in multiple categories?"
 
-**`BuyBackClaimsTab.tsx` (ClaimCard)** — When `isQueried`:
-- Show a prominent red/amber banner at the top: "⚠️ QUERIED BY DIRECTOR — Action Required"
-- Display the Director's query notes prominently
-- Highlight flagged staff lines with a red left border and "Flagged" badge
-- All fields remain inline-editable (already works via `canEdit` logic)
-- Show "Resubmit" and "Delete" buttons at the bottom
+### 8. Header tweak
+Update guide subtitle to: *"Complete guide — all 5 claim categories, evidence, rates, claim steps, approvals & FAQ"*
 
-### 4. Queried claims as key dashboard indicator
+## Props / data wiring
 
-**`ClaimsSummaryCards.tsx`** — The "Queried" card already exists for all roles. Enhance it with a pulsing dot or attention icon when count > 0.
+`ClaimsUserGuide` already receives `rateSettings` (which contains `meeting_gp_rate`, `meeting_pm_rate`, `management_roles_config`) — no new props needed. Tabs will read these directly to render dynamic rate tables.
 
-**`BuyBackClaimsTab.tsx`** — Auto-sort queried claims to the top of the list. Add a filter pill that highlights when queried claims exist.
+## Out of scope
 
-### 5. Notification settings in settings modal
-
-**DB Migration** — Add notification toggle columns to `nres_buyback_rate_settings`:
-- `notify_submitter_on_query boolean default true`
-- `notify_verifier_on_query boolean default true`
-- `notify_submitter_on_approve boolean default true`
-- `notify_verifier_on_approve boolean default true`
-- `notify_submitter_on_resubmit boolean default false`
-- `notify_director_on_resubmit boolean default true`
-
-**`useNRESBuyBackRateSettings.ts`** — Add the new fields to `RateSettings` interface and fetch/update logic.
-
-**`BuyBackAccessSettingsModal.tsx`** — Add a "Notification Preferences" panel with individual toggles for each event type.
-
-### 6. Email notifications on query
-
-**`useNRESBuyBackClaims.ts` (`queryClaim`)** — Check notification settings before sending. Send separate emails to:
-- Submitter (the person who submitted the claim) — "Your claim has been queried"
-- Verifier (if `notify_verifier_on_query` enabled) — "A claim you verified has been queried"
-
-Currently sends `claim_rejected` email type on query — change to a dedicated `claim_queried` template in `buybackEmailService.ts`.
-
-**`buybackEmailService.ts`** — Add `claim_queried` email type with appropriate subject and body including the query notes and flagged lines.
-
-### 7. Resubmit flow
-
-**`useNRESBuyBackClaims.ts`** — Add `resubmitQueriedClaim` function that:
-- Sets status back to `submitted`
-- Clears `query_notes`, `query_flagged_lines`, `queried_by`, `queried_at`
-- Resets `declaration_confirmed` to false (requires re-declaration)
-- Sends notification to Director if `notify_director_on_resubmit` enabled
-
-**`BuyBackClaimsTab.tsx`** — Wire resubmit button for queried claims (uses existing submit flow but from queried state).
-
-### Files changed
-
-| File | Action |
-|------|--------|
-| `BuyBackPMLDashboard.tsx` | Remove Reject btn, add line checkboxes |
-| `BuyBackClaimsTab.tsx` | Enhanced queried banner, resubmit/delete, sort queried to top |
-| `useNRESBuyBackClaims.ts` | `queryClaim` flagged lines, `resubmitQueriedClaim`, queried email type |
-| `useNRESBuyBackRateSettings.ts` | Add notification toggle fields |
-| `BuyBackAccessSettingsModal.tsx` | Notification preferences panel |
-| `buybackEmailService.ts` | Add `claim_queried` email template |
-| `ClaimsSummaryCards.tsx` | Pulsing indicator on Queried card |
-| DB migration | `query_flagged_lines` column + 6 notification toggle columns |
+- No changes to claim logic, dashboards, or database
+- No changes to the 7-tab structure (just richer content within each tab)
+- Status workflow stays identical for all categories
 
