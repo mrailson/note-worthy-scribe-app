@@ -311,9 +311,17 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     if (!user?.id) return null;
     try {
       setSaving(true);
+      // For single-staff claims (typical locum/partial claim), apportion the
+      // user-entered claimedAmount to that staff line. Otherwise default to the max.
+      // This keeps Practice/Management dashboards (which sum staff_details.claimed_amount)
+      // in sync with PML view & invoices (which read top-level claimed_amount).
+      const isSingleLineClaim = staffMembers.length === 1;
       const staffSnapshot = staffMembers.map(s => {
         const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date, rateParams);
         const glCode = getGLCode(claimType, s.staff_role);
+        const lineClaimedAmount = isSingleLineClaim && claimedAmount > 0 && claimedAmount !== maxAmount
+          ? claimedAmount
+          : maxAmount;
         return {
           staff_name: s.staff_name,
           staff_role: s.staff_role,
@@ -323,7 +331,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           hourly_rate: s.hourly_rate,
           start_date: s.start_date,
           practice_key: s.practice_key,
-          claimed_amount: maxAmount,
+          claimed_amount: lineClaimedAmount,
+          calculated_amount: maxAmount,
           gl_code: glCode,
           gl_category: glCode ?? 'N/A',
         };
