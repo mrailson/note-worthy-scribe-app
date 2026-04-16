@@ -36,27 +36,22 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
   const isGenericTitle = (t: string | null | undefined) =>
     !t || GENERIC_TITLES.includes(t.toLowerCase().trim()) || isDefaultTimestamp(t);
 
-  if (isGenericTitle(meeting?.title)) {
-    console.log("⏳ Title appears generic, waiting for AI title generation...");
-    await new Promise(r => setTimeout(r, 5000));
+  // Retry up to 4 times (≈30s total) waiting for AI title generation to commit.
+  // Mobile syncs can take longer for the title-generator edge function to finish.
+  const waitsMs = [4000, 6000, 8000, 12000];
+  for (const waitMs of waitsMs) {
+    if (!isGenericTitle(meeting?.title)) break;
+    console.log(`⏳ Title still generic ("${meeting?.title}") — waiting ${waitMs}ms for AI title…`);
+    await new Promise(r => setTimeout(r, waitMs));
     const { data: refreshed } = await supabase
       .from("meetings")
       .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
       .eq("id", meetingId)
       .maybeSingle();
     if (refreshed) meeting = refreshed;
-
-    // If still generic after waiting, try one more time
-    if (isGenericTitle(meeting?.title)) {
-      console.log("⏳ Still generic, waiting another 5s...");
-      await new Promise(r => setTimeout(r, 5000));
-      const { data: refreshed2 } = await supabase
-        .from("meetings")
-        .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
-        .eq("id", meetingId)
-        .maybeSingle();
-      if (refreshed2) meeting = refreshed2;
-    }
+  }
+  if (isGenericTitle(meeting?.title)) {
+    console.warn(`⚠️ Title still generic after retries — sending with "${meeting?.title}"`);
   }
 
   const meetingTitle = meeting?.title || "Meeting Notes";
@@ -72,15 +67,32 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
     throw new Error("No meeting summary found — cannot send email");
   }
 
-  // 3. Resolve sender name
+  // 3. Resolve sender name — prefer the currently authenticated user's profile
+  //    (looked up by user_id), NOT a profile that happens to share the
+  //    recipient's email address. The recipientEmail is just where the notes
+  //    are being delivered; the "from name" must reflect the logged-in user.
   let senderName = opts.senderName;
   if (!senderName) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("email", recipientEmail)
-      .maybeSingle();
-    senderName = profile?.full_name || recipientEmail.split("@")[0] || "Notewell AI";
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (profile?.full_name) {
+          senderName = profile.full_name;
+        } else if (user.email) {
+          senderName = user.email.split("@")[0];
+        }
+      }
+    } catch (e) {
+      console.warn("Could not resolve sender from auth user:", e);
+    }
+    if (!senderName) {
+      senderName = recipientEmail.split("@")[0] || "Notewell AI";
+    }
   }
 
   // 4. Build dates
