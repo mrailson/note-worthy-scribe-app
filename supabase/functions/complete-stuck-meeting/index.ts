@@ -82,35 +82,59 @@ serve(async (req) => {
     }
 
     // Step 2: Send email via deliver-mobile-meeting-email (the proper branded email with Word attachment)
+    // Re-check notes_email_sent_at right before sending (dedup guard)
     const { data: updated } = await supabase
       .from("meetings")
       .select("notes_email_sent_at")
       .eq("id", meetingId)
       .single();
 
-    if (!updated?.notes_email_sent_at) {
+    if (updated?.notes_email_sent_at) {
+      console.log(`⏭️ Email already sent at ${updated.notes_email_sent_at}, skipping`);
+      steps.push("email_already_sent");
+    } else {
+      // Set notes_email_sent_at BEFORE sending to prevent race condition duplicates
+      const lockTime = new Date().toISOString();
+      await supabase
+        .from("meetings")
+        .update({ notes_email_sent_at: lockTime })
+        .eq("id", meetingId);
+
       console.log(`📧 Calling deliver-mobile-meeting-email for ${meetingId}`);
 
-      const emailResp = await fetch(`${supabaseUrl}/functions/v1/deliver-mobile-meeting-email`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-          apikey: serviceKey,
-        },
-        body: JSON.stringify({ meetingId }),
-      });
+      try {
+        const emailResp = await fetch(`${supabaseUrl}/functions/v1/deliver-mobile-meeting-email`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${serviceKey}`,
+            "Content-Type": "application/json",
+            apikey: serviceKey,
+          },
+          body: JSON.stringify({ meetingId }),
+        });
 
-      const emailResult = await emailResp.text();
-      if (!emailResp.ok) {
-        console.warn(`deliver-mobile-meeting-email failed (${emailResp.status}): ${emailResult}`);
+        const emailResult = await emailResp.text();
+        if (!emailResp.ok) {
+          console.warn(`deliver-mobile-meeting-email failed (${emailResp.status}): ${emailResult}`);
+          // Clear the lock so it can be retried
+          await supabase
+            .from("meetings")
+            .update({ notes_email_sent_at: null })
+            .eq("id", meetingId);
+          steps.push("email_failed");
+        } else {
+          steps.push("email_sent");
+          console.log(`✅ Branded email sent for ${meetingId}`);
+        }
+      } catch (emailErr) {
+        console.error(`❌ Email send crashed:`, emailErr);
+        // Clear the lock so it can be retried
+        await supabase
+          .from("meetings")
+          .update({ notes_email_sent_at: null })
+          .eq("id", meetingId);
         steps.push("email_failed");
-      } else {
-        steps.push("email_sent");
-        console.log(`✅ Branded email sent for ${meetingId}`);
       }
-    } else {
-      steps.push("email_already_sent");
     }
 
     return new Response(JSON.stringify({ success: true, meetingId, steps }), {
