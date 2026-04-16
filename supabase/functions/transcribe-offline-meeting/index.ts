@@ -157,6 +157,25 @@ serve(async (req) => {
 
     if (meetingError || !meeting) throw new Error("Meeting not found");
 
+    // Ownership check: if caller is NOT the service role, verify they own the meeting
+    const authHeader = req.headers.get("authorization") || "";
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, "");
+    if (bearerToken && bearerToken !== serviceKey) {
+      const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(bearerToken);
+      if (authErr || !callerUser) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (callerUser.id !== meeting.user_id) {
+        return new Response(JSON.stringify({ error: "Forbidden: you do not own this meeting" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const chunkSources = await getChunkSources(meetingId);
     if (!chunkSources.length) throw new Error("No audio files found for this meeting");
     if (numericChunkIndex >= chunkSources.length) {
