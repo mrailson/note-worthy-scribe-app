@@ -195,6 +195,16 @@ function cleanHallucinations(text: string, requestId: string): string {
     }
   }
 
+  // 2b. Repeating numeric/dot pattern detection (e.g. "1.1.1.1.1.1...")
+  // Strip all whitespace and check if >60% of remaining chars are digits or dots
+  const stripped = text.replace(/\s+/g, '');
+  const numericDotChars = (stripped.match(/[\d.]/g) || []).length;
+  const numericDotRatio = stripped.length > 0 ? numericDotChars / stripped.length : 0;
+  if (stripped.length >= 20 && numericDotRatio > 0.60) {
+    console.log(`🚫 [${requestId}] Numeric dot-repeat hallucination detected (${(numericDotRatio * 100).toFixed(0)}% numeric/dot chars in ${stripped.length} chars)`);
+    return '';
+  }
+
   // 3. Detect repetitive content (low unique-word ratio)
   const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
   const uniqueRatio = wordCount > 0 ? uniqueWords / wordCount : 1;
