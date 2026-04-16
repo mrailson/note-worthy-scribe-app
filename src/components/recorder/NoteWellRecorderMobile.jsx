@@ -400,6 +400,39 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
     );
   }
 
+  // Dedicated upload progress screen
+  if (progress.phase === "uploading") {
+    return (
+      <div style={{margin:"8px 16px 0",background:"white",borderRadius:14,padding:"20px 18px",
+        boxShadow:"0 2px 8px rgba(21,101,192,0.10)",border:"1px solid rgba(21,101,192,0.15)",animation:"fadeIn 0.2s"}}>
+        <div style={{fontSize:15,fontWeight:700,color:"#1a2332",marginBottom:4}}>Uploading your recording</div>
+        {progress.recordingTitle && (
+          <div style={{fontSize:12,color:"#64748b",marginBottom:2}}>{progress.recordingTitle}</div>
+        )}
+        {(progress.totalSizeLabel || progress.durationLabel) && (
+          <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>
+            {[progress.totalSizeLabel, progress.durationLabel].filter(Boolean).join(" · ")}
+          </div>
+        )}
+        <div style={{width:"100%",height:8,borderRadius:4,background:"#f1f5f9",overflow:"hidden",marginBottom:6}}>
+          <div style={{
+            width:`${progress.percentComplete}%`,height:"100%",borderRadius:4,
+            background:"linear-gradient(90deg, #1565c0, #0288d1)",
+            transition:"width 0.3s ease-out",
+          }}/>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:12,fontWeight:600,color:"#1565c0"}}>{progress.percentComplete}%</span>
+          <span style={{fontSize:11,color:"#94a3b8"}}>{progress.message}</span>
+        </div>
+        <div style={{marginTop:12,display:"flex",alignItems:"center",gap:6,padding:"8px 10px",borderRadius:8,background:"#fef3c7",border:"1px solid rgba(245,158,11,0.25)"}}>
+          <span style={{fontSize:14}}>📱</span>
+          <span style={{fontSize:11,color:"#92400e",fontWeight:500}}>Please keep this tab open until upload completes</span>
+        </div>
+      </div>
+    );
+  }
+
   const phaseColors = {
     uploading: "#1565c0",
     transcribing: "#7c3aed",
@@ -434,12 +467,14 @@ function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
 function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [syncClicked, setSyncClicked] = useState(false);
   const colors = {
-    local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally — tap Sync" },
+    local:       { dot:"#f59e0b", bg:"rgba(245,158,11,0.1)",  border:"rgba(245,158,11,0.25)",  label:"Saved locally" },
     syncing:     { dot:"#1565c0", bg:"rgba(21,101,192,0.08)", border:"rgba(21,101,192,0.2)",   label:"Uploading…" },
+    uploaded:    { dot:"#16a34a", bg:"rgba(22,163,74,0.08)",  border:"rgba(22,163,74,0.2)",    label:"Uploaded ✓" },
     synced:      { dot:"#16a34a", bg:"rgba(22,163,74,0.08)",  border:"rgba(22,163,74,0.2)",    label:"Synced" },
     transcribed: { dot:"#16a34a", bg:"rgba(22,163,74,0.06)",  border:"rgba(22,163,74,0.2)",    label:"Meeting Created ✓" },
-    error:       { dot:"#dc2626", bg:"rgba(220,38,38,0.07)",  border:"rgba(220,38,38,0.2)",    label:"Sync failed — retry?" },
+    error:       { dot:"#dc2626", bg:"rgba(220,38,38,0.07)",  border:"rgba(220,38,38,0.2)",    label:"Sync failed" },
     too_short:   { dot:"#f59e0b", bg:"rgba(245,158,11,0.08)", border:"rgba(245,158,11,0.25)", label:"Too short — no meeting created" },
   };
   const c = colors[rec.status] ?? colors.local;
@@ -449,6 +484,18 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
   const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
   const showExpandableActions = rec.status === "transcribed" && rec.meetingId;
   const showTooShortActions = rec.status === "too_short";
+  const needsSync = rec.status === "local" || rec.status === "error" || rec.status === "too_short" || (rec.status === "transcribed" && !rec.meetingId);
+  const isSyncing = rec.status === "syncing" || syncClicked;
+
+  const handleSync = () => {
+    setSyncClicked(true);
+    onSync(rec);
+  };
+
+  // Reset syncClicked when status changes away from syncing
+  useEffect(() => {
+    if (rec.status !== "syncing") setSyncClicked(false);
+  }, [rec.status]);
 
   return (
     <div style={{background:"white",borderRadius:16,padding:"12px 14px",marginBottom:8,
@@ -477,20 +524,23 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
             {fmtDate(rec.createdAt)} · {fmtTime(rec.duration)} · {fmtSize(rec.size)}
             {rec.chunkCount > 1 ? ` · ${rec.chunkCount} segments` : ""}
           </div>
-          <span style={{
-            display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
-            padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
-            background:c.bg,color:c.dot,border:`1px solid ${c.border}`,
-          }}>
-            <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
-              animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
-            {c.label}
-            {rec.status === "transcribed" && rec.transcript && (() => {
-              const wc = rec.transcript.split(/\s+/).filter(Boolean).length;
-              const fmt = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K` : String(wc);
-              return <span style={{marginLeft:2,opacity:0.85}}>· {fmt} Words</span>;
-            })()}
-          </span>
+          {/* Status badge — hide for local/error since sync button replaces it */}
+          {!needsSync && (
+            <span style={{
+              display:"inline-flex",alignItems:"center",gap:4,marginTop:4,
+              padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:600,
+              background:c.bg,color:c.dot,border:`1px solid ${c.border}`,
+            }}>
+              <span style={{width:5,height:5,borderRadius:"50%",background:c.dot,
+                animation:rec.status==="syncing"?"pulse 1s infinite":"none"}}/>
+              {c.label}
+              {rec.status === "transcribed" && rec.transcript && (() => {
+                const wc = rec.transcript.split(/\s+/).filter(Boolean).length;
+                const fmt = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K` : String(wc);
+                return <span style={{marginLeft:2,opacity:0.85}}>· {fmt} Words</span>;
+              })()}
+            </span>
+          )}
           {rec.status === "transcribed" && rec.meetingId && (
             <div style={{fontSize:10,color:"#16a34a",marginTop:3,opacity:0.8,lineHeight:1.3}}>
               ✓ You may now safely delete this recording
@@ -507,12 +557,6 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:14,color:"#1565c0",fontWeight:700,transition:"all 0.2s",
             }}>⋯</button>
-          )}
-          {(rec.status==="local"||rec.status==="error"||rec.status==="too_short"||(rec.status==="transcribed"&&!rec.meetingId)) && (
-            <button onClick={()=>onSync(rec)} style={{
-              padding:"5px 10px",borderRadius:8,border:"1.5px solid rgba(21,101,192,0.3)",
-              background:"transparent",cursor:"pointer",fontSize:11,color:"#1565c0",fontWeight:700,fontFamily:"inherit",
-            }}>{rec.status==="transcribed"?"⟳ Create Meeting":rec.status==="too_short"?"⟳ Re-sync":"↑ Sync"}</button>
           )}
           {confirmDelete ? (
             <div style={{display:"flex",gap:4,alignItems:"center"}}>
