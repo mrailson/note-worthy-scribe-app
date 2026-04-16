@@ -1010,6 +1010,7 @@ export default function NoteWellRecorder() {
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
   const [elapsed,       setElapsed]       = useState(0);        // ms elapsed
   const [recordings,    setRecordings]    = useState([]);
+  const [meetingProgress, setMeetingProgress] = useState({}); // { [meetingId]: { word_count, notes_generation_status, summary_exists, notes_email_sent_at } }
   const [showSheet,     setShowSheet]     = useState(false);
   const [showSettings,  setShowSettings]  = useState(false);
   const [titleModal,    setTitleModal]    = useState(null);     // { chunks, duration, totalSize, chunkCount }
