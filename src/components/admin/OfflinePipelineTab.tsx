@@ -443,7 +443,7 @@ export function OfflinePipelineTab() {
                     </TableCell>
                     <TableCell>
                       <a
-                        href={`/meetings/${row.id}`}
+                        href={`/meeting-summary/${row.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm font-medium hover:underline text-primary"
@@ -465,7 +465,7 @@ export function OfflinePipelineTab() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => window.open(`/meetings/${row.id}`, '_blank')}>
+                          <DropdownMenuItem onClick={() => window.open(`/meeting-summary/${row.id}`, '_blank')}>
                             <ExternalLink className="h-4 w-4 mr-2" /> View meeting
                           </DropdownMenuItem>
                           {['stuck_transcription'].includes(row.pipeline_state) && (
