@@ -22,10 +22,15 @@ interface TestModeBarProps {
   onChange: (state: TestModeState) => void;
   practiceKeys: string[];
   practiceNames: Record<string, string>;
+  hiddenRoles?: TestRole[];
 }
 
-export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: TestModeBarProps) {
-  const isOverriding = state.enabled && state.role !== 'admin';
+export function TestModeBar({ state, onChange, practiceKeys, practiceNames, hiddenRoles = [] }: TestModeBarProps) {
+  const visibleRoles = hiddenRoles.length > 0
+    ? ROLE_OPTIONS.filter(r => !hiddenRoles.includes(r.value))
+    : ROLE_OPTIONS;
+  const defaultRole = visibleRoles[0]?.value ?? 'admin';
+  const isOverriding = state.enabled && state.role !== defaultRole;
   const activeRole = ROLE_OPTIONS.find(r => r.value === state.role);
   const [showPractice, setShowPractice] = useState(state.role === 'practice' && state.enabled);
   const [expanded, setExpanded] = useState(false);
@@ -49,7 +54,7 @@ export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: Te
   };
 
   const handleReset = () => {
-    onChange({ enabled: true, role: 'admin' });
+    onChange({ enabled: true, role: defaultRole });
     setExpanded(false);
   };
 
@@ -154,7 +159,7 @@ export function TestModeBar({ state, onChange, practiceKeys, practiceNames }: Te
 
         {/* Role pills */}
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const, flex: 1 }}>
-          {ROLE_OPTIONS.map(opt => {
+          {visibleRoles.map(opt => {
             const active = state.role === opt.value;
             return (
               <button
