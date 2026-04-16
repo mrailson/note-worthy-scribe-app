@@ -1,45 +1,30 @@
 
 
-# What Happened to Julia Railson's 17K Transcript — Findings and Fix
+# Restrict "Admin" Preview Mode for PML Director and PML Finance
 
-## Investigation Results
+## What changes
 
-The reprocessing **worked** — the 17,611-word transcript was successfully saved to the database. Here's the situation:
+Andrew Moore (PML Director) and Maria (PML Finance) currently see the full "Preview as" bar including the "Admin" option. We need to:
 
-1. **Original meeting** (`018e8d4e...`) has been **deleted** from the `meetings` table. Its 173 legacy chunks (only 7,262 words from fragmented live capture) still exist as orphaned records.
+1. **Hide the "Admin" pill** from users who are PML Director or PML Finance but not Super Admin or Management Lead
+2. **Set default preview role** to `pml_director` for Andrew and `pml_finance` for Maria (based on their system role, not hardcoded emails)
 
-2. **Two new meetings were created** from the audio backup reprocessing:
-   - `d8924703...` — 16,240 words (created 15 Apr 19:25)
-   - `fd41b67d...` — 17,611 words (created 15 Apr 19:45)
+## Technical approach
 
-3. **The transcript content looks clean** — it starts naturally ("I've got this one on, Sarah...") and ends properly ("Are we finished? Yeah, we are."). No garbled text in the database.
+### 1. `TestModeBar.tsx` — accept a `hiddenRoles` prop and filter options
 
-4. **Notes haven't been generated** — `notes_generation_status` is `not_started` on both meetings, so no meeting notes have been created from the new transcript yet.
+- Add an optional `hiddenRoles?: TestRole[]` prop
+- Filter `ROLE_OPTIONS` to exclude any roles in `hiddenRoles` before rendering pills
+- The reset button should go to the first available role instead of always `'admin'`
 
-5. **Generic title** — both meetings are titled "Meeting 15 Apr 18:21" instead of the original descriptive title.
+### 2. `BuyBackClaimsTab.tsx` — pass role-aware defaults and restrictions
 
-## What "Distorted" Likely Means
+- Compute `defaultTestRole` based on system roles: if `isPMLDirector` (and not super_admin/management_lead) → `'pml_director'`; if `isPMLFinance` (and not super_admin/management_lead) → `'pml_finance'`; otherwise → `'admin'`
+- Compute `hiddenRoles`: if the user is PML Director or PML Finance (but not super_admin or management_lead), hide `'admin'` from the list
+- Initialise `testMode` with the computed default role
+- Pass `hiddenRoles` to `TestModeBar`
 
-The old meeting's notes were generated from the **original 7,262-word fragmented live transcript** (173 tiny chunks, many only 3 words). If you're still viewing the old notes/output rather than the new meeting, that would explain the distortion — the original chunks were extremely fragmentary.
-
-## Recommended Actions
-
-### 1. Rename the correct meeting
-Update meeting `fd41b67d-bf11-41f3-80bf-2447e5f75863` title to "Health, Equalities, & Prevention Group" (or similar) so it's identifiable.
-
-### 2. Generate notes from the 17K transcript
-Trigger notes generation on meeting `fd41b67d...` — this has the fullest transcript (17,611 words) and should produce high-quality output for a 1hr 50min meeting.
-
-### 3. Delete the duplicate
-Remove the slightly shorter duplicate (`d8924703...`, 16,240 words) to avoid confusion.
-
-### 4. Clean up orphaned chunks
-The 173 legacy chunks for the deleted original meeting `018e8d4e...` can be purged.
-
-## Technical Changes (if you want me to proceed)
-
-- A single SQL migration to rename the meeting, delete the duplicate, and clean up orphan chunks
-- Trigger notes generation via the existing edge function
-
-Shall I proceed with these cleanup steps?
+### Files changed
+1. **`src/components/nres/hours-tracker/TestModeBar.tsx`** — add `hiddenRoles` prop, filter role options
+2. **`src/components/nres/hours-tracker/BuyBackClaimsTab.tsx`** — compute default role and hidden roles based on system roles, pass to TestModeBar
 
