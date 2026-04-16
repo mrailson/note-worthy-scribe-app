@@ -629,6 +629,22 @@ async function logSyncDiagnostic(recId, event) {
   } catch { /* diagnostics are best-effort */ }
 }
 
+function ProgressBadge({ tone, label }) {
+  const tones = {
+    green: { bg:"rgba(22,163,74,0.1)",  color:"#15803d", border:"rgba(22,163,74,0.25)" },
+    amber: { bg:"rgba(245,158,11,0.1)", color:"#b45309", border:"rgba(245,158,11,0.25)" },
+    red:   { bg:"rgba(220,38,38,0.08)", color:"#b91c1c", border:"rgba(220,38,38,0.25)" },
+  };
+  const t = tones[tone] || tones.amber;
+  return (
+    <span style={{
+      display:"inline-flex",alignItems:"center",
+      padding:"2px 7px",borderRadius:20,fontSize:10,fontWeight:600,lineHeight:1.2,
+      background:t.bg,color:t.color,border:`1px solid ${t.border}`,whiteSpace:"nowrap",
+    }}>{label}</span>
+  );
+}
+
 function RecordingItem({ rec, progress, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
