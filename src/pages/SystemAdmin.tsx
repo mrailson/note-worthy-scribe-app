@@ -74,7 +74,6 @@ import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { OrphanedWhisperMonitor } from '@/components/admin/OrphanedWhisperMonitor';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
-import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
 import { GPScribeStats } from '@/components/admin/GPScribeStats';
 import { StorageManagement } from '@/components/admin/StorageManagement';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
@@ -4278,15 +4277,10 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* System Monitoring Tab */}
           <TabsContent value="monitoring" className="space-y-6">
             <Tabs value={monitoringSubTab} onValueChange={setMonitoringSubTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 h-auto mb-6">
+              <TabsList className="grid w-full grid-cols-3 h-auto mb-6">
                 <TabsTrigger value="system" className="flex items-center gap-2 text-xs sm:text-sm p-2">
                   <Activity className="h-4 w-4" />
                   <span className="hidden sm:inline">System</span>
-                </TabsTrigger>
-                <TabsTrigger value="lg-capture" className="flex items-center gap-2 text-xs sm:text-sm p-2">
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">LG Capture</span>
-                  <span className="sm:hidden">LG</span>
                 </TabsTrigger>
                 <TabsTrigger value="gp-scribe" className="flex items-center gap-2 text-xs sm:text-sm p-2">
                   <Mic className="h-4 w-4" />
@@ -4455,10 +4449,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 <AdminAudioBackupSearch />
               </TabsContent>
 
-              {/* LG Capture Sub-Tab */}
-              <TabsContent value="lg-capture" className="space-y-6">
-                <LGCaptureStats />
-              </TabsContent>
 
               {/* GP Scribe Sub-Tab */}
               <TabsContent value="gp-scribe" className="space-y-6">

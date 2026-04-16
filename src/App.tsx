@@ -8,7 +8,6 @@ import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSaf
 import { cleanupStaleStorage } from '@/utils/localStorageManager';
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MockInspectionProtectedRoute } from "./components/MockInspectionProtectedRoute";
-import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 import { Loader2 } from "lucide-react";
 
 // Lazy-load all pages to reduce initial bundle size
@@ -99,16 +98,6 @@ const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
 
 const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
-const LGCaptureLanding = lazy(() => import("./pages/LGCaptureLanding"));
-const LGCaptureStart = lazy(() => import("./pages/LGCaptureStart"));
-const LGCaptureCamera = lazy(() => import("./pages/LGCaptureCamera"));
-const LGCaptureUpload = lazy(() => import("./pages/LGCaptureUpload"));
-const LGCaptureResults = lazy(() => import("./pages/LGCaptureResults"));
-const LGCapturePatients = lazy(() => import("./pages/LGCapturePatients"));
-const LGCaptureDemoService = lazy(() => import("./pages/LGCaptureDemoService"));
-const LGCaptureFileView = lazy(() => import("./pages/LGCaptureFileView"));
-const LGCaptureMyStats = lazy(() => import("./pages/LGCaptureMyStats"));
-const LGCaptureBulk = lazy(() => import("./pages/LGCaptureBulk"));
 const BPCalculator = lazy(() => import("./pages/BPCalculator"));
 const PublicBPCalculator = lazy(() => import("./pages/PublicBPCalculator"));
 const QuickRecord = lazy(() => import("./pages/QuickRecord"));
@@ -383,16 +372,6 @@ const App = () => {
                 <Route path="/security-report" element={<SecurityReport />} />
                 <Route path="/compliance/security-audit-2025-11-19" element={<SecurityAudit20251119 />} />
                 <Route path="/nhs-quest" element={<NHSQuest />} />
-                <Route path="/lg-capture" element={<LGUploadQueueProvider><LGCaptureLanding /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/file-view" element={<LGUploadQueueProvider><LGCaptureFileView /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/start" element={<LGUploadQueueProvider><LGCaptureStart /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/upload" element={<LGUploadQueueProvider><LGCaptureUpload /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/capture/:id" element={<LGUploadQueueProvider><LGCaptureCamera /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/demo/:id" element={<LGUploadQueueProvider><LGCaptureDemoService /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/results/:id" element={<LGUploadQueueProvider><LGCaptureResults /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/patients" element={<LGUploadQueueProvider><LGCapturePatients /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/my-stats" element={<LGUploadQueueProvider><LGCaptureMyStats /></LGUploadQueueProvider>} />
-                <Route path="/lg-capture/bulk" element={<LGUploadQueueProvider><LGCaptureBulk /></LGUploadQueueProvider>} />
                 <Route path="/bp-calculator" element={<BPCalculator />} />
                 <Route path="/mock-cqc-inspection" element={
                   <MockInspectionProtectedRoute>
