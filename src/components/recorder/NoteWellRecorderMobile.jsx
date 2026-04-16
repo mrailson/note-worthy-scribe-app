@@ -629,7 +629,23 @@ async function logSyncDiagnostic(recId, event) {
   } catch { /* diagnostics are best-effort */ }
 }
 
-function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
+function ProgressBadge({ tone, label }) {
+  const tones = {
+    green: { bg:"rgba(22,163,74,0.1)",  color:"#15803d", border:"rgba(22,163,74,0.25)" },
+    amber: { bg:"rgba(245,158,11,0.1)", color:"#b45309", border:"rgba(245,158,11,0.25)" },
+    red:   { bg:"rgba(220,38,38,0.08)", color:"#b91c1c", border:"rgba(220,38,38,0.25)" },
+  };
+  const t = tones[tone] || tones.amber;
+  return (
+    <span style={{
+      display:"inline-flex",alignItems:"center",
+      padding:"2px 7px",borderRadius:20,fontSize:10,fontWeight:600,lineHeight:1.2,
+      background:t.bg,color:t.color,border:`1px solid ${t.border}`,whiteSpace:"nowrap",
+    }}>{label}</span>
+  );
+}
+
+function RecordingItem({ rec, progress, onDelete, onSync, onPlay, isPlaying, onRetranscribe, isRetranscribing, onEmailAudio, isEmailing, onForceRetry, isForceRetrying, onDownloadAudio }) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [syncClicked, setSyncClicked] = useState(false);
@@ -705,6 +721,26 @@ function RecordingItem({ rec, onDelete, onSync, onPlay, isPlaying, onRetranscrib
                 return <span style={{marginLeft:2,opacity:0.85}}>· {fmt} Words</span>;
               })()}
             </span>
+          )}
+          {/* Progress badges — show notes/email status once meeting exists */}
+          {rec.meetingId && progress && (
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:5}}>
+              {progress.word_count > 0 && (
+                <ProgressBadge tone="green" label={`✓ ${progress.word_count >= 1000 ? `${(progress.word_count / 1000).toFixed(1)}K` : progress.word_count} words`} />
+              )}
+              {progress.summary_exists || progress.notes_generation_status === "completed" ? (
+                <ProgressBadge tone="green" label="✓ Notes" />
+              ) : progress.notes_generation_status === "failed" ? (
+                <ProgressBadge tone="red" label="✕ Notes failed" />
+              ) : progress.notes_generation_status === "processing" || progress.notes_generation_status === "pending" ? (
+                <ProgressBadge tone="amber" label="⋯ Notes" />
+              ) : null}
+              {progress.notes_email_sent_at ? (
+                <ProgressBadge tone="green" label="✓ Email sent" />
+              ) : (progress.summary_exists || progress.notes_generation_status === "completed") ? (
+                <ProgressBadge tone="amber" label="⋯ Email" />
+              ) : null}
+            </div>
           )}
           {rec.status === "transcribed" && rec.meetingId && (
             <div style={{fontSize:10,color:"#16a34a",marginTop:3,opacity:0.8,lineHeight:1.3}}>
@@ -1010,6 +1046,7 @@ export default function NoteWellRecorder() {
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
   const [elapsed,       setElapsed]       = useState(0);        // ms elapsed
   const [recordings,    setRecordings]    = useState([]);
+  const [meetingProgress, setMeetingProgress] = useState({}); // { [meetingId]: { word_count, notes_generation_status, summary_exists, notes_email_sent_at } }
   const [showSheet,     setShowSheet]     = useState(false);
   const [showSettings,  setShowSettings]  = useState(false);
   const [titleModal,    setTitleModal]    = useState(null);     // { chunks, duration, totalSize, chunkCount }
@@ -1148,6 +1185,47 @@ export default function NoteWellRecorder() {
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // ── Poll meeting progress for recordings linked to a meeting (notes / email status) ──
+  useEffect(() => {
+    const meetingIds = recordings.map(r => r.meetingId).filter(Boolean);
+    if (meetingIds.length === 0) return;
+
+    let cancelled = false;
+    const fetchProgress = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("meetings")
+          .select("id, word_count, notes_generation_status, notes_email_sent_at")
+          .in("id", meetingIds);
+        if (error || cancelled || !data) return;
+
+        const summaryRes = await supabase
+          .from("meeting_summaries")
+          .select("meeting_id")
+          .in("meeting_id", meetingIds);
+        const summarySet = new Set((summaryRes.data || []).map(s => s.meeting_id));
+
+        const map = {};
+        data.forEach(m => {
+          map[m.id] = {
+            word_count: m.word_count,
+            notes_generation_status: m.notes_generation_status,
+            notes_email_sent_at: m.notes_email_sent_at,
+            summary_exists: summarySet.has(m.id),
+          };
+        });
+        if (!cancelled) setMeetingProgress(map);
+      } catch (e) {
+        console.warn("[progress] fetch failed", e);
+      }
+    };
+
+    fetchProgress();
+    // Poll every 20s while there are pending notes/email
+    const iv = setInterval(fetchProgress, 20000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [recordings]);
 
   // Auto-delete completed recordings (Meeting Created ✓) after 1 hour
   useEffect(() => {
@@ -2933,6 +3011,7 @@ export default function NoteWellRecorder() {
               </div>
             ) : recordings.map(r => (
               <RecordingItem key={r.id} rec={r}
+                progress={r.meetingId ? meetingProgress[r.meetingId] : null}
                 onDelete={deleteRecording} onSync={syncRecording}
                 onPlay={playRecording} isPlaying={playingId===r.id}
                 onRetranscribe={retranscribeRecording} isRetranscribing={!!retranscribingIds[r.id]}
