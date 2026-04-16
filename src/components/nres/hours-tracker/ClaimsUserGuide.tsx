@@ -21,12 +21,15 @@ interface ClaimsUserGuideProps {
 }
 
 /* ── Callout boxes ─────────────────────────────────────────────── */
-function CalloutBox({ type, children }: { type: 'green' | 'red' | 'amber' | 'blue'; children: React.ReactNode }) {
+function CalloutBox({ type, children }: { type: 'green' | 'red' | 'amber' | 'blue' | 'purple' | 'sky' | 'slate'; children: React.ReactNode }) {
   const styles = {
     green: 'bg-emerald-50 border-emerald-300 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-700 dark:text-emerald-200',
     red: 'bg-red-50 border-red-300 text-red-900 dark:bg-red-950/30 dark:border-red-700 dark:text-red-200',
     amber: 'bg-amber-50 border-amber-300 text-amber-900 dark:bg-amber-950/30 dark:border-amber-700 dark:text-amber-200',
     blue: 'bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-950/30 dark:border-blue-700 dark:text-blue-200',
+    purple: 'bg-purple-50 border-purple-300 text-purple-900 dark:bg-purple-950/30 dark:border-purple-700 dark:text-purple-200',
+    sky: 'bg-sky-50 border-sky-300 text-sky-900 dark:bg-sky-950/30 dark:border-sky-700 dark:text-sky-200',
+    slate: 'bg-slate-50 border-slate-300 text-slate-900 dark:bg-slate-950/30 dark:border-slate-700 dark:text-slate-200',
   };
   return <div className={`rounded-lg border p-3 text-sm ${styles[type]}`}>{children}</div>;
 }
