@@ -547,9 +547,17 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   // isAdmin = NRES_ADMIN_EMAILS check; elevate PML role holders to see all claims
   const isAdmin = admin || isPMLFinance || isPMLDirector || isManagementLead || isSuperAdmin;
 
+  // Compute default test role and hidden roles based on system permissions
+  const isFullAdmin = isSuperAdmin || isManagementLead;
+  const defaultTestRole: import('./TestModeBar').TestRole =
+    !isFullAdmin && isPMLDirector ? 'pml_director' :
+    !isFullAdmin && isPMLFinance ? 'pml_finance' : 'admin';
+  const hiddenTestRoles: import('./TestModeBar').TestRole[] =
+    !isFullAdmin && (isPMLDirector || isPMLFinance) ? ['admin'] : [];
+
   // Test mode state — UI-only, admin users only
-  const [testMode, setTestMode] = useState<TestModeState>({ enabled: true, role: 'admin' });
-  const testActive = isAdmin && testMode.enabled && testMode.role !== 'admin';
+  const [testMode, setTestMode] = useState<TestModeState>({ enabled: true, role: defaultTestRole });
+  const testActive = isAdmin && testMode.enabled && testMode.role !== defaultTestRole;
 
   const [claimPractice, setClaimPractice] = useState<string>('');
 
