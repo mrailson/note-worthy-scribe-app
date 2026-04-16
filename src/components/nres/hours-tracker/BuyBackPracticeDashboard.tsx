@@ -2463,7 +2463,7 @@ function ClaimsViewSwitcher({
 
   const VIEW_TABS: { key: ClaimsView; label: string; icon: string }[] = [
     { key: 'summary', label: 'Summary', icon: '📋' },
-    { key: 'cards', label: 'Cards', icon: '🃏' },
+    { key: 'cards', label: 'Individual Claim View', icon: '🃏' },
     { key: 'invoices', label: 'Invoices', icon: '📄' },
     { key: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
   ];
