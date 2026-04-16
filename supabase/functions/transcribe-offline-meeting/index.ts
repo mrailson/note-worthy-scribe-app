@@ -186,10 +186,13 @@ serve(async (req) => {
 
     if (meetingError || !meeting) throw new Error("Meeting not found");
 
-    // Ownership check: if caller is NOT the service role, verify they own the meeting
+    // Ownership check: skip for service role key and anon key (cron/trigger calls)
     const authHeader = req.headers.get("authorization") || "";
     const bearerToken = authHeader.replace(/^Bearer\s+/i, "");
-    if (bearerToken && bearerToken !== serviceKey) {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const isInternalCall = !bearerToken || bearerToken === serviceKey || bearerToken === anonKey;
+
+    if (!isInternalCall) {
       const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(bearerToken);
       if (authErr || !callerUser) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -248,17 +251,22 @@ serve(async (req) => {
         throw transcribeErr;
       }
 
-      await supabase.from("meeting_transcription_chunks").insert({
+      const { error: insertErr } = await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingId,
         chunk_number: source.chunkNumber,
         transcription_text: chunkText,
         user_id: meeting.user_id,
         session_id: sessionId,
         is_final: true,
-        source: "whisper",
         transcriber_type: "whisper",
         word_count: chunkText.split(/\s+/).filter(Boolean).length,
       });
+
+      if (insertErr) {
+        console.error(`❌ Failed to insert chunk ${source.chunkNumber}:`, insertErr.message);
+        throw new Error(`Chunk insert failed: ${insertErr.message}`);
+      }
+      console.log(`✅ Chunk ${source.chunkNumber} saved (${chunkText.split(/\s+/).filter(Boolean).length} words)`);
     } else {
       console.log(`⏭️ Chunk ${source.chunkNumber} already transcribed, skipping`);
     }
