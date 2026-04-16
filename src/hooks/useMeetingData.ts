@@ -51,7 +51,7 @@ export const useMeetingData = () => {
     try {
       const { data: savedMeeting, error } = await supabase
         .from('meetings')
-        .insert([{
+        .insert({
           user_id: user.id,
           title: data.title,
           transcript: data.transcript,
@@ -74,7 +74,7 @@ export const useMeetingData = () => {
             has_attendees: Boolean(data.attendees?.length),
             enhancement_level: 'basic'
           }
-        })
+        } as any)
         .select()
         .single();
 
