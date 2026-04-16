@@ -1716,12 +1716,17 @@ export default function NoteWellRecorder() {
         });
 
         let uploadSuccess = false;
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        const BACKOFF_DELAYS = [0, 2000, 8000, 30000]; // Exponential backoff: immediate, 2s, 8s, 30s
+        const MAX_ATTEMPTS = 4;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
           try {
             // Use XHR for real byte-level progress
+            // NOTE: Supabase Storage's TUS resumable upload protocol is not yet
+            // supported via the JS client in a mobile PWA context. XHR with full
+            // retry is the reliable fallback. Chunked recording already splits
+            // files into 15-min segments (typically <5MB each), reducing the impact
+            // of restarting a single chunk upload.
             await new Promise((resolve, reject) => {
-              const { data: { session: currentSession } } = { data: { session: null } };
-              // Get current session token for auth
               supabase.auth.getSession().then(({ data: { session: sess } }) => {
                 if (!sess) { reject(new Error("Session expired")); return; }
                 const xhr = new XMLHttpRequest();
@@ -1735,42 +1740,103 @@ export default function NoteWellRecorder() {
                     const currentChunkProgress = e.loaded;
                     const totalProgress = uploadedBytes + currentChunkProgress;
                     const pct = Math.min(99, Math.round((totalProgress / totalBytes) * 100));
-                    console.log(`[sync] upload ${pct}% · chunk ${i + 1}/${totalChunks}`);
                     setSyncProgress(prev => ({
                       ...prev,
                       percentComplete: pct,
                       message: `Segment ${i + 1} of ${totalChunks}…`,
+                      retryAttempt: attempt > 1 ? attempt : 0,
+                      maxRetries: MAX_ATTEMPTS,
                     }));
                   }
                 };
                 xhr.onload = () => {
                   if (xhr.status >= 200 && xhr.status < 300) {
                     resolve();
+                  } else if (xhr.status === 401 || xhr.status === 403) {
+                    reject(Object.assign(new Error(`Auth error: ${xhr.status}`), { errorType: "auth_expired" }));
+                  } else if (xhr.status >= 500) {
+                    reject(Object.assign(new Error(`Server error: ${xhr.status}`), { errorType: "server_error" }));
+                  } else if (xhr.status === 413) {
+                    reject(Object.assign(new Error("Storage quota exceeded"), { errorType: "quota_exceeded" }));
                   } else {
                     reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
                   }
                 };
-                xhr.onerror = () => reject(new Error("Network error during upload"));
-                xhr.ontimeout = () => reject(new Error("Upload timed out"));
+                xhr.onerror = () => reject(Object.assign(new Error("Network error during upload"), { errorType: "network_drop" }));
+                xhr.ontimeout = () => reject(Object.assign(new Error("Upload timed out"), { errorType: "timeout" }));
                 xhr.timeout = 120000; // 2 minutes per chunk
                 xhr.send(blob);
               }).catch(reject);
             });
             uploadSuccess = true;
+            console.log(`[sync] chunk ${i + 1} attempt ${attempt} succeeded`);
+            await logSyncDiagnostic(rec.id, { event: "chunk_uploaded", chunk: i + 1, attempt });
             break;
           } catch (uploadErr) {
-            console.warn(`[sync] Chunk ${i + 1} upload attempt ${attempt} failed:`, uploadErr.message);
-            if (attempt < 3) {
+            const errType = uploadErr.errorType || (
+              !navigator.onLine ? "network_drop" :
+              uploadErr.message?.includes("timed out") ? "timeout" :
+              uploadErr.message?.includes("Session expired") ? "auth_expired" : "unknown"
+            );
+            console.warn(`[sync] chunk ${i + 1} attempt ${attempt}/${MAX_ATTEMPTS} failed:`, uploadErr.message, `(${errType})`);
+            await logSyncDiagnostic(rec.id, { event: "chunk_upload_fail", chunk: i + 1, attempt, error: uploadErr.message, errorType: errType });
+
+            // Non-retryable errors
+            if (errType === "auth_expired" || errType === "quota_exceeded") {
+              throw uploadErr;
+            }
+
+            if (attempt < MAX_ATTEMPTS) {
+              const delay = BACKOFF_DELAYS[attempt] || 30000;
               setSyncProgress(prev => ({
                 ...prev,
-                message: `Retrying segment ${i + 1} (attempt ${attempt + 1}/3)…`,
+                phase: "uploading",
+                message: `Retrying segment ${i + 1}…`,
+                retryAttempt: attempt + 1,
+                maxRetries: MAX_ATTEMPTS,
               }));
-              await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+
+              // If offline, wait for reconnection before retrying
+              if (!navigator.onLine) {
+                setSyncProgress(prev => ({
+                  ...prev,
+                  phase: "paused",
+                  errorType: "network_drop",
+                  message: "Waiting for connection…",
+                  recordingTitle: rec.title,
+                  totalSizeLabel: fmtSize(totalBytes),
+                  durationLabel: fmtTime(rec.duration),
+                }));
+                await new Promise(resolve => {
+                  const onOnline = () => { window.removeEventListener("online", onOnline); resolve(); };
+                  window.addEventListener("online", onOnline);
+                  // Also timeout after 5 minutes
+                  setTimeout(() => { window.removeEventListener("online", onOnline); resolve(); }, 300000);
+                });
+              } else {
+                await new Promise(resolve => setTimeout(resolve, delay));
+              }
             }
           }
         }
 
-        if (!uploadSuccess) throw new Error(`Failed to upload segment ${i + 1} after 3 attempts`);
+        if (!uploadSuccess) {
+          // Track retry count in IndexedDB
+          const currentRetries = (rec.syncRetryCount || 0) + 1;
+          await dbPatch(rec.id, { status: "error", syncRetryCount: currentRetries, lastSyncError: "Max retries exceeded" });
+          await refresh();
+          setSyncProgress({
+            phase: "error",
+            errorType: "max_retries",
+            errorDetail: `Segment ${i + 1} failed after ${MAX_ATTEMPTS} attempts`,
+            percentComplete: Math.round((uploadedBytes / totalBytes) * 100),
+            recordingTitle: rec.title,
+            totalSizeLabel: fmtSize(totalBytes),
+            durationLabel: fmtTime(rec.duration),
+          });
+          await logSyncDiagnostic(rec.id, { event: "sync_failed_max_retries", chunk: i + 1, totalAttempts: MAX_ATTEMPTS });
+          return;
+        }
 
         uploadedBytes += chunkSize;
         console.log(`[sync] chunk ${i + 1}/${totalChunks} uploaded · ${fmtSize(uploadedBytes)}/${fmtSize(totalBytes)}`);
@@ -1786,6 +1852,7 @@ export default function NoteWellRecorder() {
       }
 
       console.log("[sync] upload complete · all chunks uploaded");
+      await logSyncDiagnostic(rec.id, { event: "upload_complete", totalChunks, totalBytes: uploadedBytes });
       setSyncProgress({
         phase: "uploading",
         currentChunk: totalChunks,
@@ -1801,6 +1868,8 @@ export default function NoteWellRecorder() {
         status: "uploaded",
         uploadSessionId: sessionId,
         remoteChunkPaths: uploadedChunks.map(c => c.storagePath),
+        syncRetryCount: 0, // Reset on success
+        lastSyncError: null,
       });
       await refresh();
 
@@ -1828,7 +1897,7 @@ export default function NoteWellRecorder() {
       if (meetingErr || !meeting) {
         console.error("[sync] db row insertion failed:", meetingErr);
         showToast(`Upload succeeded but could not register meeting: ${meetingErr?.message || "unknown"}. Tap Sync again.`, "error");
-        await dbPatch(rec.id, { status: "error" });
+        await dbPatch(rec.id, { status: "error", lastSyncError: meetingErr?.message || "DB insert failed" });
         await refresh();
         setSyncProgress(null);
         return;
@@ -1865,13 +1934,28 @@ export default function NoteWellRecorder() {
         meetingId: meeting.id,
       });
       showToast("Upload complete — notes will arrive by email", "success");
+      await logSyncDiagnostic(rec.id, { event: "sync_complete", meetingId: meeting.id });
     } catch (err) {
       console.error("[sync] error:", err);
-      await dbPatch(rec.id, { status: "error" });
+      const errType = err.errorType || (
+        !navigator.onLine ? "network_drop" :
+        err.message?.includes("Session expired") ? "auth_expired" :
+        err.message?.includes("quota") ? "quota_exceeded" :
+        err.message?.includes("5") && err.message?.includes("00") ? "server_error" : "unknown"
+      );
+      const retryCount = (rec.syncRetryCount || 0) + 1;
+      await dbPatch(rec.id, { status: "error", syncRetryCount: retryCount, lastSyncError: err?.message || "Unknown" });
       await refresh();
-      setSyncProgress(null);
-      const msg = err?.message || err?.error_description || "Unknown error";
-      showToast(`Sync failed: ${msg}`, "error");
+      await logSyncDiagnostic(rec.id, { event: "sync_error", error: err?.message, errorType: errType, retryCount });
+      setSyncProgress({
+        phase: "error",
+        errorType: errType,
+        errorDetail: err?.message || "Unknown error",
+        percentComplete: 0,
+        recordingTitle: rec.title,
+        totalSizeLabel: fmtSize(rec.size || 0),
+        durationLabel: fmtTime(rec.duration),
+      });
     }
   };
 
