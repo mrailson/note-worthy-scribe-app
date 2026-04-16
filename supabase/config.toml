@@ -164,9 +164,6 @@ verify_jwt = true
 [functions.send-email-via-emailjs]
 verify_jwt = false
 
-[functions.send-meeting-summary]
-verify_jwt = false
-
 [functions.send-complaint-notifications]
 verify_jwt = true
 
@@ -274,9 +271,6 @@ verify_jwt = true
 
 [functions.lg-ocr-batch]
 verify_jwt = true
-
-[functions.lg-process-summary]
-verify_jwt = false
 
 [functions.lg-generate-pdf]
 verify_jwt = true
