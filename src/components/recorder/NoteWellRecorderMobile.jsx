@@ -2081,6 +2081,7 @@ export default function NoteWellRecorder() {
         @keyframes slideUp   { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
         @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
         @keyframes pulse     { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         * { box-sizing:border-box; margin:0; padding:0; }
         ::-webkit-scrollbar{width:3px}
         ::-webkit-scrollbar-thumb{background:rgba(21,101,192,0.15);border-radius:4px}
@@ -2097,15 +2098,22 @@ export default function NoteWellRecorder() {
         {/* App header with hamburger menu */}
         <Header />
 
-        {/* Sync badge (shown inline when needed) */}
-        {localCount > 0 && isOnline && (
-          <div style={{padding:"8px 16px 0",display:"flex",justifyContent:"center"}}>
-            <button
-              onClick={() => recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
-              style={{background:"rgba(245,158,11,0.9)",borderRadius:20,padding:"5px 12px",fontSize:11,color:"white",fontWeight:700,border:"none",cursor:"pointer",fontFamily:"inherit"}}
-            >
-              ↑ Sync {localCount}
-            </button>
+        {/* Persistent sync status indicator */}
+        {syncProgress && syncProgress.phase === "uploading" && (
+          <div style={{
+            margin:"0 16px",padding:"6px 12px",borderRadius:10,
+            background:"rgba(21,101,192,0.06)",border:"1px solid rgba(21,101,192,0.12)",
+            display:"flex",alignItems:"center",gap:8,
+          }}>
+            <span style={{fontSize:13}}>📤</span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:11,fontWeight:600,color:"#1565c0"}}>
+                1 recording syncing · {syncProgress.percentComplete}%
+              </div>
+              <div style={{width:"100%",height:3,borderRadius:2,background:"#e2e8f0",marginTop:3,overflow:"hidden"}}>
+                <div style={{width:`${syncProgress.percentComplete}%`,height:"100%",borderRadius:2,background:"#1565c0",transition:"width 0.3s ease-out"}}/>
+              </div>
+            </div>
           </div>
         )}
 
