@@ -89,7 +89,7 @@ function OverviewTab({ neighbourhoodName }: { neighbourhoodName: string }) {
 
       <CalloutBox type="purple">
         <p className="font-semibold mb-1">👨‍⚕️ GP Locum</p>
-        <p>External locum GPs covering SDA sessions when substantive staff are unavailable. Billed at <strong>fixed</strong> rates: <strong>£750/day</strong> or <strong>£375/session</strong>. No on-costs are added (locums invoice gross).</p>
+        <p>External locum GPs covering SDA sessions when substantive staff are unavailable. Billed at <strong>fixed</strong> rates: <strong>£750/day</strong> or <strong>£375/session</strong> (1 session = 4 hrs 10 mins / half-day). No on-costs are added (locums invoice gross).</p>
         <p className="mt-1 text-xs">✅ No Part B evidence required — locums are additional sessional cover, not buy-back.</p>
       </CalloutBox>
 
