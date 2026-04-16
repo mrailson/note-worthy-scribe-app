@@ -13,7 +13,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
 } from '@/components/ui/tooltip';
-import { MoreVertical, RefreshCw, ExternalLink, RotateCcw, Mail, Copy, ArrowUpDown } from 'lucide-react';
+import { MoreVertical, RefreshCw, ExternalLink, RotateCcw, Mail, Copy, ArrowUpDown, PlayCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PipelineState =
