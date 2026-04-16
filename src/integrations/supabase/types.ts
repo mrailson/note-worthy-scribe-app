@@ -7272,6 +7272,7 @@ export type Database = {
           audio_backup_path: string | null
           auto_generated_name: string | null
           best_of_all_transcript: string | null
+          chunk_count: number | null
           created_at: string
           data_retention_date: string | null
           description: string | null
@@ -7302,6 +7303,7 @@ export type Database = {
           merge_decision_log: Json | null
           mixed_audio_url: string | null
           notes_config: Json | null
+          notes_email_sent_at: string | null
           notes_generation_status: string | null
           notes_style_2: string | null
           notes_style_3: string | null
@@ -7312,6 +7314,7 @@ export type Database = {
           practice_id: string | null
           primary_transcript_source: string | null
           recording_created_at: string | null
+          remote_chunk_paths: string[] | null
           requires_audio_backup: boolean | null
           right_audio_url: string | null
           soap_notes: Json | null
@@ -7325,6 +7328,7 @@ export type Database = {
           transcript_cleaned_at: string | null
           transcript_cleaned_word_count: number | null
           updated_at: string
+          upload_session_id: string | null
           user_id: string
           whisper_confidence: number | null
           whisper_transcript_text: string | null
@@ -7339,6 +7343,7 @@ export type Database = {
           audio_backup_path?: string | null
           auto_generated_name?: string | null
           best_of_all_transcript?: string | null
+          chunk_count?: number | null
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
@@ -7369,6 +7374,7 @@ export type Database = {
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
           notes_config?: Json | null
+          notes_email_sent_at?: string | null
           notes_generation_status?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
@@ -7379,6 +7385,7 @@ export type Database = {
           practice_id?: string | null
           primary_transcript_source?: string | null
           recording_created_at?: string | null
+          remote_chunk_paths?: string[] | null
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
           soap_notes?: Json | null
@@ -7392,6 +7399,7 @@ export type Database = {
           transcript_cleaned_at?: string | null
           transcript_cleaned_word_count?: number | null
           updated_at?: string
+          upload_session_id?: string | null
           user_id: string
           whisper_confidence?: number | null
           whisper_transcript_text?: string | null
@@ -7406,6 +7414,7 @@ export type Database = {
           audio_backup_path?: string | null
           auto_generated_name?: string | null
           best_of_all_transcript?: string | null
+          chunk_count?: number | null
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
@@ -7436,6 +7445,7 @@ export type Database = {
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
           notes_config?: Json | null
+          notes_email_sent_at?: string | null
           notes_generation_status?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
@@ -7446,6 +7456,7 @@ export type Database = {
           practice_id?: string | null
           primary_transcript_source?: string | null
           recording_created_at?: string | null
+          remote_chunk_paths?: string[] | null
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
           soap_notes?: Json | null
@@ -7459,6 +7470,7 @@ export type Database = {
           transcript_cleaned_at?: string | null
           transcript_cleaned_word_count?: number | null
           updated_at?: string
+          upload_session_id?: string | null
           user_id?: string
           whisper_confidence?: number | null
           whisper_transcript_text?: string | null
