@@ -645,13 +645,26 @@ function InlineClaimPanel({
                 </div>
                 {/* Context rows */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: '1px solid #f3f4f6', paddingTop: 10 }}>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 12 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 12, flexWrap: 'wrap' }}>
                     <span style={{ color: '#9ca3af', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', minWidth: 54, flexShrink: 0 }}>Staff</span>
                     <span style={{ fontWeight: 600, color: '#111827' }}>{staffMember.staff_name}</span>
                     <span style={{ color: '#9ca3af' }}>·</span>
                     <span style={{ color: '#6b7280' }}>{staffMember.staff_role}</span>
                     <span style={{ color: '#9ca3af' }}>·</span>
                     <span style={{ color: '#6b7280' }}>{getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}</span>
+                    {(() => {
+                      const annualRate = rateParams?.getRoleAnnualRate?.(staffMember.staff_role) ?? 0;
+                      if (!annualRate || isLocum || isMeeting) return null;
+                      return (
+                        <>
+                          <span style={{ color: '#9ca3af' }}>·</span>
+                          <span style={{ color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                            {fmtGBP(annualRate)}/yr
+                          </span>
+                          <span style={{ color: '#9ca3af', fontSize: 11 }}>(WTE rate)</span>
+                        </>
+                      );
+                    })()}
                   </div>
                   {practiceName && (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', fontSize: 12 }}>
