@@ -1103,21 +1103,41 @@ export default function NoteWellRecorder() {
     };
   }, [syncProgress]);
 
-  // ── Page Visibility API (iOS Safari tab suspension) ────────────────────
+  // ── Page Visibility API (iOS Safari tab suspension + honest timer + suspension detection) ──
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        setIsPageHidden(true);
+        // Track when we went hidden for suspension detection
+        if (recState === "recording" || recState === "paused") {
+          hiddenSinceRef.current = Date.now();
+        }
         // Tab backgrounded — update title as warning
         if (syncProgress && syncProgress.phase === "uploading") {
           document.title = "(⏸ Sync paused) Notewell";
         }
       } else {
+        setIsPageHidden(false);
+        // Reset the tick reference so the honest timer doesn't count the gap
+        lastTickRef.current = Date.now();
+        // Suspension detection: calculate gap
+        if (hiddenSinceRef.current && (recState === "recording" || recState === "paused")) {
+          const gapSeconds = Math.round((Date.now() - hiddenSinceRef.current) / 1000);
+          if (gapSeconds > 10) {
+            const gap = { from: hiddenSinceRef.current, to: Date.now(), seconds: gapSeconds };
+            suspensionGapsRef.current = [...suspensionGapsRef.current, gap];
+            setSuspensionWarning({ seconds: gapSeconds });
+            console.warn(`⚠️ Recording suspended for ${gapSeconds}s while page was hidden`);
+          }
+          hiddenSinceRef.current = null;
+        }
         // Tab restored — reset title and check upload state
         document.title = "Notewell AI";
         if (syncProgress && (syncProgress.phase === "paused" || syncProgress.phase === "uploading")) {
           // Check if we're still online and should resume
           if (navigator.onLine) {
             console.log("[sync] tab restored — checking upload state");
+          }
           }
         }
       }
@@ -1355,10 +1375,28 @@ export default function NoteWellRecorder() {
       // ── Protection layer 3: Stream Health Monitor ──
       startHealthMonitor(recorder);
 
-      const startTime = Date.now();
+      // ── Protection layer 4: Silent HTML audio keep-alive ──
+      startSilentAudio();
+
+      // ── Honest timer: visibility-aware ──
+      lastTickRef.current = Date.now();
+      suspensionGapsRef.current = [];
+      setSuspensionWarning(null);
+      setIsPageHidden(false);
       timerRef.current = setInterval(() => {
-        setElapsed(Date.now() - startTime);
-      }, 500);
+        if (document.visibilityState === "visible") {
+          const now = Date.now();
+          const delta = now - lastTickRef.current;
+          // Only add delta if reasonable (< 2s to avoid jumps after wake)
+          if (delta > 0 && delta < 2000) {
+            setElapsed(prev => prev + delta);
+          }
+          lastTickRef.current = now;
+        } else {
+          // Page hidden — just reset reference, don't increment
+          lastTickRef.current = Date.now();
+        }
+      }, 250);
       setRecState("recording");
       setChunksCompleted(0);
     } catch {
@@ -1373,9 +1411,20 @@ export default function NoteWellRecorder() {
   };
 
   const resumeRecording = () => {
-    // Resume timer from where we left off
-    const resumeFrom = Date.now() - elapsed;
-    timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
+    // Resume honest timer from where we left off
+    lastTickRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        const now = Date.now();
+        const delta = now - lastTickRef.current;
+        if (delta > 0 && delta < 2000) {
+          setElapsed(prev => prev + delta);
+        }
+        lastTickRef.current = now;
+      } else {
+        lastTickRef.current = Date.now();
+      }
+    }, 250);
     setRecState("recording");
   };
 
@@ -1387,6 +1436,7 @@ export default function NoteWellRecorder() {
     setWakeLockStatus("unsupported");
     const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
     keepAlive.stop();
+    stopSilentAudio();
     // Capture live transcript BEFORE stopping (it gets cleared on stop)
     capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
     const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
