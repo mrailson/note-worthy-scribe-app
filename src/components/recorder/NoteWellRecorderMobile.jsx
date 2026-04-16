@@ -924,6 +924,84 @@ function StepsGuide() {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
+// ─── Pre-flight warning modal ─────────────────────────────────────────────
+const SESSION_KEY = "mobile_recording_warning_shown";
+
+function PreFlightWarningModal({ onStart, onCancel }) {
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(15,23,42,0.55)",backdropFilter:"blur(4px)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:"white",borderRadius:"24px 24px 0 0",padding:"20px 20px 28px",width:"100%",maxWidth:480,
+        animation:"slideUp 0.3s ease-out",paddingBottom:"calc(28px + env(safe-area-inset-bottom, 0px))",
+      }}>
+        <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+          <div style={{width:40,height:40,borderRadius:12,background:"rgba(245,158,11,0.12)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div style={{fontSize:17,fontWeight:700,color:"#1a2332",letterSpacing:-0.3}}>Before you start recording</div>
+        </div>
+        <div style={{fontSize:13,color:"#475569",lineHeight:1.7,marginBottom:18}}>
+          For best results during your recording:
+          <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#16a34a",fontWeight:700}}>✓</span> Keep your screen unlocked</div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#16a34a",fontWeight:700}}>✓</span> Don't switch to other apps</div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#16a34a",fontWeight:700}}>✓</span> Stay in this tab/window</div>
+          </div>
+          <div style={{marginTop:10,padding:"8px 10px",borderRadius:10,background:"#fef3c7",border:"1px solid rgba(245,158,11,0.3)",fontSize:12,color:"#92400e",lineHeight:1.5}}>
+            Your phone will keep the screen awake automatically, but if you lock it manually, recording will pause until you unlock again. The timer will show what was actually captured.
+          </div>
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onCancel} style={{flex:1,padding:"13px",borderRadius:14,border:"1.5px solid #e2e8f0",background:"white",cursor:"pointer",fontSize:14,fontWeight:600,color:"#64748b",fontFamily:"inherit"}}>Cancel</button>
+          <button onClick={onStart} style={{flex:1,padding:"13px",borderRadius:14,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:14,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(21,101,192,0.4)"}}>Start Recording</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Suspension warning banner ────────────────────────────────────────────
+function SuspensionWarningBanner({ seconds, onDismiss }) {
+  const formatGap = (s) => {
+    if (s < 60) return `${s} second${s !== 1 ? "s" : ""}`;
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem > 0 ? `${m} min ${rem} sec` : `${m} min`;
+  };
+  return (
+    <div style={{
+      margin:"8px 16px 0",padding:"12px 14px",borderRadius:12,
+      background:"#fef3c7",border:"2px solid #f59e0b",
+      display:"flex",alignItems:"flex-start",gap:8,animation:"fadeIn 0.2s",
+    }}>
+      <span style={{fontSize:16,flexShrink:0,marginTop:1}}>⚠</span>
+      <div style={{flex:1}}>
+        <div style={{fontSize:13,fontWeight:600,color:"#92400e",lineHeight:1.5}}>
+          Recording was paused for {formatGap(seconds)} while the screen was locked or you switched apps. Audio during that period was not captured.
+        </div>
+      </div>
+      <button onClick={onDismiss} style={{background:"none",border:"none",cursor:"pointer",padding:4,color:"#92400e",fontSize:16,fontWeight:700,flexShrink:0}}>×</button>
+    </div>
+  );
+}
+
+// ─── Silent audio keep-alive (HTML Audio element) ─────────────────────────
+const SILENT_WAV = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+let silentAudioEl = null;
+function startSilentAudio() {
+  try {
+    silentAudioEl = new Audio(SILENT_WAV);
+    silentAudioEl.loop = true;
+    silentAudioEl.volume = 0.001;
+    silentAudioEl.play().catch(err => console.warn("Silent audio session failed:", err));
+  } catch (e) { console.warn("Silent audio creation failed:", e); }
+}
+function stopSilentAudio() {
+  if (silentAudioEl) { silentAudioEl.pause(); silentAudioEl.src = ""; silentAudioEl = null; }
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -961,6 +1039,18 @@ export default function NoteWellRecorder() {
   const [wakeLockStatus, setWakeLockStatus] = useState("unsupported"); // unsupported|active|inactive
   const { requestLock, releaseLock, isLocked, isSupported: wakeLockSupported } = useWakeLock();
   const [pendingCount, setPendingCount] = useState(0);
+
+  // ── Pre-flight modal state ──
+  const [showPreFlight, setShowPreFlight] = useState(false);
+
+  // ── Honest timer state (visibility-aware) ──
+  const lastTickRef = useRef(Date.now());
+  const [isPageHidden, setIsPageHidden] = useState(false);
+
+  // ── Suspension detection state ──
+  const hiddenSinceRef = useRef(null);
+  const [suspensionWarning, setSuspensionWarning] = useState(null);
+  const suspensionGapsRef = useRef([]); // [{from, to, seconds}]
 
   // ── Refresh pending-sync count for ConnectionToggle ────────────────────────
   const refreshPendingCount = useCallback(async () => {
@@ -1013,21 +1103,41 @@ export default function NoteWellRecorder() {
     };
   }, [syncProgress]);
 
-  // ── Page Visibility API (iOS Safari tab suspension) ────────────────────
+  // ── Page Visibility API (iOS Safari tab suspension + honest timer + suspension detection) ──
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        setIsPageHidden(true);
+        // Track when we went hidden for suspension detection
+        if (recState === "recording" || recState === "paused") {
+          hiddenSinceRef.current = Date.now();
+        }
         // Tab backgrounded — update title as warning
         if (syncProgress && syncProgress.phase === "uploading") {
           document.title = "(⏸ Sync paused) Notewell";
         }
       } else {
+        setIsPageHidden(false);
+        // Reset the tick reference so the honest timer doesn't count the gap
+        lastTickRef.current = Date.now();
+        // Suspension detection: calculate gap
+        if (hiddenSinceRef.current && (recState === "recording" || recState === "paused")) {
+          const gapSeconds = Math.round((Date.now() - hiddenSinceRef.current) / 1000);
+          if (gapSeconds > 10) {
+            const gap = { from: hiddenSinceRef.current, to: Date.now(), seconds: gapSeconds };
+            suspensionGapsRef.current = [...suspensionGapsRef.current, gap];
+            setSuspensionWarning({ seconds: gapSeconds });
+            console.warn(`⚠️ Recording suspended for ${gapSeconds}s while page was hidden`);
+          }
+          hiddenSinceRef.current = null;
+        }
         // Tab restored — reset title and check upload state
         document.title = "Notewell AI";
         if (syncProgress && (syncProgress.phase === "paused" || syncProgress.phase === "uploading")) {
           // Check if we're still online and should resume
           if (navigator.onLine) {
             console.log("[sync] tab restored — checking upload state");
+          }
           }
         }
       }
@@ -1265,10 +1375,28 @@ export default function NoteWellRecorder() {
       // ── Protection layer 3: Stream Health Monitor ──
       startHealthMonitor(recorder);
 
-      const startTime = Date.now();
+      // ── Protection layer 4: Silent HTML audio keep-alive ──
+      startSilentAudio();
+
+      // ── Honest timer: visibility-aware ──
+      lastTickRef.current = Date.now();
+      suspensionGapsRef.current = [];
+      setSuspensionWarning(null);
+      setIsPageHidden(false);
       timerRef.current = setInterval(() => {
-        setElapsed(Date.now() - startTime);
-      }, 500);
+        if (document.visibilityState === "visible") {
+          const now = Date.now();
+          const delta = now - lastTickRef.current;
+          // Only add delta if reasonable (< 2s to avoid jumps after wake)
+          if (delta > 0 && delta < 2000) {
+            setElapsed(prev => prev + delta);
+          }
+          lastTickRef.current = now;
+        } else {
+          // Page hidden — just reset reference, don't increment
+          lastTickRef.current = Date.now();
+        }
+      }, 250);
       setRecState("recording");
       setChunksCompleted(0);
     } catch {
@@ -1283,9 +1411,20 @@ export default function NoteWellRecorder() {
   };
 
   const resumeRecording = () => {
-    // Resume timer from where we left off
-    const resumeFrom = Date.now() - elapsed;
-    timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
+    // Resume honest timer from where we left off
+    lastTickRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        const now = Date.now();
+        const delta = now - lastTickRef.current;
+        if (delta > 0 && delta < 2000) {
+          setElapsed(prev => prev + delta);
+        }
+        lastTickRef.current = now;
+      } else {
+        lastTickRef.current = Date.now();
+      }
+    }, 250);
     setRecState("recording");
   };
 
@@ -1297,6 +1436,7 @@ export default function NoteWellRecorder() {
     setWakeLockStatus("unsupported");
     const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
     keepAlive.stop();
+    stopSilentAudio();
     // Capture live transcript BEFORE stopping (it gets cleared on stop)
     capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
     const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
@@ -1381,9 +1521,21 @@ export default function NoteWellRecorder() {
       }
       const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
       await keepAlive.start();
+      startSilentAudio();
       startHealthMonitor(recorder);
-      const resumeFrom = Date.now() - prevElapsed;
-      timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
+      lastTickRef.current = Date.now();
+      timerRef.current = setInterval(() => {
+        if (document.visibilityState === "visible") {
+          const now = Date.now();
+          const delta = now - lastTickRef.current;
+          if (delta > 0 && delta < 2000) {
+            setElapsed(prev => prev + delta);
+          }
+          lastTickRef.current = now;
+        } else {
+          lastTickRef.current = Date.now();
+        }
+      }, 250);
       setRecState("recording");
       showToast("Recording resumed", "success");
     } catch (err) {
@@ -2410,6 +2562,29 @@ export default function NoteWellRecorder() {
   const active      = isRecording || isPaused;
   const localCount  = recordings.filter(r => r.status==="local"||r.status==="error").length;
 
+  // ── Pre-flight intercept for mobile devices ──
+  const handleRecordTap = () => {
+    if (!isIdle) {
+      // Already recording — handle pause/resume
+      if (isRecording) pauseRecording();
+      else resumeRecording();
+      return;
+    }
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const alreadyShown = sessionStorage.getItem(SESSION_KEY);
+    if (isMobile && !alreadyShown) {
+      setShowPreFlight(true);
+      return;
+    }
+    startRecording();
+  };
+
+  const handlePreFlightStart = () => {
+    sessionStorage.setItem(SESSION_KEY, "true");
+    setShowPreFlight(false);
+    startRecording();
+  };
+
   return (
     <>
       <style>{`
@@ -2487,6 +2662,11 @@ export default function NoteWellRecorder() {
           if (failedRec) syncRecording(failedRec);
         }} />
 
+        {/* Suspension warning banner */}
+        {suspensionWarning && active && (
+          <SuspensionWarningBanner seconds={suspensionWarning.seconds} onDismiss={() => setSuspensionWarning(null)} />
+        )}
+
         {/* Needs Attention section for failed syncs */}
         <NeedsAttentionSection
           recordings={recordings}
@@ -2541,13 +2721,24 @@ export default function NoteWellRecorder() {
               {active && (
                 <>
                   <div style={{fontSize:40,fontWeight:700,letterSpacing:-2,fontVariantNumeric:"tabular-nums",
-                    color:isPaused?"#f59e0b":"#1565c0",transition:"color 0.3s"}}>
+                    color:isPaused?"#f59e0b":isPageHidden?"#94a3b8":"#1565c0",transition:"color 0.3s"}}>
                     {fmtDuration(elapsed)}
                   </div>
+                  {/* Paused pill when page is hidden */}
+                  {isPageHidden && isRecording && (
+                    <div style={{
+                      display:"inline-flex",alignItems:"center",gap:4,marginTop:4,marginBottom:4,
+                      padding:"3px 10px",borderRadius:10,fontSize:11,fontWeight:700,
+                      background:"rgba(245,158,11,0.15)",color:"#d97706",
+                      border:"1px solid rgba(245,158,11,0.3)",animation:"pulse 1.5s infinite",
+                    }}>
+                      ⏸ PAUSED
+                    </div>
+                  )}
                   <div style={{fontSize:12,fontWeight:500,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",gap:5,
                     color:isPaused?"#f59e0b":"#16a34a"}}>
-                    {isRecording && <span style={{width:7,height:7,borderRadius:"50%",background:"#dc2626",display:"inline-block",animation:"pulse 1s infinite"}}/>}
-                    {isRecording ? (mode==="live"?"Recording · Transcribing live":"Recording · Saving locally") : "⏸ Paused"}
+                    {isRecording && !isPageHidden && <span style={{width:7,height:7,borderRadius:"50%",background:"#dc2626",display:"inline-block",animation:"pulse 1s infinite"}}/>}
+                    {isRecording ? (isPageHidden ? "" : mode==="live"?"Recording · Transcribing live":"Recording · Saving locally") : "⏸ Paused"}
                   </div>
                   {/* Chunk indicator */}
                   {chunksCompleted > 0 && (
@@ -2672,7 +2863,7 @@ export default function NoteWellRecorder() {
                   <div style={{position:"absolute",inset:-16,borderRadius:"50%",border:"2px solid rgba(21,101,192,0.12)",animation:"ripple 3.2s 1s infinite"}}/>
                 </>}
                 <button
-                  onClick={isIdle ? startRecording : isRecording ? pauseRecording : resumeRecording}
+                  onClick={handleRecordTap}
                   onTouchStart={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
                   onTouchEnd={e => { e.currentTarget.style.transform = "scale(1)"; }}
                   onMouseDown={e => { e.currentTarget.style.transform = "scale(0.93)"; }}
@@ -2813,6 +3004,11 @@ export default function NoteWellRecorder() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Pre-flight warning modal */}
+        {showPreFlight && (
+          <PreFlightWarningModal onStart={handlePreFlightStart} onCancel={() => setShowPreFlight(false)} />
         )}
 
         {/* Toast */}
