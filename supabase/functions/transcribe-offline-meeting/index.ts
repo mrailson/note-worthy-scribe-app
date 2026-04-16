@@ -157,6 +157,25 @@ serve(async (req) => {
 
     if (meetingError || !meeting) throw new Error("Meeting not found");
 
+    // Ownership check: if caller is NOT the service role, verify they own the meeting
+    const authHeader = req.headers.get("authorization") || "";
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, "");
+    if (bearerToken && bearerToken !== serviceKey) {
+      const { data: { user: callerUser }, error: authErr } = await supabase.auth.getUser(bearerToken);
+      if (authErr || !callerUser) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (callerUser.id !== meeting.user_id) {
+        return new Response(JSON.stringify({ error: "Forbidden: you do not own this meeting" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const chunkSources = await getChunkSources(meetingId);
     if (!chunkSources.length) throw new Error("No audio files found for this meeting");
     if (numericChunkIndex >= chunkSources.length) {
@@ -189,7 +208,16 @@ serve(async (req) => {
 
     if (!existing) {
       const prompt = `NHS primary care meeting transcript.${meeting.title ? ` Meeting: ${meeting.title}.` : ""}`;
-      const chunkText = await transcribeStoragePath(source.storagePath, source.bucket, prompt);
+      let chunkText: string;
+      try {
+        chunkText = await transcribeStoragePath(source.storagePath, source.bucket, prompt);
+      } catch (transcribeErr) {
+        // Mark failure server-side so it's visible even when client has disconnected
+        await supabase.from("meetings").update({
+          notes_generation_status: "failed",
+        }).eq("id", meetingId);
+        throw transcribeErr;
+      }
 
       await supabase.from("meeting_transcription_chunks").insert({
         meeting_id: meetingId,
@@ -252,6 +280,26 @@ serve(async (req) => {
       throw new Error("Stitched transcript was empty despite chunks existing");
     }
 
+    // Guard: too short to generate useful notes
+    if (wordCount < 100) {
+      await supabase.from("meetings").update({
+        whisper_transcript_text: fullTranscript,
+        primary_transcript_source: "whisper",
+        word_count: wordCount,
+        notes_generation_status: "failed",
+        overview: "Recording was too short to generate meeting notes — less than 100 words transcribed.",
+      }).eq("id", meetingId);
+
+      console.log(`⚠️ Meeting ${meetingId} too short (${wordCount} words), skipping note generation`);
+      return new Response(JSON.stringify({
+        success: true,
+        status: "too_short",
+        wordCount,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { error: updateErr } = await supabase
       .from("meetings")
       .update({
@@ -259,6 +307,7 @@ serve(async (req) => {
         primary_transcript_source: "whisper",
         word_count: wordCount,
         notes_generation_status: "queued",
+        status: "completed",
       })
       .eq("id", meetingId);
 
