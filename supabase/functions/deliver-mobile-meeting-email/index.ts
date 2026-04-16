@@ -101,7 +101,24 @@ serve(async (req: Request) => {
     const senderName = profile?.full_name || userEmail.split("@")[0] || "Notewell AI";
 
     // 5. Build dates (matching desktop flow exactly)
-    const meetingTitle = meeting.title || "Mobile Recording";
+    // If the title is still a generic placeholder, try to generate one from the transcript
+    let meetingTitle = meeting.title || "Meeting Notes";
+    const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
+    if (GENERIC_TITLES.includes(meetingTitle.toLowerCase().trim())) {
+      console.log("⚠️ Title is generic, attempting AI title generation...");
+      try {
+        const { data: titleResult } = await supabase.functions.invoke("generate-meeting-title", {
+          body: { meetingId: meeting.id, currentTitle: meetingTitle },
+        });
+        if (titleResult?.title && !GENERIC_TITLES.includes(titleResult.title.toLowerCase().trim())) {
+          meetingTitle = titleResult.title;
+          await supabase.from("meetings").update({ title: meetingTitle }).eq("id", meeting.id);
+          console.log("✅ Generated title for email:", meetingTitle);
+        }
+      } catch (titleErr) {
+        console.warn("⚠️ Title generation failed, using fallback:", titleErr);
+      }
+    }
 
     const meetingDate = meeting.start_time
       ? new Date(meeting.start_time).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
