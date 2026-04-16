@@ -548,6 +548,17 @@ export function OfflinePipelineTab() {
                           <DropdownMenuItem onClick={() => window.open(`/meeting-summary/${row.id}`, '_blank')}>
                             <ExternalLink className="h-4 w-4 mr-2" /> View meeting
                           </DropdownMenuItem>
+                          {isProcessable(row) && (
+                            <DropdownMenuItem
+                              disabled={processingIds.has(row.id)}
+                              onClick={() => handleProcessNow(row.id)}
+                            >
+                              {processingIds.has(row.id)
+                                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing…</>
+                                : <><PlayCircle className="h-4 w-4 mr-2" /> Process Now</>
+                              }
+                            </DropdownMenuItem>
+                          )}
                           {['stuck_transcription'].includes(row.pipeline_state) && (
                             <DropdownMenuItem onClick={() => retryTranscription(row.id)}>
                               <RotateCcw className="h-4 w-4 mr-2" /> Retry transcription
