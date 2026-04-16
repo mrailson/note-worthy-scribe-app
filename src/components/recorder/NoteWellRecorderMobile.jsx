@@ -367,8 +367,39 @@ function TitleModal({ duration, chunkCount, totalSize, autoTitle, onSave, onCont
   );
 }
 
-function SyncProgressBar({ progress }) {
+function SyncProgressBar({ progress, setSyncProgress, setRecState }) {
   if (!progress) return null;
+
+  if (progress.phase === "safe_to_close") {
+    return (
+      <div style={{margin:"8px 16px 0",background:"white",borderRadius:14,padding:"20px 18px",
+        boxShadow:"0 2px 8px rgba(22,163,74,0.10)",border:"1px solid rgba(22,163,74,0.18)",animation:"fadeIn 0.2s",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:8}}>✅</div>
+        <div style={{fontSize:18,fontWeight:700,color:"#1a2332",marginBottom:6}}>Thanks — all done</div>
+        <p style={{fontSize:13,color:"#64748b",lineHeight:1.5,margin:"0 0 16px"}}>
+          It's safe to close the app now. Your meeting notes will arrive by email in about {progress.estimateMinutes} minutes and appear in your Notewell dashboard shortly after.
+        </p>
+        <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+          <button
+            onClick={() => {
+              setSyncProgress(null);
+              document.getElementById("recordings-list")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            style={{flex:1,padding:"10px 14px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",cursor:"pointer",fontSize:13,fontWeight:600,color:"white",fontFamily:"inherit",boxShadow:"0 4px 12px rgba(21,101,192,0.4)"}}
+          >
+            View my recordings
+          </button>
+          <button
+            onClick={() => { setSyncProgress(null); setRecState("idle"); }}
+            style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid rgba(21,101,192,0.25)",background:"white",cursor:"pointer",fontSize:13,fontWeight:600,color:"#1565c0",fontFamily:"inherit"}}
+          >
+            Record another
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const phaseColors = {
     uploading: "#1565c0",
     transcribing: "#7c3aed",
@@ -1419,287 +1450,68 @@ export default function NoteWellRecorder() {
       }
 
       await dbPatch(rec.id, {
-        status: "synced",
+        status: "uploaded",
         uploadSessionId: sessionId,
-        remoteChunkPaths: uploadedChunks.map(chunk => chunk.storagePath),
+        remoteChunkPaths: uploadedChunks.map(c => c.storagePath),
       });
       await refresh();
 
-      const chunkTranscripts = [];
-      let previousChunkText = "";
-
-      for (let i = 0; i < totalChunks; i++) {
-        const chunk = chunks[i];
-        const uploadedChunk = uploadedChunks.find(entry => entry.index === chunk.index);
-        const storagePath = uploadedChunk?.storagePath;
-
-        if (!storagePath) {
-          console.warn(`[Sync] Missing uploaded storage path for chunk ${chunk.index}`);
-          chunkTranscripts.push({ index: chunk.index, text: "", success: false });
-          continue;
-        }
-
-        setSyncProgress({
-          phase: "transcribing",
-          currentChunk: i + 1,
-          totalChunks,
-          percentComplete: 30 + Math.round(((i + 1) / totalChunks) * 55),
-          message: `Transcribing segment ${i + 1} of ${totalChunks}…`,
-        });
-
-        const prompt = previousChunkText
-          ? `NHS primary care meeting transcript. ${rec.title ? `Meeting: ${rec.title}.` : ""} ${previousChunkText.split(/\s+/).slice(-150).join(" ")}`
-          : `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ""}`;
-
-        const { data: transcriptData, error: fnErr } = await supabase.functions.invoke("standalone-whisper", {
-          body: { storagePath, bucket: "recordings", responseFormat: "verbose_json", prompt },
-        });
-
-        if (fnErr) {
-          console.warn(`Chunk ${i + 1} transcription failed:`, fnErr);
-          chunkTranscripts.push({ index: chunk.index, text: "", success: false });
-          continue;
-        }
-
-        const cleaned = cleanWhisperResponse(transcriptData || {});
-        if (cleaned.cleaningSummary?.totalWordsRemoved > 0) {
-          console.log(`🧹 Mobile chunk ${i + 1}: cleaner removed ${cleaned.cleaningSummary.totalWordsRemoved} words`);
-        }
-
-        const cleanedText = (cleaned.text || transcriptData?.text || "")
-          .replace(/\s+/g, " ")
-          .trim();
-
-        if (!cleanedText) {
-          console.warn(`[Sync] Chunk ${i + 1} cleaned to empty text — treating as failed`);
-          chunkTranscripts.push({ index: chunk.index, text: "", success: false });
-          continue;
-        }
-
-        const rawWordCount = String(transcriptData?.text || "").split(/\s+/).filter(Boolean).length;
-        const cleanedWordCount = cleanedText.split(/\s+/).filter(Boolean).length;
-        if (rawWordCount > cleanedWordCount && cleaned.cleaningSummary?.totalWordsRemoved > 0) {
-          console.log(`[Sync] Chunk ${i + 1}: keeping cleaned text (${cleanedWordCount} words) instead of raw Whisper output (${rawWordCount} words)`);
-        }
-
-        chunkTranscripts.push({
-          index: chunk.index,
-          text: cleanedText,
-          success: true,
-        });
-        previousChunkText = cleanedText;
-      }
-
-      setSyncProgress({
-        phase: "stitching",
-        currentChunk: totalChunks,
-        totalChunks,
-        percentComplete: 90,
-        message: "Assembling final transcript…",
-      });
-
-      const successfulChunks = chunkTranscripts
-        .filter(chunk => chunk.success && chunk.text)
-        .sort((a, b) => a.index - b.index);
-
-      let fullTranscript = stitchChunkTranscripts(successfulChunks);
-      if (!fullTranscript) {
-        fullTranscript = successfulChunks.map(chunk => chunk.text).join(" ").replace(/\s+/g, " ").trim();
-      }
-
-      const whisperWordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
-      const capturedLive = rec.capturedLiveTranscript || "";
-      const liveWordCount2 = capturedLive.split(/\s+/).filter(Boolean).length;
-      let usedLiveRescue = false;
-      const recordingMinutes = (rec.duration || 0) / 60;
-
-      if (liveWordCount2 > 30 && recordingMinutes >= 2 && whisperWordCount < liveWordCount2 * 0.3) {
-        console.warn(`[LiveRescue] Whisper output suspiciously short: ${whisperWordCount} words vs live ${liveWordCount2} words. Using live transcript.`);
-        fullTranscript = capturedLive;
-        usedLiveRescue = true;
-      }
-
-      if (!usedLiveRescue && whisperWordCount < 30 && recordingMinutes >= 5 && liveWordCount2 > whisperWordCount) {
-        console.warn(`[LiveRescue] Whisper suspiciously short (${whisperWordCount} words for ${recordingMinutes.toFixed(0)}min). Using live transcript (${liveWordCount2} words).`);
-        fullTranscript = capturedLive;
-        usedLiveRescue = true;
-      }
-
-      await dbPatch(rec.id, { status: "transcribed", transcript: fullTranscript });
-      await refresh();
-
-      const failedCount = chunkTranscripts.filter(chunk => !chunk.success).length;
-      if (failedCount > 0) {
-        showToast(`${failedCount} segment${failedCount > 1 ? "s" : ""} failed — partial transcript`, "error");
-      } else {
-        showToast("Transcription complete", "success");
-      }
-
-      setSyncProgress({
-        phase: "stitching",
-        currentChunk: totalChunks,
-        totalChunks,
-        percentComplete: 92,
-        message: "Creating meeting record…",
-      });
-
-      let activeUser = null;
-      try {
-        const { data: { session } } = await supabase.auth.refreshSession();
-        if (session?.user) {
-          activeUser = session.user;
-          console.log("[ChunkedSync] Session refreshed successfully:", activeUser.id);
-        }
-      } catch (refreshErr) {
-        console.warn("[ChunkedSync] Session refresh failed:", refreshErr);
-      }
-
-      if (!activeUser) {
-        const { data: { user: freshUser } } = await supabase.auth.getUser();
-        activeUser = freshUser || user;
-      }
-      console.log("[ChunkedSync] Creating meeting. activeUser:", activeUser?.id, "transcript length:", fullTranscript.length);
-
-      if (!activeUser?.id) {
-        console.error("[ChunkedSync] No authenticated user for meeting creation");
-        console.error("[ChunkedSync] Transcript preserved in IndexedDB with status 'transcribed'");
-        showToast("Session expired — tap Sync again after signing in", "error");
-        setSyncProgress(null);
-        return;
-      }
-
-      const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
-
-      if (wordCount < 100) {
-        console.log(`[Sync] Recording too short (${wordCount} words) — skipping meeting creation`);
-        if (!rec.forceCreate) {
-          showToast(`Recording too short (${wordCount} words) — at least 100 words needed for meeting notes`, "warning");
-          await dbPatch(rec.id, { status: "too_short", transcript: fullTranscript });
-          await refresh();
-          setSyncProgress(null);
-          return;
-        }
-        console.log("[Sync] Force create enabled — bypassing word count guard");
-        showToast(`Force creating meeting with ${wordCount} words…`, "info");
-      }
-
-      let durationMins = Math.round((rec.duration || 0) / 60);
-      if (durationMins === 0 && rec.createdAt) {
-        durationMins = Math.round((Date.now() - new Date(rec.createdAt).getTime()) / 60000);
-        console.log("[Sync] Duration computed from timestamps:", durationMins, "mins");
-      }
-
-      const finalizeMeetingSync = async (meetingId, ownerId) => {
-        attachDeviceInfoToMeeting(meetingId);
-        await persistUploadedChunkMetadata(meetingId, uploadedChunks, rec.createdAt);
-
-        for (const chunk of successfulChunks) {
-          await supabase.from("meeting_transcription_chunks").insert({
-            meeting_id: meetingId,
-            user_id: ownerId,
-            session_id: sessionId,
-            chunk_number: chunk.index,
-            transcription_text: chunk.text,
-            is_final: true,
-            source: "whisper",
-            transcriber_type: "whisper",
-            word_count: chunk.text.split(/\s+/).filter(Boolean).length,
-          });
-        }
-
-        await dbPatch(rec.id, {
-          meetingId,
-          uploadSessionId: sessionId,
-          remoteChunkPaths: uploadedChunks.map(chunk => chunk.storagePath),
-        });
-        await refresh();
-
-        setSyncProgress({
-          phase: "complete",
-          currentChunk: totalChunks,
-          totalChunks,
-          percentComplete: 100,
-          message: `Complete — ${wordCount} words`,
-        });
-        showToast("Meeting created — generating notes…", "success");
-
-        generateNotesForMeeting(meetingId)
-          .then(() => {
-            showToast("Meeting notes generated ✨", "success");
-            triggerPostNoteActions(meetingId);
-          })
-          .catch(async (err) => {
-            console.error("Note generation client error (may be timeout):", err);
-            await pollAndEmailIfReady(meetingId, "Meeting saved — checking for notes…");
-          })
-          .finally(() => { setSyncProgress(null); refresh(); });
-      };
-
-      const meetingInsert = {
-        title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-        user_id: activeUser.id,
-        status: "completed",
-        meeting_type: "general",
-        start_time: new Date(rec.createdAt).toISOString(),
-        end_time: new Date().toISOString(),
-        duration_minutes: durationMins,
-        word_count: wordCount,
-        import_source: mode === "live" ? "mobile_live" : "mobile_offline",
-        whisper_transcript_text: fullTranscript,
-        primary_transcript_source: usedLiveRescue ? "assemblyai_rescue" : "whisper",
-      };
-
-      if (usedLiveRescue && capturedLive) {
-        meetingInsert.assembly_transcript_text = capturedLive;
-      } else if (capturedLive && liveWordCount2 > 0) {
-        meetingInsert.assembly_transcript_text = capturedLive;
-      }
-
-      const { data: meetingData, error: meetingErr } = await supabase
+      // Create the meeting row in pending_transcription state
+      const durationMins = Math.max(1, Math.round((rec.duration || 0) / 60));
+      const { data: meeting, error: meetingErr } = await supabase
         .from("meetings")
-        .insert(meetingInsert)
+        .insert({
+          title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
+          user_id: user.id,
+          status: "pending_transcription",
+          meeting_type: "general",
+          start_time: new Date(rec.createdAt).toISOString(),
+          end_time: new Date().toISOString(),
+          duration_minutes: durationMins,
+          import_source: mode === "live" ? "mobile_live" : "mobile_offline",
+          upload_session_id: sessionId,
+          remote_chunk_paths: uploadedChunks.map(c => c.storagePath),
+          chunk_count: totalChunks,
+          notes_generation_status: "queued",
+        })
         .select("id")
         .single();
 
-      if (meetingErr) {
-        console.error("Meeting creation failed:", meetingErr);
-        console.error("Meeting creation error details:", JSON.stringify(meetingErr));
-        const { data: { user: retryUser } } = await supabase.auth.getUser();
-        if (retryUser) {
-          const { data: retryData, error: retryErr } = await supabase
-            .from("meetings")
-            .insert({
-              title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-              user_id: retryUser.id,
-              status: "completed",
-              meeting_type: "general",
-              start_time: new Date(rec.createdAt).toISOString(),
-              end_time: new Date().toISOString(),
-              duration_minutes: durationMins,
-              word_count: wordCount,
-              import_source: mode === "live" ? "mobile_live" : "mobile_offline",
-              whisper_transcript_text: fullTranscript,
-              primary_transcript_source: usedLiveRescue ? "assemblyai_rescue" : "whisper",
-              assembly_transcript_text: capturedLive && liveWordCount2 > 0 ? capturedLive : null,
-            })
-            .select("id")
-            .single();
-
-          if (!retryErr && retryData) {
-            console.log("Meeting creation succeeded on retry");
-            await finalizeMeetingSync(retryData.id, retryUser.id);
-            return;
-          }
-          console.error("Meeting creation retry also failed:", retryErr);
-        }
-
-        const errMsg = meetingErr?.message || meetingErr?.details || JSON.stringify(meetingErr);
-        showToast(`Transcribed but meeting creation failed: ${errMsg}`, "error");
+      if (meetingErr || !meeting) {
+        showToast(`Upload succeeded but could not register meeting: ${meetingErr?.message || "unknown"}. Tap Sync again.`, "error");
+        await dbPatch(rec.id, { status: "error" });
+        await refresh();
         setSyncProgress(null);
         return;
       }
 
-      await finalizeMeetingSync(meetingData.id, activeUser.id);
+      // Persist chunk metadata server-side so transcribe-offline-meeting can find the chunks
+      await persistUploadedChunkMetadata(meeting.id, uploadedChunks, rec.createdAt);
+
+      // Link IndexedDB record to the meeting immediately
+      await dbPatch(rec.id, { meetingId: meeting.id });
+      await refresh();
+
+      // Fire-and-forget: kick off server-side transcription. We intentionally do NOT await completion.
+      supabase.functions.invoke("transcribe-offline-meeting", {
+        body: { meetingId: meeting.id, chunkIndex: 0 },
+      }).catch((err) => {
+        console.warn("[Sync] Transcription dispatch failed (server queue will retry):", err);
+      });
+
+      // Surface the "Safe to close" success state
+      const hours = (rec.duration || 0) / 3600;
+      const estimateMinutes = hours <= 1 ? 10 : hours <= 2 ? 15 : hours <= 3 ? 20 : 25;
+      setSyncProgress({
+        phase: "safe_to_close",
+        currentChunk: totalChunks,
+        totalChunks,
+        percentComplete: 100,
+        message: "Upload complete — safe to close",
+        estimateMinutes,
+        meetingId: meeting.id,
+      });
+      showToast("Upload complete — notes will arrive by email", "success");
     } catch (err) {
       console.error("Sync error:", err);
       await dbPatch(rec.id, { status: "error" });
