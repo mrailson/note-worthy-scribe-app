@@ -7329,6 +7329,7 @@ export type Database = {
           title: string
           transcript_cleaned_at: string | null
           transcript_cleaned_word_count: number | null
+          transcript_updated_at: string | null
           updated_at: string
           upload_session_id: string | null
           user_id: string
@@ -7402,6 +7403,7 @@ export type Database = {
           title: string
           transcript_cleaned_at?: string | null
           transcript_cleaned_word_count?: number | null
+          transcript_updated_at?: string | null
           updated_at?: string
           upload_session_id?: string | null
           user_id: string
@@ -7475,6 +7477,7 @@ export type Database = {
           title?: string
           transcript_cleaned_at?: string | null
           transcript_cleaned_word_count?: number | null
+          transcript_updated_at?: string | null
           updated_at?: string
           upload_session_id?: string | null
           user_id?: string
