@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Clock, FileText, Eye, Trash2, Calendar, MapPin, Video, Users, Monitor } from "lucide-react";
+import { Clock, Eye, Trash2, Calendar, Video, Users, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
