@@ -706,6 +706,26 @@ function RecordingItem({ rec, progress, onDelete, onSync, onPlay, isPlaying, onR
               })()}
             </span>
           )}
+          {/* Progress badges — show notes/email status once meeting exists */}
+          {rec.meetingId && progress && (
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:5}}>
+              {progress.word_count > 0 && (
+                <ProgressBadge tone="green" label={`✓ ${progress.word_count >= 1000 ? `${(progress.word_count / 1000).toFixed(1)}K` : progress.word_count} words`} />
+              )}
+              {progress.summary_exists || progress.notes_generation_status === "completed" ? (
+                <ProgressBadge tone="green" label="✓ Notes" />
+              ) : progress.notes_generation_status === "failed" ? (
+                <ProgressBadge tone="red" label="✕ Notes failed" />
+              ) : progress.notes_generation_status === "processing" || progress.notes_generation_status === "pending" ? (
+                <ProgressBadge tone="amber" label="⋯ Notes" />
+              ) : null}
+              {progress.notes_email_sent_at ? (
+                <ProgressBadge tone="green" label="✓ Email sent" />
+              ) : (progress.summary_exists || progress.notes_generation_status === "completed") ? (
+                <ProgressBadge tone="amber" label="⋯ Email" />
+              ) : null}
+            </div>
+          )}
           {rec.status === "transcribed" && rec.meetingId && (
             <div style={{fontSize:10,color:"#16a34a",marginTop:3,opacity:0.8,lineHeight:1.3}}>
               ✓ You may now safely delete this recording
