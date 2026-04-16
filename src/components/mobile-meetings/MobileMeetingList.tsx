@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MeetingProgressBadges } from '@/components/meeting-history/MeetingProgressBadges';
 import './mobile-meetings.css';
 
 interface Meeting {
@@ -12,6 +13,11 @@ interface Meeting {
   created_at: string;
   duration_minutes: number | null;
   word_count?: number;
+  notes_generation_status?: string | null;
+  summary_exists?: boolean;
+  notes_email_sent_at?: string | null;
+  remote_chunk_paths?: string[] | null;
+  mixed_audio_url?: string | null;
 }
 
 interface MobileMeetingListProps {
@@ -35,12 +41,6 @@ export const MobileMeetingList: React.FC<MobileMeetingListProps> = ({
     const m = minutes % 60;
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m`;
-  };
-
-  const formatWordCount = (count?: number) => {
-    if (!count) return '';
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-    return count.toString();
   };
 
   return (
@@ -70,19 +70,13 @@ export const MobileMeetingList: React.FC<MobileMeetingListProps> = ({
             <div className="nw-mh-card-title">{m.title}</div>
             <div className="nw-mh-meta">
               <span className="nw-mh-meta-item">
-                <span className={`nw-mh-status-dot ${m.status === 'complete' ? 'complete' : 'recording'}`} />
-                {m.status}
-              </span>
-              <span className="nw-mh-meta-item">
                 {format(new Date(m.created_at), 'dd MMM · HH:mm')}
               </span>
               {m.duration_minutes && (
                 <span className="nw-mh-meta-item">{formatDuration(m.duration_minutes)}</span>
               )}
-              {m.word_count && m.word_count > 0 && (
-                <span className="nw-mh-meta-item">{formatWordCount(m.word_count)} words</span>
-              )}
             </div>
+            <MeetingProgressBadges meeting={m} className="mt-1.5" />
           </div>
         ))
       )}

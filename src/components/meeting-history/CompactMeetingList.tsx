@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { NewMeetingBadge } from "./NewMeetingBadge";
+import { MeetingProgressBadges } from "./MeetingProgressBadges";
 import {
   Tooltip,
   TooltipContent,

@@ -1289,6 +1289,8 @@ const MeetingHistory = () => {
           right_audio_url,
           recording_created_at,
           notes_generation_status,
+          notes_email_sent_at,
+          remote_chunk_paths,
           notes_style_3,
           meeting_overviews(overview, audio_overview_url, audio_overview_text, audio_overview_duration)
         `, { count: 'exact' })
