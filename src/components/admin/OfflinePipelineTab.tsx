@@ -322,7 +322,7 @@ export function OfflinePipelineTab() {
     let failed = 0;
     for (const row of stuckRows) {
       try {
-        await supabase.from('meetings').update({ status: 'queued' as any, notes_generation_status: 'not_started' as any }).eq('id', row.id);
+        await supabase.from('meetings').update({ status: 'pending_transcription' as any, notes_generation_status: 'not_started' as any }).eq('id', row.id);
         await supabase.functions.invoke('transcribe-offline-meeting', { body: { meetingId: row.id, chunkIndex: 0 } });
         succeeded++;
       } catch {
