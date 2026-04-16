@@ -36,27 +36,22 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
   const isGenericTitle = (t: string | null | undefined) =>
     !t || GENERIC_TITLES.includes(t.toLowerCase().trim()) || isDefaultTimestamp(t);
 
-  if (isGenericTitle(meeting?.title)) {
-    console.log("⏳ Title appears generic, waiting for AI title generation...");
-    await new Promise(r => setTimeout(r, 5000));
+  // Retry up to 4 times (≈30s total) waiting for AI title generation to commit.
+  // Mobile syncs can take longer for the title-generator edge function to finish.
+  const waitsMs = [4000, 6000, 8000, 12000];
+  for (const waitMs of waitsMs) {
+    if (!isGenericTitle(meeting?.title)) break;
+    console.log(`⏳ Title still generic ("${meeting?.title}") — waiting ${waitMs}ms for AI title…`);
+    await new Promise(r => setTimeout(r, waitMs));
     const { data: refreshed } = await supabase
       .from("meetings")
       .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
       .eq("id", meetingId)
       .maybeSingle();
     if (refreshed) meeting = refreshed;
-
-    // If still generic after waiting, try one more time
-    if (isGenericTitle(meeting?.title)) {
-      console.log("⏳ Still generic, waiting another 5s...");
-      await new Promise(r => setTimeout(r, 5000));
-      const { data: refreshed2 } = await supabase
-        .from("meetings")
-        .select("title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
-        .eq("id", meetingId)
-        .maybeSingle();
-      if (refreshed2) meeting = refreshed2;
-    }
+  }
+  if (isGenericTitle(meeting?.title)) {
+    console.warn(`⚠️ Title still generic after retries — sending with "${meeting?.title}"`);
   }
 
   const meetingTitle = meeting?.title || "Meeting Notes";
