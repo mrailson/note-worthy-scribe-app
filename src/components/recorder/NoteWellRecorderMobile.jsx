@@ -1521,9 +1521,21 @@ export default function NoteWellRecorder() {
       }
       const keepAlive = isIOSDevice ? iOSAudioKeepAlive : androidAudioKeepAlive;
       await keepAlive.start();
+      startSilentAudio();
       startHealthMonitor(recorder);
-      const resumeFrom = Date.now() - prevElapsed;
-      timerRef.current = setInterval(() => setElapsed(Date.now() - resumeFrom), 500);
+      lastTickRef.current = Date.now();
+      timerRef.current = setInterval(() => {
+        if (document.visibilityState === "visible") {
+          const now = Date.now();
+          const delta = now - lastTickRef.current;
+          if (delta > 0 && delta < 2000) {
+            setElapsed(prev => prev + delta);
+          }
+          lastTickRef.current = now;
+        } else {
+          lastTickRef.current = Date.now();
+        }
+      }, 250);
       setRecState("recording");
       showToast("Recording resumed", "success");
     } catch (err) {
