@@ -967,7 +967,7 @@ function StepsGuide() {
           boxShadow:"0 2px 8px rgba(21,101,192,0.05)",animation:"fadeIn 0.15s"}}>
           {steps.map(s=>(
             <div key={s.n} style={{flex:1,textAlign:"center",padding:"6px 4px"}}>
-              <div style={{fontSize:16,marginBottom:2}}>{s.icon}</div>
+              <div style={{marginBottom:2,height:18,display:"flex",alignItems:"center",justifyContent:"center"}}><s.Icon/></div>
               <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(21,101,192,0.1)",color:"#1565c0",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px"}}>{s.n}</div>
               <div style={{fontSize:10,color:"#475569",lineHeight:1.3,fontWeight:500}}>{s.label}</div>
             </div>
