@@ -924,11 +924,7 @@ function Toast({ msg, type }) {
 function StepsGuide() {
   const [open, setOpen] = useState(true);
   const MicIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block"}}>
-      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-      <line x1="12" y1="19" x2="12" y2="23"/>
-    </svg>
+    <img src="/favicon-robot.png" alt="" width="20" height="20" style={{display:"inline-block",objectFit:"contain"}}/>
   );
   const SaveIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block"}}>
