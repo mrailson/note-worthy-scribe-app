@@ -923,10 +923,29 @@ function Toast({ msg, type }) {
 
 function StepsGuide() {
   const [open, setOpen] = useState(true);
+  const MicIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block"}}>
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+    </svg>
+  );
+  const SaveIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block"}}>
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+      <polyline points="17 21 17 13 7 13 7 21"/>
+      <polyline points="7 3 7 8 15 8"/>
+    </svg>
+  );
+  const SparkIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block"}}>
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+    </svg>
+  );
   const steps = [
-    {n:"1",icon:"🎙️",label:"Tap record to start"},
-    {n:"2",icon:"💾",label:"Saved to device"},
-    {n:"3",icon:"✨",label:"Notes generated on stop"},
+    {n:"1",Icon:MicIcon,label:"Tap record to start"},
+    {n:"2",Icon:SaveIcon,label:"Saved to device"},
+    {n:"3",Icon:SparkIcon,label:"Notes generated on stop"},
   ];
   return (
     <div style={{margin:"8px 16px 0"}}>
@@ -948,7 +967,7 @@ function StepsGuide() {
           boxShadow:"0 2px 8px rgba(21,101,192,0.05)",animation:"fadeIn 0.15s"}}>
           {steps.map(s=>(
             <div key={s.n} style={{flex:1,textAlign:"center",padding:"6px 4px"}}>
-              <div style={{fontSize:16,marginBottom:2}}>{s.icon}</div>
+              <div style={{marginBottom:2,height:18,display:"flex",alignItems:"center",justifyContent:"center"}}><s.Icon/></div>
               <div style={{width:16,height:16,borderRadius:"50%",background:"rgba(21,101,192,0.1)",color:"#1565c0",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 4px"}}>{s.n}</div>
               <div style={{fontSize:10,color:"#475569",lineHeight:1.3,fontWeight:500}}>{s.label}</div>
             </div>
@@ -1185,6 +1204,34 @@ export default function NoteWellRecorder() {
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
   useEffect(() => { refresh(); }, [refresh]);
+
+  // ── Recover orphaned "syncing" recordings on mount ────────────────────────
+  // If the page was refreshed/closed mid-sync, recordings can be left stuck in
+  // "syncing" status with no active upload running. Mark them as "error" so the
+  // user gets a visible retry button.
+  useEffect(() => {
+    (async () => {
+      try {
+        const all = await dbAll();
+        const orphans = all.filter(r => r.status === "syncing");
+        if (orphans.length === 0) return;
+        for (const rec of orphans) {
+          await dbPatch(rec.id, {
+            status: "error",
+            lastSyncError: "Upload interrupted — tap retry",
+          });
+        }
+        await refresh();
+        showToast(
+          `${orphans.length} recording${orphans.length > 1 ? "s" : ""} interrupted — tap retry to resume`,
+          "info"
+        );
+      } catch (e) {
+        console.warn("[recover-syncing] failed", e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Poll meeting progress for recordings linked to a meeting (notes / email status) ──
   useEffect(() => {
@@ -2977,8 +3024,9 @@ export default function NoteWellRecorder() {
             </div>
 
             {isIdle && (
-              <div style={{textAlign:"center",marginTop:12,fontSize:11,color:"#94a3b8"}}>
-                🎙️ Record · audio transcribed when you stop
+              <div style={{textAlign:"center",marginTop:12,fontSize:11,color:"#94a3b8",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                Record · audio transcribed when you stop
               </div>
             )}
           </div>
