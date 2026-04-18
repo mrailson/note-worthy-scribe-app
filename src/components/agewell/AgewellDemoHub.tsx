@@ -777,6 +777,8 @@ const AgewellDemoHub: React.FC = () => {
     "SDA reports",
     "Board papers",
     "Skills practice scenarios",
+    "AI inbox & email triage",
+    "AI phone agents — inbound & outbound calls",
   ];
 
   const Zone2b = (
