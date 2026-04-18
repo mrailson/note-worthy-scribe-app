@@ -252,6 +252,21 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
   onGeneratePlan,
 }) => {
   const reduceMotion = usePrefersReducedMotion();
+
+  // Presenter-paced opening: beats 1-4 wait for a click (or SPACE / →) before
+  // advancing. Beat ≥ 5 hands control to the existing automated timeline.
+  // Each beat pins `t` to a specific moment in the script so the visuals match.
+  // Beat 1 → scene only (no offline pills, no prologue card)
+  // Beat 2 → + offline pills + wifi-off card
+  // Beat 3 → pre-recording standby (no prologue card visible)
+  // Beat 4 → consent card captured
+  // Beat 5 → auto-play resumes from RECORDING_START_T
+  const initialAutoplay = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("autoplay") === "true";
+  }, []);
+  const [presenterMode, setPresenterMode] = useState(!initialAutoplay);
+  const [currentBeat, setCurrentBeat] = useState(1);
   const [t, setT] = useState(0);
   const [paused, setPaused] = useState(false);
   const transcriptScrollRef = useRef<HTMLDivElement | null>(null);
@@ -259,30 +274,40 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
   // Reset on open
   useEffect(() => {
     if (open) {
-      setT(0);
+      setT(initialAutoplay ? 0 : 0);
       setPaused(false);
+      setPresenterMode(!initialAutoplay);
+      setCurrentBeat(1);
     }
-  }, [open]);
+  }, [open, initialAutoplay]);
 
-  // Tick loop
+  // Tick loop — disabled while presenter is in beats 1–4
   useEffect(() => {
-    if (!open || paused) return;
+    if (!open || paused || presenterMode) return;
     if (t >= END_STATE_T) return;
     const id = window.setInterval(() => {
       setT((prev) => Math.min(END_STATE_T, prev + TICK_MS / 1000));
     }, TICK_MS);
     return () => window.clearInterval(id);
-  }, [open, paused, t]);
+  }, [open, paused, t, presenterMode]);
 
-  // Esc to close
+  // Esc to close; SPACE / → to advance beat in presenter mode
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (presenterMode && (e.key === " " || e.key === "ArrowRight")) {
+        e.preventDefault();
+        advanceBeat();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, onClose, presenterMode, currentBeat]);
 
   // Auto-scroll transcript
   useEffect(() => {
