@@ -308,6 +308,25 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, onClose, presenterMode, currentBeat]);
 
+  // Beat-driven advancement (beats 1–4 are presenter-paced)
+  const advanceBeat = () => {
+    setCurrentBeat((beat) => {
+      const next = beat + 1;
+      if (next >= 5) {
+        // Hand control to the automated timeline
+        setPresenterMode(false);
+        setT(RECORDING_START_T);
+      }
+      return next;
+    });
+  };
+
+  const skipToAutoplay = () => {
+    setPresenterMode(false);
+    setCurrentBeat(5);
+    setT(RECORDING_START_T);
+  };
+
   // Auto-scroll transcript
   useEffect(() => {
     const el = transcriptScrollRef.current;
@@ -318,7 +337,9 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
   if (!open) return null;
 
   const phase: "prologue" | "recording" | "stopped" | "ended" =
-    t < RECORDING_START_T
+    presenterMode
+      ? "prologue"
+      : t < RECORDING_START_T
       ? "prologue"
       : t < RECORDING_STOP_T
       ? "recording"
@@ -331,22 +352,45 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
   // Visible turns up to current t
   const visible = DOT_VISIT_SCRIPT.filter((turn) => t >= turn.t);
   const currentSpeakingTurn = [...visible].reverse().find((x) => x.kind === "transcript");
-  const statusLine =
-    phase === "prologue"
-      ? "Listening for consent…"
-      : phase === "stopped" || phase === "ended"
-      ? "Recording complete"
-      : currentSpeakingTurn?.speaker === "dot"
-      ? "Dot is speaking…"
-      : currentSpeakingTurn?.speaker === "sarah"
-      ? "Sarah is speaking…"
-      : "Ambient…";
+
+  // Beat-driven status line + offline pill visibility
+  const showOfflinePills = !presenterMode || currentBeat >= 2;
+  const presenterStatusLine =
+    currentBeat === 1
+      ? "Scene set — ready to begin"
+      : currentBeat === 2
+      ? "Offline · Notewell running locally"
+      : currentBeat === 3
+      ? "Waiting to begin recording…"
+      : "Consent captured · ready to record";
+
+  const statusLine = presenterMode
+    ? presenterStatusLine
+    : phase === "prologue"
+    ? "Listening for consent…"
+    : phase === "stopped" || phase === "ended"
+    ? "Recording complete"
+    : currentSpeakingTurn?.speaker === "dot"
+    ? "Dot is speaking…"
+    : currentSpeakingTurn?.speaker === "sarah"
+    ? "Sarah is speaking…"
+    : "Ambient…";
+
+  // Find specific prologue cards by content marker
+  const consentCard = DOT_VISIT_SCRIPT.find((x) => x.kind === "card" && x.icon === "consent");
+  const wifiCard = DOT_VISIT_SCRIPT.find((x) => x.kind === "card" && x.icon === "wifi-off");
 
   // Last prologue card to display (centered overlay)
-  const prologueCard =
-    phase === "prologue"
-      ? [...visible].reverse().find((x) => x.kind === "card")
-      : null;
+  // Beat-aware in presenter mode: beat 2 = wifi card, beat 3 = none (standby), beat 4 = consent
+  const prologueCard: VisitTurn | null | undefined = presenterMode
+    ? currentBeat === 2
+      ? wifiCard
+      : currentBeat === 4
+      ? consentCard
+      : null
+    : phase === "prologue"
+    ? [...visible].reverse().find((x) => x.kind === "card")
+    : null;
 
   // Transcript-only entries (transcript / separator / action / late cards)
   const streamItems = visible.filter(
