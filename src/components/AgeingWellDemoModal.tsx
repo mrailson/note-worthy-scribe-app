@@ -1,6 +1,7 @@
 // src/components/AgeingWellDemoModal.tsx
 // Full-screen split-view live demo modal: Notewell (Ageing Well) ↔ SystmOne inbox
 // via simulated GP Connect / MESH sync using postMessage bridge.
+// Supports three view modes (notewell / split / systmone) with animated transitions.
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, RotateCcw } from "lucide-react";
@@ -11,6 +12,8 @@ export interface AgeingWellDemoModalProps {
   patientName?: string;
   meetingTitle?: string;
 }
+
+type DemoView = "notewell" | "split" | "systmone";
 
 const NOTEWELL_SRC = "/demo/notewell-gp-connect.html";
 const SYSTMONE_SRC = "/demo/systmone-inbox.html";
@@ -23,37 +26,59 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
 }) => {
   const [autoSync, setAutoSync] = useState(true);
   const [cacheBust, setCacheBust] = useState(() => Date.now());
+  const [view, setView] = useState<DemoView>("notewell");
   const leftIframeRef = useRef<HTMLIFrameElement | null>(null);
   const rightIframeRef = useRef<HTMLIFrameElement | null>(null);
   const autoSyncRef = useRef(autoSync);
+  const viewRef = useRef(view);
 
+  useEffect(() => { autoSyncRef.current = autoSync; }, [autoSync]);
+  useEffect(() => { viewRef.current = view; }, [view]);
+
+  // Reset view to 'notewell' whenever the modal opens
   useEffect(() => {
-    autoSyncRef.current = autoSync;
-  }, [autoSync]);
+    if (isOpen) setView("notewell");
+  }, [isOpen]);
 
-  // ESC to close
+  // Keyboard shortcuts: Esc closes, 1/←, 2, 3/→ switch views
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "1" || e.key === "ArrowLeft") setView("notewell");
+      else if (e.key === "2") setView("split");
+      else if (e.key === "3" || e.key === "ArrowRight") setView("systmone");
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
 
-  // PostMessage bridge: Notewell → SystmOne
+  // PostMessage bridge: Notewell → SystmOne, with optional auto-reveal
   useEffect(() => {
     if (!isOpen) return;
     const onMessage = (event: MessageEvent) => {
       const data = event.data;
       if (!data || typeof data !== "object") return;
-      if (data.type === "notewell:send-complete" && autoSyncRef.current) {
+      if (data.type !== "notewell:send-complete" || !autoSyncRef.current) return;
+
+      const postRefresh = () => {
+        rightIframeRef.current?.contentWindow?.postMessage(
+          { type: "systmone:refresh", payload: data.payload ?? null },
+          "*"
+        );
+      };
+
+      if (viewRef.current === "notewell") {
+        // Reveal sequence: 800ms → switch to split, then 1200ms → refresh
         window.setTimeout(() => {
-          rightIframeRef.current?.contentWindow?.postMessage(
-            { type: "systmone:refresh", payload: data.payload ?? null },
-            "*"
-          );
-        }, 1800);
+          setView("split");
+          window.setTimeout(postRefresh, 1200);
+        }, 800);
+      } else {
+        window.setTimeout(postRefresh, 1800);
       }
     };
     window.addEventListener("message", onMessage);
@@ -62,6 +87,7 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
 
   const handleReset = useCallback(() => {
     setCacheBust(Date.now());
+    setView("notewell");
   }, []);
 
   // Lock body scroll while open
@@ -69,9 +95,7 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
     if (!isOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -81,6 +105,56 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
     : `Patient Support Plan sync to GP practice inbox via GP Connect / MESH${
         patientName ? ` — ${patientName}` : ""
       }`;
+
+  // Flex values per view
+  const leftFlex = view === "systmone" ? 0 : 1;
+  const rightFlex = view === "notewell" ? 0 : 1;
+  const showDivider = view === "split";
+
+  const segBtn = (target: DemoView, label: string) => {
+    const active = view === target;
+    return (
+      <button
+        type="button"
+        onClick={() => setView(target)}
+        className="px-4 py-1.5 text-sm rounded-full transition-all duration-200"
+        style={{
+          background: active ? "#fff" : "transparent",
+          color: active ? "#1B3A5C" : "rgba(255,255,255,0.7)",
+          fontWeight: active ? 600 : 400,
+          boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+        }}
+        onMouseEnter={(e) => {
+          if (!active) {
+            e.currentTarget.style.color = "#fff";
+            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!active) {
+            e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+            e.currentTarget.style.background = "transparent";
+          }
+        }}
+      >
+        {label}
+      </button>
+    );
+  };
+
+  const dot = (target: DemoView) => {
+    const active = view === target;
+    return (
+      <button
+        key={target}
+        type="button"
+        aria-label={`Switch to ${target} view`}
+        onClick={() => setView(target)}
+        className="w-2 h-2 rounded-full transition-colors"
+        style={{ background: active ? "#2E75B6" : "#D1D5DB", border: "none", padding: 0, cursor: "pointer" }}
+      />
+    );
+  };
 
   return (
     <div
@@ -107,9 +181,10 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
 
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 shrink-0"
-          style={{ height: 64, background: "#1B3A5C", color: "#fff" }}
+          className="flex items-center justify-between px-6 gap-4 shrink-0"
+          style={{ minHeight: 64, background: "#1B3A5C", color: "#fff" }}
         >
+          {/* Left: title + subtitle */}
           <div className="flex flex-col justify-center min-w-0">
             <div className="flex items-center gap-3">
               <span className="font-bold text-base sm:text-lg truncate">
@@ -130,8 +205,23 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* Auto-sync toggle */}
+          {/* Centre: segmented control + helper hint */}
+          <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+            <div
+              className="flex rounded-full"
+              style={{ background: "rgba(255,255,255,0.1)", padding: 4, gap: 2 }}
+            >
+              {segBtn("notewell", "Notewell")}
+              {segBtn("split", "Split")}
+              {segBtn("systmone", "SystmOne")}
+            </div>
+            <span className="text-xs whitespace-nowrap" style={{ color: "rgba(255,255,255,0.5)" }}>
+              ← → to switch · 1/2/3 direct
+            </span>
+          </div>
+
+          {/* Right: controls */}
+          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <span className="text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
                 Auto-sync inbox
@@ -151,7 +241,6 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
               </button>
             </label>
 
-            {/* Reset */}
             <button
               type="button"
               onClick={handleReset}
@@ -168,7 +257,6 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
               Reset demo
             </button>
 
-            {/* Close */}
             <button
               type="button"
               onClick={onClose}
@@ -183,31 +271,73 @@ const AgeingWellDemoModal: React.FC<AgeingWellDemoModalProps> = ({
           </div>
         </div>
 
-        {/* Split view */}
+        {/* Mobile/narrow segmented control row (md:hidden) */}
         <div
-          className="flex-1 grid min-h-0"
-          style={{
-            gridTemplateColumns: "1fr 1px 1fr",
-            background: "#fff",
-          }}
+          className="flex md:hidden items-center justify-center px-6 py-2 gap-3 shrink-0"
+          style={{ background: "#1B3A5C", borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
-          <iframe
-            key={`left-${cacheBust}`}
-            ref={leftIframeRef}
-            src={`${NOTEWELL_SRC}?v=${cacheBust}`}
-            title="Notewell — Ageing Well Patient Support Plan"
-            className="w-full h-full"
-            style={{ border: "none", display: "block" }}
+          <div
+            className="flex rounded-full"
+            style={{ background: "rgba(255,255,255,0.1)", padding: 4, gap: 2 }}
+          >
+            {segBtn("notewell", "Notewell")}
+            {segBtn("split", "Split")}
+            {segBtn("systmone", "SystmOne")}
+          </div>
+        </div>
+
+        {/* Split view — flex-based, both iframes always mounted */}
+        <div className="flex h-full overflow-hidden flex-1 min-h-0" style={{ background: "#fff" }}>
+          <div
+            className="overflow-hidden"
+            style={{
+              flex: leftFlex,
+              transition: "flex 650ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          >
+            <iframe
+              key={`left-${cacheBust}`}
+              ref={leftIframeRef}
+              src={`${NOTEWELL_SRC}?v=${cacheBust}`}
+              title="Notewell — Ageing Well Patient Support Plan"
+              className="w-full h-full"
+              style={{ border: "none", display: "block" }}
+            />
+          </div>
+          <div
+            style={{
+              width: showDivider ? 1 : 0,
+              background: "#E2E8F0",
+              transition: "width 650ms ease",
+              flexShrink: 0,
+            }}
           />
-          <div style={{ background: "#E2E8F0" }} />
-          <iframe
-            key={`right-${cacheBust}`}
-            ref={rightIframeRef}
-            src={`${SYSTMONE_SRC}?v=${cacheBust}`}
-            title="SystmOne — GP practice inbox"
-            className="w-full h-full"
-            style={{ border: "none", display: "block" }}
-          />
+          <div
+            className="overflow-hidden"
+            style={{
+              flex: rightFlex,
+              transition: "flex 650ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          >
+            <iframe
+              key={`right-${cacheBust}`}
+              ref={rightIframeRef}
+              src={`${SYSTMONE_SRC}?v=${cacheBust}`}
+              title="SystmOne — GP practice inbox"
+              className="w-full h-full"
+              style={{ border: "none", display: "block" }}
+            />
+          </div>
+        </div>
+
+        {/* View indicator dots */}
+        <div
+          className="absolute left-1/2 flex items-center gap-2 pointer-events-auto"
+          style={{ bottom: 18, transform: "translateX(-50%)" }}
+        >
+          {dot("notewell")}
+          {dot("split")}
+          {dot("systmone")}
         </div>
 
         {/* Esc hint */}
