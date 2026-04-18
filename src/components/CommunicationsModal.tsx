@@ -768,7 +768,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
         ref={dialogRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white rounded-xl shadow-2xl w-full overflow-hidden flex flex-col outline-none"
+        className="relative bg-white rounded-xl shadow-2xl w-full max-h-[88vh] overflow-hidden flex flex-col outline-none"
         style={{
           maxWidth: 1100,
           maxHeight: "88vh",
