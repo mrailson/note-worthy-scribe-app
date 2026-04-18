@@ -107,6 +107,8 @@ import { FolderBadge } from '@/components/meeting-folders/FolderBadge';
 import { FolderAssignmentSheet } from '@/components/meeting-folders/FolderAssignmentSheet';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { RecordingErrorCard } from "@/components/recording/RecordingErrorCard";
+import { PatientBanner } from "@/components/PatientBanner";
+import { getDemoPatientForMeeting } from "@/data/demoPatients";
 
 
 interface Meeting {
@@ -2554,6 +2556,16 @@ export const MeetingHistoryList = ({
                     />
                   </div>
                 );
+              })()}
+
+              {/* Demo Patient Banner — only for meetings in Demonstrations folder */}
+              {(() => {
+                const folder = meetingFolderBadges.get(meeting.id);
+                const demoPatient = getDemoPatientForMeeting({
+                  title: meeting.title,
+                  folder: folder?.name,
+                });
+                return demoPatient ? <PatientBanner patient={demoPatient} /> : null;
               })()}
 
               {/* Action Buttons - Mobile Optimized - All inline */}

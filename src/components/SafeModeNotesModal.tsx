@@ -106,6 +106,9 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
+import { PatientBanner } from "@/components/PatientBanner";
+import { getDemoPatientForMeeting } from "@/data/demoPatients";
+import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { NotesLengthSelector, NotesLengthDescription, type NotesLength } from "@/components/SafeModal/NotesLengthSelector";
 import { generateNotesWithLength } from "@/lib/notesGenerator";
@@ -146,6 +149,7 @@ interface Meeting {
   start_time?: string;
   import_source?: string;
   import_metadata?: Record<string, unknown> | null;
+  folder_id?: string | null;
 }
 
 interface SafeModeNotesModalProps {
@@ -168,7 +172,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   
   // Get action items count for badge
   const { openItemsCount } = useActionItemsCount(meeting?.id || '');
-  
+
+  // Folders — used to detect demo patient context
+  const { folders } = useMeetingFolders();
+  const meetingFolder = useMemo(() => {
+    if (!meeting?.folder_id) return null;
+    return folders.find(f => f.id === meeting.folder_id) || null;
+  }, [folders, meeting?.folder_id]);
+  const demoPatient = useMemo(() => {
+    if (!meeting?.title) return null;
+    return getDemoPatientForMeeting({
+      title: meeting.title,
+      folder: meetingFolder?.name,
+    });
+  }, [meeting?.title, meetingFolder?.name]);
+
   // Notes view settings (section visibility)
   const notesViewSettings = useNotesViewSettings();
   
@@ -3163,6 +3181,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             </button>
           </div>
         </DialogHeader>
+
+        {/* Demo Patient Banner — only for meetings in Demonstrations folder */}
+        {demoPatient && (
+          <div className="px-6 pt-4 flex-shrink-0">
+            <PatientBanner patient={demoPatient} compact />
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="px-6 py-2.5 border-b flex items-center justify-between gap-4 flex-shrink-0 bg-muted/30">
