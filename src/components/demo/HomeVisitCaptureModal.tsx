@@ -1151,6 +1151,68 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* ───── PRESENTER CONTROLS (visible only in beats 1–4) ───── */}
+        {presenterMode && (
+          <>
+            <button
+              onClick={advanceBeat}
+              aria-label={`Advance to beat ${currentBeat + 1}`}
+              style={{
+                position: "absolute",
+                bottom: 22,
+                right: 22,
+                zIndex: 20,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`,
+                color: "white",
+                border: "none",
+                borderRadius: 999,
+                padding: "10px 18px",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxShadow: "0 6px 18px rgba(44,122,123,0.4)",
+                transition: "transform 150ms",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  letterSpacing: 1.2,
+                  fontWeight: 700,
+                  opacity: 0.85,
+                }}
+              >
+                BEAT {currentBeat}/4
+              </span>
+              <span style={{ opacity: 0.5 }}>·</span>
+              Next →
+            </button>
+            <button
+              onClick={skipToAutoplay}
+              style={{
+                position: "absolute",
+                bottom: 26,
+                right: 180,
+                zIndex: 20,
+                background: "transparent",
+                border: "none",
+                color: "rgba(255,255,255,0.85)",
+                fontSize: 11.5,
+                cursor: "pointer",
+                padding: "4px 8px",
+                textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+              }}
+            >
+              ⏭ Skip to auto-play
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
