@@ -704,6 +704,57 @@ const AgewellDemoHub: React.FC = () => {
                 {a.icon}
                 {a.btn}
               </button>
+              {(a as { captured?: boolean }).captured && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    color: C.teal,
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 14,
+                      height: 14,
+                      borderRadius: "50%",
+                      background: C.tealLight,
+                      color: C.tealDark,
+                      fontSize: 10,
+                      fontWeight: 800,
+                    }}
+                  >
+                    ✓
+                  </span>
+                  Visit captured
+                </div>
+              )}
+              {(a as { secondary?: { label: string; onClick: () => void } }).secondary && (
+                <button
+                  onClick={(a as { secondary: { onClick: () => void } }).secondary.onClick}
+                  style={{
+                    marginTop: 8,
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    color: C.slate600,
+                    fontSize: 11.5,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    textAlign: "left",
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  {(a as { secondary: { label: string } }).secondary.label}
+                </button>
+              )}
             </div>
           ))}
         </div>
