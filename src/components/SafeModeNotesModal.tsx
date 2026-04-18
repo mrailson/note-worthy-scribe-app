@@ -98,12 +98,14 @@ import {
   Stethoscope,
   Shield,
   Heart,
+  HeartPulse,
   BookOpen,
   Building2,
   Home,
   Mic,
   MoreHorizontal
 } from "lucide-react";
+import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { NotesLengthSelector, NotesLengthDescription, type NotesLength } from "@/components/SafeModal/NotesLengthSelector";
 import { generateNotesWithLength } from "@/lib/notesGenerator";
@@ -247,6 +249,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showAudioStudio, setShowAudioStudio] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showExportStudio, setShowExportStudio] = useState(false);
+  const [showAgeingWellDemo, setShowAgeingWellDemo] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   
@@ -3376,6 +3379,33 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
           {/* DOCX Export + Export Studio buttons - desktop only */}
           <div className="hidden sm:flex items-center gap-1">
+            {meeting && (meeting.title?.toLowerCase().includes("ageing well") ||
+              meeting.title?.toLowerCase().includes("agewell")) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowAgeingWellDemo(true)}
+                    className="h-8 gap-1.5 px-2.5 text-white border-0 transition-all hover:shadow-md"
+                    style={{
+                      background: "linear-gradient(135deg, #2E7D4F 0%, #1E8449 100%)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        "linear-gradient(135deg, #266a43 0%, #186e3d 100%)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background =
+                        "linear-gradient(135deg, #2E7D4F 0%, #1E8449 100%)";
+                    }}
+                  >
+                    <HeartPulse className="h-4 w-4" />
+                    <span className="text-xs font-medium">Ageing Well</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Open Ageing Well → GP Connect demo</TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5" onClick={handleDownloadWord}>
@@ -4459,6 +4489,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           onOpenAudioStudio={() => { setShowExportStudio(false); setShowAudioStudio(true); }}
         />
       )}
+
+      {/* Ageing Well Demo Modal — opens over this detailed modal */}
+      <AgeingWellDemoModal
+        isOpen={showAgeingWellDemo}
+        onClose={() => setShowAgeingWellDemo(false)}
+        patientName="Dorothy Pearson"
+        meetingTitle={meeting?.title}
+      />
     </Dialog>
   );
 };
