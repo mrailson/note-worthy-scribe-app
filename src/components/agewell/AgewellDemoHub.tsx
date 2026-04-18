@@ -580,7 +580,13 @@ const AgewellDemoHub: React.FC = () => {
             paddingTop: 24,
           }}
         >
-          {acts.map((a) => (
+          {acts.map((a) => {
+            const captured = (a as { captured?: boolean }).captured;
+            const secondary = (a as { secondary?: { label: string; onClick: () => void } }).secondary;
+            // Reserved height for caption row so all CTAs align even when no caption is present.
+            // Caption line ~18px + 8px gap above button.
+            const CAPTION_RESERVED_HEIGHT = 26;
+            return (
             <div
               key={a.n}
               style={{
@@ -591,6 +597,7 @@ const AgewellDemoHub: React.FC = () => {
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
+                height: "100%",
                 boxShadow: "0 2px 8px rgba(15, 43, 70, 0.06)",
               }}
             >
@@ -660,105 +667,119 @@ const AgewellDemoHub: React.FC = () => {
                 </div>
               )}
 
-              <div
-                style={{
-                  fontWeight: 600,
-                  color: C.navyText,
-                  fontSize: 15,
-                  marginBottom: 8,
-                  marginTop: 4,
-                }}
-              >
-                {a.title}
-              </div>
-              <p
-                style={{
-                  fontSize: 12.5,
-                  color: C.slate600,
-                  lineHeight: 1.55,
-                  margin: "0 0 16px",
-                  flex: 1,
-                }}
-              >
-                {a.desc}
-              </p>
-              <button
-                onClick={a.onClick}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  width: "100%",
-                  background: C.navyDeep,
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "9px 12px",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "background 150ms ease",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#0A1F33")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = C.navyDeep)}
-              >
-                {a.icon}
-                {a.btn}
-              </button>
-              {(a as { captured?: boolean }).captured && (
+              {/* BODY ZONE — title + description, absorbs vertical slack */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                 <div
                   style={{
-                    marginTop: 8,
+                    fontWeight: 600,
+                    color: C.navyText,
+                    fontSize: 15,
+                    marginBottom: 8,
+                    marginTop: 4,
+                  }}
+                >
+                  {a.title}
+                </div>
+                <p
+                  style={{
+                    fontSize: 12.5,
+                    color: C.slate600,
+                    lineHeight: 1.55,
+                    margin: 0,
+                  }}
+                >
+                  {a.desc}
+                </p>
+              </div>
+
+              {/* FOOTER ZONE — reserved caption row + pinned CTA */}
+              <div style={{ marginTop: 16, display: "flex", flexDirection: "column" }}>
+                <div
+                  style={{
+                    minHeight: CAPTION_RESERVED_HEIGHT,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {captured && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        color: C.teal,
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 14,
+                          height: 14,
+                          borderRadius: "50%",
+                          background: C.tealLight,
+                          color: C.tealDark,
+                          fontSize: 10,
+                          fontWeight: 800,
+                        }}
+                      >
+                        ✓
+                      </span>
+                      Visit captured
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={a.onClick}
+                  style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
-                    color: C.teal,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    letterSpacing: 0.3,
+                    justifyContent: "center",
+                    gap: 6,
+                    width: "100%",
+                    background: C.navyDeep,
+                    color: "white",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "9px 12px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    transition: "background 150ms ease",
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#0A1F33")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = C.navyDeep)}
                 >
-                  <span
+                  {a.icon}
+                  {a.btn}
+                </button>
+                {secondary && (
+                  <button
+                    onClick={secondary.onClick}
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 14,
-                      height: 14,
-                      borderRadius: "50%",
-                      background: C.tealLight,
-                      color: C.tealDark,
-                      fontSize: 10,
-                      fontWeight: 800,
+                      marginTop: 8,
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: C.slate600,
+                      fontSize: 11.5,
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                      textAlign: "left",
+                      alignSelf: "flex-start",
                     }}
                   >
-                    ✓
-                  </span>
-                  Visit captured
-                </div>
-              )}
-              {(a as { secondary?: { label: string; onClick: () => void } }).secondary && (
-                <button
-                  onClick={(a as { secondary: { onClick: () => void } }).secondary.onClick}
-                  style={{
-                    marginTop: 8,
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    color: C.slate600,
-                    fontSize: 11.5,
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    textAlign: "left",
-                    alignSelf: "flex-start",
-                  }}
-                >
-                  {(a as { secondary: { label: string } }).secondary.label}
-                </button>
-              )}
+                    {secondary.label}
+                  </button>
+                )}
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -997,6 +1018,9 @@ const AgewellDemoHub: React.FC = () => {
             position: "relative",
             overflow: "hidden",
             boxShadow: "0 2px 14px rgba(28, 43, 42, 0.05)",
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
           }}
         >
           <div
@@ -1027,56 +1051,62 @@ const AgewellDemoHub: React.FC = () => {
           >
             LIVE DEMO
           </div>
-          <div
-            style={{
-              fontSize: 11,
-              letterSpacing: 3,
-              color: C.amberDark,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              marginBottom: 10,
-            }}
-          >
-            Hero example
+          {/* BODY ZONE — absorbs vertical slack */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                fontSize: 11,
+                letterSpacing: 3,
+                color: C.amberDark,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                marginBottom: 10,
+              }}
+            >
+              Hero example
+            </div>
+            <h3
+              style={{
+                fontFamily: FONT_SERIF,
+                fontStyle: "italic",
+                fontSize: isDesktop ? 26 : 22,
+                color: C.navyText,
+                margin: "0 0 16px",
+                lineHeight: 1.2,
+                fontWeight: 600,
+              }}
+            >
+              Blue Badge — from home visit to submitted application
+            </h3>
+            <p
+              style={{
+                fontSize: 14,
+                color: C.slate700,
+                lineHeight: 1.7,
+                margin: "0 0 10px",
+              }}
+            >
+              The AgeWell worker already asked Dot how far she can walk before stopping, whether
+              she uses aids, how often she falls. That's the entire evidence base for a Blue
+              Badge. Notewell extracts it, maps it to the application's mobility descriptors, and
+              produces two outputs in one click: a pre-populated supporting statement for the
+              family to submit, and a GP supporting letter ready for signature. FRAT and 6-CIT
+              scores embedded automatically. No re-keying. No unfunded GP letter burden.
+            </p>
+            <p
+              style={{
+                fontSize: 12.5,
+                fontStyle: "italic",
+                color: C.slate600,
+                margin: 0,
+              }}
+            >
+              Uses the same home visit transcript as Acts 1–2 above.
+            </p>
           </div>
-          <h3
-            style={{
-              fontFamily: FONT_SERIF,
-              fontStyle: "italic",
-              fontSize: isDesktop ? 26 : 22,
-              color: C.navyText,
-              margin: "0 0 16px",
-              lineHeight: 1.2,
-              fontWeight: 600,
-            }}
-          >
-            Blue Badge — from home visit to submitted application
-          </h3>
-          <p
-            style={{
-              fontSize: 14,
-              color: C.slate700,
-              lineHeight: 1.7,
-              margin: "0 0 10px",
-            }}
-          >
-            The AgeWell worker already asked Dot how far she can walk before stopping, whether
-            she uses aids, how often she falls. That's the entire evidence base for a Blue
-            Badge. Notewell extracts it, maps it to the application's mobility descriptors, and
-            produces two outputs in one click: a pre-populated supporting statement for the
-            family to submit, and a GP supporting letter ready for signature. FRAT and 6-CIT
-            scores embedded automatically. No re-keying. No unfunded GP letter burden.
-          </p>
-          <p
-            style={{
-              fontSize: 12.5,
-              fontStyle: "italic",
-              color: C.slate600,
-              margin: "0 0 20px",
-            }}
-          >
-            Uses the same home visit transcript as Acts 1–2 above.
-          </p>
+
+          {/* FOOTER ZONE — stats + CTA, pinned to bottom */}
+          <div style={{ marginTop: 20 }}>
 
           <div
             style={{
@@ -1158,6 +1188,7 @@ const AgewellDemoHub: React.FC = () => {
             <FileText size={15} />
             Open Blue Badge demo →
           </button>
+          </div>
         </div>
 
         {/* RIGHT — Admin iceberg */}
