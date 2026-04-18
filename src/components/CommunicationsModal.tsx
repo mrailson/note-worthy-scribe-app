@@ -768,7 +768,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
         ref={dialogRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white rounded-xl shadow-2xl w-full overflow-hidden flex flex-col outline-none"
+        className="relative bg-white rounded-xl shadow-2xl w-full max-h-[88vh] overflow-hidden flex flex-col outline-none"
         style={{
           maxWidth: 1100,
           maxHeight: "88vh",
@@ -779,7 +779,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
       >
         {/* Header */}
         <div
-          className="relative flex items-center justify-between"
+          className="relative flex items-center justify-between flex-shrink-0"
           style={{ background: "#0F2B46", color: "white", padding: "24px 32px" }}
         >
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -863,10 +863,10 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
         </div>
 
         {/* Body */}
-        <div className="relative flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Card grid */}
           <div
-            className="overflow-y-auto h-full"
+            className="min-h-0 overflow-y-auto"
             style={{
               padding: 24,
               background: "#FAFAF8",
@@ -999,7 +999,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
           {/* Preview panel */}
           {previewLetter && (
             <div
-              className="absolute top-0 right-0 h-full overflow-y-auto"
+              className="min-h-0 overflow-y-auto"
               style={{
                 width: "55%",
                 background: "#FEFCF7",
