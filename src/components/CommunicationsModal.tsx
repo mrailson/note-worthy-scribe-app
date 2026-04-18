@@ -999,7 +999,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
           {/* Preview panel */}
           {previewLetter && (
             <div
-              className="absolute top-0 right-0 h-full overflow-y-auto"
+              className="min-h-0 overflow-y-auto"
               style={{
                 width: "55%",
                 background: "#FEFCF7",
