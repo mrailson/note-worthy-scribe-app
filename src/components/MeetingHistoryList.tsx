@@ -109,6 +109,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { RecordingErrorCard } from "@/components/recording/RecordingErrorCard";
 import { PatientBanner } from "@/components/PatientBanner";
 import { getDemoPatientForMeeting } from "@/data/demoPatients";
+import { DemoMeetingCard } from "@/components/meeting-history/DemoMeetingCard";
 
 
 interface Meeting {
