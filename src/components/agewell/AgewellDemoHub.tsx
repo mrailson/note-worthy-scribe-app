@@ -20,7 +20,10 @@ import {
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import CommunicationsModal from "@/components/CommunicationsModal";
 import PatientSupportPlanModal from "@/components/demo/PatientSupportPlanModal";
+import HomeVisitCaptureModal from "@/components/demo/HomeVisitCaptureModal";
 import { DEMO_PATIENTS } from "@/data/demoPatients";
+
+const VISIT_CAPTURED_KEY = "demo.dot.visit.captured";
 
 /* ──────────────────────────────────────────────────────────────────
  * Palette (kept consistent with the rest of the AgeWell page)
@@ -305,6 +308,20 @@ const AgewellDemoHub: React.FC = () => {
   const [showProgramme, setShowProgramme] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [showSupportPlan, setShowSupportPlan] = useState(false);
+  const [showHomeVisit, setShowHomeVisit] = useState(false);
+  const [visitCaptured, setVisitCaptured] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(VISIT_CAPTURED_KEY) === "true";
+  });
+
+  const openHomeVisit = () => setShowHomeVisit(true);
+  const closeHomeVisit = () => {
+    setShowHomeVisit(false);
+    setVisitCaptured(true);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(VISIT_CAPTURED_KEY, "true");
+    }
+  };
 
   const z1 = useReveal<HTMLDivElement>();
   const z2 = useReveal<HTMLDivElement>();
@@ -482,9 +499,11 @@ const AgewellDemoHub: React.FC = () => {
       title: "Home visit captured",
       desc:
         "AgeWell worker records Dot's frailty review on the doorstep with Notewell mobile — offline-capable.",
-      btn: "Open meeting",
-      onClick: openMeeting,
-      icon: <Home size={14} />,
+      btn: "Watch visit",
+      onClick: openHomeVisit,
+      icon: <PlayCircle size={14} />,
+      captured: visitCaptured,
+      secondary: { label: "View raw transcript →", onClick: openMeeting },
     },
     {
       n: 2,
@@ -685,6 +704,57 @@ const AgewellDemoHub: React.FC = () => {
                 {a.icon}
                 {a.btn}
               </button>
+              {(a as { captured?: boolean }).captured && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    color: C.teal,
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 14,
+                      height: 14,
+                      borderRadius: "50%",
+                      background: C.tealLight,
+                      color: C.tealDark,
+                      fontSize: 10,
+                      fontWeight: 800,
+                    }}
+                  >
+                    ✓
+                  </span>
+                  Visit captured
+                </div>
+              )}
+              {(a as { secondary?: { label: string; onClick: () => void } }).secondary && (
+                <button
+                  onClick={(a as { secondary: { onClick: () => void } }).secondary.onClick}
+                  style={{
+                    marginTop: 8,
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    color: C.slate600,
+                    fontSize: 11.5,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    textAlign: "left",
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  {(a as { secondary: { label: string } }).secondary.label}
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -947,6 +1017,11 @@ const AgewellDemoHub: React.FC = () => {
         open={showSupportPlan}
         onClose={() => setShowSupportPlan(false)}
         patient={DEMO_PATIENTS[0]}
+      />
+      <HomeVisitCaptureModal
+        open={showHomeVisit}
+        onClose={closeHomeVisit}
+        onGeneratePlan={() => setShowSupportPlan(true)}
       />
     </div>
   );
