@@ -301,6 +301,10 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
             <span className="font-bold text-sm sm:text-base tracking-wider uppercase truncate">
               {phase === "generating"
                 ? "Generating Patient Support Plan"
+                : phase === "sending"
+                ? "Sending to GP Clinical System"
+                : phase === "sent"
+                ? "Delivered to GP Clinical System"
                 : "Patient Support Plan"}
             </span>
             <span
@@ -310,17 +314,33 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
               DEMO
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="flex items-center justify-center h-8 w-8 rounded-md transition-colors"
-            style={{ color: "#fff" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            {alreadySent && phase !== "generating" && (
+              <button
+                type="button"
+                onClick={resetSendDemo}
+                className="hidden sm:inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md transition-colors"
+                style={{ color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.2)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                title="Reset demo send state"
+              >
+                <RotateCcw size={12} />
+                Reset demo
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="flex items-center justify-center h-8 w-8 rounded-md transition-colors"
+              style={{ color: "#fff" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
