@@ -779,7 +779,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
       >
         {/* Header */}
         <div
-          className="relative flex items-center justify-between"
+          className="relative flex items-center justify-between flex-shrink-0"
           style={{ background: "#0F2B46", color: "white", padding: "24px 32px" }}
         >
           <div style={{ minWidth: 0, flex: 1 }}>
