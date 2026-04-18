@@ -3309,6 +3309,14 @@ export const MeetingHistoryList = ({
           }
         }}
       />
+
+      {/* Ageing Well Demo Modal */}
+      <AgeingWellDemoModal
+        isOpen={!!ageingWellMeeting}
+        onClose={() => setAgeingWellMeeting(null)}
+        patientName="Dorothy Pearson"
+        meetingTitle={ageingWellMeeting?.title}
+      />
     </div>
     </TooltipProvider>
   );
