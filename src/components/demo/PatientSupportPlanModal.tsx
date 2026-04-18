@@ -479,11 +479,11 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row items-center gap-3 mt-8">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-8 w-full">
                   <button
                     type="button"
                     onClick={handleOpen}
-                    className="inline-flex items-center gap-2 px-5 h-11 rounded-md text-sm font-semibold text-white transition-transform hover:scale-[1.02]"
+                    className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-md text-sm font-semibold text-white transition-transform hover:scale-[1.02]"
                     style={{
                       background:
                         "linear-gradient(135deg, #2C7A7B 0%, #1F5E5E 100%)",
@@ -496,7 +496,7 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                   <button
                     type="button"
                     onClick={handleDownload}
-                    className="inline-flex items-center gap-2 px-5 h-11 rounded-md text-sm font-medium transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-md text-sm font-medium transition-colors"
                     style={{
                       background: "#fff",
                       color: "#1A2332",
@@ -506,6 +506,56 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                     <Download size={16} />
                     Download
                   </button>
+
+                  {alreadySent ? (
+                    <div className="flex flex-col items-center sm:items-start gap-1">
+                      <span
+                        className="inline-flex items-center gap-2 px-4 h-11 rounded-md text-sm font-semibold"
+                        style={{
+                          background: "#E8F3ED",
+                          color: "#2F855A",
+                          border: "1px solid #C8E2D2",
+                        }}
+                      >
+                        <Check size={16} strokeWidth={3} />
+                        Sent to Towcester MC ·{" "}
+                        {(typeof window !== "undefined" &&
+                          window.sessionStorage.getItem(SENT_AT_KEY)) ||
+                          "08:40:08"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={startSendSequence}
+                        className="text-[11px] underline-offset-4 hover:underline"
+                        style={{ color: "#6B7688" }}
+                      >
+                        Send again
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={startSendSequence}
+                      className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-md text-sm font-medium text-white shadow-md hover:shadow-lg transition-all"
+                      style={{
+                        background:
+                          "linear-gradient(90deg, #1E3A5F 0%, #2C7A7B 100%)",
+                      }}
+                    >
+                      <span className="relative flex w-2 h-2">
+                        <span
+                          className="absolute inset-0 rounded-full opacity-75 animate-ping"
+                          style={{ background: "#FBBF24" }}
+                        />
+                        <span
+                          className="relative rounded-full w-2 h-2"
+                          style={{ background: "#F59E0B" }}
+                        />
+                      </span>
+                      <ArrowRightCircle size={16} />
+                      Send to Clinical System
+                    </button>
+                  )}
                 </div>
 
                 <button
