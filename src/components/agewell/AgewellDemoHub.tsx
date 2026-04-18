@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
+import CommunicationsModal from "@/components/CommunicationsModal";
 
 /* ──────────────────────────────────────────────────────────────────
  * Palette (kept consistent with the rest of the AgeWell page)
@@ -87,160 +88,6 @@ function useFrauncesFont() {
 }
 
 const FONT_SERIF = `'Fraunces', 'Playfair Display', Georgia, 'Times New Roman', serif`;
-
-/* ──────────────────────────────────────────────────────────────────
- * Communications modal (Act 3) — lists 5 letters, all stubbed
- * ────────────────────────────────────────────────────────────────── */
-const COMMUNICATIONS = [
-  { name: "Patient Letter", desc: "Plain-English summary of the visit and next steps for Dot." },
-  { name: "Family Letter", desc: "Update for Sandra (daughter) — what happened and what to expect." },
-  { name: "GP Clinical Summary", desc: "Structured clinical summary for Dr Patel at Towcester MC." },
-  { name: "Multi-agency Referral Pack", desc: "Falls service, OT, and Adult Social Care referrals." },
-  { name: "Carer Handover Note", desc: "Practical handover note for the AgeWell support team." },
-];
-
-const CommunicationsModal: React.FC<{ open: boolean; onClose: () => void }> = ({
-  open,
-  onClose,
-}) => {
-  if (!open) return null;
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15, 43, 70, 0.6)",
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: C.cream,
-          borderRadius: 16,
-          maxWidth: 640,
-          width: "100%",
-          maxHeight: "85vh",
-          overflow: "auto",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-        }}
-      >
-        <div
-          style={{
-            background: C.navyDeep,
-            color: "white",
-            padding: "20px 28px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderRadius: "16px 16px 0 0",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                letterSpacing: 2,
-                color: C.amber,
-                fontWeight: 700,
-                marginBottom: 4,
-              }}
-            >
-              ACT 3 · COMMUNICATIONS
-            </div>
-            <div style={{ fontFamily: FONT_SERIF, fontStyle: "italic", fontSize: 22 }}>
-              Five letters, one click
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              background: "rgba(255,255,255,0.1)",
-              border: "none",
-              color: "white",
-              borderRadius: 8,
-              padding: 8,
-              cursor: "pointer",
-            }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-          {COMMUNICATIONS.map((c) => (
-            <div
-              key={c.name}
-              style={{
-                background: "white",
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: 16,
-                display: "flex",
-                gap: 14,
-                alignItems: "flex-start",
-              }}
-            >
-              <div
-                style={{
-                  background: C.tealLight,
-                  color: C.tealDark,
-                  borderRadius: 8,
-                  padding: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Mail size={18} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    color: C.navyText,
-                    fontSize: 14,
-                    marginBottom: 2,
-                  }}
-                >
-                  {c.name}
-                </div>
-                <div style={{ fontSize: 12, color: C.slate600, lineHeight: 1.5 }}>
-                  {c.desc}
-                </div>
-              </div>
-              <button
-                onClick={() => toast.info("Demo asset pending — letter will download here")}
-                style={{
-                  background: C.navyDeep,
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "8px 14px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  flexShrink: 0,
-                }}
-              >
-                <FileDown size={14} /> Download
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 /* ──────────────────────────────────────────────────────────────────
  * Programme knowledge modal (Zone 3, card 1)
@@ -654,6 +501,7 @@ const AgewellDemoHub: React.FC = () => {
       btn: "See communications",
       onClick: () => setShowComms(true),
       icon: <Mail size={14} />,
+      isNew: true,
     },
     {
       n: 4,
@@ -765,6 +613,27 @@ const AgewellDemoHub: React.FC = () => {
                   }}
                 >
                   LIVE DEMO
+                </div>
+              )}
+
+              {/* NEW badge for Act 3 */}
+              {(a as { isNew?: boolean }).isNew && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    background: "#F59E0B",
+                    color: "white",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: 1.5,
+                    padding: "2px 6px",
+                    borderRadius: 2,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  NEW
                 </div>
               )}
 
@@ -1064,7 +933,7 @@ const AgewellDemoHub: React.FC = () => {
       {Zone4}
 
       {/* Modals */}
-      <CommunicationsModal open={showComms} onClose={() => setShowComms(false)} />
+      <CommunicationsModal isOpen={showComms} onClose={() => setShowComms(false)} />
       <ProgrammeModal open={showProgramme} onClose={() => setShowProgramme(false)} />
       <AgeingWellDemoModal
         isOpen={showDemo}
