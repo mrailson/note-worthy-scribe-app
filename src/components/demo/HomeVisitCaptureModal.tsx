@@ -601,7 +601,8 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
             </div>
           </div>
 
-          {/* Connectivity indicator */}
+          {/* Connectivity indicator (hidden in beat 1) */}
+          {showOfflinePills && (
           <div
             style={{
               background: "rgba(255,255,255,0.7)",
