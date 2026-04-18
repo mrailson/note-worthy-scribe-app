@@ -577,6 +577,22 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
             </div>
           )}
 
+          {phase === "sending" && (
+            <SendingView
+              sendStep={sendStep}
+              visibleConsoleLines={visibleConsoleLines}
+              consoleRef={consoleRef}
+              prefersReducedMotion={prefersReducedMotion}
+            />
+          )}
+
+          {phase === "sent" && (
+            <SentView
+              onViewSystmOne={openSystmOne}
+              onClose={() => setPhase("complete")}
+            />
+          )}
+
           {phase === "payoff" && (
             <div className="px-6 py-10">
               <div className="text-center mb-8">
