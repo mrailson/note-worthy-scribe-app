@@ -943,6 +943,11 @@ const AgewellDemoHub: React.FC = () => {
         meetingTitle="Towcester MC — Ageing Well Home Visit"
         patientName="Dorothy Pearson (Dot)"
       />
+      <PatientSupportPlanModal
+        open={showSupportPlan}
+        onClose={() => setShowSupportPlan(false)}
+        patient={DEMO_PATIENTS[0]}
+      />
     </div>
   );
 };
