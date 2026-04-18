@@ -20,7 +20,10 @@ import {
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import CommunicationsModal from "@/components/CommunicationsModal";
 import PatientSupportPlanModal from "@/components/demo/PatientSupportPlanModal";
+import HomeVisitCaptureModal from "@/components/demo/HomeVisitCaptureModal";
 import { DEMO_PATIENTS } from "@/data/demoPatients";
+
+const VISIT_CAPTURED_KEY = "demo.dot.visit.captured";
 
 /* ──────────────────────────────────────────────────────────────────
  * Palette (kept consistent with the rest of the AgeWell page)
@@ -305,6 +308,20 @@ const AgewellDemoHub: React.FC = () => {
   const [showProgramme, setShowProgramme] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [showSupportPlan, setShowSupportPlan] = useState(false);
+  const [showHomeVisit, setShowHomeVisit] = useState(false);
+  const [visitCaptured, setVisitCaptured] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(VISIT_CAPTURED_KEY) === "true";
+  });
+
+  const openHomeVisit = () => setShowHomeVisit(true);
+  const closeHomeVisit = () => {
+    setShowHomeVisit(false);
+    setVisitCaptured(true);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(VISIT_CAPTURED_KEY, "true");
+    }
+  };
 
   const z1 = useReveal<HTMLDivElement>();
   const z2 = useReveal<HTMLDivElement>();
