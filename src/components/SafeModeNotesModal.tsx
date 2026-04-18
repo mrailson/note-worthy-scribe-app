@@ -106,6 +106,9 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
+import { PatientBanner } from "@/components/PatientBanner";
+import { getDemoPatientForMeeting } from "@/data/demoPatients";
+import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { NotesLengthSelector, NotesLengthDescription, type NotesLength } from "@/components/SafeModal/NotesLengthSelector";
 import { generateNotesWithLength } from "@/lib/notesGenerator";
@@ -146,6 +149,7 @@ interface Meeting {
   start_time?: string;
   import_source?: string;
   import_metadata?: Record<string, unknown> | null;
+  folder_id?: string | null;
 }
 
 interface SafeModeNotesModalProps {
