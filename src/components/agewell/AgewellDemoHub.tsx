@@ -763,6 +763,197 @@ const AgewellDemoHub: React.FC = () => {
     </div>
   );
 
+  /* ─── ZONE 2b: The Notewell Story ─── */
+  const storyPills = [
+    "Patient letters",
+    "Training PowerPoints",
+    "Posters & infographics",
+    "Referrals",
+    "Complaint responses",
+    "CQC policies",
+    "Meeting minutes",
+    "Translations",
+    "Care plans",
+    "SDA reports",
+    "Board papers",
+    "Skills practice scenarios",
+  ];
+
+  const Zone2b = (
+    <div ref={z2b.ref} style={{ ...revealStyle(z2b.visible), marginTop: 64 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isDesktop ? "1.1fr 1fr" : "1fr",
+          gap: isDesktop ? 24 : 20,
+        }}
+      >
+        {/* LEFT — Built by Practice Managers */}
+        <div
+          style={{
+            background: C.cream,
+            border: `1px solid ${C.border}`,
+            borderRadius: 16,
+            padding: isDesktop ? "32px 36px" : "24px 22px",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 4,
+              background: C.teal,
+              borderRadius: "16px 16px 0 0",
+            }}
+          />
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: 3,
+              color: C.amberDark,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              marginBottom: 10,
+            }}
+          >
+            The Notewell Story
+          </div>
+          <h2
+            style={{
+              fontFamily: FONT_SERIF,
+              fontStyle: "italic",
+              fontSize: isDesktop ? 28 : 24,
+              color: C.navyText,
+              margin: "0 0 16px",
+              lineHeight: 1.2,
+              fontWeight: 600,
+            }}
+          >
+            Built by Practice Managers, for Practice Managers
+          </h2>
+          <p
+            style={{
+              fontSize: 14,
+              color: C.slate700,
+              lineHeight: 1.7,
+              margin: "0 0 14px",
+            }}
+          >
+            Notewell was built by and for Practice Managers and primary care admin teams —
+            people who live NHS governance, safety and quality standards every day. It started
+            with meeting transcription and grew naturally into long, detailed clinical meetings
+            with a high-quality scribe, purpose-designed around DCB0129/0160, MHRA Class I
+            registration, and CQC-aligned safety standards.
+          </p>
+          <p
+            style={{
+              fontSize: 14,
+              color: C.slate700,
+              lineHeight: 1.7,
+              margin: "0 0 14px",
+            }}
+          >
+            Ageing Well is the natural next step: the same scribe, the same governance, tuned
+            for neighbourhood frailty and long-form care conversations.
+          </p>
+          <p
+            style={{
+              fontSize: 14,
+              color: C.slate700,
+              lineHeight: 1.7,
+              margin: 0,
+            }}
+          >
+            From there, Notewell has become a home for useful AI services across NHS primary
+            care — safety and security baked in from the first line of code.
+          </p>
+        </div>
+
+        {/* RIGHT — The list is endless */}
+        <div
+          style={{
+            background: C.creamAlt,
+            border: `1px solid ${C.border}`,
+            borderRadius: 16,
+            padding: isDesktop ? "32px 36px" : "24px 22px",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: 3,
+              color: C.amberDark,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              marginBottom: 10,
+            }}
+          >
+            Outputs
+          </div>
+          <h2
+            style={{
+              fontFamily: FONT_SERIF,
+              fontStyle: "italic",
+              fontSize: isDesktop ? 28 : 24,
+              color: C.navyText,
+              margin: "0 0 18px",
+              lineHeight: 1.2,
+              fontWeight: 600,
+            }}
+          >
+            The list is endless
+          </h2>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              marginBottom: 18,
+            }}
+          >
+            {storyPills.map((p) => (
+              <span
+                key={p}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  background: C.tealLight,
+                  color: C.tealDark,
+                  border: `1px solid ${C.teal}33`,
+                  borderRadius: 999,
+                  padding: "6px 12px",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                }}
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+          <p
+            style={{
+              marginTop: "auto",
+              fontSize: 12.5,
+              color: C.slate600,
+              fontStyle: "italic",
+              lineHeight: 1.5,
+              margin: 0,
+            }}
+          >
+            One platform. NHS-grade governance. Endless outputs.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   /* ─── ZONE 3: Reference cards ─── */
   const referenceCards = [
     {
