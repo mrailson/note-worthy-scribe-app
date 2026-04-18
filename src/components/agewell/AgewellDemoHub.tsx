@@ -1188,6 +1188,7 @@ const AgewellDemoHub: React.FC = () => {
             <FileText size={15} />
             Open Blue Badge demo →
           </button>
+          </div>
         </div>
 
         {/* RIGHT — Admin iceberg */}
