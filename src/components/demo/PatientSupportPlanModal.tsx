@@ -74,16 +74,50 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
   const [phase, setPhase] = useState<Phase>("generating");
   const [completedSteps, setCompletedSteps] = useState(0);
   const [visibleSteps, setVisibleSteps] = useState(0);
+  const [sendStep, setSendStep] = useState(0); // 0..7
+  const [visibleConsoleLines, setVisibleConsoleLines] = useState(1);
+  const [alreadySent, setAlreadySent] = useState(false);
+
+  const consoleRef = useRef<HTMLDivElement | null>(null);
+  const prefersReducedMotion = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
 
   const plan = patient.supportPlan;
 
-  // Reset on open
+  // Reset on open — respect persisted "sent" status
   useEffect(() => {
     if (!open) return;
-    setPhase("generating");
-    setCompletedSteps(0);
-    setVisibleSteps(0);
+    const persistedSent =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(SENT_KEY) === "true";
+    setAlreadySent(persistedSent);
+    if (persistedSent) {
+      setPhase("sent");
+      setSendStep(SEND_TIMINGS_MS.length);
+      setVisibleConsoleLines(CONSOLE_LINES.length);
+    } else {
+      setPhase("generating");
+      setCompletedSteps(0);
+      setVisibleSteps(0);
+      setSendStep(0);
+      setVisibleConsoleLines(1);
+    }
   }, [open]);
+
+  // Persist 'sent' status
+  useEffect(() => {
+    if (phase === "sent" && typeof window !== "undefined") {
+      window.sessionStorage.setItem(SENT_KEY, "true");
+      if (!window.sessionStorage.getItem(SENT_AT_KEY)) {
+        window.sessionStorage.setItem(SENT_AT_KEY, "08:40:08");
+      }
+      setAlreadySent(true);
+    }
+  }, [phase]);
 
   // Lock scroll
   useEffect(() => {
