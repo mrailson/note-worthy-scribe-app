@@ -326,6 +326,7 @@ const AgewellDemoHub: React.FC = () => {
   const z1 = useReveal<HTMLDivElement>();
   const z2 = useReveal<HTMLDivElement>();
   const z2b = useReveal<HTMLDivElement>();
+  const z2c = useReveal<HTMLDivElement>();
   const z3 = useReveal<HTMLDivElement>();
   const z4 = useReveal<HTMLDivElement>();
 
