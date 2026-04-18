@@ -2,10 +2,50 @@
 // Act 2 of the AgeWell demo flow: simulates Notewell generating the
 // Patient Support Plan from the visit transcript, then offers open/download.
 
-import React, { useEffect, useMemo, useState } from "react";
-import { X, Check, FileText, Download, ExternalLink, Clock, Sparkles } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  X,
+  Check,
+  FileText,
+  Download,
+  ExternalLink,
+  Clock,
+  Sparkles,
+  ArrowRightCircle,
+  Globe,
+  Monitor,
+  Loader2,
+  RotateCcw,
+} from "lucide-react";
 import { downloadFile } from "@/utils/downloadFile";
 import type { DemoPatient } from "@/data/demoPatients";
+
+const SENT_KEY = "demo.dot.support-plan.sent";
+const SENT_AT_KEY = "demo.dot.support-plan.sent-at";
+
+const SEND_TIMINGS_MS = [0, 900, 1800, 2700, 3600, 4500, 5400];
+const SEND_FINISH_MS = 6000;
+
+const NODE_STATUS_LINES = [
+  "Composing FHIR bundle…",
+  "Signing with MESH JWT…",
+  "Transmitting via NHS Spine…",
+  "Spine accepted — MSG-REF 7A9F3C…",
+  "Delivering to SystmOne task queue…",
+  "Task received by GP inbox…",
+  "Complete",
+];
+
+const CONSOLE_LINES = [
+  { t: "08:40:02", text: "Initiating GP Connect transfer…" },
+  { t: "08:40:02", text: "Composing FHIR Bundle (DocumentReference + Binary)" },
+  { t: "08:40:03", text: "JWT signed, cty=application/fhir+json" },
+  { t: "08:40:04", text: "POST to sandbox.api.service.nhs.uk/mesh/v1" },
+  { t: "08:40:05", text: "202 Accepted, msgRef=7A9F3C12E8B4D9" },
+  { t: "08:40:06", text: "Polling for delivery confirmation…" },
+  { t: "08:40:07", text: "Ack received: delivered to K81039 (Towcester MC)" },
+  { t: "08:40:08", text: "✓ Complete" },
+];
 
 export interface PatientSupportPlanModalProps {
   open: boolean;
@@ -13,7 +53,7 @@ export interface PatientSupportPlanModalProps {
   patient: DemoPatient;
 }
 
-type Phase = "generating" | "complete" | "payoff";
+type Phase = "generating" | "complete" | "sending" | "sent" | "payoff";
 
 const STEPS = [
   "Reading visit transcript…",
