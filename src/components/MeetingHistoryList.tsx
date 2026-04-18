@@ -3072,7 +3072,8 @@ export const MeetingHistoryList = ({
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
         </>
       )}
 
