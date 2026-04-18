@@ -1193,6 +1193,7 @@ const AgewellDemoHub: React.FC = () => {
 
       {Zone1}
       {Zone2}
+      {Zone2b}
       {Zone3}
       {Zone4}
 
