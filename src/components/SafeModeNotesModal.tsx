@@ -3182,6 +3182,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           </div>
         </DialogHeader>
 
+        {/* Demo Patient Banner — only for meetings in Demonstrations folder */}
+        {demoPatient && (
+          <div className="px-6 pt-4 flex-shrink-0">
+            <PatientBanner patient={demoPatient} compact />
+          </div>
+        )}
+
         {/* Toolbar */}
         <div className="px-6 py-2.5 border-b flex items-center justify-between gap-4 flex-shrink-0 bg-muted/30">
           <div className="flex items-center gap-1">
