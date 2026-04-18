@@ -33,6 +33,16 @@ export interface DemoPatient {
   };
   initials: string;            // DP
   avatarColor: string;         // #1B3A5C
+  supportPlan?: {
+    filename: string;
+    path: string;
+    pages: number;
+    size_kb: number;
+    generated_at: string;       // ISO
+    sections_populated: number; // About-the-Patient narrative sections
+    action_plan_rows: number;
+    generated_by_notewell: boolean;
+  };
 }
 
 export const DEMO_PATIENTS: DemoPatient[] = [
@@ -74,6 +84,16 @@ export const DEMO_PATIENTS: DemoPatient[] = [
     },
     initials: 'DP',
     avatarColor: '#1B3A5C',
+    supportPlan: {
+      filename: 'AgeWell_PSP_Dorothy_Pearson_Support_Plan.docx',
+      path: '/demo/support-plan/AgeWell_PSP_Dorothy_Pearson_Populated.docx',
+      pages: 10,
+      size_kb: 140,
+      generated_at: '2026-04-16T17:40:00Z',
+      sections_populated: 18,
+      action_plan_rows: 15,
+      generated_by_notewell: true,
+    },
   },
 ];
 
