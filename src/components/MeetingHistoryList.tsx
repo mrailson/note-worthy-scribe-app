@@ -109,6 +109,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { RecordingErrorCard } from "@/components/recording/RecordingErrorCard";
 import { PatientBanner } from "@/components/PatientBanner";
 import { getDemoPatientForMeeting } from "@/data/demoPatients";
+import { DemoMeetingCard } from "@/components/meeting-history/DemoMeetingCard";
 
 
 interface Meeting {
@@ -2059,7 +2060,36 @@ export const MeetingHistoryList = ({
         renderEmptyState()
       ) : (
         <>
-      {localMeetings.map((meeting) => (
+      {localMeetings.map((meeting) => {
+        // Demo-only redesigned card for meetings in the Demonstrations folder
+        const _folder = meetingFolderBadges.get(meeting.id);
+        const _demoPatient = getDemoPatientForMeeting({
+          title: meeting.title,
+          folder: _folder?.name,
+        });
+        if (_demoPatient) {
+          return (
+            <DemoMeetingCard
+              key={meeting.id}
+              meeting={meeting}
+              patient={_demoPatient}
+              folderName={_folder?.name}
+              onViewNotes={() => {
+                if (!isResourceOperationSafe()) {
+                  alert("Cannot view notes while recording is active.");
+                  return;
+                }
+                handleSafeModeNotesClick(meeting);
+              }}
+              onAgeingWell={() => setAgeingWellMeeting(meeting)}
+              onDownloadWord={() => handleDownloadWord(meeting)}
+              onManageAttendees={() => handleAttendeesClick(meeting)}
+              onDelete={() => onDelete(meeting.id)}
+              onEditTitle={() => handleStartEdit(meeting.id, meeting.title)}
+            />
+          );
+        }
+        return (
         <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
           <CardHeader className="pb-3">
             <div className="space-y-3">
@@ -3042,7 +3072,8 @@ export const MeetingHistoryList = ({
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
         </>
       )}
 
