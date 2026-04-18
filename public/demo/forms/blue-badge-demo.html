@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blue Badge Evidence Extraction — Notewell AgeWell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #0b3538;
+    --teal-800: #124a4e;
+    --teal-700: #1a6065;
+    --teal-600: #2a7d81;
+    --teal-500: #3a9aa0;
+    --teal-100: #d9ebec;
+    --cream: #f5efe4;
+    --cream-dark: #ede5d4;
+    --paper: #faf7f0;
+    --gold: #c89a5c;
+    --gold-dark: #a47938;
+    --ink: #1a2426;
+    --ink-muted: #4a5759;
+    --ink-faint: #7a8789;
+    --amber: #e8a96b;
+    --burden: #c15a3d;
+    --burden-bg: #f4ddd4;
+    --line: #d8cfbf;
+    --line-dark: #1e4548;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 400;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .display {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* ── TOP BAR ──────────────────────────── */
+  .topbar {
+    background: var(--teal-900);
+    color: var(--cream);
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--line-dark);
+  }
+  .topbar .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+  }
+  .topbar .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 12px var(--amber);
+  }
+  .topbar .breadcrumb {
+    color: var(--teal-100);
+    opacity: 0.7;
+  }
+  .topbar .breadcrumb span { margin: 0 8px; opacity: 0.4; }
+  .topbar .meta {
+    display: flex; gap: 20px; align-items: center;
+    font-size: 12px;
+    opacity: 0.65;
+  }
+  .topbar .badge {
+    background: rgba(232, 169, 107, 0.15);
+    color: var(--amber);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(232, 169, 107, 0.3);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── HERO ─────────────────────────────── */
+  .hero {
+    background: var(--teal-900);
+    color: var(--cream);
+    padding: 80px 40px 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(232,169,107,0.12) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+  .hero-inner { max-width: 1320px; margin: 0 auto; position: relative; }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--amber);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    font-weight: 500;
+  }
+  .hero-eyebrow::before {
+    content: ''; width: 32px; height: 1px; background: var(--amber);
+  }
+  .hero h1 {
+    font-size: clamp(42px, 5.5vw, 76px);
+    margin-bottom: 28px;
+    max-width: 1100px;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 400;
+  }
+  .hero-sub {
+    font-size: 19px;
+    max-width: 780px;
+    color: var(--teal-100);
+    opacity: 0.88;
+    line-height: 1.6;
+  }
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-top: 60px;
+    border-top: 1px solid rgba(217,235,236,0.15);
+    border-bottom: 1px solid rgba(217,235,236,0.15);
+  }
+  .hero-stat {
+    padding: 28px 24px 28px 0;
+    border-right: 1px solid rgba(217,235,236,0.1);
+  }
+  .hero-stat:last-child { border-right: none; }
+  .hero-stat .num {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 500;
+    color: var(--amber);
+    line-height: 1;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .hero-stat .lbl {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--teal-100);
+    opacity: 0.7;
+  }
+
+  /* ── SECTION BASE ─────────────────────── */
+  section.block {
+    padding: 90px 40px;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    color: var(--gold-dark);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  h2.section-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(32px, 3.8vw, 52px);
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .section-lede {
+    font-size: 18px;
+    color: var(--ink-muted);
+    max-width: 720px;
+    line-height: 1.6;
+  }
+
+  /* ── EXTRACTION THEATRE ───────────────── */
+  .theatre {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin-top: 56px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 20px 60px -30px rgba(11,53,56,0.2);
+  }
+  .theatre-header {
+    background: var(--teal-900);
+    color: var(--cream);
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+  .theatre-header .title {
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .theatre-header .pulse {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--amber); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .theatre-header .pulse::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--amber);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(232,169,107,0.6); }
+    50% { opacity: 0.5; box-shadow: 0 0 0 6px rgba(232,169,107,0); }
+  }
+
+  .theatre-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    min-height: 720px;
+  }
+  .panel {
+    padding: 32px 28px;
+    border-right: 1px solid var(--line);
+    position: relative;
+  }
+  .panel:last-child { border-right: none; }
+  .panel-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  .panel-label .step {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--teal-900); color: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .panel h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .panel .panel-note {
+    font-size: 13px;
+    color: var(--ink-faint);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  /* transcript panel */
+  .transcript {
+    background: var(--cream);
+    border-radius: 3px;
+    padding: 20px;
+    font-size: 14px;
+    line-height: 1.75;
+    max-height: 560px;
+    overflow-y: auto;
+  }
+  .transcript .speaker {
+    font-weight: 600;
+    color: var(--teal-800);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 14px;
+    display: block;
+  }
+  .transcript .speaker:first-child { margin-top: 0; }
+  .transcript p { margin-bottom: 4px; }
+  .transcript .highlight {
+    background: rgba(232, 169, 107, 0.3);
+    border-bottom: 2px solid var(--gold);
+    padding: 1px 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .transcript .highlight:hover,
+  .transcript .highlight.active {
+    background: var(--gold);
+    color: var(--teal-900);
+    font-weight: 500;
+  }
+  .transcript .tag {
+    font-size: 10px;
+    vertical-align: super;
+    color: var(--gold-dark);
+    font-weight: 600;
+    margin-left: 2px;
+  }
+
+  /* schema panel */
+  .schema { display: flex; flex-direction: column; gap: 10px; }
+  .schema-item {
+    background: var(--cream);
+    border-left: 3px solid var(--teal-600);
+    padding: 12px 14px;
+    border-radius: 0 3px 3px 0;
+    transition: all 0.25s;
+  }
+  .schema-item.active {
+    border-left-color: var(--gold);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(11,53,56,0.08);
+    transform: translateX(4px);
+  }
+  .schema-item .field {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .schema-item .value {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .schema-item .source {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  /* output panel */
+  .output {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 24px 22px;
+    font-size: 13px;
+    line-height: 1.6;
+    max-height: 560px;
+    overflow-y: auto;
+    position: relative;
+  }
+  .output::before {
+    content: 'BLUE BADGE · SUPPORTING EVIDENCE';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: var(--teal-900);
+    color: var(--amber);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    padding: 5px 10px;
+    text-align: center;
+    font-weight: 600;
+  }
+  .output-body { margin-top: 20px; }
+  .output h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 16px 0 6px;
+    color: var(--teal-900);
+  }
+  .output h4:first-child { margin-top: 0; }
+  .output .field-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .output .field-row:last-child { border-bottom: none; }
+  .output .field-row .q {
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+  .output .field-row .a {
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .output .field-row .a .filled {
+    background: rgba(232,169,107,0.2);
+    border-bottom: 1px solid var(--gold);
+    padding: 1px 3px;
+    font-weight: 500;
+  }
+
+  /* ── OUTPUTS TABS ─────────────────────── */
+  .outputs-wrap { margin-top: 100px; }
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 0;
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 16px 24px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+    margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--teal-900); }
+  .tab.active {
+    color: var(--teal-900);
+    border-bottom-color: var(--gold);
+    font-weight: 600;
+  }
+  .tab-label {
+    font-size: 10px;
+    background: var(--teal-100);
+    color: var(--teal-800);
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .tab-panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-top: none;
+    padding: 48px 56px;
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .tab-panel.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .letter {
+    max-width: 720px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  .letter .letterhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--teal-900);
+    margin-bottom: 32px;
+  }
+  .letter .letterhead .practice {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--teal-900);
+  }
+  .letter .letterhead .practice small {
+    display: block;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-muted);
+    letter-spacing: 0;
+    margin-top: 4px;
+  }
+  .letter .letterhead .refblock {
+    text-align: right;
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.5;
+  }
+  .letter p { margin-bottom: 14px; }
+  .letter .subject {
+    font-weight: 600;
+    color: var(--teal-900);
+    margin-bottom: 20px;
+    font-size: 15px;
+  }
+  .letter .evidence-box {
+    background: var(--cream);
+    border-left: 3px solid var(--gold);
+    padding: 18px 22px;
+    margin: 20px 0;
+    font-size: 13px;
+  }
+  .letter .evidence-box strong { color: var(--teal-900); }
+  .letter .signature {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px dashed var(--line);
+  }
+  .letter .sig-note {
+    background: var(--burden-bg);
+    color: var(--burden);
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    margin-top: 16px;
+    display: inline-block;
+    font-weight: 500;
+  }
+
+  .json-view {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.75;
+    background: var(--teal-900);
+    color: var(--cream);
+    padding: 32px;
+    border-radius: 4px;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .json-view .k { color: var(--amber); }
+  .json-view .s { color: #a8d8b9; }
+  .json-view .n { color: #f4b0a0; }
+  .json-view .c { color: var(--ink-faint); font-style: italic; }
+  .json-view .b { color: #8cd0d3; }
+
+  /* ── ICEBERG ──────────────────────────── */
+  .iceberg-wrap {
+    background: linear-gradient(180deg, var(--cream) 0%, var(--cream-dark) 100%);
+    padding: 100px 40px;
+    margin-top: 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .iceberg-inner { max-width: 1320px; margin: 0 auto; }
+
+  .iceberg-viz {
+    margin-top: 60px;
+    position: relative;
+    padding: 40px 0;
+  }
+  .waterline {
+    position: relative;
+    height: 2px;
+    background: var(--teal-600);
+    margin: 40px 0 32px;
+  }
+  .waterline::before {
+    content: 'THE WATERLINE';
+    position: absolute;
+    left: 0; top: -22px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--teal-700);
+    font-weight: 600;
+  }
+  .waterline::after {
+    content: 'what the GP gets paid to do';
+    position: absolute;
+    right: 0; top: -20px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  .above-water {
+    text-align: center;
+    padding: 24px;
+    background: rgba(255,255,255,0.5);
+    border: 1px dashed var(--teal-600);
+    border-radius: 4px;
+    margin-bottom: 0;
+  }
+  .above-water .label {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    color: var(--teal-900);
+    font-weight: 500;
+    font-style: italic;
+  }
+  .above-water .sub {
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-top: 6px;
+  }
+
+  .below-label {
+    text-align: center;
+    margin: 36px 0 24px;
+  }
+  .below-label .l1 {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    color: var(--teal-900);
+    font-weight: 500;
+    font-style: italic;
+  }
+  .below-label .l2 {
+    font-size: 13px;
+    color: var(--ink-muted);
+    margin-top: 6px;
+  }
+
+  .forms-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 12px;
+  }
+  .form-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 18px 18px 16px;
+    position: relative;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .form-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px -10px rgba(11,53,56,0.2);
+    border-color: var(--gold);
+  }
+  .form-card.hero-card {
+    background: var(--teal-900);
+    color: var(--cream);
+    border-color: var(--teal-900);
+  }
+  .form-card.hero-card .form-name { color: var(--amber); }
+  .form-card.hero-card .form-meta { color: var(--teal-100); opacity: 0.8; }
+  .form-card.hero-card .form-badge {
+    background: var(--gold);
+    color: var(--teal-900);
+  }
+  .form-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--teal-900);
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+  .form-meta {
+    font-size: 11px;
+    color: var(--ink-faint);
+    line-height: 1.45;
+  }
+  .form-badge {
+    position: absolute;
+    top: 12px; right: 12px;
+    font-size: 9px;
+    background: var(--cream);
+    color: var(--teal-800);
+    padding: 2px 6px;
+    border-radius: 8px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* ── GOVERNANCE ───────────────────────── */
+  .governance {
+    background: var(--teal-900);
+    color: var(--cream);
+    padding: 80px 40px;
+    position: relative;
+  }
+  .governance::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+  .governance-inner {
+    max-width: 1320px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .governance h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+  }
+  .governance h2 em { color: var(--amber); font-style: italic; }
+  .governance p {
+    font-size: 16px;
+    color: var(--teal-100);
+    opacity: 0.85;
+    line-height: 1.65;
+  }
+  .gov-stack {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .gov-badge {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(232,169,107,0.25);
+    padding: 22px 20px;
+    border-radius: 4px;
+  }
+  .gov-badge .tick {
+    color: var(--amber);
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+  .gov-badge .title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--cream);
+  }
+  .gov-badge .desc {
+    font-size: 12px;
+    color: var(--teal-100);
+    opacity: 0.75;
+    line-height: 1.5;
+  }
+
+  /* ── FOOTER ───────────────────────────── */
+  footer {
+    background: #081f21;
+    color: var(--teal-100);
+    padding: 40px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.7;
+    letter-spacing: 0.02em;
+  }
+  footer .dot-sep { margin: 0 10px; color: var(--amber); opacity: 0.6; }
+
+  /* ── RESPONSIVE ───────────────────────── */
+  @media (max-width: 1100px) {
+    .theatre-grid { grid-template-columns: 1fr; min-height: 0; }
+    .panel { border-right: none; border-bottom: 1px solid var(--line); }
+    .panel:last-child { border-bottom: none; }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    .forms-grid { grid-template-columns: repeat(2, 1fr); }
+    .governance-inner { grid-template-columns: 1fr; gap: 40px; }
+    .gov-stack { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .topbar { flex-direction: column; gap: 10px; padding: 14px 20px; }
+    .topbar .meta { display: none; }
+    section.block, .iceberg-wrap, .governance, .hero { padding-left: 20px; padding-right: 20px; }
+    .forms-grid { grid-template-columns: 1fr; }
+    .tab-panel { padding: 28px 20px; }
+    .letter .letterhead { flex-direction: column; gap: 14px; }
+    .letter .letterhead .refblock { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <span>Notewell · AgeWell</span>
+    <span class="breadcrumb"><span>/</span> Evidence Extraction <span>/</span> Blue Badge</span>
+  </div>
+  <div class="meta">
+    <span>Demo · scripted data · Dot Pearson</span>
+    <span class="badge">Live Demo Ready</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Module · Forms &amp; Admin Iceberg</div>
+    <h1 class="display">One conversation on Dot's doorstep — <em>one complete Blue Badge application.</em></h1>
+    <p class="hero-sub">The AgeWell worker has already asked Dot how far she can walk, how often she falls, what aids she uses. The evidence for a Blue Badge is sitting in the transcript. Notewell routes it — into a supporting statement for the family to submit and a GP letter ready for signature. No re-keying. No unfunded letter burden.</p>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="num">1</div>
+        <div class="lbl">Home visit</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">14</div>
+        <div class="lbl">Application fields auto-filled</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">2</div>
+        <div class="lbl">Outputs generated</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">0</div>
+        <div class="lbl">Keystrokes re-keyed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXTRACTION THEATRE -->
+<section class="block">
+  <div class="eyebrow">The extraction, step by step</div>
+  <h2 class="section-title">From spoken evidence <br>to signed application.</h2>
+  <p class="section-lede">Hover any highlighted phrase in Dot's transcript to see which Blue Badge field it evidences, and how it lands in the finished application. This is the same pattern that powers every form Notewell supports.</p>
+
+  <div class="theatre">
+    <div class="theatre-header">
+      <div class="title">Dot Pearson · Home visit transcript · 18/04/2026</div>
+      <div class="pulse">Extraction live</div>
+    </div>
+
+    <div class="theatre-grid">
+
+      <!-- PANEL 1: TRANSCRIPT -->
+      <div class="panel">
+        <div class="panel-label"><span class="step">1</span> Transcript</div>
+        <h3>What Dot said</h3>
+        <div class="panel-note">Captured by the AgeWell worker on a mobile device, offline-capable, multi-speaker diarisation.</div>
+        <div class="transcript">
+          <span class="speaker">AgeWell Worker</span>
+          <p>Morning Dot, lovely to see you. How are you getting on walking around the house?</p>
+
+          <span class="speaker">Dot Pearson</span>
+          <p>Oh well, I manage. <span class="highlight" data-link="mobility-distance">I can get to the kitchen but I have to stop halfway and hold on to the cupboard<span class="tag">¹</span></span>. It's the knees, you see.</p>
+
+          <span class="speaker">AgeWell Worker</span>
+          <p>And when you go out — how far could you walk before you'd need to stop?</p>
+
+          <span class="speaker">Dot Pearson</span>
+          <p><span class="highlight" data-link="mobility-distance">Not more than to the front gate, maybe thirty yards<span class="tag">¹</span></span>, and even that I'd be terribly out of breath. <span class="highlight" data-link="aids">I use the stick indoors and the wheeled frame if I go outside<span class="tag">²</span></span>, not that I go out much now.</p>
+
+          <span class="speaker">AgeWell Worker</span>
+          <p>You mentioned falls when we spoke on the phone.</p>
+
+          <span class="speaker">Dot Pearson</span>
+          <p>Yes, <span class="highlight" data-link="falls">twice this year. Once getting out of the bath, once on the path to the bins<span class="tag">³</span></span>. The second one I was on the floor for I don't know how long before the neighbour came round.</p>
+
+          <span class="speaker">AgeWell Worker</span>
+          <p>And pain — does walking cause you pain?</p>
+
+          <span class="speaker">Dot Pearson</span>
+          <p><span class="highlight" data-link="pain">Terrible pain in both knees, worse on the left. Gets worse the longer I'm on my feet<span class="tag">⁴</span></span>. My GP said it's osteoarthritis, I've been on it for years.</p>
+
+          <span class="speaker">AgeWell Worker</span>
+          <p>Breathlessness?</p>
+
+          <span class="speaker">Dot Pearson</span>
+          <p><span class="highlight" data-link="breathlessness">Very short of breath even walking to the bathroom. I have my blue inhaler<span class="tag">⁵</span></span>. It's the COPD from smoking years ago, silly me.</p>
+
+          <span class="speaker">AgeWell Worker</span>
+          <p>And outside the house — shopping, appointments?</p>
+
+          <span class="speaker">Dot Pearson</span>
+          <p><span class="highlight" data-link="outdoor-impact">My daughter takes me, but she has to drop me at the door and park. Last time at the surgery I couldn't make it from the car park and she had to come back for me<span class="tag">⁶</span></span>.</p>
+
+          <span class="speaker">AgeWell Worker</span>
+          <p>Dot, would a Blue Badge help?</p>
+
+          <span class="speaker">Dot Pearson</span>
+          <p>Oh, my daughter's been on at me about that for a year. I never got round to it. The form looked a mile long.</p>
+        </div>
+      </div>
+
+      <!-- PANEL 2: SCHEMA -->
+      <div class="panel">
+        <div class="panel-label"><span class="step">2</span> Extracted evidence</div>
+        <h3>What Notewell understood</h3>
+        <div class="panel-note">Structured schema mapped to the DfT Blue Badge application criteria, with source traceability.</div>
+        <div class="schema">
+          <div class="schema-item" data-link="mobility-distance">
+            <div class="field">mobility.walking_distance_metres</div>
+            <div class="value">~27m before stopping (30 yards)</div>
+            <div class="source">Source: turn 3 · confidence 0.94</div>
+          </div>
+          <div class="schema-item" data-link="aids">
+            <div class="field">mobility.aids_used</div>
+            <div class="value">Walking stick (indoor), wheeled frame (outdoor)</div>
+            <div class="source">Source: turn 3 · confidence 0.97</div>
+          </div>
+          <div class="schema-item" data-link="falls">
+            <div class="field">falls.events_12m</div>
+            <div class="value">2 falls (bath; garden path) — 1 long lie</div>
+            <div class="source">Source: turn 5 · FRAT flag raised</div>
+          </div>
+          <div class="schema-item" data-link="pain">
+            <div class="field">pain.on_walking</div>
+            <div class="value">Severe, bilateral knees, L&gt;R, worsens with duration</div>
+            <div class="source">Source: turn 7 · Dx: osteoarthritis (SNOMED 396275006)</div>
+          </div>
+          <div class="schema-item" data-link="breathlessness">
+            <div class="field">respiratory.breathlessness_mrc</div>
+            <div class="value">MRC 4 — breathless on minimal exertion</div>
+            <div class="source">Source: turn 9 · Dx: COPD (SNOMED 13645005)</div>
+          </div>
+          <div class="schema-item" data-link="outdoor-impact">
+            <div class="field">impact.outdoor_mobility</div>
+            <div class="value">Cannot cross standard car park; requires door-to-door drop</div>
+            <div class="source">Source: turn 11 · functional impact evidenced</div>
+          </div>
+          <div class="schema-item">
+            <div class="field">eligibility.route</div>
+            <div class="value">Subject to further assessment — strong eligibility signal</div>
+            <div class="source">Computed · DfT walking-difficulty criteria</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3: OUTPUT -->
+      <div class="panel">
+        <div class="panel-label"><span class="step">3</span> Auto-filled application</div>
+        <h3>Blue Badge — ready to submit</h3>
+        <div class="panel-note">Mapped to the "you and your walking" section of the standard application. Family reviews, signs, submits.</div>
+        <div class="output">
+          <div class="output-body">
+            <h4>Section C — Walking ability</h4>
+            <div class="field-row">
+              <div class="q">How far can you walk without stopping?</div>
+              <div class="a"><span class="filled">Less than 50 metres — stops at ~27m</span></div>
+            </div>
+            <div class="field-row">
+              <div class="q">How long does it take you to walk this distance?</div>
+              <div class="a"><span class="filled">Considerably longer than average; stops to rest and hold onto surfaces</span></div>
+            </div>
+            <div class="field-row">
+              <div class="q">Do you use any walking aids?</div>
+              <div class="a"><span class="filled">Yes — walking stick (indoor), wheeled walking frame (outdoor)</span></div>
+            </div>
+            <div class="field-row">
+              <div class="q">Do you experience pain when walking?</div>
+              <div class="a"><span class="filled">Yes — severe bilateral knee pain (osteoarthritis), worse with duration</span></div>
+            </div>
+            <div class="field-row">
+              <div class="q">Do you experience breathlessness?</div>
+              <div class="a"><span class="filled">Yes — MRC grade 4 breathlessness on minimal exertion (COPD)</span></div>
+            </div>
+
+            <h4>Section D — Falls &amp; balance</h4>
+            <div class="field-row">
+              <div class="q">Falls in the last 12 months</div>
+              <div class="a"><span class="filled">Two falls · one long-lie event · FRAT high risk</span></div>
+            </div>
+
+            <h4>Section E — Impact on daily life</h4>
+            <div class="field-row">
+              <div class="q">Describe how your mobility affects daily life</div>
+              <div class="a"><span class="filled">Requires door-to-door drop-off. Unable to cross standard car park distances. Recent failure to reach GP surgery from car park. Dependent on daughter for all trips outside the home.</span></div>
+            </div>
+
+            <h4>Supporting evidence</h4>
+            <div class="field-row">
+              <div class="q">Healthcare professional statement</div>
+              <div class="a"><span class="filled">GP supporting letter attached — ready for signature</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- OUTPUTS TABS -->
+<section class="block outputs-wrap">
+  <div class="eyebrow">Three outputs from one visit</div>
+  <h2 class="section-title">Every stakeholder gets <br>what they need, pre-formatted.</h2>
+  <p class="section-lede">Family gets a supporting statement they can submit. GP gets a letter ready to sign. The council gets structured evidence. And Notewell keeps the audit trail.</p>
+
+  <div class="tabs" style="margin-top: 48px;">
+    <button class="tab active" data-tab="letter">GP Supporting Letter <span class="tab-label">Ready to sign</span></button>
+    <button class="tab" data-tab="family">Family Statement <span class="tab-label">Ready to submit</span></button>
+    <button class="tab" data-tab="schema">Structured Evidence <span class="tab-label">Audit trail</span></button>
+  </div>
+
+  <!-- GP LETTER TAB -->
+  <div class="tab-panel active" id="tab-letter">
+    <div class="letter">
+      <div class="letterhead">
+        <div class="practice">
+          Towcester Medical Centre
+          <small>Link Way · Towcester · Northamptonshire · NN12 6HH</small>
+        </div>
+        <div class="refblock">
+          Our Ref: BB/DP/2026-04<br>
+          Date: 18 April 2026<br>
+          Patient: Mrs Dorothy Pearson<br>
+          NHS: 438 291 7654 · DOB: 15/03/1942
+        </div>
+      </div>
+
+      <p>To Whom It May Concern,<br>Northamptonshire County Council · Blue Badge Scheme</p>
+
+      <p class="subject">Re: Blue Badge Application — Supporting Medical Evidence for Mrs Dorothy Pearson</p>
+
+      <p>I am writing in support of Mrs Pearson's application for a Blue Badge on the grounds of substantial and permanent difficulty walking. Mrs Pearson is known to this practice with a longstanding diagnosis of <strong>bilateral osteoarthritis of the knees</strong> and <strong>moderate to severe chronic obstructive pulmonary disease (COPD)</strong>.</p>
+
+      <p>A home-based frailty assessment conducted on 18 April 2026 by the East Northants Neighbourhood AgeWell team recorded the following functional findings:</p>
+
+      <div class="evidence-box">
+        <p><strong>Walking distance:</strong> Mrs Pearson is unable to walk more than approximately 27 metres (30 yards) without stopping to rest. She is obliged to pause and steady herself against nearby surfaces within her own home.</p>
+        <p><strong>Walking aids:</strong> Uses a walking stick indoors and a four-wheeled walker outdoors. Mobility outside the home is not possible without aids.</p>
+        <p><strong>Pain:</strong> Severe bilateral knee pain on walking, worse on the left, which deteriorates with the duration of ambulation.</p>
+        <p><strong>Breathlessness:</strong> MRC dyspnoea grade 4 — breathless after walking short distances on level ground. Uses short-acting bronchodilator therapy.</p>
+        <p><strong>Falls:</strong> Two falls within the preceding twelve months, including one "long lie" event with delayed assistance. Falls Risk Assessment Tool (FRAT) score indicates high risk.</p>
+        <p><strong>Functional impact:</strong> On her most recent attendance at the surgery, Mrs Pearson was unable to walk from the car park to the building and had to be returned home by her daughter.</p>
+      </div>
+
+      <p>In my clinical opinion, these findings are consistent with a permanent and substantial difficulty in walking that cannot reasonably be expected to improve, and which would be significantly mitigated by the award of a Blue Badge. I would be grateful if her application could be considered favourably.</p>
+
+      <p>Yours faithfully,</p>
+
+      <div class="signature">
+        <p><strong>Dr _______________________</strong><br>
+        GP Partner · Towcester Medical Centre<br>
+        GMC: _______</p>
+        <span class="sig-note">⚠ Draft for GP review and signature · not yet signed · clinical review required before issue</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAMILY STATEMENT TAB -->
+  <div class="tab-panel" id="tab-family">
+    <div class="letter">
+      <div class="letterhead">
+        <div class="practice">
+          Supporting statement
+          <small>For submission with Mrs Dorothy Pearson's Blue Badge application</small>
+        </div>
+        <div class="refblock">
+          Prepared: 18 April 2026<br>
+          By: AgeWell Home Visit Service<br>
+          For review: Mrs Sarah Pearson (daughter &amp; carer)
+        </div>
+      </div>
+
+      <p class="subject">About Mum's mobility</p>
+
+      <p>Mum is 84 and lives on her own in Towcester. I've been trying to get her to apply for a Blue Badge for over a year. This is what I see every time I take her anywhere.</p>
+
+      <p>At home, <strong>she can't walk from her chair to the kitchen without stopping and holding onto the furniture</strong>. It's the same going to the bathroom. She uses a walking stick indoors and she won't go out at all without her wheeled walker.</p>
+
+      <p>Outside, <strong>thirty yards is her absolute limit</strong> — that's the length of her front path. By the time she reaches the gate she is out of breath and in pain. She has severe arthritis in both knees and COPD, and the two combined mean that any distance on foot is genuinely unsafe.</p>
+
+      <p>She has had <strong>two falls this year</strong>. One of them she was on the floor for a long time before a neighbour found her. I worry constantly.</p>
+
+      <p>The Blue Badge would make a real difference. <strong>At her last GP appointment, she couldn't walk from the surgery car park to the front door</strong>, and I had to drive back round and collect her. At the supermarket I have to drop her at the entrance and park separately. A Blue Badge would let her be dropped closer to where she needs to go, and in the winter it would let her keep seeing her grandchildren, which she is gradually stopping doing because of this.</p>
+
+      <p>The home visit team from AgeWell helped put this application together from the visit they did on 18 April. The medical details are also in the GP letter attached.</p>
+
+      <p><em>Signed: _____________________ (Sarah Pearson, daughter)</em></p>
+
+      <div class="sig-note" style="margin-top: 20px;">Draft generated from AgeWell home visit transcript · family to review, amend and sign before submission</div>
+    </div>
+  </div>
+
+  <!-- SCHEMA TAB -->
+  <div class="tab-panel" id="tab-schema">
+<pre class="json-view"><span class="c">// blue_badge_evidence.v1.json</span>
+<span class="c">// Source: AgeWell home visit · Dot Pearson · 2026-04-18</span>
+<span class="c">// Notewell extraction engine · governance DCB0129/0160 · MHRA Class I</span>
+
+{
+  <span class="k">"patient_ref"</span>: <span class="s">"nhs:4382917654"</span>,
+  <span class="k">"encounter_id"</span>: <span class="s">"agewell_visit_20260418_dp001"</span>,
+  <span class="k">"form"</span>: <span class="s">"blue_badge.dft.v2024"</span>,
+  <span class="k">"evidence"</span>: {
+    <span class="k">"mobility"</span>: {
+      <span class="k">"walking_distance_metres"</span>: <span class="n">27</span>,
+      <span class="k">"walking_distance_source"</span>: <span class="s">"self-reported, consistent with functional observation"</span>,
+      <span class="k">"aids_used"</span>: [<span class="s">"walking_stick_indoor"</span>, <span class="s">"wheeled_walker_outdoor"</span>],
+      <span class="k">"pain_on_walking"</span>: {
+        <span class="k">"severity"</span>: <span class="s">"severe"</span>,
+        <span class="k">"distribution"</span>: <span class="s">"bilateral_knees_L_greater_than_R"</span>,
+        <span class="k">"aggravated_by"</span>: <span class="s">"duration_of_ambulation"</span>,
+        <span class="k">"dx"</span>: { <span class="k">"snomed"</span>: <span class="s">"396275006"</span>, <span class="k">"term"</span>: <span class="s">"Osteoarthritis"</span> }
+      },
+      <span class="k">"breathlessness"</span>: {
+        <span class="k">"mrc_grade"</span>: <span class="n">4</span>,
+        <span class="k">"dx"</span>: { <span class="k">"snomed"</span>: <span class="s">"13645005"</span>, <span class="k">"term"</span>: <span class="s">"COPD"</span> }
+      }
+    },
+    <span class="k">"falls"</span>: {
+      <span class="k">"events_12m"</span>: <span class="n">2</span>,
+      <span class="k">"long_lie"</span>: <span class="b">true</span>,
+      <span class="k">"frat_risk"</span>: <span class="s">"high"</span>,
+      <span class="k">"locations"</span>: [<span class="s">"bathroom"</span>, <span class="s">"garden_path"</span>]
+    },
+    <span class="k">"functional_impact"</span>: {
+      <span class="k">"outdoor_mobility"</span>: <span class="s">"cannot_cross_standard_car_park"</span>,
+      <span class="k">"documented_failure"</span>: <span class="s">"unable to walk from car park to GP surgery, 2026-04"</span>,
+      <span class="k">"carer_dependency"</span>: <span class="s">"total_for_outdoor_travel"</span>
+    }
+  },
+  <span class="k">"eligibility"</span>: {
+    <span class="k">"route"</span>: <span class="s">"subject_to_further_assessment"</span>,
+    <span class="k">"signal_strength"</span>: <span class="s">"strong"</span>,
+    <span class="k">"rationale"</span>: <span class="s">"&lt;50m walking distance + severe pain + aids + MRC4 breathlessness + falls"</span>
+  },
+  <span class="k">"governance"</span>: {
+    <span class="k">"consent_captured"</span>: <span class="b">true</span>,
+    <span class="k">"consent_ref"</span>: <span class="s">"notewell_consent_20260418_dp_v3"</span>,
+    <span class="k">"gp_review_required"</span>: <span class="b">true</span>,
+    <span class="k">"audit_trail_id"</span>: <span class="s">"nw_audit_bb_dp_20260418"</span>,
+    <span class="k">"extraction_confidence_mean"</span>: <span class="n">0.94</span>,
+    <span class="k">"human_in_the_loop"</span>: <span class="b">true</span>
+  },
+  <span class="k">"outputs_generated"</span>: [
+    <span class="s">"gp_supporting_letter.docx"</span>,
+    <span class="s">"family_supporting_statement.docx"</span>,
+    <span class="s">"blue_badge_application_prefill.json"</span>
+  ]
+}</pre>
+  </div>
+</section>
+
+<!-- ICEBERG -->
+<section class="iceberg-wrap">
+  <div class="iceberg-inner">
+    <div class="eyebrow">Blue Badge is just the start</div>
+    <h2 class="section-title">The admin iceberg — <br>and what's underneath it.</h2>
+    <p class="section-lede">Every form below asks questions the AgeWell worker has already answered during a frailty visit. Once the evidence is captured in structured form, Notewell routes it. One conversation. Many forms. Zero re-keying.</p>
+
+    <div class="iceberg-viz">
+      <div class="above-water">
+        <div class="label">The clinical conversation</div>
+        <div class="sub">45 minutes on Dot's doorstep · captured once</div>
+      </div>
+      <div class="waterline"></div>
+      <div class="below-label">
+        <div class="l1">…all of this, from the same visit.</div>
+        <div class="l2">the unfunded, invisible work that eats GP and admin time</div>
+      </div>
+
+      <div class="forms-grid">
+        <div class="form-card hero-card">
+          <div class="form-badge">Hero</div>
+          <div class="form-name">Blue Badge</div>
+          <div class="form-meta">DfT application + GP supporting letter + family statement</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Attendance Allowance</div>
+          <div class="form-meta">AA1 — daily care needs, supervision, prompting</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Personal Independence Payment</div>
+          <div class="form-meta">PIP2 — daily living &amp; mobility descriptors</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">DS1500 / SR1</div>
+          <div class="form-meta">Fast-track terminal illness summary</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">CHC Checklist</div>
+          <div class="form-meta">11 care domains · NHS Continuing Healthcare</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Disabled Facilities Grant</div>
+          <div class="form-meta">DFG — home access, stairs, bathroom safety</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Council Tax SMI</div>
+          <div class="form-meta">Severe Mental Impairment exemption</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Carer's Allowance</div>
+          <div class="form-meta">Supporting statement &amp; dependency evidence</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Power of Attorney</div>
+          <div class="form-meta">Capacity assessment narrative for LPA</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Falls Service Referral</div>
+          <div class="form-meta">FRAT, falls history, meds review trigger</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">OT Home Assessment</div>
+          <div class="form-meta">Functional &amp; environmental assessment referral</div>
+        </div>
+        <div class="form-card">
+          <div class="form-name">Safeguarding Referral</div>
+          <div class="form-meta">Where indicators of concern are captured</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GOVERNANCE -->
+<section class="governance">
+  <div class="governance-inner">
+    <div>
+      <div class="eyebrow" style="color: var(--amber);">Safety &amp; governance</div>
+      <h2 class="display">NHS-grade by design. <em>Not bolted on.</em></h2>
+      <p>Notewell was built by Practice Managers who live NHS governance every day. Every extraction is traceable, every output is human-reviewed, every signature is held by the clinician. The Blue Badge module inherits the same safety stack that already covers Notewell's clinical scribe.</p>
+    </div>
+    <div class="gov-stack">
+      <div class="gov-badge">
+        <span class="tick">✓</span>
+        <div class="title">MHRA Class I</div>
+        <div class="desc">Medical device registration in place across the Notewell platform.</div>
+      </div>
+      <div class="gov-badge">
+        <span class="tick">✓</span>
+        <div class="title">DCB0129 &amp; DCB0160</div>
+        <div class="desc">Clinical safety case maintained. Dr Simon Ellis, CSO.</div>
+      </div>
+      <div class="gov-badge">
+        <span class="tick">✓</span>
+        <div class="title">Human in the loop</div>
+        <div class="desc">Every clinical signature remains with the clinician. No auto-send.</div>
+      </div>
+      <div class="gov-badge">
+        <span class="tick">✓</span>
+        <div class="title">Full audit trail</div>
+        <div class="desc">Every field is traceable back to the transcript turn that evidenced it.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Notewell AI · AgeWell Live Services · Blue Badge Evidence Extraction
+  <span class="dot-sep">·</span>
+  PCN Services Ltd · ICO ZB226324
+  <span class="dot-sep">·</span>
+  Demo · scripted patient data
+</footer>
+
+<script>
+  // cross-highlight between transcript and schema
+  const highlights = document.querySelectorAll('.transcript .highlight[data-link]');
+  const schemaItems = document.querySelectorAll('.schema-item[data-link]');
+
+  function setActive(key, on) {
+    document.querySelectorAll(`[data-link="${key}"]`).forEach(el => {
+      el.classList.toggle('active', on);
+    });
+  }
+
+  highlights.forEach(el => {
+    const key = el.dataset.link;
+    el.addEventListener('mouseenter', () => setActive(key, true));
+    el.addEventListener('mouseleave', () => setActive(key, false));
+  });
+  schemaItems.forEach(el => {
+    const key = el.dataset.link;
+    el.addEventListener('mouseenter', () => setActive(key, true));
+    el.addEventListener('mouseleave', () => setActive(key, false));
+  });
+
+  // tabs
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panels.forEach(p => p.classList.toggle('active', p.id === `tab-${target}`));
+    });
+  });
+</script>
+
+</body>
+</html>
