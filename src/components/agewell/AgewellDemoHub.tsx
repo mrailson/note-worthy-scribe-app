@@ -343,7 +343,7 @@ const AgewellDemoHub: React.FC = () => {
     navigate("/meetings?folder=Demonstrations");
   const openPlan = () => setShowSupportPlan(true);
   const openFeasibility = () =>
-    window.open("/demo/gp-connect-feasibility.html", "_blank", "noopener,noreferrer");
+    window.open("/demo/feasibility/gp-connect-feasibility.html", "_blank", "noopener,noreferrer");
   const openProductOverview = () => navigate("/documents");
   const resetDemo = () => {
     toast.success("Demo state reset");
