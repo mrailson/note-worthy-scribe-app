@@ -1481,63 +1481,6 @@ function HomeScreen({onSelect}){
       {/* Demo Hub: Hero (Meet Dot) · 5-Act Flow · Notewell Story · References · Presenter Notes */}
       <AgewellDemoHub />
 
-      {/* Badge */}
-      <div style={{display:"inline-flex",alignItems:"center",gap:6,background:T.tealLight,
-        border:`1px solid ${T.tealBorder}`,borderRadius:20,padding:"3px 12px"}}>
-        <div style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>
-        <span style={{fontSize:10,color:T.tealDark,fontWeight:700,letterSpacing:1}}>NOTEWELL AI · AGEING WELL BRANCH</span>
-      </div>
-
-      {/* Intro text container */}
-      <div style={{maxWidth:720,width:"100%",background:T.surfaceAlt,border:`1px solid ${T.border}`,
-        borderRadius:14,padding:"18px 24px",textAlign:"center"}}>
-        <p style={{fontSize:13,color:T.textSecondary,lineHeight:1.7,margin:"0 0 10px"}}>
-          AI-powered tools for neighbourhood care teams working with frail elderly patients.
-          Translate consultations in real time, capture structured care notes — automatically
-          formatted into the standard Ageing Well Patient Support Plan — and build clinical
-          confidence through AI skills practice scenarios.
-        </p>
-        <p style={{fontSize:12,color:T.teal,fontStyle:"italic",margin:0,fontWeight:500,lineHeight:1.6}}>
-          Supporting multilingual care, clinical confidence, and better documentation across your neighbourhood.
-        </p>
-      </div>
-
-      {/* How it works */}
-      <div style={{maxWidth:720,width:"100%",background:T.surfaceAlt,border:`1px solid ${T.border}`,
-        borderRadius:14,padding:"16px 24px"}}>
-        <div style={{fontSize:12,fontWeight:600,color:T.textSecondary,marginBottom:12,textAlign:"center"}}>How it works</div>
-        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:0,flexWrap:"wrap"}}>
-          {[
-            {label:"Record",desc:"Start a live session — consultation, MDT, home visit or care review",bg:"#E1F5EE",text:"#0F6E56",
-              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>},
-            {label:"Generate",desc:"AI structures the notes into the Ageing Well Patient Support Plan",bg:"#E6F1FB",text:"#185FA5",
-              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>},
-            {label:"Export",desc:"Download and add the completed form to the patient record",bg:"#FAEEDA",text:"#854F0B",
-              icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#854F0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>},
-          ].map((step,i)=>(
-            <div key={step.label} style={{display:"flex",alignItems:"flex-start",gap:0}}>
-              <div style={{background:step.bg,borderRadius:10,padding:"12px 14px",minWidth:140,maxWidth:180,textAlign:"center"}}>
-                <div style={{marginBottom:6,display:"flex",justifyContent:"center"}}>{step.icon}</div>
-                <div style={{fontSize:12,fontWeight:700,color:step.text,marginBottom:4}}>{step.label}</div>
-                <div style={{fontSize:11,color:step.text,opacity:0.85,lineHeight:1.5}}>{step.desc}</div>
-              </div>
-              {i<2&&<span style={{fontSize:18,color:T.textMuted,padding:"18px 8px 0",alignSelf:"flex-start"}}>→</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Footer note */}
-      <div style={{textAlign:"center",maxWidth:460}}>
-        <p style={{fontSize:11,color:T.textMuted,lineHeight:1.7,margin:0}}>
-          This service is branched from Notewell GP services to provide Ageing Well neighbourhood
-          teams with translation, training, and care notes capabilities separate from GP practice deployments.<br/>
-          <strong style={{color:T.textSecondary}}>MHRA Class I · DCB0129 · DTAC compliant · 3 branched services</strong>
-        </p>
-      </div>
-
-      {/* ─── Demo Hub: Featured Patient · 5-Act Flow · References · Presenter Notes ─── */}
-      <AgewellDemoHub />
     </div>
   );
 }
