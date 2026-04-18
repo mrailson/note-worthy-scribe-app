@@ -1018,6 +1018,9 @@ const AgewellDemoHub: React.FC = () => {
             position: "relative",
             overflow: "hidden",
             boxShadow: "0 2px 14px rgba(28, 43, 42, 0.05)",
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
           }}
         >
           <div
@@ -1048,56 +1051,62 @@ const AgewellDemoHub: React.FC = () => {
           >
             LIVE DEMO
           </div>
-          <div
-            style={{
-              fontSize: 11,
-              letterSpacing: 3,
-              color: C.amberDark,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              marginBottom: 10,
-            }}
-          >
-            Hero example
+          {/* BODY ZONE — absorbs vertical slack */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div
+              style={{
+                fontSize: 11,
+                letterSpacing: 3,
+                color: C.amberDark,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                marginBottom: 10,
+              }}
+            >
+              Hero example
+            </div>
+            <h3
+              style={{
+                fontFamily: FONT_SERIF,
+                fontStyle: "italic",
+                fontSize: isDesktop ? 26 : 22,
+                color: C.navyText,
+                margin: "0 0 16px",
+                lineHeight: 1.2,
+                fontWeight: 600,
+              }}
+            >
+              Blue Badge — from home visit to submitted application
+            </h3>
+            <p
+              style={{
+                fontSize: 14,
+                color: C.slate700,
+                lineHeight: 1.7,
+                margin: "0 0 10px",
+              }}
+            >
+              The AgeWell worker already asked Dot how far she can walk before stopping, whether
+              she uses aids, how often she falls. That's the entire evidence base for a Blue
+              Badge. Notewell extracts it, maps it to the application's mobility descriptors, and
+              produces two outputs in one click: a pre-populated supporting statement for the
+              family to submit, and a GP supporting letter ready for signature. FRAT and 6-CIT
+              scores embedded automatically. No re-keying. No unfunded GP letter burden.
+            </p>
+            <p
+              style={{
+                fontSize: 12.5,
+                fontStyle: "italic",
+                color: C.slate600,
+                margin: 0,
+              }}
+            >
+              Uses the same home visit transcript as Acts 1–2 above.
+            </p>
           </div>
-          <h3
-            style={{
-              fontFamily: FONT_SERIF,
-              fontStyle: "italic",
-              fontSize: isDesktop ? 26 : 22,
-              color: C.navyText,
-              margin: "0 0 16px",
-              lineHeight: 1.2,
-              fontWeight: 600,
-            }}
-          >
-            Blue Badge — from home visit to submitted application
-          </h3>
-          <p
-            style={{
-              fontSize: 14,
-              color: C.slate700,
-              lineHeight: 1.7,
-              margin: "0 0 10px",
-            }}
-          >
-            The AgeWell worker already asked Dot how far she can walk before stopping, whether
-            she uses aids, how often she falls. That's the entire evidence base for a Blue
-            Badge. Notewell extracts it, maps it to the application's mobility descriptors, and
-            produces two outputs in one click: a pre-populated supporting statement for the
-            family to submit, and a GP supporting letter ready for signature. FRAT and 6-CIT
-            scores embedded automatically. No re-keying. No unfunded GP letter burden.
-          </p>
-          <p
-            style={{
-              fontSize: 12.5,
-              fontStyle: "italic",
-              color: C.slate600,
-              margin: "0 0 20px",
-            }}
-          >
-            Uses the same home visit transcript as Acts 1–2 above.
-          </p>
+
+          {/* FOOTER ZONE — stats + CTA, pinned to bottom */}
+          <div style={{ marginTop: 20 }}>
 
           <div
             style={{
