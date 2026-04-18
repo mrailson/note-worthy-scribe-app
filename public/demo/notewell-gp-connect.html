@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notewell AI — Send to GP Connect</title>
+<style>
+  :root {
+    --navy: #1B3A5C;
+    --navy-dark: #0F2540;
+    --accent: #2E75B6;
+    --green: #1E8449;
+    --amber: #E67E22;
+    --bg: #F4F6F9;
+    --card: #FFFFFF;
+    --text: #1F2933;
+    --muted: #6B7280;
+    --border: #E4E7EB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    background: var(--navy);
+    color: #fff;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    position: relative;
+    z-index: 10;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+  }
+  .brand-mark {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, #4FC3F7, #2E75B6);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800;
+  }
+  .brand-sub { font-weight: 400; opacity: 0.75; font-size: 12px; margin-left: 4px; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 20px; font-size: 12px; opacity: 0.85; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #4FC3F7; color: var(--navy-dark); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; }
+
+  /* ---------- Sub bar ---------- */
+  .subbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+  }
+  .crumb { color: var(--muted); }
+  .crumb strong { color: var(--text); font-weight: 600; }
+  .pill { background: #E8F4EA; color: var(--green); padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: auto; }
+
+  /* ---------- Main grid ---------- */
+  .main {
+    padding: 20px;
+    height: calc(100vh - 56px - 45px);
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 20px;
+    overflow: auto;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title { font-weight: 700; font-size: 14px; color: var(--navy); }
+  .card-body { padding: 16px 18px; overflow: auto; flex: 1; }
+
+  /* ---------- Patient summary ---------- */
+  .patient-row { display: grid; grid-template-columns: 110px 1fr; gap: 6px 12px; font-size: 13px; margin-bottom: 3px; }
+  .patient-row .k { color: var(--muted); }
+  .patient-row .v { font-weight: 500; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .plan-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #EAF5EE; color: var(--green);
+    padding: 5px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 600;
+    margin-top: 6px;
+  }
+  .plan-badge::before { content: "✓"; font-weight: 700; }
+
+  /* ---------- Outbox tasks ---------- */
+  .outbox-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .outbox-header small { color: var(--muted); font-size: 12px; }
+  .task {
+    display: flex;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: #FAFBFC;
+  }
+  .task-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: #E3F2FD; color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .task-body { flex: 1; min-width: 0; }
+  .task-title { font-weight: 600; font-size: 13px; }
+  .task-meta { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .task-priority {
+    font-size: 10px; padding: 2px 7px; border-radius: 8px;
+    font-weight: 700; letter-spacing: 0.3px;
+    align-self: flex-start;
+  }
+  .pri-routine { background: #E3F2FD; color: #1565C0; }
+  .pri-urgent { background: #FFF3E0; color: #E65100; }
+
+  /* ---------- Send button ---------- */
+  .send-bar {
+    position: sticky; bottom: 0;
+    padding: 14px 18px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .send-bar small { color: var(--muted); font-size: 12px; }
+  .btn-send {
+    margin-left: auto;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(27, 58, 92, 0.25);
+  }
+  .btn-send:hover:not(:disabled) {
+    background: var(--navy-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(27, 58, 92, 0.35);
+  }
+  .btn-send:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15, 37, 64, 0.55);
+    backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 100;
+  }
+  .modal-backdrop.show { opacity: 1; pointer-events: all; }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 520px;
+    max-width: 92vw;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    overflow: hidden;
+    transform: translateY(20px) scale(0.98);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal-backdrop.show .modal { transform: translateY(0) scale(1); }
+  .modal-head {
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-head h2 { font-size: 16px; font-weight: 700; color: var(--navy); }
+  .modal-head p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .modal-body { padding: 18px 24px; }
+
+  /* ---------- Handshake steps ---------- */
+  .step {
+    display: flex;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px dashed #EEF1F4;
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+  }
+  .step:last-child { border-bottom: none; }
+  .step.active { opacity: 1; }
+  .step.done { opacity: 1; }
+  .step-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #F1F3F5; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  .step.active .step-icon {
+    background: #E3F2FD;
+    color: var(--accent);
+  }
+  .step.active .step-icon::after {
+    content: "";
+    position: absolute; inset: -3px;
+    border: 2px solid var(--accent);
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .step.done .step-icon {
+    background: var(--green);
+    color: #fff;
+  }
+  .step.done .step-icon::after { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .step-body { flex: 1; min-width: 0; }
+  .step-title { font-weight: 600; font-size: 13.5px; }
+  .step-detail { color: var(--muted); font-size: 12px; margin-top: 3px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+
+  .modal-foot {
+    padding: 14px 24px;
+    background: #F8FAFB;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    min-height: 56px;
+  }
+  .success-banner {
+    display: none;
+    align-items: center; gap: 10px;
+    color: var(--green); font-weight: 600; font-size: 14px;
+  }
+  .success-banner.show { display: flex; }
+  .success-banner .check {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .btn-close {
+    margin-left: auto;
+    padding: 8px 16px;
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px; font-weight: 600;
+    cursor: pointer; color: var(--text);
+  }
+  .btn-close:hover { background: #F4F6F9; }
+
+  /* Replay button */
+  .replay {
+    position: fixed; bottom: 18px; right: 18px;
+    background: #fff; border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 20px;
+    font-size: 12px; color: var(--muted);
+    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    z-index: 50;
+  }
+  .replay:hover { background: #F4F6F9; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">N</div>
+    Notewell AI <span class="brand-sub">· Ageing Well Service</span>
+  </div>
+  <div class="topbar-right">
+    <span>Northamptonshire East Neighbourhood</span>
+    <div class="avatar">SM</div>
+  </div>
+</div>
+
+<div class="subbar">
+  <span class="crumb">Meetings › <strong>Home Frailty Review</strong> › Dorothy Pearson</span>
+  <span class="pill">PLAN COMPLETED</span>
+</div>
+
+<div class="main">
+
+  <!-- LEFT: Patient / plan summary -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Patient Support Plan — Mrs Dorothy Pearson</div>
+      <small style="color:var(--muted); font-size:12px;">15 Apr 2026</small>
+    </div>
+    <div class="card-body">
+      <div class="patient-row"><span class="k">NHS number</span><span class="v">438 291 7654</span></div>
+      <div class="patient-row"><span class="k">DOB</span><span class="v">15/03/1942 (age 84)</span></div>
+      <div class="patient-row"><span class="k">Registered GP</span><span class="v">Dr A Patel · Towcester Medical Centre</span></div>
+      <div class="patient-row"><span class="k">ODS code</span><span class="v">K81039</span></div>
+      <div class="patient-row"><span class="k">Rockwood CFS</span><span class="v">5 — Mildly Frail</span></div>
+      <div class="patient-row"><span class="k">Visit type</span><span class="v">Extended home frailty review</span></div>
+      <div class="patient-row"><span class="k">Worker</span><span class="v">Sarah Mitchell (AgeWell)</span></div>
+
+      <div class="plan-badge">Patient Support Plan finalised · 27 action items</div>
+
+      <div class="divider"></div>
+
+      <div style="font-weight:600; font-size:13px; margin-bottom:8px;">Generated communications</div>
+      <div style="color:var(--muted); font-size:12px; line-height:1.6;">
+        ✓ Patient letter (Dot Pearson)<br>
+        ✓ Family letter (Sandra Williams)<br>
+        ✓ Multi-agency referral pack (5 agencies)<br>
+        ✓ Carer handover note<br>
+        ✓ GP clinical summary
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: GP Connect outbox -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">GP Connect Outbox</div>
+      <small style="color:var(--muted); font-size:12px;">5 tasks ready to send</small>
+    </div>
+    <div class="card-body">
+
+      <div class="outbox-header">
+        <div style="font-weight:600; font-size:13px;">Requested actions for GP</div>
+        <small>FHIR UK Core · SendDocument profile</small>
+      </div>
+
+      <div class="task">
+        <div class="task-icon">℞</div>
+        <div class="task-body">
+          <div class="task-title">Medication review — analgesia for bilateral OA knees</div>
+          <div class="task-meta">Paracetamol PRN ineffective · consider topical NSAID ± short co-codamol trial</div>
+        </div>
+        <span class="task-priority pri-routine">ROUTINE</span>
+      </div>
+
+      <div class="task">
+        <div class="task-icon">♥</div>
+        <div class="task-body">
+          <div class="task-title">Postural hypotension workup</div>
+          <div class="task-meta">Sit→stand drop 14 mmHg · review antihypertensives · repeat lying/standing BP at 2/52</div>
+        </div>
+        <span class="task-priority pri-urgent">URGENT</span>
+      </div>
+
+      <div class="task">
+        <div class="task-icon">☺</div>
+        <div class="task-body">
+          <div class="task-title">PHQ-9 follow-up (score 12, moderate)</div>
+          <div class="task-meta">Bereavement + isolation context · Cruse referral + 4/52 review · low threshold SSRI</div>
+        </div>
+        <span class="task-priority pri-routine">ROUTINE</span>
+      </div>
+
+      <div class="task">
+        <div class="task-icon">≈</div>
+        <div class="task-body">
+          <div class="task-title">Inhaler technique check</div>
+          <div class="task-meta">Ventolin 100 mcg PRN · refer community pharmacy at next Rx</div>
+        </div>
+        <span class="task-priority pri-routine">ROUTINE</span>
+      </div>
+
+      <div class="task">
+        <div class="task-icon">♦</div>
+        <div class="task-body">
+          <div class="task-title">Immunisation status confirmation</div>
+          <div class="task-meta">Flu · COVID · RSV — not documented · confirm / schedule as appropriate</div>
+        </div>
+        <span class="task-priority pri-routine">ROUTINE</span>
+      </div>
+
+    </div>
+
+    <div class="send-bar">
+      <small>Destination: <strong style="color:var(--text);">Towcester Medical Centre (K81039)</strong></small>
+      <button class="btn-send" id="sendBtn" onclick="startSend()">
+        <span>▶</span> Send to GP Connect
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Sending to GP Connect</h2>
+      <p>Posting via NHS Digital Message Exchange for Social Care &amp; Health (MESH)</p>
+    </div>
+    <div class="modal-body" id="steps">
+
+      <div class="step" data-step="1">
+        <div class="step-icon">1</div>
+        <div class="step-body">
+          <div class="step-title">Validating NHS number</div>
+          <div class="step-detail">438 291 7654 · PDS trace</div>
+        </div>
+      </div>
+
+      <div class="step" data-step="2">
+        <div class="step-icon">2</div>
+        <div class="step-body">
+          <div class="step-title">Composing FHIR UK Core document bundle</div>
+          <div class="step-detail">5 Task resources · Condition · Observation · 14.2 KB</div>
+        </div>
+      </div>
+
+      <div class="step" data-step="3">
+        <div class="step-icon">3</div>
+        <div class="step-body">
+          <div class="step-title">Posting to MESH mailbox</div>
+          <div class="step-detail">mailboxID: X26ABC1 → K81039 · workflow: GPCONNECT_SENDDOCUMENT</div>
+        </div>
+      </div>
+
+      <div class="step" data-step="4">
+        <div class="step-icon">4</div>
+        <div class="step-body">
+          <div class="step-title">Delivered to Towcester Medical Centre</div>
+          <div class="step-detail" id="deliveredDetail">ODS K81039 · awaiting ACK</div>
+        </div>
+      </div>
+
+      <div class="step" data-step="5">
+        <div class="step-icon">5</div>
+        <div class="step-body">
+          <div class="step-title">Acknowledged by receiving system (SystmOne)</div>
+          <div class="step-detail" id="ackDetail">msgRef: —</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <div class="success-banner" id="success">
+        <div class="check">✓</div>
+        <div>
+          <div>Sent successfully — 5 tasks in Dr Patel's inbox</div>
+          <div style="font-weight:400; font-size:12px; color:var(--muted); margin-top:2px;" id="successTime"></div>
+        </div>
+      </div>
+      <button class="btn-close" id="closeBtn" onclick="closeModal()" style="display:none;">Close</button>
+    </div>
+  </div>
+</div>
+
+<button class="replay" onclick="reset()">↻ Replay</button>
+
+<script>
+  const steps = document.querySelectorAll('.step');
+  const modal = document.getElementById('modal');
+  const sendBtn = document.getElementById('sendBtn');
+  const success = document.getElementById('success');
+  const closeBtn = document.getElementById('closeBtn');
+
+  const timings = [
+    { active: 0, done: 900 },    // Step 1 — PDS trace
+    { active: 1050, done: 2100 }, // Step 2 — FHIR bundle
+    { active: 2250, done: 3600 }, // Step 3 — MESH post
+    { active: 3750, done: 4800 }, // Step 4 — Delivered
+    { active: 4950, done: 6000 }, // Step 5 — ACK
+  ];
+
+  function setStepState(i, state) {
+    const s = steps[i];
+    s.classList.remove('active', 'done');
+    if (state) s.classList.add(state);
+  }
+
+  function startSend() {
+    sendBtn.disabled = true;
+    reset(false);
+    modal.classList.add('show');
+
+    const startTime = Date.now();
+    const stamp = new Date();
+    const stampStr = stamp.toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+
+    timings.forEach((t, i) => {
+      setTimeout(() => setStepState(i, 'active'), t.active);
+      setTimeout(() => {
+        setStepState(i, 'done');
+        if (i === 3) {
+          document.getElementById('deliveredDetail').textContent =
+            `ODS K81039 · delivered ${stampStr} GMT`;
+        }
+        if (i === 4) {
+          const ref = 'NW-' + stamp.getTime().toString().slice(-8);
+          document.getElementById('ackDetail').textContent =
+            `msgRef: ${ref} · SystmOne ACK received`;
+          document.getElementById('successTime').textContent =
+            `Delivered ${stampStr} · msgRef ${ref}`;
+          success.classList.add('show');
+          closeBtn.style.display = 'inline-block';
+          // Notify parent window (if embedded) that send completed
+          try { window.parent.postMessage({ type: 'notewell:send-complete', ref }, '*'); } catch(e) {}
+        }
+      }, t.done);
+    });
+  }
+
+  function closeModal() {
+    modal.classList.remove('show');
+    sendBtn.disabled = false;
+  }
+
+  function reset(closeModalToo = true) {
+    steps.forEach((s, i) => setStepState(i, null));
+    success.classList.remove('show');
+    closeBtn.style.display = 'none';
+    document.getElementById('deliveredDetail').textContent = 'ODS K81039 · awaiting ACK';
+    document.getElementById('ackDetail').textContent = 'msgRef: —';
+    if (closeModalToo) {
+      modal.classList.remove('show');
+      sendBtn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
