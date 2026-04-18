@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clinical Task Inbox — Dr A Patel · Towcester Medical Centre</title>
+<style>
+  :root {
+    --chrome: #2C4A5B;
+    --chrome-dark: #1E3340;
+    --chrome-light: #3D6075;
+    --rail: #E8EEF1;
+    --bg: #F2F5F7;
+    --card: #FFFFFF;
+    --text: #1F2A33;
+    --muted: #6B7A85;
+    --border: #D9E0E5;
+    --accent: #006B8F;
+    --new: #D4A017;
+    --new-bg: #FFF9E6;
+    --urgent: #C0392B;
+    --green: #1E8449;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow: hidden;
+  }
+
+  /* ---------- Top chrome ---------- */
+  .topbar {
+    background: linear-gradient(180deg, var(--chrome-light) 0%, var(--chrome) 100%);
+    color: #fff;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--chrome-dark);
+    font-size: 12px;
+  }
+  .tp-app {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tp-app::before {
+    content: "";
+    display: inline-block;
+    width: 22px; height: 22px;
+    background: #fff;
+    border-radius: 3px;
+    mask: radial-gradient(circle at 50% 35%, #000 30%, transparent 31%) center/100% 100% no-repeat;
+  }
+  .tp-sep { opacity: 0.5; margin: 0 10px; }
+  .tp-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .tp-user { background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 3px; }
+
+  /* ---------- Menu strip ---------- */
+  .menubar {
+    background: #F8FAFB;
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px;
+    display: flex;
+    gap: 0;
+    font-size: 12px;
+    height: 30px;
+    align-items: center;
+  }
+  .menubar span {
+    padding: 4px 12px;
+    color: #333;
+    cursor: default;
+  }
+  .menubar span:hover { background: #E8EEF1; }
+
+  /* ---------- Body layout ---------- */
+  .body {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    height: calc(100vh - 44px - 30px);
+  }
+
+  /* ---------- Left rail ---------- */
+  .rail {
+    background: var(--rail);
+    border-right: 1px solid var(--border);
+    padding: 14px 0;
+    overflow: auto;
+  }
+  .rail-group { padding: 6px 14px 3px; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; }
+  .rail-item {
+    padding: 6px 14px 6px 24px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px;
+    color: #2A3B47;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+  .rail-item:hover { background: rgba(0,0,0,0.04); }
+  .rail-item.active {
+    background: #fff;
+    border-left-color: var(--accent);
+    font-weight: 600;
+  }
+  .rail-item .count {
+    margin-left: auto;
+    background: var(--new);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    min-width: 18px;
+    text-align: center;
+  }
+  .rail-item .count.grey { background: #97A2AB; }
+
+  /* ---------- Main pane ---------- */
+  .pane { display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+
+  .pane-head {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .pane-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--chrome-dark);
+  }
+  .pane-sub { color: var(--muted); font-size: 12px; }
+  .counts {
+    margin-left: auto;
+    display: flex;
+    gap: 14px;
+    font-size: 12px;
+  }
+  .counts b { color: var(--chrome-dark); font-size: 14px; }
+  .counts .new-badge { color: var(--new); }
+
+  .filterbar {
+    padding: 8px 18px;
+    background: #F8FAFB;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .filter-chip {
+    background: #fff;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .refresh-btn {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .refresh-btn:hover { background: #005975; }
+  .refresh-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* ---------- Task list ---------- */
+  .task-list { flex: 1; overflow: auto; }
+
+  .list-header {
+    display: grid;
+    grid-template-columns: 32px 1.2fr 2fr 1fr 110px 95px;
+    gap: 0;
+    padding: 7px 18px;
+    background: #F0F4F6;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    position: sticky; top: 0; z-index: 2;
+  }
+
+  .task-row {
+    display: grid;
+    grid-template-columns: 32px 1.2fr 2fr 1fr 110px 95px;
+    gap: 0;
+    padding: 10px 18px;
+    border-bottom: 1px solid #EEF2F4;
+    align-items: center;
+    font-size: 12.5px;
+    cursor: default;
+    position: relative;
+  }
+  .task-row:hover { background: #F8FAFB; }
+  .task-row.read { color: #55646F; }
+  .task-row.read .task-patient { font-weight: 500; }
+  .task-row.unread .task-patient { font-weight: 700; }
+
+  .task-row .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: transparent;
+  }
+  .task-row.unread .dot { background: var(--accent); }
+
+  .task-patient { font-weight: 600; }
+  .task-patient small { display: block; color: var(--muted); font-weight: 400; font-size: 11px; margin-top: 1px; }
+
+  .task-desc { color: #33434D; line-height: 1.4; }
+  .task-desc small { color: var(--muted); font-size: 11px; }
+
+  .task-from {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #EEF3F5;
+    color: #3D5360;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .task-from.agewell {
+    background: #E8F1F9;
+    color: var(--accent);
+    border: 1px solid #C8DEEB;
+  }
+
+  .task-time { color: var(--muted); font-size: 11.5px; }
+  .task-pri {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    display: inline-block;
+    text-align: center;
+  }
+  .pri-routine { background: #E3EEF3; color: #3D6075; }
+  .pri-urgent { background: #FDECE8; color: var(--urgent); }
+  .pri-info { background: #EEF2F4; color: var(--muted); }
+
+  /* ---------- Arrival animation ---------- */
+  .arrival-divider {
+    padding: 6px 18px;
+    background: var(--new-bg);
+    border-top: 2px solid var(--new);
+    border-bottom: 1px solid #F0DDA3;
+    color: #7A5D0E;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .arrival-divider.show { display: flex; }
+  .arrival-divider .arrow { animation: pulse-arrow 1s ease-in-out infinite; }
+  @keyframes pulse-arrow {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  .task-row.new-arrival {
+    background: var(--new-bg);
+    animation: arrive 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateY(-8px);
+    border-left: 3px solid var(--new);
+    padding-left: 15px;
+  }
+  @keyframes arrive {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .task-row.new-arrival .dot {
+    background: var(--new);
+    animation: ping 1.5s ease-in-out infinite;
+  }
+  @keyframes ping {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212, 160, 23, 0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(212, 160, 23, 0); }
+  }
+
+  .new-tag {
+    display: inline-block;
+    background: var(--new);
+    color: #fff;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--chrome-dark);
+    color: #fff;
+    padding: 12px 18px;
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 50;
+    max-width: 360px;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .toast .icon {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--new);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .toast small { display: block; opacity: 0.7; font-size: 11px; margin-top: 2px; }
+
+  .replay {
+    position: fixed; bottom: 18px; left: 18px;
+    background: #fff; border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 16px;
+    font-size: 11.5px; color: var(--muted);
+    cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    z-index: 50;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tp-app">Clinical System · Task Management</div>
+  <span class="tp-sep">|</span>
+  <span>Towcester Medical Centre (K81039)</span>
+  <div class="tp-right">
+    <span class="tp-user">Dr A Patel · GP</span>
+    <span>Fri 18 Apr 2026</span>
+  </div>
+</div>
+
+<div class="menubar">
+  <span>File</span><span>Edit</span><span>View</span><span>Patient</span><span>Clinical</span><span>Reports</span><span>Admin</span><span>Help</span>
+</div>
+
+<div class="body">
+
+  <!-- Left navigation rail -->
+  <div class="rail">
+    <div class="rail-group">My Work</div>
+    <div class="rail-item active">
+      <span>📥</span> Task Inbox <span class="count" id="nav-count">3</span>
+    </div>
+    <div class="rail-item"><span>📨</span> Sent Items</div>
+    <div class="rail-item"><span>⏱</span> On-Call Queue</div>
+
+    <div class="rail-group">Clinical</div>
+    <div class="rail-item"><span>📋</span> Referrals</div>
+    <div class="rail-item"><span>🧪</span> Pathology <span class="count grey">12</span></div>
+    <div class="rail-item"><span>📄</span> Documents</div>
+    <div class="rail-item"><span>💊</span> Medication</div>
+
+    <div class="rail-group">External</div>
+    <div class="rail-item">
+      <span>🌐</span> GP Connect <span class="count grey">—</span>
+    </div>
+    <div class="rail-item"><span>✉</span> NHSmail</div>
+    <div class="rail-item"><span>🏥</span> Discharge</div>
+
+    <div class="rail-group">Admin</div>
+    <div class="rail-item"><span>👥</span> Appointments</div>
+    <div class="rail-item"><span>📊</span> Reports</div>
+  </div>
+
+  <!-- Main pane -->
+  <div class="pane">
+
+    <div class="pane-head">
+      <div>
+        <div class="pane-title">Task Inbox — Dr Anisha Patel</div>
+        <div class="pane-sub">All unactioned clinical and administrative tasks</div>
+      </div>
+      <div class="counts">
+        <div>Total: <b id="total-count">3</b></div>
+        <div class="new-badge">New: <b id="new-count">0</b></div>
+        <div>Urgent: <b id="urgent-count">0</b></div>
+      </div>
+    </div>
+
+    <div class="filterbar">
+      <span style="color:var(--muted);">Filter:</span>
+      <span class="filter-chip active">All tasks</span>
+      <span class="filter-chip">Unread</span>
+      <span class="filter-chip">Urgent</span>
+      <span class="filter-chip">Today</span>
+      <span class="filter-chip">GP Connect</span>
+      <button class="refresh-btn" id="refreshBtn" onclick="refresh()">
+        <span>↻</span> Refresh inbox
+      </button>
+    </div>
+
+    <div class="task-list">
+
+      <div class="list-header">
+        <div></div>
+        <div>Patient</div>
+        <div>Task</div>
+        <div>From</div>
+        <div>Received</div>
+        <div>Priority</div>
+      </div>
+
+      <!-- EXISTING TASKS (pre-populated) -->
+      <div class="task-row read">
+        <span class="dot"></span>
+        <div class="task-patient">Barton, David<br><small>NHS 402 765 1123 · 62 M</small></div>
+        <div class="task-desc">Pathology — review HbA1c result<br><small>Reading: 58 mmol/mol (↑ from 49)</small></div>
+        <div><span class="task-from">Pathology</span></div>
+        <div class="task-time">17/04 · 16:42</div>
+        <div><span class="task-pri pri-routine">ROUTINE</span></div>
+      </div>
+
+      <div class="task-row unread">
+        <span class="dot"></span>
+        <div class="task-patient">Grayson, Evelyn<br><small>NHS 521 338 9970 · 78 F</small></div>
+        <div class="task-desc">eDischarge — NGH Cardiology<br><small>Admitted 14/04 with AF, d/c 16/04, for review in 7/7</small></div>
+        <div><span class="task-from">NGH Trust</span></div>
+        <div class="task-time">17/04 · 18:05</div>
+        <div><span class="task-pri pri-urgent">URGENT</span></div>
+      </div>
+
+      <div class="task-row unread">
+        <span class="dot"></span>
+        <div class="task-patient">Okafor, James<br><small>NHS 609 472 2815 · 45 M</small></div>
+        <div class="task-desc">Medication query from pharmacy<br><small>Warfarin — INR 4.2, advice requested</small></div>
+        <div><span class="task-from">Boots Pharmacy</span></div>
+        <div class="task-time">18/04 · 08:22</div>
+        <div><span class="task-pri pri-urgent">URGENT</span></div>
+      </div>
+
+      <!-- NEW ARRIVALS DIVIDER (hidden until refresh) -->
+      <div class="arrival-divider" id="arrivalDivider">
+        <span class="arrow">↓</span>
+        <span>New arrivals via GP Connect</span>
+        <span id="arrivalStamp" style="margin-left:auto; font-weight:500; text-transform:none; letter-spacing:0;"></span>
+      </div>
+
+      <!-- NEW TASKS (added dynamically by script) -->
+      <div id="newTasks"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Arrival toast -->
+<div class="toast" id="toast">
+  <div class="icon">📩</div>
+  <div>
+    <div><strong>5 new tasks received via GP Connect</strong></div>
+    <small>From: Notewell AI (AgeWell) · Patient: D Pearson · 438 291 7654</small>
+  </div>
+</div>
+
+<button class="replay" onclick="location.reload()">↻ Reset</button>
+
+<script>
+  const newTasksData = [
+    {
+      title: 'Medication review — analgesia for bilateral OA knees',
+      detail: 'Paracetamol PRN ineffective · consider topical NSAID ± co-codamol trial',
+      priority: 'routine',
+    },
+    {
+      title: 'Postural hypotension workup',
+      detail: 'Sit→stand drop 14 mmHg · review antihypertensives · repeat BP at 2/52',
+      priority: 'urgent',
+    },
+    {
+      title: 'PHQ-9 follow-up (score 12, moderate)',
+      detail: 'Bereavement + isolation · Cruse referral + 4/52 review',
+      priority: 'routine',
+    },
+    {
+      title: 'Inhaler technique check',
+      detail: 'Ventolin 100 mcg PRN · refer pharmacy at next Rx',
+      priority: 'routine',
+    },
+    {
+      title: 'Immunisation status confirmation',
+      detail: 'Flu · COVID · RSV — not documented · confirm / schedule',
+      priority: 'info',
+    },
+  ];
+
+  function refresh() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⟳</span> Polling MESH…';
+
+    setTimeout(() => {
+      // Show divider
+      const divider = document.getElementById('arrivalDivider');
+      const now = new Date();
+      const stamp = now.toLocaleString('en-GB', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      document.getElementById('arrivalStamp').textContent =
+        'Received ' + stamp + ' · from Notewell AI';
+      divider.classList.add('show');
+
+      // Insert tasks one at a time
+      const container = document.getElementById('newTasks');
+      container.innerHTML = '';
+
+      newTasksData.forEach((t, i) => {
+        setTimeout(() => {
+          const row = document.createElement('div');
+          row.className = 'task-row unread new-arrival';
+          row.style.animationDelay = '0s';
+          const priClass = 'pri-' + t.priority;
+          const priLabel = t.priority.toUpperCase();
+          row.innerHTML = `
+            <span class="dot"></span>
+            <div class="task-patient">Pearson, Dorothy<small>NHS 438 291 7654 · 84 F</small></div>
+            <div class="task-desc">${t.title}<small>${t.detail}</small></div>
+            <div><span class="task-from agewell">AgeWell / Notewell <span class="new-tag">NEW</span></span></div>
+            <div class="task-time">Just now</div>
+            <div><span class="task-pri ${priClass}">${priLabel}</span></div>
+          `;
+          container.appendChild(row);
+
+          // Update counts
+          const totalEl = document.getElementById('total-count');
+          const newEl = document.getElementById('new-count');
+          const urgEl = document.getElementById('urgent-count');
+          const navEl = document.getElementById('nav-count');
+          totalEl.textContent = parseInt(totalEl.textContent) + 1;
+          newEl.textContent = parseInt(newEl.textContent) + 1;
+          navEl.textContent = parseInt(navEl.textContent) + 1;
+          if (t.priority === 'urgent') {
+            urgEl.textContent = parseInt(urgEl.textContent) + 1;
+          }
+
+          // Show toast after first arrival
+          if (i === 0) {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 5000);
+          }
+        }, i * 350);
+      });
+
+      // Reset button
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<span>↻</span> Refresh inbox';
+      }, newTasksData.length * 350 + 300);
+    }, 1200);
+  }
+
+  // Listen for parent window trigger (when embedded in Notewell demo modal)
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'systmone:refresh') {
+      refresh();
+    }
+  });
+  // Announce readiness to parent on load
+  try { window.parent.postMessage({ type: 'systmone:ready' }, '*'); } catch(e) {}
+</script>
+
+</body>
+</html>
