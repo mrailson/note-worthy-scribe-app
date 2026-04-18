@@ -2,10 +2,47 @@
 // Act 2 of the AgeWell demo flow: simulates Notewell generating the
 // Patient Support Plan from the visit transcript, then offers open/download.
 
-import React, { useEffect, useMemo, useState } from "react";
-import { X, Check, FileText, Download, ExternalLink, Clock, Sparkles } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  X,
+  Check,
+  FileText,
+  Download,
+  ExternalLink,
+  Clock,
+  Sparkles,
+  ArrowRightCircle,
+  RotateCcw,
+} from "lucide-react";
 import { downloadFile } from "@/utils/downloadFile";
 import type { DemoPatient } from "@/data/demoPatients";
+
+const SENT_KEY = "demo.dot.support-plan.sent";
+const SENT_AT_KEY = "demo.dot.support-plan.sent-at";
+
+const SEND_TIMINGS_MS = [0, 900, 1800, 2700, 3600, 4500, 5400];
+const SEND_FINISH_MS = 6000;
+
+const NODE_STATUS = [
+  "Composing FHIR bundle…",
+  "Signing with MESH JWT…",
+  "Transmitting via NHS Spine…",
+  "Spine accepted — MSG-REF 7A9F3C…",
+  "Delivering to SystmOne task queue…",
+  "Task received by GP inbox…",
+  "Complete",
+];
+
+const CONSOLE_LINES = [
+  { t: "08:40:02", text: "Initiating GP Connect transfer…" },
+  { t: "08:40:02", text: "Composing FHIR Bundle (DocumentReference + Binary)" },
+  { t: "08:40:03", text: "JWT signed, cty=application/fhir+json" },
+  { t: "08:40:04", text: "POST to sandbox.api.service.nhs.uk/mesh/v1" },
+  { t: "08:40:05", text: "202 Accepted, msgRef=7A9F3C12E8B4D9" },
+  { t: "08:40:06", text: "Polling for delivery confirmation…" },
+  { t: "08:40:07", text: "Ack received: delivered to K81039 (Towcester MC)" },
+  { t: "08:40:08", text: "✓ Complete" },
+];
 
 export interface PatientSupportPlanModalProps {
   open: boolean;
@@ -13,7 +50,7 @@ export interface PatientSupportPlanModalProps {
   patient: DemoPatient;
 }
 
-type Phase = "generating" | "complete" | "payoff";
+type Phase = "generating" | "complete" | "sending" | "sent" | "payoff";
 
 const STEPS = [
   "Reading visit transcript…",
@@ -34,16 +71,50 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
   const [phase, setPhase] = useState<Phase>("generating");
   const [completedSteps, setCompletedSteps] = useState(0);
   const [visibleSteps, setVisibleSteps] = useState(0);
+  const [sendStep, setSendStep] = useState(0); // 0..7
+  const [visibleConsoleLines, setVisibleConsoleLines] = useState(1);
+  const [alreadySent, setAlreadySent] = useState(false);
+
+  const consoleRef = useRef<HTMLDivElement | null>(null);
+  const prefersReducedMotion = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
 
   const plan = patient.supportPlan;
 
-  // Reset on open
+  // Reset on open — respect persisted "sent" status
   useEffect(() => {
     if (!open) return;
-    setPhase("generating");
-    setCompletedSteps(0);
-    setVisibleSteps(0);
+    const persistedSent =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(SENT_KEY) === "true";
+    setAlreadySent(persistedSent);
+    if (persistedSent) {
+      setPhase("sent");
+      setSendStep(SEND_TIMINGS_MS.length);
+      setVisibleConsoleLines(CONSOLE_LINES.length);
+    } else {
+      setPhase("generating");
+      setCompletedSteps(0);
+      setVisibleSteps(0);
+      setSendStep(0);
+      setVisibleConsoleLines(1);
+    }
   }, [open]);
+
+  // Persist 'sent' status
+  useEffect(() => {
+    if (phase === "sent" && typeof window !== "undefined") {
+      window.sessionStorage.setItem(SENT_KEY, "true");
+      if (!window.sessionStorage.getItem(SENT_AT_KEY)) {
+        window.sessionStorage.setItem(SENT_AT_KEY, "08:40:08");
+      }
+      setAlreadySent(true);
+    }
+  }, [phase]);
 
   // Lock scroll
   useEffect(() => {
@@ -102,6 +173,44 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
     };
   }, [open, phase]);
 
+  // Drive the SENDING sequence
+  useEffect(() => {
+    if (phase !== "sending") return;
+    let cancelled = false;
+    const timers: number[] = [];
+
+    SEND_TIMINGS_MS.forEach((ms, i) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (cancelled) return;
+          setSendStep(i + 1);
+          // Reveal next console line in lockstep
+          setVisibleConsoleLines(() => Math.min(CONSOLE_LINES.length, i + 2));
+        }, ms)
+      );
+    });
+    timers.push(
+      window.setTimeout(() => {
+        if (!cancelled) {
+          setVisibleConsoleLines(CONSOLE_LINES.length);
+          setPhase("sent");
+        }
+      }, SEND_FINISH_MS)
+    );
+
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [phase]);
+
+  // Auto-scroll console
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [visibleConsoleLines]);
+
   const generatedAt = useMemo(() => {
     if (!plan) return "";
     try {
@@ -125,6 +234,24 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
   };
   const handleDownload = () => {
     downloadFile(plan.path, plan.filename);
+  };
+  const startSendSequence = () => {
+    setSendStep(0);
+    setVisibleConsoleLines(1);
+    setPhase("sending");
+  };
+  const resetSendDemo = () => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(SENT_KEY);
+      window.sessionStorage.removeItem(SENT_AT_KEY);
+    }
+    setAlreadySent(false);
+    setSendStep(0);
+    setVisibleConsoleLines(1);
+    setPhase("complete");
+  };
+  const openSystmOne = () => {
+    window.open("/demo/systmone-inbox.html", "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -171,6 +298,10 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
             <span className="font-bold text-sm sm:text-base tracking-wider uppercase truncate">
               {phase === "generating"
                 ? "Generating Patient Support Plan"
+                : phase === "sending"
+                ? "Sending to GP Clinical System"
+                : phase === "sent"
+                ? "Delivered to GP Clinical System"
                 : "Patient Support Plan"}
             </span>
             <span
@@ -180,17 +311,33 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
               DEMO
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="flex items-center justify-center h-8 w-8 rounded-md transition-colors"
-            style={{ color: "#fff" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            {alreadySent && phase !== "generating" && (
+              <button
+                type="button"
+                onClick={resetSendDemo}
+                className="hidden sm:inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md transition-colors"
+                style={{ color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.2)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                title="Reset demo send state"
+              >
+                <RotateCcw size={12} />
+                Reset demo
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="flex items-center justify-center h-8 w-8 rounded-md transition-colors"
+              style={{ color: "#fff" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -329,11 +476,11 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row items-center gap-3 mt-8">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-8 w-full">
                   <button
                     type="button"
                     onClick={handleOpen}
-                    className="inline-flex items-center gap-2 px-5 h-11 rounded-md text-sm font-semibold text-white transition-transform hover:scale-[1.02]"
+                    className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-md text-sm font-semibold text-white transition-transform hover:scale-[1.02]"
                     style={{
                       background:
                         "linear-gradient(135deg, #2C7A7B 0%, #1F5E5E 100%)",
@@ -346,7 +493,7 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                   <button
                     type="button"
                     onClick={handleDownload}
-                    className="inline-flex items-center gap-2 px-5 h-11 rounded-md text-sm font-medium transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-md text-sm font-medium transition-colors"
                     style={{
                       background: "#fff",
                       color: "#1A2332",
@@ -356,6 +503,56 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                     <Download size={16} />
                     Download
                   </button>
+
+                  {alreadySent ? (
+                    <div className="flex flex-col items-center sm:items-start gap-1">
+                      <span
+                        className="inline-flex items-center gap-2 px-4 h-11 rounded-md text-sm font-semibold"
+                        style={{
+                          background: "#E8F3ED",
+                          color: "#2F855A",
+                          border: "1px solid #C8E2D2",
+                        }}
+                      >
+                        <Check size={16} strokeWidth={3} />
+                        Sent to Towcester MC ·{" "}
+                        {(typeof window !== "undefined" &&
+                          window.sessionStorage.getItem(SENT_AT_KEY)) ||
+                          "08:40:08"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={startSendSequence}
+                        className="text-[11px] underline-offset-4 hover:underline"
+                        style={{ color: "#6B7688" }}
+                      >
+                        Send again
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={startSendSequence}
+                      className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-md text-sm font-medium text-white shadow-md hover:shadow-lg transition-all"
+                      style={{
+                        background:
+                          "linear-gradient(90deg, #1E3A5F 0%, #2C7A7B 100%)",
+                      }}
+                    >
+                      <span className="relative flex w-2 h-2">
+                        <span
+                          className="absolute inset-0 rounded-full opacity-75 animate-ping"
+                          style={{ background: "#FBBF24" }}
+                        />
+                        <span
+                          className="relative rounded-full w-2 h-2"
+                          style={{ background: "#F59E0B" }}
+                        />
+                      </span>
+                      <ArrowRightCircle size={16} />
+                      Send to Clinical System
+                    </button>
+                  )}
                 </div>
 
                 <button
@@ -375,6 +572,22 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                 </p>
               </div>
             </div>
+          )}
+
+          {phase === "sending" && (
+            <SendingView
+              sendStep={sendStep}
+              visibleConsoleLines={visibleConsoleLines}
+              consoleRef={consoleRef}
+              prefersReducedMotion={prefersReducedMotion}
+            />
+          )}
+
+          {phase === "sent" && (
+            <SentView
+              onViewSystmOne={openSystmOne}
+              onClose={() => setPhase("complete")}
+            />
           )}
 
           {phase === "payoff" && (
@@ -496,3 +709,359 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
 };
 
 export default PatientSupportPlanModal;
+
+/* ─── Phase 2.5 — SENDING ─── */
+
+interface SendingViewProps {
+  sendStep: number; // 0..7
+  visibleConsoleLines: number;
+  consoleRef: React.RefObject<HTMLDivElement>;
+  prefersReducedMotion: boolean;
+}
+
+const SendingView: React.FC<SendingViewProps> = ({
+  sendStep,
+  visibleConsoleLines,
+  consoleRef,
+  prefersReducedMotion,
+}) => {
+  // Node states
+  // Node 1 NOTEWELL: active from step 1, complete from step 3 (line drawn)
+  // Node 2 SPINE:    active from step 3, complete from step 5
+  // Node 3 SYSTMONE: active from step 5, complete from step 7
+  const node1State =
+    sendStep >= 3 ? "complete" : sendStep >= 1 ? "active" : "idle";
+  const node2State =
+    sendStep >= 5 ? "complete" : sendStep >= 3 ? "active" : "idle";
+  const node3State =
+    sendStep >= 7 ? "complete" : sendStep >= 5 ? "active" : "idle";
+  const line1Done = sendStep >= 3;
+  const line2Done = sendStep >= 5;
+
+  const statusLineIdx = Math.max(0, Math.min(NODE_STATUS.length - 1, sendStep - 1));
+  const statusLine = sendStep > 0 ? NODE_STATUS[statusLineIdx] : "Initiating…";
+
+  return (
+    <div className="px-6 py-8 sm:py-10">
+      <div className="text-center mb-8">
+        <div
+          className="text-[11px] tracking-wider uppercase font-semibold"
+          style={{ color: "#1E3A5F" }}
+        >
+          Sending to GP Clinical System
+        </div>
+        <h2
+          className="mt-1 text-[18px] sm:text-[20px] font-medium"
+          style={{
+            fontFamily:
+              'Fraunces, ui-serif, Georgia, "Times New Roman", serif',
+            color: "#1A2332",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Towcester Medical Centre · SystmOne
+        </h2>
+      </div>
+
+      {/* Flow diagram */}
+      <div className="max-w-2xl mx-auto">
+        <div className="grid grid-cols-3 items-stretch gap-0">
+          <FlowNode
+            state={node1State}
+            icon={<FileText size={20} />}
+            title="Notewell"
+            sub="Dot's plan"
+          />
+          <FlowConnector active={line1Done} />
+          <FlowNode
+            state={node2State}
+            icon={<GlobeIcon />}
+            title="NHS Spine"
+            sub="FHIR Bundle + JWT"
+          />
+        </div>
+        <div className="grid grid-cols-3 items-stretch gap-0 mt-3">
+          <div />
+          <FlowConnector active={line2Done} />
+          <FlowNode
+            state={node3State}
+            icon={<MonitorIcon />}
+            title="SystmOne"
+            sub="GP task inbox"
+          />
+        </div>
+
+        {/* Status line */}
+        <div
+          className="mt-6 text-center text-[13px]"
+          style={{ color: "#3A4556" }}
+          aria-live="polite"
+        >
+          {statusLine}
+        </div>
+
+        {/* Console log */}
+        <div
+          className="mt-5 rounded-lg overflow-hidden"
+          style={{ background: "#0B1F34", border: "1px solid #0B1F34" }}
+        >
+          <div
+            className="flex items-center justify-between px-3 py-1.5 text-[10px] tracking-wider uppercase font-semibold"
+            style={{ color: "#8FD3D4", background: "rgba(255,255,255,0.04)" }}
+          >
+            <span>GP Connect · MESH · live log</span>
+            <span style={{ color: "#5BA3A4" }}>POST /mesh/v1</span>
+          </div>
+          <div
+            ref={consoleRef}
+            className="p-3 font-mono text-[11.5px] leading-relaxed overflow-y-auto"
+            style={{ maxHeight: 160, color: "#8FD3D4" }}
+            aria-live="polite"
+          >
+            {CONSOLE_LINES.slice(0, visibleConsoleLines).map((line, i) => (
+              <div
+                key={i}
+                style={{
+                  animation: prefersReducedMotion
+                    ? undefined
+                    : "pspFadeUp 220ms ease both",
+                }}
+              >
+                <span style={{ color: "#5EE6E8" }}>[{line.t}]</span>{" "}
+                <span>{line.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const FlowNode: React.FC<{
+  state: "idle" | "active" | "complete";
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+}> = ({ state, icon, title, sub }) => {
+  const bg =
+    state === "complete"
+      ? "#E8F3ED"
+      : state === "active"
+      ? "#E6F0F0"
+      : "#F1F5F9";
+  const border =
+    state === "complete"
+      ? "#C8E2D2"
+      : state === "active"
+      ? "#CDE0E0"
+      : "#E2E8F0";
+  const fg =
+    state === "complete"
+      ? "#2F855A"
+      : state === "active"
+      ? "#1F5E5E"
+      : "#94A3B8";
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div
+        className="rounded-lg flex items-center justify-center transition-colors"
+        style={{
+          width: 72,
+          height: 72,
+          background: bg,
+          border: `1px solid ${border}`,
+          color: fg,
+          position: "relative",
+        }}
+      >
+        {state === "active" && (
+          <span
+            className="absolute -top-1 -right-1 inline-flex w-3 h-3 rounded-full"
+            style={{ background: "#F59E0B" }}
+          >
+            <span
+              className="absolute inset-0 rounded-full opacity-70 animate-ping"
+              style={{ background: "#F59E0B" }}
+            />
+          </span>
+        )}
+        {state === "complete" ? <Check size={22} strokeWidth={3} /> : icon}
+      </div>
+      <div
+        className="mt-2 text-[11px] tracking-wider uppercase font-semibold"
+        style={{ color: fg }}
+      >
+        {title}
+      </div>
+      <div className="text-[11px]" style={{ color: "#8B94A5" }}>
+        {sub}
+      </div>
+    </div>
+  );
+};
+
+const FlowConnector: React.FC<{ active: boolean }> = ({ active }) => (
+  <div className="flex items-center justify-center">
+    <div
+      className="h-[2px] w-full transition-colors"
+      style={{
+        background: active ? "#2F855A" : "#E2E8F0",
+        position: "relative",
+      }}
+    >
+      <span
+        className="absolute -right-1 top-1/2 -translate-y-1/2 w-0 h-0"
+        style={{
+          borderTop: "5px solid transparent",
+          borderBottom: "5px solid transparent",
+          borderLeft: `7px solid ${active ? "#2F855A" : "#CBD5E1"}`,
+        }}
+      />
+    </div>
+  </div>
+);
+
+const GlobeIcon: React.FC = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M2 12h20" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
+const MonitorIcon: React.FC = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+  </svg>
+);
+
+/* ─── Phase 2.6 — SENT ─── */
+
+const SentView: React.FC<{
+  onViewSystmOne: () => void;
+  onClose: () => void;
+}> = ({ onViewSystmOne, onClose }) => {
+  return (
+    <div className="px-6 py-10 sm:py-12">
+      <div className="flex flex-col items-center text-center">
+        <div
+          className="psp-tick flex items-center justify-center rounded-full mb-5"
+          style={{
+            width: 80,
+            height: 80,
+            background: "#E8F3ED",
+            color: "#2F855A",
+            boxShadow: "0 8px 22px -8px rgba(47,133,90,0.45)",
+          }}
+        >
+          <Check size={40} strokeWidth={3} />
+        </div>
+
+        <h2
+          className="text-[28px] leading-tight font-medium"
+          style={{
+            fontFamily:
+              'Fraunces, ui-serif, Georgia, "Times New Roman", serif',
+            color: "#1A2332",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Delivered to Towcester Medical Centre
+        </h2>
+        <p className="mt-2 text-[14px]" style={{ color: "#6B7688" }}>
+          Dr A Patel's task inbox · acknowledged 08:40:08
+        </p>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mt-8 w-full max-w-xl">
+          {[
+            { n: "1.8s", l: "Delivery time" },
+            { n: "FHIR", l: "Bundle format" },
+            { n: "✓", l: "Receipt confirmed" },
+          ].map((s) => (
+            <div
+              key={s.l}
+              className="rounded-lg border bg-white p-4 text-center"
+              style={{ borderColor: "#E8E2D4" }}
+            >
+              <div
+                className="text-[26px] font-medium leading-none"
+                style={{
+                  fontFamily:
+                    'Fraunces, ui-serif, Georgia, "Times New Roman", serif',
+                  color: "#2F855A",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {s.n}
+              </div>
+              <div
+                className="mt-2 text-[11px] tracking-wider uppercase font-semibold"
+                style={{ color: "#6B7688" }}
+              >
+                {s.l}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 mt-8">
+          <button
+            type="button"
+            onClick={onViewSystmOne}
+            className="inline-flex items-center gap-2 px-5 h-11 rounded-md text-sm font-semibold text-white transition-transform hover:scale-[1.02]"
+            style={{
+              background: "linear-gradient(135deg, #2C7A7B 0%, #1F5E5E 100%)",
+              boxShadow: "0 4px 14px -4px rgba(31,94,94,0.5)",
+            }}
+          >
+            <ExternalLink size={16} />
+            View in SystmOne
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-2 px-5 h-11 rounded-md text-sm font-medium transition-colors"
+            style={{
+              background: "#fff",
+              color: "#1A2332",
+              border: "1px solid #E8E2D4",
+            }}
+          >
+            Close
+          </button>
+        </div>
+
+        <p
+          className="mt-6 text-[11px] font-mono"
+          style={{ color: "#8B94A5" }}
+        >
+          MSG-REF: 7A9F3C12E8B4D9 · OP-NAME: gpc.fhir.post.document
+        </p>
+      </div>
+    </div>
+  );
+};
