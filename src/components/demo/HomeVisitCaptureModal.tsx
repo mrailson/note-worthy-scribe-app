@@ -639,6 +639,7 @@ const HomeVisitCaptureModal: React.FC<HomeVisitCaptureModalProps> = ({
               </span>
             </div>
           </div>
+          )}
 
           {/* Prologue card overlay */}
           {prologueCard && (
