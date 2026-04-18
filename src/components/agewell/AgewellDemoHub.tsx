@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import CommunicationsModal from "@/components/CommunicationsModal";
+import PatientSupportPlanModal from "@/components/demo/PatientSupportPlanModal";
+import { DEMO_PATIENTS } from "@/data/demoPatients";
 
 /* ──────────────────────────────────────────────────────────────────
  * Palette (kept consistent with the rest of the AgeWell page)
@@ -302,6 +304,7 @@ const AgewellDemoHub: React.FC = () => {
   const [showComms, setShowComms] = useState(false);
   const [showProgramme, setShowProgramme] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [showSupportPlan, setShowSupportPlan] = useState(false);
 
   const z1 = useReveal<HTMLDivElement>();
   const z2 = useReveal<HTMLDivElement>();
@@ -321,8 +324,7 @@ const AgewellDemoHub: React.FC = () => {
   /* ─── ACTION HANDLERS ─── */
   const openMeeting = () =>
     navigate("/meetings?folder=Demonstrations");
-  const openPlan = () =>
-    toast.info("Demo asset pending — Patient Support Plan DOCX will download here");
+  const openPlan = () => setShowSupportPlan(true);
   const openFeasibility = () =>
     window.open("/demo/gp-connect-feasibility.html", "_blank", "noopener,noreferrer");
   const openProductOverview = () => navigate("/documents");
