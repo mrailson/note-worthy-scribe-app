@@ -1478,6 +1478,7 @@ const AgewellDemoHub: React.FC = () => {
       {Zone1}
       {Zone2}
       {Zone2b}
+      {Zone2c}
       {Zone3}
       {Zone4}
 
