@@ -37,8 +37,11 @@ import {
   MonitorSpeaker,
   Drama,
   Folder,
-  BookOpen
+  BookOpen,
+  HeartPulse,
+  ChevronRight
 } from "lucide-react";
+import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
 import { BackupBadge } from "@/components/offline/BackupBadge";
@@ -228,6 +231,7 @@ export const MeetingHistoryList = ({
   const [locationInputOpen, setLocationInputOpen] = useState<Record<string, boolean>>({});
   const [locationInputValues, setLocationInputValues] = useState<Record<string, string>>({});
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const [ageingWellMeeting, setAgeingWellMeeting] = useState<Meeting | null>(null);
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
   const [retranscribingMeetings, setRetranscribingMeetings] = useState<Record<string, boolean>>({});
@@ -2636,7 +2640,32 @@ export const MeetingHistoryList = ({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                
+
+                {/* Ageing Well Demo Button - contextual */}
+                {(meeting.title?.toLowerCase().includes("ageing well") ||
+                  meeting.title?.toLowerCase().includes("agewell")) && (
+                  <Button
+                    size="sm"
+                    onClick={() => setAgeingWellMeeting(meeting)}
+                    className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-white font-medium border-0 transition-all hover:-translate-y-px hover:shadow-md"
+                    style={{
+                      background: "linear-gradient(135deg, #2E7D4F 0%, #1E8449 100%)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        "linear-gradient(135deg, #266a43 0%, #186e3d 100%)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background =
+                        "linear-gradient(135deg, #2E7D4F 0%, #1E8449 100%)";
+                    }}
+                  >
+                    <HeartPulse className="h-4 w-4" />
+                    <span className={isMobile ? "hidden sm:inline" : ""}>Ageing Well</span>
+                    <ChevronRight className="h-4 w-4 opacity-80" />
+                  </Button>
+                )}
+
                 {/* Actions Dropdown Menu */}
                 <AlertDialog>
                   <DropdownMenu 
