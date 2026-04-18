@@ -499,9 +499,11 @@ const AgewellDemoHub: React.FC = () => {
       title: "Home visit captured",
       desc:
         "AgeWell worker records Dot's frailty review on the doorstep with Notewell mobile — offline-capable.",
-      btn: "Open meeting",
-      onClick: openMeeting,
-      icon: <Home size={14} />,
+      btn: "Watch visit",
+      onClick: openHomeVisit,
+      icon: <PlayCircle size={14} />,
+      captured: visitCaptured,
+      secondary: { label: "View raw transcript →", onClick: openMeeting },
     },
     {
       n: 2,
