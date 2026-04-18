@@ -863,10 +863,10 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
         </div>
 
         {/* Body */}
-        <div className="relative flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Card grid */}
           <div
-            className="overflow-y-auto h-full"
+            className="min-h-0 overflow-y-auto"
             style={{
               padding: 24,
               background: "#FAFAF8",
