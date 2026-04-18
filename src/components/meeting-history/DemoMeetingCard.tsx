@@ -319,8 +319,16 @@ export const DemoMeetingCard = ({
           Ageing Well
           <ChevronRight className="h-3.5 w-3.5 opacity-80" />
           <span
-            className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-white"
-            style={{ background: '#C05621', fontSize: '9px', fontWeight: 700 }}
+            className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded-full text-white"
+            style={{
+              background: '#C05621',
+              width: 14,
+              height: 14,
+              fontSize: 9,
+              fontWeight: 700,
+              border: '2px solid #FEFCF7',
+              lineHeight: 1,
+            }}
             aria-hidden
           >
             ★
@@ -417,12 +425,7 @@ export const DemoMeetingCard = ({
       {/* ROW 7 — Overview content */}
       {meeting.overview && (
         <div className="px-7 py-5" style={{ borderTop: '1px solid #F0EADD' }}>
-          <p
-            className="text-[14.5px] leading-relaxed"
-            style={{ color: '#3A4556' }}
-          >
-            {meeting.overview}
-          </p>
+          {renderSummary(meeting.overview)}
         </div>
       )}
 
@@ -455,7 +458,44 @@ export const DemoMeetingCard = ({
   );
 };
 
-/* ── helpers ── */
+/* ── summary renderer ── */
+
+function renderSummary(summary: string) {
+  // Split on bullet markers (• or - or * preceded by whitespace).
+  // First chunk = intro paragraph; remainder = bullet items.
+  const parts = summary.split(/\s*•\s*/).map((s) => s.trim()).filter(Boolean);
+  const [intro, ...bullets] = parts;
+
+  return (
+    <div>
+      {intro && (
+        <p
+          className="text-[14.5px] leading-relaxed"
+          style={{ color: '#3A4556' }}
+        >
+          {intro}
+        </p>
+      )}
+      {bullets.length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {bullets.map((b, i) => (
+            <li
+              key={i}
+              className="pl-6 relative text-[13.5px] leading-relaxed"
+              style={{ color: '#3A4556' }}
+            >
+              <span
+                className="absolute left-2 top-[9px] w-1.5 h-1.5 rounded-full"
+                style={{ background: '#2C7A7B' }}
+              />
+              {b}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 const VDivider = () => (
   <span
