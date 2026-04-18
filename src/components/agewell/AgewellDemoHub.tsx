@@ -326,6 +326,7 @@ const AgewellDemoHub: React.FC = () => {
   const z1 = useReveal<HTMLDivElement>();
   const z2 = useReveal<HTMLDivElement>();
   const z2b = useReveal<HTMLDivElement>();
+  const z2c = useReveal<HTMLDivElement>();
   const z3 = useReveal<HTMLDivElement>();
   const z4 = useReveal<HTMLDivElement>();
 
@@ -956,6 +957,287 @@ const AgewellDemoHub: React.FC = () => {
     </div>
   );
 
+  /* ─── ZONE 2c: Forms & the admin iceberg ─── */
+  const icebergForms = [
+    "Attendance Allowance (AA1)",
+    "PIP (PIP2)",
+    "DS1500 / SR1 fast-track",
+    "Continuing Healthcare Checklist",
+    "Disabled Facilities Grant evidence",
+    "Council Tax SMI exemption",
+    "Carer's Allowance statement",
+    "Power of Attorney capacity letter",
+    "Falls service referral",
+    "OT home assessment referral",
+    "Safeguarding referral (where indicated)",
+    "Best interests meeting note",
+  ];
+
+  const Zone2c = (
+    <div ref={z2c.ref} style={{ ...revealStyle(z2c.visible), marginTop: 64 }}>
+      <SectionHeader
+        title="Forms & the admin iceberg"
+        subtitle="The visible work is the clinical visit. The invisible work is the mountain of forms that follow — Blue Badge, Attendance Allowance, PIP, DFG, Council Tax exemption, CHC checklists. Notewell turns one conversation into every form it evidences."
+      />
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isDesktop ? "1.15fr 1fr" : "1fr",
+          gap: isDesktop ? 24 : 20,
+        }}
+      >
+        {/* LEFT — Hero case study */}
+        <div
+          style={{
+            background: C.cream,
+            border: `1px solid ${C.border}`,
+            borderRadius: 16,
+            padding: isDesktop ? "32px 36px" : "24px 22px",
+            position: "relative",
+            overflow: "hidden",
+            boxShadow: "0 2px 14px rgba(28, 43, 42, 0.05)",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 4,
+              background: C.teal,
+              borderRadius: "16px 16px 0 0",
+            }}
+          />
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: 3,
+              color: C.amberDark,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              marginBottom: 10,
+            }}
+          >
+            Hero example
+          </div>
+          <h3
+            style={{
+              fontFamily: FONT_SERIF,
+              fontStyle: "italic",
+              fontSize: isDesktop ? 26 : 22,
+              color: C.navyText,
+              margin: "0 0 16px",
+              lineHeight: 1.2,
+              fontWeight: 600,
+            }}
+          >
+            Blue Badge — from home visit to submitted application
+          </h3>
+          <p
+            style={{
+              fontSize: 14,
+              color: C.slate700,
+              lineHeight: 1.7,
+              margin: "0 0 20px",
+            }}
+          >
+            The AgeWell worker already asked Dot how far she can walk before stopping, whether
+            she uses aids, how often she falls. That's the entire evidence base for a Blue
+            Badge. Notewell extracts it, maps it to the application's mobility descriptors, and
+            produces two outputs in one click: a pre-populated supporting statement for the
+            family to submit, and a GP supporting letter ready for signature. FRAT and 6-CIT
+            scores embedded automatically. No re-keying. No unfunded GP letter burden.
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              gap: isDesktop ? 12 : 8,
+              flexWrap: "wrap",
+              borderTop: `1px solid ${C.border}`,
+              paddingTop: 16,
+            }}
+          >
+            {[
+              { stat: "1", label: "visit" },
+              { stat: "2", label: "outputs" },
+              { stat: "0", label: "re-keying" },
+            ].map((s, i) => (
+              <div
+                key={s.label}
+                style={{
+                  flex: "1 1 0",
+                  minWidth: 90,
+                  textAlign: "center",
+                  padding: "10px 8px",
+                  background: C.tealLight,
+                  border: `1px solid ${C.teal}33`,
+                  borderRadius: 10,
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: FONT_SERIF,
+                    fontSize: 28,
+                    color: C.tealDark,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    marginBottom: 4,
+                  }}
+                >
+                  {s.stat}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    textTransform: "uppercase",
+                    color: C.slate600,
+                    fontWeight: 600,
+                  }}
+                >
+                  {s.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT — Admin iceberg */}
+        <div
+          style={{
+            background: C.creamAlt,
+            border: `1px solid ${C.border}`,
+            borderRadius: 16,
+            padding: isDesktop ? "32px 36px" : "24px 22px",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: 3,
+              color: C.amberDark,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              marginBottom: 10,
+            }}
+          >
+            One visit · Many forms
+          </div>
+          <h3
+            style={{
+              fontFamily: FONT_SERIF,
+              fontStyle: "italic",
+              fontSize: isDesktop ? 24 : 22,
+              color: C.navyText,
+              margin: "0 0 18px",
+              lineHeight: 1.2,
+              fontWeight: 600,
+            }}
+          >
+            What else the same transcript unlocks
+          </h3>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            {icebergForms.map((f) => (
+              <span
+                key={f}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: "transparent",
+                  color: C.tealDark,
+                  border: `1px solid ${C.teal}55`,
+                  borderRadius: 999,
+                  padding: "7px 12px",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                }}
+              >
+                <span
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: C.teal,
+                    flexShrink: 0,
+                  }}
+                />
+                {f}
+              </span>
+            ))}
+          </div>
+          <p
+            style={{
+              marginTop: "auto",
+              fontSize: 12.5,
+              color: C.slate600,
+              fontStyle: "italic",
+              lineHeight: 1.5,
+              margin: 0,
+            }}
+          >
+            Every form above asks questions the AgeWell worker already answered. Notewell just
+            routes the evidence.
+          </p>
+        </div>
+      </div>
+
+      {/* Full-width quote strip */}
+      <div
+        style={{
+          marginTop: 20,
+          background: C.navyText,
+          color: C.cream,
+          borderRadius: 14,
+          padding: isDesktop ? "22px 32px" : "20px 22px",
+          display: "flex",
+          alignItems: "center",
+          gap: 18,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: FONT_SERIF,
+            fontSize: 44,
+            lineHeight: 0.8,
+            color: C.teal,
+            fontStyle: "italic",
+            flexShrink: 0,
+          }}
+          aria-hidden="true"
+        >
+          "
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontFamily: FONT_SERIF,
+            fontStyle: "italic",
+            fontSize: isDesktop ? 17 : 15,
+            lineHeight: 1.5,
+            fontWeight: 500,
+          }}
+        >
+          The AgeWell team's ask was simple: help with Blue Badge. The answer turned out to be
+          bigger — help with every form a frailty visit evidences.
+        </p>
+      </div>
+    </div>
+  );
+
   /* ─── ZONE 3: Reference cards ─── */
   const referenceCards = [
     {
@@ -1196,6 +1478,7 @@ const AgewellDemoHub: React.FC = () => {
       {Zone1}
       {Zone2}
       {Zone2b}
+      {Zone2c}
       {Zone3}
       {Zone4}
 
