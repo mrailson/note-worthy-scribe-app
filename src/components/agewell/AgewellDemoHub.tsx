@@ -1018,6 +1018,11 @@ const AgewellDemoHub: React.FC = () => {
         onClose={() => setShowSupportPlan(false)}
         patient={DEMO_PATIENTS[0]}
       />
+      <HomeVisitCaptureModal
+        open={showHomeVisit}
+        onClose={closeHomeVisit}
+        onGeneratePlan={() => setShowSupportPlan(true)}
+      />
     </div>
   );
 };
