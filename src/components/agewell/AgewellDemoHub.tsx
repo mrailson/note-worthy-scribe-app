@@ -346,7 +346,8 @@ const AgewellDemoHub: React.FC = () => {
   const openPlan = () => setShowSupportPlan(true);
   const openFeasibility = () =>
     window.open("/demo/feasibility/gp-connect-feasibility.html", "_blank", "noopener,noreferrer");
-  const openProductOverview = () => navigate("/documents");
+  const openProductOverview = () =>
+    window.open("/demo/reference/notewell-product-overview.html", "_blank", "noopener,noreferrer");
   const resetDemo = () => {
     toast.success("Demo state reset");
     setTimeout(() => window.location.reload(), 400);
