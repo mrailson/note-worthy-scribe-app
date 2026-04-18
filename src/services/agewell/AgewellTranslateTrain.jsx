@@ -24,6 +24,7 @@ import { useElevenLabsTTS } from "@/hooks/useElevenLabsTTS";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import agewellLogo from "@/assets/agewell-logo.png";
+import AgewellDemoHub from "@/components/agewell/AgewellDemoHub";
 
 const callAgewellAI = async ({ messages, system, max_tokens }) => {
   const { data, error } = await supabase.functions.invoke("agewell-ai", {
@@ -1580,6 +1581,9 @@ function HomeScreen({onSelect}){
           <strong style={{color:T.textSecondary}}>MHRA Class I · DCB0129 · DTAC compliant · 3 branched services</strong>
         </p>
       </div>
+
+      {/* ─── Demo Hub: Featured Patient · 5-Act Flow · References · Presenter Notes ─── */}
+      <AgewellDemoHub />
     </div>
   );
 }
