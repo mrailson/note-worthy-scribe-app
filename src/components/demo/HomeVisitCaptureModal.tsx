@@ -5,10 +5,9 @@
 // generate the Patient Support Plan.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { X, FastForward, Check, Play, WifiOff, ShieldCheck, Pause, ChevronRight } from "lucide-react";
+import { X, FastForward, Check, Play, WifiOff, ShieldCheck, Pause } from "lucide-react";
 import {
   DOT_VISIT_SCRIPT,
-  PROLOGUE_END_T,
   FAST_FORWARD_T,
   RECORDING_START_T,
   RECORDING_STOP_T,
