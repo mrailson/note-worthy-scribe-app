@@ -1010,6 +1010,23 @@ const AgewellDemoHub: React.FC = () => {
               borderRadius: "16px 16px 0 0",
             }}
           />
+          {/* LIVE DEMO badge */}
+          <div
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              background: C.amber,
+              color: "white",
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: 1.5,
+              padding: "3px 8px",
+              borderRadius: 999,
+            }}
+          >
+            LIVE DEMO
+          </div>
           <div
             style={{
               fontSize: 11,
@@ -1040,7 +1057,7 @@ const AgewellDemoHub: React.FC = () => {
               fontSize: 14,
               color: C.slate700,
               lineHeight: 1.7,
-              margin: "0 0 20px",
+              margin: "0 0 10px",
             }}
           >
             The AgeWell worker already asked Dot how far she can walk before stopping, whether
@@ -1049,6 +1066,16 @@ const AgewellDemoHub: React.FC = () => {
             produces two outputs in one click: a pre-populated supporting statement for the
             family to submit, and a GP supporting letter ready for signature. FRAT and 6-CIT
             scores embedded automatically. No re-keying. No unfunded GP letter burden.
+          </p>
+          <p
+            style={{
+              fontSize: 12.5,
+              fontStyle: "italic",
+              color: C.slate600,
+              margin: "0 0 20px",
+            }}
+          >
+            Uses the same home visit transcript as Acts 1–2 above.
           </p>
 
           <div
@@ -1064,7 +1091,7 @@ const AgewellDemoHub: React.FC = () => {
               { stat: "1", label: "visit" },
               { stat: "2", label: "outputs" },
               { stat: "0", label: "re-keying" },
-            ].map((s, i) => (
+            ].map((s) => (
               <div
                 key={s.label}
                 style={{
@@ -1103,6 +1130,34 @@ const AgewellDemoHub: React.FC = () => {
               </div>
             ))}
           </div>
+
+          <button
+            onClick={() =>
+              window.open("/demo/forms/blue-badge-demo.html", "_blank", "noopener,noreferrer")
+            }
+            style={{
+              marginTop: 18,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              width: "100%",
+              background: C.teal,
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              padding: "12px 16px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "background 150ms ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = C.tealDark)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = C.teal)}
+          >
+            <FileText size={15} />
+            Open Blue Badge demo →
+          </button>
         </div>
 
         {/* RIGHT — Admin iceberg */}
