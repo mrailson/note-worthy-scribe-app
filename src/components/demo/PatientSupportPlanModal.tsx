@@ -176,6 +176,44 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
     };
   }, [open, phase]);
 
+  // Drive the SENDING sequence
+  useEffect(() => {
+    if (phase !== "sending") return;
+    let cancelled = false;
+    const timers: number[] = [];
+
+    SEND_TIMINGS_MS.forEach((ms, i) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (cancelled) return;
+          setSendStep(i + 1);
+          // Reveal next console line in lockstep
+          setVisibleConsoleLines((v) => Math.min(CONSOLE_LINES.length, i + 2));
+        }, ms)
+      );
+    });
+    timers.push(
+      window.setTimeout(() => {
+        if (!cancelled) {
+          setVisibleConsoleLines(CONSOLE_LINES.length);
+          setPhase("sent");
+        }
+      }, SEND_FINISH_MS)
+    );
+
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [phase]);
+
+  // Auto-scroll console
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [visibleConsoleLines]);
+
   const generatedAt = useMemo(() => {
     if (!plan) return "";
     try {
@@ -199,6 +237,24 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
   };
   const handleDownload = () => {
     downloadFile(plan.path, plan.filename);
+  };
+  const startSendSequence = () => {
+    setSendStep(0);
+    setVisibleConsoleLines(1);
+    setPhase("sending");
+  };
+  const resetSendDemo = () => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(SENT_KEY);
+      window.sessionStorage.removeItem(SENT_AT_KEY);
+    }
+    setAlreadySent(false);
+    setSendStep(0);
+    setVisibleConsoleLines(1);
+    setPhase("complete");
+  };
+  const openSystmOne = () => {
+    window.open("/demo/systmone-inbox.html", "_blank", "noopener,noreferrer");
   };
 
   return (
