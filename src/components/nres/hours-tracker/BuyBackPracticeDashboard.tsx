@@ -6,7 +6,7 @@ import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { calculateStaffMonthlyAmount } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
-import { exportClaimsDetail } from '@/utils/buybackExcelExport';
+import { exportClaimsDetail, exportDirectorClaimsDetail } from '@/utils/buybackExcelExport';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
@@ -2329,7 +2329,9 @@ function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; 
 
 type ClaimsView = 'summary' | 'cards' | 'invoices' | 'spreadsheet';
 
-function ClaimsViewSwitcher({
+export interface DirectorPracticeOption { key: string; name: string; }
+
+export function ClaimsViewSwitcher({
   claims,
   practiceKey,
   practiceName,
@@ -2338,6 +2340,13 @@ function ClaimsViewSwitcher({
   onSubmit,
   onResubmit,
   saving,
+  // Director-mode extensions (all optional, off by default)
+  directorMode = false,
+  practiceFilter,
+  onPracticeFilterChange,
+  practiceOptions,
+  defaultView,
+  hideSummaryView = false,
 }: {
   claims: BuyBackClaim[];
   practiceKey: string;
@@ -2347,8 +2356,14 @@ function ClaimsViewSwitcher({
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
+  directorMode?: boolean;
+  practiceFilter?: string;
+  onPracticeFilterChange?: (key: string) => void;
+  practiceOptions?: DirectorPracticeOption[];
+  defaultView?: ClaimsView;
+  hideSummaryView?: boolean;
 }) {
-  const [view, setView] = useState<ClaimsView>('spreadsheet');
+  const [view, setView] = useState<ClaimsView>(defaultView || 'spreadsheet');
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
@@ -2360,7 +2375,11 @@ function ClaimsViewSwitcher({
   const [filterName, setFilterName] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
 
-  const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
+  const scopedClaims = useMemo(() => {
+    if (!directorMode || !practiceFilter || practiceFilter === 'all') return claims;
+    return claims.filter(c => c.practice_key === practiceFilter);
+  }, [claims, directorMode, practiceFilter]);
+  const periodClaims = useMemo(() => filterByPeriod(scopedClaims, period), [scopedClaims, period]);
 
   const sorted = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
@@ -2438,7 +2457,18 @@ function ClaimsViewSwitcher({
   const invoicedClaims = useMemo(() => sorted.filter(c => c.invoice_number && (c.status === 'invoiced' || c.status === 'paid')), [sorted]);
 
   const handleExcelExport = () => {
-    exportClaimsDetail(sorted, practiceKey);
+    if (directorMode) {
+      const practiceLabel = !practiceFilter || practiceFilter === 'all'
+        ? 'AllPractices'
+        : (practiceOptions?.find(p => p.key === practiceFilter)?.name) || practiceFilter;
+      const timeWindowLabel = PERIOD_OPTIONS.find(p => p.key === period)?.label || 'AllTime';
+      exportDirectorClaimsDetail(
+        filteredLines.map(l => ({ claim: l.claim, staff: l.staff, monthLabel: l.monthLabel })),
+        { practiceLabel, timeWindowLabel },
+      );
+    } else {
+      exportClaimsDetail(sorted, practiceKey);
+    }
   };
 
   const handleDownloadAll = async () => {
@@ -2479,7 +2509,7 @@ function ClaimsViewSwitcher({
   };
 
   const VIEW_TABS: { key: ClaimsView; label: string; icon: string }[] = [
-    { key: 'summary', label: 'Summary', icon: '📋' },
+    ...(hideSummaryView ? [] : [{ key: 'summary' as ClaimsView, label: 'Summary', icon: '📋' }]),
     { key: 'cards', label: 'Individual Claim View', icon: '🃏' },
     { key: 'invoices', label: 'Invoices', icon: '📄' },
     { key: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
@@ -2647,6 +2677,17 @@ function ClaimsViewSwitcher({
         <div>
           {/* Filter bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            {directorMode && practiceOptions && onPracticeFilterChange && (
+              <select
+                value={practiceFilter || 'all'}
+                onChange={e => onPracticeFilterChange(e.target.value)}
+                style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff', fontWeight: 600 }}
+                title="Filter by practice"
+              >
+                <option value="all">All Practices</option>
+                {practiceOptions.map(p => <option key={p.key} value={p.key}>{p.name}</option>)}
+              </select>
+            )}
             <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff' }}>
               <option value="all">All Months</option>
               {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
@@ -2683,17 +2724,18 @@ function ClaimsViewSwitcher({
                 <thead>
                   <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
                     {([
-                      { key: 'month', label: 'Month', align: 'left' },
-                      { key: 'name', label: 'Staff Name', align: 'left' },
-                      { key: 'role', label: 'Role', align: 'left' },
-                      { key: 'category', label: 'Category', align: 'left' },
-                      { key: 'allocation', label: 'Allocation', align: 'left' },
-                      { key: 'max', label: 'Max £', align: 'right' },
-                      { key: 'claimed', label: 'Claimed £', align: 'right' },
-                      { key: 'invoice', label: 'Invoice No.', align: 'left' },
-                      { key: 'status', label: 'Status', align: 'right' },
-                      { key: 'paid', label: 'Paid Date', align: 'right' },
-                    ] as const).map(col => (
+                      ...(directorMode ? [{ key: 'practice', label: 'Practice', align: 'left' as const }] : []),
+                      { key: 'month', label: 'Month', align: 'left' as const },
+                      { key: 'name', label: 'Staff Name', align: 'left' as const },
+                      { key: 'role', label: 'Role', align: 'left' as const },
+                      { key: 'category', label: 'Category', align: 'left' as const },
+                      { key: 'allocation', label: 'Allocation', align: 'left' as const },
+                      { key: 'max', label: 'Max £', align: 'right' as const },
+                      { key: 'claimed', label: 'Claimed £', align: 'right' as const },
+                      { key: 'invoice', label: 'Invoice No.', align: 'left' as const },
+                      { key: 'status', label: 'Status', align: 'right' as const },
+                      { key: 'paid', label: 'Paid Date', align: 'right' as const },
+                    ]).map(col => (
                       <th key={col.key} onClick={() => handleSort(col.key)} style={{ padding: '8px 10px', textAlign: col.align as any, fontSize: 10, fontWeight: 600, color: sortCol === col.key ? '#111827' : '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', whiteSpace: 'nowrap' as const, cursor: 'pointer', userSelect: 'none' }}>
                         {col.label}{sortArrow(col.key)}
                       </th>
@@ -2703,6 +2745,11 @@ function ClaimsViewSwitcher({
                 <tbody>
                   {filteredLines.map((l, idx) => (
                     <tr key={`${l.claimId}-${idx}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      {directorMode && (
+                        <td style={{ padding: '8px 10px', fontWeight: 500, color: '#005eb8', whiteSpace: 'nowrap' as const }}>
+                          {getPracticeName(l.claim.practice_key)}
+                        </td>
+                      )}
                       <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' as const }}>{l.monthLabel}</td>
                       <td style={{ padding: '8px 10px', fontWeight: 500 }}>{l.staff.staff_name || '—'}</td>
                       <td style={{ padding: '8px 10px' }}>{l.staff.staff_role || '—'}</td>
@@ -2731,7 +2778,7 @@ function ClaimsViewSwitcher({
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
-                    <td colSpan={5} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280' }}>
+                    <td colSpan={directorMode ? 6 : 5} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280' }}>
                       {filteredLines.length} line{filteredLines.length !== 1 ? 's' : ''}
                     </td>
                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>
