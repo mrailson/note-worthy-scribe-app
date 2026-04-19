@@ -944,33 +944,144 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     );
   }
 
+  // Practice options for ClaimsViewSwitcher (admin/director mode)
+  const directorPracticeOptions: DirectorPracticeOption[] = effectivePracticeKeys.map(k => ({
+    key: k,
+    name: ALL_PRACTICES[k],
+  }));
+
+  // Group active staff by category for the new admin Staff Roster (across all practices)
+  const adminBuybackStaff = accessFilteredStaff.filter(s => s.staff_category === 'buyback' && s.is_active);
+  const adminGpLocumStaff = accessFilteredStaff.filter(s => s.staff_category === 'gp_locum' && s.is_active);
+  const adminNewSdaStaff = accessFilteredStaff.filter(s => s.staff_category === 'new_sda' && s.is_active);
+  const adminMgmtStaff = accessFilteredStaff.filter(s => (s.staff_category === 'management' || s.staff_category === 'meeting') && s.is_active);
+
+  const adminClaimMonths = getClaimMonths();
+
+  // KPI counts/totals (line-level, matching Practice view structure)
+  const adminKpiLines = practiceFilteredClaims.flatMap(c => {
+    const dets = (c.staff_details || []) as any[];
+    return dets.map((d: any) => ({
+      status: c.status,
+      amount: d.claimed_amount ?? d.calculated_amount ?? 0,
+    }));
+  });
+  const adminCounts: Record<string, number> = { all: adminKpiLines.length };
+  adminKpiLines.forEach(l => { adminCounts[l.status] = (adminCounts[l.status] || 0) + 1; });
+  const adminTotals = { draft: 0, submitted: 0, verified: 0, approved: 0, invoiced: 0, paid: 0, queried: 0 };
+  adminKpiLines.forEach(l => {
+    if (l.status === 'draft') adminTotals.draft += l.amount;
+    else if (l.status === 'submitted') adminTotals.submitted += l.amount;
+    else if (l.status === 'verified') adminTotals.verified += l.amount;
+    else if (l.status === 'approved') adminTotals.approved += l.amount;
+    else if (l.status === 'invoiced') adminTotals.invoiced += l.amount;
+    else if (l.status === 'paid') adminTotals.paid += l.amount;
+    else if (l.status === 'queried') adminTotals.queried += l.amount;
+  });
+  const adminQueriedCount = adminCounts.queried || 0;
+
+  // Wrappers to satisfy StaffRosterSection signature (Practice form expects practice_key)
+  const adminAddStaff = isAdmin
+    ? async (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => {
+        const pk = member.practice_key || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : effectivePracticeKeys[0]);
+        return addStaff({ ...member, practice_key: pk });
+      }
+    : undefined;
+
+  // Bulk actions menu state
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
   return (
-    <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1000, margin: '0 auto', padding: '28px 16px' }}>
-      {/* Page header — admin view */}
+    <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1200, margin: '0 auto', padding: '28px 16px' }}>
+      {/* Page header — admin view (matches Practice view styling) */}
       {!testActive && effectiveIsAdmin && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
               <div style={{ width: 6, height: 26, background: '#005eb8', borderRadius: 3 }} />
-              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', margin: 0 }}>Buy-Back &amp; Claims</h1>
-              <span style={{ fontSize: 10, fontWeight: 600, background: '#005eb8', color: '#fff', borderRadius: 100, padding: '2px 8px', letterSpacing: 0.5 }}>ADMIN</span>
+              <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: '#111827' }}>Buy-Back &amp; Claims</h1>
+              <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 9px', borderRadius: 100, background: '#005eb8', color: '#fff', letterSpacing: '0.03em' }}>ADMIN</span>
               {onGuideOpen && (
                 <button onClick={onGuideOpen} title="Claims Guide" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280', marginLeft: 2 }}>
                   <HelpCircle style={{ width: 14, height: 14 }} />
                 </button>
               )}
-              {showSettings && onSettingsOpen && (
-                <button onClick={onSettingsOpen} title="Access Settings" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280' }}>
-                  <Settings style={{ width: 14, height: 14 }} />
-                </button>
-              )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, color: '#6b7280' }}>{practiceFilteredClaims.length} claim{practiceFilteredClaims.length !== 1 ? 's' : ''}</span>
-              <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500, letterSpacing: 0.3 }}>NRES New Models of Care</span>
-            </div>
+            <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>
+              Manage staff, create and review claims across all practices
+            </p>
           </div>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Manage staff, create and review claims across all practices</p>
+
+          {/* Toolbar: Bulk · Import · Settings */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Popover open={bulkOpen} onOpenChange={setBulkOpen}>
+              <PopoverTrigger asChild>
+                <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <ListChecks style={{ width: 14, height: 14 }} /> Bulk actions
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-1">
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={statusCounts.submitted === 0}
+                  onClick={() => {
+                    setBulkOpen(false);
+                    practiceFilteredClaims.filter(c => c.status === 'submitted').forEach(c => verifyClaim(c.id));
+                    toast.success(`Verifying ${statusCounts.submitted} submitted claim${statusCounts.submitted !== 1 ? 's' : ''}…`);
+                  }}
+                >
+                  ✓ Verify all submitted ({statusCounts.submitted})
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={statusCounts.verified === 0}
+                  onClick={() => {
+                    setBulkOpen(false);
+                    practiceFilteredClaims.filter(c => c.status === 'verified').forEach(c => approveClaim(c.id));
+                    toast.success(`Approving ${statusCounts.verified} verified claim${statusCounts.verified !== 1 ? 's' : ''}…`);
+                  }}
+                >
+                  ✓ Approve all verified ({statusCounts.verified})
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={statusCounts.approved + statusCounts.invoiced === 0}
+                  onClick={() => {
+                    setBulkOpen(false);
+                    practiceFilteredClaims.filter(c => c.status === 'approved' || c.status === 'invoiced').forEach(c => updatePaymentStatus(c.id, { payment_status: 'payment_sent' }));
+                    toast.success(`Marking ${statusCounts.approved + statusCounts.invoiced} claim${statusCounts.approved + statusCounts.invoiced !== 1 ? 's' : ''} as paid…`);
+                  }}
+                >
+                  £ Mark all approved as paid ({statusCounts.approved + statusCounts.invoiced})
+                </button>
+                <Separator className="my-1" />
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted"
+                  onClick={() => { setBulkOpen(false); exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus); }}
+                >
+                  ⬇ Export current filter to Excel
+                </button>
+              </PopoverContent>
+            </Popover>
+
+            <button
+              onClick={() => { setImportOpen(true); toast.info('Use the Spreadsheet view to bulk-edit, or contact your admin for CSV import.'); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <Upload style={{ width: 14, height: 14 }} /> Import
+            </button>
+
+            {showSettings && onSettingsOpen && (
+              <button
+                onClick={onSettingsOpen}
+                title="Buy-Back Settings"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #005eb8', background: '#005eb8', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              >
+                <Settings style={{ width: 14, height: 14 }} /> Settings
+              </button>
+            )}
+          </div>
         </div>
       )}
       {/* Test Mode Bar — admin only */}
