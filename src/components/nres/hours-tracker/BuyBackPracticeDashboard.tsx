@@ -2724,17 +2724,18 @@ export function ClaimsViewSwitcher({
                 <thead>
                   <tr style={{ borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
                     {([
-                      { key: 'month', label: 'Month', align: 'left' },
-                      { key: 'name', label: 'Staff Name', align: 'left' },
-                      { key: 'role', label: 'Role', align: 'left' },
-                      { key: 'category', label: 'Category', align: 'left' },
-                      { key: 'allocation', label: 'Allocation', align: 'left' },
-                      { key: 'max', label: 'Max £', align: 'right' },
-                      { key: 'claimed', label: 'Claimed £', align: 'right' },
-                      { key: 'invoice', label: 'Invoice No.', align: 'left' },
-                      { key: 'status', label: 'Status', align: 'right' },
-                      { key: 'paid', label: 'Paid Date', align: 'right' },
-                    ] as const).map(col => (
+                      ...(directorMode ? [{ key: 'practice', label: 'Practice', align: 'left' as const }] : []),
+                      { key: 'month', label: 'Month', align: 'left' as const },
+                      { key: 'name', label: 'Staff Name', align: 'left' as const },
+                      { key: 'role', label: 'Role', align: 'left' as const },
+                      { key: 'category', label: 'Category', align: 'left' as const },
+                      { key: 'allocation', label: 'Allocation', align: 'left' as const },
+                      { key: 'max', label: 'Max £', align: 'right' as const },
+                      { key: 'claimed', label: 'Claimed £', align: 'right' as const },
+                      { key: 'invoice', label: 'Invoice No.', align: 'left' as const },
+                      { key: 'status', label: 'Status', align: 'right' as const },
+                      { key: 'paid', label: 'Paid Date', align: 'right' as const },
+                    ]).map(col => (
                       <th key={col.key} onClick={() => handleSort(col.key)} style={{ padding: '8px 10px', textAlign: col.align as any, fontSize: 10, fontWeight: 600, color: sortCol === col.key ? '#111827' : '#9ca3af', textTransform: 'uppercase' as const, letterSpacing: '0.04em', whiteSpace: 'nowrap' as const, cursor: 'pointer', userSelect: 'none' }}>
                         {col.label}{sortArrow(col.key)}
                       </th>
@@ -2744,6 +2745,11 @@ export function ClaimsViewSwitcher({
                 <tbody>
                   {filteredLines.map((l, idx) => (
                     <tr key={`${l.claimId}-${idx}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      {directorMode && (
+                        <td style={{ padding: '8px 10px', fontWeight: 500, color: '#005eb8', whiteSpace: 'nowrap' as const }}>
+                          {getPracticeName(l.claim.practice_key)}
+                        </td>
+                      )}
                       <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' as const }}>{l.monthLabel}</td>
                       <td style={{ padding: '8px 10px', fontWeight: 500 }}>{l.staff.staff_name || '—'}</td>
                       <td style={{ padding: '8px 10px' }}>{l.staff.staff_role || '—'}</td>
