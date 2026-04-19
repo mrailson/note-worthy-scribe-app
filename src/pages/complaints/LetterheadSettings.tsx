@@ -472,8 +472,8 @@ export default function LetterheadSettings() {
               )}
 
               {!active && !loadingPractice && (
-                <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
-                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-3 text-sm">
+                  <AlertCircle className="h-4 w-4 text-warning mt-0.5" />
                   <span>
                     No letterhead set. Letters will use the Notewell default until you upload one.
                   </span>
