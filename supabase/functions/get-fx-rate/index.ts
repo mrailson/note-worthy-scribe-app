@@ -63,13 +63,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch from exchangerate.host (historical endpoint)
-    const url = `https://api.exchangerate.host/${date}?base=${base}&symbols=${target}`;
+    // Primary: frankfurter.dev (free, no key, supports historical dates)
     let rate: number | null = null;
-    let source = "exchangerate.host";
+    let source = "frankfurter.dev";
 
     try {
-      const r = await fetch(url);
+      const r = await fetch(
+        `https://api.frankfurter.dev/v1/${date}?from=${base}&to=${target}`,
+      );
       if (r.ok) {
         const j = await r.json();
         const v = j?.rates?.[target];
@@ -77,18 +78,18 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* fall through */ }
 
-    // Fallback: frankfurter.app (free, no key)
+    // Fallback: latest rate from frankfurter.dev (if specific date unavailable, e.g. weekend/holiday)
     if (rate === null) {
       try {
         const r2 = await fetch(
-          `https://api.frankfurter.app/${date}?from=${base}&to=${target}`,
+          `https://api.frankfurter.dev/v1/latest?from=${base}&to=${target}`,
         );
         if (r2.ok) {
           const j2 = await r2.json();
           const v = j2?.rates?.[target];
           if (typeof v === "number" && v > 0) {
             rate = v;
-            source = "frankfurter.app";
+            source = "frankfurter.dev (latest fallback)";
           }
         }
       } catch (_) { /* fall through */ }
