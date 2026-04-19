@@ -285,14 +285,14 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
         </DialogHeader>
 
         <Tabs defaultValue="access" className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="w-full justify-start bg-transparent border-b border-border rounded-none p-0 h-auto mb-4">
+          <TabsList className="w-full flex flex-wrap justify-start gap-x-1 gap-y-0 bg-transparent border-b border-border rounded-none p-0 h-auto mb-4">
             {isSuperAdmin && (
-              <TabsTrigger value="system-roles" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">System Roles</TabsTrigger>
+              <TabsTrigger value="system-roles" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">System Roles</TabsTrigger>
             )}
-            <TabsTrigger value="access" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Access Permissions</TabsTrigger>
-            <TabsTrigger value="rates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Rates &amp; Roles</TabsTrigger>
-            <TabsTrigger value="evidence" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Evidence Requirements</TabsTrigger>
-            <TabsTrigger value="email" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2.5 text-sm font-medium">Email Settings</TabsTrigger>
+            <TabsTrigger value="access" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Access Permissions</TabsTrigger>
+            <TabsTrigger value="rates" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Rates &amp; Roles</TabsTrigger>
+            <TabsTrigger value="evidence" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Evidence Requirements</TabsTrigger>
+            <TabsTrigger value="email" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Email Settings</TabsTrigger>
           </TabsList>
 
           {/* System Roles Tab */}
