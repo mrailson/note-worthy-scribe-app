@@ -3715,7 +3715,7 @@ const ComplaintDetails = () => {
                     <div 
                       className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[92vw]' : 'max-w-[72vw]'}`}
                     >
-                      <FormattedLetterContent content={acknowledgementLetter} />
+                      <FormattedLetterContent content={acknowledgementLetter} practiceId={complaint?.practice_id} />
                     </div>
                   </div>
                 ) : (
