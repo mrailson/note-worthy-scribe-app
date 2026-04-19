@@ -3,7 +3,7 @@ import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, ShieldAlert, History, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
@@ -836,7 +836,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
   const submittedMeetingCount = visibleMeetingGroups.filter(g => g[0]?.status === 'submitted').length;
   const submittedClaims = visibleClaims.filter(c => c.status === 'submitted');
   const submittedTotal = submittedClaims.reduce((a, c) => a + claimTotal(c), 0);
-  const verifiedClaims = visibleClaims.filter(c => c.status === 'verified' || (c as any).status === 'awaiting_review');
+  const verifiedClaims = visibleClaims.filter(c => c.status === 'verified' || (c.status as string) === 'awaiting_review');
   const verifiedTotal = verifiedClaims.reduce((a, c) => a + claimTotal(c), 0);
   const paidTotal = visibleClaims.filter(c => c.status === 'paid').reduce((a, c) => a + claimTotal(c), 0);
   const counts = useMemo(() => {
