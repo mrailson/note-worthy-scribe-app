@@ -1147,16 +1147,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           </div>
         </div>
       )}
-      {/* Test Mode Bar — admin only */}
-      {isAdmin && (
-        <TestModeBar
-          state={testMode}
-          onChange={setTestMode}
-          practiceKeys={ALL_PRACTICE_KEYS}
-          practiceNames={ALL_PRACTICES}
-          hiddenRoles={hiddenTestRoles}
-        />
-      )}
+      {/* (Test Mode Bar moved to top of page — see start of return) */}
 
 
       {effectiveIsAdmin && !testActive && (
