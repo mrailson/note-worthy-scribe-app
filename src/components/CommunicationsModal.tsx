@@ -689,8 +689,10 @@ interface CommunicationsModalProps {
 
 const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClose }) => {
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [listVisible, setListVisible] = useState(true);
   const [mounted, setMounted] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   // Load Fraunces font
   useEffect(() => {
