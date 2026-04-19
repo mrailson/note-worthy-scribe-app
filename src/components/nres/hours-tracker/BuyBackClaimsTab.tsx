@@ -892,6 +892,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           meetingEntries={meetingLogEntries}
           onVerifyMeetingEntries={async (ids, notes) => { await verifyMeetingEntries(ids, notes); }}
           onReturnMeetingEntries={async (ids, notes) => { await returnMeetingEntries(ids, notes); }}
+          userEmail={user?.email}
+          userName={user?.user_metadata?.full_name || user?.email}
         />
       </div>
     );
