@@ -2464,10 +2464,12 @@ export function ClaimsViewSwitcher({
         ? 'AllPractices'
         : (practiceOptions?.find(p => p.key === practiceFilter)?.name) || practiceFilter;
       const timeWindowLabel = PERIOD_OPTIONS.find(p => p.key === period)?.label || 'AllTime';
-      exportDirectorClaimsDetail(
-        filteredLines.map(l => ({ claim: l.claim, staff: l.staff, monthLabel: l.monthLabel })),
-        { practiceLabel, timeWindowLabel },
-      );
+      const lines = filteredLines.map(l => ({ claim: l.claim, staff: l.staff, monthLabel: l.monthLabel }));
+      if (exportVariant === 'finance') {
+        exportFinanceClaimsDetail(lines, { practiceLabel, timeWindowLabel });
+      } else {
+        exportDirectorClaimsDetail(lines, { practiceLabel, timeWindowLabel });
+      }
     } else {
       exportClaimsDetail(sorted, practiceKey);
     }
