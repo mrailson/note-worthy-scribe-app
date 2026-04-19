@@ -10110,6 +10110,69 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_letterheads: {
+        Row: {
+          active: boolean
+          alignment: string
+          created_at: string
+          height_cm: number
+          id: string
+          include_all_pages: boolean
+          original_filename: string
+          original_mime_type: string | null
+          practice_id: string
+          rendered_height_px: number | null
+          rendered_png_path: string
+          rendered_width_px: number | null
+          storage_path: string
+          top_margin_cm: number
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string
+          uploaded_by_email: string | null
+        }
+        Insert: {
+          active?: boolean
+          alignment?: string
+          created_at?: string
+          height_cm?: number
+          id?: string
+          include_all_pages?: boolean
+          original_filename: string
+          original_mime_type?: string | null
+          practice_id: string
+          rendered_height_px?: number | null
+          rendered_png_path: string
+          rendered_width_px?: number | null
+          storage_path: string
+          top_margin_cm?: number
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by: string
+          uploaded_by_email?: string | null
+        }
+        Update: {
+          active?: boolean
+          alignment?: string
+          created_at?: string
+          height_cm?: number
+          id?: string
+          include_all_pages?: boolean
+          original_filename?: string
+          original_mime_type?: string | null
+          practice_id?: string
+          rendered_height_px?: number | null
+          rendered_png_path?: string
+          rendered_width_px?: number | null
+          storage_path?: string
+          top_margin_cm?: number
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string
+          uploaded_by_email?: string | null
+        }
+        Relationships: []
+      }
       practice_manager_feedback: {
         Row: {
           comments: string | null
@@ -13063,6 +13126,10 @@ export type Database = {
         Args: { p_target_id: string; p_target_type: string; p_user_id: string }
         Returns: boolean
       }
+      can_manage_practice_letterhead: {
+        Args: { _practice_id: string }
+        Returns: boolean
+      }
       can_manage_surveys: {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
@@ -13077,6 +13144,10 @@ export type Database = {
       }
       can_view_consultation_examples: {
         Args: { _user_id?: string }
+        Returns: boolean
+      }
+      can_view_practice_letterhead: {
+        Args: { _practice_id: string }
         Returns: boolean
       }
       check_enn_vault_permission: {
