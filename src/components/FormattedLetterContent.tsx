@@ -317,15 +317,37 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-lg">
-      {/* Practice Logo at Top Center */}
-      {practiceLogoUrl && (
-        <div className="p-4 text-center">
-          <img 
-            src={practiceLogoUrl}
-            alt="Practice Logo" 
-            className="h-12 w-auto mx-auto object-contain"
+      {/* Practice letterhead (PDF/DOCX) renders here when configured. */}
+      {letterheadDataUrl ? (
+        <div
+          style={{
+            textAlign: letterheadAlignment,
+            paddingTop: `${letterheadTopMarginPx}px`,
+            paddingLeft: '16px',
+            paddingRight: '16px',
+          }}
+        >
+          <img
+            src={letterheadDataUrl}
+            alt="Practice letterhead"
+            style={{
+              display: 'inline-block',
+              maxWidth: '100%',
+              height: letterheadHeightPx ? `${letterheadHeightPx}px` : 'auto',
+              width: 'auto',
+            }}
           />
         </div>
+      ) : (
+        practiceLogoUrl && (
+          <div className="p-4 text-center">
+            <img
+              src={practiceLogoUrl}
+              alt="Practice Logo"
+              className="h-12 w-auto mx-auto object-contain"
+            />
+          </div>
+        )
       )}
 
       {/* Letter Content */}
