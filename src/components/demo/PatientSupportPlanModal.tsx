@@ -1097,8 +1097,7 @@ const ReferralLine: React.FC<{ service: string; reason: string }> = ({
     </span>
   </li>
 );
-
-
+/* ─── Phase 2.5 — SENDING ─── */
 
 interface SendingViewProps {
   sendStep: number; // 0..7
