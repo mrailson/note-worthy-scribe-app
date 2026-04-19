@@ -3121,6 +3121,7 @@ const ComplaintDetails = () => {
                             <FormattedLetterContent
                               content={editedOutcomeLetterContent}
                               signatoryUserId={existingOutcome?.decided_by}
+                              practiceId={complaint?.practice_id}
                             />
                           </div>
                         )}
@@ -3131,6 +3132,7 @@ const ComplaintDetails = () => {
                           <FormattedLetterContent
                             content={outcomeLetter}
                             signatoryUserId={existingOutcome?.decided_by}
+                            practiceId={complaint?.practice_id}
                           />
                         </div>
                       </div>
@@ -3715,7 +3717,7 @@ const ComplaintDetails = () => {
                     <div 
                       className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[92vw]' : 'max-w-[72vw]'}`}
                     >
-                      <FormattedLetterContent content={acknowledgementLetter} />
+                      <FormattedLetterContent content={acknowledgementLetter} practiceId={complaint?.practice_id} />
                     </div>
                   </div>
                 ) : (
@@ -3740,7 +3742,7 @@ const ComplaintDetails = () => {
                             <div 
                               className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[85vw]' : 'max-w-[68vw]'}`}
                             >
-                              <FormattedLetterContent content={editedAcknowledgementContent} />
+                              <FormattedLetterContent content={editedAcknowledgementContent} practiceId={complaint?.practice_id} />
                             </div>
                           </div>
                         </ResizablePanel>
@@ -3765,7 +3767,7 @@ const ComplaintDetails = () => {
                         <div 
                           className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[92vw]' : 'max-w-[72vw]'}`}
                         >
-                          <FormattedLetterContent content={editedAcknowledgementContent} />
+                          <FormattedLetterContent content={editedAcknowledgementContent} practiceId={complaint?.practice_id} />
                         </div>
                       </div>
                     )}

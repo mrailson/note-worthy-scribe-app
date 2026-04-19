@@ -32,6 +32,10 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
   const [signatoryProfile, setSignatoryProfile] = useState<SignatoryProfile | null>(null);
+  const [letterheadDataUrl, setLetterheadDataUrl] = useState<string | null>(null);
+  const [letterheadHeightPx, setLetterheadHeightPx] = useState<number | null>(null);
+  const [letterheadAlignment, setLetterheadAlignment] = useState<'left' | 'center' | 'right'>('center');
+  const [letterheadTopMarginPx, setLetterheadTopMarginPx] = useState<number>(0);
 
   // Extract practice logo URL from HTML comment if present
   const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
@@ -152,7 +156,33 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
 
     fetchLetterDetails();
   }, [embeddedLogoUrl, practiceId, signatoryUserId]);
-  
+
+  // Resolve practice letterhead (PDF/DOCX) and render to PNG data URL.
+  useEffect(() => {
+    if (!practiceId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getActiveLetterhead } = await import('@/utils/practiceLetterhead');
+        const lh = await getActiveLetterhead(practiceId);
+        if (!lh || cancelled) return;
+        const { letterheadToPngDataUrl } = await import('@/utils/letterheadToImage');
+        const rendered = await letterheadToPngDataUrl(lh);
+        if (!rendered || cancelled) return;
+        setLetterheadDataUrl(rendered.data_url);
+        setLetterheadHeightPx(Math.round(lh.height_cm * 37.795));
+        const rawAlign = String(lh.alignment ?? 'center');
+        const normalisedAlign: 'left' | 'center' | 'right' =
+          rawAlign === 'centre' ? 'center' : (rawAlign as 'left' | 'center' | 'right');
+        setLetterheadAlignment(normalisedAlign);
+        setLetterheadTopMarginPx(Math.round((lh.top_margin_cm ?? 0) * 37.795));
+      } catch (e) {
+        console.warn('[FormattedLetterContent] letterhead render failed:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [practiceId]);
+
   // Replace placeholder text and hallucinated emails with actual practice details
   const replacePlaceholders = (text: string): string => {
     let result = text;
@@ -287,15 +317,37 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-lg">
-      {/* Practice Logo at Top Center */}
-      {practiceLogoUrl && (
-        <div className="p-4 text-center">
-          <img 
-            src={practiceLogoUrl}
-            alt="Practice Logo" 
-            className="h-12 w-auto mx-auto object-contain"
+      {/* Practice letterhead (PDF/DOCX) renders here when configured. */}
+      {letterheadDataUrl ? (
+        <div
+          style={{
+            textAlign: letterheadAlignment,
+            paddingTop: `${letterheadTopMarginPx}px`,
+            paddingLeft: '16px',
+            paddingRight: '16px',
+          }}
+        >
+          <img
+            src={letterheadDataUrl}
+            alt="Practice letterhead"
+            style={{
+              display: 'inline-block',
+              maxWidth: '100%',
+              height: letterheadHeightPx ? `${letterheadHeightPx}px` : 'auto',
+              width: 'auto',
+            }}
           />
         </div>
+      ) : (
+        practiceLogoUrl && (
+          <div className="p-4 text-center">
+            <img
+              src={practiceLogoUrl}
+              alt="Practice Logo"
+              className="h-12 w-auto mx-auto object-contain"
+            />
+          </div>
+        )
       )}
 
       {/* Letter Content */}
