@@ -192,9 +192,13 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
       `DOCX support unavailable in this runtime (${e?.message ?? "unknown error"}). Please upload a PNG letterhead instead.`,
     );
   }
-  const result = await mammoth.extractRawText({
-    arrayBuffer: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-  });
+  const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  let result: any;
+  try {
+    result = await mammoth.extractRawText({ arrayBuffer });
+  } catch (error) {
+    result = await mammoth.extractRawText({ buffer: bytes });
+  }
   const raw: string = result?.value || "";
   // Honour an optional "--- END LETTERHEAD ---" marker so users can include
   // body content in the same DOCX.
@@ -251,9 +255,10 @@ Deno.serve(async (req) => {
     const practiceId = String(formData.get("practice_id") || "");
     const heightCm = Number(formData.get("height_cm") ?? 6);
     const topMarginCm = Number(formData.get("top_margin_cm") ?? 1);
-    const alignment = String(formData.get("alignment") || "center") as
+    const rawAlignment = String(formData.get("alignment") || "centre").toLowerCase();
+    const alignment = (rawAlignment === "center" ? "centre" : rawAlignment) as
       | "left"
-      | "center"
+      | "centre"
       | "right";
     const includeAllPages = String(formData.get("include_all_pages") || "false") === "true";
 
@@ -263,7 +268,7 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    if (!["left", "center", "right"].includes(alignment)) {
+    if (!["left", "centre", "right"].includes(alignment)) {
       return new Response(JSON.stringify({ error: "Invalid alignment" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
