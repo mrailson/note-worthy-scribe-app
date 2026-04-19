@@ -364,14 +364,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
               <strong>Part B Substantiation:</strong> {partBDetail}
             </div>
           )}
-          {hasPartA && !hasPartB && (
-            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b' }}>
-              <strong>Part B Evidence Missing:</strong> Practice has not provided Part B substantiation. Return to practice for completion before verifying.
-            </div>
-          )}
-
-          {/* Verification checklist — submitted only */}
-          {isSubmitted && <VerificationChecklist claim={claim} />}
+          {/* Part B Evidence Missing banner and Verification Checklist removed per request */}
 
           {/* Staff line items */}
           {lines.length > 0 && (
