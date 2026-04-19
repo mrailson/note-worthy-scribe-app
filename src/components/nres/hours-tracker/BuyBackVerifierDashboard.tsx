@@ -1,9 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, ShieldAlert, History, RotateCcw } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
+import { supabase } from '@/integrations/supabase/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -17,6 +21,8 @@ interface VerifierDashboardProps {
   meetingEntries?: MeetingLogEntry[];
   onVerifyMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
   onReturnMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
+  userEmail?: string;
+  userName?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
