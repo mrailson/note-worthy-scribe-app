@@ -134,8 +134,21 @@ export async function createLetterDocument(
   referenceNumber: string,
   signatoryName?: string | null,
   practiceDetails?: { phone?: string | null; email?: string | null; practice_name?: string | null } | null,
-  signatoryJobTitle?: string | null
+  signatoryJobTitle?: string | null,
+  practiceId?: string | null
 ): Promise<Document> {
+  // PRACTICE LETTERHEAD (Phase 3): if the practice has an active letterhead configured,
+  // it overrides the legacy logo + text header for new letters.
+  let practiceLetterhead: Awaited<ReturnType<typeof import('./practiceLetterhead').getActiveLetterhead>> = null;
+  if (practiceId) {
+    try {
+      const { getActiveLetterhead } = await import('./practiceLetterhead');
+      practiceLetterhead = await getActiveLetterhead(practiceId);
+    } catch (e) {
+      console.warn('[letterFormatter] practice letterhead lookup failed:', e);
+    }
+  }
+
   // Extract logo URL from HTML comment if present
   const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   let logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
