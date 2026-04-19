@@ -198,7 +198,7 @@ export default function LetterheadSettings() {
           list.map((l) =>
             supabase.storage
               .from('practice-letterheads')
-              .createSignedUrl(l.rendered_png_path, 3600),
+              .createSignedUrl(l.storage_path, 3600),
           ),
         ),
       ]);
