@@ -26,6 +26,7 @@ const PracticeAdmin = lazy(() => import("./pages/PracticeAdmin"));
 const PracticeAdminFridges = lazy(() => import("./pages/PracticeAdminFridges"));
 const FridgeTemperatureEntry = lazy(() => import("./components/FridgeTemperatureEntry").then(m => ({ default: m.FridgeTemperatureEntry })));
 const ComplaintsSystem = lazy(() => import("./pages/ComplaintsSystem"));
+const LetterheadSettings = lazy(() => import("./pages/complaints/LetterheadSettings"));
 const ComplaintDetails = lazy(() => import("./pages/ComplaintDetails"));
 const ComplaintAIReport = lazy(() => import("./pages/ComplaintAIReport"));
 const ComplaintResponse = lazy(() => import("./pages/ComplaintResponse"));
@@ -239,6 +240,11 @@ const App = () => {
                 <Route path="/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
                 <Route path="/public/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
                 <Route path="/complaints" element={<ComplaintsSystem />} />
+                <Route path="/complaints/settings/letterhead" element={
+                  <ProtectedRoute>
+                    <LetterheadSettings />
+                  </ProtectedRoute>
+                } />
                 <Route path="/complaints/ko41b-report" element={<KO41bReport />} />
                 <Route path="/complaints/:id" element={<ComplaintDetails />} />
                 <Route path="/compliments/:id" element={<ComplimentDetails />} />
