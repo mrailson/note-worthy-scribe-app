@@ -312,11 +312,7 @@ Deno.serve(async (req) => {
     const lowerName = file.name.toLowerCase();
 
     let rendered: RenderResult;
-    if (mime === "image/png" || lowerName.endsWith(".png")) {
-      rendered = await handlePngBytes(bytes);
-    } else if (mime === "image/jpeg" || /\.(jpg|jpeg)$/i.test(lowerName)) {
-      rendered = await handleJpegBytes(bytes);
-    } else if (mime === "application/pdf" || lowerName.endsWith(".pdf")) {
+    if (mime === "application/pdf" || lowerName.endsWith(".pdf")) {
       rendered = await renderPdfToPng(bytes);
     } else if (
       mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
@@ -325,7 +321,7 @@ Deno.serve(async (req) => {
       rendered = await renderDocxToPng(bytes);
     } else {
       return new Response(
-        JSON.stringify({ error: `Unsupported file type: ${mime || file.name}. Please upload PNG, JPG, PDF, or DOCX.` }),
+        JSON.stringify({ error: `Unsupported file type: ${mime || file.name}. Please upload a PDF or DOCX.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
