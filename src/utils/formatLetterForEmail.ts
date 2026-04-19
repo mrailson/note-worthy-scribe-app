@@ -125,22 +125,43 @@ const renderSignatureBlock = (
 /**
  * Formats letter content into email-safe HTML
  * Uses only inline styles for maximum email client compatibility
+ *
+ * @param letterContent  Markdown-ish letter source (acknowledgement, interim, outcome…)
+ * @param logoUrl        Optional override for the legacy practice logo (rarely used).
+ * @param practiceLetterhead Optional rendered-letterhead descriptor. When supplied, replaces
+ *                       the legacy logo banner with the high-res letterhead PNG at the configured
+ *                       height/alignment. Leave undefined to keep current behaviour.
  */
-export const formatLetterForEmail = (letterContent: string, logoUrl?: string | null): string => {
+export const formatLetterForEmail = (
+  letterContent: string,
+  logoUrl?: string | null,
+  practiceLetterhead?: { signed_url: string; height_cm: number; alignment: 'left' | 'center' | 'right'; top_margin_cm: number } | null,
+): string => {
   const parsed = parseLetter(letterContent);
-  
+
   // Build the complete HTML email with inline styles only
   let html = `
     <div style="max-width: 700px; margin: 0 auto; background-color: ${EMAIL_STYLES.colors.background}; font-family: ${EMAIL_STYLES.fontFamily};">
   `;
-  
+
+  // PRACTICE LETTERHEAD (Phase 3) — full-width banner at the top of the email.
+  if (practiceLetterhead?.signed_url) {
+    const heightPx = Math.round(practiceLetterhead.height_cm * 37.795);
+    const topMarginPx = Math.round((practiceLetterhead.top_margin_cm ?? 0) * 37.795);
+    const align = practiceLetterhead.alignment ?? 'center';
+    html += `<div style="text-align: ${align}; padding: ${topMarginPx}px 28px 0 28px;">
+      <img src="${practiceLetterhead.signed_url}" alt="Practice letterhead" style="display: inline-block; max-width: 100%; height: ${heightPx}px; width: auto;" />
+    </div>`;
+  }
+
   // Main content section
   html += `<div style="padding: 32px 28px;">`;
-  
+
   // Date section (if present)
   if (parsed.date) {
     html += `<p style="margin: 0 0 24px 0; text-align: right; color: ${EMAIL_STYLES.colors.muted}; font-size: ${EMAIL_STYLES.fontSize.body}; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(parsed.date)}</p>`;
   }
+
   
   // Recipient address block
   if (parsed.headerSection.toLines && parsed.headerSection.toLines.length > 0) {
