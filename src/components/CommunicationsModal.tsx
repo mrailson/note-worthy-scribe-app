@@ -9,6 +9,8 @@ import {
   Download,
   Eye,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Heart,
   Stethoscope,
   Users,
@@ -16,6 +18,7 @@ import {
   Clipboard,
   type LucideIcon,
 } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const FONT_SERIF = `'Fraunces', 'Playfair Display', Georgia, 'Times New Roman', serif`;
 
