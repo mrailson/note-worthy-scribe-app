@@ -2,28 +2,17 @@
 // stored in the `practice-letterheads` bucket and persisted via practice_letterheads.
 //
 // Runtime constraints: Supabase Edge Runtime (Deno) on linux-arm64.
-// → We avoid native NAPI modules (no @napi-rs/canvas) and rely on pure-WASM /
-//   pure-JS libs only: pdfjs-dist (SVG output) + ImageScript + mammoth.
+// → Pure-WASM only. No native NAPI modules, no native Node addons.
+//   - Images:  @cf-wasm/photon (WASM)
+//   - PDF:     @hyzyla/pdfium  (WASM)
+//   - DOCX:    mammoth (text extract) + @resvg/resvg-wasm (SVG→PNG)
 //
-// Input (multipart/form-data):
-//   - file: File (PDF max 5MB single page, DOCX, or PNG/JPG min width 2480px)
-//   - practice_id: string (uuid)
-//   - height_cm?: number (default 6)
-//   - top_margin_cm?: number (default 1)
-//   - alignment?: 'left' | 'center' | 'right' (default 'center')
-//   - include_all_pages?: 'true' | 'false' (default 'false')
-//
-// Returns: { id, rendered_png_path, original_path, width_px, height_px }
+// Heavy deps are dynamically imported inside the request handler so a single
+// broken dep returns a clean 500 instead of preventing the function from
+// booting (which would surface as the unhelpful
+// "Failed to send a request to the Edge Function").
 
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
-// @ts-ignore - npm specifier resolved by Deno
-import * as pdfjs from "npm:pdfjs-dist@4.0.379/legacy/build/pdf.mjs";
-// @ts-ignore
-import mammoth from "npm:mammoth@1.8.0";
-// @ts-ignore
-import { Image, decode as decodeImage } from "npm:imagescript@1.3.0";
-// @ts-ignore
-import { Resvg, initWasm } from "npm:@resvg/resvg-wasm@2.6.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,82 +33,90 @@ interface RenderResult {
   heightPx: number;
 }
 
-let resvgReady: Promise<void> | null = null;
-async function ensureResvg() {
+// ---------------------------------------------------------------------------
+// resvg-wasm singleton (used for the DOCX SVG→PNG step only)
+// ---------------------------------------------------------------------------
+let resvgReady: Promise<any> | null = null;
+async function loadResvg() {
   if (!resvgReady) {
     resvgReady = (async () => {
-      const wasmUrl =
-        "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+      // @ts-ignore - npm specifier
+      const mod = await import("npm:@resvg/resvg-wasm@2.6.2");
+      const wasmUrl = "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
       const wasm = await fetch(wasmUrl).then((r) => r.arrayBuffer());
-      await initWasm(wasm);
+      await mod.initWasm(wasm);
+      return mod;
     })();
   }
   return resvgReady;
 }
 
-/**
- * Render a single-page PDF to PNG using pdfjs-dist's SVG backend (no native canvas).
- * The SVG is then rasterised via resvg-wasm (pure WASM).
- */
+// ---------------------------------------------------------------------------
+// PDF → PNG via pdfium WASM
+// ---------------------------------------------------------------------------
 async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
-  // @ts-ignore
-  pdfjs.GlobalWorkerOptions.workerSrc = "";
+  // @ts-ignore - npm specifier
+  const { getDocument } = await import("npm:@hyzyla/pdfium@2.1.6");
 
-  const loadingTask = pdfjs.getDocument({
-    data: bytes,
-    disableWorker: true,
-    isEvalSupported: false,
-    useSystemFonts: false,
-  });
-  const doc = await loadingTask.promise;
+  const pdf = await getDocument(bytes);
+  try {
+    if (pdf.pages.length < 1) {
+      throw new Error("PDF has no pages.");
+    }
+    if (pdf.pages.length !== 1) {
+      throw new Error(
+        `PDF must be a single page (received ${pdf.pages.length}). Please trim to one page and re-upload.`,
+      );
+    }
 
-  if (doc.numPages !== 1) {
-    throw new Error(
-      `PDF must be a single page (received ${doc.numPages}). Please trim to one page and re-upload.`,
+    const page = pdf.pages[0];
+    // Pdfium uses 72dpi as the natural unit; scale to 300dpi.
+    const scale = TARGET_DPI / 72;
+    const result = await page.render({
+      scale,
+      render: "bitmap",
+    });
+
+    // pdfium returns raw RGBA — wrap to PNG via photon.
+    const photon = await loadPhoton();
+    const img = photon.PhotonImage.new_from_byteslice(
+      result.data instanceof Uint8Array ? result.data : new Uint8Array(result.data),
     );
+    let pngBytes: Uint8Array;
+    let widthPx = result.width;
+    let heightPx = result.height;
+
+    // If photon was unable to interpret raw RGBA directly, fall back to manual PNG encode
+    // by re-decoding via the result's PNG output if pdfium provides it.
+    if (typeof (result as any).asPng === "function") {
+      pngBytes = (result as any).asPng();
+    } else if ((result as any).format === "png") {
+      pngBytes = result.data;
+    } else {
+      // Build PNG from raw RGBA via photon
+      const rgbaImg = photon.PhotonImage.new_from_rawpixels(
+        result.data,
+        result.width,
+        result.height,
+      );
+      pngBytes = rgbaImg.get_bytes();
+      widthPx = rgbaImg.get_width();
+      heightPx = rgbaImg.get_height();
+      rgbaImg.free();
+    }
+    img.free?.();
+    return { pngBytes, widthPx, heightPx };
+  } finally {
+    pdf.destroy?.();
   }
-
-  const page = await doc.getPage(1);
-  const baseViewport = page.getViewport({ scale: 1 });
-  const scale = TARGET_WIDTH_PX / baseViewport.width;
-  const viewport = page.getViewport({ scale });
-
-  // pdfjs SVG backend
-  const opList = await page.getOperatorList();
-  // @ts-ignore - SVGGraphics is exposed in legacy build
-  const SVGGraphics = (pdfjs as any).SVGGraphics;
-  if (!SVGGraphics) {
-    throw new Error("PDF rendering not supported in this runtime build.");
-  }
-  const svgGfx = new SVGGraphics(page.commonObjs, page.objs);
-  const svgElement = await svgGfx.getSVG(opList, viewport);
-  // svgElement is a fake DOM node from pdfjs — serialise to string
-  const svgString = svgElement?.toString?.() || serialiseSvg(svgElement, viewport);
-
-  await ensureResvg();
-  const resvg = new Resvg(svgString, {
-    fitTo: { mode: "width", value: Math.ceil(viewport.width) },
-    background: "#ffffff",
-  });
-  const pngData = resvg.render();
-  const pngBytes = pngData.asPng();
-  return {
-    pngBytes,
-    widthPx: pngData.width,
-    heightPx: pngData.height,
-  };
 }
 
-function serialiseSvg(node: any, viewport: { width: number; height: number }): string {
-  // Fallback minimal SVG when pdfjs's fake DOM doesn't expose toString.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(viewport.width)}" height="${Math.ceil(viewport.height)}"><rect width="100%" height="100%" fill="white"/></svg>`;
-}
-
-/**
- * Render a DOCX letterhead by extracting text-only HTML and laying it out in an SVG,
- * then rasterising via resvg-wasm.
- */
+// ---------------------------------------------------------------------------
+// DOCX → PNG via mammoth + resvg-wasm
+// ---------------------------------------------------------------------------
 async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
+  // @ts-ignore - npm specifier
+  const mammoth = (await import("npm:mammoth@1.8.0")).default;
   const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer as ArrayBuffer });
   let html: string = result.value || "";
 
@@ -163,8 +160,8 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#ffffff"/>${tspans}</svg>`;
 
-  await ensureResvg();
-  const resvg = new Resvg(svg, {
+  const resvgMod = await loadResvg();
+  const resvg = new resvgMod.Resvg(svg, {
     fitTo: { mode: "width", value: width },
     background: "#ffffff",
   });
@@ -176,27 +173,52 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
   };
 }
 
-/**
- * Image input — decode with ImageScript, ensure white background and min width.
- */
-async function renderImageToPng(bytes: Uint8Array, _mime: string): Promise<RenderResult> {
-  const decoded: any = await decodeImage(bytes);
-  if (decoded.width < MIN_IMAGE_WIDTH_PX) {
-    throw new Error(
-      `Image too narrow (${decoded.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
-    );
+// ---------------------------------------------------------------------------
+// Image → PNG via @cf-wasm/photon (pure WASM)
+// ---------------------------------------------------------------------------
+let photonReady: Promise<any> | null = null;
+async function loadPhoton() {
+  if (!photonReady) {
+    photonReady = (async () => {
+      // @ts-ignore - npm specifier
+      const mod = await import("npm:@cf-wasm/photon@0.1.32");
+      return mod;
+    })();
   }
-  // Composite onto white background to flatten any transparency.
-  const bg = new Image(decoded.width, decoded.height).fill(0xffffffff);
-  bg.composite(decoded, 0, 0);
-  const pngBytes = await bg.encode();
-  return {
-    pngBytes: new Uint8Array(pngBytes),
-    widthPx: bg.width,
-    heightPx: bg.height,
-  };
+  return photonReady;
 }
 
+async function renderImageToPng(bytes: Uint8Array, _mime: string): Promise<RenderResult> {
+  const photon = await loadPhoton();
+  const img = photon.PhotonImage.new_from_byteslice(bytes);
+  try {
+    const w = img.get_width();
+    const h = img.get_height();
+    if (w < MIN_IMAGE_WIDTH_PX) {
+      throw new Error(
+        `Image too narrow (${w}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
+      );
+    }
+    // Composite onto white background to flatten any transparency.
+    const bg = new photon.PhotonImage(
+      new Uint8Array(w * h * 4).fill(255),
+      w,
+      h,
+    );
+    photon.blend(bg, img, "over");
+    const pngBytes = bg.get_bytes();
+    const widthPx = bg.get_width();
+    const heightPx = bg.get_height();
+    bg.free();
+    return { pngBytes, widthPx, heightPx };
+  } finally {
+    img.free?.();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// HTTP entry
+// ---------------------------------------------------------------------------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
