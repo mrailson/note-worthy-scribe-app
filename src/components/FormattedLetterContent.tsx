@@ -156,7 +156,30 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
 
     fetchLetterDetails();
   }, [embeddedLogoUrl, practiceId, signatoryUserId]);
-  
+
+  // Resolve practice letterhead (PDF/DOCX) and render to PNG data URL.
+  useEffect(() => {
+    if (!practiceId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { getActiveLetterhead } = await import('@/utils/practiceLetterhead');
+        const lh = await getActiveLetterhead(practiceId);
+        if (!lh || cancelled) return;
+        const { letterheadToPngDataUrl } = await import('@/utils/letterheadToImage');
+        const rendered = await letterheadToPngDataUrl(lh);
+        if (!rendered || cancelled) return;
+        setLetterheadDataUrl(rendered.data_url);
+        setLetterheadHeightPx(Math.round(lh.height_cm * 37.795));
+        setLetterheadAlignment((lh.alignment === 'centre' ? 'center' : lh.alignment) as 'left' | 'center' | 'right');
+        setLetterheadTopMarginPx(Math.round((lh.top_margin_cm ?? 0) * 37.795));
+      } catch (e) {
+        console.warn('[FormattedLetterContent] letterhead render failed:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [practiceId]);
+
   // Replace placeholder text and hallucinated emails with actual practice details
   const replacePlaceholders = (text: string): string => {
     let result = text;
