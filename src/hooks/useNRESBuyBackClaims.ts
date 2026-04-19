@@ -741,54 +741,123 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               ? []
               : ['amanda.palin2@nhs.net'];
 
+            // Build approved-items rows + GL subtotals
+            const totalAmount = (gpTotal || 0) + (otherTotal || 0);
+            const totalLabel = `£${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const fmtAmt = (n: number) => `£${(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const itemsRows = (staffDetails || []).map((s: any) => {
+              const gl = s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical');
+              const sessions = s.allocation_type === 'sessions'
+                ? `${s.allocation_value ?? 0}`
+                : s.allocation_type === 'hours'
+                  ? `${s.allocation_value ?? 0} hrs`
+                  : s.allocation_type === 'days'
+                    ? `${s.allocation_value ?? 0} days`
+                    : `${s.allocation_value ?? 0}`;
+              return `<tr style="border-bottom:1px solid #eef1f5;">
+                <td style="padding:8px 6px;font-size:13px;color:#111;">${(s.staff_name || '—').toString().replace(/&/g, '&amp;')}</td>
+                <td style="padding:8px 6px;font-size:13px;color:#444;">${(s.staff_role || '—').toString().replace(/&/g, '&amp;')}</td>
+                <td style="padding:8px 6px;font-size:13px;color:#444;">${gl}</td>
+                <td style="padding:8px 6px;font-size:13px;color:#444;text-align:right;">${sessions}</td>
+                <td style="padding:8px 6px;font-size:13px;color:#111;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(s.claimed_amount || 0)}</td>
+              </tr>`;
+            }).join('');
+            const showGlSubtotals = (gpTotal > 0) && (otherTotal > 0);
+            const glSubtotalRows = showGlSubtotals ? `
+              <tr style="background:#f8fafc;">
+                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GP</td>
+                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(gpTotal)}</td>
+              </tr>
+              <tr style="background:#f8fafc;">
+                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — Other Clinical</td>
+                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(otherTotal)}</td>
+              </tr>` : '';
+
+            // Payment due = invoice date + 30 days
+            const paymentDueDate = new Date();
+            paymentDueDate.setDate(paymentDueDate.getDate() + 30);
+            const paymentDueLabel = paymentDueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const invoiceDateLabel = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const firstName = (pmContact.practiceManager || '').split(' ')[0] || pmContact.practiceManager;
+            const pdfFilename = `Invoice_${invoiceNum}.pdf`;
+
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: invoiceRecipient,
-                subject: `Invoice ${invoiceNum} — ${practiceName} NRES Buy-Back Claim (${claimMonthLabel})`,
+                subject: `Buy-back claim approved — ${claimMonthLabel} — ${totalLabel}`,
                 html_content: `
-<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;">
-  <div style="background-color:#003087;padding:20px 28px;">
-    <p style="color:#ffffff;font-size:11px;margin:0 0 4px 0;letter-spacing:1px;text-transform:uppercase;">NRES Neighbourhood Access Service</p>
-    <h1 style="color:#ffffff;font-size:20px;margin:0;font-weight:600;">Buy-Back Claim Invoice — ${claimMonthLabel}</h1>
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
+  <div style="background:#003087;padding:22px 28px;">
+    <p style="color:#9fb6e0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES Neighbourhood Access Service</p>
+    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">Buy-back claim approved</h1>
+    <p style="color:#cdd9ee;font-size:13px;margin:0;">${practiceName} · ${claimMonthLabel}</p>
   </div>
 
-  <div style="padding:28px;">
-    <p style="margin:0 0 16px;">Dear ${pmContact.practiceManager},</p>
-    <p style="margin:0 0 20px;line-height:1.6;">The NRES buy-back claim submitted for <strong>${practiceName}</strong> in respect of Neighbourhood Access Service sessions delivered during <strong>${claimMonthLabel}</strong> has been approved by PML. Following that approval, the attached invoice has been created that exactly matches the details of the approved claim. Please keep for your records.</p>
-    <p style="margin:0 0 20px;line-height:1.6;">This has been done to avoid the need for you to manually raise invoices. However, if you would prefer to raise your own invoices, please let <strong>Amanda Palin</strong> know and we can update the system accordingly.</p>
+  <div style="padding:26px 28px 8px;">
+    <p style="margin:0 0 10px;font-size:15px;">Hi ${firstName},</p>
+    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">PML has approved your ${claimMonthLabel} buy-back claim. The matching invoice is attached — no action needed.</p>
 
-    <div style="background:#f0f4f8;border-radius:6px;padding:20px;margin:0 0 20px;">
-      <h2 style="font-size:14px;color:#003087;margin:0 0 12px;font-weight:600;">Invoice Summary</h2>
-      <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <tr><td style="padding:6px 0;color:#666;">Invoice Number</td><td style="padding:6px 0;font-weight:600;text-align:right;">${invoiceNum}</td></tr>
-        <tr><td style="padding:6px 0;color:#666;">Claim Period</td><td style="padding:6px 0;text-align:right;">${claimMonthLabel}</td></tr>
-        <tr><td style="padding:6px 0;color:#666;">Invoice Date</td><td style="padding:6px 0;text-align:right;">${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</td></tr>
-        <tr><td style="padding:6px 0;color:#666;">Payment Terms</td><td style="padding:6px 0;text-align:right;">30 days from invoice date</td></tr>
-        ${bankDetails ? `<tr><td colspan="2" style="padding:12px 0 4px;"><hr style="border:none;border-top:1px solid #dde3ea;margin:0;"/></td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Bank</td><td style="padding:4px 0;text-align:right;">${bankDetails.bankName}</td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Sort Code</td><td style="padding:4px 0;text-align:right;">${bankDetails.sortCode}</td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Account No.</td><td style="padding:4px 0;text-align:right;">${bankDetails.accountNumber}</td></tr>
-        <tr><td style="padding:4px 0;color:#666;">Account Name</td><td style="padding:4px 0;text-align:right;">${bankDetails.accountName.replace(/&/g, '&amp;')}</td></tr>` : ''}
-        <tr style="border-top:2px solid #005EB8;"><td style="padding:10px 0 6px;color:#003087;font-weight:700;">Total Amount Due</td><td style="padding:10px 0 6px;text-align:right;font-weight:700;font-size:16px;color:#003087;">£${((gpTotal || 0) + (otherTotal || 0)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>
-      </table>
+    <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:10px 0;margin:0 -10px 22px;">
+      <tr>
+        <td style="width:50%;background:#ecfdf5;border:1px solid #bbf7d0;border-radius:8px;padding:16px 18px;vertical-align:top;">
+          <p style="margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#15803d;font-weight:600;">Approved amount</p>
+          <p style="margin:0;font-size:26px;font-weight:700;color:#14532d;font-variant-numeric:tabular-nums;">${totalLabel}</p>
+        </td>
+        <td style="width:50%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;vertical-align:top;">
+          <p style="margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#475569;font-weight:600;">Payment due by</p>
+          <p style="margin:0;font-size:18px;font-weight:600;color:#0f172a;">${paymentDueLabel}</p>
+        </td>
+      </tr>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:0 0 22px;">
+      <tr style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;width:40%;">Invoice number</td>
+        <td style="padding:10px 0;text-align:right;font-weight:600;color:#0f172a;">${invoiceNum}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">Invoice date</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;">${invoiceDateLabel}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">Claim period</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;">${claimMonthLabel}</td>
+      </tr>
+    </table>
+
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#003087;margin:0 0 10px;font-weight:700;">Approved items</h2>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 6px;">
+      <thead>
+        <tr style="background:#f1f5f9;">
+          <th align="left" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;border-bottom:1px solid #e2e8f0;">Staff member</th>
+          <th align="left" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;border-bottom:1px solid #e2e8f0;">Role</th>
+          <th align="left" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;border-bottom:1px solid #e2e8f0;">GL</th>
+          <th align="right" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;border-bottom:1px solid #e2e8f0;">Sessions</th>
+          <th align="right" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;border-bottom:1px solid #e2e8f0;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsRows}
+        ${glSubtotalRows}
+        <tr style="background:#003087;">
+          <td colspan="4" style="padding:12px 8px;font-size:13px;color:#ffffff;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Total</td>
+          <td style="padding:12px 8px;font-size:15px;color:#ffffff;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;">${totalLabel}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin:22px 0 6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;display:flex;align-items:center;">
+      <div style="font-size:22px;margin-right:12px;">📎</div>
+      <div>
+        <p style="margin:0;font-size:13px;font-weight:600;color:#1e3a8a;">${pdfFilename}</p>
+        <p style="margin:2px 0 0;font-size:12px;color:#475569;">PDF invoice attached to this email</p>
+      </div>
     </div>
-
-    <div style="background:#f0faf0;border-radius:6px;padding:20px;margin:0 0 20px;border-left:4px solid #16a34a;">
-      <h2 style="font-size:14px;color:#16a34a;margin:0 0 12px;font-weight:600;">Approval Trail</h2>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <tr><td style="padding:6px 0;color:#666;width:40%;">Submitted by</td><td style="padding:6px 0;text-align:right;"><strong>${claim?.submitted_by_email || 'N/A'}</strong> — ${claim?.submitted_at ? new Date(claim.submitted_at).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) + ' at ' + new Date(claim.submitted_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : 'N/A'}</td></tr>
-        <tr style="border-top:1px solid #d1fae5;"><td style="padding:6px 0;color:#666;">Verified by</td><td style="padding:6px 0;text-align:right;"><strong>${claim?.verified_by || 'N/A'}</strong> — ${claim?.verified_at ? new Date(claim.verified_at).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'}) + ' at ' + new Date(claim.verified_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}) : 'N/A'}</td></tr>
-        <tr style="border-top:1px solid #d1fae5;"><td style="padding:6px 0;color:#666;">Approved by (SNO)</td><td style="padding:6px 0;text-align:right;"><strong>${user.email || 'N/A'}</strong> — ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} at ${new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'})}</td></tr>
-        <tr style="border-top:1px solid #d1fae5;"><td style="padding:6px 0;color:#666;">PML Director Approval</td><td style="padding:6px 0;text-align:right;font-style:italic;color:#888;">Confirmed</td></tr>
-      </table>
-    </div>
-
-    <p style="margin:0 0 16px;line-height:1.6;">Please use invoice number <strong>${invoiceNum}</strong> as your payment reference to ensure correct allocation.</p>
-    <p style="margin:0 0 0;line-height:1.6;">If you have any queries regarding this invoice or the associated claim, please contact the Neighbourhood Operations Manager: <strong>Amanda Palin</strong> (<a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;">amanda.palin2@nhs.net</a>).</p>
   </div>
 
-  <div style="background:#f0f4f8;padding:16px 28px;font-size:11px;color:#666;line-height:1.5;">
-    <p style="margin:0;">This is an automated message generated by Notewell AI — NRES SDA Programme.<br/>NHS Northamptonshire ICB &nbsp;·&nbsp; MHRA Class I &nbsp;·&nbsp; ICO ZB226324 &nbsp;·&nbsp; DCB0129/DCB0160<br/>Invoice Ref: ${invoiceNum} &nbsp;·&nbsp; Claim ID: ${id}</p>
+  <div style="padding:14px 28px 22px;border-top:1px solid #eef1f5;">
+    <p style="margin:0 0 4px;font-size:11px;color:#64748b;line-height:1.5;">Prefer to raise your own invoices? Email <a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;text-decoration:none;">amanda.palin2@nhs.net</a> to opt out of automated invoicing.</p>
+    <p style="margin:0;font-size:11px;color:#64748b;line-height:1.5;">Queries: contact PML — Amanda Palin · <a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;text-decoration:none;">amanda.palin2@nhs.net</a></p>
   </div>
 </div>
                 `,
@@ -796,7 +865,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                 cc_emails: invoiceCc,
                 extra_attachments: [{
                   content: pdfBase64,
-                  filename: `Invoice_${invoiceNum}.pdf`,
+                  filename: pdfFilename,
                   type: 'application/pdf',
                 }],
               },
