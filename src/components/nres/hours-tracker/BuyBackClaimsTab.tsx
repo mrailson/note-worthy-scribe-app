@@ -577,6 +577,52 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
   const [staffSortCol, setStaffSortCol] = useState<string>('practice');
   const [staffSortDir, setStaffSortDir] = useState<'asc' | 'desc'>('asc');
+
+  // Super-admin only: wipe all test claims, meeting log entries, and hours entries
+  // so we can retest the submission flow from scratch.
+  // NOTE: must be declared above any early returns to preserve hook order.
+  const handleResetAllTestData = useCallback(async () => {
+    if (!isSuperAdmin) {
+      toast.error('Only super-admins can reset test data');
+      return;
+    }
+    setResetting(true);
+    try {
+      const invoicePaths = (claims || [])
+        .map(c => c.invoice_pdf_path)
+        .filter((p): p is string => !!p);
+
+      const deleteAllRows = (table: 'nres_buyback_claims' | 'nres_management_time' | 'nres_hours_entries') =>
+        supabase.from(table).delete().not('id', 'is', null);
+
+      const [r1, r2, r3] = await Promise.all([
+        deleteAllRows('nres_buyback_claims'),
+        deleteAllRows('nres_management_time'),
+        deleteAllRows('nres_hours_entries'),
+      ]);
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      if (r3.error) throw r3.error;
+
+      if (invoicePaths.length > 0) {
+        await supabase.storage.from('nres-claim-evidence').remove(invoicePaths).catch(() => {});
+      }
+
+      await Promise.all([
+        refetchClaims?.(),
+        refetchMeetingLog?.(),
+      ]);
+
+      toast.success('Reset complete — all test claims, meeting entries and hours entries cleared. Ready for new claims.');
+    } catch (err: any) {
+      console.error('Reset failed:', err);
+      toast.error(`Reset failed: ${err?.message || 'unknown error'}`);
+    } finally {
+      setResetting(false);
+      setResetConfirmOpen(false);
+    }
+  }, [isSuperAdmin, claims, refetchClaims, refetchMeetingLog]);
+
   const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
 
   // Determine which practices to show based on access assignments
