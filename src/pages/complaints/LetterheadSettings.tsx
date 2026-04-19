@@ -472,7 +472,8 @@ export default function LetterheadSettings() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{active.original_filename}</p>
                       <p className="text-xs text-muted-foreground">
-                        Uploaded {format(new Date(active.uploaded_at), 'd MMM yyyy HH:mm')} by{' '}
+                        Practice: {practices.find((p) => p.id === active.practice_id)?.name || 'Unknown'} • Uploaded{' '}
+                        {format(new Date(active.uploaded_at), 'd MMM yyyy HH:mm')} by{' '}
                         {active.uploader_name}
                       </p>
                     </div>
