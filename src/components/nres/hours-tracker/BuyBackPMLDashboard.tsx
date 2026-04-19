@@ -1172,39 +1172,74 @@ export function BuyBackPMLDashboard({
     return { awaiting: awaitingVal, approved: approvedVal, paid: paidVal };
   }, [displayClaims, meetingGroups]);
 
-  // Filtered claims
+  // Practice options (all 8 NRES practices, alphabetical)
+  const practiceOptions = useMemo(() => {
+    return (Object.entries(NRES_PRACTICES) as [string, string][])
+      .map(([key, name]) => ({ key, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  // Apply practice + status + search filtering
   const filteredClaims = useMemo(() =>
     displayClaims.filter(c => {
       if (statusFilter !== 'all' && toDisplayStatus(c.status) !== statusFilter) return false;
+      if (practiceFilter !== 'all' && c.practice_key !== practiceFilter) return false;
       if (searchTerm) {
         const name = getPracticeName(c.practice_key).toLowerCase();
         if (!name.includes(searchTerm.toLowerCase())) return false;
       }
       return true;
     }),
-    [displayClaims, statusFilter, searchTerm]
+    [displayClaims, statusFilter, practiceFilter, searchTerm]
   );
 
-  // Filtered meeting groups
   const filteredMeetingGroups = useMemo(() =>
     meetingGroups.filter(g => {
       if (statusFilter !== 'all' && toDisplayStatus(g.status) !== statusFilter) return false;
+      if (practiceFilter !== 'all') {
+        const code = NRES_ODS_CODES[practiceFilter];
+        if (code && g.billing_org_code !== code) return false;
+      }
       if (searchTerm && !g.practice_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
     }),
-    [meetingGroups, statusFilter, searchTerm]
+    [meetingGroups, statusFilter, practiceFilter, searchTerm]
   );
+
+  // On first mount: if default (awaiting/approved) is empty, fall back gracefully
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(sessionKey)) return; // user has a stored choice
+    } catch {}
+    const preferred = view === 'finance' ? 'approved' : 'awaiting_review';
+    if (statusFilter !== preferred) return;
+    if ((counts[preferred] || 0) > 0) return;
+    if ((counts.queried || 0) > 0) setStatusFilter('queried');
+    else setStatusFilter('all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [counts, view]);
 
   const switchView = (v: PMLView) => {
     setView(v);
-    setStatusFilter('all');
     setExpandedId(null);
+    // statusFilter will re-init via sessionKey on next render — but we need to reset now
+    try {
+      const k = `nres-pml-statusFilter-${v}`;
+      const saved = sessionStorage.getItem(k);
+      setStatusFilterRaw(saved || (v === 'finance' ? 'approved' : 'awaiting_review'));
+    } catch {
+      setStatusFilterRaw(v === 'finance' ? 'approved' : 'awaiting_review');
+    }
   };
 
   const statusFilters = [
     { key: 'all', label: 'All' },
     ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
   ];
+
+  // Action queue is the cards list. Director: awaiting_review. Finance: approved.
+  const actionQueueStatus = view === 'finance' ? 'approved' : 'awaiting_review';
+  const showActionQueue = statusFilter === actionQueueStatus;
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '28px 16px', color: '#111827' }}>
