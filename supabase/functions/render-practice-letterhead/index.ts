@@ -1,5 +1,9 @@
-// Render Practice Letterhead — converts uploaded PDF / DOCX / image into a 300 DPI PNG
+// Render Practice Letterhead — converts uploaded PDF / DOCX / image into a PNG
 // stored in the `practice-letterheads` bucket and persisted via practice_letterheads.
+//
+// Runtime constraints: Supabase Edge Runtime (Deno) on linux-arm64.
+// → We avoid native NAPI modules (no @napi-rs/canvas) and rely on pure-WASM /
+//   pure-JS libs only: pdfjs-dist (SVG output) + ImageScript + mammoth.
 //
 // Input (multipart/form-data):
 //   - file: File (PDF max 5MB single page, DOCX, or PNG/JPG min width 2480px)
@@ -17,7 +21,9 @@ import * as pdfjs from "npm:pdfjs-dist@4.0.379/legacy/build/pdf.mjs";
 // @ts-ignore
 import mammoth from "npm:mammoth@1.8.0";
 // @ts-ignore
-import { createCanvas, loadImage } from "npm:@napi-rs/canvas@0.1.53";
+import { Image, decode as decodeImage } from "npm:imagescript@1.3.0";
+// @ts-ignore
+import { Resvg, initWasm } from "npm:@resvg/resvg-wasm@2.6.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,8 +44,24 @@ interface RenderResult {
   heightPx: number;
 }
 
+let resvgReady: Promise<void> | null = null;
+async function ensureResvg() {
+  if (!resvgReady) {
+    resvgReady = (async () => {
+      const wasmUrl =
+        "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+      const wasm = await fetch(wasmUrl).then((r) => r.arrayBuffer());
+      await initWasm(wasm);
+    })();
+  }
+  return resvgReady;
+}
+
+/**
+ * Render a single-page PDF to PNG using pdfjs-dist's SVG backend (no native canvas).
+ * The SVG is then rasterised via resvg-wasm (pure WASM).
+ */
 async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
-  // Disable worker — run inline in the function runtime.
   // @ts-ignore
   pdfjs.GlobalWorkerOptions.workerSrc = "";
 
@@ -62,21 +84,41 @@ async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
   const scale = TARGET_WIDTH_PX / baseViewport.width;
   const viewport = page.getViewport({ scale });
 
-  const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // pdfjs SVG backend
+  const opList = await page.getOperatorList();
+  // @ts-ignore - SVGGraphics is exposed in legacy build
+  const SVGGraphics = (pdfjs as any).SVGGraphics;
+  if (!SVGGraphics) {
+    throw new Error("PDF rendering not supported in this runtime build.");
+  }
+  const svgGfx = new SVGGraphics(page.commonObjs, page.objs);
+  const svgElement = await svgGfx.getSVG(opList, viewport);
+  // svgElement is a fake DOM node from pdfjs — serialise to string
+  const svgString = svgElement?.toString?.() || serialiseSvg(svgElement, viewport);
 
-  await page.render({ canvasContext: ctx as any, viewport }).promise;
-
-  const pngBuffer = await canvas.encode("png");
+  await ensureResvg();
+  const resvg = new Resvg(svgString, {
+    fitTo: { mode: "width", value: Math.ceil(viewport.width) },
+    background: "#ffffff",
+  });
+  const pngData = resvg.render();
+  const pngBytes = pngData.asPng();
   return {
-    pngBytes: new Uint8Array(pngBuffer),
-    widthPx: canvas.width,
-    heightPx: canvas.height,
+    pngBytes,
+    widthPx: pngData.width,
+    heightPx: pngData.height,
   };
 }
 
+function serialiseSvg(node: any, viewport: { width: number; height: number }): string {
+  // Fallback minimal SVG when pdfjs's fake DOM doesn't expose toString.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(viewport.width)}" height="${Math.ceil(viewport.height)}"><rect width="100%" height="100%" fill="white"/></svg>`;
+}
+
+/**
+ * Render a DOCX letterhead by extracting text-only HTML and laying it out in an SVG,
+ * then rasterising via resvg-wasm.
+ */
 async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
   const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer as ArrayBuffer });
   let html: string = result.value || "";
@@ -89,15 +131,6 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
     if (emptyParaIdx > 0) html = html.slice(0, emptyParaIdx);
   }
 
-  const width = TARGET_WIDTH_PX;
-  const height = Math.round(7 / 2.54 * TARGET_DPI); // 7cm tall canvas
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#000000";
-  ctx.font = `${Math.round(TARGET_DPI / 6)}px sans-serif`;
-
   const text = html
     .replace(/<\/p>/gi, "\n")
     .replace(/<br\s*\/?>(\s*)/gi, "\n")
@@ -107,33 +140,61 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .trim();
-  const lines = text.split(/\n+/).filter((l) => l.trim());
-  const lineHeight = Math.round(TARGET_DPI / 4);
-  let y = lineHeight;
-  for (const line of lines) {
-    if (y > height - lineHeight) break;
-    ctx.fillText(line.trim(), width / 2 - ctx.measureText(line.trim()).width / 2, y);
-    y += lineHeight;
-  }
+  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
 
-  const pngBuffer = await canvas.encode("png");
-  return { pngBytes: new Uint8Array(pngBuffer), widthPx: width, heightPx: height };
+  const width = TARGET_WIDTH_PX;
+  const fontSize = Math.round(TARGET_DPI / 6); // ~50px
+  const lineHeight = Math.round(fontSize * 1.4);
+  const padTop = Math.round(TARGET_DPI / 4);
+  const height = Math.max(
+    Math.round((7 / 2.54) * TARGET_DPI),
+    padTop + lines.length * lineHeight + padTop,
+  );
+
+  const escapeXml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const tspans = lines
+    .map(
+      (line, i) =>
+        `<text x="${width / 2}" y="${padTop + (i + 1) * lineHeight}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${fontSize}" fill="#000000">${escapeXml(line)}</text>`,
+    )
+    .join("");
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#ffffff"/>${tspans}</svg>`;
+
+  await ensureResvg();
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: "width", value: width },
+    background: "#ffffff",
+  });
+  const pngData = resvg.render();
+  return {
+    pngBytes: pngData.asPng(),
+    widthPx: pngData.width,
+    heightPx: pngData.height,
+  };
 }
 
+/**
+ * Image input — decode with ImageScript, ensure white background and min width.
+ */
 async function renderImageToPng(bytes: Uint8Array, _mime: string): Promise<RenderResult> {
-  const img = await loadImage(bytes);
-  if (img.width < MIN_IMAGE_WIDTH_PX) {
+  const decoded: any = await decodeImage(bytes);
+  if (decoded.width < MIN_IMAGE_WIDTH_PX) {
     throw new Error(
-      `Image too narrow (${img.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
+      `Image too narrow (${decoded.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
     );
   }
-  const canvas = createCanvas(img.width, img.height);
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, img.width, img.height);
-  ctx.drawImage(img, 0, 0);
-  const pngBuffer = await canvas.encode("png");
-  return { pngBytes: new Uint8Array(pngBuffer), widthPx: img.width, heightPx: img.height };
+  // Composite onto white background to flatten any transparency.
+  const bg = new Image(decoded.width, decoded.height).fill(0xffffffff);
+  bg.composite(decoded, 0, 0);
+  const pngBytes = await bg.encode();
+  return {
+    pngBytes: new Uint8Array(pngBytes),
+    widthPx: bg.width,
+    heightPx: bg.height,
+  };
 }
 
 Deno.serve(async (req) => {
