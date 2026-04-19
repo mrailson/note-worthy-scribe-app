@@ -2375,7 +2375,11 @@ export function ClaimsViewSwitcher({
   const [filterName, setFilterName] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
 
-  const periodClaims = useMemo(() => filterByPeriod(claims, period), [claims, period]);
+  const scopedClaims = useMemo(() => {
+    if (!directorMode || !practiceFilter || practiceFilter === 'all') return claims;
+    return claims.filter(c => c.practice_key === practiceFilter);
+  }, [claims, directorMode, practiceFilter]);
+  const periodClaims = useMemo(() => filterByPeriod(scopedClaims, period), [scopedClaims, period]);
 
   const sorted = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
