@@ -644,7 +644,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
       // Format the letter content as HTML
       const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
-      const formattedLetterHtml = formatLetterForEmail(outcomeLetter);
+      const { getActiveLetterhead, getPracticeIdForComplaint } = await import('@/utils/practiceLetterhead');
+      const practiceIdForLh = await getPracticeIdForComplaint(complaintId);
+      const letterheadForEmail = await getActiveLetterhead(practiceIdForLh);
+      const formattedLetterHtml = formatLetterForEmail(outcomeLetter, null, letterheadForEmail);
 
       const emailData = {
         to_email: toRecipients.join(', '),
@@ -725,6 +728,8 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       
       // Fetch signatory and practice details for proper name/contact display
       const letterDetails = await fetchLetterDetails(existingOutcome?.decided_by);
+      const { getPracticeIdForComplaint } = await import('@/utils/practiceLetterhead');
+      const practiceIdForLh = await getPracticeIdForComplaint(complaintId);
       
       // Use the proper letter formatting function that handles logos
       const doc = await createLetterDocument(
@@ -733,7 +738,8 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         referenceNumber,
         letterDetails.signatoryName,
         letterDetails.practiceDetails,
-        letterDetails.signatoryJobTitle
+        letterDetails.signatoryJobTitle,
+        practiceIdForLh
       );
       console.log('Document structure created successfully with logo support');
       

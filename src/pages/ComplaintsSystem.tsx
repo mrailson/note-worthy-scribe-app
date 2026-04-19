@@ -3295,10 +3295,14 @@ const ComplaintsSystem = () => {
                                 size="sm"
                                 onClick={async () => {
                                   try {
-                                    const doc = await createLetterDocument(
+                                     const doc = await createLetterDocument(
                                       acknowledgementLetter,
                                       'acknowledgement',
-                                      selectedComplaint.reference_number
+                                      selectedComplaint.reference_number,
+                                      undefined,
+                                      undefined,
+                                      undefined,
+                                      selectedComplaint.practice_id
                                     );
                                     
                                     const blob = await Packer.toBlob(doc);
@@ -3609,14 +3613,15 @@ const ComplaintsSystem = () => {
                                 size="sm"
                                 onClick={async () => {
                                   try {
-                                    const letterDetails = await fetchLetterDetails();
+                                     const letterDetails = await fetchLetterDetails();
                                     const doc = await createLetterDocument(
                                       outcomeLetter,
                                       'outcome',
                                       selectedComplaint.reference_number,
                                       letterDetails.signatoryName,
                                       letterDetails.practiceDetails,
-                                      letterDetails.signatoryJobTitle
+                                      letterDetails.signatoryJobTitle,
+                                      selectedComplaint.practice_id
                                     );
                                     
                                     const blob = await Packer.toBlob(doc);
@@ -4207,7 +4212,8 @@ const ComplaintsSystem = () => {
                             viewingLetterComplaint.reference_number,
                             letterDetails.signatoryName,
                             letterDetails.practiceDetails,
-                            letterDetails.signatoryJobTitle
+                            letterDetails.signatoryJobTitle,
+                            viewingLetterComplaint.practice_id
                           );
                           
                           const blob = await Packer.toBlob(doc);
