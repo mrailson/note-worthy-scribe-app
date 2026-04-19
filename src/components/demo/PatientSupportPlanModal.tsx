@@ -282,9 +282,10 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
       <div
         className="relative bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col"
         style={{
-          width: "min(880px, 96vw)",
+          width: phase === "complete" ? "min(1100px, 96vw)" : "min(880px, 96vw)",
           maxHeight: "92vh",
           animation: "pspSlideUp 300ms cubic-bezier(0.16,1,0.3,1)",
+          transition: "width 220ms ease",
         }}
       >
         {/* Header */}
