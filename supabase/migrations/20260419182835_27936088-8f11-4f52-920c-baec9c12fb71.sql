@@ -1,0 +1,2 @@
+ALTER TABLE public.practice_letterheads DROP CONSTRAINT IF EXISTS practice_letterheads_height_cm_check;
+ALTER TABLE public.practice_letterheads ADD CONSTRAINT practice_letterheads_height_cm_check CHECK (height_cm >= 1 AND height_cm <= 15);
