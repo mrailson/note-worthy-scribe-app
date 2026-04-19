@@ -813,7 +813,7 @@ const AgewellDemoHub: React.FC = () => {
           gap: isDesktop ? 24 : 20,
         }}
       >
-        {/* LEFT — Built by Practice Managers */}
+        {/* LEFT — The Notewell Story */}
         <div
           style={{
             background: C.cream,
@@ -868,11 +868,12 @@ const AgewellDemoHub: React.FC = () => {
               margin: "0 0 14px",
             }}
           >
-            Notewell was built by and for Practice Managers and primary care admin teams —
-            people who live NHS governance, safety and quality standards every day. It started
-            with meeting transcription and grew naturally into long, detailed clinical meetings
-            with a high-quality scribe, purpose-designed around DCB0129/0160, MHRA Class I
-            registration, and CQC-aligned safety standards.
+            Notewell was built within primary care by someone who runs it every day — Malcolm
+            Railson, PCN Manager at Brackley & Towcester PCN, Digital & Transformation Lead at
+            Blue PCN, and a technology entrepreneur of 30 years. It started with meeting
+            transcription for PCN Board and partnership meetings, and grew organically as
+            clinicians and operational teams asked for more — care plans, letters, referrals,
+            policy drafts, complaint responses, form evidence.
           </p>
           <p
             style={{
@@ -882,8 +883,10 @@ const AgewellDemoHub: React.FC = () => {
               margin: "0 0 14px",
             }}
           >
-            Ageing Well is the natural next step: the same scribe, the same governance, tuned
-            for neighbourhood frailty and long-form care conversations.
+            Every capability was designed around NHS-grade governance from the first line of
+            code: DCB0129/0160 clinical risk management, MHRA Class I medical device
+            registration, DSPT Standards Met, DTAC-assessed, and clinical safety oversight from
+            Dr Simon Ellis as Clinical Safety Officer.
           </p>
           <p
             style={{
@@ -893,8 +896,10 @@ const AgewellDemoHub: React.FC = () => {
               margin: 0,
             }}
           >
-            From there, Notewell has become a home for useful AI services across NHS primary
-            care — safety and security baked in from the first line of code.
+            Ageing Well is the natural next step: the same scribe, the same governance, tuned
+            for neighbourhood frailty and long-form care conversations. One platform, NHS-grade
+            governance, endless outputs — operated on a not-for-profit basis for NHS primary
+            care.
           </p>
         </div>
 
@@ -1337,7 +1342,7 @@ const AgewellDemoHub: React.FC = () => {
       icon: <Layers size={16} />,
       title: "Notewell product overview",
       desc:
-        "Full module inventory: Meeting Manager, Ask AI, Policy Generator, NRES Dashboard, AgeWell suite.",
+        "Full module inventory: Meeting Manager, Policy Generator, NRES & ENN Dashboards, AgeWell concepts — built by Malcolm Railson, operated by PCN Services Ltd.",
       onClick: openProductOverview,
     },
     {
