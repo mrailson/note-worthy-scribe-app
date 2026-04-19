@@ -858,7 +858,7 @@ const AgewellDemoHub: React.FC = () => {
               fontWeight: 600,
             }}
           >
-            Built by Practice Managers, for Practice Managers
+            Built within Primary Care, for Primary Care
           </h2>
           <p
             style={{
