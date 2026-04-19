@@ -54,11 +54,10 @@ type Phase = "generating" | "complete" | "sending" | "sent" | "payoff";
 
 const STEPS = [
   "Reading visit transcript…",
-  "Extracting 18 narrative sections…",
-  "Populating observations…",
-  "Calculating screening scores…",
-  "Generating 15-row action plan…",
-  "Assembling document…",
+  "Structuring what was discussed and agreed…",
+  "Extracting screening scores from conversation…",
+  "Drafting framework sections…",
+  "Assembling Framework Support Plan…",
 ];
 
 const STEP_INTERVAL_MS = 400;
