@@ -1,16 +1,19 @@
-// Render Practice Letterhead — converts uploaded PDF / DOCX / image into a PNG
-// stored in the `practice-letterheads` bucket and persisted via practice_letterheads.
+// Render Practice Letterhead — converts uploaded image into a PNG stored in
+// the `practice-letterheads` bucket and persisted via practice_letterheads.
 //
-// Runtime constraints: Supabase Edge Runtime (Deno) on linux-arm64.
-// → Pure-WASM only. No native NAPI modules, no native Node addons.
-//   - Images:  @cf-wasm/photon (WASM)
-//   - PDF:     @hyzyla/pdfium  (WASM)
-//   - DOCX:    mammoth (text extract) + @resvg/resvg-wasm (SVG→PNG)
+// Runtime: Supabase Edge Runtime (Deno). To stay reliable, this function
+// AVOIDS heavyweight WASM PDF/canvas libraries (which repeatedly broke boot or
+// runtime in this environment). Strategy:
 //
-// Heavy deps are dynamically imported inside the request handler so a single
-// broken dep returns a clean 500 instead of preventing the function from
-// booting (which would surface as the unhelpful
-// "Failed to send a request to the Edge Function").
+//   - PNG  : verify signature + width via PNG header parse, store as-is.
+//   - JPEG : decode → re-encode to PNG via jsr:@img/png + jsr:@img/jpeg
+//            (pure-Deno, no native, no NPM WASM init quirks).
+//   - PDF  : returns a clear 415 error asking user to upload a flattened PNG
+//            (recommended workflow: "Print to PDF → export page as PNG").
+//   - DOCX : returns a clear 415 error asking user to export the letterhead
+//            as PNG and re-upload.
+//
+// Storage paths, RLS, table shape and call-site contract are unchanged.
 
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
@@ -21,11 +24,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const MAX_PDF_BYTES = 5 * 1024 * 1024; // 5MB
 const MIN_IMAGE_WIDTH_PX = 2480; // A4 @ 300 DPI
-const TARGET_DPI = 300;
-const A4_WIDTH_INCHES = 8.27;
-const TARGET_WIDTH_PX = Math.round(A4_WIDTH_INCHES * TARGET_DPI); // ~2481
 
 interface RenderResult {
   pngBytes: Uint8Array;
@@ -34,186 +33,61 @@ interface RenderResult {
 }
 
 // ---------------------------------------------------------------------------
-// resvg-wasm singleton (used for the DOCX SVG→PNG step only)
+// PNG header parsing (no external deps)
 // ---------------------------------------------------------------------------
-let resvgReady: Promise<any> | null = null;
-async function loadResvg() {
-  if (!resvgReady) {
-    resvgReady = (async () => {
-      // @ts-ignore - npm specifier
-      const mod = await import("npm:@resvg/resvg-wasm@2.6.2");
-      const wasmUrl = "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
-      const wasm = await fetch(wasmUrl).then((r) => r.arrayBuffer());
-      await mod.initWasm(wasm);
-      return mod;
-    })();
-  }
-  return resvgReady;
+function parsePngDimensions(bytes: Uint8Array): { width: number; height: number } | null {
+  // PNG signature: 89 50 4E 47 0D 0A 1A 0A, then IHDR chunk at byte 8.
+  // IHDR layout: 4-byte length, "IHDR", 4-byte width, 4-byte height, ...
+  if (bytes.length < 24) return null;
+  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  for (let i = 0; i < 8; i++) if (bytes[i] !== sig[i]) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = view.getUint32(16, false);
+  const height = view.getUint32(20, false);
+  return { width, height };
 }
 
-// ---------------------------------------------------------------------------
-// PDF → PNG via pdfium WASM
-// ---------------------------------------------------------------------------
-async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
-  // @ts-ignore - npm specifier
-  const { getDocument } = await import("npm:@hyzyla/pdfium@2.1.6");
-
-  const pdf = await getDocument(bytes);
-  try {
-    if (pdf.pages.length < 1) {
-      throw new Error("PDF has no pages.");
-    }
-    if (pdf.pages.length !== 1) {
-      throw new Error(
-        `PDF must be a single page (received ${pdf.pages.length}). Please trim to one page and re-upload.`,
-      );
-    }
-
-    const page = pdf.pages[0];
-    // Pdfium uses 72dpi as the natural unit; scale to 300dpi.
-    const scale = TARGET_DPI / 72;
-    const result = await page.render({
-      scale,
-      render: "bitmap",
-    });
-
-    // pdfium returns raw RGBA — wrap to PNG via photon.
-    const photon = await loadPhoton();
-    const img = photon.PhotonImage.new_from_byteslice(
-      result.data instanceof Uint8Array ? result.data : new Uint8Array(result.data),
+async function handlePngBytes(bytes: Uint8Array): Promise<RenderResult> {
+  const dims = parsePngDimensions(bytes);
+  if (!dims) {
+    throw new Error("File is not a valid PNG (signature/IHDR check failed).");
+  }
+  if (dims.width < MIN_IMAGE_WIDTH_PX) {
+    throw new Error(
+      `PNG too narrow (${dims.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI). Please re-export at higher resolution.`,
     );
-    let pngBytes: Uint8Array;
-    let widthPx = result.width;
-    let heightPx = result.height;
-
-    // If photon was unable to interpret raw RGBA directly, fall back to manual PNG encode
-    // by re-decoding via the result's PNG output if pdfium provides it.
-    if (typeof (result as any).asPng === "function") {
-      pngBytes = (result as any).asPng();
-    } else if ((result as any).format === "png") {
-      pngBytes = result.data;
-    } else {
-      // Build PNG from raw RGBA via photon
-      const rgbaImg = photon.PhotonImage.new_from_rawpixels(
-        result.data,
-        result.width,
-        result.height,
-      );
-      pngBytes = rgbaImg.get_bytes();
-      widthPx = rgbaImg.get_width();
-      heightPx = rgbaImg.get_height();
-      rgbaImg.free();
-    }
-    img.free?.();
-    return { pngBytes, widthPx, heightPx };
-  } finally {
-    pdf.destroy?.();
   }
+  return { pngBytes: bytes, widthPx: dims.width, heightPx: dims.height };
 }
 
 // ---------------------------------------------------------------------------
-// DOCX → PNG via mammoth + resvg-wasm
+// JPEG → PNG via pure-Deno jsr:@img modules (no WASM init dance, no NPM)
 // ---------------------------------------------------------------------------
-async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
-  // @ts-ignore - npm specifier
-  const mammoth = (await import("npm:mammoth@1.8.0")).default;
-  const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer as ArrayBuffer });
-  let html: string = result.value || "";
-
-  const marker = /---\s*END\s+LETTERHEAD\s*---/i;
-  if (marker.test(html)) {
-    html = html.split(marker)[0];
-  } else {
-    const emptyParaIdx = html.search(/<p>\s*<\/p>/i);
-    if (emptyParaIdx > 0) html = html.slice(0, emptyParaIdx);
+async function handleJpegBytes(bytes: Uint8Array): Promise<RenderResult> {
+  let jpeg: any;
+  let png: any;
+  try {
+    // @ts-ignore - jsr specifier
+    jpeg = await import("jsr:@img/jpeg@0.1.4");
+    // @ts-ignore - jsr specifier
+    png = await import("jsr:@img/png@0.1.4");
+  } catch (e: any) {
+    throw new Error(
+      `JPEG support unavailable in this runtime (${e?.message ?? "unknown error"}). Please re-export your letterhead as a PNG and try again.`,
+    );
   }
-
-  const text = html
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<br\s*\/?>(\s*)/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .trim();
-  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-
-  const width = TARGET_WIDTH_PX;
-  const fontSize = Math.round(TARGET_DPI / 6); // ~50px
-  const lineHeight = Math.round(fontSize * 1.4);
-  const padTop = Math.round(TARGET_DPI / 4);
-  const height = Math.max(
-    Math.round((7 / 2.54) * TARGET_DPI),
-    padTop + lines.length * lineHeight + padTop,
-  );
-
-  const escapeXml = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  const tspans = lines
-    .map(
-      (line, i) =>
-        `<text x="${width / 2}" y="${padTop + (i + 1) * lineHeight}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${fontSize}" fill="#000000">${escapeXml(line)}</text>`,
-    )
-    .join("");
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#ffffff"/>${tspans}</svg>`;
-
-  const resvgMod = await loadResvg();
-  const resvg = new resvgMod.Resvg(svg, {
-    fitTo: { mode: "width", value: width },
-    background: "#ffffff",
+  const decoded = await jpeg.decode(bytes); // { data: Uint8Array RGBA, width, height }
+  if (decoded.width < MIN_IMAGE_WIDTH_PX) {
+    throw new Error(
+      `Image too narrow (${decoded.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
+    );
+  }
+  const pngBytes: Uint8Array = await png.encode({
+    data: decoded.data,
+    width: decoded.width,
+    height: decoded.height,
   });
-  const pngData = resvg.render();
-  return {
-    pngBytes: pngData.asPng(),
-    widthPx: pngData.width,
-    heightPx: pngData.height,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Image → PNG via @cf-wasm/photon (pure WASM)
-// ---------------------------------------------------------------------------
-let photonReady: Promise<any> | null = null;
-async function loadPhoton() {
-  if (!photonReady) {
-    photonReady = (async () => {
-      // @ts-ignore - npm specifier
-      const mod = await import("npm:@cf-wasm/photon@0.1.32");
-      return mod;
-    })();
-  }
-  return photonReady;
-}
-
-async function renderImageToPng(bytes: Uint8Array, _mime: string): Promise<RenderResult> {
-  const photon = await loadPhoton();
-  const img = photon.PhotonImage.new_from_byteslice(bytes);
-  try {
-    const w = img.get_width();
-    const h = img.get_height();
-    if (w < MIN_IMAGE_WIDTH_PX) {
-      throw new Error(
-        `Image too narrow (${w}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
-      );
-    }
-    // Composite onto white background to flatten any transparency.
-    const bg = new photon.PhotonImage(
-      new Uint8Array(w * h * 4).fill(255),
-      w,
-      h,
-    );
-    photon.blend(bg, img, "over");
-    const pngBytes = bg.get_bytes();
-    const widthPx = bg.get_width();
-    const heightPx = bg.get_height();
-    bg.free();
-    return { pngBytes, widthPx, heightPx };
-  } finally {
-    img.free?.();
-  }
+  return { pngBytes, widthPx: decoded.width, heightPx: decoded.height };
 }
 
 // ---------------------------------------------------------------------------
@@ -292,28 +166,36 @@ Deno.serve(async (req) => {
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const mime = file.type || "application/octet-stream";
+    const mime = (file.type || "application/octet-stream").toLowerCase();
     const lowerName = file.name.toLowerCase();
 
     let rendered: RenderResult;
-    if (mime === "application/pdf" || lowerName.endsWith(".pdf")) {
-      if (bytes.byteLength > MAX_PDF_BYTES) {
-        return new Response(
-          JSON.stringify({ error: `PDF exceeds 5MB limit (${(bytes.byteLength / 1024 / 1024).toFixed(2)}MB)` }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      rendered = await renderPdfToPng(bytes);
+    if (mime === "image/png" || lowerName.endsWith(".png")) {
+      rendered = await handlePngBytes(bytes);
+    } else if (mime === "image/jpeg" || /\.(jpg|jpeg)$/i.test(lowerName)) {
+      rendered = await handleJpegBytes(bytes);
+    } else if (mime === "application/pdf" || lowerName.endsWith(".pdf")) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "PDF letterhead upload is temporarily unavailable. Please export your letterhead as a PNG (A4 @ 300 DPI, min 2480px wide) and upload that instead. In Word: File → Export → Create PDF/XPS, then open the PDF and use 'Save as Image (PNG)'.",
+        }),
+        { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     } else if (
       mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
       lowerName.endsWith(".docx")
     ) {
-      rendered = await renderDocxToPng(bytes);
-    } else if (mime.startsWith("image/") || /\.(png|jpg|jpeg)$/i.test(lowerName)) {
-      rendered = await renderImageToPng(bytes, mime);
+      return new Response(
+        JSON.stringify({
+          error:
+            "DOCX letterhead upload is temporarily unavailable. Please open your letterhead in Word, take a high-resolution screenshot of the header (or 'Save as PNG'), and upload the PNG (min 2480px wide).",
+        }),
+        { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     } else {
       return new Response(
-        JSON.stringify({ error: `Unsupported file type: ${mime || file.name}` }),
+        JSON.stringify({ error: `Unsupported file type: ${mime || file.name}. Please upload a PNG.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
