@@ -11,7 +11,7 @@ import {
   ExternalLink,
   Clock,
   Sparkles,
-  ArrowRightCircle,
+  ShieldCheck,
   RotateCcw,
 } from "lucide-react";
 import { downloadFile } from "@/utils/downloadFile";
