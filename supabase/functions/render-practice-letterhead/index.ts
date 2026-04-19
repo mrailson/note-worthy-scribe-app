@@ -1,17 +1,9 @@
-// Render Practice Letterhead — converts uploaded PDF / DOCX / image into a PNG
-// stored in `practice-letterheads` and persisted via practice_letterheads.
+// Practice letterhead upload — stores the original PDF or DOCX as-is.
 //
-// Runtime: Supabase Edge Runtime (Deno). Strategy chosen for reliability:
-//   - PNG  : verified by header bytes, stored as-is (no decode needed).
-//   - JPEG : decode + re-encode via jsr:@img/jpeg + jsr:@img/png (pure Deno).
-//   - PDF  : text extracted via unpdf (Deno-native), rendered onto an A4 PNG
-//            via SVG + @resvg/resvg-wasm. Single page only (typical letterhead).
-//   - DOCX : text extracted via mammoth, rendered the same way.
-//
-// All heavy deps are dynamically imported inside the request handler so a
-// single broken dep returns a clean 500 with a useful message rather than
-// preventing the function from booting (which would surface as the unhelpful
-// "Failed to send a request to the Edge Function").
+// Strategy: NO server-side rasterisation. We validate, upload the original
+// file to Storage, insert the row in `practice_letterheads`, and return.
+// Letter generation embeds the original file at generation time. The browser
+// preview renders PDFs with PDF.js and shows a friendly placeholder for DOCX.
 
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
@@ -22,195 +14,19 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const MIN_IMAGE_WIDTH_PX = 2480; // A4 @ 300 DPI
-const TARGET_DPI = 300;
-const A4_WIDTH_INCHES = 8.27;
-const TARGET_WIDTH_PX = Math.round(A4_WIDTH_INCHES * TARGET_DPI); // ~2481
-const MAX_PDF_BYTES = 10 * 1024 * 1024; // 10MB
-const MAX_DOCX_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
 
-interface RenderResult {
-  pngBytes: Uint8Array;
-  widthPx: number;
-  heightPx: number;
-}
+const PDF_MIME = "application/pdf";
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-// ---------------------------------------------------------------------------
-// PNG header parsing (zero deps)
-// ---------------------------------------------------------------------------
-function parsePngDimensions(bytes: Uint8Array): { width: number; height: number } | null {
-  if (bytes.length < 24) return null;
-  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  for (let i = 0; i < 8; i++) if (bytes[i] !== sig[i]) return null;
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return { width: view.getUint32(16, false), height: view.getUint32(20, false) };
-}
-
-async function handlePngBytes(bytes: Uint8Array): Promise<RenderResult> {
-  const dims = parsePngDimensions(bytes);
-  if (!dims) throw new Error("File is not a valid PNG (signature/IHDR check failed).");
-  if (dims.width < MIN_IMAGE_WIDTH_PX) {
-    throw new Error(
-      `PNG too narrow (${dims.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI). Please re-export at higher resolution.`,
-    );
-  }
-  return { pngBytes: bytes, widthPx: dims.width, heightPx: dims.height };
-}
-
-// ---------------------------------------------------------------------------
-// JPEG → PNG via pure-Deno jsr:@img modules
-// ---------------------------------------------------------------------------
-async function handleJpegBytes(bytes: Uint8Array): Promise<RenderResult> {
-  let jpeg: any, png: any;
-  try {
-    // @ts-ignore - jsr specifier
-    jpeg = await import("jsr:@img/jpeg@0.1.4");
-    // @ts-ignore - jsr specifier
-    png = await import("jsr:@img/png@0.1.4");
-  } catch (e: any) {
-    throw new Error(
-      `JPEG support unavailable in this runtime (${e?.message ?? "unknown error"}). Please re-export your letterhead as PNG and try again.`,
-    );
-  }
-  const decoded = await jpeg.decode(bytes);
-  if (decoded.width < MIN_IMAGE_WIDTH_PX) {
-    throw new Error(
-      `Image too narrow (${decoded.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
-    );
-  }
-  const pngBytes: Uint8Array = await png.encode({
-    data: decoded.data,
-    width: decoded.width,
-    height: decoded.height,
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-  return { pngBytes, widthPx: decoded.width, heightPx: decoded.height };
 }
 
-// ---------------------------------------------------------------------------
-// resvg-wasm singleton (used to rasterise text-only SVG → PNG)
-// ---------------------------------------------------------------------------
-let resvgReady: Promise<any> | null = null;
-async function loadResvg() {
-  if (!resvgReady) {
-    resvgReady = (async () => {
-      // @ts-ignore - npm specifier
-      const mod = await import("npm:@resvg/resvg-wasm@2.6.2");
-      const wasmUrl = "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
-      const wasm = await fetch(wasmUrl).then((r) => r.arrayBuffer());
-      await mod.initWasm(wasm);
-      return mod;
-    })();
-  }
-  return resvgReady;
-}
-
-const escapeXml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-/**
- * Build a clean A4-width PNG from the supplied lines of text using SVG + resvg.
- * Used for both PDF and DOCX paths where we extract text only.
- */
-async function renderLinesToPng(lines: string[]): Promise<RenderResult> {
-  const cleaned = lines.map((l) => l.trim()).filter(Boolean);
-  if (cleaned.length === 0) {
-    throw new Error("No text could be extracted from the document.");
-  }
-  // Cap so we don't render a 30-line essay as a "letterhead".
-  const limited = cleaned.slice(0, 12);
-
-  const width = TARGET_WIDTH_PX;
-  const fontSize = Math.round(TARGET_DPI / 6); // ~50px ≈ 12pt @ 300 dpi
-  const lineHeight = Math.round(fontSize * 1.4);
-  const padTop = Math.round(TARGET_DPI / 4); // ~0.25in
-  const padBottom = padTop;
-  const minHeight = Math.round((6 / 2.54) * TARGET_DPI); // 6cm minimum
-  const height = Math.max(minHeight, padTop + limited.length * lineHeight + padBottom);
-
-  const tspans = limited
-    .map(
-      (line, i) =>
-        `<text x="${width / 2}" y="${padTop + (i + 1) * lineHeight}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${fontSize}" fill="#000000">${escapeXml(line)}</text>`,
-    )
-    .join("");
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#ffffff"/>${tspans}</svg>`;
-
-  const resvgMod = await loadResvg();
-  const resvg = new resvgMod.Resvg(svg, {
-    fitTo: { mode: "width", value: width },
-    background: "#ffffff",
-  });
-  const pngData = resvg.render();
-  return {
-    pngBytes: pngData.asPng(),
-    widthPx: pngData.width,
-    heightPx: pngData.height,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// PDF → PNG via unpdf (text extraction) + resvg
-// ---------------------------------------------------------------------------
-async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
-  if (bytes.byteLength > MAX_PDF_BYTES) {
-    throw new Error(
-      `PDF exceeds ${MAX_PDF_BYTES / 1024 / 1024}MB limit (${(bytes.byteLength / 1024 / 1024).toFixed(2)}MB).`,
-    );
-  }
-  let unpdf: any;
-  try {
-    // @ts-ignore - esm specifier (Deno-native, no Node bindings)
-    unpdf = await import("https://esm.sh/unpdf@0.12.1");
-  } catch (e: any) {
-    throw new Error(
-      `PDF support unavailable in this runtime (${e?.message ?? "unknown error"}). Please try another PDF file.`,
-    );
-  }
-  const { text } = await unpdf.extractText(bytes, { mergePages: true });
-  const lines = (typeof text === "string" ? text : Array.isArray(text) ? text.join("\n") : "")
-    .split(/\r?\n+/);
-  return renderLinesToPng(lines);
-}
-
-// ---------------------------------------------------------------------------
-// DOCX → PNG via mammoth (text extraction) + resvg
-// ---------------------------------------------------------------------------
-async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
-  if (bytes.byteLength > MAX_DOCX_BYTES) {
-    throw new Error(
-      `DOCX exceeds ${MAX_DOCX_BYTES / 1024 / 1024}MB limit (${(bytes.byteLength / 1024 / 1024).toFixed(2)}MB).`,
-    );
-  }
-  let mammoth: any;
-  try {
-    // @ts-ignore - npm specifier
-    const mod = await import("npm:mammoth@1.8.0");
-    mammoth = mod.default ?? mod;
-  } catch (e: any) {
-    throw new Error(
-      `DOCX support unavailable in this runtime (${e?.message ?? "unknown error"}). Please try another DOCX file.`,
-    );
-  }
-  const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-  let result: any;
-  try {
-    result = await mammoth.extractRawText({ arrayBuffer });
-  } catch (error) {
-    result = await mammoth.extractRawText({ buffer: bytes });
-  }
-  const raw: string = result?.value || "";
-  // Honour an optional "--- END LETTERHEAD ---" marker so users can include
-  // body content in the same DOCX.
-  const marker = /---\s*END\s+LETTERHEAD\s*---/i;
-  const trimmed = marker.test(raw) ? raw.split(marker)[0] : raw;
-  const lines = trimmed.split(/\r?\n+/);
-  return renderLinesToPng(lines);
-}
-
-// ---------------------------------------------------------------------------
-// HTTP entry
-// ---------------------------------------------------------------------------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -222,31 +38,17 @@ Deno.serve(async (req) => {
     const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return jsonResponse({ error: "Unauthorized" }, 401);
 
-    // Auth-scoped client — used for permission checks and RLS-protected writes.
-    // The previous version called the permission RPC via the service-role
-    // client, which makes auth.uid() inside SECURITY DEFINER functions return
-    // NULL → permission check always fails → 403. That 403 surfaces in the
-    // browser as "Edge Function returned a non-2xx status code" with no body.
+    // Auth-scoped client → permission RPC + RLS-protected reads.
     const userClient = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    console.log("[letterhead] auth header present:", !!authHeader);
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     console.log("[letterhead] caller uid:", userData?.user?.id ?? null);
-
     if (userErr || !userData.user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Invalid token" }, 401);
     }
     const userId = userData.user.id;
 
@@ -260,102 +62,104 @@ Deno.serve(async (req) => {
       | "left"
       | "centre"
       | "right";
-    const includeAllPages = String(formData.get("include_all_pages") || "false") === "true";
+    const includeAllPages =
+      String(formData.get("include_all_pages") || "false") === "true";
 
     if (!file || !practiceId) {
-      return new Response(
-        JSON.stringify({ error: "Missing file or practice_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return jsonResponse({ error: "Missing file or practice_id" }, 400);
     }
     if (!["left", "centre", "right"].includes(alignment)) {
-      return new Response(JSON.stringify({ error: "Invalid alignment" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Invalid alignment" }, 400);
     }
     if (heightCm < 3 || heightCm > 9 || topMarginCm < 0.5 || topMarginCm > 3) {
-      return new Response(JSON.stringify({ error: "Invalid height_cm or top_margin_cm" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(
+        { error: "Invalid height_cm or top_margin_cm" },
+        400,
+      );
     }
 
-    // Service-role client used ONLY for storage uploads (bucket policies
-    // require it) and for the final DB insert (so RLS doesn't get in the way
-    // once we've already verified the caller via the auth-scoped RPC above).
-    const admin = createClient(supabaseUrl, serviceRole);
+    const lowerName = file.name.toLowerCase();
+    let mime = (file.type || "").toLowerCase();
+    if (!mime) {
+      if (lowerName.endsWith(".pdf")) mime = PDF_MIME;
+      else if (lowerName.endsWith(".docx")) mime = DOCX_MIME;
+    }
+    const isPdf = mime === PDF_MIME || lowerName.endsWith(".pdf");
+    const isDocx = mime === DOCX_MIME || lowerName.endsWith(".docx");
+    if (!isPdf && !isDocx) {
+      return jsonResponse(
+        { error: `Unsupported file type. Please upload a PDF or DOCX.` },
+        400,
+      );
+    }
 
-    // Permission check via the AUTH-SCOPED client so auth.uid() resolves.
+    if (file.size > MAX_FILE_BYTES) {
+      return jsonResponse(
+        {
+          error: `File too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Maximum is ${MAX_FILE_BYTES / 1024 / 1024} MB.`,
+        },
+        400,
+      );
+    }
+
+    // Permission via the AUTH-scoped client so auth.uid() resolves.
     const { data: canManage, error: permErr } = await userClient.rpc(
       "can_manage_practice_letterhead",
       { _practice_id: practiceId },
     );
-    console.log("[letterhead] permission check:", { canManage, permErr: permErr?.message });
     if (permErr) {
-      return new Response(
-        JSON.stringify({
-          error: `Permission check failed: ${permErr.message}`,
-          stage: "permission_rpc",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      console.error("[letterhead] permission RPC error:", permErr);
+      return jsonResponse(
+        { error: `Permission check failed: ${permErr.message}` },
+        500,
       );
     }
     if (!canManage) {
-      return new Response(
-        JSON.stringify({
+      return jsonResponse(
+        {
           error:
-            "You don't have permission to manage this practice's letterhead. Ask a Practice Manager or System Admin.",
-          stage: "permission_denied",
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            "You don't have permission to manage this practice's letterhead.",
+        },
+        403,
       );
     }
 
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const mime = (file.type || "application/octet-stream").toLowerCase();
-    const lowerName = file.name.toLowerCase();
-
-    let rendered: RenderResult;
-    if (mime === "application/pdf" || lowerName.endsWith(".pdf")) {
-      rendered = await renderPdfToPng(bytes);
-    } else if (
-      mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      lowerName.endsWith(".docx")
-    ) {
-      rendered = await renderDocxToPng(bytes);
-    } else {
-      return new Response(
-        JSON.stringify({ error: `Unsupported file type: ${mime || file.name}. Please upload a PDF or DOCX.` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    // Service-role client for storage upload + DB insert.
+    const admin = createClient(supabaseUrl, serviceRole);
 
     const ts = Date.now();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const ext = isPdf ? "pdf" : "docx";
     const originalPath = `${practiceId}/originals/${ts}-${safeName}`;
-    const renderedPath = `${practiceId}/rendered/${ts}-letterhead.png`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
 
-    const { error: upOrigErr } = await admin.storage
+    const { error: upErr } = await admin.storage
       .from("practice-letterheads")
-      .upload(originalPath, bytes, { contentType: mime, upsert: false });
-    if (upOrigErr) throw new Error(`Original upload failed: ${upOrigErr.message}`);
-
-    const { error: upRendErr } = await admin.storage
-      .from("practice-letterheads")
-      .upload(renderedPath, rendered.pngBytes, {
-        contentType: "image/png",
+      .upload(originalPath, bytes, {
+        contentType: isPdf ? PDF_MIME : DOCX_MIME,
         upsert: false,
       });
-    if (upRendErr) throw new Error(`Rendered upload failed: ${upRendErr.message}`);
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+
+    // Deactivate previous active letterhead(s) so only one is active per practice.
+    await admin
+      .from("practice_letterheads")
+      .update({ active: false })
+      .eq("practice_id", practiceId)
+      .eq("active", true);
 
     const { data: row, error: insErr } = await admin
       .from("practice_letterheads")
       .insert({
         practice_id: practiceId,
         original_filename: file.name,
+        original_mime_type: isPdf ? PDF_MIME : DOCX_MIME,
         storage_path: originalPath,
-        rendered_png_path: renderedPath,
+        // Reuse storage_path so existing letter-generation code that reads
+        // rendered_png_path still gets a valid object reference. Letter code
+        // should branch on original_mime_type to decide whether to embed the
+        // PDF directly or raster the DOCX.
+        rendered_png_path: originalPath,
         height_cm: heightCm,
         top_margin_cm: topMarginCm,
         alignment,
@@ -367,21 +171,14 @@ Deno.serve(async (req) => {
       .single();
     if (insErr) throw new Error(`DB insert failed: ${insErr.message}`);
 
-    return new Response(
-      JSON.stringify({
-        id: row.id,
-        rendered_png_path: renderedPath,
-        original_path: originalPath,
-        width_px: rendered.widthPx,
-        height_px: rendered.heightPx,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return jsonResponse({
+      id: row.id,
+      storage_path: originalPath,
+      mime_type: isPdf ? PDF_MIME : DOCX_MIME,
+      file_kind: ext,
+    });
   } catch (err: any) {
     console.error("render-practice-letterhead error:", err);
-    return new Response(
-      JSON.stringify({ error: err?.message || "Render failed" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return jsonResponse({ error: err?.message || "Upload failed" }, 500);
   }
 });
