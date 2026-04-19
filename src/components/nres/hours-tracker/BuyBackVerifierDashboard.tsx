@@ -1,9 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
 import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
+import { supabase } from '@/integrations/supabase/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -17,6 +21,8 @@ interface VerifierDashboardProps {
   meetingEntries?: MeetingLogEntry[];
   onVerifyMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
   onReturnMeetingEntries?: (ids: string[], notes?: string) => Promise<any>;
+  userEmail?: string;
+  userName?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -620,9 +626,137 @@ const MeetingVerifierCard = ({ entries, expanded, onToggle, onVerify, onReturn, 
   );
 };
 
+// ─── Verification Log View ────────────────────────────────────────────────────
+interface AuditEntry {
+  id: string;
+  claim_line_id: string;
+  action: string;
+  from_status: string | null;
+  to_status: string | null;
+  notes: string | null;
+  performed_by: string | null;
+  performed_by_name: string | null;
+  performed_by_role: string | null;
+  created_at: string;
+}
+
+const VerificationLogView = ({ claims, userEmail }: { claims: BuyBackClaim[]; userEmail?: string }) => {
+  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const claimIds = useMemo(() => claims.map(c => c.id), [claims]);
+  const claimsById = useMemo(() => {
+    const m: Record<string, BuyBackClaim> = {};
+    claims.forEach(c => { m[c.id] = c; });
+    return m;
+  }, [claims]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (claimIds.length === 0) { setEntries([]); setLoading(false); return; }
+      setLoading(true);
+      // Pull recent audit entries for the user's accessible claims
+      const { data, error } = await (supabase as any)
+        .from('claim_audit_log')
+        .select('*')
+        .in('claim_line_id', claimIds.slice(0, 1000))
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (cancelled) return;
+      if (error) { setEntries([]); setLoading(false); return; }
+      const verifyActions = (data || []).filter((e: AuditEntry) => {
+        const a = (e.action || '').toLowerCase();
+        const isVerifyOrReturn =
+          a.includes('verif') || a.includes('queried') || a.includes('return') ||
+          e.to_status === 'verified' || e.to_status === 'queried';
+        if (!isVerifyOrReturn) return false;
+        if (userEmail) {
+          // Filter to actions performed by this user (case-insensitive)
+          return (e.performed_by || '').toLowerCase() === userEmail.toLowerCase();
+        }
+        return true;
+      });
+      setEntries(verifyActions);
+      setLoading(false);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [claimIds, userEmail]);
+
+  const decisionMeta = (e: AuditEntry) => {
+    const a = (e.action || '').toLowerCase();
+    if (a.includes('queried') || a.includes('return') || e.to_status === 'queried') {
+      return { label: 'Returned / Queried', color: '#d97706', bg: '#fffbeb', border: '#fde68a' };
+    }
+    if (a.includes('verif') || e.to_status === 'verified') {
+      return { label: 'Verified', color: '#059669', bg: '#ecfdf5', border: '#bbf7d0' };
+    }
+    return { label: e.action, color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb' };
+  };
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <div style={{ padding: '14px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Shield className="w-4 h-4" style={{ color: '#005eb8' }} />
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Verification Log</div>
+        <span style={{ fontSize: 11, color: '#9ca3af' }}>· {entries.length} action{entries.length !== 1 ? 's' : ''}</span>
+      </div>
+      {loading ? (
+        <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>Loading audit trail…</div>
+      ) : entries.length === 0 ? (
+        <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+          No verification actions recorded yet for the current selection.
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ background: '#f9fafb' }}>
+                {['When', 'Claim', 'Practice', 'Decision', 'Note', 'By'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map(e => {
+                const claim = claimsById[e.claim_line_id];
+                const meta = decisionMeta(e);
+                return (
+                  <tr key={e.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', color: '#374151' }}>{dateStr(e.created_at)}</td>
+                    <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 11, color: '#6b7280' }}>{e.claim_line_id.slice(0, 8)}…</td>
+                    <td style={{ padding: '10px 12px', color: '#111827', fontWeight: 500 }}>{claim ? practiceName(claim.practice_key) : '—'}</td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 100, fontSize: 11, fontWeight: 600, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}` }}>
+                        {meta.label}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 12px', color: '#374151', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.notes || <span style={{ color: '#d1d5db' }}>—</span>}</td>
+                    <td style={{ padding: '10px 12px', color: '#6b7280' }}>{e.performed_by_name || e.performed_by || '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
-export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim, onGuideOpen, onSettingsOpen, showSettings, meetingEntries, onVerifyMeetingEntries, onReturnMeetingEntries }: VerifierDashboardProps) {
-  const [statusFilter, setStatusFilter] = useState('all');
+type QueueTab = 'queue' | 'verified_by_me' | 'returned' | 'all';
+type ListView = 'by_practice' | 'individual' | 'verification_log' | 'spreadsheet';
+
+export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim, onGuideOpen, onSettingsOpen, showSettings, meetingEntries, onVerifyMeetingEntries, onReturnMeetingEntries, userEmail, userName }: VerifierDashboardProps) {
+  const [queueTab, setQueueTab] = useState<QueueTab>('queue');
+  const [listView, setListView] = useState<ListView>('individual');
+  const [period, setPeriod] = useState('all');
+  const [filterPractice, setFilterPractice] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterRoute, setFilterRoute] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
@@ -641,10 +775,54 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
     return Object.values(groups);
   }, [meetingEntries]);
 
+  // Only show statuses relevant to verifier
+  const visibleClaims = useMemo(() => claims.filter(c =>
+    ['submitted', 'verified', 'awaiting_review', 'approved', 'queried', 'paid', 'rejected', 'invoiced'].includes(c.status)
+  ), [claims]);
+
+  // Apply queue tab → status filter
+  const tabFilteredClaims = useMemo(() => {
+    return visibleClaims.filter(c => {
+      if (queueTab === 'queue') return c.status === 'submitted';
+      if (queueTab === 'verified_by_me') {
+        if (!userEmail) { const s = c.status as string; return s === 'verified' || s === 'awaiting_review'; }
+        return (c.verified_by || '').toLowerCase() === userEmail.toLowerCase();
+      }
+      if (queueTab === 'returned') return c.status === 'queried' || c.status === 'rejected';
+      return true; // 'all'
+    });
+  }, [visibleClaims, queueTab, userEmail]);
+
+  // Apply period (re-using YTD/this month logic)
+  const periodFilteredClaims = useMemo(() => filterByPeriod(tabFilteredClaims, period), [tabFilteredClaims, period]);
+
+  // Apply dropdown filters (Practice, Category, Status, Route)
+  const dropdownFilteredClaims = useMemo(() => {
+    return periodFilteredClaims.filter(c => {
+      if (filterPractice !== 'all' && c.practice_key !== filterPractice) return false;
+      if (filterStatus !== 'all' && c.status !== filterStatus) return false;
+      if (filterCategory !== 'all') {
+        const dets = (c.staff_details || []) as any[];
+        if (!dets.some(d => (d.staff_category || 'buyback') === filterCategory)) return false;
+      }
+      if (filterRoute !== 'all') {
+        const dets = (c.staff_details || []) as any[];
+        const routeOf = (cat: string) => (cat === 'management' || cat === 'meeting') ? 'pml' : 'icb';
+        if (!dets.some(d => routeOf(d.staff_category || 'buyback') === filterRoute)) return false;
+      }
+      if (search && !practiceName(c.practice_key).toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [periodFilteredClaims, filterPractice, filterStatus, filterCategory, filterRoute, search]);
+
   const filteredMeetingGroups = useMemo(() => {
     return visibleMeetingGroups.filter(group => {
       const status = group[0]?.status || 'submitted';
-      if (statusFilter !== 'all' && status !== statusFilter) return false;
+      // Match queue tab
+      if (queueTab === 'queue' && status !== 'submitted') return false;
+      if (queueTab === 'returned' && !(status === 'queried' || status === 'rejected')) return false;
+      if (queueTab === 'verified_by_me' && status !== 'verified') return false;
+      if (filterStatus !== 'all' && status !== filterStatus) return false;
       if (search) {
         const practiceCode_ = group[0]?.billing_org_code || '';
         const practiceName__ = Object.entries(NRES_ODS_CODES as Record<string, string>).find(([, v]) => v === practiceCode_)?.[0];
@@ -653,51 +831,56 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
       }
       return true;
     });
-  }, [visibleMeetingGroups, statusFilter, search]);
+  }, [visibleMeetingGroups, queueTab, filterStatus, search]);
 
   const submittedMeetingCount = visibleMeetingGroups.filter(g => g[0]?.status === 'submitted').length;
-
-  // Only show statuses relevant to verifier
-  const visibleClaims = claims.filter(c =>
-    ['submitted', 'verified', 'awaiting_review', 'approved', 'queried', 'paid', 'rejected', 'invoiced'].includes(c.status)
-  );
-
   const submittedClaims = visibleClaims.filter(c => c.status === 'submitted');
-
-  const filtered = useMemo(() => {
-    return visibleClaims.filter(c => {
-      if (statusFilter !== 'all' && c.status !== statusFilter) return false;
-      if (search && !practiceName(c.practice_key).toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    });
-  }, [visibleClaims, statusFilter, search]);
-
+  const submittedTotal = submittedClaims.reduce((a, c) => a + claimTotal(c), 0);
+  const verifiedClaims = visibleClaims.filter(c => { const s = c.status as string; return s === 'verified' || s === 'awaiting_review'; });
+  const verifiedTotal = verifiedClaims.reduce((a, c) => a + claimTotal(c), 0);
+  const paidTotal = visibleClaims.filter(c => c.status === 'paid').reduce((a, c) => a + claimTotal(c), 0);
   const counts = useMemo(() => {
-    const m: Record<string, number> = { all: visibleClaims.length };
+    const m: Record<string, number> = {};
     visibleClaims.forEach(c => { m[c.status] = (m[c.status] || 0) + 1; });
     return m;
   }, [visibleClaims]);
-
-  const submittedTotal = submittedClaims.reduce((a, c) => a + claimTotal(c), 0);
-  const verifiedClaims = visibleClaims.filter(c => c.status === 'verified' || (c as any).status === 'awaiting_review');
-  const verifiedTotal = verifiedClaims.reduce((a, c) => a + claimTotal(c), 0);
-  const _approvedTotal = visibleClaims.filter(c => c.status === 'approved').reduce((a, c) => a + claimTotal(c), 0);
-  const paidTotal = visibleClaims.filter(c => c.status === 'paid').reduce((a, c) => a + claimTotal(c), 0);
-
   const uniqueSubmittedPractices = new Set(submittedClaims.map(c => c.practice_key)).size;
 
-  const STATUS_FILTERS = [
-    { key: 'all', label: 'All' },
-    { key: 'submitted', label: 'Submitted' },
-    { key: 'verified', label: 'Verified' },
-    { key: 'approved', label: 'Approved' },
-    { key: 'queried', label: 'Queried' },
-    { key: 'paid', label: 'Paid' },
-    { key: 'rejected', label: 'Rejected' },
+  // Queue tab counts
+  const queueCount = visibleClaims.filter(c => c.status === 'submitted').length + submittedMeetingCount;
+  const verifiedByMeCount = userEmail
+    ? visibleClaims.filter(c => (c.verified_by || '').toLowerCase() === userEmail.toLowerCase()).length
+    : verifiedClaims.length;
+  const returnedCount = visibleClaims.filter(c => c.status === 'queried' || c.status === 'rejected').length;
+
+  const QUEUE_TABS: { key: QueueTab; label: string; count: number; color: string }[] = [
+    { key: 'queue', label: 'Queue', count: queueCount, color: '#0369a1' },
+    { key: 'verified_by_me', label: 'Verified by me', count: verifiedByMeCount, color: '#059669' },
+    { key: 'returned', label: 'Returned / Queried', count: returnedCount, color: '#d97706' },
+    { key: 'all', label: 'All history', count: visibleClaims.length, color: '#6b7280' },
   ];
 
+  const LIST_VIEWS: { key: ListView; label: string }[] = [
+    { key: 'by_practice', label: 'By Practice' },
+    { key: 'individual', label: 'Individual' },
+    { key: 'verification_log', label: 'Verification Log' },
+    { key: 'spreadsheet', label: 'Spreadsheet' },
+  ];
+
+  // Practice options for the dropdown — derived from visible claims
+  const practiceKeys = useMemo(() => {
+    const set = new Set(visibleClaims.map(c => c.practice_key).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [visibleClaims]);
+
+  // Practice options for ClaimsViewSwitcher
+  const directorPracticeOptions: DirectorPracticeOption[] = practiceKeys.map(k => ({
+    key: k,
+    name: practiceName(k),
+  }));
+
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', color: '#111827' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', color: '#111827' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
@@ -719,7 +902,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
           <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>Verify submitted claims before Director review</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>Amanda Palin</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{userName || 'Amanda Palin'}</div>
           <div style={{ fontSize: 12, color: '#9ca3af' }}>Managerial Lead · Verifier</div>
         </div>
       </div>
@@ -744,89 +927,234 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
         <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(paidTotal)} accent="#166534" />
       </div>
 
-      {/* Practice queue table */}
-      <div style={{ marginBottom: 16 }}>
-        <PracticeQueueTable claims={visibleClaims} />
+      {/* Queue status tabs (with live counts) */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 14, flexWrap: 'wrap' }}>
+        {QUEUE_TABS.map(t => {
+          const active = queueTab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setQueueTab(t.key)}
+              style={{
+                padding: '8px 14px',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: `2px solid ${active ? t.color : 'transparent'}`,
+                color: active ? t.color : '#6b7280',
+                fontSize: 13,
+                fontWeight: active ? 600 : 500,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                marginBottom: -1,
+              }}
+            >
+              {t.label}
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                minWidth: 20, padding: '1px 7px', borderRadius: 100, fontSize: 10, fontWeight: 700,
+                background: active ? t.color : '#e5e7eb',
+                color: active ? '#fff' : '#6b7280',
+              }}>{t.count}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative' }}>
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search practice…"
-            style={{ padding: '7px 14px 7px 32px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, width: 200, outline: 'none' }}
-          />
+      {/* Unified filter bar — period buttons (left), view toggles + Export (right) */}
+      {/* Uses the shared ClaimsViewSwitcher's own period/view chrome by switching to its 'spreadsheet' default — but we render our own here for tighter integration */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-3 rounded-lg border border-border bg-card">
+        <div className="flex items-center gap-1 flex-wrap">
+          {[
+            { key: 'this_month', label: 'This Month' },
+            { key: 'last_month', label: 'Last Month' },
+            { key: 'ytd', label: 'YTD 26/27' },
+            { key: 'all', label: 'All Time' },
+          ].map(p => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              style={{
+                padding: '6px 12px', borderRadius: 6, fontSize: 12,
+                fontWeight: period === p.key ? 600 : 500,
+                border: `1px solid ${period === p.key ? '#005eb8' : '#e5e7eb'}`,
+                background: period === p.key ? '#eff6ff' : '#fff',
+                color: period === p.key ? '#005eb8' : '#6b7280',
+                cursor: 'pointer',
+              }}
+            >{p.label}</button>
+          ))}
         </div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {STATUS_FILTERS.map(f => {
-            const s = STATUS_MAP[f.key];
-            const c = s?.color || '#374151';
+        <div className="flex items-center gap-1 flex-wrap">
+          {LIST_VIEWS.map(v => {
+            const active = listView === v.key;
             return (
               <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
+                key={v.key}
+                onClick={() => setListView(v.key)}
                 style={{
-                  padding: '5px 12px', borderRadius: 100, fontSize: 11, fontWeight: statusFilter === f.key ? 600 : 400,
-                  border: `1px solid ${statusFilter === f.key ? c : '#d1d5db'}`,
-                  background: statusFilter === f.key ? `${c}12` : '#fff',
-                  color: statusFilter === f.key ? c : '#6b7280',
-                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '6px 12px', borderRadius: 6, fontSize: 12,
+                  fontWeight: active ? 600 : 500,
+                  border: `1px solid ${active ? '#005eb8' : '#e5e7eb'}`,
+                  background: active ? '#eff6ff' : '#fff',
+                  color: active ? '#005eb8' : '#6b7280',
+                  cursor: 'pointer',
                 }}
-              >
-                {f.label}
-                <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 100, background: statusFilter === f.key ? c : '#e5e7eb', color: statusFilter === f.key ? '#fff' : '#6b7280' }}>
-                  {counts[f.key] || 0}
-                </span>
-              </button>
+              >{v.label}</button>
             );
           })}
         </div>
       </div>
 
-      {/* Claims & Meeting entries list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.length === 0 && filteredMeetingGroups.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb' }}>
-            No claims match the current filters.
-          </div>
-        ) : (
-          <>
-            {filtered.map(c => (
-              <VerifierClaimCard
-                key={c.id}
-                claim={c}
-                expanded={expandedId === c.id}
-                onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                onVerify={onVerify}
-                onReturn={onReturnToPractice}
-                saving={savingClaim}
-              />
-            ))}
-            {filteredMeetingGroups.map((group, idx) => {
-              const groupKey = `meeting-${group[0]?.person_name}-${group[0]?.claim_month}`;
-              return (
-                <MeetingVerifierCard
-                  key={groupKey}
-                  entries={group}
-                  expanded={expandedId === groupKey}
-                  onToggle={() => setExpandedId(expandedId === groupKey ? null : groupKey)}
-                  onVerify={onVerifyMeetingEntries || (async () => {})}
-                  onReturn={onReturnMeetingEntries || (async () => {})}
-                  saving={savingClaim}
-                />
-              );
-            })}
-          </>
-        )}
+      {/* Filter dropdown row — Practice, Category, Status, Route */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div>
+          <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Practice</Label>
+          <Select value={filterPractice} onValueChange={setFilterPractice}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="All practices" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Practices</SelectItem>
+              {practiceKeys.map(k => (
+                <SelectItem key={k} value={k}>{practiceName(k)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Category</Label>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="buyback">Buy-Back</SelectItem>
+              <SelectItem value="gp_locum">GP Locum</SelectItem>
+              <SelectItem value="new_sda">New SDA</SelectItem>
+              <SelectItem value="management">NRES Management</SelectItem>
+              <SelectItem value="meeting">Meeting Attendance</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Status</Label>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="submitted">Submitted</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="queried">Queried</SelectItem>
+              <SelectItem value="invoiced">Invoiced</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Route</Label>
+          <Select value={filterRoute} onValueChange={setFilterRoute}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Routes</SelectItem>
+              <SelectItem value="icb">ICB Direct (Buy-Back / SDA / Locum)</SelectItem>
+              <SelectItem value="pml">PML Route (Management / Meeting)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* View body */}
+      {listView === 'by_practice' && (
+        <div style={{ marginBottom: 16 }}>
+          <PracticeQueueTable claims={dropdownFilteredClaims} />
+        </div>
+      )}
+
+      {listView === 'verification_log' && (
+        <div style={{ marginBottom: 16 }}>
+          <VerificationLogView claims={dropdownFilteredClaims} userEmail={userEmail} />
+        </div>
+      )}
+
+      {listView === 'spreadsheet' && (
+        <div style={{ marginBottom: 16 }}>
+          <ClaimsViewSwitcher
+            claims={dropdownFilteredClaims}
+            practiceKey={filterPractice === 'all' ? '' : filterPractice}
+            practiceName={filterPractice === 'all' ? 'All Practices' : practiceName(filterPractice)}
+            onToggleCard={(id) => setExpandedId(expandedId === id ? null : id)}
+            expandedClaimId={expandedId}
+            saving={savingClaim}
+            directorMode
+            practiceFilter={filterPractice}
+            onPracticeFilterChange={setFilterPractice}
+            practiceOptions={directorPracticeOptions}
+            defaultView="spreadsheet"
+            hideSummaryView
+            exportVariant="director"
+          />
+        </div>
+      )}
+
+      {listView === 'individual' && (
+        <>
+          {/* Search */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ position: 'relative' }}>
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search practice…"
+                style={{ padding: '7px 14px 7px 32px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, width: 220, outline: 'none' }}
+              />
+            </div>
+          </div>
+
+          {/* Claims & Meeting entries list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {dropdownFilteredClaims.length === 0 && filteredMeetingGroups.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+                No claims match the current filters.
+              </div>
+            ) : (
+              <>
+                {dropdownFilteredClaims.map(c => (
+                  <VerifierClaimCard
+                    key={c.id}
+                    claim={c}
+                    expanded={expandedId === c.id}
+                    onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                    onVerify={onVerify}
+                    onReturn={onReturnToPractice}
+                    saving={savingClaim}
+                  />
+                ))}
+                {filteredMeetingGroups.map((group) => {
+                  const groupKey = `meeting-${group[0]?.person_name}-${group[0]?.claim_month}`;
+                  return (
+                    <MeetingVerifierCard
+                      key={groupKey}
+                      entries={group}
+                      expanded={expandedId === groupKey}
+                      onToggle={() => setExpandedId(expandedId === groupKey ? null : groupKey)}
+                      onVerify={onVerifyMeetingEntries || (async () => {})}
+                      onReturn={onReturnMeetingEntries || (async () => {})}
+                      saving={savingClaim}
+                    />
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Footer */}
       <div style={{ marginTop: 20, padding: '12px 0', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
         <span>NRES New Models of Care — Managerial Lead Verification Queue</span>
-        <span>{filtered.length + filteredMeetingGroups.length} item{(filtered.length + filteredMeetingGroups.length) !== 1 ? 's' : ''} shown</span>
+        <span>{dropdownFilteredClaims.length + filteredMeetingGroups.length} item{(dropdownFilteredClaims.length + filteredMeetingGroups.length) !== 1 ? 's' : ''} shown</span>
       </div>
     </div>
   );
