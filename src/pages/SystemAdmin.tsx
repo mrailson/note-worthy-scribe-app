@@ -76,6 +76,7 @@ import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings'
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { GPScribeStats } from '@/components/admin/GPScribeStats';
 import { StorageManagement } from '@/components/admin/StorageManagement';
+import { UserGeneratedImagesGallery } from '@/components/admin/UserGeneratedImagesGallery';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
 import { AI4GPServicesOverview } from '@/components/admin/AI4GPServicesOverview';
 import { PolicyEnhancementModelSettings } from '@/components/admin/PolicyEnhancementModelSettings';
@@ -2213,6 +2214,10 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   ) : (
                     <div className="text-muted-foreground mb-6">Loading file statistics...</div>
                   )}
+                  {/* Quick link: thumbnail gallery of all generated images */}
+                  <div className="mb-4">
+                    <UserGeneratedImagesGallery />
+                  </div>
                   {/* Collapsible Users Table for files over 1MB */}
                   <Collapsible open={largeFilesOpen} onOpenChange={setLargeFilesOpen}>
                     <CollapsibleTrigger asChild>
