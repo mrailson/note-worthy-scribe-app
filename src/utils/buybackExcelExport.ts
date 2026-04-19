@@ -312,3 +312,71 @@ export function exportDirectorClaimsDetail(
   const fname = `NRES-Director-Claims_${safe(opts.practiceLabel) || 'All'}_${safe(opts.timeWindowLabel) || 'All'}_${dateStamp}.xlsx`;
   downloadWorkbook(wb, fname);
 }
+
+/**
+ * Export 7: Finance Claims Detail — same shape as Director, Finance-specific filename + extra payment cols.
+ */
+export function exportFinanceClaimsDetail(
+  lines: DirectorExportLine[],
+  opts: { practiceLabel: string; timeWindowLabel: string }
+) {
+  const rows: any[][] = [[
+    'Practice', 'ODS Code', 'Claim Month', 'Staff Name', 'Role', 'Category',
+    'GL Category', 'Allocation Type', 'Allocation Value', 'Max £', 'Claimed £',
+    'Claim Status', 'Invoice Number', 'Submitted By', 'Submitted Date',
+    'Verified By', 'Verified Date', 'Approved By', 'Approved Date',
+    'Payment Reference', 'Paid Date', 'Calculation Notes',
+  ]];
+
+  lines.forEach(({ claim, staff: s, monthLabel }) => {
+    const catLabel = s.staff_category === 'new_sda' ? 'New SDA'
+      : s.staff_category === 'management' ? 'Management'
+      : s.staff_category === 'gp_locum' ? 'GP Locum'
+      : s.staff_category === 'meeting' ? 'Meeting'
+      : 'Buy-Back';
+    const maxAmt = s.calculated_amount ?? s.claimed_amount ?? 0;
+    const claimedAmt = s.claimed_amount ?? maxAmt;
+    rows.push([
+      getPracticeName(claim.practice_key),
+      getOdsCode(claim.practice_key),
+      monthLabel || claimMonthLabel(claim.claim_month),
+      s.staff_name || '—',
+      s.staff_role || '—',
+      catLabel,
+      s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical'),
+      s.allocation_type || '—',
+      s.allocation_value || 0,
+      maxAmt,
+      claimedAmt,
+      claim.status,
+      claim.invoice_number || '—',
+      claim.submitted_by_email || '—',
+      claim.submitted_at ? format(new Date(claim.submitted_at), 'dd/MM/yyyy') : '—',
+      claim.verified_by || '—',
+      claim.verified_at ? format(new Date(claim.verified_at), 'dd/MM/yyyy') : '—',
+      claim.approved_by_email || '—',
+      claim.reviewed_at ? format(new Date(claim.reviewed_at), 'dd/MM/yyyy') : '—',
+      (claim as any).payment_reference || '—',
+      claim.paid_at ? format(new Date(claim.paid_at), 'dd/MM/yyyy') : '—',
+      s.calculation_notes || s.notes || '—',
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 28 }, { wch: 10 }, { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 12 },
+    { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+    { wch: 12 }, { wch: 18 }, { wch: 28 }, { wch: 14 },
+    { wch: 28 }, { wch: 14 }, { wch: 28 }, { wch: 14 },
+    { wch: 18 }, { wch: 14 }, { wch: 36 },
+  ];
+  ws['!autofilter'] = { ref: `A1:V${rows.length}` };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Finance Claims');
+
+  const safe = (s: string) => s.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const dateStamp = format(new Date(), 'yyyyMMdd');
+  const fname = `NRES-Finance-Claims_${safe(opts.practiceLabel) || 'All'}_${safe(opts.timeWindowLabel) || 'All'}_${dateStamp}.xlsx`;
+  downloadWorkbook(wb, fname);
+}

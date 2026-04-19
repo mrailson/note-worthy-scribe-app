@@ -6,7 +6,7 @@ import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { calculateStaffMonthlyAmount } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
-import { exportClaimsDetail, exportDirectorClaimsDetail } from '@/utils/buybackExcelExport';
+import { exportClaimsDetail, exportDirectorClaimsDetail, exportFinanceClaimsDetail } from '@/utils/buybackExcelExport';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
@@ -2347,6 +2347,7 @@ export function ClaimsViewSwitcher({
   practiceOptions,
   defaultView,
   hideSummaryView = false,
+  exportVariant = 'practice',
 }: {
   claims: BuyBackClaim[];
   practiceKey: string;
@@ -2362,6 +2363,7 @@ export function ClaimsViewSwitcher({
   practiceOptions?: DirectorPracticeOption[];
   defaultView?: ClaimsView;
   hideSummaryView?: boolean;
+  exportVariant?: 'practice' | 'director' | 'finance';
 }) {
   const [view, setView] = useState<ClaimsView>(defaultView || 'spreadsheet');
   const [period, setPeriod] = useState('all');
@@ -2462,10 +2464,12 @@ export function ClaimsViewSwitcher({
         ? 'AllPractices'
         : (practiceOptions?.find(p => p.key === practiceFilter)?.name) || practiceFilter;
       const timeWindowLabel = PERIOD_OPTIONS.find(p => p.key === period)?.label || 'AllTime';
-      exportDirectorClaimsDetail(
-        filteredLines.map(l => ({ claim: l.claim, staff: l.staff, monthLabel: l.monthLabel })),
-        { practiceLabel, timeWindowLabel },
-      );
+      const lines = filteredLines.map(l => ({ claim: l.claim, staff: l.staff, monthLabel: l.monthLabel }));
+      if (exportVariant === 'finance') {
+        exportFinanceClaimsDetail(lines, { practiceLabel, timeWindowLabel });
+      } else {
+        exportDirectorClaimsDetail(lines, { practiceLabel, timeWindowLabel });
+      }
     } else {
       exportClaimsDetail(sorted, practiceKey);
     }

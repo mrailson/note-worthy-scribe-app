@@ -1092,7 +1092,7 @@ export function BuyBackPMLDashboard({
       const saved = sessionStorage.getItem(sessionKey);
       if (saved) return saved;
     } catch {}
-    return view === 'finance' ? 'approved' : 'awaiting_review';
+    return view === 'finance' ? 'to_process' : 'awaiting_review';
   })();
   const [statusFilter, setStatusFilterRaw] = useState<string>(initialStatus);
   const setStatusFilter = (s: string) => {
@@ -1155,6 +1155,8 @@ export function BuyBackPMLDashboard({
       const ds = toDisplayStatus(g.status);
       m[ds] = (m[ds] || 0) + 1;
     });
+    // Virtual Finance "to process" bucket = approved + invoiced
+    m['to_process'] = (m['approved'] || 0) + (m['invoiced'] || 0);
     return m;
   }, [displayClaims, meetingGroups]);
 
@@ -1179,10 +1181,18 @@ export function BuyBackPMLDashboard({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, []);
 
+  // Status filter test — handles virtual "to_process" (approved + invoiced)
+  const statusMatches = (raw: string, filter: string) => {
+    if (filter === 'all') return true;
+    const ds = toDisplayStatus(raw);
+    if (filter === 'to_process') return ds === 'approved' || ds === 'invoiced';
+    return ds === filter;
+  };
+
   // Apply practice + status + search filtering
   const filteredClaims = useMemo(() =>
     displayClaims.filter(c => {
-      if (statusFilter !== 'all' && toDisplayStatus(c.status) !== statusFilter) return false;
+      if (!statusMatches(c.status, statusFilter)) return false;
       if (practiceFilter !== 'all' && c.practice_key !== practiceFilter) return false;
       if (searchTerm) {
         const name = getPracticeName(c.practice_key).toLowerCase();
@@ -1195,7 +1205,7 @@ export function BuyBackPMLDashboard({
 
   const filteredMeetingGroups = useMemo(() =>
     meetingGroups.filter(g => {
-      if (statusFilter !== 'all' && toDisplayStatus(g.status) !== statusFilter) return false;
+      if (!statusMatches(g.status, statusFilter)) return false;
       if (practiceFilter !== 'all') {
         const code = NRES_ODS_CODES[practiceFilter];
         if (code && g.billing_org_code !== code) return false;
@@ -1206,12 +1216,12 @@ export function BuyBackPMLDashboard({
     [meetingGroups, statusFilter, practiceFilter, searchTerm]
   );
 
-  // On first mount: if default (awaiting/approved) is empty, fall back gracefully
+  // On first mount: if default action-queue is empty, fall back gracefully
   useEffect(() => {
     try {
       if (sessionStorage.getItem(sessionKey)) return; // user has a stored choice
     } catch {}
-    const preferred = view === 'finance' ? 'approved' : 'awaiting_review';
+    const preferred = view === 'finance' ? 'to_process' : 'awaiting_review';
     if (statusFilter !== preferred) return;
     if ((counts[preferred] || 0) > 0) return;
     if ((counts.queried || 0) > 0) setStatusFilter('queried');
@@ -1222,23 +1232,29 @@ export function BuyBackPMLDashboard({
   const switchView = (v: PMLView) => {
     setView(v);
     setExpandedId(null);
-    // statusFilter will re-init via sessionKey on next render — but we need to reset now
     try {
       const k = `nres-pml-statusFilter-${v}`;
       const saved = sessionStorage.getItem(k);
-      setStatusFilterRaw(saved || (v === 'finance' ? 'approved' : 'awaiting_review'));
+      setStatusFilterRaw(saved || (v === 'finance' ? 'to_process' : 'awaiting_review'));
     } catch {
-      setStatusFilterRaw(v === 'finance' ? 'approved' : 'awaiting_review');
+      setStatusFilterRaw(v === 'finance' ? 'to_process' : 'awaiting_review');
     }
   };
 
-  const statusFilters = [
-    { key: 'all', label: 'All' },
-    ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
-  ];
+  // Status filter chips — Finance gets the virtual "To process" chip first
+  const statusFilters = view === 'finance'
+    ? [
+        { key: 'to_process', label: 'To process', color: '#0369a1' },
+        { key: 'all', label: 'All' },
+        ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
+      ]
+    : [
+        { key: 'all', label: 'All' },
+        ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
+      ];
 
-  // Action queue is the cards list. Director: awaiting_review. Finance: approved.
-  const actionQueueStatus = view === 'finance' ? 'approved' : 'awaiting_review';
+  // Action queue is the cards list. Director: awaiting_review. Finance: to_process (approved + invoiced).
+  const actionQueueStatus = view === 'finance' ? 'to_process' : 'awaiting_review';
   const showActionQueue = statusFilter === actionQueueStatus;
 
   return (
@@ -1345,6 +1361,15 @@ export function BuyBackPMLDashboard({
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+        <select
+          value={practiceFilter}
+          onChange={e => setPracticeFilter(e.target.value)}
+          style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, background: '#fff', color: '#111827', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+          title="Filter by practice"
+        >
+          <option value="all">All Practices</option>
+          {practiceOptions.map(p => <option key={p.key} value={p.key}>{p.name}</option>)}
+        </select>
         <input
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
@@ -1381,48 +1406,67 @@ export function BuyBackPMLDashboard({
 
       {/* Claims list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filteredClaims.length === 0 && filteredMeetingGroups.length === 0 ? (
-          <div style={{
-            padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14,
-            background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb',
-          }}>
-            No claims match the current filters.
-          </div>
+        {showActionQueue ? (
+          filteredClaims.length === 0 && filteredMeetingGroups.length === 0 ? (
+            <div style={{
+              padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14,
+              background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb',
+            }}>
+              {view === 'finance'
+                ? 'No claims need processing right now.'
+                : 'No claims awaiting review.'}
+            </div>
+          ) : (
+            <>
+              {filteredClaims.map(c => (
+                <ClaimCard
+                  key={c.id}
+                  claim={c}
+                  view={view}
+                  expanded={expandedId === c.id}
+                  onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                  userId={userId}
+                  userEmail={userEmail}
+                  isAdmin={isAdmin}
+                  rateParams={rateParams}
+                  onApprove={onApprove}
+                  onQuery={onQuery}
+                  onReject={onReject}
+                  onMarkPaid={onMarkPaid}
+                  onSchedulePayment={onSchedulePayment}
+                  saving={savingClaim}
+                />
+              ))}
+              {filteredMeetingGroups.map(g => (
+                <MeetingClaimCard
+                  key={`meeting-${g.key}`}
+                  group={g}
+                  view={view}
+                  expanded={expandedId === `meeting-${g.key}`}
+                  onToggle={() => setExpandedId(expandedId === `meeting-${g.key}` ? null : `meeting-${g.key}`)}
+                  onApprove={onApproveMeetingEntries}
+                  onQuery={onQueryMeetingEntries}
+                  onReject={onRejectMeetingEntries}
+                  saving={savingClaim}
+                />
+              ))}
+            </>
+          )
         ) : (
-          <>
-            {filteredClaims.map(c => (
-              <ClaimCard
-                key={c.id}
-                claim={c}
-                view={view}
-                expanded={expandedId === c.id}
-                onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                userId={userId}
-                userEmail={userEmail}
-                isAdmin={isAdmin}
-                rateParams={rateParams}
-                onApprove={onApprove}
-                onQuery={onQuery}
-                onReject={onReject}
-                onMarkPaid={onMarkPaid}
-                onSchedulePayment={onSchedulePayment}
-                saving={savingClaim}
-              />
-            ))}
-            {filteredMeetingGroups.map(g => (
-              <MeetingClaimCard
-                key={`meeting-${g.key}`}
-                group={g}
-                view={view}
-                expanded={expandedId === `meeting-${g.key}`}
-                onToggle={() => setExpandedId(expandedId === `meeting-${g.key}` ? null : `meeting-${g.key}`)}
-                onApprove={onApproveMeetingEntries}
-                onQuery={onQueryMeetingEntries}
-                onReject={onRejectMeetingEntries}
-                saving={savingClaim}
-              />
-            ))}
-          </>
+          <ClaimsViewSwitcher
+            claims={filteredClaims}
+            practiceKey={practiceFilter === 'all' ? 'all' : practiceFilter}
+            practiceName={practiceFilter === 'all' ? 'All Practices' : getPracticeName(practiceFilter)}
+            onToggleCard={(id) => setExpandedId(expandedId === id ? null : id)}
+            expandedClaimId={expandedId}
+            saving={savingClaim}
+            directorMode
+            practiceFilter={practiceFilter}
+            onPracticeFilterChange={setPracticeFilter}
+            practiceOptions={practiceOptions}
+            defaultView="spreadsheet"
+            exportVariant={view === 'finance' ? 'finance' : 'director'}
+          />
         )}
       </div>
 
