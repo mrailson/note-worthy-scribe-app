@@ -269,70 +269,156 @@ export function BuyBackAccessSettingsModal({ open, onOpenChange, hasAccess, gran
   const { data: users, isLoading } = useNRESUserAccess();
   const { isSuperAdmin } = useNRESSystemRoles();
 
+  // Stub panel rendered for tabs that don't yet have a backing form.
+  const StubPanel = ({ title, hint }: { title: string; hint: string }) => (
+    <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-3">
+        <Settings2 className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <h3 className="text-base font-semibold text-foreground mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-md">{hint}</p>
+      <Badge variant="secondary" className="mt-4">Coming soon</Badge>
+    </div>
+  );
+
+  // Sidebar tab groups: Programme · Claims · Access
+  const tabGroups: Array<{ label: string; items: Array<{ value: string; label: string; visible?: boolean }> }> = [
+    {
+      label: 'Programme',
+      items: [
+        { value: 'general', label: 'General' },
+        { value: 'practices', label: 'Practices' },
+        { value: 'staff-roster', label: 'Staff Roster' },
+      ],
+    },
+    {
+      label: 'Claims',
+      items: [
+        { value: 'rates', label: 'Categories & Rates' },
+        { value: 'approval-routes', label: 'Approval Routes' },
+        { value: 'pml-finance', label: 'PML Finance' },
+        { value: 'invoicing', label: 'Invoicing' },
+        { value: 'evidence', label: 'Evidence Requirements' },
+      ],
+    },
+    {
+      label: 'Access',
+      items: [
+        { value: 'access', label: 'Users & Roles' },
+        { value: 'system-roles', label: 'System Roles', visible: isSuperAdmin },
+        { value: 'email', label: 'Notifications' },
+        { value: 'audit', label: 'Audit Log' },
+      ],
+    },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[calc(100vh-8rem)] overflow-hidden flex flex-col px-8 sm:px-10">
-        <DialogHeader className="border-b border-border pb-4 mb-2">
+      <DialogContent className="max-w-6xl max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col p-0 gap-0">
+        <DialogHeader className="border-b border-border px-6 py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
               <Settings2 className="h-4 w-4 text-primary" />
             </div>
             <div>
               <DialogTitle className="text-xl font-bold">Buy-Back Settings</DialogTitle>
-              <DialogDescription className="mt-0.5">Manage access permissions, rates and role types.</DialogDescription>
+              <DialogDescription className="mt-0.5">Programme · Claims · Access — manage rates, routes and permissions.</DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="access" className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="w-full flex flex-wrap justify-start gap-x-1 gap-y-0 bg-transparent border-b border-border rounded-none p-0 h-auto mb-4">
-            {isSuperAdmin && (
-              <TabsTrigger value="system-roles" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">System Roles</TabsTrigger>
-            )}
-            <TabsTrigger value="access" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Access Permissions</TabsTrigger>
-            <TabsTrigger value="rates" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Rates &amp; Roles</TabsTrigger>
-            <TabsTrigger value="evidence" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Evidence Requirements</TabsTrigger>
-            <TabsTrigger value="email" className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-3 py-2.5 text-sm font-medium whitespace-nowrap">Email Settings</TabsTrigger>
-          </TabsList>
-
-          {/* System Roles Tab */}
-          {isSuperAdmin && (
-            <TabsContent value="system-roles" className="flex-1 min-h-0 overflow-y-auto mt-0">
-              <SystemRolesTab />
-            </TabsContent>
-          )}
-
-          {/* Access Permissions Tab */}
-          <TabsContent value="access" className="flex-1 min-h-0 overflow-y-auto mt-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Tabs defaultValue="access" className="flex-1 min-h-0 flex" orientation="vertical">
+          {/* Left sidebar — 200px grouped tabs */}
+          <aside className="w-[200px] shrink-0 border-r border-border bg-muted/30 overflow-y-auto py-4">
+            {tabGroups.map(group => (
+              <div key={group.label} className="mb-4">
+                <div className="px-4 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {group.label}
+                </div>
+                <TabsList className="flex flex-col h-auto bg-transparent p-0 w-full gap-0">
+                  {group.items.filter(i => i.visible !== false).map(item => (
+                    <TabsTrigger
+                      key={item.value}
+                      value={item.value}
+                      className="w-full justify-start rounded-none border-l-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-none px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-background/60"
+                    >
+                      {item.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
               </div>
-            ) : (
-              <PracticeFirstAccessPanel
-                users={users || []}
-                hasAccess={hasAccess}
-                grantAccess={grantAccess}
-                revokeByKey={revokeByKey}
-              />
+            ))}
+          </aside>
+
+          {/* Right content panel */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+            <TabsContent value="general" className="mt-0">
+              <StubPanel title="General Programme Settings" hint="Programme name, neighbourhood scope, contract details, programme manager and default fiscal year — coming soon." />
+            </TabsContent>
+
+            <TabsContent value="practices" className="mt-0">
+              <StubPanel title="Practices" hint="Manage the list of NRES practices included in the programme, ODS codes and active status — coming soon." />
+            </TabsContent>
+
+            <TabsContent value="staff-roster" className="mt-0">
+              <StubPanel title="Staff Roster (Programme Level)" hint="Bulk view and edit of staff across all practices. Use the Staff Roster on the main page to add/remove members for now." />
+            </TabsContent>
+
+            <TabsContent value="rates" className="mt-0">
+              <RatesAndRolesPanel />
+            </TabsContent>
+
+            <TabsContent value="approval-routes" className="mt-0">
+              <StubPanel title="Approval Routes" hint="Configure which approver/verifier handles each claim category (Buy-Back, GP Locum, New SDA, Management). Currently controlled per practice in Users & Roles." />
+            </TabsContent>
+
+            <TabsContent value="pml-finance" className="mt-0">
+              <StubPanel title="PML Finance" hint="Set PML Finance recipients and override the default monthly invoice generation behaviour — coming soon." />
+            </TabsContent>
+
+            <TabsContent value="invoicing" className="mt-0">
+              <StubPanel title="Invoicing" hint="Configure invoice numbering, default GL codes and finance email templates — coming soon." />
+            </TabsContent>
+
+            <TabsContent value="evidence" className="mt-0">
+              <EvidenceConfigTab />
+            </TabsContent>
+
+            <TabsContent value="access" className="mt-0">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <PracticeFirstAccessPanel
+                  users={users || []}
+                  hasAccess={hasAccess}
+                  grantAccess={grantAccess}
+                  revokeByKey={revokeByKey}
+                />
+              )}
+            </TabsContent>
+
+            {isSuperAdmin && (
+              <TabsContent value="system-roles" className="mt-0">
+                <SystemRolesTab />
+              </TabsContent>
             )}
-          </TabsContent>
 
-          {/* Rates & Roles Tab */}
-          <TabsContent value="rates" className="flex-1 min-h-0 overflow-y-auto mt-0">
-            <RatesAndRolesPanel />
-          </TabsContent>
+            <TabsContent value="email" className="mt-0">
+              <EmailSettingsPanel />
+            </TabsContent>
 
-          {/* Evidence Requirements Tab */}
-          <TabsContent value="evidence" className="flex-1 min-h-0 overflow-y-auto mt-0">
-            <EvidenceConfigTab />
-          </TabsContent>
-
-          {/* Email Settings Tab */}
-          <TabsContent value="email" className="flex-1 min-h-0 overflow-y-auto mt-0">
-            <EmailSettingsPanel />
-          </TabsContent>
+            <TabsContent value="audit" className="mt-0">
+              <StubPanel title="Audit Log" hint="View all changes to permissions, rates and approvals. A summary is currently embedded in claim cards — full audit log view coming soon." />
+            </TabsContent>
+          </div>
         </Tabs>
+
+        {/* Footer: Save / Cancel — most panels save inline; this is a global close. */}
+        <div className="border-t border-border px-6 py-3 flex items-center justify-end gap-2 bg-muted/20">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

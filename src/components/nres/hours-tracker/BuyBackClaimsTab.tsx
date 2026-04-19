@@ -1289,8 +1289,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
         </>
       )}
 
-      {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes */}
-      {effectiveShowStaffMgmt && (
+      {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes.
+          Also hidden in the admin view (replaced by new Practice-style Staff Roster above). */}
+      {effectiveShowStaffMgmt && (!effectiveIsAdmin || testActive) && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -1425,8 +1426,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
         practiceNames={ALL_PRACTICES}
       />
 
-      {/* Meeting Schedule & Attendance — between staff management and create claim */}
-      {effectiveShowStaffMgmt && filteredStaff.some(s => s.staff_category === 'meeting') && (
+      {/* Meeting Schedule & Attendance — between staff management and create claim.
+          Hidden in admin view (replaced by Practice-style Staff Roster). */}
+      {effectiveShowStaffMgmt && (!effectiveIsAdmin || testActive) && filteredStaff.some(s => s.staff_category === 'meeting') && (
         <>
           <Separator />
           <MeetingScheduleSection
@@ -1442,10 +1444,11 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
         </>
       )}
 
-      {effectiveCanCreateClaim && <Separator />}
+      {effectiveCanCreateClaim && (!effectiveIsAdmin || testActive) && <Separator />}
 
-      {/* Create Claim — hidden in mgmt_lead, pml_director, pml_finance test modes */}
-      {effectiveCanCreateClaim && (
+      {/* Create Claim — hidden in mgmt_lead, pml_director, pml_finance test modes.
+          Also hidden in admin view (admins manage via spreadsheet/individual views above). */}
+      {effectiveCanCreateClaim && (!effectiveIsAdmin || testActive) && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -1487,9 +1490,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       </Card>
       )}
 
-      <Separator />
+      {(!effectiveIsAdmin || testActive) && <Separator />}
 
-      {/* Claims */}
+      {/* Claims — hidden in admin view (replaced by ClaimsViewSwitcher above). */}
+      {(!effectiveIsAdmin || testActive) && (
       <div ref={claimsHistoryRef}>
       <Collapsible open={claimsHistoryOpen} onOpenChange={setClaimsHistoryOpen}>
       <Card>
@@ -1629,6 +1633,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       </Card>
       </Collapsible>
       </div>
+      )}
 
       {/* Management Time Section — hidden for mgmt_lead, pml_director, pml_finance */}
       {effectiveIsAdmin && !isENN && !isManagementLead && !isPMLDirector && !isPMLFinance && effectiveShowStaffMgmt && (
