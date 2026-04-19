@@ -34,8 +34,9 @@ interface Letterhead {
   id: string;
   practice_id: string;
   original_filename: string;
+  original_mime_type?: string | null;
   storage_path: string;
-  rendered_png_path: string;
+  rendered_png_path: string | null;
   height_cm: number;
   top_margin_cm: number;
   alignment: 'left' | 'centre' | 'right';
