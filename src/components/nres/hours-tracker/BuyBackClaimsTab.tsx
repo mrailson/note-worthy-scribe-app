@@ -570,6 +570,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   const [proposalOpen, setProposalOpen] = useState(false);
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
   const [staffSortCol, setStaffSortCol] = useState<string>('practice');
   const [staffSortDir, setStaffSortDir] = useState<'asc' | 'desc'>('asc');
@@ -988,9 +990,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       }
     : undefined;
 
-  // Bulk actions menu state
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
+  // (bulkOpen/importOpen state declared earlier — see top of component)
 
   return (
     <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1200, margin: '0 auto', padding: '28px 16px' }}>
