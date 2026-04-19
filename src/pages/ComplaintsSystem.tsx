@@ -4153,7 +4153,7 @@ const ComplaintsSystem = () => {
                       />
                     </div>
                   ) : (
-                    <FormattedLetterContent content={modalLetterContent} />
+                    <FormattedLetterContent content={modalLetterContent} practiceId={viewingLetterComplaint?.practice_id} />
                   )}
                 </div>
                 <div className="mt-6 flex justify-between">
