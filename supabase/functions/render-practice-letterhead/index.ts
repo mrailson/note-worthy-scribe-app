@@ -11,11 +11,13 @@
 //
 // Returns: { id, rendered_png_path, original_path, width_px, height_px }
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 // @ts-ignore - npm specifier resolved by Deno
-import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.mjs";
+import * as pdfjs from "npm:pdfjs-dist@4.0.379/legacy/build/pdf.mjs";
 // @ts-ignore
-import mammoth from "https://esm.sh/mammoth@1.8.0";
+import mammoth from "npm:mammoth@1.8.0";
+// @ts-ignore
+import { createCanvas, loadImage } from "npm:@napi-rs/canvas@0.1.53";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,18 +58,12 @@ async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
   }
 
   const page = await doc.getPage(1);
-  // Compute scale so the rendered page is ~A4 width at 300 DPI.
   const baseViewport = page.getViewport({ scale: 1 });
   const scale = TARGET_WIDTH_PX / baseViewport.width;
   const viewport = page.getViewport({ scale });
 
-  // Use OffscreenCanvas (available in Deno Deploy via the canvas polyfill).
-  // Fallback: use skia-canvas style createCanvas via npm.
-  // @ts-ignore
-  const { createCanvas } = await import("https://esm.sh/@napi-rs/canvas@0.1.53");
   const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
   const ctx = canvas.getContext("2d");
-  // Fill white background (PDFs may be transparent).
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -82,9 +78,6 @@ async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
 }
 
 async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
-  // Convert DOCX → HTML, slice header region, then rasterise via canvas.
-  // We extract raw HTML and strip everything below an "---END LETTERHEAD---" marker
-  // or the first empty paragraph.
   const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer as ArrayBuffer });
   let html: string = result.value || "";
 
@@ -92,17 +85,10 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
   if (marker.test(html)) {
     html = html.split(marker)[0];
   } else {
-    // Take content up to first empty paragraph followed by body text.
     const emptyParaIdx = html.search(/<p>\s*<\/p>/i);
     if (emptyParaIdx > 0) html = html.slice(0, emptyParaIdx);
   }
 
-  // Render the HTML to PNG using @napi-rs/canvas — we draw text approximations.
-  // Since full HTML→canvas rasterisation isn't trivial server-side, we wrap it
-  // and let the user visually verify in preview. Practitioners will overwhelmingly
-  // use the PDF or image path; DOCX is a fallback.
-  // @ts-ignore
-  const { createCanvas, GlobalFonts } = await import("https://esm.sh/@napi-rs/canvas@0.1.53");
   const width = TARGET_WIDTH_PX;
   const height = Math.round(7 / 2.54 * TARGET_DPI); // 7cm tall canvas
   const canvas = createCanvas(width, height);
@@ -112,7 +98,6 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
   ctx.fillStyle = "#000000";
   ctx.font = `${Math.round(TARGET_DPI / 6)}px sans-serif`;
 
-  // Strip HTML tags and split into lines.
   const text = html
     .replace(/<\/p>/gi, "\n")
     .replace(/<br\s*\/?>(\s*)/gi, "\n")
@@ -135,16 +120,13 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
   return { pngBytes: new Uint8Array(pngBuffer), widthPx: width, heightPx: height };
 }
 
-async function renderImageToPng(bytes: Uint8Array, mime: string): Promise<RenderResult> {
-  // @ts-ignore
-  const { loadImage, createCanvas } = await import("https://esm.sh/@napi-rs/canvas@0.1.53");
+async function renderImageToPng(bytes: Uint8Array, _mime: string): Promise<RenderResult> {
   const img = await loadImage(bytes);
   if (img.width < MIN_IMAGE_WIDTH_PX) {
     throw new Error(
       `Image too narrow (${img.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
     );
   }
-  // Re-encode as PNG to normalise.
   const canvas = createCanvas(img.width, img.height);
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
@@ -172,7 +154,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Validate JWT and resolve user.
     const userClient = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -215,7 +196,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Permission check via RPC helper.
     const admin = createClient(supabaseUrl, serviceRole);
     const { data: canManage, error: permErr } = await admin.rpc(
       "can_manage_practice_letterhead",
@@ -255,7 +235,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Store original + rendered PNG.
     const ts = Date.now();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const originalPath = `${practiceId}/originals/${ts}-${safeName}`;
@@ -274,7 +253,6 @@ Deno.serve(async (req) => {
       });
     if (upRendErr) throw new Error(`Rendered upload failed: ${upRendErr.message}`);
 
-    // Insert row — trigger will deactivate previous active letterhead for this practice.
     const { data: row, error: insErr } = await admin
       .from("practice_letterheads")
       .insert({
