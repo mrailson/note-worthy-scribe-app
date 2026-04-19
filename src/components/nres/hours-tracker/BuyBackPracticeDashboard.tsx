@@ -2329,7 +2329,9 @@ function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; 
 
 type ClaimsView = 'summary' | 'cards' | 'invoices' | 'spreadsheet';
 
-function ClaimsViewSwitcher({
+export interface DirectorPracticeOption { key: string; name: string; }
+
+export function ClaimsViewSwitcher({
   claims,
   practiceKey,
   practiceName,
@@ -2338,6 +2340,13 @@ function ClaimsViewSwitcher({
   onSubmit,
   onResubmit,
   saving,
+  // Director-mode extensions (all optional, off by default)
+  directorMode = false,
+  practiceFilter,
+  onPracticeFilterChange,
+  practiceOptions,
+  defaultView,
+  hideSummaryView = false,
 }: {
   claims: BuyBackClaim[];
   practiceKey: string;
@@ -2347,8 +2356,14 @@ function ClaimsViewSwitcher({
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
+  directorMode?: boolean;
+  practiceFilter?: string;
+  onPracticeFilterChange?: (key: string) => void;
+  practiceOptions?: DirectorPracticeOption[];
+  defaultView?: ClaimsView;
+  hideSummaryView?: boolean;
 }) {
-  const [view, setView] = useState<ClaimsView>('spreadsheet');
+  const [view, setView] = useState<ClaimsView>(defaultView || 'spreadsheet');
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
