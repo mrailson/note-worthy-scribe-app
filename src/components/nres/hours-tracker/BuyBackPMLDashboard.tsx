@@ -1361,6 +1361,15 @@ export function BuyBackPMLDashboard({
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+        <select
+          value={practiceFilter}
+          onChange={e => setPracticeFilter(e.target.value)}
+          style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, background: '#fff', color: '#111827', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+          title="Filter by practice"
+        >
+          <option value="all">All Practices</option>
+          {practiceOptions.map(p => <option key={p.key} value={p.key}>{p.name}</option>)}
+        </select>
         <input
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
