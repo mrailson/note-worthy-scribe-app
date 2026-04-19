@@ -1289,8 +1289,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
         </>
       )}
 
-      {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes */}
-      {effectiveShowStaffMgmt && (
+      {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes.
+          Also hidden in the admin view (replaced by new Practice-style Staff Roster above). */}
+      {effectiveShowStaffMgmt && (!effectiveIsAdmin || testActive) && (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
