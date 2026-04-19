@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { BuyBackPMLDashboard } from './BuyBackPMLDashboard';
-import { BuyBackPracticeDashboard } from './BuyBackPracticeDashboard';
+import { BuyBackPracticeDashboard, KpiCard, StaffRosterSection, ClaimsViewSwitcher, getClaimMonths, fmtShort, CATEGORY_COLORS, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { BuyBackVerifierDashboard } from './BuyBackVerifierDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -40,7 +40,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Eye, HelpCircle, Settings } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Eye, HelpCircle, Settings, Upload, ListChecks } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditStaffDialog } from './EditStaffDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
