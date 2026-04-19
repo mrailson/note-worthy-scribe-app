@@ -1155,6 +1155,8 @@ export function BuyBackPMLDashboard({
       const ds = toDisplayStatus(g.status);
       m[ds] = (m[ds] || 0) + 1;
     });
+    // Virtual Finance "to process" bucket = approved + invoiced
+    m['to_process'] = (m['approved'] || 0) + (m['invoiced'] || 0);
     return m;
   }, [displayClaims, meetingGroups]);
 
