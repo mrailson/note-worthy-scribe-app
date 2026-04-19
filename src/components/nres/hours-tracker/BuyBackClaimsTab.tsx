@@ -439,9 +439,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     currentUserEmail: user?.email || undefined,
     currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
   }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, user?.email, user?.user_metadata?.full_name]);
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine } = useNRESBuyBackClaims(emailConfig);
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine, refetch: refetchClaims } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
-  const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries, verifyMeetingEntries, returnMeetingEntries, approveMeetingEntries, rejectMeetingEntries, queryMeetingEntries } = useNRESMeetingLog();
+  const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries, verifyMeetingEntries, returnMeetingEntries, approveMeetingEntries, rejectMeetingEntries, queryMeetingEntries, refetch: refetchMeetingLog } = useNRESMeetingLog();
 
   // New claim state — declared early so bank holidays can reference claimMonth
   const [claimMonth, setClaimMonth] = useState(() => {
@@ -572,6 +572,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
   const [staffSortCol, setStaffSortCol] = useState<string>('practice');
   const [staffSortDir, setStaffSortDir] = useState<'asc' | 'desc'>('asc');
@@ -994,9 +996,68 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
 
   // (bulkOpen/importOpen state declared earlier — see top of component)
 
+  // Super-admin only: wipe all test claims, meeting log entries, and hours entries
+  // so we can retest the submission flow from scratch.
+  const handleResetAllTestData = useCallback(async () => {
+    if (!isSuperAdmin) {
+      toast.error('Only super-admins can reset test data');
+      return;
+    }
+    setResetting(true);
+    try {
+      // Collect invoice PDF paths so we can clean storage afterwards
+      const invoicePaths = (claims || [])
+        .map(c => c.invoice_pdf_path)
+        .filter((p): p is string => !!p);
+
+      // Delete all rows in the three claim/work tables
+      const deleteAllRows = (table: 'nres_buyback_claims' | 'nres_management_time' | 'nres_hours_entries') =>
+        supabase.from(table).delete().not('id', 'is', null);
+
+      const [r1, r2, r3] = await Promise.all([
+        deleteAllRows('nres_buyback_claims'),
+        deleteAllRows('nres_management_time'),
+        deleteAllRows('nres_hours_entries'),
+      ]);
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      if (r3.error) throw r3.error;
+
+      // Best-effort: remove generated invoice PDFs from storage
+      if (invoicePaths.length > 0) {
+        await supabase.storage.from('nres-claim-evidence').remove(invoicePaths).catch(() => {});
+      }
+
+      // Refresh local state for both hooks
+      await Promise.all([
+        refetchClaims?.(),
+        refetchMeetingLog?.(),
+      ]);
+
+      toast.success('Reset complete — all test claims, meeting entries and hours entries cleared. Ready for new claims.');
+    } catch (err: any) {
+      console.error('Reset failed:', err);
+      toast.error(`Reset failed: ${err?.message || 'unknown error'}`);
+    } finally {
+      setResetting(false);
+      setResetConfirmOpen(false);
+    }
+  }, [isSuperAdmin, claims, refetchClaims, refetchMeetingLog]);
+
   return (
     <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1200, margin: '0 auto', padding: '28px 16px' }}>
-      {/* Page header — admin view (matches Practice view styling) */}
+      {/* Test Mode Bar — admin only — placed at top of page to align with Practice/Verifier/PML views */}
+      {isAdmin && (
+        <div style={{ marginBottom: 16 }}>
+          <TestModeBar
+            state={testMode}
+            onChange={setTestMode}
+            practiceKeys={ALL_PRACTICE_KEYS}
+            practiceNames={ALL_PRACTICES}
+            hiddenRoles={hiddenTestRoles}
+          />
+        </div>
+      )}
       {!testActive && effectiveIsAdmin && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
@@ -1023,7 +1084,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                   <ListChecks style={{ width: 14, height: 14 }} /> Bulk actions
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-1">
+              <PopoverContent align="end" className="w-72 p-1">
                 <button
                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={statusCounts.submitted === 0}
@@ -1064,8 +1125,57 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                 >
                   ⬇ Export current filter to Excel
                 </button>
+                {isSuperAdmin && (
+                  <>
+                    <Separator className="my-1" />
+                    <button
+                      className="w-full text-left px-3 py-2 text-sm rounded text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      disabled={resetting}
+                      onClick={() => { setBulkOpen(false); setResetConfirmOpen(true); }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>
+                        Delete all test invoices &amp; claims
+                        <span className="block text-[11px] text-muted-foreground font-normal">
+                          Resets buy-back, GP locum &amp; meeting attendance for fresh testing
+                        </span>
+                      </span>
+                    </button>
+                  </>
+                )}
               </PopoverContent>
             </Popover>
+
+            {/* Reset confirmation — super-admin only */}
+            <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete all test invoices &amp; claims?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2 text-sm">
+                      <p>This will permanently delete every row in:</p>
+                      <ul className="list-disc pl-5 text-foreground">
+                        <li><strong>{claims?.length ?? 0}</strong> buy-back / GP locum claim{(claims?.length ?? 0) === 1 ? '' : 's'} (incl. invoices)</li>
+                        <li>All NRES management &amp; meeting-attendance entries</li>
+                        <li>All NRES hours entries</li>
+                      </ul>
+                      <p>Generated invoice PDFs in storage will also be removed. Each practice will return to a clean &ldquo;ready for new claims&rdquo; state.</p>
+                      <p className="text-destructive font-medium">This cannot be undone — use only on the test environment.</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={resetting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => { e.preventDefault(); handleResetAllTestData(); }}
+                    disabled={resetting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {resetting ? 'Resetting…' : 'Yes, delete everything'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <button
               onClick={() => { setImportOpen(true); toast.info('Use the Spreadsheet view to bulk-edit, or contact your admin for CSV import.'); }}
@@ -1086,16 +1196,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           </div>
         </div>
       )}
-      {/* Test Mode Bar — admin only */}
-      {isAdmin && (
-        <TestModeBar
-          state={testMode}
-          onChange={setTestMode}
-          practiceKeys={ALL_PRACTICE_KEYS}
-          practiceNames={ALL_PRACTICES}
-          hiddenRoles={hiddenTestRoles}
-        />
-      )}
+      {/* (Test Mode Bar moved to top of page — see start of return) */}
 
 
       {effectiveIsAdmin && !testActive && (
