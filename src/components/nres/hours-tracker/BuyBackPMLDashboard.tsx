@@ -1088,11 +1088,14 @@ export function BuyBackPMLDashboard({
   const [view, setView] = useState<PMLView>(defaultView || (isPMLFinance ? 'finance' : 'director'));
   const sessionKey = `nres-pml-statusFilter-${view}`;
   const initialStatus = (() => {
+    // Director view always defaults to "Awaiting Review" on mount,
+    // ignoring any previously persisted filter, per product requirement.
+    if (view === 'director') return 'awaiting_review';
     try {
       const saved = sessionStorage.getItem(sessionKey);
       if (saved) return saved;
     } catch {}
-    return view === 'finance' ? 'to_process' : 'awaiting_review';
+    return 'to_process';
   })();
   const [statusFilter, setStatusFilterRaw] = useState<string>(initialStatus);
   const setStatusFilter = (s: string) => {
