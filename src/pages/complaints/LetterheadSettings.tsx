@@ -260,7 +260,10 @@ export default function LetterheadSettings() {
         const { data, error } = await supabase.functions.invoke('render-practice-letterhead', {
           body: fd,
         });
-        if (error) throw error;
+        if (error) {
+          const details = await error.context?.json?.().catch?.(() => null);
+          throw new Error(details?.error || error.message || 'Upload failed');
+        }
         if ((data as any)?.error) throw new Error((data as any).error);
 
         toast.success('Letterhead uploaded and rendered.');
@@ -280,8 +283,6 @@ export default function LetterheadSettings() {
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'image/png': ['.png'],
-      'image/jpeg': ['.jpg', '.jpeg'],
     },
     maxFiles: 1,
     maxSize: 5 * 1024 * 1024,
@@ -443,7 +444,7 @@ export default function LetterheadSettings() {
                       {isDragActive ? 'Drop the file' : 'Drag & drop, or click to choose'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Recommended: PDF (single page, max 5&nbsp;MB). Also accepts DOCX, PNG, JPG (min 2480px wide).
+                      Upload a single-page PDF or DOCX only, up to 5&nbsp;MB.
                     </p>
                   </div>
                 )}
