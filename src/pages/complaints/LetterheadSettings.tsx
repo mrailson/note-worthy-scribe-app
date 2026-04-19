@@ -38,7 +38,7 @@ interface Letterhead {
   rendered_png_path: string;
   height_cm: number;
   top_margin_cm: number;
-  alignment: 'left' | 'center' | 'right';
+  alignment: 'left' | 'centre' | 'right';
   include_all_pages: boolean;
   uploaded_by: string;
   uploaded_at: string;
@@ -111,7 +111,7 @@ export default function LetterheadSettings() {
 
   const [heightCm, setHeightCm] = useState<number>(6);
   const [topMarginCm, setTopMarginCm] = useState<number>(1);
-  const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('center');
+  const [alignment, setAlignment] = useState<'left' | 'centre' | 'right'>('centre');
   const [includeAllPages, setIncludeAllPages] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -223,7 +223,7 @@ export default function LetterheadSettings() {
       } else {
         setHeightCm(6);
         setTopMarginCm(1);
-        setAlignment('center');
+        setAlignment('centre');
         setIncludeAllPages(false);
       }
     } catch (e: any) {
@@ -529,7 +529,7 @@ export default function LetterheadSettings() {
                   onValueChange={(v) => v && setAlignment(v as any)}
                 >
                   <ToggleGroupItem value="left">Left</ToggleGroupItem>
-                  <ToggleGroupItem value="center">Centre</ToggleGroupItem>
+                  <ToggleGroupItem value="centre">Centre</ToggleGroupItem>
                   <ToggleGroupItem value="right">Right</ToggleGroupItem>
                 </ToggleGroup>
               </div>

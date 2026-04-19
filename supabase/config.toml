@@ -508,3 +508,6 @@ verify_jwt = false
 
 [functions.generate-patient-translation-summary]
 verify_jwt = false
+
+[functions.render-practice-letterhead]
+verify_jwt = true
