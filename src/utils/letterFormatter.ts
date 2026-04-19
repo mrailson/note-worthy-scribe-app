@@ -134,8 +134,21 @@ export async function createLetterDocument(
   referenceNumber: string,
   signatoryName?: string | null,
   practiceDetails?: { phone?: string | null; email?: string | null; practice_name?: string | null } | null,
-  signatoryJobTitle?: string | null
+  signatoryJobTitle?: string | null,
+  practiceId?: string | null
 ): Promise<Document> {
+  // PRACTICE LETTERHEAD (Phase 3): if the practice has an active letterhead configured,
+  // it overrides the legacy logo + text header for new letters.
+  let practiceLetterhead: Awaited<ReturnType<typeof import('./practiceLetterhead').getActiveLetterhead>> = null;
+  if (practiceId) {
+    try {
+      const { getActiveLetterhead } = await import('./practiceLetterhead');
+      practiceLetterhead = await getActiveLetterhead(practiceId);
+    } catch (e) {
+      console.warn('[letterFormatter] practice letterhead lookup failed:', e);
+    }
+  }
+
   // Extract logo URL from HTML comment if present
   const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   let logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
@@ -291,8 +304,52 @@ export async function createLetterDocument(
   // Build document sections
   const documentChildren: Paragraph[] = [];
 
-  // Add logo at the top center with actual image embedding
-  if (logoUrl) {
+  // PRACTICE LETTERHEAD takes precedence over the legacy logo path.
+  if (practiceLetterhead?.signed_url) {
+    try {
+      const lhResp = await fetch(practiceLetterhead.signed_url);
+      if (!lhResp.ok) throw new Error(`Letterhead fetch ${lhResp.status}`);
+      const lhBlob = await lhResp.blob();
+      const lhBuf = new Uint8Array(await lhBlob.arrayBuffer());
+
+      // Render at configured height (cm). Width follows A4 content area (~17cm typographic safe).
+      // 1 cm ≈ 37.795 px @ 96dpi for docx ImageRun (it expects px units).
+      const cmToPx = 37.795;
+      const targetHeightPx = Math.round(practiceLetterhead.height_cm * cmToPx);
+      const a4ContentWidthPx = Math.round(17 * cmToPx); // ~643px — A4 minus 2cm side margins
+
+      const align =
+        practiceLetterhead.alignment === 'left' ? AlignmentType.LEFT :
+        practiceLetterhead.alignment === 'right' ? AlignmentType.RIGHT :
+        AlignmentType.CENTER;
+
+      // Optional top margin: emulate by inserting an empty paragraph spaced before.
+      if (practiceLetterhead.top_margin_cm > 0) {
+        documentChildren.push(new Paragraph({
+          children: [new TextRun('')],
+          spacing: { after: Math.round(practiceLetterhead.top_margin_cm * 567) }, // 1cm ≈ 567 twips
+        }));
+      }
+
+      documentChildren.push(new Paragraph({
+        children: [
+          new ImageRun({
+            data: lhBuf,
+            transformation: { width: a4ContentWidthPx, height: targetHeightPx },
+            type: 'png',
+          }),
+        ],
+        alignment: align,
+        spacing: { after: 300 },
+      }));
+    } catch (lhErr) {
+      console.error('[letterFormatter] practice letterhead embed failed, falling back to legacy logo:', lhErr);
+      practiceLetterhead = null; // trigger legacy path below
+    }
+  }
+
+  // Add logo at the top center with actual image embedding (LEGACY path — only when no letterhead)
+  if (!practiceLetterhead && logoUrl) {
     try {
       const imageResponse = await fetch(logoUrl);
       if (imageResponse.ok) {
