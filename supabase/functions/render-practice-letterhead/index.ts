@@ -1,19 +1,17 @@
-// Render Practice Letterhead — converts uploaded image into a PNG stored in
-// the `practice-letterheads` bucket and persisted via practice_letterheads.
+// Render Practice Letterhead — converts uploaded PDF / DOCX / image into a PNG
+// stored in `practice-letterheads` and persisted via practice_letterheads.
 //
-// Runtime: Supabase Edge Runtime (Deno). To stay reliable, this function
-// AVOIDS heavyweight WASM PDF/canvas libraries (which repeatedly broke boot or
-// runtime in this environment). Strategy:
+// Runtime: Supabase Edge Runtime (Deno). Strategy chosen for reliability:
+//   - PNG  : verified by header bytes, stored as-is (no decode needed).
+//   - JPEG : decode + re-encode via jsr:@img/jpeg + jsr:@img/png (pure Deno).
+//   - PDF  : text extracted via unpdf (Deno-native), rendered onto an A4 PNG
+//            via SVG + @resvg/resvg-wasm. Single page only (typical letterhead).
+//   - DOCX : text extracted via mammoth, rendered the same way.
 //
-//   - PNG  : verify signature + width via PNG header parse, store as-is.
-//   - JPEG : decode → re-encode to PNG via jsr:@img/png + jsr:@img/jpeg
-//            (pure-Deno, no native, no NPM WASM init quirks).
-//   - PDF  : returns a clear 415 error asking user to upload a flattened PNG
-//            (recommended workflow: "Print to PDF → export page as PNG").
-//   - DOCX : returns a clear 415 error asking user to export the letterhead
-//            as PNG and re-upload.
-//
-// Storage paths, RLS, table shape and call-site contract are unchanged.
+// All heavy deps are dynamically imported inside the request handler so a
+// single broken dep returns a clean 500 with a useful message rather than
+// preventing the function from booting (which would surface as the unhelpful
+// "Failed to send a request to the Edge Function").
 
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
@@ -25,6 +23,11 @@ const corsHeaders = {
 };
 
 const MIN_IMAGE_WIDTH_PX = 2480; // A4 @ 300 DPI
+const TARGET_DPI = 300;
+const A4_WIDTH_INCHES = 8.27;
+const TARGET_WIDTH_PX = Math.round(A4_WIDTH_INCHES * TARGET_DPI); // ~2481
+const MAX_PDF_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_DOCX_BYTES = 10 * 1024 * 1024; // 10MB
 
 interface RenderResult {
   pngBytes: Uint8Array;
@@ -33,25 +36,19 @@ interface RenderResult {
 }
 
 // ---------------------------------------------------------------------------
-// PNG header parsing (no external deps)
+// PNG header parsing (zero deps)
 // ---------------------------------------------------------------------------
 function parsePngDimensions(bytes: Uint8Array): { width: number; height: number } | null {
-  // PNG signature: 89 50 4E 47 0D 0A 1A 0A, then IHDR chunk at byte 8.
-  // IHDR layout: 4-byte length, "IHDR", 4-byte width, 4-byte height, ...
   if (bytes.length < 24) return null;
   const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   for (let i = 0; i < 8; i++) if (bytes[i] !== sig[i]) return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const width = view.getUint32(16, false);
-  const height = view.getUint32(20, false);
-  return { width, height };
+  return { width: view.getUint32(16, false), height: view.getUint32(20, false) };
 }
 
 async function handlePngBytes(bytes: Uint8Array): Promise<RenderResult> {
   const dims = parsePngDimensions(bytes);
-  if (!dims) {
-    throw new Error("File is not a valid PNG (signature/IHDR check failed).");
-  }
+  if (!dims) throw new Error("File is not a valid PNG (signature/IHDR check failed).");
   if (dims.width < MIN_IMAGE_WIDTH_PX) {
     throw new Error(
       `PNG too narrow (${dims.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI). Please re-export at higher resolution.`,
@@ -61,11 +58,10 @@ async function handlePngBytes(bytes: Uint8Array): Promise<RenderResult> {
 }
 
 // ---------------------------------------------------------------------------
-// JPEG → PNG via pure-Deno jsr:@img modules (no WASM init dance, no NPM)
+// JPEG → PNG via pure-Deno jsr:@img modules
 // ---------------------------------------------------------------------------
 async function handleJpegBytes(bytes: Uint8Array): Promise<RenderResult> {
-  let jpeg: any;
-  let png: any;
+  let jpeg: any, png: any;
   try {
     // @ts-ignore - jsr specifier
     jpeg = await import("jsr:@img/jpeg@0.1.4");
@@ -73,10 +69,10 @@ async function handleJpegBytes(bytes: Uint8Array): Promise<RenderResult> {
     png = await import("jsr:@img/png@0.1.4");
   } catch (e: any) {
     throw new Error(
-      `JPEG support unavailable in this runtime (${e?.message ?? "unknown error"}). Please re-export your letterhead as a PNG and try again.`,
+      `JPEG support unavailable in this runtime (${e?.message ?? "unknown error"}). Please re-export your letterhead as PNG and try again.`,
     );
   }
-  const decoded = await jpeg.decode(bytes); // { data: Uint8Array RGBA, width, height }
+  const decoded = await jpeg.decode(bytes);
   if (decoded.width < MIN_IMAGE_WIDTH_PX) {
     throw new Error(
       `Image too narrow (${decoded.width}px). Minimum width is ${MIN_IMAGE_WIDTH_PX}px (A4 @ 300 DPI).`,
@@ -88,6 +84,124 @@ async function handleJpegBytes(bytes: Uint8Array): Promise<RenderResult> {
     height: decoded.height,
   });
   return { pngBytes, widthPx: decoded.width, heightPx: decoded.height };
+}
+
+// ---------------------------------------------------------------------------
+// resvg-wasm singleton (used to rasterise text-only SVG → PNG)
+// ---------------------------------------------------------------------------
+let resvgReady: Promise<any> | null = null;
+async function loadResvg() {
+  if (!resvgReady) {
+    resvgReady = (async () => {
+      // @ts-ignore - npm specifier
+      const mod = await import("npm:@resvg/resvg-wasm@2.6.2");
+      const wasmUrl = "https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+      const wasm = await fetch(wasmUrl).then((r) => r.arrayBuffer());
+      await mod.initWasm(wasm);
+      return mod;
+    })();
+  }
+  return resvgReady;
+}
+
+const escapeXml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * Build a clean A4-width PNG from the supplied lines of text using SVG + resvg.
+ * Used for both PDF and DOCX paths where we extract text only.
+ */
+async function renderLinesToPng(lines: string[]): Promise<RenderResult> {
+  const cleaned = lines.map((l) => l.trim()).filter(Boolean);
+  if (cleaned.length === 0) {
+    throw new Error("No text could be extracted from the document.");
+  }
+  // Cap so we don't render a 30-line essay as a "letterhead".
+  const limited = cleaned.slice(0, 12);
+
+  const width = TARGET_WIDTH_PX;
+  const fontSize = Math.round(TARGET_DPI / 6); // ~50px ≈ 12pt @ 300 dpi
+  const lineHeight = Math.round(fontSize * 1.4);
+  const padTop = Math.round(TARGET_DPI / 4); // ~0.25in
+  const padBottom = padTop;
+  const minHeight = Math.round((6 / 2.54) * TARGET_DPI); // 6cm minimum
+  const height = Math.max(minHeight, padTop + limited.length * lineHeight + padBottom);
+
+  const tspans = limited
+    .map(
+      (line, i) =>
+        `<text x="${width / 2}" y="${padTop + (i + 1) * lineHeight}" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="${fontSize}" fill="#000000">${escapeXml(line)}</text>`,
+    )
+    .join("");
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#ffffff"/>${tspans}</svg>`;
+
+  const resvgMod = await loadResvg();
+  const resvg = new resvgMod.Resvg(svg, {
+    fitTo: { mode: "width", value: width },
+    background: "#ffffff",
+  });
+  const pngData = resvg.render();
+  return {
+    pngBytes: pngData.asPng(),
+    widthPx: pngData.width,
+    heightPx: pngData.height,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// PDF → PNG via unpdf (text extraction) + resvg
+// ---------------------------------------------------------------------------
+async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
+  if (bytes.byteLength > MAX_PDF_BYTES) {
+    throw new Error(
+      `PDF exceeds ${MAX_PDF_BYTES / 1024 / 1024}MB limit (${(bytes.byteLength / 1024 / 1024).toFixed(2)}MB).`,
+    );
+  }
+  let unpdf: any;
+  try {
+    // @ts-ignore - esm specifier (Deno-native, no Node bindings)
+    unpdf = await import("https://esm.sh/unpdf@0.12.1");
+  } catch (e: any) {
+    throw new Error(
+      `PDF support unavailable in this runtime (${e?.message ?? "unknown error"}). Please upload a PNG letterhead instead.`,
+    );
+  }
+  const { text } = await unpdf.extractText(bytes, { mergePages: true });
+  const lines = (typeof text === "string" ? text : Array.isArray(text) ? text.join("\n") : "")
+    .split(/\r?\n+/);
+  return renderLinesToPng(lines);
+}
+
+// ---------------------------------------------------------------------------
+// DOCX → PNG via mammoth (text extraction) + resvg
+// ---------------------------------------------------------------------------
+async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
+  if (bytes.byteLength > MAX_DOCX_BYTES) {
+    throw new Error(
+      `DOCX exceeds ${MAX_DOCX_BYTES / 1024 / 1024}MB limit (${(bytes.byteLength / 1024 / 1024).toFixed(2)}MB).`,
+    );
+  }
+  let mammoth: any;
+  try {
+    // @ts-ignore - npm specifier
+    const mod = await import("npm:mammoth@1.8.0");
+    mammoth = mod.default ?? mod;
+  } catch (e: any) {
+    throw new Error(
+      `DOCX support unavailable in this runtime (${e?.message ?? "unknown error"}). Please upload a PNG letterhead instead.`,
+    );
+  }
+  const result = await mammoth.extractRawText({
+    arrayBuffer: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+  });
+  const raw: string = result?.value || "";
+  // Honour an optional "--- END LETTERHEAD ---" marker so users can include
+  // body content in the same DOCX.
+  const marker = /---\s*END\s+LETTERHEAD\s*---/i;
+  const trimmed = marker.test(raw) ? raw.split(marker)[0] : raw;
+  const lines = trimmed.split(/\r?\n+/);
+  return renderLinesToPng(lines);
 }
 
 // ---------------------------------------------------------------------------
@@ -175,27 +289,15 @@ Deno.serve(async (req) => {
     } else if (mime === "image/jpeg" || /\.(jpg|jpeg)$/i.test(lowerName)) {
       rendered = await handleJpegBytes(bytes);
     } else if (mime === "application/pdf" || lowerName.endsWith(".pdf")) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "PDF letterhead upload is temporarily unavailable. Please export your letterhead as a PNG (A4 @ 300 DPI, min 2480px wide) and upload that instead. In Word: File → Export → Create PDF/XPS, then open the PDF and use 'Save as Image (PNG)'.",
-        }),
-        { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      rendered = await renderPdfToPng(bytes);
     } else if (
       mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
       lowerName.endsWith(".docx")
     ) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "DOCX letterhead upload is temporarily unavailable. Please open your letterhead in Word, take a high-resolution screenshot of the header (or 'Save as PNG'), and upload the PNG (min 2480px wide).",
-        }),
-        { status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      rendered = await renderDocxToPng(bytes);
     } else {
       return new Response(
-        JSON.stringify({ error: `Unsupported file type: ${mime || file.name}. Please upload a PNG.` }),
+        JSON.stringify({ error: `Unsupported file type: ${mime || file.name}. Please upload PNG, JPG, PDF, or DOCX.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
