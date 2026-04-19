@@ -1192,8 +1192,22 @@ const ComplaintDetails = () => {
       // Format the letter content as HTML matching the Word document style
       const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
       const { getActiveLetterhead } = await import('@/utils/practiceLetterhead');
+      const { letterheadToPngDataUrl } = await import('@/utils/letterheadToImage');
       const letterheadForEmail = await getActiveLetterhead(complaint.practice_id);
-      const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter, null, letterheadForEmail);
+      const renderedLetterhead = letterheadForEmail ? await letterheadToPngDataUrl(letterheadForEmail) : null;
+      const formattedLetterHtml = formatLetterForEmail(
+        acknowledgementLetter,
+        null,
+        letterheadForEmail
+          ? {
+              signed_url: letterheadForEmail.signed_url,
+              rendered_data_url: renderedLetterhead?.data_url,
+              height_cm: letterheadForEmail.height_cm,
+              alignment: letterheadForEmail.alignment,
+              top_margin_cm: letterheadForEmail.top_margin_cm,
+            }
+          : null,
+      );
 
       const emailData = {
         to_email: toRecipients.join(', '),
@@ -1318,8 +1332,22 @@ const ComplaintDetails = () => {
       // Format the letter content as HTML
       const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
       const { getActiveLetterhead } = await import('@/utils/practiceLetterhead');
+      const { letterheadToPngDataUrl } = await import('@/utils/letterheadToImage');
       const letterheadForEmail = await getActiveLetterhead(complaint.practice_id);
-      const formattedLetterHtml = formatLetterForEmail(outcomeLetter, null, letterheadForEmail);
+      const renderedLetterhead = letterheadForEmail ? await letterheadToPngDataUrl(letterheadForEmail) : null;
+      const formattedLetterHtml = formatLetterForEmail(
+        outcomeLetter,
+        null,
+        letterheadForEmail
+          ? {
+              signed_url: letterheadForEmail.signed_url,
+              rendered_data_url: renderedLetterhead?.data_url,
+              height_cm: letterheadForEmail.height_cm,
+              alignment: letterheadForEmail.alignment,
+              top_margin_cm: letterheadForEmail.top_margin_cm,
+            }
+          : null,
+      );
 
       const emailData = {
         to_email: toRecipients.join(', '),

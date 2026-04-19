@@ -307,10 +307,16 @@ export async function createLetterDocument(
   // PRACTICE LETTERHEAD takes precedence over the legacy logo path.
   if (practiceLetterhead?.signed_url) {
     try {
-      const lhResp = await fetch(practiceLetterhead.signed_url);
-      if (!lhResp.ok) throw new Error(`Letterhead fetch ${lhResp.status}`);
-      const lhBlob = await lhResp.blob();
-      const lhBuf = new Uint8Array(await lhBlob.arrayBuffer());
+      // Always rasterise via the unified PNG converter so PDFs/DOCX work too.
+      const { letterheadToPngDataUrl } = await import('./letterheadToImage');
+      const rendered = await letterheadToPngDataUrl(practiceLetterhead);
+      if (!rendered?.data_url) throw new Error('Letterhead render returned empty result');
+
+      // Strip data: prefix and decode to bytes for docx ImageRun.
+      const base64 = rendered.data_url.split(',')[1] || '';
+      const binary = atob(base64);
+      const lhBuf = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) lhBuf[i] = binary.charCodeAt(i);
 
       // Render at configured height (cm). Width follows A4 content area (~17cm typographic safe).
       // 1 cm ≈ 37.795 px @ 96dpi for docx ImageRun (it expects px units).

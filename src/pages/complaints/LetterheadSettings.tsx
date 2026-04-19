@@ -391,7 +391,7 @@ export default function LetterheadSettings() {
         </p>
       </div>
 
-      {practices.length > 1 && (
+      {practices.length > 1 ? (
         <Card className="mb-6">
           <CardContent className="pt-6">
             <Label htmlFor="practice-select" className="mb-2 block">
@@ -411,7 +411,19 @@ export default function LetterheadSettings() {
             </Select>
           </CardContent>
         </Card>
-      )}
+      ) : practices.length === 1 ? (
+        <Card className="mb-6 border-primary/30 bg-primary/5">
+          <CardContent className="pt-6">
+            <Label className="mb-1 block text-xs uppercase tracking-wide text-muted-foreground">
+              Current practice
+            </Label>
+            <p className="text-lg font-semibold text-foreground">{practices[0].name}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Letterheads are saved against this practice only.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
@@ -460,7 +472,8 @@ export default function LetterheadSettings() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{active.original_filename}</p>
                       <p className="text-xs text-muted-foreground">
-                        Uploaded {format(new Date(active.uploaded_at), 'd MMM yyyy HH:mm')} by{' '}
+                        Practice: {practices.find((p) => p.id === active.practice_id)?.name || 'Unknown'} • Uploaded{' '}
+                        {format(new Date(active.uploaded_at), 'd MMM yyyy HH:mm')} by{' '}
                         {active.uploader_name}
                       </p>
                     </div>

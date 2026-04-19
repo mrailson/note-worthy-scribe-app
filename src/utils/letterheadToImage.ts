@@ -32,7 +32,7 @@ export async function letterheadToPngDataUrl(
   lh: ActiveLetterhead | null | undefined,
 ): Promise<RenderedLetterhead | null> {
   if (!lh?.signed_url) return null;
-  const cacheKey = lh.rendered_png_path || lh.signed_url;
+  const cacheKey = `${lh.storage_path || ''}|${lh.rendered_png_path || ''}|${lh.signed_url}`;
   const cached = dataUrlCache.get(cacheKey);
   if (cached) {
     // Decode dimensions from cached image lazily.
@@ -53,17 +53,40 @@ export async function letterheadToPngDataUrl(
       if (result) dataUrlCache.set(cacheKey, result.data_url);
       return result;
     }
+    if (mime.startsWith('image/')) {
+      // Already an image — just return the signed URL as the data source and read its dims.
+      const dims = await imageDimensions(lh.signed_url);
+      const result = { data_url: lh.signed_url, ...dims };
+      dataUrlCache.set(cacheKey, result.data_url);
+      return result;
+    }
   } catch (err) {
     console.error('[letterheadToPngDataUrl] failed:', err);
   }
   return null;
 }
 
+const PNG_MIME = 'image/png';
+
 function inferMimeType(lh: ActiveLetterhead): string {
-  // ActiveLetterhead doesn't carry mime; derive from path/signed URL extension.
-  const candidate = (lh.rendered_png_path || lh.signed_url).toLowerCase();
+  // If the resolver gave us the legacy pre-rendered PNG, treat it as an image.
+  if (lh.signed_url_is_png) return PNG_MIME;
+
+  // Prefer the explicit mime stored on the active row.
+  if (lh.original_mime_type) {
+    const m = lh.original_mime_type.toLowerCase();
+    if (m.includes('pdf')) return PDF_MIME;
+    if (m.includes('wordprocessingml')) return DOCX_MIME;
+    if (m.startsWith('image/')) return m;
+  }
+
+  // Fall back to extension sniffing across filename / storage_path / signed url.
+  const candidate = (
+    lh.original_filename || lh.storage_path || lh.rendered_png_path || lh.signed_url || ''
+  ).toLowerCase();
   if (candidate.endsWith('.pdf') || candidate.includes('.pdf?')) return PDF_MIME;
   if (candidate.endsWith('.docx') || candidate.includes('.docx?')) return DOCX_MIME;
+  if (candidate.endsWith('.png') || candidate.endsWith('.jpg') || candidate.endsWith('.jpeg')) return PNG_MIME;
   return PDF_MIME; // sensible default
 }
 
