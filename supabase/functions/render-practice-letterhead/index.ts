@@ -225,10 +225,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Auth-scoped client — used for permission checks and RLS-protected writes.
+    // The previous version called the permission RPC via the service-role
+    // client, which makes auth.uid() inside SECURITY DEFINER functions return
+    // NULL → permission check always fails → 403. That 403 surfaces in the
+    // browser as "Edge Function returned a non-2xx status code" with no body.
     const userClient = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
     });
+
+    console.log("[letterhead] auth header present:", !!authHeader);
     const { data: userData, error: userErr } = await userClient.auth.getUser();
+    console.log("[letterhead] caller uid:", userData?.user?.id ?? null);
+
     if (userErr || !userData.user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
@@ -267,14 +276,33 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Service-role client used ONLY for storage uploads (bucket policies
+    // require it) and for the final DB insert (so RLS doesn't get in the way
+    // once we've already verified the caller via the auth-scoped RPC above).
     const admin = createClient(supabaseUrl, serviceRole);
-    const { data: canManage, error: permErr } = await admin.rpc(
+
+    // Permission check via the AUTH-SCOPED client so auth.uid() resolves.
+    const { data: canManage, error: permErr } = await userClient.rpc(
       "can_manage_practice_letterhead",
       { _practice_id: practiceId },
     );
-    if (permErr || !canManage) {
+    console.log("[letterhead] permission check:", { canManage, permErr: permErr?.message });
+    if (permErr) {
       return new Response(
-        JSON.stringify({ error: "Forbidden — you cannot manage this practice's letterhead" }),
+        JSON.stringify({
+          error: `Permission check failed: ${permErr.message}`,
+          stage: "permission_rpc",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (!canManage) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "You don't have permission to manage this practice's letterhead. Ask a Practice Manager or System Admin.",
+          stage: "permission_denied",
+        }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
