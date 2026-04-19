@@ -6,7 +6,7 @@ import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { calculateStaffMonthlyAmount } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
-import { exportClaimsDetail } from '@/utils/buybackExcelExport';
+import { exportClaimsDetail, exportDirectorClaimsDetail } from '@/utils/buybackExcelExport';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
@@ -2457,7 +2457,18 @@ export function ClaimsViewSwitcher({
   const invoicedClaims = useMemo(() => sorted.filter(c => c.invoice_number && (c.status === 'invoiced' || c.status === 'paid')), [sorted]);
 
   const handleExcelExport = () => {
-    exportClaimsDetail(sorted, practiceKey);
+    if (directorMode) {
+      const practiceLabel = !practiceFilter || practiceFilter === 'all'
+        ? 'AllPractices'
+        : (practiceOptions?.find(p => p.key === practiceFilter)?.name) || practiceFilter;
+      const timeWindowLabel = PERIOD_OPTIONS.find(p => p.key === period)?.label || 'AllTime';
+      exportDirectorClaimsDetail(
+        filteredLines.map(l => ({ claim: l.claim, staff: l.staff, monthLabel: l.monthLabel })),
+        { practiceLabel, timeWindowLabel },
+      );
+    } else {
+      exportClaimsDetail(sorted, practiceKey);
+    }
   };
 
   const handleDownloadAll = async () => {
@@ -2498,7 +2509,7 @@ export function ClaimsViewSwitcher({
   };
 
   const VIEW_TABS: { key: ClaimsView; label: string; icon: string }[] = [
-    { key: 'summary', label: 'Summary', icon: '📋' },
+    ...(hideSummaryView ? [] : [{ key: 'summary' as ClaimsView, label: 'Summary', icon: '📋' }]),
     { key: 'cards', label: 'Individual Claim View', icon: '🃏' },
     { key: 'invoices', label: 'Invoices', icon: '📄' },
     { key: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
