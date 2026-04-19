@@ -1088,9 +1088,10 @@ export function BuyBackPMLDashboard({
   const [view, setView] = useState<PMLView>(defaultView || (isPMLFinance ? 'finance' : 'director'));
   const sessionKey = `nres-pml-statusFilter-${view}`;
   const initialStatus = (() => {
-    // Director view always defaults to "Awaiting Review" on mount,
-    // ignoring any previously persisted filter, per product requirement.
+    // Director view always defaults to "Awaiting Review" and Finance to "Invoiced"
+    // on mount, ignoring any previously persisted filter, per product requirement.
     if (view === 'director') return 'awaiting_review';
+    if (view === 'finance') return 'invoiced';
     try {
       const saved = sessionStorage.getItem(sessionKey);
       if (saved) return saved;

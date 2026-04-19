@@ -2768,7 +2768,11 @@ export function ClaimsViewSwitcher({
                         {fmtGBP(l.claimedAmt)}
                         {l.isBelow && <span style={{ color: '#d97706', fontSize: 9, marginLeft: 4 }}>(below max)</span>}
                       </td>
-                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11 }}>{l.claim.invoice_number || '—'}</td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 11 }}>
+                        {l.claim.invoice_number ? (
+                          <InvoiceDownloadLink claim={l.claim} />
+                        ) : '—'}
+                      </td>
                       <td style={{ padding: '8px 10px', textAlign: 'right' }}>
                         <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, color: statusColor(l.claim.status), background: `${statusColor(l.claim.status)}14` }}>
                           {l.claim.status}
