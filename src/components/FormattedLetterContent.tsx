@@ -171,7 +171,10 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
         if (!rendered || cancelled) return;
         setLetterheadDataUrl(rendered.data_url);
         setLetterheadHeightPx(Math.round(lh.height_cm * 37.795));
-        setLetterheadAlignment((lh.alignment === 'centre' ? 'center' : lh.alignment) as 'left' | 'center' | 'right');
+        const rawAlign = String(lh.alignment ?? 'center');
+        const normalisedAlign: 'left' | 'center' | 'right' =
+          rawAlign === 'centre' ? 'center' : (rawAlign as 'left' | 'center' | 'right');
+        setLetterheadAlignment(normalisedAlign);
         setLetterheadTopMarginPx(Math.round((lh.top_margin_cm ?? 0) * 37.795));
       } catch (e) {
         console.warn('[FormattedLetterContent] letterhead render failed:', e);
