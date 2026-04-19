@@ -630,7 +630,7 @@ export default function PatientSupportPlan() {
         <button onClick={() => navigate("/agewell")} style={{background:"none",border:"none",cursor:"pointer",color:C.dark,fontWeight:700,fontSize:13,display:"flex",alignItems:"center",gap:4}}>
           ← Notewell
         </button>
-        <div style={{fontSize:11,fontWeight:700,color:C.dark,letterSpacing:1}}>AGEING WELL LIVE SERVICES</div>
+        <div style={{fontSize:11,fontWeight:700,color:C.dark,letterSpacing:1}}>AGEING WELL WITH NOTEWELL AI</div>
       </div>
 
       {/* ── Blue header ─────────────────────────────────────────────── */}

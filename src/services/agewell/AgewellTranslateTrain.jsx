@@ -1555,7 +1555,7 @@ export default function AgewellTranslateTrain(){
         <div>
           <div style={{fontWeight:800,fontSize:15,color:"white",letterSpacing:"-0.2px",
             fontFamily:"Georgia,'Times New Roman',serif"}}>
-            Ageing Well Live Services
+            Ageing Well with Notewell AI
           </div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.75)",letterSpacing:"1px",fontWeight:600}}>
             NOTEWELL AI · NEIGHBOURHOOD CARE SERVICE
