@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { LetterheadOriginalPreview } from '@/components/complaints/LetterheadOriginalPreview';
 
 interface Practice {
   id: string;
@@ -335,6 +336,7 @@ export default function LetterheadSettings() {
       const { error } = await supabase.from('practice_letterheads').insert({
         practice_id: lh.practice_id,
         original_filename: lh.original_filename,
+        original_mime_type: lh.original_mime_type,
         storage_path: lh.storage_path,
         rendered_png_path: lh.rendered_png_path,
         height_cm: lh.height_cm,
@@ -646,27 +648,14 @@ export default function LetterheadSettings() {
                     className="absolute top-0 left-0 right-0 border-b border-dashed border-muted-foreground/30 overflow-hidden"
                     style={{ height: `${headerHeightPx}px` }}
                   >
-                    {active?.signed_url ? (
-                      <img
-                        src={active.signed_url}
-                        alt="Letterhead"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'contain',
-                          objectPosition:
-                            alignment === 'left'
-                              ? 'left top'
-                              : alignment === 'right'
-                                ? 'right top'
-                                : 'center top',
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                        [ Notewell default header ]
-                      </div>
-                    )}
+                    <LetterheadOriginalPreview
+                      signedUrl={active?.signed_url}
+                      mimeType={active?.original_mime_type ?? undefined}
+                      fileName={active?.original_filename}
+                      targetWidthPx={pageWidthPx}
+                      bandHeightPx={headerHeightPx}
+                      alignment={alignment}
+                    />
                   </div>
 
                   <div
