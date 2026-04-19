@@ -1633,6 +1633,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       </Card>
       </Collapsible>
       </div>
+      )}
 
       {/* Management Time Section — hidden for mgmt_lead, pml_director, pml_finance */}
       {effectiveIsAdmin && !isENN && !isManagementLead && !isPMLDirector && !isPMLFinance && effectiveShowStaffMgmt && (
