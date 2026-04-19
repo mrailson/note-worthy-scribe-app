@@ -297,13 +297,25 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
             <FileText size={18} />
             <span className="font-bold text-sm sm:text-base tracking-wider uppercase truncate">
               {phase === "generating"
-                ? "Generating Patient Support Plan"
+                ? "Captured · Drafting Framework Support Plan"
                 : phase === "sending"
                 ? "Sending to GP Clinical System"
                 : phase === "sent"
                 ? "Delivered to GP Clinical System"
-                : "Patient Support Plan"}
+                : "Framework Master Support Plan"}
             </span>
+            {phase === "complete" && (
+              <span
+                className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider"
+                style={{
+                  border: "1px dashed #C99A2E",
+                  color: "#8A6A1F",
+                  background: "rgba(255,255,255,0.06)",
+                }}
+              >
+                FRAMEWORK
+              </span>
+            )}
             <span
               className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider"
               style={{ background: "#E67E22", color: "#1B1B1B" }}
