@@ -10230,7 +10230,7 @@ export type Database = {
           original_mime_type: string | null
           practice_id: string
           rendered_height_px: number | null
-          rendered_png_path: string
+          rendered_png_path: string | null
           rendered_width_px: number | null
           storage_path: string
           top_margin_cm: number
@@ -10250,7 +10250,7 @@ export type Database = {
           original_mime_type?: string | null
           practice_id: string
           rendered_height_px?: number | null
-          rendered_png_path: string
+          rendered_png_path?: string | null
           rendered_width_px?: number | null
           storage_path: string
           top_margin_cm?: number
@@ -10270,7 +10270,7 @@ export type Database = {
           original_mime_type?: string | null
           practice_id?: string
           rendered_height_px?: number | null
-          rendered_png_path?: string
+          rendered_png_path?: string | null
           rendered_width_px?: number | null
           storage_path?: string
           top_margin_cm?: number

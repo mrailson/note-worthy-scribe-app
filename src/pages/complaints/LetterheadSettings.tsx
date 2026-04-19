@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { LetterheadOriginalPreview } from '@/components/complaints/LetterheadOriginalPreview';
 
 interface Practice {
   id: string;
@@ -34,8 +35,9 @@ interface Letterhead {
   id: string;
   practice_id: string;
   original_filename: string;
+  original_mime_type?: string | null;
   storage_path: string;
-  rendered_png_path: string;
+  rendered_png_path: string | null;
   height_cm: number;
   top_margin_cm: number;
   alignment: 'left' | 'centre' | 'right';
@@ -197,7 +199,7 @@ export default function LetterheadSettings() {
           list.map((l) =>
             supabase.storage
               .from('practice-letterheads')
-              .createSignedUrl(l.rendered_png_path, 3600),
+              .createSignedUrl(l.storage_path, 3600),
           ),
         ),
       ]);
@@ -334,6 +336,7 @@ export default function LetterheadSettings() {
       const { error } = await supabase.from('practice_letterheads').insert({
         practice_id: lh.practice_id,
         original_filename: lh.original_filename,
+        original_mime_type: lh.original_mime_type,
         storage_path: lh.storage_path,
         rendered_png_path: lh.rendered_png_path,
         height_cm: lh.height_cm,
@@ -576,14 +579,8 @@ export default function LetterheadSettings() {
                       key={h.id}
                       className="flex items-center gap-3 rounded-md border p-2"
                     >
-                      <div className="h-12 w-16 bg-muted rounded overflow-hidden flex-shrink-0">
-                        {h.signed_url && (
-                          <img
-                            src={h.signed_url}
-                            alt={h.original_filename}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
+                      <div className="h-12 w-16 bg-muted rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{h.original_filename}</p>
@@ -645,27 +642,14 @@ export default function LetterheadSettings() {
                     className="absolute top-0 left-0 right-0 border-b border-dashed border-muted-foreground/30 overflow-hidden"
                     style={{ height: `${headerHeightPx}px` }}
                   >
-                    {active?.signed_url ? (
-                      <img
-                        src={active.signed_url}
-                        alt="Letterhead"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'contain',
-                          objectPosition:
-                            alignment === 'left'
-                              ? 'left top'
-                              : alignment === 'right'
-                                ? 'right top'
-                                : 'center top',
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                        [ Notewell default header ]
-                      </div>
-                    )}
+                    <LetterheadOriginalPreview
+                      signedUrl={active?.signed_url}
+                      mimeType={active?.original_mime_type ?? undefined}
+                      fileName={active?.original_filename}
+                      targetWidthPx={pageWidthPx}
+                      bandHeightPx={headerHeightPx}
+                      alignment={alignment}
+                    />
                   </div>
 
                   <div

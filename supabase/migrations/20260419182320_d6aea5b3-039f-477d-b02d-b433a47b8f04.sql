@@ -1,0 +1,1 @@
+ALTER TABLE public.practice_letterheads ALTER COLUMN rendered_png_path DROP NOT NULL;
