@@ -78,7 +78,7 @@ export function UserGeneratedImagesGallery() {
             User Generated Images
           </DialogTitle>
           <DialogDescription>
-            Showing up to 500 most recent images from <code>public.user_generated_images</code>.
+            Showing up to 1,000 most recent images across all users (admin view).
           </DialogDescription>
         </DialogHeader>
 
