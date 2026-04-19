@@ -362,44 +362,87 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
                 className="w-full max-w-lg rounded-xl border bg-white p-8 shadow-sm"
                 style={{ borderColor: "#E8E2D4" }}
               >
-                <div className="flex items-center gap-2 mb-6">
-                  <Sparkles size={16} style={{ color: "#2C7A7B" }} />
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="inline-block rounded-full"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      background: "#2C7A7B",
+                      animation: "pspFadeUp 700ms ease infinite alternate",
+                    }}
+                  />
                   <span
                     className="text-[11px] font-semibold tracking-wider uppercase"
                     style={{ color: "#1F5E5E" }}
                   >
-                    Notewell · Generating from transcript
+                    Captured · Drafting Framework Support Plan
                   </span>
                 </div>
 
-                <ul className="space-y-3">
+                <h3
+                  className="text-[20px] font-medium leading-snug mb-1"
+                  style={{
+                    fontFamily:
+                      'Fraunces, ui-serif, Georgia, "Times New Roman", serif',
+                    color: "#1A2332",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  Structuring what was discussed and agreed
+                </h3>
+                <p
+                  className="text-[12.5px] italic mb-5"
+                  style={{ color: "#6B7688" }}
+                >
+                  Listening only. Notewell does not decide.
+                </p>
+
+                {/* Progress bar */}
+                <div
+                  className="rounded-full overflow-hidden mb-5"
+                  style={{ height: 6, background: "#F0EADD" }}
+                  aria-hidden
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${Math.min(100, (visibleSteps / STEPS.length) * 100)}%`,
+                      background:
+                        "linear-gradient(90deg, #2C7A7B 0%, #1F5E5E 100%)",
+                      transition: "width 380ms ease",
+                    }}
+                  />
+                </div>
+
+                <ul className="space-y-2.5">
                   {STEPS.map((label, i) => {
                     if (i >= visibleSteps) return null;
                     const done = i < completedSteps;
                     return (
                       <li
                         key={label}
-                        className="psp-line flex items-center gap-3 text-[14px]"
+                        className="psp-line flex items-center gap-3 text-[13.5px]"
                         style={{ color: done ? "#1A2332" : "#3A4556" }}
                       >
                         <span
                           className="flex items-center justify-center rounded-full"
                           style={{
-                            width: 22,
-                            height: 22,
+                            width: 20,
+                            height: 20,
                             background: done ? "#E6F0F0" : "#F0EADD",
                             color: "#1F5E5E",
                             transition: "background 200ms ease",
                           }}
                         >
                           {done ? (
-                            <Check size={14} className="psp-tick" strokeWidth={3} />
+                            <Check size={12} className="psp-tick" strokeWidth={3} />
                           ) : (
                             <span
                               className="block rounded-full"
                               style={{
-                                width: 8,
-                                height: 8,
+                                width: 7,
+                                height: 7,
                                 background: "#8B94A5",
                                 animation: "pspFadeUp 600ms ease infinite alternate",
                               }}
