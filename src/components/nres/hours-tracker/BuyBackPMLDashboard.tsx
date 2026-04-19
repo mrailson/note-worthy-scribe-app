@@ -1181,10 +1181,18 @@ export function BuyBackPMLDashboard({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, []);
 
+  // Status filter test — handles virtual "to_process" (approved + invoiced)
+  const statusMatches = (raw: string, filter: string) => {
+    if (filter === 'all') return true;
+    const ds = toDisplayStatus(raw);
+    if (filter === 'to_process') return ds === 'approved' || ds === 'invoiced';
+    return ds === filter;
+  };
+
   // Apply practice + status + search filtering
   const filteredClaims = useMemo(() =>
     displayClaims.filter(c => {
-      if (statusFilter !== 'all' && toDisplayStatus(c.status) !== statusFilter) return false;
+      if (!statusMatches(c.status, statusFilter)) return false;
       if (practiceFilter !== 'all' && c.practice_key !== practiceFilter) return false;
       if (searchTerm) {
         const name = getPracticeName(c.practice_key).toLowerCase();
@@ -1197,7 +1205,7 @@ export function BuyBackPMLDashboard({
 
   const filteredMeetingGroups = useMemo(() =>
     meetingGroups.filter(g => {
-      if (statusFilter !== 'all' && toDisplayStatus(g.status) !== statusFilter) return false;
+      if (!statusMatches(g.status, statusFilter)) return false;
       if (practiceFilter !== 'all') {
         const code = NRES_ODS_CODES[practiceFilter];
         if (code && g.billing_org_code !== code) return false;
@@ -1208,12 +1216,12 @@ export function BuyBackPMLDashboard({
     [meetingGroups, statusFilter, practiceFilter, searchTerm]
   );
 
-  // On first mount: if default (awaiting/approved) is empty, fall back gracefully
+  // On first mount: if default action-queue is empty, fall back gracefully
   useEffect(() => {
     try {
       if (sessionStorage.getItem(sessionKey)) return; // user has a stored choice
     } catch {}
-    const preferred = view === 'finance' ? 'approved' : 'awaiting_review';
+    const preferred = view === 'finance' ? 'to_process' : 'awaiting_review';
     if (statusFilter !== preferred) return;
     if ((counts[preferred] || 0) > 0) return;
     if ((counts.queried || 0) > 0) setStatusFilter('queried');
@@ -1224,23 +1232,29 @@ export function BuyBackPMLDashboard({
   const switchView = (v: PMLView) => {
     setView(v);
     setExpandedId(null);
-    // statusFilter will re-init via sessionKey on next render — but we need to reset now
     try {
       const k = `nres-pml-statusFilter-${v}`;
       const saved = sessionStorage.getItem(k);
-      setStatusFilterRaw(saved || (v === 'finance' ? 'approved' : 'awaiting_review'));
+      setStatusFilterRaw(saved || (v === 'finance' ? 'to_process' : 'awaiting_review'));
     } catch {
-      setStatusFilterRaw(v === 'finance' ? 'approved' : 'awaiting_review');
+      setStatusFilterRaw(v === 'finance' ? 'to_process' : 'awaiting_review');
     }
   };
 
-  const statusFilters = [
-    { key: 'all', label: 'All' },
-    ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
-  ];
+  // Status filter chips — Finance gets the virtual "To process" chip first
+  const statusFilters = view === 'finance'
+    ? [
+        { key: 'to_process', label: 'To process', color: '#0369a1' },
+        { key: 'all', label: 'All' },
+        ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
+      ]
+    : [
+        { key: 'all', label: 'All' },
+        ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
+      ];
 
-  // Action queue is the cards list. Director: awaiting_review. Finance: approved.
-  const actionQueueStatus = view === 'finance' ? 'approved' : 'awaiting_review';
+  // Action queue is the cards list. Director: awaiting_review. Finance: to_process (approved + invoiced).
+  const actionQueueStatus = view === 'finance' ? 'to_process' : 'awaiting_review';
   const showActionQueue = statusFilter === actionQueueStatus;
 
   return (
