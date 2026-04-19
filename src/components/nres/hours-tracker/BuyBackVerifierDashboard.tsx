@@ -785,7 +785,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
     return visibleClaims.filter(c => {
       if (queueTab === 'queue') return c.status === 'submitted';
       if (queueTab === 'verified_by_me') {
-        if (!userEmail) return c.status === 'verified' || c.status === 'awaiting_review';
+        if (!userEmail) { const s = c.status as string; return s === 'verified' || s === 'awaiting_review'; }
         return (c.verified_by || '').toLowerCase() === userEmail.toLowerCase();
       }
       if (queueTab === 'returned') return c.status === 'queried' || c.status === 'rejected';
