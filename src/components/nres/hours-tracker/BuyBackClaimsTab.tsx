@@ -694,9 +694,24 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     if (visibleStatuses && !visibleStatuses.includes(c.status)) return false;
     return true;
   });
-  const practiceFilteredClaims = effectiveFilterPractice === 'all'
+  const basePracticeFilteredClaims = effectiveFilterPractice === 'all'
     ? accessFilteredClaims
     : accessFilteredClaims.filter(c => c.practice_key === effectiveFilterPractice);
+
+  // Apply category & route filters (admin view extras)
+  const practiceFilteredClaims = basePracticeFilteredClaims.filter(c => {
+    if (filterCategory !== 'all') {
+      const dets = (c.staff_details || []) as any[];
+      if (!dets.some(d => (d.staff_category || 'buyback') === filterCategory)) return false;
+    }
+    if (filterRoute !== 'all') {
+      // Route maps to staff category route: 'pml' for management/meeting, 'icb' for buyback/sda/locum
+      const dets = (c.staff_details || []) as any[];
+      const routeOf = (cat: string) => (cat === 'management' || cat === 'meeting') ? 'pml' : 'icb';
+      if (!dets.some(d => routeOf(d.staff_category || 'buyback') === filterRoute)) return false;
+    }
+    return true;
+  });
 
   // Sort: drafts first so the next claim to process is always at the top
   const STATUS_SORT_ORDER: Record<string, number> = {
