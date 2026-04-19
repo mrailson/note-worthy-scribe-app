@@ -579,14 +579,8 @@ export default function LetterheadSettings() {
                       key={h.id}
                       className="flex items-center gap-3 rounded-md border p-2"
                     >
-                      <div className="h-12 w-16 bg-muted rounded overflow-hidden flex-shrink-0">
-                        {h.signed_url && (
-                          <img
-                            src={h.signed_url}
-                            alt={h.original_filename}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
+                      <div className="h-12 w-16 bg-muted rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{h.original_filename}</p>
