@@ -1086,7 +1086,20 @@ export function BuyBackPMLDashboard({
   showSettings,
 }: BuyBackPMLDashboardProps) {
   const [view, setView] = useState<PMLView>(defaultView || (isPMLFinance ? 'finance' : 'director'));
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const sessionKey = `nres-pml-statusFilter-${view}`;
+  const initialStatus = (() => {
+    try {
+      const saved = sessionStorage.getItem(sessionKey);
+      if (saved) return saved;
+    } catch {}
+    return view === 'finance' ? 'approved' : 'awaiting_review';
+  })();
+  const [statusFilter, setStatusFilterRaw] = useState<string>(initialStatus);
+  const setStatusFilter = (s: string) => {
+    setStatusFilterRaw(s);
+    try { sessionStorage.setItem(sessionKey, s); } catch {}
+  };
+  const [practiceFilter, setPracticeFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
