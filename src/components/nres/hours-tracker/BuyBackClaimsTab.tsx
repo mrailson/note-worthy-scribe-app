@@ -564,6 +564,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   // Filters (admin)
   const [filterPractice, setFilterPractice] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>(isPMLFinance ? 'approved' : isPMLDirector ? 'verified' : 'all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterRoute, setFilterRoute] = useState<string>('all');
 
   const [proposalOpen, setProposalOpen] = useState(false);
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
