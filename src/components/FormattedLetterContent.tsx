@@ -32,6 +32,10 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
   const [signatoryProfile, setSignatoryProfile] = useState<SignatoryProfile | null>(null);
+  const [letterheadDataUrl, setLetterheadDataUrl] = useState<string | null>(null);
+  const [letterheadHeightPx, setLetterheadHeightPx] = useState<number | null>(null);
+  const [letterheadAlignment, setLetterheadAlignment] = useState<'left' | 'center' | 'right'>('center');
+  const [letterheadTopMarginPx, setLetterheadTopMarginPx] = useState<number>(0);
 
   // Extract practice logo URL from HTML comment if present
   const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
