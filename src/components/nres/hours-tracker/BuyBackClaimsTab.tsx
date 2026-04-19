@@ -1490,9 +1490,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       </Card>
       )}
 
-      <Separator />
+      {(!effectiveIsAdmin || testActive) && <Separator />}
 
-      {/* Claims */}
+      {/* Claims — hidden in admin view (replaced by ClaimsViewSwitcher above). */}
+      {(!effectiveIsAdmin || testActive) && (
       <div ref={claimsHistoryRef}>
       <Collapsible open={claimsHistoryOpen} onOpenChange={setClaimsHistoryOpen}>
       <Card>
