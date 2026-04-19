@@ -13212,6 +13212,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_list_user_generated_images: {
+        Args: never
+        Returns: {
+          category: string
+          created_at: string
+          id: string
+          image_url: string
+          prompt: string
+          source: string
+          title: string
+          user_id: string
+        }[]
+      }
       assign_policy_to_all_practices: {
         Args: { p_assigned_by?: string; p_policy_template_id: string }
         Returns: number

@@ -35,16 +35,12 @@ export function UserGeneratedImagesGallery() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('user_generated_images')
-        .select('id, image_url, prompt, title, category, source, created_at, user_id')
-        .order('created_at', { ascending: false })
-        .limit(500);
+      const { data, error } = await supabase.rpc('admin_list_user_generated_images' as any);
       if (!cancelled) {
         if (error) {
           console.error('Failed to load user_generated_images', error);
         } else {
-          setRows((data || []) as UserImageRow[]);
+          setRows(((data as any) || []) as UserImageRow[]);
         }
         setLoading(false);
       }
@@ -82,7 +78,7 @@ export function UserGeneratedImagesGallery() {
             User Generated Images
           </DialogTitle>
           <DialogDescription>
-            Showing up to 500 most recent images from <code>public.user_generated_images</code>.
+            Showing up to 1,000 most recent images across all users (admin view).
           </DialogDescription>
         </DialogHeader>
 
