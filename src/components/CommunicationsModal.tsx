@@ -902,23 +902,51 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
 
         {/* Body */}
         <div className="flex-1 min-h-0 flex overflow-hidden">
-          {/* Card grid */}
+          {/* LEFT PANE — letter list */}
           <div
-            className="min-h-0 overflow-y-auto"
+            className="min-h-0 overflow-y-auto flex-shrink-0"
             style={{
-              padding: 24,
+              padding: (isDesktop ? listVisible : !previewLetter) ? 24 : 0,
               background: "#FAFAF8",
-              width: previewLetter ? "45%" : "100%",
-              transition: "width 300ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+              borderRight:
+                previewLetter && isDesktop && listVisible ? "1px solid #E2E8F0" : "none",
+              width: isDesktop
+                ? listVisible
+                  ? previewLetter
+                    ? "40%"
+                    : "100%"
+                  : "0%"
+                : previewLetter
+                ? "0%"
+                : "100%",
+              opacity: isDesktop
+                ? listVisible
+                  ? 1
+                  : 0
+                : previewLetter
+                ? 0
+                : 1,
+              pointerEvents: isDesktop
+                ? listVisible
+                  ? "auto"
+                  : "none"
+                : previewLetter
+                ? "none"
+                : "auto",
+              transition:
+                "width 300ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 250ms ease, padding 300ms ease",
             }}
           >
             <div
               className={`grid gap-4 ${
-                previewLetter ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+                previewLetter && isDesktop && listVisible
+                  ? "grid-cols-1"
+                  : "grid-cols-1 md:grid-cols-2"
               }`}
             >
               {letters.map((l, i) => {
                 const Icon = l.Icon;
+                const isSelected = previewLetter?.id === l.id;
                 return (
                   <div
                     key={l.id}
@@ -926,6 +954,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
                     style={{
                       background: "#FEFCF7",
                       border: "1px solid #E2E0D9",
+                      borderLeft: isSelected ? "3px solid #0F766E" : "1px solid #E2E0D9",
                       opacity: mounted ? 1 : 0,
                       transform: mounted ? "translateY(0)" : "translateY(12px)",
                       transition: `opacity 400ms ease ${i * 50}ms, transform 400ms ease ${
@@ -933,11 +962,11 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
                       }ms, border-color 200ms, box-shadow 200ms`,
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#0F766E";
+                      if (!isSelected) e.currentTarget.style.borderColor = "#0F766E";
                       e.currentTarget.style.transform = "translateY(-2px)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#E2E0D9";
+                      if (!isSelected) e.currentTarget.style.borderColor = "#E2E0D9";
                       e.currentTarget.style.transform = "translateY(0)";
                     }}
                   >
@@ -983,9 +1012,7 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
                     </p>
 
                     <div className="flex flex-wrap gap-2 mt-4">
-                      <span
-                        className="px-2 py-0.5 text-xs rounded font-mono bg-slate-100 text-slate-600"
-                      >
+                      <span className="px-2 py-0.5 text-xs rounded font-mono bg-slate-100 text-slate-600">
                         DOCX
                       </span>
                       <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600">
@@ -1016,16 +1043,22 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
                         Download
                       </button>
                       <button
-                        onClick={() => setPreviewId(l.id)}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-white text-slate-700 transition-colors"
-                        style={{ border: "1px solid #E2E8F0" }}
+                        onClick={() => {
+                          setPreviewId(l.id);
+                          setListVisible(true);
+                        }}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-white transition-colors"
+                        style={{
+                          border: isSelected ? "1px solid #0F766E" : "1px solid #E2E8F0",
+                          color: isSelected ? "#0F766E" : "#334155",
+                        }}
                         onMouseEnter={(e) =>
                           (e.currentTarget.style.background = "#F8FAFC")
                         }
                         onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
                       >
                         <Eye size={14} />
-                        Preview
+                        {isSelected ? "Viewing" : "Preview"}
                       </button>
                     </div>
                   </div>
@@ -1034,27 +1067,33 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
             </div>
           </div>
 
-          {/* Preview panel */}
+          {/* RIGHT PANE — preview */}
           {previewLetter && (
             <div
-              className="min-h-0 overflow-y-auto"
+              className="flex-1 min-h-0 overflow-y-auto relative"
               style={{
-                width: "55%",
                 background: "#FEFCF7",
-                borderLeft: "1px solid #E2E8F0",
                 padding: 32,
                 animation: "commsSlideIn 300ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+                transition: "all 300ms cubic-bezier(0.2, 0.8, 0.2, 1)",
               }}
             >
-              <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: "1px solid #E2E8F0" }}>
+              <div
+                className="flex items-center justify-between gap-3 mb-4 pb-4 flex-wrap"
+                style={{ borderBottom: "1px solid #E2E8F0" }}
+              >
                 <button
-                  onClick={() => setPreviewId(null)}
+                  onClick={() => {
+                    setPreviewId(null);
+                    setListVisible(true);
+                  }}
                   className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   <ArrowLeft size={14} />
                   Back to list
                 </button>
                 <div
+                  className="flex items-center gap-3 min-w-0"
                   style={{
                     fontFamily: FONT_SERIF,
                     fontSize: 14,
@@ -1062,13 +1101,54 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
                     fontWeight: 500,
                   }}
                 >
-                  {previewLetter.title}
+                  <span className="truncate">{previewLetter.title}</span>
+                  {isDesktop && (
+                    <button
+                      onClick={() => setListVisible((v) => !v)}
+                      className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-white text-xs font-medium text-slate-700 shadow-sm hover:shadow-md transition-all flex-shrink-0"
+                      style={{ border: "1px solid #E2E8F0", fontFamily: "inherit" }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.borderColor = "#94A3B8")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.borderColor = "#E2E8F0")
+                      }
+                      title={listVisible ? "Hide list (L)" : "Show list (L)"}
+                    >
+                      {listVisible ? (
+                        <>
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                          Hide list
+                        </>
+                      ) : (
+                        <>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                          Show list
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div style={{ fontSize: 14 }}>{PREVIEW_CONTENT[previewLetter.id]}</div>
+              <div
+                style={{
+                  fontSize: 14,
+                  maxWidth: isDesktop && !listVisible ? 760 : "none",
+                  marginInline: isDesktop && !listVisible ? "auto" : undefined,
+                }}
+              >
+                {PREVIEW_CONTENT[previewLetter.id]}
+              </div>
 
-              <div className="mt-8 pt-6" style={{ borderTop: "1px solid #E2E8F0" }}>
+              <div
+                className="mt-8 pt-6"
+                style={{
+                  borderTop: "1px solid #E2E8F0",
+                  maxWidth: isDesktop && !listVisible ? 760 : "none",
+                  marginInline: isDesktop && !listVisible ? "auto" : undefined,
+                }}
+              >
                 <button
                   onClick={() => downloadFile(previewLetter.filename)}
                   className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-md text-sm font-medium text-white transition-colors"
@@ -1079,6 +1159,11 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
                   <Download size={14} />
                   Download this letter
                 </button>
+                {isDesktop && (
+                  <p className="text-center text-[11px] text-slate-400 mt-4">
+                    Press L to toggle list · 1–5 to jump · Esc to close
+                  </p>
+                )}
               </div>
             </div>
           )}
