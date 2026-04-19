@@ -607,7 +607,498 @@ const PatientSupportPlanModal: React.FC<PatientSupportPlanModalProps> = ({
 
 export default PatientSupportPlanModal;
 
-/* ─── Phase 2.5 — SENDING ─── */
+/* ─── Beat B — FRAMEWORK SUPPORT PLAN REVIEW ─── */
+
+interface FrameworkPlanReviewProps {
+  plan: NonNullable<DemoPatient["supportPlan"]>;
+  alreadySent: boolean;
+  generatedAt: string;
+  onOpen: () => void;
+  onDownload: () => void;
+  onSignOff: () => void;
+  onShowPayoff: () => void;
+}
+
+const FRAMEWORK_GOLD = "#C99A2E";
+const FRAMEWORK_GOLD_DEEP = "#8A6A1F";
+
+const FrameworkPlanReview: React.FC<FrameworkPlanReviewProps> = ({
+  plan,
+  alreadySent,
+  generatedAt,
+  onOpen,
+  onDownload,
+  onSignOff,
+  onShowPayoff,
+}) => {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0">
+      {/* ───── LEFT · Drafted plan preview ───── */}
+      <div className="px-6 sm:px-8 py-7">
+        <div className="mb-5">
+          <h2
+            className="text-[24px] leading-tight font-medium"
+            style={{
+              fontFamily:
+                'Fraunces, ui-serif, Georgia, "Times New Roman", serif',
+              color: "#1A2332",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Framework Master Support Plan — Mrs Dorothy Pearson
+          </h2>
+          <p className="mt-1.5 text-[13px]" style={{ color: "#6B7688" }}>
+            Draft · for clinician review, correction and sign-off
+          </p>
+        </div>
+
+        {/* Section 1 — Patient summary */}
+        <FrameworkSection number="1" title="Patient summary">
+          <dl className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-1.5 text-[13px]">
+            <dt className="font-semibold" style={{ color: "#3A4556" }}>
+              Name
+            </dt>
+            <dd style={{ color: "#1A2332" }}>Mrs Dorothy ("Dot") Pearson</dd>
+            <dt className="font-semibold" style={{ color: "#3A4556" }}>
+              NHS number
+            </dt>
+            <dd style={{ color: "#1A2332" }}>485 777 3456</dd>
+            <dt className="font-semibold" style={{ color: "#3A4556" }}>
+              Date of birth
+            </dt>
+            <dd style={{ color: "#1A2332" }}>11 February 1942 (84)</dd>
+            <dt className="font-semibold" style={{ color: "#3A4556" }}>
+              Address
+            </dt>
+            <dd style={{ color: "#1A2332" }}>
+              14 Primrose Lane, Towcester NN12 6BA
+            </dd>
+            <dt className="font-semibold" style={{ color: "#3A4556" }}>
+              Lives alone
+            </dt>
+            <dd style={{ color: "#1A2332" }}>
+              Yes — widowed 18 months (Eric, husband)
+            </dd>
+            <dt className="font-semibold" style={{ color: "#3A4556" }}>
+              GP practice
+            </dt>
+            <dd style={{ color: "#1A2332" }}>
+              Towcester Medical Centre (K81039)
+            </dd>
+          </dl>
+        </FrameworkSection>
+
+        {/* Section 2 — Presenting concerns */}
+        <FrameworkSection
+          number="2"
+          title="Presenting concerns (captured from visit)"
+        >
+          <ul className="space-y-2 text-[13px]" style={{ color: "#1A2332" }}>
+            <li>
+              Recent bereavement (husband Eric, 18 months) —{" "}
+              <em>"still can't believe it really"</em>.
+            </li>
+            <li>
+              Disturbed sleep, waking 2–3 times nightly for the bathroom and
+              with knee pain.
+            </li>
+            <li>
+              Bilateral knee osteoarthritis — paracetamol{" "}
+              <em>"doesn't really touch it these days"</em>.
+            </li>
+            <li>
+              Two falls in the last 6 months: kitchen mat (September), garden
+              patio (January). Neither attended hospital.
+            </li>
+            <li>
+              Low mood, worse in the mornings —{" "}
+              <em>"the mornings are the hardest without him"</em>.
+            </li>
+            <li>
+              Managing household admin alone since bereavement —{" "}
+              <em>"Eric used to do all the fiddly bits"</em>.
+            </li>
+            <li>
+              Weekly social contact: daughter Sandra and grandchildren on
+              Sundays —{" "}
+              <em>"the highlight of my week to be honest with you"</em>.
+            </li>
+          </ul>
+        </FrameworkSection>
+
+        {/* Section 3 — Structured scores */}
+        <FrameworkSection
+          number="3"
+          title="Structured scores (extracted from conversation)"
+        >
+          <ScoreRow
+            label="PHQ-9 (depression)"
+            score="14 / 27"
+            band="Moderate"
+            evidence='Reports low mood "most days", early-morning waking, loss of pleasure outside Sunday family visits. Bereavement context noted.'
+          />
+          <ScoreRow
+            label="GAD-7 (anxiety)"
+            score="6 / 21"
+            band="Mild"
+            evidence="Some worry about managing alone and household admin since bereavement; not pervasive."
+          />
+          <ScoreRow
+            label="6-CIT (cognition)"
+            score="4 / 28"
+            band="Within normal limits"
+            evidence="Recall of dates (husband's death, fall in September) accurate and detailed; orientation intact."
+          />
+          <ScoreRow
+            label="ONS-4 (wellbeing)"
+            score="Life satisfaction 4 / 10"
+            band="Below age-matched UK average"
+            evidence='Self-rated wellbeing low; describes Sundays as "the highlight of my week".'
+          />
+          <ScoreRow
+            label="FRAT (falls risk)"
+            score="High"
+            band="≥2 falls in 12 months"
+            evidence="Two unwitnessed falls in 6 months. TUG 22s using frame and reaching for chair arms. Bilateral knee OA."
+          />
+        </FrameworkSection>
+
+        {/* Section 4 — Agreed actions */}
+        <FrameworkSection
+          number="4"
+          title="Agreed actions (discussed and agreed with Mrs Pearson)"
+        >
+          <ol className="space-y-1.5 text-[13px] list-decimal pl-5" style={{ color: "#1A2332" }}>
+            <li>Review knee analgesia with Dr Patel — paracetamol no longer effective.</li>
+            <li>Daughter Sandra to be informed of both falls (Mrs P consents).</li>
+            <li>Stairs assessment — second-floor bathroom, no rail.</li>
+            <li>Replace kitchen mat (trip hazard identified at September fall).</li>
+            <li>Patio step — consider non-slip strip following January fall.</li>
+            <li>Check pendant alarm — battery low, last tested {">"}6 months.</li>
+            <li>Trial of regular (not PRN) analgesia for nocturnal knee pain.</li>
+            <li>Bedside commode — discuss to reduce night-time bathroom trips.</li>
+            <li>Bereavement support — signpost Cruse and local widow's group.</li>
+            <li>Sunday family visits noted as protective — reinforce.</li>
+            <li>Review hearing — Mrs P leaning in during conversation.</li>
+            <li>Glasses last updated 2022 — opticians review suggested.</li>
+            <li>Confirm flu and COVID seasonal vaccinations completed.</li>
+            <li>Confirm shingles vaccination eligibility.</li>
+            <li>Six-week follow-up call from Sarah to confirm progress.</li>
+          </ol>
+        </FrameworkSection>
+
+        {/* Section 5 — Referrals suggested */}
+        <FrameworkSection
+          number="5"
+          title="Referrals suggested for clinician review"
+        >
+          <ul className="space-y-2 text-[13px]" style={{ color: "#1A2332" }}>
+            <ReferralLine
+              service="Community Falls Service"
+              reason="Two unwitnessed falls in 6 months; TUG 22s with aids."
+            />
+            <ReferralLine
+              service="Occupational Therapy"
+              reason="Home environment review — stairs, bathroom, kitchen, patio step."
+            />
+            <ReferralLine
+              service="Social Prescriber Link Worker (SPLW)"
+              reason="Bereavement isolation, low mood, limited weekly social contact."
+            />
+            <ReferralLine
+              service="GP medication review"
+              reason="Analgesia for bilateral knee OA inadequate; consider stepped approach."
+            />
+          </ul>
+          <p
+            className="mt-3 text-[12px] italic"
+            style={{ color: "#6B7688" }}
+          >
+            All referrals flagged as suggested — pending clinician decision.
+          </p>
+        </FrameworkSection>
+
+        {/* Section 6 — Safeguarding */}
+        <FrameworkSection
+          number="6"
+          title="Safeguarding considerations"
+        >
+          <ul className="space-y-2 text-[13px]" style={{ color: "#1A2332" }}>
+            <li>
+              No disclosure of abuse, neglect, financial exploitation or
+              coercion observed.
+            </li>
+            <li>
+              Self-neglect risk: low — home presented as clean and ordered;
+              Mrs P appropriately dressed and well-nourished.
+            </li>
+            <li>
+              Falls without seeking medical attention noted — to be discussed
+              with daughter Sandra (consent given).
+            </li>
+            <li>
+              Capacity: no concerns; Mrs P engaged fully and gave informed
+              verbal consent at the start of the visit.
+            </li>
+          </ul>
+          <p
+            className="mt-3 text-[12px] italic"
+            style={{ color: "#6B7688" }}
+          >
+            Presented neutrally for clinician judgement.
+          </p>
+        </FrameworkSection>
+
+        <p
+          className="mt-6 text-[11px] tracking-wider uppercase font-semibold"
+          style={{ color: "#8B94A5" }}
+        >
+          Generated {generatedAt} · by Notewell · {plan.pages} pages ·{" "}
+          {plan.size_kb} KB
+        </p>
+      </div>
+
+      {/* ───── RIGHT · How Notewell builds this (sticky) ───── */}
+      <aside
+        className="border-t lg:border-t-0 lg:border-l px-6 py-7"
+        style={{
+          borderColor: "#E8E2D4",
+          background:
+            "linear-gradient(180deg, #FBF7EC 0%, #F4EDD9 100%)",
+        }}
+      >
+        <div className="lg:sticky lg:top-7">
+          <div
+            className="text-[10.5px] tracking-[0.14em] uppercase font-bold mb-2"
+            style={{ color: FRAMEWORK_GOLD_DEEP }}
+          >
+            Notewell · Framework Output
+          </div>
+          <h3
+            className="text-[18px] leading-snug font-medium mb-4"
+            style={{
+              fontFamily:
+                'Fraunces, ui-serif, Georgia, "Times New Roman", serif',
+              color: "#1A2332",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            How Notewell builds this
+          </h3>
+
+          <div className="space-y-3 text-[12.5px] leading-relaxed" style={{ color: "#3A4556" }}>
+            <p className="font-semibold" style={{ color: "#1A2332" }}>
+              Notewell listens. It does not decide.
+            </p>
+            <p>
+              This Framework Support Plan is structured from what was
+              discussed and agreed during Mrs Pearson's visit — nothing
+              more. Every bullet traces back to a moment in the transcript.
+            </p>
+            <p>
+              Like all AI outputs, it is a Framework — designed to do the
+              heavy lifting of document admin, so the clinician spends their
+              time on judgement, not typing. The clinician is always
+              expected to review, correct, and sign off before anything is
+              shared.
+            </p>
+            <p
+              className="font-semibold pt-1"
+              style={{ color: "#1A2332" }}
+            >
+              No decisions are made by the system. No documents are sent by
+              the system. No clinical judgement is automated.
+            </p>
+          </div>
+
+          {/* Governance strip */}
+          <div
+            className="mt-5 rounded-md px-3 py-2.5 text-[11px] flex items-start gap-2"
+            style={{
+              background: "rgba(255,255,255,0.65)",
+              border: `1px solid ${FRAMEWORK_GOLD}40`,
+              color: FRAMEWORK_GOLD_DEEP,
+            }}
+          >
+            <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+            <span className="leading-snug font-semibold">
+              Human in the loop · DCB0129 · MHRA Class I · Every edit logged
+            </span>
+          </div>
+
+          {alreadySent && (
+            <div
+              className="mt-4 rounded-md px-3 py-2 text-[11px] flex items-center gap-2"
+              style={{
+                background: "#E8F3ED",
+                border: "1px solid #C8E2D2",
+                color: "#2F855A",
+              }}
+            >
+              <Check size={13} strokeWidth={3} />
+              <span>
+                Signed off — delivered{" "}
+                {(typeof window !== "undefined" &&
+                  window.sessionStorage.getItem(SENT_AT_KEY)) ||
+                  "08:40:08"}
+              </span>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* ───── FOOTER · primary actions (spans both columns) ───── */}
+      <div
+        className="lg:col-span-2 border-t px-6 sm:px-8 py-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+        style={{ borderColor: "#E8E2D4", background: "#FEFCF7" }}
+      >
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex items-center justify-center gap-2 px-4 h-11 rounded-md text-sm font-medium transition-colors"
+          style={{
+            background: "#fff",
+            color: "#1A2332",
+            border: "1px solid #E8E2D4",
+          }}
+        >
+          <ExternalLink size={16} />
+          View full document
+        </button>
+        <button
+          type="button"
+          onClick={onDownload}
+          className="inline-flex items-center justify-center gap-2 px-4 h-11 rounded-md text-sm font-medium transition-colors"
+          style={{
+            background: "#fff",
+            color: "#1A2332",
+            border: "1px solid #E8E2D4",
+          }}
+        >
+          <Download size={16} />
+          Download DOCX
+        </button>
+
+        <div className="flex-1" />
+
+        <button
+          type="button"
+          onClick={onShowPayoff}
+          className="text-[12.5px] underline-offset-4 hover:underline self-center"
+          style={{ color: "#6B7688" }}
+        >
+          Show me what the team used to do…
+        </button>
+
+        <button
+          type="button"
+          onClick={onSignOff}
+          className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-md text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all"
+          style={{
+            background:
+              "linear-gradient(90deg, #1E3A5F 0%, #2C7A7B 100%)",
+          }}
+        >
+          {alreadySent ? (
+            <>
+              <Check size={16} strokeWidth={3} />
+              Sign off again →
+            </>
+          ) : (
+            <>
+              <ShieldCheck size={16} />
+              Clinician review &amp; sign-off →
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const FrameworkSection: React.FC<{
+  number: string;
+  title: string;
+  children: React.ReactNode;
+}> = ({ number, title, children }) => (
+  <section className="mb-6">
+    <div className="flex items-baseline gap-2 mb-2.5">
+      <span
+        className="inline-flex items-center justify-center rounded-full text-[10.5px] font-bold shrink-0"
+        style={{
+          width: 22,
+          height: 22,
+          background: "#E6F0F0",
+          color: "#1F5E5E",
+        }}
+      >
+        {number}
+      </span>
+      <h4
+        className="text-[14.5px] font-semibold"
+        style={{ color: "#1A2332", letterSpacing: "-0.005em" }}
+      >
+        {title}
+      </h4>
+    </div>
+    <div className="pl-[30px]">{children}</div>
+  </section>
+);
+
+const ScoreRow: React.FC<{
+  label: string;
+  score: string;
+  band: string;
+  evidence: string;
+}> = ({ label, score, band, evidence }) => (
+  <div
+    className="mb-2.5 rounded-md px-3 py-2.5"
+    style={{ background: "#FAF6EA", border: "1px solid #ECE3CC" }}
+  >
+    <div className="flex items-baseline justify-between gap-3 flex-wrap">
+      <span
+        className="text-[13px] font-semibold"
+        style={{ color: "#1A2332" }}
+      >
+        {label}
+      </span>
+      <span
+        className="text-[12px] font-semibold tracking-tight"
+        style={{ color: "#1F5E5E", fontVariantNumeric: "tabular-nums" }}
+      >
+        {score} · <span style={{ color: "#8A6A1F" }}>{band}</span>
+      </span>
+    </div>
+    <p className="mt-1 text-[12px] leading-snug" style={{ color: "#3A4556" }}>
+      {evidence}
+    </p>
+  </div>
+);
+
+const ReferralLine: React.FC<{ service: string; reason: string }> = ({
+  service,
+  reason,
+}) => (
+  <li className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
+    <span className="text-[13px] font-semibold shrink-0" style={{ color: "#1A2332" }}>
+      {service}
+    </span>
+    <span className="text-[12.5px]" style={{ color: "#3A4556" }}>
+      — {reason}
+    </span>
+    <span
+      className="text-[10px] tracking-wider uppercase font-bold rounded px-1.5 py-0.5 self-start"
+      style={{
+        border: `1px dashed ${FRAMEWORK_GOLD}`,
+        color: FRAMEWORK_GOLD_DEEP,
+      }}
+    >
+      Suggested
+    </span>
+  </li>
+);
+
+
 
 interface SendingViewProps {
   sendStep: number; // 0..7
