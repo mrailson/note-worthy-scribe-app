@@ -6,7 +6,7 @@ import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
 import type { ManagementRoleConfig } from '@/hooks/useNRESBuyBackRateSettings';
 import { calculateStaffMonthlyAmount } from '@/hooks/useNRESBuyBackClaims';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
-import { exportClaimsDetail, exportDirectorClaimsDetail } from '@/utils/buybackExcelExport';
+import { exportClaimsDetail, exportDirectorClaimsDetail, exportFinanceClaimsDetail } from '@/utils/buybackExcelExport';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
