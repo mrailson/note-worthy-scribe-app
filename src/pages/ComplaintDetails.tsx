@@ -1081,7 +1081,7 @@ const ComplaintDetails = () => {
     if (!acknowledgementLetter || !complaint) return;
     
     try {
-      const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
+      const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number, undefined, undefined, undefined, complaint.practice_id);
       const buffer = await Packer.toBlob(doc);
       
       // Create download link
@@ -1191,7 +1191,9 @@ const ComplaintDetails = () => {
 
       // Format the letter content as HTML matching the Word document style
       const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
-      const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter);
+      const { getActiveLetterhead } = await import('@/utils/practiceLetterhead');
+      const letterheadForEmail = await getActiveLetterhead(complaint.practice_id);
+      const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter, null, letterheadForEmail);
 
       const emailData = {
         to_email: toRecipients.join(', '),
@@ -1315,7 +1317,9 @@ const ComplaintDetails = () => {
 
       // Format the letter content as HTML
       const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
-      const formattedLetterHtml = formatLetterForEmail(outcomeLetter);
+      const { getActiveLetterhead } = await import('@/utils/practiceLetterhead');
+      const letterheadForEmail = await getActiveLetterhead(complaint.practice_id);
+      const formattedLetterHtml = formatLetterForEmail(outcomeLetter, null, letterheadForEmail);
 
       const emailData = {
         to_email: toRecipients.join(', '),
