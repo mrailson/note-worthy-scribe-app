@@ -112,31 +112,76 @@ export function UserGeneratedImagesGallery() {
                 const handleDownload = async (e: React.MouseEvent) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  try {
-                    const res = await fetch(img.image_url, { mode: 'cors' });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const blob = await res.blob();
-                    const ext =
-                      (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg').split(';')[0];
-                    const safeName =
-                      (img.title || img.prompt || `image-${img.id}`)
-                        .toLowerCase()
-                        .replace(/[^a-z0-9-_]+/g, '-')
-                        .replace(/^-+|-+$/g, '')
-                        .slice(0, 60) || `image-${img.id}`;
-                    const url = URL.createObjectURL(blob);
+
+                  const safeBase =
+                    (img.title || img.prompt || `image-${img.id}`)
+                      .toLowerCase()
+                      .replace(/[^a-z0-9-_]+/g, '-')
+                      .replace(/^-+|-+$/g, '')
+                      .slice(0, 60) || `image-${img.id}`;
+
+                  const triggerDownload = (href: string, filename: string) => {
                     const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${safeName}.${ext}`;
+                    a.href = href;
+                    a.download = filename;
+                    a.rel = 'noopener';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
+                  };
+
+                  const extFromMime = (mime: string) =>
+                    (mime.split('/')[1] || 'png').replace('jpeg', 'jpg').split(';')[0];
+
+                  try {
+                    const url = img.image_url || '';
+
+                    // Case 1: data URL — decode base64 to a Blob and download directly
+                    if (url.startsWith('data:')) {
+                      const commaIdx = url.indexOf(',');
+                      const header = url.slice(5, commaIdx); // e.g. "image/png;base64"
+                      const isBase64 = /;base64/i.test(header);
+                      const mime = header.split(';')[0] || 'image/png';
+                      const payload = url.slice(commaIdx + 1);
+
+                      let blob: Blob;
+                      if (isBase64) {
+                        const binary = atob(payload);
+                        const bytes = new Uint8Array(binary.length);
+                        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                        blob = new Blob([bytes], { type: mime });
+                      } else {
+                        blob = new Blob([decodeURIComponent(payload)], { type: mime });
+                      }
+
+                      const objectUrl = URL.createObjectURL(blob);
+                      triggerDownload(objectUrl, `${safeBase}.${extFromMime(mime)}`);
+                      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                      return;
+                    }
+
+                    // Case 2: regular URL — try fetch + blob first
+                    try {
+                      const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      const blob = await res.blob();
+                      if (blob.type.startsWith('text/')) {
+                        throw new Error('Response was not an image');
+                      }
+                      const objectUrl = URL.createObjectURL(blob);
+                      triggerDownload(objectUrl, `${safeBase}.${extFromMime(blob.type)}`);
+                      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                      return;
+                    } catch (fetchErr) {
+                      // Case 3: CORS-blocked — fall back to a direct anchor download.
+                      console.warn('CORS fetch failed, falling back to direct link', fetchErr);
+                      const guessedExt = (url.split('.').pop() || 'png').split(/[?#]/)[0].slice(0, 5);
+                      triggerDownload(url, `${safeBase}.${guessedExt}`);
+                      toast.message('If the download did not start, right-click the image and choose "Save image as…"');
+                    }
                   } catch (err: any) {
-                    // CORS or other failure → fall back to opening in a new tab
                     console.error('Download failed', err);
-                    toast.error('Direct download blocked — opening in a new tab instead');
-                    window.open(img.image_url, '_blank', 'noopener,noreferrer');
+                    toast.error(`Download failed: ${err?.message || 'unknown error'}`);
                   }
                 };
 
