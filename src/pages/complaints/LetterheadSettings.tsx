@@ -501,7 +501,7 @@ export default function LetterheadSettings() {
                 </div>
                 <Slider
                   min={3}
-                  max={9}
+                  max={13}
                   step={0.1}
                   value={[heightCm]}
                   onValueChange={(v) => setHeightCm(v[0])}
