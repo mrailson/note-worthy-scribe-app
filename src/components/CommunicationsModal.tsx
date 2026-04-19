@@ -713,21 +713,54 @@ const CommunicationsModal: React.FC<CommunicationsModalProps> = ({ isOpen, onClo
     } else {
       setMounted(false);
       setPreviewId(null);
+      setListVisible(true);
     }
   }, [isOpen]);
 
-  // ESC closes
+  // Keyboard handlers
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
+      // Ignore when typing into inputs/textareas
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+        return;
+      }
+
       if (e.key === "Escape") {
         if (previewId) setPreviewId(null);
         else onClose();
+        return;
+      }
+
+      // Desktop-only shortcuts
+      if (!isDesktop) return;
+
+      if (e.key === "l" || e.key === "L") {
+        if (previewId) setListVisible((v) => !v);
+        return;
+      }
+
+      if (e.key === "ArrowLeft") {
+        if (previewId && !listVisible) setListVisible(true);
+        return;
+      }
+
+      if (e.key === "ArrowRight") {
+        if (previewId && listVisible) setListVisible(false);
+        return;
+      }
+
+      if (/^[1-5]$/.test(e.key)) {
+        const idx = parseInt(e.key, 10) - 1;
+        const letter = letters[idx];
+        if (letter) setPreviewId(letter.id);
+        return;
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [isOpen, previewId, onClose]);
+  }, [isOpen, previewId, listVisible, isDesktop, onClose]);
 
   // Body scroll lock
   useEffect(() => {
