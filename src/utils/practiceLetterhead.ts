@@ -2,11 +2,15 @@
  * Practice Letterhead Helper
  *
  * Resolves the active letterhead for a given practice and returns a signed URL
- * to the rendered 300 DPI PNG together with the layout configuration.
+ * to the original uploaded file (PDF/DOCX) together with the layout
+ * configuration. The original file is preferred over the legacy
+ * `rendered_png_path` so the on-screen preview, email and Word export all
+ * reflect the file the user actually uploaded.
  *
  * Used by:
  *   - letterFormatter.ts        (Word/PDF export)
  *   - formatLetterForEmail.ts   (email HTML)
+ *   - FormattedLetterContent    (preview)
  *
  * Falls back to `null` when no letterhead is configured — callers must keep the
  * existing Notewell-logo behaviour as a graceful default.
@@ -17,8 +21,18 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ActiveLetterhead {
   id: string;
   practice_id: string;
-  rendered_png_path: string;
+  /** Original uploaded file (PDF/DOCX) — preferred source for rendering. */
+  storage_path: string;
+  /** MIME type of the original file, when known. */
+  original_mime_type: string | null;
+  /** Original filename — used for mime fallback by extension. */
+  original_filename: string | null;
+  /** Optional pre-rendered PNG path (legacy / fallback). */
+  rendered_png_path: string | null;
+  /** Signed URL to the file we want callers to render (original if possible). */
   signed_url: string;
+  /** True when the signed URL points at a pre-rendered PNG, not the original. */
+  signed_url_is_png: boolean;
   height_cm: number;
   top_margin_cm: number;
   alignment: 'left' | 'center' | 'right';
@@ -41,21 +55,36 @@ export async function getActiveLetterhead(
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
   try {
-    const { data: row, error } = await supabase
+    // Order by uploaded_at DESC so the newest active row wins if duplicates exist.
+    const { data: rows, error } = await supabase
       .from('practice_letterheads')
-      .select('id, practice_id, rendered_png_path, height_cm, top_margin_cm, alignment, include_all_pages')
+      .select(
+        'id, practice_id, storage_path, rendered_png_path, original_mime_type, original_filename, height_cm, top_margin_cm, alignment, include_all_pages',
+      )
       .eq('practice_id', practiceId)
       .eq('active', true)
-      .maybeSingle();
+      .order('uploaded_at', { ascending: false })
+      .limit(1);
 
-    if (error || !row?.rendered_png_path) {
+    const row = rows && rows.length > 0 ? rows[0] : null;
+
+    if (error || !row) {
+      CACHE.set(practiceId, { value: null, expiresAt: Date.now() + CACHE_TTL_MS });
+      return null;
+    }
+
+    // Prefer the ORIGINAL uploaded file. Only fall back to the rendered PNG
+    // when no original is available (legacy rows).
+    const useOriginal = !!row.storage_path;
+    const path = useOriginal ? row.storage_path : row.rendered_png_path;
+    if (!path) {
       CACHE.set(practiceId, { value: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
 
     const { data: signed, error: signErr } = await supabase.storage
       .from('practice-letterheads')
-      .createSignedUrl(row.rendered_png_path, 60 * 60); // 1 hour
+      .createSignedUrl(path, 60 * 60); // 1 hour
 
     if (signErr || !signed?.signedUrl) {
       CACHE.set(practiceId, { value: null, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -65,8 +94,12 @@ export async function getActiveLetterhead(
     const value: ActiveLetterhead = {
       id: row.id,
       practice_id: row.practice_id,
-      rendered_png_path: row.rendered_png_path,
+      storage_path: row.storage_path,
+      original_mime_type: row.original_mime_type ?? null,
+      original_filename: row.original_filename ?? null,
+      rendered_png_path: row.rendered_png_path ?? null,
       signed_url: signed.signedUrl,
+      signed_url_is_png: !useOriginal,
       height_cm: Number(row.height_cm),
       top_margin_cm: Number(row.top_margin_cm),
       alignment: (row.alignment as ActiveLetterhead['alignment']) ?? 'center',
