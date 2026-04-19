@@ -996,9 +996,68 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
 
   // (bulkOpen/importOpen state declared earlier — see top of component)
 
+  // Super-admin only: wipe all test claims, meeting log entries, and hours entries
+  // so we can retest the submission flow from scratch.
+  const handleResetAllTestData = useCallback(async () => {
+    if (!isSuperAdmin) {
+      toast.error('Only super-admins can reset test data');
+      return;
+    }
+    setResetting(true);
+    try {
+      // Collect invoice PDF paths so we can clean storage afterwards
+      const invoicePaths = (claims || [])
+        .map(c => c.invoice_pdf_path)
+        .filter((p): p is string => !!p);
+
+      // Delete all rows in the three claim/work tables
+      const deleteAllRows = (table: 'nres_buyback_claims' | 'nres_management_time' | 'nres_hours_entries') =>
+        supabase.from(table).delete().not('id', 'is', null);
+
+      const [r1, r2, r3] = await Promise.all([
+        deleteAllRows('nres_buyback_claims'),
+        deleteAllRows('nres_management_time'),
+        deleteAllRows('nres_hours_entries'),
+      ]);
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      if (r3.error) throw r3.error;
+
+      // Best-effort: remove generated invoice PDFs from storage
+      if (invoicePaths.length > 0) {
+        await supabase.storage.from('nres-claim-evidence').remove(invoicePaths).catch(() => {});
+      }
+
+      // Refresh local state for both hooks
+      await Promise.all([
+        refetchClaims?.(),
+        refetchMeetingLog?.(),
+      ]);
+
+      toast.success('Reset complete — all test claims, meeting entries and hours entries cleared. Ready for new claims.');
+    } catch (err: any) {
+      console.error('Reset failed:', err);
+      toast.error(`Reset failed: ${err?.message || 'unknown error'}`);
+    } finally {
+      setResetting(false);
+      setResetConfirmOpen(false);
+    }
+  }, [isSuperAdmin, claims, refetchClaims, refetchMeetingLog]);
+
   return (
     <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1200, margin: '0 auto', padding: '28px 16px' }}>
-      {/* Page header — admin view (matches Practice view styling) */}
+      {/* Test Mode Bar — admin only — placed at top of page to align with Practice/Verifier/PML views */}
+      {isAdmin && (
+        <div style={{ marginBottom: 16 }}>
+          <TestModeBar
+            state={testMode}
+            onChange={setTestMode}
+            practiceKeys={ALL_PRACTICE_KEYS}
+            practiceNames={ALL_PRACTICES}
+            hiddenRoles={hiddenTestRoles}
+          />
+        </div>
+      )}
       {!testActive && effectiveIsAdmin && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
