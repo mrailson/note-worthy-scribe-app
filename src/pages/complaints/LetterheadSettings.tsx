@@ -27,7 +27,7 @@ import { format } from 'date-fns';
 
 interface Practice {
   id: string;
-  practice_name: string;
+  name: string;
 }
 
 interface Letterhead {
@@ -159,9 +159,9 @@ export default function LetterheadSettings() {
         }
         const { data: practiceRows, error: pErr } = await supabase
           .from('gp_practices')
-          .select('id, practice_name')
-          .in('id', ids)
-          .order('practice_name');
+          .select('id, name')
+          .in('id', ids as string[])
+          .order('name');
         if (pErr) throw pErr;
         setPractices(practiceRows || []);
         if (practiceRows && practiceRows.length > 0) {
@@ -400,7 +400,7 @@ export default function LetterheadSettings() {
               <SelectContent>
                 {practices.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.practice_name}
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -634,11 +634,10 @@ export default function LetterheadSettings() {
             <CardContent>
               <div className="bg-muted/30 rounded-md p-4 overflow-auto max-h-[78vh] flex justify-center">
                 <div
-                  className="bg-white shadow-lg relative"
+                  className="bg-card text-card-foreground shadow-lg relative"
                   style={{
                     width: `${pageWidthPx}px`,
                     height: `${pageHeightPx}px`,
-                    color: '#111',
                   }}
                 >
                   <div
