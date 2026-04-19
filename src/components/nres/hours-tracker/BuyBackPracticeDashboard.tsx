@@ -61,7 +61,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   rejected: { label: 'Rejected', color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626' },
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
+export const CATEGORY_COLORS: Record<string, string> = {
   buyback: '#0d9488',
   gp_locum: '#d97706',
   new_sda: '#7c3aed',
@@ -69,7 +69,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   meeting: '#0369a1',
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   buyback: 'Buy-Back',
   gp_locum: 'GP Locum',
   new_sda: 'New SDA',
@@ -77,7 +77,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   meeting: 'Meeting Attendance',
 };
 
-const PERIOD_OPTIONS = [
+export const PERIOD_OPTIONS = [
   { key: 'this_month', label: 'This Month' },
   { key: 'last_month', label: 'Last Month' },
   { key: 'ytd', label: 'YTD 26/27' },
@@ -85,10 +85,10 @@ const PERIOD_OPTIONS = [
 ];
 
 // --- Helpers ---
-function fmtGBP(n: number): string {
+export function fmtGBP(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-function fmtShort(n: number): string {
+export function fmtShort(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 0 });
 }
 
@@ -179,7 +179,7 @@ function getAllocDisplay(allocType: string, allocValue: number): string {
   }
 }
 
-function getClaimMonths(): { label: string; monthDate: string; month: number; year: number }[] {
+export function getClaimMonths(): { label: string; monthDate: string; month: number; year: number }[] {
   const months: { label: string; monthDate: string; month: number; year: number }[] = [];
   const now = new Date();
   for (let i = 2; i >= 0; i--) {
@@ -202,7 +202,7 @@ function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaf
 
 // --- Sub-components ---
 
-function KpiCard({ label, value, sub, accent, tooltip }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string }) {
+export function KpiCard({ label, value, sub, accent, tooltip }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string }) {
   const [hover, setHover] = React.useState(false);
   return (
     <div
@@ -1852,7 +1852,7 @@ function StaffActions({
 }
 
 
-function StaffRosterSection({
+export function StaffRosterSection({
   title, category, staffList, claims, claimMonths, onClickClaim, activeClaimKey,
   onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, showAddButton, rateParams,
   onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit,

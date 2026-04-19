@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { BuyBackPMLDashboard } from './BuyBackPMLDashboard';
-import { BuyBackPracticeDashboard } from './BuyBackPracticeDashboard';
+import { BuyBackPracticeDashboard, KpiCard, StaffRosterSection, ClaimsViewSwitcher, getClaimMonths, fmtShort, CATEGORY_COLORS, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { BuyBackVerifierDashboard } from './BuyBackVerifierDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -40,7 +40,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Eye, HelpCircle, Settings } from 'lucide-react';
+import { Loader2, Plus, Trash2, Send, Users, FileText, Info, MessageSquarePlus, CalendarIcon, Calculator, CheckCircle2, XCircle, AlertTriangle, Download, ChevronRight, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Eye, HelpCircle, Settings, Upload, ListChecks } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EditStaffDialog } from './EditStaffDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -564,10 +564,14 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   // Filters (admin)
   const [filterPractice, setFilterPractice] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>(isPMLFinance ? 'approved' : isPMLDirector ? 'verified' : 'all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterRoute, setFilterRoute] = useState<string>('all');
 
   const [proposalOpen, setProposalOpen] = useState(false);
   const [claimsHistoryOpen, setClaimsHistoryOpen] = useState(isPMLFinance);
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<BuyBackStaffMember | null>(null);
   const [staffSortCol, setStaffSortCol] = useState<string>('practice');
   const [staffSortDir, setStaffSortDir] = useState<'asc' | 'desc'>('asc');
@@ -692,9 +696,24 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     if (visibleStatuses && !visibleStatuses.includes(c.status)) return false;
     return true;
   });
-  const practiceFilteredClaims = effectiveFilterPractice === 'all'
+  const basePracticeFilteredClaims = effectiveFilterPractice === 'all'
     ? accessFilteredClaims
     : accessFilteredClaims.filter(c => c.practice_key === effectiveFilterPractice);
+
+  // Apply category & route filters (admin view extras)
+  const practiceFilteredClaims = basePracticeFilteredClaims.filter(c => {
+    if (filterCategory !== 'all') {
+      const dets = (c.staff_details || []) as any[];
+      if (!dets.some(d => (d.staff_category || 'buyback') === filterCategory)) return false;
+    }
+    if (filterRoute !== 'all') {
+      // Route maps to staff category route: 'pml' for management/meeting, 'icb' for buyback/sda/locum
+      const dets = (c.staff_details || []) as any[];
+      const routeOf = (cat: string) => (cat === 'management' || cat === 'meeting') ? 'pml' : 'icb';
+      if (!dets.some(d => routeOf(d.staff_category || 'buyback') === filterRoute)) return false;
+    }
+    return true;
+  });
 
   // Sort: drafts first so the next claim to process is always at the top
   const STATUS_SORT_ORDER: Record<string, number> = {
@@ -927,33 +946,142 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     );
   }
 
+  // Practice options for ClaimsViewSwitcher (admin/director mode)
+  const directorPracticeOptions: DirectorPracticeOption[] = effectivePracticeKeys.map(k => ({
+    key: k,
+    name: ALL_PRACTICES[k],
+  }));
+
+  // Group active staff by category for the new admin Staff Roster (across all practices)
+  const adminBuybackStaff = accessFilteredStaff.filter(s => s.staff_category === 'buyback' && s.is_active);
+  const adminGpLocumStaff = accessFilteredStaff.filter(s => s.staff_category === 'gp_locum' && s.is_active);
+  const adminNewSdaStaff = accessFilteredStaff.filter(s => s.staff_category === 'new_sda' && s.is_active);
+  const adminMgmtStaff = accessFilteredStaff.filter(s => (s.staff_category === 'management' || s.staff_category === 'meeting') && s.is_active);
+
+  const adminClaimMonths = getClaimMonths();
+
+  // KPI counts/totals (line-level, matching Practice view structure)
+  const adminKpiLines = practiceFilteredClaims.flatMap(c => {
+    const dets = (c.staff_details || []) as any[];
+    return dets.map((d: any) => ({
+      status: c.status,
+      amount: d.claimed_amount ?? d.calculated_amount ?? 0,
+    }));
+  });
+  const adminCounts: Record<string, number> = { all: adminKpiLines.length };
+  adminKpiLines.forEach(l => { adminCounts[l.status] = (adminCounts[l.status] || 0) + 1; });
+  const adminTotals = { draft: 0, submitted: 0, verified: 0, approved: 0, invoiced: 0, paid: 0, queried: 0 };
+  adminKpiLines.forEach(l => {
+    if (l.status === 'draft') adminTotals.draft += l.amount;
+    else if (l.status === 'submitted') adminTotals.submitted += l.amount;
+    else if (l.status === 'verified') adminTotals.verified += l.amount;
+    else if (l.status === 'approved') adminTotals.approved += l.amount;
+    else if (l.status === 'invoiced') adminTotals.invoiced += l.amount;
+    else if (l.status === 'paid') adminTotals.paid += l.amount;
+    else if (l.status === 'queried') adminTotals.queried += l.amount;
+  });
+  const adminQueriedCount = adminCounts.queried || 0;
+
+  // Wrappers to satisfy StaffRosterSection signature (Practice form expects practice_key)
+  const adminAddStaff = isAdmin
+    ? async (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => {
+        const pk = member.practice_key || (effectiveFilterPractice !== 'all' ? effectiveFilterPractice : effectivePracticeKeys[0]);
+        return addStaff({ ...member, practice_key: pk });
+      }
+    : undefined;
+
+  // (bulkOpen/importOpen state declared earlier — see top of component)
+
   return (
-    <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1000, margin: '0 auto', padding: '28px 16px' }}>
-      {/* Page header — admin view */}
+    <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1200, margin: '0 auto', padding: '28px 16px' }}>
+      {/* Page header — admin view (matches Practice view styling) */}
       {!testActive && effectiveIsAdmin && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
               <div style={{ width: 6, height: 26, background: '#005eb8', borderRadius: 3 }} />
-              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', margin: 0 }}>Buy-Back &amp; Claims</h1>
-              <span style={{ fontSize: 10, fontWeight: 600, background: '#005eb8', color: '#fff', borderRadius: 100, padding: '2px 8px', letterSpacing: 0.5 }}>ADMIN</span>
+              <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: '#111827' }}>Buy-Back &amp; Claims</h1>
+              <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 9px', borderRadius: 100, background: '#005eb8', color: '#fff', letterSpacing: '0.03em' }}>ADMIN</span>
               {onGuideOpen && (
                 <button onClick={onGuideOpen} title="Claims Guide" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280', marginLeft: 2 }}>
                   <HelpCircle style={{ width: 14, height: 14 }} />
                 </button>
               )}
-              {showSettings && onSettingsOpen && (
-                <button onClick={onSettingsOpen} title="Access Settings" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280' }}>
-                  <Settings style={{ width: 14, height: 14 }} />
-                </button>
-              )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, color: '#6b7280' }}>{practiceFilteredClaims.length} claim{practiceFilteredClaims.length !== 1 ? 's' : ''}</span>
-              <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500, letterSpacing: 0.3 }}>NRES New Models of Care</span>
-            </div>
+            <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>
+              Manage staff, create and review claims across all practices
+            </p>
           </div>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Manage staff, create and review claims across all practices</p>
+
+          {/* Toolbar: Bulk · Import · Settings */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Popover open={bulkOpen} onOpenChange={setBulkOpen}>
+              <PopoverTrigger asChild>
+                <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <ListChecks style={{ width: 14, height: 14 }} /> Bulk actions
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-1">
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={statusCounts.submitted === 0}
+                  onClick={() => {
+                    setBulkOpen(false);
+                    practiceFilteredClaims.filter(c => c.status === 'submitted').forEach(c => verifyClaim(c.id));
+                    toast.success(`Verifying ${statusCounts.submitted} submitted claim${statusCounts.submitted !== 1 ? 's' : ''}…`);
+                  }}
+                >
+                  ✓ Verify all submitted ({statusCounts.submitted})
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={statusCounts.verified === 0}
+                  onClick={() => {
+                    setBulkOpen(false);
+                    practiceFilteredClaims.filter(c => c.status === 'verified').forEach(c => approveClaim(c.id));
+                    toast.success(`Approving ${statusCounts.verified} verified claim${statusCounts.verified !== 1 ? 's' : ''}…`);
+                  }}
+                >
+                  ✓ Approve all verified ({statusCounts.verified})
+                </button>
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={statusCounts.approved + statusCounts.invoiced === 0}
+                  onClick={() => {
+                    setBulkOpen(false);
+                    practiceFilteredClaims.filter(c => c.status === 'approved' || c.status === 'invoiced').forEach(c => updatePaymentStatus(c.id, { payment_status: 'payment_sent' }));
+                    toast.success(`Marking ${statusCounts.approved + statusCounts.invoiced} claim${statusCounts.approved + statusCounts.invoiced !== 1 ? 's' : ''} as paid…`);
+                  }}
+                >
+                  £ Mark all approved as paid ({statusCounts.approved + statusCounts.invoiced})
+                </button>
+                <Separator className="my-1" />
+                <button
+                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted"
+                  onClick={() => { setBulkOpen(false); exportClaimsDetail(accessFilteredClaims, effectiveFilterPractice, effectiveFilterStatus); }}
+                >
+                  ⬇ Export current filter to Excel
+                </button>
+              </PopoverContent>
+            </Popover>
+
+            <button
+              onClick={() => { setImportOpen(true); toast.info('Use the Spreadsheet view to bulk-edit, or contact your admin for CSV import.'); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <Upload style={{ width: 14, height: 14 }} /> Import
+            </button>
+
+            {showSettings && onSettingsOpen && (
+              <button
+                onClick={onSettingsOpen}
+                title="Buy-Back Settings"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: '1px solid #005eb8', background: '#005eb8', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              >
+                <Settings style={{ width: 14, height: 14 }} /> Settings
+              </button>
+            )}
+          </div>
         </div>
       )}
       {/* Test Mode Bar — admin only */}
@@ -968,36 +1096,40 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       )}
 
 
-      {effectiveIsAdmin && !testActive && (() => {
-        const pendingVal = practiceFilteredClaims.filter(c => c.status === 'submitted' || c.status === 'verified').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
-        const queriedVal = practiceFilteredClaims.filter(c => c.status === 'queried').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
-        const approvedVal = practiceFilteredClaims.filter(c => c.status === 'approved' || c.status === 'invoiced').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
-        const paidVal = practiceFilteredClaims.filter(c => c.status === 'paid').reduce((s,c) => { const d=(c.staff_details||[]) as any[]; return s+d.reduce((a:number,x:any)=>a+(x.claimed_amount??x.calculated_amount??0),0); },0);
-        const fmt = (n:number) => '£'+n.toLocaleString('en-GB',{minimumFractionDigits:0});
-        return (
-          <>
-            {/* KPI cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
-              {[
-                { label:'Pending Review', value:statusCounts.submitted+(statusCounts.verified||0), sub:fmt(pendingVal), accent:(statusCounts.submitted||0)>0?'#2563eb':'#9ca3af' },
-                { label:'Queried', value:statusCounts.queried, sub:fmt(queriedVal), accent:statusCounts.queried>0?'#dc2626':'#9ca3af' },
-                { label:'Approved', value:(statusCounts.approved||0)+(statusCounts.invoiced||0), sub:fmt(approvedVal), accent:'#7c3aed' },
-                { label:'Paid', value:statusCounts.paid, sub:fmt(paidVal), accent:'#059669' },
-              ].map(k => (
-                <div key={k.label} style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:10, padding:'14px 16px', boxShadow:'0 1px 2px rgba(0,0,0,0.03)' }}>
-                  <div style={{ fontSize:11, color:'#6b7280', fontWeight:500, marginBottom:4 }}>{k.label}</div>
-                  <div style={{ fontSize:28, fontWeight:700, color:k.accent, lineHeight:1 }}>{k.value}</div>
-                  <div style={{ fontSize:12, color:'#9ca3af', marginTop:4 }}>{k.sub}</div>
-                </div>
-              ))}
+      {effectiveIsAdmin && !testActive && (
+        <>
+          {/* Queried alert banner */}
+          {adminQueriedCount > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 16px', marginBottom: 16, borderRadius: 10,
+              background: '#fffbeb', border: '1px solid #fde68a',
+              fontSize: 13, color: '#92400e',
+            }}>
+              <AlertTriangle style={{ width: 16, height: 16, flexShrink: 0 }} />
+              <span>
+                <strong>{adminQueriedCount} claim line{adminQueriedCount !== 1 ? 's' : ''} need attention</strong>
+                {' — practices have outstanding queries to address'}
+              </span>
             </div>
-            {/* Practice filter */}
-            <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
-              <Label className="text-sm font-medium">Filter by Practice:</Label>
+          )}
+
+          {/* KPI cards — 6-column grid matching Practice view */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 16 }}>
+            <KpiCard label="Drafts" value={adminCounts.draft || 0} sub={fmtShort(adminTotals.draft)} accent={(adminCounts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted" />
+            <KpiCard label="Awaiting Verification" value={adminCounts.submitted || 0} sub={fmtShort(adminTotals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES verification" />
+            <KpiCard label="Awaiting Approval" value={adminCounts.verified || 0} sub={fmtShort(adminTotals.verified)} accent="#7c3aed" tooltip="Verified, awaiting PML Finance Director approval" />
+            <KpiCard label="Invoiced" value={(adminCounts.approved || 0) + (adminCounts.invoiced || 0)} sub={fmtShort(adminTotals.approved + adminTotals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" />
+            <KpiCard label="Paid" value={adminCounts.paid || 0} sub={fmtShort(adminTotals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" />
+            <KpiCard label="Queried" value={adminQueriedCount} sub={fmtShort(adminTotals.queried)} accent={adminQueriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" />
+          </div>
+
+          {/* Unified filter row — 4 equal columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Practice</Label>
               <Select value={filterPractice} onValueChange={setFilterPractice}>
-                <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="All practices" />
-                </SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="All practices" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Practices</SelectItem>
                   {effectivePracticeKeys.map(k => (
@@ -1006,9 +1138,156 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                 </SelectContent>
               </Select>
             </div>
-          </>
-        );
-      })()}
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Category</Label>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="buyback">Buy-Back</SelectItem>
+                  <SelectItem value="gp_locum">GP Locum</SelectItem>
+                  <SelectItem value="new_sda">New SDA</SelectItem>
+                  <SelectItem value="management">NRES Management</SelectItem>
+                  <SelectItem value="meeting">Meeting Attendance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="queried">Queried</SelectItem>
+                  <SelectItem value="invoiced">Invoiced</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold text-muted-foreground mb-1 block">Route</Label>
+              <Select value={filterRoute} onValueChange={setFilterRoute}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Routes</SelectItem>
+                  <SelectItem value="icb">ICB Direct (Buy-Back / SDA / Locum)</SelectItem>
+                  <SelectItem value="pml">PML Route (Management / Meeting)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Staff Roster — Practice-style, scoped across all NRES practices */}
+          <div style={{
+            background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb',
+            padding: '20px 20px 14px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: 20,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>Staff Roster</div>
+                <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>
+                  {accessFilteredStaff.length} staff across {effectivePracticeKeys.length} practice{effectivePracticeKeys.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100, background: '#f1f5f9', color: '#475569' }}>
+                Total: {accessFilteredStaff.length}
+              </span>
+            </div>
+
+            <StaffRosterSection
+              title="Buy-Back"
+              category="buyback"
+              staffList={adminBuybackStaff}
+              showAddButton
+              claims={accessFilteredClaims}
+              claimMonths={adminClaimMonths}
+              onClickClaim={() => {}}
+              activeClaimKey={null}
+              onAddStaff={adminAddStaff}
+              onRemoveStaff={removeStaff}
+              onUpdateStaff={updateStaff}
+              staffRoles={staffRoles}
+              rateParams={rateParams}
+              managementRoles={rateSettings.management_roles_config}
+              saving={savingClaim}
+            />
+            <StaffRosterSection
+              title="GP Locum"
+              category="gp_locum"
+              staffList={adminGpLocumStaff}
+              showAddButton
+              claims={accessFilteredClaims}
+              claimMonths={adminClaimMonths}
+              onClickClaim={() => {}}
+              activeClaimKey={null}
+              onAddStaff={adminAddStaff}
+              onRemoveStaff={removeStaff}
+              onUpdateStaff={updateStaff}
+              staffRoles={staffRoles}
+              rateParams={rateParams}
+              managementRoles={rateSettings.management_roles_config}
+              saving={savingClaim}
+            />
+            <StaffRosterSection
+              title="New SDA"
+              category="new_sda"
+              staffList={adminNewSdaStaff}
+              showAddButton
+              claims={accessFilteredClaims}
+              claimMonths={adminClaimMonths}
+              onClickClaim={() => {}}
+              activeClaimKey={null}
+              onAddStaff={adminAddStaff}
+              onRemoveStaff={removeStaff}
+              onUpdateStaff={updateStaff}
+              staffRoles={staffRoles}
+              rateParams={rateParams}
+              managementRoles={rateSettings.management_roles_config}
+              saving={savingClaim}
+            />
+            <StaffRosterSection
+              title="NRES Management & Meeting Attendance"
+              category="management"
+              staffList={adminMgmtStaff}
+              showAddButton
+              claims={accessFilteredClaims}
+              claimMonths={adminClaimMonths}
+              onClickClaim={() => {}}
+              activeClaimKey={null}
+              onAddStaff={adminAddStaff}
+              onRemoveStaff={removeStaff}
+              onUpdateStaff={updateStaff}
+              staffRoles={staffRoles}
+              rateParams={rateParams}
+              managementRoles={rateSettings.management_roles_config}
+              saving={savingClaim}
+            />
+          </div>
+
+          {/* Unified Claims section — Practice-style ClaimsViewSwitcher with view tabs + Export */}
+          <ClaimsViewSwitcher
+            claims={practiceFilteredClaims}
+            practiceKey={effectiveFilterPractice === 'all' ? '' : effectiveFilterPractice}
+            practiceName={effectiveFilterPractice === 'all' ? 'All Practices' : (ALL_PRACTICES[effectiveFilterPractice] || '')}
+            onToggleCard={(id) => { /* admin uses spreadsheet/summary by default */ }}
+            expandedClaimId={null}
+            onSubmit={submitClaim}
+            onResubmit={(id) => submitClaim(id)}
+            saving={savingClaim}
+            directorMode
+            practiceFilter={effectiveFilterPractice}
+            onPracticeFilterChange={setFilterPractice}
+            practiceOptions={directorPracticeOptions}
+            defaultView="spreadsheet"
+            exportVariant={isPMLFinance ? 'finance' : 'director'}
+          />
+        </>
+      )}
 
       {/* Staff Management — hidden in mgmt_lead, pml_director, pml_finance test modes */}
       {effectiveShowStaffMgmt && (
