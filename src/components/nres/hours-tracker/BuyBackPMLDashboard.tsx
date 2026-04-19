@@ -1092,7 +1092,7 @@ export function BuyBackPMLDashboard({
       const saved = sessionStorage.getItem(sessionKey);
       if (saved) return saved;
     } catch {}
-    return view === 'finance' ? 'approved' : 'awaiting_review';
+    return view === 'finance' ? 'to_process' : 'awaiting_review';
   })();
   const [statusFilter, setStatusFilterRaw] = useState<string>(initialStatus);
   const setStatusFilter = (s: string) => {
