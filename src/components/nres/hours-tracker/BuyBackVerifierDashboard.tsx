@@ -836,7 +836,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
   const submittedMeetingCount = visibleMeetingGroups.filter(g => g[0]?.status === 'submitted').length;
   const submittedClaims = visibleClaims.filter(c => c.status === 'submitted');
   const submittedTotal = submittedClaims.reduce((a, c) => a + claimTotal(c), 0);
-  const verifiedClaims = visibleClaims.filter(c => c.status === 'verified' || (c.status as string) === 'awaiting_review');
+  const verifiedClaims = visibleClaims.filter(c => c.status === 'verified' || (c.status as unknown as string) === 'awaiting_review');
   const verifiedTotal = verifiedClaims.reduce((a, c) => a + claimTotal(c), 0);
   const paidTotal = visibleClaims.filter(c => c.status === 'paid').reduce((a, c) => a + claimTotal(c), 0);
   const counts = useMemo(() => {
