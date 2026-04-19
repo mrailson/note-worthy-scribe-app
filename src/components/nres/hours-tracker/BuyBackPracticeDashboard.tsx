@@ -2347,6 +2347,7 @@ export function ClaimsViewSwitcher({
   practiceOptions,
   defaultView,
   hideSummaryView = false,
+  exportVariant = 'practice',
 }: {
   claims: BuyBackClaim[];
   practiceKey: string;
@@ -2362,6 +2363,7 @@ export function ClaimsViewSwitcher({
   practiceOptions?: DirectorPracticeOption[];
   defaultView?: ClaimsView;
   hideSummaryView?: boolean;
+  exportVariant?: 'practice' | 'director' | 'finance';
 }) {
   const [view, setView] = useState<ClaimsView>(defaultView || 'spreadsheet');
   const [period, setPeriod] = useState('all');
