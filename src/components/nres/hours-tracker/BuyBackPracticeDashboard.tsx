@@ -2677,6 +2677,17 @@ export function ClaimsViewSwitcher({
         <div>
           {/* Filter bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+            {directorMode && practiceOptions && onPracticeFilterChange && (
+              <select
+                value={practiceFilter || 'all'}
+                onChange={e => onPracticeFilterChange(e.target.value)}
+                style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff', fontWeight: 600 }}
+                title="Filter by practice"
+              >
+                <option value="all">All Practices</option>
+                {practiceOptions.map(p => <option key={p.key} value={p.key}>{p.name}</option>)}
+              </select>
+            )}
             <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 11, color: '#374151', background: '#fff' }}>
               <option value="all">All Months</option>
               {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
