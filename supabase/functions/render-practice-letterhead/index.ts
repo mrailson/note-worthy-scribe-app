@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     if (!["left", "centre", "right"].includes(alignment)) {
       return jsonResponse({ error: "Invalid alignment" }, 400);
     }
-    if (heightCm < 3 || heightCm > 9 || topMarginCm < 0.5 || topMarginCm > 3) {
+    if (heightCm < 1 || heightCm > 15 || topMarginCm < 0 || topMarginCm > 5) {
       return jsonResponse(
         { error: "Invalid height_cm or top_margin_cm" },
         400,
