@@ -2778,7 +2778,7 @@ export function ClaimsViewSwitcher({
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
-                    <td colSpan={5} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280' }}>
+                    <td colSpan={directorMode ? 6 : 5} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280' }}>
                       {filteredLines.length} line{filteredLines.length !== 1 ? 's' : ''}
                     </td>
                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>
