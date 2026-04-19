@@ -1406,48 +1406,67 @@ export function BuyBackPMLDashboard({
 
       {/* Claims list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filteredClaims.length === 0 && filteredMeetingGroups.length === 0 ? (
-          <div style={{
-            padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14,
-            background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb',
-          }}>
-            No claims match the current filters.
-          </div>
+        {showActionQueue ? (
+          filteredClaims.length === 0 && filteredMeetingGroups.length === 0 ? (
+            <div style={{
+              padding: 40, textAlign: 'center', color: '#9ca3af', fontSize: 14,
+              background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb',
+            }}>
+              {view === 'finance'
+                ? 'No claims need processing right now.'
+                : 'No claims awaiting review.'}
+            </div>
+          ) : (
+            <>
+              {filteredClaims.map(c => (
+                <ClaimCard
+                  key={c.id}
+                  claim={c}
+                  view={view}
+                  expanded={expandedId === c.id}
+                  onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                  userId={userId}
+                  userEmail={userEmail}
+                  isAdmin={isAdmin}
+                  rateParams={rateParams}
+                  onApprove={onApprove}
+                  onQuery={onQuery}
+                  onReject={onReject}
+                  onMarkPaid={onMarkPaid}
+                  onSchedulePayment={onSchedulePayment}
+                  saving={savingClaim}
+                />
+              ))}
+              {filteredMeetingGroups.map(g => (
+                <MeetingClaimCard
+                  key={`meeting-${g.key}`}
+                  group={g}
+                  view={view}
+                  expanded={expandedId === `meeting-${g.key}`}
+                  onToggle={() => setExpandedId(expandedId === `meeting-${g.key}` ? null : `meeting-${g.key}`)}
+                  onApprove={onApproveMeetingEntries}
+                  onQuery={onQueryMeetingEntries}
+                  onReject={onRejectMeetingEntries}
+                  saving={savingClaim}
+                />
+              ))}
+            </>
+          )
         ) : (
-          <>
-            {filteredClaims.map(c => (
-              <ClaimCard
-                key={c.id}
-                claim={c}
-                view={view}
-                expanded={expandedId === c.id}
-                onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                userId={userId}
-                userEmail={userEmail}
-                isAdmin={isAdmin}
-                rateParams={rateParams}
-                onApprove={onApprove}
-                onQuery={onQuery}
-                onReject={onReject}
-                onMarkPaid={onMarkPaid}
-                onSchedulePayment={onSchedulePayment}
-                saving={savingClaim}
-              />
-            ))}
-            {filteredMeetingGroups.map(g => (
-              <MeetingClaimCard
-                key={`meeting-${g.key}`}
-                group={g}
-                view={view}
-                expanded={expandedId === `meeting-${g.key}`}
-                onToggle={() => setExpandedId(expandedId === `meeting-${g.key}` ? null : `meeting-${g.key}`)}
-                onApprove={onApproveMeetingEntries}
-                onQuery={onQueryMeetingEntries}
-                onReject={onRejectMeetingEntries}
-                saving={savingClaim}
-              />
-            ))}
-          </>
+          <ClaimsViewSwitcher
+            claims={filteredClaims}
+            practiceKey={practiceFilter === 'all' ? 'all' : practiceFilter}
+            practiceName={practiceFilter === 'all' ? 'All Practices' : getPracticeName(practiceFilter)}
+            onToggleCard={(id) => setExpandedId(expandedId === id ? null : id)}
+            expandedClaimId={expandedId}
+            saving={savingClaim}
+            directorMode
+            practiceFilter={practiceFilter}
+            onPracticeFilterChange={setPracticeFilter}
+            practiceOptions={practiceOptions}
+            defaultView="spreadsheet"
+            exportVariant={view === 'finance' ? 'finance' : 'director'}
+          />
         )}
       </div>
 
