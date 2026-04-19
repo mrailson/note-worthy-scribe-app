@@ -164,7 +164,7 @@ async function renderPdfToPng(bytes: Uint8Array): Promise<RenderResult> {
     unpdf = await import("https://esm.sh/unpdf@0.12.1");
   } catch (e: any) {
     throw new Error(
-      `PDF support unavailable in this runtime (${e?.message ?? "unknown error"}). Please upload a PNG letterhead instead.`,
+      `PDF support unavailable in this runtime (${e?.message ?? "unknown error"}). Please try another PDF file.`,
     );
   }
   const { text } = await unpdf.extractText(bytes, { mergePages: true });
@@ -189,7 +189,7 @@ async function renderDocxToPng(bytes: Uint8Array): Promise<RenderResult> {
     mammoth = mod.default ?? mod;
   } catch (e: any) {
     throw new Error(
-      `DOCX support unavailable in this runtime (${e?.message ?? "unknown error"}). Please upload a PNG letterhead instead.`,
+      `DOCX support unavailable in this runtime (${e?.message ?? "unknown error"}). Please try another DOCX file.`,
     );
   }
   const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
