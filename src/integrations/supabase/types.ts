@@ -3780,16 +3780,23 @@ export type Database = {
           cost_date: string
           cost_type: string
           created_at: string
+          currency: string
           description: string | null
           file_name: string | null
           file_path: string | null
+          fx_rate: number | null
+          fx_rate_date: string | null
+          gbp_amount: number | null
           hourly_rate: number | null
           hours: number | null
           id: string
           invoice_reference: string | null
           notes: string | null
+          payment_method: string | null
           updated_at: string
           user_id: string
+          vat_amount: number | null
+          vat_included: boolean | null
           vendor: string | null
         }
         Insert: {
@@ -3798,16 +3805,23 @@ export type Database = {
           cost_date: string
           cost_type: string
           created_at?: string
+          currency?: string
           description?: string | null
           file_name?: string | null
           file_path?: string | null
+          fx_rate?: number | null
+          fx_rate_date?: string | null
+          gbp_amount?: number | null
           hourly_rate?: number | null
           hours?: number | null
           id?: string
           invoice_reference?: string | null
           notes?: string | null
+          payment_method?: string | null
           updated_at?: string
           user_id: string
+          vat_amount?: number | null
+          vat_included?: boolean | null
           vendor?: string | null
         }
         Update: {
@@ -3816,17 +3830,81 @@ export type Database = {
           cost_date?: string
           cost_type?: string
           created_at?: string
+          currency?: string
           description?: string | null
           file_name?: string | null
           file_path?: string | null
+          fx_rate?: number | null
+          fx_rate_date?: string | null
+          gbp_amount?: number | null
           hourly_rate?: number | null
           hours?: number | null
           id?: string
           invoice_reference?: string | null
           notes?: string | null
+          payment_method?: string | null
           updated_at?: string
           user_id?: string
+          vat_amount?: number | null
+          vat_included?: boolean | null
           vendor?: string | null
+        }
+        Relationships: []
+      }
+      development_time_entries: {
+        Row: {
+          category: string
+          charged_rate_gbp: number
+          charged_value_gbp: number | null
+          created_at: string
+          hours: number
+          id: string
+          notes: string | null
+          notional_value_gbp: number | null
+          period_end: string
+          period_start: string
+          person_id: string | null
+          person_name: string
+          role: string | null
+          shadow_rate_gbp: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          charged_rate_gbp?: number
+          charged_value_gbp?: number | null
+          created_at?: string
+          hours: number
+          id?: string
+          notes?: string | null
+          notional_value_gbp?: number | null
+          period_end: string
+          period_start: string
+          person_id?: string | null
+          person_name: string
+          role?: string | null
+          shadow_rate_gbp?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          charged_rate_gbp?: number
+          charged_value_gbp?: number | null
+          created_at?: string
+          hours?: number
+          id?: string
+          notes?: string | null
+          notional_value_gbp?: number | null
+          period_end?: string
+          period_start?: string
+          person_id?: string | null
+          person_name?: string
+          role?: string | null
+          shadow_rate_gbp?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -4614,6 +4692,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fx_rates: {
+        Row: {
+          base_currency: string
+          cached_at: string
+          id: string
+          rate: number
+          rate_date: string
+          source: string
+          target_currency: string
+        }
+        Insert: {
+          base_currency: string
+          cached_at?: string
+          id?: string
+          rate: number
+          rate_date: string
+          source?: string
+          target_currency: string
+        }
+        Update: {
+          base_currency?: string
+          cached_at?: string
+          id?: string
+          rate?: number
+          rate_date?: string
+          source?: string
+          target_currency?: string
+        }
+        Relationships: []
       }
       genie_sessions: {
         Row: {
