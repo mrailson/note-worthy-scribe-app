@@ -1095,7 +1095,7 @@ export function BuyBackPMLDashboard({
       const saved = sessionStorage.getItem(sessionKey);
       if (saved) return saved;
     } catch {}
-    return 'to_process';
+    return 'invoiced';
   })();
   const [statusFilter, setStatusFilterRaw] = useState<string>(initialStatus);
   const setStatusFilter = (s: string) => {
@@ -1224,7 +1224,7 @@ export function BuyBackPMLDashboard({
     try {
       if (sessionStorage.getItem(sessionKey)) return; // user has a stored choice
     } catch {}
-    const preferred = view === 'finance' ? 'to_process' : 'awaiting_review';
+    const preferred = view === 'finance' ? 'invoiced' : 'awaiting_review';
     if (statusFilter !== preferred) return;
     if ((counts[preferred] || 0) > 0) return;
     if ((counts.queried || 0) > 0) setStatusFilter('queried');
@@ -1238,9 +1238,9 @@ export function BuyBackPMLDashboard({
     try {
       const k = `nres-pml-statusFilter-${v}`;
       const saved = sessionStorage.getItem(k);
-      setStatusFilterRaw(saved || (v === 'finance' ? 'to_process' : 'awaiting_review'));
+      setStatusFilterRaw(saved || (v === 'finance' ? 'invoiced' : 'awaiting_review'));
     } catch {
-      setStatusFilterRaw(v === 'finance' ? 'to_process' : 'awaiting_review');
+      setStatusFilterRaw(v === 'finance' ? 'invoiced' : 'awaiting_review');
     }
   };
 
@@ -1257,7 +1257,7 @@ export function BuyBackPMLDashboard({
       ];
 
   // Action queue is the cards list. Director: awaiting_review. Finance: to_process (approved + invoiced).
-  const actionQueueStatus = view === 'finance' ? 'to_process' : 'awaiting_review';
+  const actionQueueStatus = view === 'finance' ? 'invoiced' : 'awaiting_review';
   const showActionQueue = statusFilter === actionQueueStatus;
 
   return (
@@ -1467,7 +1467,7 @@ export function BuyBackPMLDashboard({
             practiceFilter={practiceFilter}
             onPracticeFilterChange={setPracticeFilter}
             practiceOptions={practiceOptions}
-            defaultView="spreadsheet"
+            defaultView={view === 'finance' ? 'cards' : 'spreadsheet'}
             exportVariant={view === 'finance' ? 'finance' : 'director'}
           />
         )}
