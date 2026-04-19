@@ -135,7 +135,19 @@ const renderSignatureBlock = (
 export const formatLetterForEmail = (
   letterContent: string,
   logoUrl?: string | null,
-  practiceLetterhead?: { signed_url: string; height_cm: number; alignment: 'left' | 'center' | 'right'; top_margin_cm: number } | null,
+  practiceLetterhead?: {
+    /** Signed URL to original file (PDF/DOCX) — kept for back-compat. */
+    signed_url?: string;
+    /**
+     * Pre-rendered PNG data URL (preferred). Use this for PDFs/DOCX so the
+     * email actually renders an image rather than a link to a file the
+     * recipient cannot fetch.
+     */
+    rendered_data_url?: string;
+    height_cm: number;
+    alignment: 'left' | 'center' | 'right';
+    top_margin_cm: number;
+  } | null,
 ): string => {
   const parsed = parseLetter(letterContent);
 
@@ -144,13 +156,15 @@ export const formatLetterForEmail = (
     <div style="max-width: 700px; margin: 0 auto; background-color: ${EMAIL_STYLES.colors.background}; font-family: ${EMAIL_STYLES.fontFamily};">
   `;
 
-  // PRACTICE LETTERHEAD (Phase 3) — full-width banner at the top of the email.
-  if (practiceLetterhead?.signed_url) {
-    const heightPx = Math.round(practiceLetterhead.height_cm * 37.795);
-    const topMarginPx = Math.round((practiceLetterhead.top_margin_cm ?? 0) * 37.795);
-    const align = practiceLetterhead.alignment ?? 'center';
+  // PRACTICE LETTERHEAD — full-width banner at the top of the email.
+  // Prefer the pre-rendered data URL so PDFs/DOCX show as images.
+  const lhSrc = practiceLetterhead?.rendered_data_url || practiceLetterhead?.signed_url;
+  if (lhSrc) {
+    const heightPx = Math.round(practiceLetterhead!.height_cm * 37.795);
+    const topMarginPx = Math.round((practiceLetterhead!.top_margin_cm ?? 0) * 37.795);
+    const align = practiceLetterhead!.alignment ?? 'center';
     html += `<div style="text-align: ${align}; padding: ${topMarginPx}px 28px 0 28px;">
-      <img src="${practiceLetterhead.signed_url}" alt="Practice letterhead" style="display: inline-block; max-width: 100%; height: ${heightPx}px; width: auto;" />
+      <img src="${lhSrc}" alt="Practice letterhead" style="display: inline-block; max-width: 100%; height: ${heightPx}px; width: auto;" />
     </div>`;
   }
 
