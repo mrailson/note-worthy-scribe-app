@@ -1642,6 +1642,10 @@ export default function NoteWellRecorder() {
     keepAlive.stop();
     stopSilentAudio();
     // Capture live transcript BEFORE stopping (it gets cleared on stop)
+    // TODO: flush pending partials if/when live pipeline exposes a sync hook.
+    // (AssemblyRealtimeClient / AssemblyAIRealtimeTranscriber currently flush
+    //  uncommitted words inside .stop() but don't surface them via a sync API,
+    //  so we rely on the React-state snapshot below + server-side consolidation.)
     capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
     const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
     if (capturedLiveWC > 0) {
@@ -2904,8 +2908,24 @@ export default function NoteWellRecorder() {
             </button>
           </div>
 
-          {/* Offline banner */}
-          {!isOnline && isIdle && (
+          {/* Recording mode pill (tappable — opens ModeSheet) */}
+          <div style={{padding:"0 16px",display:"flex",justifyContent:"center"}}>
+            <ModePill
+              mode={mode}
+              isAutoFallback={recordingMode.isAutoFallback}
+              disabled={!isIdle}
+              onTap={()=>setShowSheet(true)}
+            />
+          </div>
+
+          {/* Mid-recording connection drop / reconnect banner */}
+          <ConnectionBanner
+            connectionLostMidRecord={connectionLostMidRecord}
+            isOnline={isOnline}
+          />
+
+          {/* Idle offline banner — only shown when user is in offline mode at idle */}
+          {!isOnline && isIdle && !connectionLostMidRecord && (
             <div style={{margin:"10px 16px 0",background:"rgba(245,158,11,0.1)",borderRadius:12,padding:"10px 14px",border:"1px solid rgba(245,158,11,0.28)",display:"flex",gap:8,animation:"fadeIn 0.3s"}}>
               <span style={{fontSize:15,flexShrink:0}}>⚡</span>
               <div>
@@ -2924,7 +2944,7 @@ export default function NoteWellRecorder() {
                 <>
                   <div style={{fontSize:20,fontWeight:700,color:"#1a2332",letterSpacing:-0.5}}>Ready to record</div>
                   <div style={{fontSize:13,color:"#64748b",marginTop:4,lineHeight:1.5}}>
-                    {mode==="live" ? "Live transcript will appear as you speak" : "Recording saved locally · transcribed on sync"}
+                    {mode==="live" ? "Live transcription · notes generated on stop" : "Recording saved locally · transcribed on sync"}
                   </div>
                 </>
               )}
