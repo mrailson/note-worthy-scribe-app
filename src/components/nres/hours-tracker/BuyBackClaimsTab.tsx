@@ -988,6 +988,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           onRejectMeetingEntries={rejectMeetingEntries}
           savingClaim={savingClaim}
           defaultView={pmlDashboardView as 'director' | 'finance'}
+          hideDirectorTab={pmlDashboardView === 'finance'}
           onGuideOpen={onGuideOpen}
           onSettingsOpen={onSettingsOpen}
           showSettings={showSettings}
