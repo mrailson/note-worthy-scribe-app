@@ -687,6 +687,35 @@ export default function RecoveryToolPage() {
     }
   }, [deleteTarget]);
 
+  const confirmDeleteAllStale = useCallback(async () => {
+    if (staleSessions.length === 0) return;
+    setBulkDeleting(true);
+    const failures: string[] = [];
+    for (const target of staleSessions) {
+      try {
+        if (target.source === 'offline-backups') {
+          await deleteBackupSession(target.sessionId);
+        } else if (target.source === 'notewell_recording_recovery') {
+          await deleteFromRecoveryDB(target.sessionId);
+        } else if (target.source === 'notewell_recordings_v1') {
+          await deleteFromMobileRecorderDB(target.sessionId);
+        }
+      } catch (err: any) {
+        console.error('Bulk delete failed for', target.sessionId, err);
+        failures.push(target.sessionId);
+      }
+    }
+    setSessions(prev => prev.filter(x => {
+      const isStale = staleSessions.some(st => st.sessionId === x.sessionId && st.source === x.source);
+      return !isStale || failures.includes(x.sessionId);
+    }));
+    setBulkDeleting(false);
+    setShowBulkDelete(false);
+    if (failures.length > 0) {
+      alert(`Deleted ${staleSessions.length - failures.length} of ${staleSessions.length} recordings. ${failures.length} failed.`);
+    }
+  }, [staleSessions]);
+
   return (
     <div style={{
       padding: '16px',
