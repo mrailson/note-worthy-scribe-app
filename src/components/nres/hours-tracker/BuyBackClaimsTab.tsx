@@ -436,9 +436,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     emailTestingMode: rateSettings.email_testing_mode,
     emailSendingDisabled: rateSettings.email_sending_disabled,
     allowInvoiceWhenSuppressed: rateSettings.allow_invoice_email_when_suppressed,
+    notifySubmitterOnPaid: rateSettings.notify_submitter_on_paid,
     currentUserEmail: user?.email || undefined,
     currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
-  }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, user?.email, user?.user_metadata?.full_name]);
+  }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, rateSettings.notify_submitter_on_paid, user?.email, user?.user_metadata?.full_name]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine, refetch: refetchClaims } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries, verifyMeetingEntries, returnMeetingEntries, approveMeetingEntries, rejectMeetingEntries, queryMeetingEntries, refetch: refetchMeetingLog } = useNRESMeetingLog();

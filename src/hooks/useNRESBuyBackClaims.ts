@@ -193,6 +193,7 @@ export interface BuyBackClaimsEmailConfig {
   emailTestingMode: boolean;
   emailSendingDisabled?: boolean;
   allowInvoiceWhenSuppressed?: boolean;
+  notifySubmitterOnPaid?: boolean;
   currentUserEmail?: string;
   currentUserName?: string;
 }
@@ -1167,6 +1168,124 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         toast.success(`Payment status updated: ${labels[updates.payment_status] || updates.payment_status}`);
       } else {
         toast.success('Payment details saved');
+      }
+
+      // Send "claim paid" email to the original submitter when PML Finance marks payment_sent
+      if (updates.payment_status === 'payment_sent') {
+        try {
+          const updatedClaim = data as BuyBackClaim;
+          const submitterEmail = (updatedClaim as any)?.submitted_by_email || claim?.submitted_by_email || '';
+          const notifyOn = emailConfig?.notifySubmitterOnPaid ?? true;
+          const sendingDisabled = emailConfig?.emailSendingDisabled && !emailConfig?.allowInvoiceWhenSuppressed;
+
+          if (notifyOn && submitterEmail && !sendingDisabled) {
+            const recipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? emailConfig.currentUserEmail
+              : submitterEmail;
+
+            const practiceKey = updatedClaim.practice_key as NRESPracticeKey | undefined;
+            const practiceName = practiceKey ? getPracticeName(practiceKey) : (updatedClaim.practice_key || '');
+            const claimDate = new Date(updatedClaim.claim_month || '');
+            const claimMonthLabel = !isNaN(claimDate.getTime())
+              ? claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+              : (updatedClaim.claim_month || '');
+            const totalAmount = Number(updatedClaim.claimed_amount || updatedClaim.calculated_amount || 0);
+            const totalLabel = `£${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const invoiceNum = updatedClaim.invoice_number || '—';
+
+            const paymentDateRaw = updates.actual_payment_date || (updatedClaim as any).actual_payment_date || '';
+            const paymentDateLabel = paymentDateRaw
+              ? new Date(paymentDateRaw).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+              : '';
+            const bacsRef = updates.bacs_reference || (updatedClaim as any).bacs_reference || '';
+            const poRef = updates.pml_po_reference || (updatedClaim as any).pml_po_reference || '';
+            const payMethod = updates.payment_method || (updatedClaim as any).payment_method || '';
+
+            const submitterFirstName = (() => {
+              const local = (submitterEmail.split('@')[0] || '');
+              const first = local.split(/[._-]/)[0] || local;
+              return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : '';
+            })();
+
+            const ccList = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? []
+              : ['amanda.palin2@nhs.net'];
+
+            supabase.functions.invoke('send-meeting-email-resend', {
+              body: {
+                to_email: recipient,
+                subject: `Payment sent — ${claimMonthLabel} buy-back claim — ${totalLabel}`,
+                html_content: `
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
+  <div style="background:#166534;padding:22px 28px;">
+    <p style="color:#bbf7d0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES Neighbourhood Access Service</p>
+    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;">Payment sent</h1>
+    <p style="color:#dcfce7;font-size:13px;margin:0;">${practiceName} · ${claimMonthLabel}</p>
+  </div>
+  <div style="padding:26px 28px 8px;">
+    <p style="margin:0 0 10px;font-size:15px;">Hi ${submitterFirstName || 'there'},</p>
+    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">
+      PML Finance has marked your ${claimMonthLabel} buy-back claim as <strong>paid</strong>.
+      ${paymentDateLabel ? `Payment was sent on <strong>${paymentDateLabel}</strong>.` : 'Payment has been issued.'}
+      Please allow standard banking time for the funds to clear.
+    </p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:0 0 22px;">
+      <tr style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;width:45%;">Amount paid</td>
+        <td style="padding:10px 0;text-align:right;font-weight:700;color:#14532d;font-variant-numeric:tabular-nums;">${totalLabel}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">Invoice number</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;">${invoiceNum}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">Claim period</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;">${claimMonthLabel}</td>
+      </tr>
+      ${paymentDateLabel ? `<tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">Payment date</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;font-weight:600;">${paymentDateLabel}</td>
+      </tr>` : ''}
+      ${payMethod ? `<tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">Payment method</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;">${payMethod}</td>
+      </tr>` : ''}
+      ${bacsRef ? `<tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">BACS reference</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;font-family:monospace;">${bacsRef}</td>
+      </tr>` : ''}
+      ${poRef ? `<tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">PO reference</td>
+        <td style="padding:10px 0;text-align:right;color:#0f172a;font-family:monospace;">${poRef}</td>
+      </tr>` : ''}
+    </table>
+    <p style="margin:0 0 8px;font-size:13px;color:#475569;line-height:1.5;">
+      If you have not received the payment within 5 working days of the payment date, or if any details look incorrect, please contact PML Finance.
+    </p>
+  </div>
+  <div style="padding:14px 28px 22px;border-top:1px solid #eef1f5;">
+    <p style="margin:0;font-size:11px;color:#64748b;line-height:1.5;">Queries: contact PML Finance — Amanda Palin · <a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;text-decoration:none;">amanda.palin2@nhs.net</a></p>
+  </div>
+</div>`,
+                from_name: 'NRES Buy-Back Claims',
+                cc_emails: ccList,
+              },
+            }).then(() => {
+              const label = emailConfig?.emailTestingMode ? `${recipient} (test mode)` : recipient;
+              toast.success(`Payment confirmation emailed to ${label}`);
+            }).catch((err) => {
+              console.error('Failed to send payment-sent email:', err);
+            });
+          } else if (!notifyOn) {
+            console.log('[Payment email] Skipped — notify_submitter_on_paid is disabled in settings');
+          } else if (sendingDisabled) {
+            console.log('[Payment email] Skipped — email sending is suppressed');
+          } else {
+            console.log('[Payment email] Skipped — no submitter email on claim');
+          }
+        } catch (emailErr) {
+          console.error('Error preparing payment email:', emailErr);
+        }
       }
     } catch (error) {
       console.error('Error updating payment:', error);
