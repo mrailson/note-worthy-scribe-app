@@ -159,6 +159,8 @@ async function deleteFromMobileRecorderDB(recordingId: string): Promise<void> {
     };
   });
 }
+
+function buildMobileRecordingBlobs(recording: MobileRecording): { blobs: Blob[]; mimeType: string } {
   if (Array.isArray(recording.chunks) && recording.chunks.length > 0) {
     const mimeType = recording.mimeType || recording.chunks[0]?.mimeType || 'audio/webm';
     return {
