@@ -1188,9 +1188,17 @@ export default function NoteWellRecorder() {
   }, [isLocked, recState, wakeLockSupported]);
 
   // ── Connectivity (track online status + auto-resume queued syncs) ──────
+  // Network state is now owned by useRecordingMode(); this effect handles
+  // side-effects only (sync resume + mid-record drop banner).
+  // Use a ref to read current recState/mode inside the listeners without
+  // re-binding on every render.
+  const recStateRef = useRef(recState);
+  useEffect(() => { recStateRef.current = recState; }, [recState]);
+  const modeRef = useRef(mode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
   useEffect(() => {
     const goOnline = async () => {
-      setIsOnline(true);
       // Auto-resume any failed/paused recordings
       const allRecs = await dbAll();
       const resumable = allRecs.filter(r => r.status === "error" || r.status === "paused");
@@ -1203,8 +1211,16 @@ export default function NoteWellRecorder() {
       }
     };
     const goOffline = () => {
-      setIsOnline(false);
-      setMode("offline");
+      // If we drop while recording in live mode, raise the mid-record banner.
+      // Recording continues into the local buffer (existing chunked recorder
+      // behaviour); the buffer will sync on stop. We do NOT mutate the user's
+      // mode preference — the hook's auto-fallback handles the pill display.
+      if (
+        recStateRef.current !== "idle" &&
+        modeRef.current === "live"
+      ) {
+        setConnectionLostMidRecord(true);
+      }
       // If sync is in progress, show paused state
       if (syncProgress && syncProgress.phase === "uploading") {
         setSyncProgress(prev => ({
