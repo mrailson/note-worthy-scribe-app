@@ -960,7 +960,7 @@ function Toast({ msg, type }) {
   );
 }
 
-function StepsGuide() {
+function StepsGuide({ mode = "live" }) {
   const [open, setOpen] = useState(true);
   const MicIcon = () => (
     <img src="/favicon-robot.png" alt="" width="20" height="20" style={{display:"inline-block",objectFit:"contain"}}/>
@@ -977,11 +977,23 @@ function StepsGuide() {
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
     </svg>
   );
-  const steps = [
-    {n:"1",Icon:MicIcon,label:"Tap record to start"},
-    {n:"2",Icon:SaveIcon,label:"Saved to device"},
-    {n:"3",Icon:SparkIcon,label:"Notes generated on stop"},
-  ];
+  const LiveIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block"}}>
+      <path d="M2 12a10 10 0 0 1 20 0M5 12a7 7 0 0 1 14 0M8 12a4 4 0 0 1 8 0"/>
+      <circle cx="12" cy="12" r="1.5" fill="#1565c0"/>
+    </svg>
+  );
+  const steps = mode === "live"
+    ? [
+        {n:"1",Icon:MicIcon, label:"Tap record to start"},
+        {n:"2",Icon:LiveIcon,label:"Live transcription"},
+        {n:"3",Icon:SparkIcon,label:"Notes generated on stop"},
+      ]
+    : [
+        {n:"1",Icon:MicIcon, label:"Tap record to start"},
+        {n:"2",Icon:SaveIcon,label:"Saved to device"},
+        {n:"3",Icon:SparkIcon,label:"Notes generated on sync"},
+      ];
   return (
     <div style={{margin:"8px 16px 0"}}>
       <button onClick={()=>setOpen(o=>!o)} style={{
