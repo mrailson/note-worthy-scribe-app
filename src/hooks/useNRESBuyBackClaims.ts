@@ -799,21 +799,41 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             const firstName = submitterFirstName || (pmContact.practiceManager || '').split(' ')[0] || pmContact.practiceManager;
             const pdfFilename = `Invoice_${invoiceNum}.pdf`;
 
+            // Derive a friendly claim type label from staff categories
+            const claimTypeLabel = (() => {
+              const cats = Array.from(new Set((staffDetails || []).map((s: any) => s.staff_category).filter(Boolean)));
+              const labelMap: Record<string, string> = {
+                gp_locum: 'GP Locum',
+                meeting: 'Meeting Attendance',
+                salaried: 'Buy-Back',
+                buyback: 'Buy-Back',
+                management: 'NRES Management',
+                additional: 'SDA',
+                sda: 'SDA',
+              };
+              if (cats.length === 0) {
+                return (freshClaim?.claim_type === 'additional') ? 'SDA' : 'Buy-Back';
+              }
+              if (cats.length === 1) return labelMap[cats[0] as string] || 'Buy-Back';
+              return 'Mixed';
+            })();
+            const claimTypeLabelLower = claimTypeLabel === 'Buy-Back' ? 'buy-back' : claimTypeLabel;
+
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: invoiceRecipient,
-                subject: `Buy-back claim approved — ${claimMonthLabel} — ${totalLabel}`,
+                subject: `${claimTypeLabel} claim approved — ${claimMonthLabel} — ${totalLabel}`,
                 html_content: `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
   <div style="background:#003087;padding:22px 28px;">
-    <p style="color:#9fb6e0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES Neighbourhood Access Service</p>
-    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">Buy-back claim approved</h1>
+    <p style="color:#9fb6e0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES NEIGHBOURHOOD ACCESS SERVICE</p>
+    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">${claimTypeLabel} claim approved</h1>
     <p style="color:#cdd9ee;font-size:13px;margin:0;">${practiceName} · ${claimMonthLabel}</p>
   </div>
 
   <div style="padding:26px 28px 8px;">
     <p style="margin:0 0 10px;font-size:15px;">Hi ${firstName},</p>
-    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">PML has approved your ${claimMonthLabel} buy-back claim. The matching invoice is attached — no action needed.</p>
+    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">PML has approved your ${claimMonthLabel} ${claimTypeLabelLower} claim. The matching invoice is attached — no action needed.</p>
 
     <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:10px 0;margin:0 -10px 22px;">
       <tr>
