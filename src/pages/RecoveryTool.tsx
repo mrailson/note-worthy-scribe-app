@@ -1131,6 +1131,109 @@ export default function RecoveryToolPage() {
           </div>
         </div>
       )}
+
+      {/* Bulk delete confirmation modal */}
+      {showBulkDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => bulkDeleting ? null : setShowBulkDelete(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 20,
+              maxWidth: 460,
+              width: '100%',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
+            }}
+          >
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: '#1a1a2e' }}>
+              Delete all recordings over 24 hours old?
+            </h2>
+            <p style={{ fontSize: 14, color: '#444', lineHeight: 1.5, margin: '0 0 12px' }}>
+              This will permanently delete <strong>{staleSessions.length}</strong> recording{staleSessions.length === 1 ? '' : 's'} from this device.
+            </p>
+            <div style={{
+              background: '#fff3e0',
+              border: '1px solid #ffb74d',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 13,
+              color: '#7c4a00',
+              marginBottom: 12,
+            }}>
+              ⚠️ This cannot be undone. Any recordings that have not been uploaded or emailed will be lost.
+              <div style={{ marginTop: 6, fontSize: 12 }}>
+                Total size: {formatBytes(staleSessions.reduce((sum, s) => sum + s.totalSize, 0))}
+              </div>
+            </div>
+            <div style={{
+              maxHeight: 160,
+              overflowY: 'auto',
+              border: '1px solid #eee',
+              borderRadius: 6,
+              padding: '6px 10px',
+              fontSize: 12,
+              color: '#555',
+              marginBottom: 16,
+              background: '#fafafa',
+            }}>
+              {staleSessions.map(s => (
+                <div key={`${s.source}-${s.sessionId}`} style={{ padding: '3px 0', borderBottom: '1px solid #f0f0f0' }}>
+                  • {getSessionTitle(s)} — {new Date(s.createdAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowBulkDelete(false)}
+                disabled={bulkDeleting}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #ccc',
+                  background: '#fff',
+                  color: '#333',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: bulkDeleting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteAllStale}
+                disabled={bulkDeleting}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: bulkDeleting ? '#999' : '#c62828',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: bulkDeleting ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {bulkDeleting ? 'Deleting…' : `Delete ${staleSessions.length} recording${staleSessions.length === 1 ? '' : 's'}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
