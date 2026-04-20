@@ -113,14 +113,30 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-const ClaimTypeBadge = ({ type }: { type?: string }) => {
-  const cfg = type === 'additional'
-    ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
-    : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
+const CATEGORY_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  buyback:    { label: 'Buy-Back',    color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' },
+  new_sda:    { label: 'New SDA',     color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+  gp_locum:   { label: 'GP Locum',    color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+  management: { label: 'Management',  color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+  meeting:    { label: 'Meeting',     color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' },
+  additional: { label: 'Additional',  color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
+};
+
+const ClaimTypeBadge = ({ claim }: { claim: BuyBackClaim }) => {
+  const dets = ((claim as any).staff_details || []) as any[];
+  const cats = Array.from(new Set(dets.map(d => d.staff_category || 'buyback')));
+  const fallback = cats.length === 0 ? [claim.claim_type === 'additional' ? 'additional' : 'buyback'] : cats;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-      {cfg.label}
-    </span>
+    <>
+      {fallback.map(cat => {
+        const cfg = CATEGORY_BADGE_CONFIG[cat] || CATEGORY_BADGE_CONFIG.buyback;
+        return (
+          <span key={cat} style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+            {cfg.label}
+          </span>
+        );
+      })}
+    </>
   );
 };
 
@@ -321,7 +337,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{practiceName(claim.practice_key)}</span>
           <span style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'monospace' }}>{practiceCode(claim.practice_key)}</span>
           <span style={{ fontSize: 13, color: '#6b7280' }}>{getClaimMonthLabel(claim)}</span>
-          <ClaimTypeBadge type={claim.claim_type} />
+          <ClaimTypeBadge claim={claim} />
           <StatusBadge status={claim.status} />
           {isSubmitted && <span style={{ fontSize: 11, color: '#0369a1', fontWeight: 500 }}>Needs verification</span>}
         </div>
