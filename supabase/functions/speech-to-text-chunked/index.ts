@@ -288,15 +288,39 @@ serve(async (req) => {
         const result = JSON.parse(text);
         console.log(`✅ [${requestId}] Transcription result: ${result.text?.length || 0} chars`);
 
+        // ── Loop detector: collapse ≥6-word phrases repeated >3 times ──
+        let segments = Array.isArray(result.segments) ? result.segments : [];
+        let cleanedText = result.text || '';
+        let loopsCollapsed = 0;
+        let repeatsRemoved = 0;
+        if (segments.length > 0) {
+          const collapsed = collapseLoopsInSegments(segments);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector: collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeated segment(s)`);
+            segments = collapsed.segments;
+            cleanedText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        } else if (cleanedText) {
+          const collapsed = collapseLoopsInText(cleanedText);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector (text): collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeats`);
+            cleanedText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        }
+
         let confidence = 0.5;
         let audioQualityWarning: string | null = null;
         let avgNoSpeech = 0;
 
-        if (result.segments && result.segments.length > 0) {
-          const avgLogProb = result.segments.reduce((sum: number, seg: any) =>
-            sum + (seg.avg_logprob || -2), 0) / result.segments.length;
-          avgNoSpeech = result.segments.reduce((sum: number, seg: any) =>
-            sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
+        if (segments.length > 0) {
+          const avgLogProb = segments.reduce((sum: number, seg: any) =>
+            sum + (seg.avg_logprob || -2), 0) / segments.length;
+          avgNoSpeech = segments.reduce((sum: number, seg: any) =>
+            sum + (seg.no_speech_prob || 0.5), 0) / segments.length;
 
           confidence = Math.max(0, Math.min(1,
             (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
@@ -311,13 +335,15 @@ serve(async (req) => {
 
         const response = {
           data: {
-            text: result.text || '',
-            segments: result.segments || []
+            text: cleanedText,
+            segments,
           },
           confidence,
           audioQuality: audioQualityWarning ? 'poor' : (confidence >= 0.6 ? 'good' : 'acceptable'),
           audioQualityWarning,
           noSpeechProbability: avgNoSpeech,
+          loopsCollapsed,
+          repeatsRemoved,
           chunkIndex,
           isFinal,
           sessionId,
