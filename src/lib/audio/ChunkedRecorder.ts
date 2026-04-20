@@ -61,9 +61,14 @@ export class ChunkedRecorder {
     this.overlapMs = options.overlapMs ?? DEFAULT_OVERLAP_MS;
     this.onChunkReady = options.onChunkReady;
     this.onStatusChange = options.onStatusChange;
+    // iOS Safari: all three DSP flags must be set explicitly. Omitting
+    // autoGainControl previously left it at the UA default (off on iOS),
+    // which contributed to gain swings on quieter speakers and missed
+    // unstressed words like negations ("aren't", "don't").
     this.audioConstraints = options.audioConstraints ?? {
       echoCancellation: true,
       noiseSuppression: true,
+      autoGainControl: true,
       sampleRate: 16000,
       channelCount: 1,
     };
