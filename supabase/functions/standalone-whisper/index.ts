@@ -435,13 +435,26 @@ serve(async (req) => {
     if (response.ok) {
       if (resolvedFormat === 'text' || resolvedFormat === 'srt' || resolvedFormat === 'vtt') {
         const textResult = await response.text();
-        const cleanedText = cleanHallucinations(textResult, requestId);
+        let cleanedText = cleanHallucinations(textResult, requestId);
+        let loopsCollapsed = 0;
+        let repeatsRemoved = 0;
+        if (resolvedFormat === 'text' && cleanedText) {
+          const collapsed = collapseLoopsInText(cleanedText);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector (text): collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeats`);
+            cleanedText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        }
         console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${cleanedText.slice(0, 100)}…`);
         return new Response(
           JSON.stringify({
             text: cleanedText,
             service: 'whisper',
             format: forwardMime,
+            loopsCollapsed,
+            repeatsRemoved,
             ...(includeDiagnostics ? { diagnostics } : {}),
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
