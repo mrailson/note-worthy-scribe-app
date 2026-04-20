@@ -27,9 +27,8 @@ serve(async (req) => {
     const idx = typeof chunkIndex === 'number' ? chunkIndex : 0;
     const tot = typeof totalChunks === 'number' ? totalChunks : 1;
 
-    console.log(`🧹 Cleaning chunk ${idx + 1}/${tot} for: ${meetingTitle || 'Meeting'}`);
-    console.log('🔍 Chunk length:', text.length);
-    console.log('🔍 Chunk preview:', text.slice(0, 180));
+    console.log(`🧹 Cleaning chunk ${idx + 1}/${tot} for: ${meetingTitle || 'Meeting'} (${text.length} chars)`);
+    console.log('📊 API call count: 1 cleaning call for this chunk');
 
     const systemPrompt = `You are a transcript cleaner. Clean this SINGLE CHUNK of a larger transcript without inventing content.
 
@@ -63,7 +62,7 @@ ${text}`;
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.2,
-        max_tokens: 4096,
+        max_tokens: 16384,
       }),
     });
 

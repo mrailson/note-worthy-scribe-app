@@ -71,7 +71,8 @@ async function cleanLargeTranscript(
   supabaseUrl: string,
   supabaseServiceKey: string
 ): Promise<string> {
-  const chunks = splitTextIntoChunks(rawTranscript, 3500, 200);
+  // Use large chunks (~12k tokens) to minimise API calls — max 3-4 chunks even for long meetings
+  const chunks = splitTextIntoChunks(rawTranscript, 45000, 500);
   const results: string[] = new Array(chunks.length);
 
   // Process chunks sequentially to avoid overwhelming the system

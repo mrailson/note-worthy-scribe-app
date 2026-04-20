@@ -71,10 +71,12 @@ export async function cleanLargeTranscript(
   onProgress?: ProgressCallback,
   options: { concurrency?: number; chunkSize?: number; overlap?: number } = {}
 ): Promise<string> {
-  const { concurrency = 3, chunkSize = 3500, overlap = 200 } = options;
+  // Use large chunks (~12k tokens each) to minimise API calls.
+  // A typical 30-min meeting (~15k chars) fits in a single chunk.
+  const { concurrency = 2, chunkSize = 45000, overlap = 500 } = options;
 
   // Small transcripts: use existing single-call function
-  if (rawTranscript.length <= 7000) {
+  if (rawTranscript.length <= 50000) {
     const { data, error } = await supabase.functions.invoke('clean-transcript', {
       body: { rawTranscript, meetingTitle },
     });
@@ -84,6 +86,7 @@ export async function cleanLargeTranscript(
 
   const chunks = splitTextIntoChunks(rawTranscript, chunkSize, overlap);
   const total = chunks.length;
+  console.log(`📊 CleanTranscriptOrchestrator: ${rawTranscript.length} chars → ${total} chunk(s) (target: ≤4 API calls)`);
   let done = 0;
   const results: string[] = new Array(total);
 
