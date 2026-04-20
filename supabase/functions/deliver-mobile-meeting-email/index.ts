@@ -11,12 +11,21 @@ const corsHeaders = {
 
 const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
 
+const GENERIC_TITLE_PATTERNS = [
+  /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,           // "Meeting 20 Apr 18:50"
+  /^Mobile Recording\b/i,                               // "Mobile Recording 20 Apr"
+  /^Meeting\s*-\s*\w{3},/i,                             // "Meeting - Mon, 14th..."
+  /^Meeting\s*-\s*\w+day/i,                             // "Meeting - Monday..."
+  /^Meeting\s*-\s*\d{1,2}(st|nd|rd|th)/i,              // "Meeting - 14th..."
+  /^Meeting\s+\d+$/i,                                   // "Meeting 1"
+];
+
 const cleanMeetingTitle = (title: string | null | undefined) =>
   title?.replace(/^\*+\s*/, "").replace(/\*\*/g, "").trim() || "";
 
 const isGenericMeetingTitle = (title: string | null | undefined) => {
   const cleaned = cleanMeetingTitle(title);
-  return !cleaned || GENERIC_TITLES.includes(cleaned.toLowerCase()) || /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(cleaned);
+  return !cleaned || GENERIC_TITLES.includes(cleaned.toLowerCase()) || GENERIC_TITLE_PATTERNS.some(p => p.test(cleaned));
 };
 
 const humanizeEmailLocalPart = (email: string | null | undefined) => {
