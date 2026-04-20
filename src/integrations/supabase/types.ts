@@ -8532,6 +8532,7 @@ export type Database = {
           meeting_pm_rate: number
           notify_director_on_resubmit: boolean | null
           notify_submitter_on_approve: boolean | null
+          notify_submitter_on_paid: boolean
           notify_submitter_on_query: boolean | null
           notify_submitter_on_resubmit: boolean | null
           notify_verifier_on_approve: boolean | null
@@ -8553,6 +8554,7 @@ export type Database = {
           meeting_pm_rate?: number
           notify_director_on_resubmit?: boolean | null
           notify_submitter_on_approve?: boolean | null
+          notify_submitter_on_paid?: boolean
           notify_submitter_on_query?: boolean | null
           notify_submitter_on_resubmit?: boolean | null
           notify_verifier_on_approve?: boolean | null
@@ -8574,6 +8576,7 @@ export type Database = {
           meeting_pm_rate?: number
           notify_director_on_resubmit?: boolean | null
           notify_submitter_on_approve?: boolean | null
+          notify_submitter_on_paid?: boolean
           notify_submitter_on_query?: boolean | null
           notify_submitter_on_resubmit?: boolean | null
           notify_verifier_on_approve?: boolean | null
