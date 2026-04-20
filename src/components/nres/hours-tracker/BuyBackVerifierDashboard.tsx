@@ -892,7 +892,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
               </button>
             )}
           </div>
-          <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>Verify submitted claims before Director review</p>
+          <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>Verify submitted claims before SNO Finance Director review</p>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{userName || 'Amanda Palin'}</div>
