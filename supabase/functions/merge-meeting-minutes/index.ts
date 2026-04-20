@@ -1,92 +1,66 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+// Claude Sonnet 4.6 — reduce step. Merges per-chunk summaries into final minutes.
+// Project policy (memory): claude-sonnet-4-6 must be used directly.
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// V2 Amanda-compliant system prompt for NHS governance
-const SYSTEM_PROMPT_V2 = `You are an expert NHS meeting secretary. You create professional, factual, and neutral minutes suitable for board and governance distribution.
-Use British English and adhere strictly to NHS and UK healthcare documentation standards.
+const SYSTEM_PROMPT = `You are an expert NHS meeting secretary. You produce professional, factual, neutral minutes suitable for board and governance distribution.
+British English. NHS / UK healthcare documentation standards.
 
-Additional Behavioural Rules:
-- Never include jokes, humour, idioms, or personal remarks (e.g. "wolf ready to pounce").
-- Filter out gossip, personal anecdotes, or informal exchanges — only retain professional, factual, or decision-relevant dialogue.
-- Replace informal references (e.g. "Rich's mother-in-law") with the person's correct role or designation if known (e.g. "SPLW candidate"). If uncertain, use a neutral descriptor like "a candidate for the SPLW post".
-- Where tone in a section may sound critical, rephrase diplomatically (e.g. "members discussed differing perspectives on autonomy" rather than "the federation was criticised").
-- Maintain balance: represent differing views fairly, but without attributing emotional tone.
-- Prioritise clarity, professionalism, and governance readability over verbatim fidelity.
+Behavioural rules:
+- Never include jokes, humour, idioms, or personal remarks.
+- Filter out gossip, personal anecdotes, informal exchanges — retain professional, factual, decision-relevant dialogue only.
+- Replace informal references with the person's correct role/designation if known; otherwise neutral descriptors.
+- Where tone may sound critical, rephrase diplomatically.
+- Maintain balance: represent differing views fairly without emotional tone.
 
-Merging Instructions:
-- Structure with these sections (single H1 per doc): # Meeting Title, Date/Time, Attendees, Agenda, Key Points, Decisions, Actions, Risks/Issues, Next Steps.
-- Keep concise, deduplicate, and resolve contradictions.
-- British English. Markdown output. Do not include non-deterministic preambles.
-- Filter out any informal banter, personal anecdotes, humour, or off-topic remarks.
-- Ensure every paragraph could safely appear in a circulated Board pack.
+Decision taxonomy (mandatory):
+- Use prefixes RESOLVED, AGREED, NOTED explicitly in **bold** at the start of each decision line.
+  - RESOLVED — explicit voting language present
+  - AGREED — clear consensus
+  - NOTED — informational acknowledgement
 
-CRITICAL - Return to Work & HR Matters:
-- If ANY discussion of phased returns, return to work arrangements, reduced hours, modified duties, or wellbeing matters appears in the transcript:
-  - Create a dedicated "# RETURN TO WORK & WELLBEING" or "# STAFFING & HR MATTERS" section in the body
-  - Include ALL specific details: duration of phased return, shift patterns, start dates, excluded shift types
-  - Do NOT relegate these details solely to Action Items - expand them fully in the discussion narrative
-  - Example: "A phased return to work over 2 weeks was discussed, with morning shifts only and no late duties"
-- These topics must appear BOTH in the discussion narrative AND as action items where applicable.`;
+Merging instructions:
+- Single H1 per document. Sections: Title, Date/Time, Attendees, Agenda, Key Points, Decisions, Actions, Risks/Issues, Next Steps.
+- Deduplicate, resolve contradictions, preserve unique details.
+- Action items: "[Owner] – Action – Due date (if mentioned)".
+- If a chunk arrived as an "[unsummarised excerpt …]" placeholder, integrate its substantive content where possible and silently drop the placeholder marker from the final output (do NOT mention it).
+- Markdown output, no preambles.`;
 
-// Professional-tone audit post-processing (v2)
 function performProfessionalToneAudit(content: string): string {
   if (!content) return content;
-  
   let audited = content;
-  
-  // Remove judgemental or sarcastic phrases
-  const judgementalPatterns = [
-    { pattern: /complained about/gi, replacement: 'raised concerns regarding' },
-    { pattern: /was criticised/gi, replacement: 'received feedback on' },
-    { pattern: /criticised the/gi, replacement: 'expressed concerns about the' },
-    { pattern: /attacked the/gi, replacement: 'questioned the' },
-    { pattern: /blamed\s+(\w+)\s+for/gi, replacement: 'attributed responsibility to $1 for' },
-    { pattern: /failed to/gi, replacement: 'did not' },
-    { pattern: /refused to/gi, replacement: 'declined to' },
-    { pattern: /angrily stated/gi, replacement: 'stated firmly' },
-    { pattern: /frustrated by/gi, replacement: 'noted challenges with' },
-    { pattern: /annoyed at/gi, replacement: 'expressed concerns about' },
-    { pattern: /demanded that/gi, replacement: 'requested that' },
-    { pattern: /insisted on/gi, replacement: 'emphasised the need for' },
-    { pattern: /members complained/gi, replacement: 'members raised concerns' },
-    { pattern: /staff complained/gi, replacement: 'staff raised concerns' },
-    { pattern: /the federation was criticised/gi, replacement: 'members discussed differing perspectives on federation governance' },
-    { pattern: /wolf ready to pounce/gi, replacement: '' },
-    { pattern: /like a wolf/gi, replacement: '' },
+  const judgementalPatterns: Array<[RegExp, string]> = [
+    [/complained about/gi, 'raised concerns regarding'],
+    [/was criticised/gi, 'received feedback on'],
+    [/criticised the/gi, 'expressed concerns about the'],
+    [/attacked the/gi, 'questioned the'],
+    [/blamed\s+(\w+)\s+for/gi, 'attributed responsibility to $1 for'],
+    [/failed to/gi, 'did not'],
+    [/refused to/gi, 'declined to'],
+    [/angrily stated/gi, 'stated firmly'],
+    [/frustrated by/gi, 'noted challenges with'],
+    [/annoyed at/gi, 'expressed concerns about'],
+    [/demanded that/gi, 'requested that'],
+    [/insisted on/gi, 'emphasised the need for'],
+    [/members complained/gi, 'members raised concerns'],
+    [/staff complained/gi, 'staff raised concerns'],
+    [/the federation was criticised/gi, 'members discussed differing perspectives on federation governance'],
+    [/wolf ready to pounce/gi, ''],
+    [/like a wolf/gi, ''],
   ];
-  
-  for (const { pattern, replacement } of judgementalPatterns) {
-    audited = audited.replace(pattern, replacement);
-  }
-  
-  // Remove informal/personal remarks
-  const informalPatterns = [
-    /\b(lol|haha|lmao)\b/gi,
-    /\(laughs\)/gi,
-    /\(laughter\)/gi,
-    /mother-in-law/gi,
-    /father-in-law/gi,
-    /my wife|my husband|my partner/gi,
-  ];
-  
-  for (const pattern of informalPatterns) {
-    audited = audited.replace(pattern, '');
-  }
-  
-  // Clean up any double spaces or excessive punctuation
-  audited = audited
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\n\s*\n\s*\n/g, '\n\n')
-    .trim();
-  
-  return audited;
+  for (const [pattern, replacement] of judgementalPatterns) audited = audited.replace(pattern, replacement);
+  const informalPatterns = [/\b(lol|haha|lmao)\b/gi, /\(laughs\)/gi, /\(laughter\)/gi, /mother-in-law/gi, /father-in-law/gi, /my wife|my husband|my partner/gi];
+  for (const p of informalPatterns) audited = audited.replace(p, '');
+  // Drop any leaked excerpt-placeholder markers if Claude didn't already strip them
+  audited = audited.replace(/_\[unsummarised excerpt[^\]]*\]_\s*/gi, '');
+  return audited.replace(/\s{2,}/g, ' ').replace(/\n\s*\n\s*\n/g, '\n\n').trim();
 }
 
 serve(async (req) => {
@@ -95,8 +69,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      return new Response(JSON.stringify({ error: 'OPENAI_API_KEY is not configured' }), {
+    if (!anthropicApiKey) {
+      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -113,58 +87,67 @@ serve(async (req) => {
 
     const joined = summaries.map((s, i) => `--- Chunk ${i + 1} ---\n${s}`).join("\n\n");
 
-    const user = `Detail level: ${detailLevel}. Date: ${meetingDate || ''}. Time: ${meetingTime || ''}.
+    const userPrompt = `Meeting: ${meetingTitle || 'Meeting'}
+Date: ${meetingDate || ''}  Time: ${meetingTime || ''}
+Detail level: ${detailLevel}
 
-Merge the following partial summaries into polished final minutes.
-
-IMPORTANT Content Filtering and Tone Management:
-- Exclude informal banter, personal anecdotes, humour, off-topic remarks, or non-work-related comments.
-- Preserve only substantive discussions, decisions, and actions relevant to NHS/PCN governance.
-- When sensitive or critical issues are discussed (e.g. "PCN autonomy vs federation"), maintain factual accuracy but use measured, neutral phrasing — no subjective or emotive language.
-- Ensure every paragraph could safely appear in a circulated Board pack.
-
-Post-Processing Instruction:
-After producing the draft minutes, perform a final "professional-tone audit":
-- Remove any phrase that could appear judgemental, sarcastic, or overly critical.
-- Soften phrasing around governance tension points using objective wording (e.g. "members raised concerns" instead of "members complained").
+Merge the following partial summaries into polished final minutes following all rules above.
 
 ${joined}`;
 
-    const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0.2,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT_V2 },
-          { role: 'user', content: user }
-        ],
-      }),
-    });
+    // 90s wall-clock — well within edge function budget; reduce step is text-only
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 90000);
 
-    if (!aiRes.ok) {
-      const errText = await aiRes.text();
-      console.error('OpenAI error:', errText);
-      return new Response(JSON.stringify({ error: 'OpenAI error', details: errText }), {
-        status: 500,
+    let response: Response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: userPrompt }],
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Anthropic merge error:', response.status, errText);
+      return new Response(JSON.stringify({ error: 'Anthropic error', status: response.status, details: errText.slice(0, 500) }), {
+        status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const data = await aiRes.json();
-    let meetingMinutes = data.choices?.[0]?.message?.content || '';
-    
-    // Apply professional-tone audit post-processing
+    const data = await response.json();
+    let meetingMinutes = (data.content || [])
+      .filter((b: any) => b.type === 'text')
+      .map((b: any) => b.text)
+      .join('\n');
+
     meetingMinutes = performProfessionalToneAudit(meetingMinutes);
 
-    return new Response(JSON.stringify({ meetingMinutes }), {
+    return new Response(JSON.stringify({ meetingMinutes, model: 'claude-sonnet-4-6', chunksMerged: summaries.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      console.error('merge-meeting-minutes timed out after 90s');
+      return new Response(JSON.stringify({ error: 'Merge step timed out' }), {
+        status: 504,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.error('merge-meeting-minutes error:', error);
     return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
       status: 500,
