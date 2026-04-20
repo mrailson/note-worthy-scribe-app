@@ -1,55 +1,27 @@
 
 
-## Why your 639-word meeting failed — definitive answer
+## Upload PCN DES 26/27 Board Briefing to public folder
 
-**Meeting**: `9f7b61b4-7281-4a1d-8a27-7cb065116833` — "Meeting 20 Apr 12:52" (created 11:52:05, failed 11:52:20 UTC).
+### What I'll do
+Copy the uploaded file `Blue_PCN_DES_2627_Board_Briefing.html` into the project's `public/documents/DES27/` folder so it's served as a static file (no login required, no code changes needed beyond the file copy).
 
-### Root cause (NOT the Notewell publish, NOT the 100-word guard)
+### File placement
+- **Source**: `user-uploads://Blue_PCN_DES_2627_Board_Briefing.html`
+- **Destination**: `public/documents/DES27/blue-pcn-des-2627-board-briefing.html`
 
-The transcript **does exist** in the database (`meeting_transcription_chunks` — 2 Whisper chunks, 639 words, fully readable via `get_meeting_full_transcript`). But the **consolidation step never ran**, so on the `meetings` row:
+(Lowercased, hyphenated filename to match the existing convention used by `des-2627-briefing.html` in the same folder.)
 
-- `status: pending_transcription` (never advanced to `completed`)
-- `best_of_all_transcript`, `assembly_ai_transcript`, `whisper_transcript_text`, `live_transcript_text` — **all NULL**
-- `transcript_updated_at: NULL`, `primary_transcript_source: whisper`
+### Public links (live immediately after the file is copied and the frontend is republished)
+- https://gpnotewell.co.uk/documents/DES27/blue-pcn-des-2627-board-briefing.html
+- https://notewell.dialai.co.uk/documents/DES27/blue-pcn-des-2627-board-briefing.html
+- https://meetingmagic.lovable.app/documents/DES27/blue-pcn-des-2627-board-briefing.html
 
-The whole thing failed in 15 seconds — that's the recording-stop handler tripping the auto-trigger before consolidation finished writing the merged transcript onto the `meetings` row.
+These URLs bypass React Router and the auth guard entirely — anyone with the link can open them, no Notewell account needed.
 
-### Did publishing from Notewell break it?
+### Important note on publishing
+Static files in `public/` are part of the **frontend bundle**. After the copy, you'll need to click **Publish → Update** in Lovable for the file to appear on `gpnotewell.co.uk`. Until then it will only be visible on the preview URL.
 
-**No.** Publishing only swaps the frontend bundle. It doesn't touch edge functions, the database, or in-flight server jobs. The two are unrelated. The timing was coincidence.
-
-### What actually broke (the real bug)
-
-`auto-generate-meeting-notes` is racing the consolidation pipeline. When the recorder stops:
-1. Whisper writes chunks to `meeting_transcription_chunks` ✅ (worked)
-2. Consolidator should merge them onto `meetings.best_of_all_transcript` ❌ (didn't run / didn't finish)
-3. Auto-generator fires immediately ❌ (sees NULL transcript columns, marks `failed`)
-
-Ironically, `get_meeting_full_transcript` (the RPC) **does** read from `meeting_transcription_chunks` as a fallback — so the data was always recoverable. The auto-generator either didn't use that RPC, or marked failure before retrying.
-
----
-
-## Plan
-
-### Step 1 — Recover this meeting now (30 seconds)
-Re-trigger generation via `manualTriggerAutoNotes('9f7b61b4-7281-4a1d-8a27-7cb065116833')`. The RPC will pull the 639 words from `meeting_transcription_chunks` and Claude will produce notes + a real title.
-
-### Step 2 — Harden auto-generator against this race (the actual fix)
-In `supabase/functions/auto-generate-meeting-notes/index.ts`:
-
-- **Always** fetch transcript via `get_meeting_full_transcript` RPC first (it already handles the chunks fallback) before checking the `meetings.*_transcript` columns.
-- If transcript length ≥ 100 words but `meetings.status = 'pending_transcription'`, **wait + retry** up to 3× (5s, 15s, 30s) instead of failing immediately.
-- On final failure, write a human-readable reason to `meetings.notes_generation_status` (e.g. `failed_no_transcript` vs `failed_llm_timeout`) so the UI can show why.
-
-### Step 3 — Surface a one-click "Retry" on failed meetings
-In the meeting card, when `notes_generation_status = 'failed'`, show a small "Retry generation" button that calls `manualTriggerAutoNotes(meetingId)` — so users (and you) never have to dig into a console again.
-
-### Files to change
-- `supabase/functions/auto-generate-meeting-notes/index.ts` — RPC-first fetch + retry-on-pending logic
-- `src/components/meetings/MeetingCard.tsx` (or equivalent) — failure pill + Retry button wired to `manualTriggerAutoNotes`
-
-### What I will NOT touch
-- The 100-word guard (correctly didn't trigger here — 639 ≫ 100)
-- Notewell publish flow (unrelated)
-- Consolidation pipeline (it works; the race is on the consumer side)
+### What I will NOT do
+- No new React route, no in-app viewer chrome, no homepage tile, no login-page promotion — just the file copy and the public link, as requested.
+- No edits to the HTML itself.
 
