@@ -283,6 +283,14 @@
     margin: 0;
   }
   .acknowledgement .ack-body strong { color: var(--teal-900); font-weight: 600; }
+  .acknowledgement--stacked {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin-top: 36px;
+    padding: 24px 26px;
+  }
+  .acknowledgement--stacked .ack-logo { max-width: 170px; }
+  .acknowledgement--stacked .ack-body p { font-size: 15px; }
   @media (max-width: 760px) {
     .acknowledgement { grid-template-columns: 1fr; gap: 20px; padding: 24px; }
     .acknowledgement .ack-logo { max-width: 160px; }
@@ -982,6 +990,17 @@
         <div class="eyebrow">The Notewell story</div>
         <h2 class="section-title">From a <em>meeting scribe</em> <br>to a platform for primary care.</h2>
         <p class="section-lede">Notewell wasn't conceived in a boardroom. It was built from inside the system it serves — by a PCN Manager and Digital Transformation Lead, in response to problems the primary care workforce sees every day and has no time to solve.</p>
+
+        <!-- Blue PCN acknowledgement -->
+        <aside class="acknowledgement acknowledgement--stacked" aria-label="With thanks to Blue PCN">
+          <div class="ack-logo">
+            <img src="blue-pcn-logo.jpg" alt="Blue PCN logo" />
+          </div>
+          <div class="ack-body">
+            <div class="eyebrow" style="margin-bottom:8px;">With thanks</div>
+            <p>Notewell is here because of the support of <strong>Blue PCN</strong> and its Clinical Director, <strong>Dr Tom Howseman</strong> — whose backing made it possible to build this platform from inside primary care, for primary care.</p>
+          </div>
+        </aside>
       </div>
       <div class="origin-body">
         <p>Notewell began as a tool for something brutally ordinary — <strong>getting accurate minutes out of a long NHS meeting</strong> without the Practice Manager or PCN admin team spending their weekend typing them up. It worked. People asked for more.</p>
@@ -1021,17 +1040,6 @@
             <div class="detail">Blue Badge as the hero proof-of-concept for the AgeWell team. A pitch, not yet in production — one visit, many forms, zero re-keying, if co-designed and commissioned.</div>
           </div>
         </div>
-
-        <!-- Blue PCN acknowledgement -->
-        <aside class="acknowledgement" aria-label="With thanks to Blue PCN">
-          <div class="ack-logo">
-            <img src="blue-pcn-logo.jpg" alt="Blue PCN logo" />
-          </div>
-          <div class="ack-body">
-            <div class="eyebrow" style="margin-bottom:8px;">With thanks</div>
-            <p>Notewell is here because of the support of <strong>Blue PCN</strong> and its Clinical Director, <strong>Dr Tom Howseman</strong> — whose backing made it possible to build this platform from inside primary care, for primary care.</p>
-          </div>
-        </aside>
       </div>
     </div>
   </div>
