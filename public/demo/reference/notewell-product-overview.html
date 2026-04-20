@@ -257,6 +257,37 @@
   }
   .origin-body strong { color: var(--teal-900); font-weight: 600; }
 
+  /* ── ACKNOWLEDGEMENT (Blue PCN) ───────── */
+  .acknowledgement {
+    margin-top: 56px;
+    padding: 28px 32px;
+    border: 1px solid rgba(0,72,84,0.12);
+    border-left: 4px solid var(--amber);
+    background: #fdfaf2;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 32px;
+    align-items: center;
+  }
+  .acknowledgement .ack-logo img {
+    width: 100%;
+    height: auto;
+    display: block;
+    mix-blend-mode: multiply;
+  }
+  .acknowledgement .ack-body p {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--teal-900);
+    margin: 0;
+  }
+  .acknowledgement .ack-body strong { color: var(--teal-900); font-weight: 600; }
+  @media (max-width: 760px) {
+    .acknowledgement { grid-template-columns: 1fr; gap: 20px; padding: 24px; }
+    .acknowledgement .ack-logo { max-width: 160px; }
+  }
+
   .timeline {
     margin-top: 56px;
     position: relative;
