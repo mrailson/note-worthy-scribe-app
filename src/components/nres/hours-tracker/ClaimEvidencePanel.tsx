@@ -9,7 +9,7 @@ import { generateEvidenceSummaryFallback } from '@/utils/evidenceAiSummary';
 
 interface ClaimEvidencePanelProps {
   claimId: string;
-  claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed';
+  claimCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed';
   canEdit: boolean;
   sharedEvidence?: {
     uploadedTypes: Record<string, any>;
@@ -166,7 +166,7 @@ export function StaffLineEvidence({
   onDownload,
   hideHeader = false,
 }: {
-  staffCategory: 'buyback' | 'new_sda' | 'management';
+  staffCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum';
   staffIndex: number;
   staffName?: string;
   staffRole?: string;
@@ -193,10 +193,11 @@ export function StaffLineEvidence({
   const aiSummary = useMemo(() => {
     const files = allFilesForStaff || Object.values(uploadedTypesForStaff);
     if (files.length === 0) return '';
+    const summaryCat = staffCategory === 'gp_locum' ? 'buyback' : staffCategory;
     return generateEvidenceSummaryFallback(
       staffName || 'Staff',
       staffRole || 'Unknown',
-      staffCategory,
+      summaryCat,
       files.map(f => ({ file_name: f.file_name, evidence_type: f.evidence_type, file_size: f.file_size })),
     );
   }, [uploadedTypesForStaff, allFilesForStaff, staffName, staffRole, staffCategory]);
@@ -283,7 +284,7 @@ export function StaffLineEvidence({
 export function useStaffLineEvidenceComplete(
   staffDetails: any[],
   getUploadedTypesForStaff: (staffIndex: number) => Record<string, ClaimEvidenceFile>,
-  getConfigForCategory: (category: 'buyback' | 'new_sda' | 'management' | 'mixed') => EvidenceConfigRow[],
+  getConfigForCategory: (category: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed') => EvidenceConfigRow[],
 ) {
   let allComplete = true;
   let totalMandatory = 0;
@@ -291,8 +292,7 @@ export function useStaffLineEvidenceComplete(
 
   for (let i = 0; i < staffDetails.length; i++) {
     const s = staffDetails[i];
-    const rawCategory = s.staff_category || 'buyback';
-    const cat = rawCategory === 'gp_locum' ? 'buyback' : rawCategory;
+    const cat = (s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum';
     const uploaded = getUploadedTypesForStaff(i);
 
     const mandatoryTypes = getConfigForCategory(cat).filter(t => t.is_mandatory);
@@ -310,7 +310,7 @@ export function useStaffLineEvidenceComplete(
 }
 
 /** Legacy hook-like helper for claim-level evidence (kept for backward compat) */
-export function useEvidenceComplete(claimId: string, claimCategory: 'buyback' | 'new_sda' | 'management' | 'mixed', externalUploadedTypes?: Record<string, any>) {
+export function useEvidenceComplete(claimId: string, claimCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed', externalUploadedTypes?: Record<string, any>) {
   const { uploadedTypes: internalUploadedTypes } = useNRESClaimEvidence(claimId);
   const { getMandatoryForCategory } = useNRESEvidenceConfig();
 
