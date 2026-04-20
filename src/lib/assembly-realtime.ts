@@ -255,6 +255,21 @@ export class AssemblyRealtimeClient {
       this.cb.onOpen?.();
       console.log("✅ AssemblyRealtimeClient: connected and sending audio via AudioWorklet");
     }
+
+    // Arm pre-emptive session rotation to avoid AAI's ~60-min hard cap
+    this.armSessionRotation();
+  }
+
+  private armSessionRotation() {
+    if (this.sessionRotateTimer) clearTimeout(this.sessionRotateTimer);
+    this.sessionRotateTimer = setTimeout(() => {
+      if (this.manualStop) return;
+      console.log(`♻️ AssemblyRealtimeClient: pre-emptive session rotation at ${SESSION_ROTATE_MS / 60000}min — reconnecting before AAI cap`);
+      this.reconnectAttempts = 0;
+      this.isReconnecting = false;
+      // Force a clean WS close — onclose handler will trigger attemptReconnect
+      try { this.ws?.close(1000, "session_rotate"); } catch {}
+    }, SESSION_ROTATE_MS);
   }
 
   private async attemptReconnect() {
@@ -390,6 +405,7 @@ export class AssemblyRealtimeClient {
     this.reconnectAttempts = 0;
     this.cb.onReconnected?.();
     console.log("✅ AssemblyRealtimeClient: reconnected and sending audio");
+    this.armSessionRotation();
   }
 
   stop() {
