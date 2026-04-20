@@ -1107,8 +1107,25 @@ function stopSilentAudio() {
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOnline,      setIsOnline]      = useState(navigator.onLine);
-  const [mode,          setMode]          = useState("offline"); // Default offline — live mode discards transcript on stop
+  // Recording mode + connectivity (persisted preference, three-state pill).
+  // Hook owns: localStorage preference, navigator.onLine, auto-fallback flag.
+  // We map the hook's "online"/"offline" vocabulary to the recorder's existing
+  // "live"/"offline" vocabulary so all downstream call sites
+  // (mode === "live" checks, import_source: "mobile_live", audit logging) keep working.
+  const recordingMode = useRecordingMode();
+  const isOnline = recordingMode.isOnline;
+  const setIsOnline = () => {}; // shim — hook owns this; legacy setters become no-ops
+  const mode = recordingMode.mode === "online" ? "live" : "offline";
+  const setMode = (next) => {
+    // Translate legacy setter calls back into the hook's vocabulary.
+    // "live"  → user explicitly wants Online
+    // "offline" → user explicitly wants Offline (this is what the in-card sheet calls)
+    if (next === "live") recordingMode.setMode("online");
+    else if (next === "offline") recordingMode.setMode("offline");
+  };
+  // Tracks "we lost network DURING a live recording, so we're now buffering locally"
+  // — drives <ConnectionBanner /> and clears on stop.
+  const [connectionLostMidRecord, setConnectionLostMidRecord] = useState(false);
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
   const [elapsed,       setElapsed]       = useState(0);        // ms elapsed
   const [recordings,    setRecordings]    = useState([]);
