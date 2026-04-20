@@ -1696,6 +1696,7 @@ export default function NoteWellRecorder() {
       capturedLiveTranscript: capturedLiveTranscriptRef.current || '',
     };
     capturedLiveTranscriptRef.current = '';
+    setConnectionLostMidRecord(false); // clear mid-record drop banner on stop
     await dbPut(autoRec);
     await refresh();
 
@@ -3133,7 +3134,7 @@ export default function NoteWellRecorder() {
 
           {/* Steps — idle only, collapsible */}
           {isIdle && (
-            <StepsGuide />
+            <StepsGuide mode={mode} />
           )}
 
           {/* Recordings list */}
