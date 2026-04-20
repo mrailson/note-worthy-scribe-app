@@ -24,8 +24,11 @@ type Callbacks = {
 const PROXY_WS_URL =
   "wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime";
 
-const RECONNECT_DELAY_MS = 5000;
-const MAX_RECONNECT_ATTEMPTS = 2;
+const MAX_RECONNECT_ATTEMPTS = 6;
+// Exponential backoff schedule (ms): 2s, 4s, 8s, 16s, 30s, 30s
+const RECONNECT_BACKOFF_MS = [2000, 4000, 8000, 16000, 30000, 30000];
+// AssemblyAI realtime sessions are capped at ~60 min; rotate at 55 min to avoid abrupt termination
+const SESSION_ROTATE_MS = 55 * 60 * 1000;
 
 export class AssemblyRealtimeClient {
   private ws?: WebSocket;
@@ -67,6 +70,9 @@ export class AssemblyRealtimeClient {
   private committedWordCount: number = 0;
   private turnCommitTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly TURN_COMMIT_TIMEOUT_MS = 30000;
+
+  // Pre-emptive session rotation (avoid AAI's ~60-min hard cap)
+  private sessionRotateTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private cb: Callbacks = {}) {}
 
@@ -257,10 +263,11 @@ export class AssemblyRealtimeClient {
     this.isReconnecting = true;
     this.reconnectAttempts++;
 
-    console.log(`🔄 AssemblyRealtimeClient: reconnecting (attempt ${this.reconnectAttempts})...`);
+    const delay = RECONNECT_BACKOFF_MS[Math.min(this.reconnectAttempts - 1, RECONNECT_BACKOFF_MS.length - 1)];
+    console.log(`🔄 AssemblyRealtimeClient: reconnecting (attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
     this.cb.onReconnecting?.();
 
-    await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+    await new Promise(resolve => setTimeout(resolve, delay));
 
     if (this.manualStop) return;
 
