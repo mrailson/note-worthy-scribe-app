@@ -103,14 +103,28 @@ export async function listAllSessions(): Promise<BackupSession[]> {
 
 export async function deleteSession(id: string): Promise<void> {
   const db = await openDB();
-  // Delete all segments for this session
-  const segStore = db.transaction(SEGMENTS_STORE, 'readwrite').objectStore(SEGMENTS_STORE);
-  const index = segStore.index('sessionId');
-  const segKeys = await req<IDBValidKey[]>(index.getAllKeys(id));
-  for (const key of segKeys) {
-    segStore.delete(key);
-  }
-  // Delete session
+
+  // Delete all segments for this session in a single transaction.
+  // We must NOT await between getAllKeys() and the subsequent delete() calls,
+  // because awaiting a microtask can let the IDB transaction auto-commit/close.
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(SEGMENTS_STORE, 'readwrite');
+    const segStore = transaction.objectStore(SEGMENTS_STORE);
+    const index = segStore.index('sessionId');
+    const keysReq = index.getAllKeys(id);
+    keysReq.onsuccess = () => {
+      const segKeys = keysReq.result || [];
+      for (const key of segKeys) {
+        segStore.delete(key);
+      }
+    };
+    keysReq.onerror = () => reject(keysReq.error);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error);
+  });
+
+  // Delete session record
   await req(tx(db, SESSIONS_STORE, 'readwrite').delete(id));
   db.close();
 }
