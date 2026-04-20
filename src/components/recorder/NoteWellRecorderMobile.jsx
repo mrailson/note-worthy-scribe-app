@@ -18,6 +18,8 @@ import { iOSAudioKeepAlive } from "@/utils/iOSAudioKeepAlive";
 import { androidAudioKeepAlive } from "@/utils/androidAudioKeepAlive";
 import { cleanWhisperResponse } from "@/utils/whisper-chunk-cleaner";
 import { ConnectionToggle } from "@/components/ConnectionToggle";
+import { ConnectionBanner } from "@/components/recorder/ConnectionBanner";
+import { useRecordingMode } from "@/hooks/useRecordingMode";
 import { countPendingRecordings } from "@/utils/syncRecordings";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
@@ -151,38 +153,75 @@ function WaveformBars({ active, isPaused, stream }) {
   );
 }
 
-function ModePill({ mode, disabled, onTap }) {
+function ModePill({ mode, isAutoFallback, disabled, onTap }) {
   const live = mode === "live";
+
+  // Three visual states:
+  //   live                                 → 🟢 green  "Online"
+  //   offline + isAutoFallback             → 🟡 amber  "Offline (no connection)"
+  //   offline + user-chosen                → ⚪ slate  "Offline mode"
+  const variant = live
+    ? "online"
+    : isAutoFallback
+    ? "fallback"
+    : "offline";
+
+  const styles = {
+    online: {
+      borderColor: "rgba(22,163,74,0.30)",
+      bg: "rgba(22,163,74,0.08)",
+      dot: "#16a34a",
+      dotBg: "linear-gradient(135deg,#16a34a,#22c55e)",
+      dotShadow: "0 2px 6px rgba(22,163,74,0.4)",
+      labelColor: "#15803d",
+      label: "Online",
+    },
+    fallback: {
+      borderColor: "rgba(245,158,11,0.40)",
+      bg: "rgba(245,158,11,0.10)",
+      dot: "#f59e0b",
+      dotBg: "linear-gradient(135deg,#f59e0b,#f97316)",
+      dotShadow: "0 2px 6px rgba(245,158,11,0.4)",
+      labelColor: "#d97706",
+      label: "Offline (no connection)",
+    },
+    offline: {
+      borderColor: "rgba(100,116,139,0.30)",
+      bg: "rgba(100,116,139,0.08)",
+      dot: "#64748b",
+      dotBg: "linear-gradient(135deg,#64748b,#94a3b8)",
+      dotShadow: "0 2px 6px rgba(100,116,139,0.35)",
+      labelColor: "#475569",
+      label: "Offline mode",
+    },
+  }[variant];
+
   return (
     <button
       onClick={disabled ? undefined : onTap}
       disabled={disabled}
       style={{
-        display:"inline-flex", alignItems:"center", gap:6,
+        display:"inline-flex", alignItems:"center", gap:8,
         padding:"6px 14px 6px 8px", borderRadius:20,
-        border:`1.5px solid ${live?"rgba(21,101,192,0.25)":"rgba(245,158,11,0.35)"}`,
-        background:live?"rgba(21,101,192,0.07)":"rgba(245,158,11,0.1)",
+        border:`1.5px solid ${styles.borderColor}`,
+        background:styles.bg,
         cursor:disabled?"default":"pointer", transition:"all 0.25s",
         opacity:disabled?0.8:1,
       }}
+      aria-label={`Recording mode: ${styles.label}. Tap to change.`}
     >
-      <div style={{
-        width:22, height:22, borderRadius:"50%",
-        background:live?"linear-gradient(135deg,#1565c0,#0288d1)":"linear-gradient(135deg,#f59e0b,#f97316)",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        boxShadow:live?"0 2px 6px rgba(21,101,192,0.4)":"0 2px 6px rgba(245,158,11,0.4)",
-      }}>
-        {live
-          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M1.5 8.5a13 13 0 0 1 21 0M5 12a10 10 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1.5" fill="white"/></svg>
-          : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10 10 0 0 1 19 12.55M5 12.55a10 10 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
-        }
-      </div>
-      <span style={{fontSize:12,fontWeight:600,color:live?"#1565c0":"#d97706"}}>
-        {live ? "Live · Online" : "Offline · Saving locally"}
+      <span style={{
+        width:10, height:10, borderRadius:"50%",
+        background:styles.dotBg,
+        boxShadow:styles.dotShadow,
+        display:"inline-block",
+      }}/>
+      <span style={{fontSize:12,fontWeight:600,color:styles.labelColor}}>
+        {styles.label}
       </span>
       {!disabled && (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-          stroke={live?"#1565c0":"#d97706"} strokeWidth="2.5">
+          stroke={styles.labelColor} strokeWidth="2.5">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
       )}
