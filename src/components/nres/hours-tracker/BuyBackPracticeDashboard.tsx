@@ -1009,7 +1009,7 @@ function InlineClaimPanel({
                 {staffDets.map((s: any, idx: number) => (
                   <StaffLineEvidence
                     key={idx}
-                    staffCategory={s.staff_category === 'gp_locum' ? 'buyback' : (s.staff_category || 'buyback')}
+                    staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
                     staffIndex={idx}
                     staffName={s.staff_name}
                     staffRole={s.staff_role}
@@ -3030,7 +3030,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               {staffDets.map((s: any, idx: number) => (
                 <StaffLineEvidence
                   key={idx}
-                  staffCategory={s.staff_category === 'gp_locum' ? 'buyback' : (s.staff_category || 'buyback')}
+                  staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
                   staffIndex={idx}
                   staffName={s.staff_name}
                   staffRole={s.staff_role}

@@ -2765,7 +2765,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <StaffLineEvidence
-                          staffCategory={((s.staff_category === 'gp_locum' ? 'buyback' : s.staff_category) || 'buyback') as 'buyback' | 'new_sda' | 'management'}
+                          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
                           staffIndex={idx}
                           staffName={s.staff_name}
                           staffRole={s.staff_role}
