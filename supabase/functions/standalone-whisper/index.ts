@@ -458,6 +458,30 @@ serve(async (req) => {
         segments = [];
       }
 
+      // ── Loop detector: collapse ≥6-word phrases repeated >3 times ──
+      let loopsCollapsed = 0;
+      let repeatsRemoved = 0;
+      if (finalText) {
+        if (Array.isArray(segments) && segments.length > 0) {
+          const collapsed = collapseLoopsInSegments(segments);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector: collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeated segment(s)`);
+            segments = collapsed.segments;
+            finalText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        } else {
+          const collapsed = collapseLoopsInText(finalText);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector (text): collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeats`);
+            finalText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        }
+      }
+
       if (!finalText && firstChunkLikely) {
         console.warn(`⚠️ [${requestId}] First chunk returned empty transcript from OpenAI`, {
           ...diagnostics,
@@ -473,6 +497,8 @@ serve(async (req) => {
         text: finalText,
         service: 'whisper',
         format: forwardMime,
+        loopsCollapsed,
+        repeatsRemoved,
       };
 
       if (resolvedFormat === 'verbose_json') {
@@ -487,6 +513,8 @@ serve(async (req) => {
           openaiDuration: result.duration || 0,
           openaiLanguage: result.language || 'en',
           openaiSegmentCount: Array.isArray(result.segments) ? result.segments.length : 0,
+          loopsCollapsed,
+          repeatsRemoved,
         };
       }
 
