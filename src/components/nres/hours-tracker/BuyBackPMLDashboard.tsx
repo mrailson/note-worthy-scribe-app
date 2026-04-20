@@ -66,7 +66,7 @@ const ROLE_CONFIG = {
   },
   finance: {
     label: 'PML Finance',
-    subtitle: 'Process payments on approved claims',
+    subtitle: 'SNO Finance Director approved claims with Invoices — Finance Team View',
     userLabel: 'PML Finance',
   },
 };
