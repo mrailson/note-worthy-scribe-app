@@ -993,6 +993,19 @@ function InlineClaimPanel({
 
               {/* Evidence */}
               <div style={{ marginBottom: 12 }}>
+                {isLocum && (
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 8,
+                    padding: '10px 12px', marginBottom: 8,
+                    background: '#fff7ed', border: '1px solid #fed7aa',
+                    borderRadius: 8, fontSize: 12, color: '#9a3412', lineHeight: 1.45,
+                  }}>
+                    <span style={{ fontSize: 14, lineHeight: 1 }}>📎</span>
+                    <span>
+                      <strong>Please add evidence of all session dates and times worked by the GP Locum</strong> to the claim supporting information (e.g. locum invoice or timesheet showing dates, sessions and rate).
+                    </span>
+                  </div>
+                )}
                 {staffDets.map((s: any, idx: number) => (
                   <StaffLineEvidence
                     key={idx}
