@@ -1146,7 +1146,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
 
       {/* Footer */}
       <div style={{ marginTop: 20, padding: '12px 0', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
-        <span>NRES New Models of Care — Managerial Lead Verification Queue</span>
+        <span>NRES Claims Management &amp; Verification — Managerial Lead Verification Queue</span>
         <span>{dropdownFilteredClaims.length + filteredMeetingGroups.length} item{(dropdownFilteredClaims.length + filteredMeetingGroups.length) !== 1 ? 's' : ''} shown</span>
       </div>
     </div>
