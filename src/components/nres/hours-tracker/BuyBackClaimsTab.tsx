@@ -1073,7 +1073,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
               )}
             </div>
             <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>
-              Manage staff, create and review claims across all practices
+              System Admin View — Manage staff, create and review claims across all practices
             </p>
           </div>
 
