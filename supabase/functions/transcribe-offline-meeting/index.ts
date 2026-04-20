@@ -9,6 +9,71 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, serviceKey);
+const OFFLINE_WHISPER_SOURCE = "offline_whisper_batch";
+const STALE_PROCESSING_MINUTES = 15;
+
+interface ChunkSource {
+  chunkNumber: number;
+  storagePath: string;
+  bucket: string;
+  startSec?: number;
+  endSec?: number;
+  durationSec?: number;
+  fileSize?: number | null;
+}
+
+interface ChunkRow {
+  id?: string;
+  chunk_number: number;
+  transcription_text: string;
+  start_time?: number | null;
+  end_time?: number | null;
+  created_at?: string;
+  word_count?: number | null;
+  validation_status?: string | null;
+}
+
+interface WhisperChunkResult {
+  text: string;
+  segments: unknown[];
+  duration: number;
+  language: string;
+  diagnostics?: Record<string, unknown> | null;
+}
+
+function safeNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function minutesSince(iso?: string | null): number {
+  if (!iso) return Number.POSITIVE_INFINITY;
+  const ms = new Date(iso).getTime();
+  if (!Number.isFinite(ms)) return Number.POSITIVE_INFINITY;
+  return (Date.now() - ms) / 60000;
+}
+
+function toRelativeSeconds(absoluteIso?: string | null, meetingStartIso?: string | null): number | undefined {
+  if (!absoluteIso || !meetingStartIso) return undefined;
+  const absoluteMs = new Date(absoluteIso).getTime();
+  const startMs = new Date(meetingStartIso).getTime();
+  if (!Number.isFinite(absoluteMs) || !Number.isFinite(startMs)) return undefined;
+  return Math.max(0, (absoluteMs - startMs) / 1000);
+}
+
+function buildSyntheticTiming(chunkNumber: number, durationSec: number) {
+  const safeDuration = durationSec > 0 ? durationSec : 900;
+  const startSec = chunkNumber * safeDuration;
+  return { startSec, endSec: startSec + safeDuration, durationSec: safeDuration };
+}
+
+function normaliseWhitespace(text: string): string {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
 
 function removeOverlapText(currentTranscript: string, previousTranscript: string): string {
   if (!currentTranscript || !previousTranscript) return currentTranscript;
@@ -42,10 +107,45 @@ function removeOverlapText(currentTranscript: string, previousTranscript: string
     : currentTranscript;
 }
 
-function stitchChunkTexts(chunks: Array<{ chunk_number: number; transcription_text: string }>): string {
-  const ordered = chunks
-    .filter((chunk) => chunk?.transcription_text)
-    .sort((a, b) => a.chunk_number - b.chunk_number);
+function dedupeChunkRows(chunks: ChunkRow[]): ChunkRow[] {
+  const sorted = [...chunks].sort((a, b) => {
+    if (a.chunk_number !== b.chunk_number) return a.chunk_number - b.chunk_number;
+    const aStart = safeNumber(a.start_time) ?? Number.MAX_SAFE_INTEGER;
+    const bStart = safeNumber(b.start_time) ?? Number.MAX_SAFE_INTEGER;
+    if (aStart !== bStart) return aStart - bStart;
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
+
+  const seen = new Set<string>();
+  const deduped: ChunkRow[] = [];
+
+  for (const chunk of sorted) {
+    const startKey = safeNumber(chunk.start_time);
+    const endKey = safeNumber(chunk.end_time);
+    const text = normaliseWhitespace(chunk.transcription_text || "");
+    const key = [
+      chunk.chunk_number,
+      startKey ?? "na",
+      endKey ?? "na",
+      text.slice(0, 500),
+    ].join("|");
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push({ ...chunk, transcription_text: text });
+  }
+
+  return deduped.sort((a, b) => {
+    if (a.chunk_number !== b.chunk_number) return a.chunk_number - b.chunk_number;
+    const aStart = safeNumber(a.start_time) ?? a.chunk_number * 900;
+    const bStart = safeNumber(b.start_time) ?? b.chunk_number * 900;
+    return aStart - bStart;
+  });
+}
+
+function stitchChunkTexts(chunks: ChunkRow[]): string {
+  const ordered = dedupeChunkRows(chunks)
+    .filter((chunk) => normaliseWhitespace(chunk?.transcription_text).length > 0);
 
   if (ordered.length === 0) return "";
 
@@ -63,11 +163,10 @@ function stitchChunkTexts(chunks: Array<{ chunk_number: number; transcription_te
   return stitched.join(" ").replace(/\s+/g, " ").trim();
 }
 
-async function getChunkSources(meetingId: string) {
-  // 1. Check audio_chunks table (desktop recordings)
+async function getChunkSources(meetingId: string, meetingStartIso?: string | null, meetingDurationMinutes?: number | null, chunkCount?: number | null): Promise<ChunkSource[]> {
   const { data: audioChunks, error: chunkError } = await supabase
     .from("audio_chunks")
-    .select("chunk_number, audio_blob_path")
+    .select("chunk_number, audio_blob_path, start_time, end_time, chunk_duration_ms, file_size")
     .eq("meeting_id", meetingId)
     .not("audio_blob_path", "is", null)
     .order("chunk_number", { ascending: true });
@@ -78,14 +177,23 @@ async function getChunkSources(meetingId: string) {
 
   if (audioChunks && audioChunks.length > 0) {
     console.log(`📦 Found ${audioChunks.length} chunks via audio_chunks table`);
-    return audioChunks.map((chunk) => ({
-      chunkNumber: chunk.chunk_number,
-      storagePath: chunk.audio_blob_path as string,
-      bucket: "recordings",
-    }));
+    return audioChunks.map((chunk) => {
+      const fallback = buildSyntheticTiming(
+        chunk.chunk_number,
+        Math.max(1, Math.round((safeNumber(chunk.chunk_duration_ms) ?? 900000) / 1000)),
+      );
+      return {
+        chunkNumber: chunk.chunk_number,
+        storagePath: chunk.audio_blob_path as string,
+        bucket: "recordings",
+        startSec: toRelativeSeconds(chunk.start_time, meetingStartIso) ?? fallback.startSec,
+        endSec: toRelativeSeconds(chunk.end_time, meetingStartIso) ?? fallback.endSec,
+        durationSec: safeNumber(chunk.chunk_duration_ms) != null ? (safeNumber(chunk.chunk_duration_ms)! / 1000) : fallback.durationSec,
+        fileSize: safeNumber(chunk.file_size),
+      };
+    });
   }
 
-  // 2. Check remote_chunk_paths on the meeting row (mobile offline recordings)
   const { data: meetingRow, error: meetingErr } = await supabase
     .from("meetings")
     .select("remote_chunk_paths")
@@ -96,16 +204,27 @@ async function getChunkSources(meetingId: string) {
     console.warn("Failed to read meeting remote_chunk_paths:", meetingErr);
   }
 
+  const syntheticChunkDuration = (() => {
+    const count = chunkCount || meetingRow?.remote_chunk_paths?.length || 1;
+    const totalSec = Math.max(1, Math.round((meetingDurationMinutes || 0) * 60));
+    return Math.max(1, Math.round(totalSec / count));
+  })();
+
   if (meetingRow?.remote_chunk_paths && Array.isArray(meetingRow.remote_chunk_paths) && meetingRow.remote_chunk_paths.length > 0) {
     console.log(`📱 Found ${meetingRow.remote_chunk_paths.length} chunks via remote_chunk_paths`);
-    return meetingRow.remote_chunk_paths.map((path: string, index: number) => ({
-      chunkNumber: index,
-      storagePath: path,
-      bucket: "recordings",
-    }));
+    return meetingRow.remote_chunk_paths.map((path: string, index: number) => {
+      const timing = buildSyntheticTiming(index, syntheticChunkDuration);
+      return {
+        chunkNumber: index,
+        storagePath: path,
+        bucket: "recordings",
+        startSec: timing.startSec,
+        endSec: timing.endSec,
+        durationSec: timing.durationSec,
+      };
+    });
   }
 
-  // 3. Check meeting_audio_backups table
   const { data: backups, error: backupError } = await supabase
     .from("meeting_audio_backups")
     .select("file_path")
@@ -118,14 +237,19 @@ async function getChunkSources(meetingId: string) {
 
   if (backups && backups.length > 0) {
     console.log(`💾 Found ${backups.length} chunks via meeting_audio_backups`);
-    return backups.map((backup, index) => ({
-      chunkNumber: index,
-      storagePath: backup.file_path,
-      bucket: "meeting-audio-backups",
-    }));
+    return backups.map((backup, index) => {
+      const timing = buildSyntheticTiming(index, syntheticChunkDuration);
+      return {
+        chunkNumber: index,
+        storagePath: backup.file_path,
+        bucket: "meeting-audio-backups",
+        startSec: timing.startSec,
+        endSec: timing.endSec,
+        durationSec: timing.durationSec,
+      };
+    });
   }
 
-  // 4. Fall back to listing the recordings bucket by meeting ID
   const { data: files, error: listErr } = await supabase.storage
     .from("recordings")
     .list(meetingId, { sortBy: { column: "name", order: "asc" } });
@@ -138,28 +262,59 @@ async function getChunkSources(meetingId: string) {
     console.log(`📂 Found ${files.length} files via bucket listing recordings/${meetingId}/`);
   }
 
-  return (files || []).map((file, index) => ({
-    chunkNumber: index,
-    storagePath: `${meetingId}/${file.name}`,
-    bucket: "recordings",
-  }));
+  return (files || []).map((file, index) => {
+    const timing = buildSyntheticTiming(index, syntheticChunkDuration);
+    return {
+      chunkNumber: index,
+      storagePath: `${meetingId}/${file.name}`,
+      bucket: "recordings",
+      startSec: timing.startSec,
+      endSec: timing.endSec,
+      durationSec: timing.durationSec,
+      fileSize: safeNumber((file as { metadata?: { size?: number } }).metadata?.size),
+    };
+  });
 }
 
-async function transcribeStoragePath(storagePath: string, bucket: string, prompt: string): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("standalone-whisper", {
-    body: {
+async function transcribeStoragePath(storagePath: string, bucket: string, prompt: string, meetingId: string, sessionId: string, chunkIndex: number): Promise<WhisperChunkResult> {
+  const response = await fetch(`${supabaseUrl}/functions/v1/standalone-whisper`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       storagePath,
       bucket,
       responseFormat: "verbose_json",
       prompt,
-    },
+      meetingId,
+      sessionId,
+      chunkIndex,
+      includeDiagnostics: chunkIndex <= 1,
+    }),
   });
 
-  if (error) {
-    throw new Error(error.message || `Transcription failed for ${storagePath}`);
+  const bodyText = await response.text();
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = bodyText ? JSON.parse(bodyText) : {};
+  } catch {
+    payload = { raw: bodyText };
   }
 
-  return String(data?.text || "").replace(/\s+/g, " ").trim();
+  if (!response.ok) {
+    throw new Error(bodyText || `Transcription failed for ${storagePath}`);
+  }
+
+  return {
+    text: normaliseWhitespace(String(payload?.text || "")),
+    segments: Array.isArray(payload?.segments) ? payload.segments as unknown[] : [],
+    duration: safeNumber(payload?.duration) ?? 0,
+    language: String(payload?.language || "en"),
+    diagnostics: (payload?.diagnostics as Record<string, unknown> | undefined) || null,
+  };
 }
 
 serve(async (req) => {
@@ -180,13 +335,12 @@ serve(async (req) => {
 
     const { data: meeting, error: meetingError } = await supabase
       .from("meetings")
-      .select("id, user_id, title")
+      .select("id, user_id, title, start_time, duration_minutes, chunk_count")
       .eq("id", meetingId)
       .single();
 
     if (meetingError || !meeting) throw new Error("Meeting not found");
 
-    // Ownership check: skip for service role key and anon key (cron/trigger calls)
     const authHeader = req.headers.get("authorization") || "";
     const bearerToken = authHeader.replace(/^Bearer\s+/i, "");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -208,7 +362,7 @@ serve(async (req) => {
       }
     }
 
-    const chunkSources = await getChunkSources(meetingId);
+    const chunkSources = await getChunkSources(meetingId, meeting.start_time, meeting.duration_minutes, meeting.chunk_count);
     if (!chunkSources.length) throw new Error("No audio files found for this meeting");
     if (numericChunkIndex >= chunkSources.length) {
       throw new Error(`Chunk ${numericChunkIndex} is out of range for ${chunkSources.length} chunks`);
@@ -225,58 +379,181 @@ serve(async (req) => {
       await supabase.from("meeting_transcription_chunks")
         .delete()
         .eq("meeting_id", meetingId)
-        .eq("session_id", sessionId);
+        .eq("session_id", sessionId)
+        .eq("source", OFFLINE_WHISPER_SOURCE);
     }
 
     const source = chunkSources[numericChunkIndex];
+    const safeTitle = (meeting.title || "")
+      .replace(/\d{1,2}:\d{2}(:\d{2})?/g, "")
+      .replace(/\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*/gi, "")
+      .replace(/\d{4}/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    const prompt = `NHS primary care meeting transcript.${safeTitle ? ` Meeting: ${safeTitle}.` : ""}`;
 
-    const { data: existing } = await supabase
+    const placeholderPayload = {
+      meeting_id: meetingId,
+      chunk_number: source.chunkNumber,
+      transcription_text: "",
+      user_id: meeting.user_id,
+      session_id: sessionId,
+      is_final: false,
+      transcriber_type: "whisper",
+      source: OFFLINE_WHISPER_SOURCE,
+      word_count: 0,
+      validation_status: "processing",
+      merge_rejection_reason: null,
+      start_time: source.startSec ?? null,
+      end_time: source.endSec ?? null,
+      segments_json: {
+        storagePath: source.storagePath,
+        bucket: source.bucket,
+        durationSec: source.durationSec ?? null,
+        fileSize: source.fileSize ?? null,
+      },
+    };
+
+    let chunkRowId: string | null = null;
+    let shouldTranscribe = true;
+
+    const { data: insertedRow, error: insertPlaceholderErr } = await supabase
       .from("meeting_transcription_chunks")
+      .insert(placeholderPayload)
       .select("id")
-      .eq("meeting_id", meetingId)
-      .eq("session_id", sessionId)
-      .eq("chunk_number", source.chunkNumber)
-      .maybeSingle();
+      .single();
 
-    if (!existing) {
-      // Sanitise the title for use as a Whisper prompt — strip times, dates,
-      // and numeric patterns that can seed "1.1.1..." hallucination loops.
-      const safeTitle = (meeting.title || '')
-        .replace(/\d{1,2}:\d{2}(:\d{2})?/g, '')   // strip HH:MM or HH:MM:SS
-        .replace(/\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*/gi, '') // strip "16 Apr"
-        .replace(/\d{4}/g, '')                       // strip years
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-      const prompt = `NHS primary care meeting transcript.${safeTitle ? ` Meeting: ${safeTitle}.` : ""}`;
-      let chunkText: string;
+    if (insertPlaceholderErr) {
+      const isDuplicate = insertPlaceholderErr.code === "23505" || /duplicate/i.test(insertPlaceholderErr.message || "");
+      if (!isDuplicate) {
+        throw new Error(`Chunk placeholder insert failed: ${insertPlaceholderErr.message}`);
+      }
+
+      const { data: existingRow, error: existingErr } = await supabase
+        .from("meeting_transcription_chunks")
+        .select("id, is_final, validation_status, word_count, created_at")
+        .eq("meeting_id", meetingId)
+        .eq("session_id", sessionId)
+        .eq("chunk_number", source.chunkNumber)
+        .eq("transcriber_type", "whisper")
+        .eq("source", OFFLINE_WHISPER_SOURCE)
+        .maybeSingle();
+
+      if (existingErr || !existingRow) {
+        throw new Error(`Could not read existing chunk state: ${existingErr?.message || "missing existing row"}`);
+      }
+
+      chunkRowId = existingRow.id;
+
+      if (existingRow.is_final && (existingRow.word_count || 0) > 0) {
+        shouldTranscribe = false;
+        console.log(`⏭️ Chunk ${source.chunkNumber} already completed, skipping transcription`);
+      } else if (existingRow.validation_status === "processing" && minutesSince(existingRow.created_at) < STALE_PROCESSING_MINUTES) {
+        console.log(`⏸️ Chunk ${source.chunkNumber} is already being processed elsewhere, stopping duplicate run`);
+        return new Response(JSON.stringify({
+          success: true,
+          status: "already_processing",
+          chunk: numericChunkIndex,
+          totalChunks,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } else {
+        const { error: takeOverErr } = await supabase
+          .from("meeting_transcription_chunks")
+          .update({
+            validation_status: "processing",
+            is_final: false,
+            merge_rejection_reason: null,
+            transcription_text: "",
+            word_count: 0,
+            start_time: source.startSec ?? null,
+            end_time: source.endSec ?? null,
+            segments_json: {
+              storagePath: source.storagePath,
+              bucket: source.bucket,
+              durationSec: source.durationSec ?? null,
+              fileSize: source.fileSize ?? null,
+            },
+          })
+          .eq("id", existingRow.id);
+
+        if (takeOverErr) {
+          throw new Error(`Could not take over stale chunk row: ${takeOverErr.message}`);
+        }
+      }
+    } else {
+      chunkRowId = insertedRow.id;
+    }
+
+    if (shouldTranscribe) {
+      let chunkResult: WhisperChunkResult;
       try {
-        chunkText = await transcribeStoragePath(source.storagePath, source.bucket, prompt);
+        chunkResult = await transcribeStoragePath(
+          source.storagePath,
+          source.bucket,
+          prompt,
+          meetingId,
+          sessionId,
+          source.chunkNumber,
+        );
       } catch (transcribeErr) {
-        // Mark failure server-side so it's visible even when client has disconnected
+        await supabase.from("meeting_transcription_chunks")
+          .update({
+            validation_status: "failed",
+            is_final: true,
+            merge_rejection_reason: transcribeErr instanceof Error ? transcribeErr.message : String(transcribeErr),
+          })
+          .eq("id", chunkRowId!);
+
         await supabase.from("meetings").update({
           notes_generation_status: "failed",
         }).eq("id", meetingId);
+
         throw transcribeErr;
       }
 
-      const { error: insertErr } = await supabase.from("meeting_transcription_chunks").insert({
-        meeting_id: meetingId,
-        chunk_number: source.chunkNumber,
-        transcription_text: chunkText,
-        user_id: meeting.user_id,
-        session_id: sessionId,
-        is_final: true,
-        transcriber_type: "whisper",
-        word_count: chunkText.split(/\s+/).filter(Boolean).length,
-      });
+      const chunkText = normaliseWhitespace(chunkResult.text || "");
+      const wordCount = chunkText ? chunkText.split(/\s+/).filter(Boolean).length : 0;
+      const validationStatus = chunkText ? "validated" : "failed";
+      const mergeRejectionReason = chunkText ? null : "Empty transcript returned by standalone-whisper";
 
-      if (insertErr) {
-        console.error(`❌ Failed to insert chunk ${source.chunkNumber}:`, insertErr.message);
-        throw new Error(`Chunk insert failed: ${insertErr.message}`);
+      if (!chunkText) {
+        console.warn(`⚠️ Chunk ${source.chunkNumber} returned empty transcript`, {
+          meetingId,
+          storagePath: source.storagePath,
+          diagnostics: chunkResult.diagnostics,
+        });
       }
-      console.log(`✅ Chunk ${source.chunkNumber} saved (${chunkText.split(/\s+/).filter(Boolean).length} words)`);
-    } else {
-      console.log(`⏭️ Chunk ${source.chunkNumber} already transcribed, skipping`);
+
+      const { error: updateChunkErr } = await supabase
+        .from("meeting_transcription_chunks")
+        .update({
+          transcription_text: chunkText,
+          is_final: true,
+          validation_status: validationStatus,
+          merge_rejection_reason: mergeRejectionReason,
+          word_count: wordCount,
+          start_time: source.startSec ?? null,
+          end_time: source.endSec ?? null,
+          segments_json: {
+            storagePath: source.storagePath,
+            bucket: source.bucket,
+            durationSec: source.durationSec ?? null,
+            fileSize: source.fileSize ?? null,
+            language: chunkResult.language,
+            whisperDuration: chunkResult.duration,
+            diagnostics: chunkResult.diagnostics || null,
+            segmentCount: chunkResult.segments.length,
+          },
+        })
+        .eq("id", chunkRowId!);
+
+      if (updateChunkErr) {
+        throw new Error(`Chunk update failed: ${updateChunkErr.message}`);
+      }
+
+      console.log(`✅ Chunk ${source.chunkNumber} saved (${wordCount} words)`);
     }
 
     const nextChunk = numericChunkIndex + 1;
@@ -311,21 +588,24 @@ serve(async (req) => {
 
     const { data: allChunks, error: fetchErr } = await supabase
       .from("meeting_transcription_chunks")
-      .select("chunk_number, transcription_text")
+      .select("chunk_number, transcription_text, start_time, end_time, created_at, word_count, validation_status")
       .eq("meeting_id", meetingId)
       .eq("session_id", sessionId)
-      .order("chunk_number", { ascending: true });
+      .eq("transcriber_type", "whisper")
+      .eq("source", OFFLINE_WHISPER_SOURCE)
+      .order("chunk_number", { ascending: true })
+      .order("created_at", { ascending: false });
 
     if (fetchErr) throw new Error(`Failed to fetch chunks: ${fetchErr.message}`);
 
-    const fullTranscript = stitchChunkTexts(allChunks || []);
+    const stitchedChunks = dedupeChunkRows((allChunks || []) as ChunkRow[]);
+    const fullTranscript = stitchChunkTexts(stitchedChunks);
     const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
 
     if (!fullTranscript || wordCount === 0) {
       throw new Error("Stitched transcript was empty despite chunks existing");
     }
 
-    // Guard: too short to generate useful notes
     if (wordCount < 100) {
       await supabase.from("meetings").update({
         whisper_transcript_text: fullTranscript,
@@ -340,6 +620,7 @@ serve(async (req) => {
         success: true,
         status: "too_short",
         wordCount,
+        stitchedChunkCount: stitchedChunks.length,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -379,6 +660,7 @@ serve(async (req) => {
       success: true,
       status: "completed",
       chunks: totalChunks,
+      stitchedChunkCount: stitchedChunks.length,
       transcriptLength: fullTranscript.length,
       wordCount,
     }), {
