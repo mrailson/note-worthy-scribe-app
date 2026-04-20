@@ -952,6 +952,7 @@ const NOTIFICATION_TOGGLES = [
   { key: 'notify_verifier_on_approve', label: 'Notify verifier when claim is approved', group: 'Approval' },
   { key: 'notify_submitter_on_resubmit', label: 'Notify submitter on resubmit', group: 'Resubmit' },
   { key: 'notify_director_on_resubmit', label: 'Notify director when queried claim is resubmitted', group: 'Resubmit' },
+  { key: 'notify_submitter_on_paid', label: 'Notify submitter when claim is marked as paid (PML Finance)', group: 'Payment' },
 ];
 
 function EmailSettingsPanel() {
@@ -1123,7 +1124,7 @@ function EmailSettingsPanel() {
           Control which automated notifications are sent at each stage of the claims workflow.
         </p>
         <div className="space-y-3">
-          {['Query', 'Approval', 'Resubmit'].map(group => (
+          {['Query', 'Approval', 'Resubmit', 'Payment'].map(group => (
             <div key={group} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
               <p className="text-xs font-semibold text-foreground mb-2">{group}</p>
               <div className="space-y-2">

@@ -55,6 +55,7 @@ export interface RateSettings {
   notify_verifier_on_approve: boolean;
   notify_submitter_on_resubmit: boolean;
   notify_director_on_resubmit: boolean;
+  notify_submitter_on_paid: boolean;
 }
 
 const DEFAULT_ROLES: RoleConfig[] = [
@@ -89,6 +90,7 @@ export function useNRESBuyBackRateSettings() {
     notify_verifier_on_approve: true,
     notify_submitter_on_resubmit: false,
     notify_director_on_resubmit: true,
+    notify_submitter_on_paid: true,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -126,6 +128,7 @@ export function useNRESBuyBackRateSettings() {
           notify_verifier_on_approve: data.notify_verifier_on_approve ?? true,
           notify_submitter_on_resubmit: data.notify_submitter_on_resubmit ?? false,
           notify_director_on_resubmit: data.notify_director_on_resubmit ?? true,
+          notify_submitter_on_paid: (data as any).notify_submitter_on_paid ?? true,
         });
       }
       hasFetchedRef.current = true;
