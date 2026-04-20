@@ -1071,6 +1071,22 @@ export function BuyBackPMLDashboard({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  useEffect(() => {
+    if (hideDirectorTab) {
+      setView('finance');
+      return;
+    }
+
+    if (hideFinanceTab) {
+      setView('director');
+      return;
+    }
+
+    if (defaultView) {
+      setView(defaultView);
+    }
+  }, [defaultView, hideDirectorTab, hideFinanceTab]);
+
   const cfg = ROLE_CONFIG[view];
 
   // Group meeting entries by person+month+practice (only non-draft)
