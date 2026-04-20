@@ -18,6 +18,8 @@ import { iOSAudioKeepAlive } from "@/utils/iOSAudioKeepAlive";
 import { androidAudioKeepAlive } from "@/utils/androidAudioKeepAlive";
 import { cleanWhisperResponse } from "@/utils/whisper-chunk-cleaner";
 import { ConnectionToggle } from "@/components/ConnectionToggle";
+import { ConnectionBanner } from "@/components/recorder/ConnectionBanner";
+import { useRecordingMode } from "@/hooks/useRecordingMode";
 import { countPendingRecordings } from "@/utils/syncRecordings";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
@@ -151,38 +153,75 @@ function WaveformBars({ active, isPaused, stream }) {
   );
 }
 
-function ModePill({ mode, disabled, onTap }) {
+function ModePill({ mode, isAutoFallback, disabled, onTap }) {
   const live = mode === "live";
+
+  // Three visual states:
+  //   live                                 → 🟢 green  "Online"
+  //   offline + isAutoFallback             → 🟡 amber  "Offline (no connection)"
+  //   offline + user-chosen                → ⚪ slate  "Offline mode"
+  const variant = live
+    ? "online"
+    : isAutoFallback
+    ? "fallback"
+    : "offline";
+
+  const styles = {
+    online: {
+      borderColor: "rgba(22,163,74,0.30)",
+      bg: "rgba(22,163,74,0.08)",
+      dot: "#16a34a",
+      dotBg: "linear-gradient(135deg,#16a34a,#22c55e)",
+      dotShadow: "0 2px 6px rgba(22,163,74,0.4)",
+      labelColor: "#15803d",
+      label: "Online",
+    },
+    fallback: {
+      borderColor: "rgba(245,158,11,0.40)",
+      bg: "rgba(245,158,11,0.10)",
+      dot: "#f59e0b",
+      dotBg: "linear-gradient(135deg,#f59e0b,#f97316)",
+      dotShadow: "0 2px 6px rgba(245,158,11,0.4)",
+      labelColor: "#d97706",
+      label: "Offline (no connection)",
+    },
+    offline: {
+      borderColor: "rgba(100,116,139,0.30)",
+      bg: "rgba(100,116,139,0.08)",
+      dot: "#64748b",
+      dotBg: "linear-gradient(135deg,#64748b,#94a3b8)",
+      dotShadow: "0 2px 6px rgba(100,116,139,0.35)",
+      labelColor: "#475569",
+      label: "Offline mode",
+    },
+  }[variant];
+
   return (
     <button
       onClick={disabled ? undefined : onTap}
       disabled={disabled}
       style={{
-        display:"inline-flex", alignItems:"center", gap:6,
+        display:"inline-flex", alignItems:"center", gap:8,
         padding:"6px 14px 6px 8px", borderRadius:20,
-        border:`1.5px solid ${live?"rgba(21,101,192,0.25)":"rgba(245,158,11,0.35)"}`,
-        background:live?"rgba(21,101,192,0.07)":"rgba(245,158,11,0.1)",
+        border:`1.5px solid ${styles.borderColor}`,
+        background:styles.bg,
         cursor:disabled?"default":"pointer", transition:"all 0.25s",
         opacity:disabled?0.8:1,
       }}
+      aria-label={`Recording mode: ${styles.label}. Tap to change.`}
     >
-      <div style={{
-        width:22, height:22, borderRadius:"50%",
-        background:live?"linear-gradient(135deg,#1565c0,#0288d1)":"linear-gradient(135deg,#f59e0b,#f97316)",
-        display:"flex", alignItems:"center", justifyContent:"center",
-        boxShadow:live?"0 2px 6px rgba(21,101,192,0.4)":"0 2px 6px rgba(245,158,11,0.4)",
-      }}>
-        {live
-          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M1.5 8.5a13 13 0 0 1 21 0M5 12a10 10 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1.5" fill="white"/></svg>
-          : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10 10 0 0 1 19 12.55M5 12.55a10 10 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
-        }
-      </div>
-      <span style={{fontSize:12,fontWeight:600,color:live?"#1565c0":"#d97706"}}>
-        {live ? "Live · Online" : "Offline · Saving locally"}
+      <span style={{
+        width:10, height:10, borderRadius:"50%",
+        background:styles.dotBg,
+        boxShadow:styles.dotShadow,
+        display:"inline-block",
+      }}/>
+      <span style={{fontSize:12,fontWeight:600,color:styles.labelColor}}>
+        {styles.label}
       </span>
       {!disabled && (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-          stroke={live?"#1565c0":"#d97706"} strokeWidth="2.5">
+          stroke={styles.labelColor} strokeWidth="2.5">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
       )}
@@ -921,7 +960,7 @@ function Toast({ msg, type }) {
   );
 }
 
-function StepsGuide() {
+function StepsGuide({ mode = "live" }) {
   const [open, setOpen] = useState(true);
   const MicIcon = () => (
     <img src="/favicon-robot.png" alt="" width="20" height="20" style={{display:"inline-block",objectFit:"contain"}}/>
@@ -938,11 +977,23 @@ function StepsGuide() {
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
     </svg>
   );
-  const steps = [
-    {n:"1",Icon:MicIcon,label:"Tap record to start"},
-    {n:"2",Icon:SaveIcon,label:"Saved to device"},
-    {n:"3",Icon:SparkIcon,label:"Notes generated on stop"},
-  ];
+  const LiveIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block"}}>
+      <path d="M2 12a10 10 0 0 1 20 0M5 12a7 7 0 0 1 14 0M8 12a4 4 0 0 1 8 0"/>
+      <circle cx="12" cy="12" r="1.5" fill="#1565c0"/>
+    </svg>
+  );
+  const steps = mode === "live"
+    ? [
+        {n:"1",Icon:MicIcon, label:"Tap record to start"},
+        {n:"2",Icon:LiveIcon,label:"Live transcription"},
+        {n:"3",Icon:SparkIcon,label:"Notes generated on stop"},
+      ]
+    : [
+        {n:"1",Icon:MicIcon, label:"Tap record to start"},
+        {n:"2",Icon:SaveIcon,label:"Saved to device"},
+        {n:"3",Icon:SparkIcon,label:"Notes generated on sync"},
+      ];
   return (
     <div style={{margin:"8px 16px 0"}}>
       <button onClick={()=>setOpen(o=>!o)} style={{
@@ -1056,8 +1107,25 @@ function stopSilentAudio() {
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOnline,      setIsOnline]      = useState(navigator.onLine);
-  const [mode,          setMode]          = useState("offline"); // Default offline — live mode discards transcript on stop
+  // Recording mode + connectivity (persisted preference, three-state pill).
+  // Hook owns: localStorage preference, navigator.onLine, auto-fallback flag.
+  // We map the hook's "online"/"offline" vocabulary to the recorder's existing
+  // "live"/"offline" vocabulary so all downstream call sites
+  // (mode === "live" checks, import_source: "mobile_live", audit logging) keep working.
+  const recordingMode = useRecordingMode();
+  const isOnline = recordingMode.isOnline;
+  const setIsOnline = () => {}; // shim — hook owns this; legacy setters become no-ops
+  const mode = recordingMode.mode === "online" ? "live" : "offline";
+  const setMode = (next) => {
+    // Translate legacy setter calls back into the hook's vocabulary.
+    // "live"  → user explicitly wants Online
+    // "offline" → user explicitly wants Offline (this is what the in-card sheet calls)
+    if (next === "live") recordingMode.setMode("online");
+    else if (next === "offline") recordingMode.setMode("offline");
+  };
+  // Tracks "we lost network DURING a live recording, so we're now buffering locally"
+  // — drives <ConnectionBanner /> and clears on stop.
+  const [connectionLostMidRecord, setConnectionLostMidRecord] = useState(false);
   const [recState,      setRecState]      = useState("idle");   // idle|recording|paused
   const [elapsed,       setElapsed]       = useState(0);        // ms elapsed
   const [recordings,    setRecordings]    = useState([]);
@@ -1120,9 +1188,17 @@ export default function NoteWellRecorder() {
   }, [isLocked, recState, wakeLockSupported]);
 
   // ── Connectivity (track online status + auto-resume queued syncs) ──────
+  // Network state is now owned by useRecordingMode(); this effect handles
+  // side-effects only (sync resume + mid-record drop banner).
+  // Use a ref to read current recState/mode inside the listeners without
+  // re-binding on every render.
+  const recStateRef = useRef(recState);
+  useEffect(() => { recStateRef.current = recState; }, [recState]);
+  const modeRef = useRef(mode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
   useEffect(() => {
     const goOnline = async () => {
-      setIsOnline(true);
       // Auto-resume any failed/paused recordings
       const allRecs = await dbAll();
       const resumable = allRecs.filter(r => r.status === "error" || r.status === "paused");
@@ -1135,8 +1211,16 @@ export default function NoteWellRecorder() {
       }
     };
     const goOffline = () => {
-      setIsOnline(false);
-      setMode("offline");
+      // If we drop while recording in live mode, raise the mid-record banner.
+      // Recording continues into the local buffer (existing chunked recorder
+      // behaviour); the buffer will sync on stop. We do NOT mutate the user's
+      // mode preference — the hook's auto-fallback handles the pill display.
+      if (
+        recStateRef.current !== "idle" &&
+        modeRef.current === "live"
+      ) {
+        setConnectionLostMidRecord(true);
+      }
       // If sync is in progress, show paused state
       if (syncProgress && syncProgress.phase === "uploading") {
         setSyncProgress(prev => ({
@@ -1558,6 +1642,10 @@ export default function NoteWellRecorder() {
     keepAlive.stop();
     stopSilentAudio();
     // Capture live transcript BEFORE stopping (it gets cleared on stop)
+    // TODO: flush pending partials if/when live pipeline exposes a sync hook.
+    // (AssemblyRealtimeClient / AssemblyAIRealtimeTranscriber currently flush
+    //  uncommitted words inside .stop() but don't surface them via a sync API,
+    //  so we rely on the React-state snapshot below + server-side consolidation.)
     capturedLiveTranscriptRef.current = typeof liveTranscript === "string" ? liveTranscript : "";
     const capturedLiveWC = capturedLiveTranscriptRef.current.split(/\s+/).filter(Boolean).length;
     if (capturedLiveWC > 0) {
@@ -1608,6 +1696,7 @@ export default function NoteWellRecorder() {
       capturedLiveTranscript: capturedLiveTranscriptRef.current || '',
     };
     capturedLiveTranscriptRef.current = '';
+    setConnectionLostMidRecord(false); // clear mid-record drop banner on stop
     await dbPut(autoRec);
     await refresh();
 
@@ -2820,8 +2909,24 @@ export default function NoteWellRecorder() {
             </button>
           </div>
 
-          {/* Offline banner */}
-          {!isOnline && isIdle && (
+          {/* Recording mode pill (tappable — opens ModeSheet) */}
+          <div style={{padding:"0 16px",display:"flex",justifyContent:"center"}}>
+            <ModePill
+              mode={mode}
+              isAutoFallback={recordingMode.isAutoFallback}
+              disabled={!isIdle}
+              onTap={()=>setShowSheet(true)}
+            />
+          </div>
+
+          {/* Mid-recording connection drop / reconnect banner */}
+          <ConnectionBanner
+            connectionLostMidRecord={connectionLostMidRecord}
+            isOnline={isOnline}
+          />
+
+          {/* Idle offline banner — only shown when user is in offline mode at idle */}
+          {!isOnline && isIdle && !connectionLostMidRecord && (
             <div style={{margin:"10px 16px 0",background:"rgba(245,158,11,0.1)",borderRadius:12,padding:"10px 14px",border:"1px solid rgba(245,158,11,0.28)",display:"flex",gap:8,animation:"fadeIn 0.3s"}}>
               <span style={{fontSize:15,flexShrink:0}}>⚡</span>
               <div>
@@ -2840,7 +2945,7 @@ export default function NoteWellRecorder() {
                 <>
                   <div style={{fontSize:20,fontWeight:700,color:"#1a2332",letterSpacing:-0.5}}>Ready to record</div>
                   <div style={{fontSize:13,color:"#64748b",marginTop:4,lineHeight:1.5}}>
-                    {mode==="live" ? "Live transcript will appear as you speak" : "Recording saved locally · transcribed on sync"}
+                    {mode==="live" ? "Live transcription · notes generated on stop" : "Recording saved locally · transcribed on sync"}
                   </div>
                 </>
               )}
@@ -3029,7 +3134,7 @@ export default function NoteWellRecorder() {
 
           {/* Steps — idle only, collapsible */}
           {isIdle && (
-            <StepsGuide />
+            <StepsGuide mode={mode} />
           )}
 
           {/* Recordings list */}
