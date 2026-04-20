@@ -86,7 +86,7 @@ ${text}
     let usedFallback = false;
     let lastError: string | null = null;
 
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= 1; attempt++) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 30000);
       try {
