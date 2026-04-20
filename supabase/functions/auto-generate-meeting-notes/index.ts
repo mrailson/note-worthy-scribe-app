@@ -1608,7 +1608,8 @@ ${cleanedTranscript}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
     const skipSingleShot = generatedNotes.trim().length > 0;
-    
+    if (skipSingleShot) clearTimeout(timeoutId);
+
     if (!skipSingleShot) try {
       if (modelOverride.startsWith('claude-')) {
         // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
