@@ -312,6 +312,8 @@ serve(async (req) => {
           /^Untitled/i,
           /^Meeting\s+\d+$/i,
           /^Meeting$/i,
+          /^Mobile Recording\b/i,
+          /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,
         ];
         const currentTitle = meeting.title?.trim() || '';
         const isGenericTitle = genericTitlePatterns.some(p => p.test(currentTitle));

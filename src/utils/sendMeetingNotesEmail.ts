@@ -15,10 +15,17 @@ interface SendMeetingNotesEmailOpts {
 
 const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
 
-const isDefaultTimestampTitle = (title: string) => /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(title.trim());
+const GENERIC_TITLE_PATTERNS = [
+  /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,           // "Meeting 20 Apr 18:50"
+  /^Mobile Recording\b/i,                               // "Mobile Recording 20 Apr"
+  /^Meeting\s*-\s*\w{3},/i,                             // "Meeting - Mon, 14th..."
+  /^Meeting\s*-\s*\w+day/i,                             // "Meeting - Monday..."
+  /^Meeting\s*-\s*\d{1,2}(st|nd|rd|th)/i,              // "Meeting - 14th..."
+  /^Meeting\s+\d+$/i,                                   // "Meeting 1"
+];
 
 const isGenericTitle = (title: string | null | undefined) =>
-  !title || GENERIC_TITLES.includes(title.toLowerCase().trim()) || isDefaultTimestampTitle(title);
+  !title || GENERIC_TITLES.includes(title.toLowerCase().trim()) || GENERIC_TITLE_PATTERNS.some(p => p.test(title.trim()));
 
 const cleanMeetingTitle = (title: string | null | undefined) =>
   title?.replace(/^\*+\s*/, "").replace(/\*\*/g, "").trim() || "";
@@ -98,6 +105,7 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
   }
 
   const meetingTitle = cleanMeetingTitle(meeting?.title) || "Meeting Notes";
+  console.log(`📧 [sendMeetingNotesEmail] Title before email: "${meetingTitle}" | isGeneric: ${isGenericTitle(meeting?.title)} | codePath: client-shared-helper`);
 
   // 2. Fetch summary
   const { data: summary } = await supabase

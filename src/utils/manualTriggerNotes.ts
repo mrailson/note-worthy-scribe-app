@@ -68,6 +68,8 @@ export async function ensureMeetingTitle(meetingId: string) {
       /^Untitled/i,
       /^Meeting\s+\d+$/i,
       /^Meeting$/i,
+      /^Mobile Recording\b/i,                       // "Mobile Recording 20 Apr"
+      /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,   // "Meeting 20 Apr 18:50"
     ];
 
     const isGeneric = genericPatterns.some(p => p.test(meeting.title?.trim() || ''));
