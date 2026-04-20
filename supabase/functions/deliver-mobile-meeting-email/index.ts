@@ -143,23 +143,34 @@ serve(async (req: Request) => {
       userEmail.split("@")[0] ||
       "Notewell AI";
 
-    // 5. Re-read the title fresh from DB right before building the email
-    // This is the critical safety check: the title may have been updated by
-    // auto-generate-meeting-notes (called by complete-stuck-meeting) since
-    // the initial fetch above. Always prefer the latest DB value.
-    const { data: freshMeeting } = await supabase
-      .from("meetings")
-      .select("title")
-      .eq("id", meetingId)
-      .single();
+    // 5. Poll for a non-generic title (auto-generate-meeting-notes may still be running)
+    // Wait up to 20 seconds in 4-second intervals for the AI-generated title to land
+    const MAX_TITLE_POLL_ATTEMPTS = 5;
+    const TITLE_POLL_INTERVAL_MS = 4000;
+    let meetingTitle = cleanMeetingTitle(meeting.title) || "Meeting Notes";
 
-    let meetingTitle = cleanMeetingTitle(freshMeeting?.title || meeting.title) || "Meeting Notes";
+    if (isGenericMeetingTitle(meetingTitle)) {
+      console.log(`⏳ Title is generic ("${meetingTitle}"), polling for AI-generated title...`);
+      for (let attempt = 1; attempt <= MAX_TITLE_POLL_ATTEMPTS; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, TITLE_POLL_INTERVAL_MS));
+        const { data: freshMeeting } = await supabase
+          .from("meetings")
+          .select("title")
+          .eq("id", meetingId)
+          .single();
+        const freshTitle = cleanMeetingTitle(freshMeeting?.title);
+        if (freshTitle && !isGenericMeetingTitle(freshTitle)) {
+          meetingTitle = freshTitle;
+          console.log(`✅ AI title arrived after ${attempt * 4}s: "${meetingTitle}"`);
+          break;
+        }
+        console.log(`⏳ Poll ${attempt}/${MAX_TITLE_POLL_ATTEMPTS}: title still generic`);
+      }
+    }
 
-    // Detect generic/default titles including "Meeting DD Mon HH:MM" pattern
-    const isGeneric = isGenericMeetingTitle(meetingTitle);
-
-    if (isGeneric) {
-      console.log(`⚠️ Title is still generic ("${meetingTitle}"), attempting AI title generation...`);
+    // Final fallback: if still generic after polling, generate a title on the spot
+    if (isGenericMeetingTitle(meetingTitle)) {
+      console.log(`⚠️ Title still generic after polling, attempting AI title generation...`);
       try {
         const { data: titleResult } = await supabase.functions.invoke("generate-meeting-title", {
           body: { meetingId: meeting.id, currentTitle: meetingTitle },
