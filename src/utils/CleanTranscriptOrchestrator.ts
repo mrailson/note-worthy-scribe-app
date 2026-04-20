@@ -86,6 +86,7 @@ export async function cleanLargeTranscript(
 
   const chunks = splitTextIntoChunks(rawTranscript, chunkSize, overlap);
   const total = chunks.length;
+  console.log(`📊 CleanTranscriptOrchestrator: ${rawTranscript.length} chars → ${total} chunk(s) (target: ≤4 API calls)`);
   let done = 0;
   const results: string[] = new Array(total);
 
