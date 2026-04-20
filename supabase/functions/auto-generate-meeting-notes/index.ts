@@ -1557,10 +1557,10 @@ ${cleanedTranscript}`;
     // Triggered for transcripts >7,000 chars on Claude path. Map step uses
     // claude-haiku-4-5 in parallel; reduce step uses claude-sonnet-4-6.
     // Single-shot path below remains the fallback if this errors out.
-    const CHUNK_THRESHOLD_CHARS = 7000;
-    const CHUNK_SIZE = 3500;
-    const CHUNK_OVERLAP = 200;
-    const CHUNK_CONCURRENCY = 4;
+    const CHUNK_THRESHOLD_CHARS = 50000;
+    const CHUNK_SIZE = 30000;
+    const CHUNK_OVERLAP = 500;
+    const CHUNK_CONCURRENCY = 1; // Sequential — Sonnet merge is expensive, no need to fan out
 
     const notesGenStart = Date.now();
     let generatedNotes = '';
