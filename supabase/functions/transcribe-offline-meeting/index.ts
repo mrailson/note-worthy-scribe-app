@@ -380,7 +380,7 @@ serve(async (req) => {
         .delete()
         .eq("meeting_id", meetingId)
         .eq("session_id", sessionId)
-        .eq("source", OFFLINE_WHISPER_SOURCE);
+        .eq("transcriber_type", "whisper");
     }
 
     const source = chunkSources[numericChunkIndex];
@@ -400,7 +400,7 @@ serve(async (req) => {
       session_id: sessionId,
       is_final: false,
       transcriber_type: "whisper",
-      source: OFFLINE_WHISPER_SOURCE,
+      // NOTE: `source` is a generated column (mirrors transcriber_type) — never insert directly
       word_count: 0,
       validation_status: "processing",
       merge_rejection_reason: null,
@@ -436,7 +436,6 @@ serve(async (req) => {
         .eq("session_id", sessionId)
         .eq("chunk_number", source.chunkNumber)
         .eq("transcriber_type", "whisper")
-        .eq("source", OFFLINE_WHISPER_SOURCE)
         .maybeSingle();
 
       if (existingErr || !existingRow) {
@@ -592,7 +591,6 @@ serve(async (req) => {
       .eq("meeting_id", meetingId)
       .eq("session_id", sessionId)
       .eq("transcriber_type", "whisper")
-      .eq("source", OFFLINE_WHISPER_SOURCE)
       .order("chunk_number", { ascending: true })
       .order("created_at", { ascending: false });
 
