@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { listAllSessions, getSegments, updateSession, type BackupSession, type BackupSegment } from '@/utils/offlineAudioStore';
+import { listAllSessions, getSegments, updateSession, deleteSession as deleteBackupSession, type BackupSession, type BackupSegment } from '@/utils/offlineAudioStore';
 
 interface RecoveryChunk {
   id: number;
@@ -113,6 +113,53 @@ async function readMobileRecorderDB(): Promise<MobileRecording[]> {
   });
 }
 
+async function deleteFromRecoveryDB(sessionId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('notewell_recording_recovery', 1);
+    request.onerror = () => resolve();
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('audio_chunks')) {
+        db.close();
+        resolve();
+        return;
+      }
+      const tx = db.transaction('audio_chunks', 'readwrite');
+      const store = tx.objectStore('audio_chunks');
+      const getAll = store.getAll();
+      getAll.onsuccess = () => {
+        const all = (getAll.result || []) as RecoveryChunk[];
+        for (const item of all) {
+          if (item.sessionId === sessionId) {
+            store.delete(item.id);
+          }
+        }
+      };
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); resolve(); };
+    };
+  });
+}
+
+async function deleteFromMobileRecorderDB(recordingId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('notewell_recordings_v1', 1);
+    request.onerror = () => resolve();
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('recordings')) {
+        db.close();
+        resolve();
+        return;
+      }
+      const tx = db.transaction('recordings', 'readwrite');
+      tx.objectStore('recordings').delete(recordingId);
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); resolve(); };
+    };
+  });
+}
+
 function buildMobileRecordingBlobs(recording: MobileRecording): { blobs: Blob[]; mimeType: string } {
   if (Array.isArray(recording.chunks) && recording.chunks.length > 0) {
     const mimeType = recording.mimeType || recording.chunks[0]?.mimeType || 'audio/webm';
@@ -199,6 +246,8 @@ export default function RecoveryToolPage() {
   const [reprocessSegments, setReprocessSegments] = useState<ReprocessSegmentResult[]>([]);
   const [reprocessDone, setReprocessDone] = useState(0);
   const [reprocessTotal, setReprocessTotal] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<RecoveryDBSession | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -602,6 +651,34 @@ export default function RecoveryToolPage() {
     }
   }, [user, uploadStatus]);
 
+  const confirmDeleteSession = useCallback(async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeletingId(target.sessionId);
+    setUploadStatus(prev => ({ ...prev, [target.sessionId]: '🗑️ Deleting…' }));
+    try {
+      if (target.source === 'offline-backups') {
+        await deleteBackupSession(target.sessionId);
+      } else if (target.source === 'notewell_recording_recovery') {
+        await deleteFromRecoveryDB(target.sessionId);
+      } else if (target.source === 'notewell_recordings_v1') {
+        await deleteFromMobileRecorderDB(target.sessionId);
+      }
+      setSessions(prev => prev.filter(x => !(x.sessionId === target.sessionId && x.source === target.source)));
+      setUploadStatus(prev => {
+        const next = { ...prev };
+        delete next[target.sessionId];
+        return next;
+      });
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      setUploadStatus(prev => ({ ...prev, [target.sessionId]: `❌ Delete failed: ${err.message || err}` }));
+    } finally {
+      setDeletingId(null);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget]);
+
   return (
     <div style={{
       padding: '16px',
@@ -823,6 +900,24 @@ export default function RecoveryToolPage() {
               >
                 {reprocessingId === s.sessionId ? '⏳ Reprocessing...' : '🔄 Reprocess'}
               </button>
+              <button
+                onClick={() => setDeleteTarget(s)}
+                disabled={deletingId === s.sessionId}
+                style={{
+                  flex: 1,
+                  minWidth: 90,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: '1px solid #c62828',
+                  background: deletingId === s.sessionId ? '#eee' : '#fff',
+                  color: deletingId === s.sessionId ? '#999' : '#c62828',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: deletingId === s.sessionId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {deletingId === s.sessionId ? '⏳ Deleting...' : '🗑️ Delete'}
+              </button>
             </div>
 
             {/* Chunk-by-chunk reprocessing progress */}
@@ -891,6 +986,93 @@ export default function RecoveryToolPage() {
       <div style={{ marginTop: 24, fontSize: 11, color: '#aaa', textAlign: 'center', paddingBottom: 40 }}>
         This tool reads data directly from this browser&rsquo;s IndexedDB. It must be run on the same device and browser that was used to record.
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => deletingId ? null : setDeleteTarget(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 20,
+              maxWidth: 420,
+              width: '100%',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
+            }}
+          >
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: '#1a1a2e' }}>
+              Delete this recording?
+            </h2>
+            <p style={{ fontSize: 14, color: '#444', lineHeight: 1.5, margin: '0 0 12px' }}>
+              You&rsquo;re about to permanently delete{' '}
+              <strong>{getSessionTitle(deleteTarget)}</strong> from this device.
+            </p>
+            <div style={{
+              background: '#fff3e0',
+              border: '1px solid #ffb74d',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 13,
+              color: '#7c4a00',
+              marginBottom: 16,
+            }}>
+              ⚠️ This cannot be undone. If the recording hasn&rsquo;t been uploaded or emailed yet, the audio will be lost.
+              <div style={{ marginTop: 6, fontSize: 12 }}>
+                Size: {formatBytes(deleteTarget.totalSize)} · Created: {new Date(deleteTarget.createdAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={!!deletingId}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #ccc',
+                  background: '#fff',
+                  color: '#333',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: deletingId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteSession}
+                disabled={!!deletingId}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: deletingId ? '#999' : '#c62828',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: deletingId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {deletingId ? 'Deleting…' : 'Delete recording'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
