@@ -400,7 +400,7 @@ serve(async (req) => {
       session_id: sessionId,
       is_final: false,
       transcriber_type: "whisper",
-      source: OFFLINE_WHISPER_SOURCE,
+      // NOTE: `source` is a generated column (mirrors transcriber_type) — never insert directly
       word_count: 0,
       validation_status: "processing",
       merge_rejection_reason: null,
