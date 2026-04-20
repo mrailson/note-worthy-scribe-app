@@ -541,7 +541,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     bankHolidayDetails: bankHolidayDetailsForMonth,
   };
 
-  const { roles, isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
+  const { roles, loading: loadingRoles, isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
   const pmlFinanceEmails = roles.filter(r => r.role === 'pml_finance' && r.is_active).map(r => r.user_email);
 
   // isAdmin = NRES_ADMIN_EMAILS check; elevate PML role holders to see all claims
@@ -623,7 +623,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     }
   }, [isSuperAdmin, claims, refetchClaims, refetchMeetingLog]);
 
-  const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates;
+  const isLoading = loadingStaff || loadingClaims || loadingAccess || loadingRates || loadingRoles;
 
   // Determine which practices to show based on access assignments
   const ALL_PRACTICE_KEYS = isENN ? ENN_PRACTICE_KEYS as string[] : NRES_PRACTICE_KEYS as string[];
