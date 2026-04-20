@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blue PCN — Network Contract DES 2026/27 Board Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0A2540;
+    --navy-light:#152F4A;
+    --blue:#1C60B0;
+    --teal:#0B7A8C;
+    --teal-soft:#E0F1F4;
+    --cream:#FAFAF6;
+    --paper:#FFFFFF;
+    --ink:#1A2332;
+    --muted:#6B7280;
+    --rule:#E5E7EB;
+    --rule-dark:#CBD5E1;
+    --green:#0B7A3B;
+    --green-soft:#E6F4EC;
+    --amber:#B45309;
+    --amber-soft:#FEF3C7;
+    --red:#991B1B;
+    --red-soft:#FEE2E2;
+    --accent:#D4AF37;
+    --shadow: 0 1px 2px rgba(10,37,64,.04), 0 4px 16px rgba(10,37,64,.06);
+    --shadow-lg: 0 2px 4px rgba(10,37,64,.06), 0 20px 40px rgba(10,37,64,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Source Sans 3', system-ui, -apple-system, sans-serif;
+    font-size:16px;
+    line-height:1.55;
+    color:var(--ink);
+    background:var(--cream);
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:'Fraunces', Georgia, serif}
+  .mono{font-family:'JetBrains Mono', ui-monospace, monospace}
+
+  /* ---------------- HEADER ---------------- */
+  .hero{
+    background:linear-gradient(135deg, var(--navy) 0%, #0F3058 60%, #114A6B 100%);
+    color:#FFF;
+    padding: 3rem 1.5rem 3.5rem;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(circle at 80% 20%, rgba(11,122,140,0.35), transparent 40%),
+      radial-gradient(circle at 15% 85%, rgba(212,175,55,0.10), transparent 35%);
+    pointer-events:none;
+  }
+  .hero-inner{max-width:1180px;margin:0 auto;position:relative;z-index:1}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:.5rem;
+    font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;font-weight:600;
+    color:#CAD8E8;margin-bottom:1.25rem;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .hero h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(2.2rem, 5vw, 3.8rem);
+    line-height:1.05;
+    letter-spacing:-.02em;
+    margin-bottom:.4rem;
+  }
+  .hero h1 em{font-style:italic;font-weight:500;color:#7BC1CF}
+  .hero .sub{
+    font-size:clamp(1.05rem, 1.6vw, 1.2rem);
+    color:#B9CADA;font-weight:300;max-width:780px;margin-bottom:2rem;
+  }
+  .hero-meta{
+    display:flex;flex-wrap:wrap;gap:1rem 2rem;
+    font-size:.9rem;color:#CAD8E8;
+    padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.12);
+  }
+  .hero-meta strong{color:#FFF;font-weight:600}
+
+  /* ---------------- NAV ---------------- */
+  .nav{
+    background:var(--paper);
+    border-bottom:1px solid var(--rule);
+    position:sticky;top:0;z-index:10;
+    box-shadow:0 1px 0 rgba(10,37,64,.03);
+  }
+  .nav-inner{
+    max-width:1180px;margin:0 auto;padding:0 1.5rem;
+    display:flex;gap:.25rem;overflow-x:auto;
+  }
+  .nav a{
+    flex-shrink:0;
+    padding:1rem .9rem;
+    font-size:.85rem;font-weight:500;
+    color:var(--muted);text-decoration:none;
+    border-bottom:2px solid transparent;
+    transition:all .15s;
+    white-space:nowrap;
+  }
+  .nav a:hover{color:var(--navy)}
+  .nav a.primary{color:var(--teal);border-bottom-color:var(--teal)}
+
+  /* ---------------- LAYOUT ---------------- */
+  main{max-width:1180px;margin:0 auto;padding:3rem 1.5rem 4rem}
+  section{margin-bottom:4rem;scroll-margin-top:80px}
+  .section-head{margin-bottom:2rem}
+  .section-head .tag{
+    display:inline-block;
+    font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--teal);font-weight:600;margin-bottom:.5rem;
+  }
+  .section-head h2{
+    font-family:'Fraunces', serif;
+    font-size:clamp(1.75rem, 3vw, 2.6rem);
+    font-weight:500;line-height:1.1;letter-spacing:-.01em;
+    color:var(--navy);
+  }
+  .section-head h2 em{font-style:italic;font-weight:400;color:var(--teal)}
+
+  /* ---------------- STAT GRID ---------------- */
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:1rem;
+    margin-bottom:2rem;
+  }
+  .stat{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:12px;
+    padding:1.5rem;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .stat::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:var(--teal);
+  }
+  .stat.green::before{background:var(--green)}
+  .stat.amber::before{background:var(--amber)}
+  .stat.navy::before{background:var(--navy)}
+  .stat .label{
+    font-size:.7rem;text-transform:uppercase;letter-spacing:.14em;
+    color:var(--muted);font-weight:600;margin-bottom:.6rem;
+  }
+  .stat .number{
+    font-family:'Fraunces', serif;
+    font-size:2.4rem;font-weight:500;line-height:1;
+    color:var(--navy);letter-spacing:-.02em;
+    margin-bottom:.3rem;
+  }
+  .stat .delta{
+    font-size:.85rem;font-weight:500;
+    display:inline-flex;align-items:center;gap:.3rem;
+  }
+  .stat .delta.up{color:var(--green)}
+  .stat .delta.down{color:var(--red)}
+  .stat .caption{font-size:.85rem;color:var(--muted);margin-top:.5rem}
+
+  /* ---------------- CARDS ---------------- */
+  .card{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:2rem;
+    box-shadow:var(--shadow);
+    margin-bottom:1.5rem;
+  }
+  .card h3{
+    font-family:'Fraunces', serif;
+    font-size:1.35rem;font-weight:600;
+    color:var(--navy);margin-bottom:1rem;letter-spacing:-.005em;
+  }
+  .card h4{
+    font-size:1rem;font-weight:600;
+    color:var(--navy);margin:1.2rem 0 .5rem;
+  }
+  .card p{margin-bottom:.8rem}
+  .card p:last-child{margin-bottom:0}
+
+  /* ---------------- TABLES ---------------- */
+  .table-wrap{overflow-x:auto;margin:1.5rem 0;border-radius:10px;border:1px solid var(--rule);background:var(--paper);box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse;font-size:.92rem}
+  th{
+    background:var(--navy);color:#FFF;
+    text-align:left;padding:.85rem 1rem;
+    font-weight:600;font-size:.78rem;
+    text-transform:uppercase;letter-spacing:.08em;
+  }
+  th.num{text-align:right}
+  td{padding:.8rem 1rem;border-bottom:1px solid var(--rule);vertical-align:middle}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#FAFBFC}
+  tr.total td{
+    background:var(--teal-soft);
+    font-weight:700;color:var(--navy);
+    border-top:2px solid var(--teal);
+  }
+  tr.grand-total td{
+    background:var(--navy);color:#FFF;font-weight:700;
+  }
+  tr.grand-total td:hover{background:var(--navy)}
+  tr.removed td{color:var(--red);text-decoration:line-through;text-decoration-color:rgba(153,27,27,.4)}
+  tr.removed td:first-child{text-decoration:none}
+  tr.new-row td{background:var(--amber-soft);font-weight:500}
+  .badge{
+    display:inline-block;padding:.15rem .55rem;border-radius:20px;
+    font-size:.7rem;font-weight:600;letter-spacing:.04em;
+  }
+  .badge.green{background:var(--green-soft);color:var(--green)}
+  .badge.red{background:var(--red-soft);color:var(--red)}
+  .badge.amber{background:var(--amber-soft);color:var(--amber)}
+  .badge.teal{background:var(--teal-soft);color:var(--teal)}
+  .change-pos{color:var(--green);font-weight:600}
+  .change-neg{color:var(--red);font-weight:600}
+  .change-new{color:var(--amber);font-weight:700}
+
+  /* ---------------- CALLOUTS ---------------- */
+  .callout{
+    border-radius:12px;
+    padding:1.5rem 1.75rem;
+    margin:1.5rem 0;
+    border-left:4px solid;
+    display:flex;gap:1rem;align-items:flex-start;
+  }
+  .callout .icon{font-size:1.5rem;flex-shrink:0;line-height:1}
+  .callout.warning{background:var(--amber-soft);border-color:var(--amber);color:#7C2D0E}
+  .callout.warning h4{color:var(--amber)}
+  .callout.info{background:var(--teal-soft);border-color:var(--teal);color:#0B4453}
+  .callout.info h4{color:var(--teal)}
+  .callout.danger{background:var(--red-soft);border-color:var(--red);color:#4C1010}
+  .callout.danger h4{color:var(--red)}
+  .callout.success{background:var(--green-soft);border-color:var(--green);color:#0C3C21}
+  .callout.success h4{color:var(--green)}
+  .callout h4{font-weight:700;margin-bottom:.3rem;font-size:1rem}
+  .callout p{margin:.3rem 0 0;font-size:.92rem}
+
+  /* ---------------- TWO COL ---------------- */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+  @media (max-width:768px){.two-col{grid-template-columns:1fr}}
+
+  /* ---------------- REIMBURSEMENT BOX ---------------- */
+  .headline-box{
+    background:linear-gradient(135deg, var(--navy) 0%, #114A6B 100%);
+    color:#FFF;border-radius:14px;padding:2.5rem;
+    box-shadow:var(--shadow-lg);
+    margin:2rem 0;position:relative;overflow:hidden;
+  }
+  .headline-box::before{
+    content:"";position:absolute;top:-50%;right:-20%;width:60%;height:200%;
+    background:radial-gradient(circle, rgba(11,122,140,.3), transparent 60%);
+  }
+  .headline-box > *{position:relative;z-index:1}
+  .headline-box .eyebrow{color:#7BC1CF}
+  .headline-box h3{
+    font-family:'Fraunces', serif;
+    font-size:clamp(1.5rem, 3vw, 2.2rem);
+    font-weight:500;line-height:1.15;
+    color:#FFF;margin-bottom:1rem;letter-spacing:-.01em;
+  }
+  .headline-box .big-num{
+    font-family:'Fraunces', serif;
+    font-size:clamp(3rem, 7vw, 5rem);
+    font-weight:600;line-height:1;
+    margin:.5rem 0;letter-spacing:-.03em;
+  }
+  .headline-box .caption{color:#B9CADA;font-size:1rem;max-width:600px}
+
+  /* ---------------- LIST ---------------- */
+  .check-list{list-style:none;padding:0}
+  .check-list li{
+    padding:.6rem 0 .6rem 2rem;
+    position:relative;
+    font-size:.95rem;
+    border-bottom:1px solid var(--rule);
+  }
+  .check-list li:last-child{border-bottom:none}
+  .check-list.yes li::before{
+    content:"✓";position:absolute;left:0;top:.55rem;
+    color:var(--green);font-weight:700;font-size:1.1rem;
+  }
+  .check-list.no li::before{
+    content:"✕";position:absolute;left:0;top:.55rem;
+    color:var(--red);font-weight:700;font-size:1.1rem;
+  }
+
+  /* ---------------- ACTIONS ---------------- */
+  .action{
+    display:flex;gap:1.25rem;
+    padding:1.5rem;
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    margin-bottom:1rem;
+    align-items:flex-start;
+  }
+  .action-num{
+    flex-shrink:0;
+    width:44px;height:44px;
+    background:var(--navy);color:#FFF;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces', serif;font-weight:600;font-size:1.2rem;
+  }
+  .action-body{flex:1}
+  .action .when{
+    font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--teal);font-weight:700;margin-bottom:.2rem;
+  }
+  .action h4{
+    font-family:'Fraunces', serif;
+    font-weight:600;font-size:1.1rem;
+    color:var(--navy);margin-bottom:.3rem;
+  }
+  .action p{font-size:.92rem;color:#374151;margin-bottom:0}
+  .action .owner{
+    display:inline-block;margin-top:.5rem;
+    font-size:.78rem;color:var(--muted);font-style:italic;
+  }
+
+  /* ---------------- FOOTER ---------------- */
+  footer{
+    background:var(--navy);color:#B9CADA;
+    padding:3rem 1.5rem 2rem;margin-top:4rem;
+  }
+  footer .footer-inner{max-width:1180px;margin:0 auto}
+  footer h4{color:#FFF;font-family:'Fraunces', serif;font-size:1.2rem;margin-bottom:.8rem}
+  footer p{font-size:.85rem;line-height:1.6;max-width:780px}
+  footer a{color:#7BC1CF;text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  footer .meta{
+    margin-top:2rem;padding-top:1.5rem;
+    border-top:1px solid rgba(255,255,255,.1);
+    font-size:.78rem;color:#8CA5C0;
+  }
+
+  /* ---------------- PRINT ---------------- */
+  @media print{
+    .nav{position:static;box-shadow:none}
+    .hero{padding:1.5rem}
+    section{page-break-inside:avoid}
+    .card, .action, .stat{box-shadow:none;border:1px solid #CCC}
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow"><span class="dot"></span>Blue PCN · Board Briefing · April 2026</div>
+    <h1>Network Contract DES <em>2026/27</em></h1>
+    <p class="sub">What the new DES specification means for Blue PCN — six practices, 52,595 patients, 349 care home beds — with every figure calculated to our list size.</p>
+    <div class="hero-meta">
+      <span><strong>Effective:</strong> 1 April 2026</span>
+      <span><strong>Published:</strong> 26 March 2026</span>
+      <span><strong>Prepared by:</strong> Malcolm Railson, Digital &amp; Transformation Lead</span>
+    </div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#glance" class="primary">Blue PCN at a glance</a>
+    <a href="#practices">Practices</a>
+    <a href="#funding">Funding</a>
+    <a href="#shift">Structural shift</a>
+    <a href="#gp-arrs">GP ARRS</a>
+    <a href="#other-arrs">Other ARRS</a>
+    <a href="#nondirect">Non-direct ARRS</a>
+    <a href="#changes">New requirements</a>
+    <a href="#actions">Board actions</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- AT A GLANCE -->
+<section id="glance">
+  <div class="section-head">
+    <div class="tag">The headline</div>
+    <h2>Blue PCN <em>at a glance</em></h2>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat navy">
+      <div class="label">Total DES Income</div>
+      <div class="number">£2.39m</div>
+      <div class="delta up">▲ +£65,100 (+2.8%)</div>
+      <div class="caption">PCN + practice-level combined, 2026/27</div>
+    </div>
+    <div class="stat">
+      <div class="label">PCN-Level Funding</div>
+      <div class="number">£2.06m</div>
+      <div class="delta down">▼ −£175,838 (−7.9%)</div>
+      <div class="caption">Down because CASP &amp; CAIP are removed</div>
+    </div>
+    <div class="stat amber">
+      <div class="label">Direct to Practices <span class="badge amber">NEW</span></div>
+      <div class="number">£240,885</div>
+      <div class="delta up">New GP Reimbursement Scheme</div>
+      <div class="caption">£4.58 × registered list — bypasses the PCN</div>
+    </div>
+    <div class="stat green">
+      <div class="label">ARRS Envelope</div>
+      <div class="number">£1.37m</div>
+      <div class="delta up">▲ +£40,737 (+3.1%)</div>
+      <div class="caption">£27.668 × weighted population</div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="icon">ℹ️</div>
+    <div>
+      <h4>The one-line summary for the Board</h4>
+      <p>Net DES funding into Blue PCN and its practices rises modestly (+2.8%), but the <em>route</em> has fundamentally changed: £241k that previously flowed through the PCN (as CASP and CAIP) now lands directly at practice level as a ring-fenced GP Reimbursement Scheme tied to same-day access delivery.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRACTICES -->
+<section id="practices">
+  <div class="section-head">
+    <div class="tag">Network composition</div>
+    <h2>The <em>six practices</em> &amp; their list sizes</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Practice</th>
+          <th class="num">Registered</th>
+          <th class="num">Weighted</th>
+          <th class="num">Adjusted</th>
+          <th class="num">% of PCN (reg.)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Brook Medical Centre</td><td class="num">5,704</td><td class="num">5,633.17</td><td class="num">6,885.12</td><td class="num">10.8%</td></tr>
+        <tr><td>Bugbrooke Medical Practice</td><td class="num">10,785</td><td class="num">10,103.16</td><td class="num">9,729.14</td><td class="num">20.5%</td></tr>
+        <tr><td>County Surgery</td><td class="num">4,260</td><td class="num">3,850.44</td><td class="num">4,217.91</td><td class="num">8.1%</td></tr>
+        <tr><td>Park Avenue Medical Centre &amp; Kings Heath</td><td class="num">15,461</td><td class="num">15,069.52</td><td class="num">16,571.13</td><td class="num">29.4%</td></tr>
+        <tr><td>Rushden Medical Centre</td><td class="num">9,139</td><td class="num">8,368.25</td><td class="num">8,638.38</td><td class="num">17.4%</td></tr>
+        <tr><td>The Crescent Medical Centre</td><td class="num">7,246</td><td class="num">6,653.92</td><td class="num">7,488.33</td><td class="num">13.8%</td></tr>
+        <tr class="total"><td>Blue PCN Total</td><td class="num">52,595</td><td class="num">49,678.46</td><td class="num">53,530.01</td><td class="num">100%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:.85rem;color:var(--muted);margin-top:.5rem;">List sizes sourced from Haresign PCN Funding Split Calculator, pre-filled from NHS data. Additional unique feature of Blue PCN: 349 aligned care home beds attracting the Care Home Premium.</p>
+</section>
+
+<!-- FUNDING -->
+<section id="funding">
+  <div class="section-head">
+    <div class="tag">Financial entitlements</div>
+    <h2>Blue PCN funding <em>in detail</em></h2>
+  </div>
+
+  <h3 style="font-family:'Fraunces', serif;font-size:1.4rem;color:var(--navy);margin-bottom:1rem;font-weight:600">National rates applied to Blue PCN list sizes</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Income stream</th>
+          <th class="num">Rate 2026/27</th>
+          <th class="num">2025/26 value</th>
+          <th class="num">2026/27 value</th>
+          <th class="num">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Core PCN Funding</strong><br><span style="font-size:.8rem;color:var(--muted)">£2.311 × registered + £0.748 × adjusted</span></td>
+          <td class="num mono">£3.059/pt</td>
+          <td class="num">£158,418</td>
+          <td class="num"><strong>£161,587</strong></td>
+          <td class="num change-pos">+£3,169 (+2.0%)</td>
+        </tr>
+        <tr>
+          <td><strong>Enhanced Access</strong><br><span style="font-size:.8rem;color:var(--muted)">× adjusted population</span></td>
+          <td class="num mono">£8.903/pt</td>
+          <td class="num">£451,097</td>
+          <td class="num"><strong>£476,578</strong></td>
+          <td class="num change-pos">+£25,481 (+5.6%)</td>
+        </tr>
+        <tr>
+          <td><strong>ARRS Envelope</strong><br><span style="font-size:.8rem;color:var(--muted)">× weighted population</span></td>
+          <td class="num mono">£27.668/pt</td>
+          <td class="num">£1,333,767</td>
+          <td class="num"><strong>£1,374,504</strong></td>
+          <td class="num change-pos">+£40,737 (+3.1%)</td>
+        </tr>
+        <tr>
+          <td><strong>Care Home Premium</strong><br><span style="font-size:.8rem;color:var(--muted)">349 aligned beds</span></td>
+          <td class="num mono">£133.158/bed</td>
+          <td class="num">£45,458</td>
+          <td class="num"><strong>£46,472</strong></td>
+          <td class="num change-pos">+£1,014 (+2.2%)</td>
+        </tr>
+        <tr>
+          <td style="color:var(--red)"><strong>CASP</strong> — Capacity &amp; Access Support<br><span style="font-size:.8rem">× adjusted population</span></td>
+          <td class="num mono" style="color:var(--red)">REMOVED</td>
+          <td class="num">£171,724</td>
+          <td class="num" style="color:var(--red)">—</td>
+          <td class="num change-neg">−£171,724</td>
+        </tr>
+        <tr>
+          <td style="color:var(--red)"><strong>CAIP</strong> — Capacity &amp; Access Improvement (max)<br><span style="font-size:.8rem">× adjusted population</span></td>
+          <td class="num mono" style="color:var(--red)">REMOVED</td>
+          <td class="num">£74,514</td>
+          <td class="num" style="color:var(--red)">—</td>
+          <td class="num change-neg">−£74,514</td>
+        </tr>
+        <tr class="total">
+          <td>PCN-level subtotal</td>
+          <td class="num"></td>
+          <td class="num">£2,234,979</td>
+          <td class="num">£2,059,141</td>
+          <td class="num" style="color:var(--red)">−£175,838 (−7.9%)</td>
+        </tr>
+        <tr>
+          <td><strong>Network Participation Payment</strong> (paid to practices)<br><span style="font-size:.8rem;color:var(--muted)">× registered list</span></td>
+          <td class="num mono">£1.761/pt</td>
+          <td class="num">£92,567</td>
+          <td class="num"><strong>£92,620</strong></td>
+          <td class="num" style="color:var(--muted)">+£53</td>
+        </tr>
+        <tr class="new-row">
+          <td><strong>GP Reimbursement Scheme</strong> <span class="badge amber">NEW 2026/27</span><br><span style="font-size:.8rem;color:var(--muted)">Paid direct to practices — × registered list</span></td>
+          <td class="num mono">£4.58/pt</td>
+          <td class="num">—</td>
+          <td class="num"><strong>£240,885</strong></td>
+          <td class="num change-new">NEW</td>
+        </tr>
+        <tr class="grand-total">
+          <td>Combined DES funding (PCN + practices)</td>
+          <td class="num"></td>
+          <td class="num">£2,327,546</td>
+          <td class="num">£2,392,646</td>
+          <td class="num" style="color:#7FD38D">+£65,100 (+2.8%)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="font-family:'Fraunces', serif;font-size:1.4rem;color:var(--navy);margin:2.5rem 0 1rem;font-weight:600">What each practice receives directly</h3>
+  <p style="margin-bottom:1rem">The Network Participation Payment and the new GP Reimbursement Scheme flow <em>direct to practices</em>, proportional to registered list size. This is practice income, not PCN income.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Practice</th>
+          <th class="num">NPP 2026/27<br><span style="font-weight:400;font-size:.7rem;text-transform:none;letter-spacing:0">£1.761 × reg</span></th>
+          <th class="num">GP Reimbursement <span class="badge amber">NEW</span><br><span style="font-weight:400;font-size:.7rem;text-transform:none;letter-spacing:0">£4.58 × reg</span></th>
+          <th class="num">Total direct to practice</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Brook Medical Centre</td><td class="num">£10,045</td><td class="num">£26,124</td><td class="num"><strong>£36,169</strong></td></tr>
+        <tr><td>Bugbrooke Medical Practice</td><td class="num">£18,992</td><td class="num">£49,395</td><td class="num"><strong>£68,387</strong></td></tr>
+        <tr><td>County Surgery</td><td class="num">£7,502</td><td class="num">£19,511</td><td class="num"><strong>£27,013</strong></td></tr>
+        <tr><td>Park Avenue MC &amp; Kings Heath</td><td class="num">£27,227</td><td class="num">£70,811</td><td class="num"><strong>£98,038</strong></td></tr>
+        <tr><td>Rushden Medical Centre</td><td class="num">£16,094</td><td class="num">£41,857</td><td class="num"><strong>£57,951</strong></td></tr>
+        <tr><td>The Crescent Medical Centre</td><td class="num">£12,760</td><td class="num">£33,187</td><td class="num"><strong>£45,947</strong></td></tr>
+        <tr class="total"><td>Total</td><td class="num">£92,620</td><td class="num">£240,885</td><td class="num">£333,505</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:.85rem;color:var(--muted);margin-top:.5rem;">Note: the GP Reimbursement Scheme distribution formula is not yet fully published in the SFE (expected May 2026). Practices with a high existing GP-to-patient ratio may need to apply through the ICB. The £4.58/registered figure is the national average — Blue PCN's actual split may vary.</p>
+</section>
+
+<!-- STRUCTURAL SHIFT -->
+<section id="shift">
+  <div class="section-head">
+    <div class="tag">The biggest change</div>
+    <h2>The structural shift <em>Board members should understand</em></h2>
+  </div>
+
+  <div class="headline-box">
+    <div class="eyebrow"><span class="dot" style="background:var(--accent)"></span>Money moves out of the PCN</div>
+    <h3>£246k of CASP + CAIP at Blue PCN is gone.<br>£241k returns — but flows direct to our six practices.</h3>
+    <div class="big-num">−£175,838</div>
+    <p class="caption">Net PCN-level reduction. The £292m nationally repurposed from the Capacity &amp; Access Payment now lands at practice level as a GP Reimbursement Scheme, tied specifically to same-day urgent access delivery.</p>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>Why this matters operationally</h3>
+      <p>Previously, CASP and CAIP were PCN-level payments — they flowed into the PCN's central pot and the Board decided how to deploy them (shared staff, workflow improvements, same-day access schemes, etc.).</p>
+      <p>From April 2026, the equivalent funding is ring-fenced at <strong>practice level</strong> and tied to a specific purpose: employing additional GP sessions to support clinically urgent same-day access.</p>
+      <p>The Board no longer controls this money. Practices do.</p>
+    </div>
+    <div class="card">
+      <h3>Why this matters strategically</h3>
+      <p>Blue PCN's central delivery model (e.g. Enhanced Access, shared workflow, CAIP-funded initiatives) loses ~£176k of flexible funding.</p>
+      <p>Meanwhile, practices gain ~£47k each on average — but can only use it for GP capacity for urgent same-day demand.</p>
+      <p><strong>Key question for the Board:</strong> how do we coordinate practice-level GP Reimbursement decisions so that collective same-day access capacity is coherent across the six practices?</p>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <div class="icon">⚠️</div>
+    <div>
+      <h4>ICB application route for well-staffed practices</h4>
+      <p>The GP Contract letter states that <em>practices with a high GP-to-patient ratio must apply to their ICB</em> to access this funding — this is not automatic. Park Avenue &amp; Kings Heath and Bugbrooke (our largest practices) should review their GP WTE per 1,000 patients before April to anticipate whether an ICB application will be required.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GP ARRS -->
+<section id="gp-arrs">
+  <div class="section-head">
+    <div class="tag">ARRS — Major changes</div>
+    <h2>The GP ARRS rate <em>has jumped dramatically</em></h2>
+  </div>
+
+  <div class="two-col" style="margin-bottom:1.5rem">
+    <div class="card">
+      <h3 style="margin-bottom:.5rem">2026/27 Maximum</h3>
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Maximum reimbursable per ARRS GP, annual equivalent</p>
+      <div style="font-family:'Fraunces', serif;font-size:3.2rem;font-weight:600;color:var(--navy);line-height:1">£152,900</div>
+      <p style="color:var(--muted);margin-top:.3rem">Salary plus employer on-costs · £155,698 in London</p>
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--rule)">
+        <div style="font-size:.85rem;color:var(--muted)">2025/26 was</div>
+        <div style="font-family:'Fraunces', serif;font-size:1.6rem;color:var(--navy);font-weight:500">~£105,882</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Why the jump?</h3>
+      <p>This is not a straightforward pay uplift. Two things happened together:</p>
+      <ul style="padding-left:1.2rem;margin:.8rem 0">
+        <li style="margin-bottom:.5rem">The <strong>2-year post-CCT restriction is removed</strong> — experienced GPs now qualify.</li>
+        <li>The salary ceiling moved from the <strong>lower quartile</strong> of the salaried GP pay range to the <strong>top</strong> of that range — reflecting that experienced GPs earn more.</li>
+      </ul>
+      <p>Per session, the maximum is ~£286/session (9 sessions/wk × 43 wks = 387 sessions).</p>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <div class="icon">⚠️</div>
+    <div>
+      <h4>The trade-off — our ARRS pot only grew by 3.1%</h4>
+      <p>Blue PCN's total ARRS envelope rose by ~£41k (to £1.37m). Recruiting <em>one</em> experienced ARRS GP at or near the £152,900 maximum would consume over 11% of our entire ARRS budget. This is a strategic choice — it comes directly at the expense of other roles we might otherwise fund.</p>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h4 style="color:var(--green)">✓ We CAN claim for</h4>
+      <ul class="check-list yes">
+        <li>Any GP not substantively employed in a Blue PCN Core Network Practice in the previous 12 months</li>
+        <li>Experienced GPs — the 2-year post-CCT restriction is removed</li>
+        <li>GPs engaged on a <em>temporary</em> basis (e.g. maternity/sickness cover)</li>
+        <li>GPs already claimed under 2025/26 ARRS rules — the claim simply continues</li>
+        <li>GPs employed by a third-party (e.g. federation) delivering service to the PCN</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--red)">✕ We CANNOT claim for</h4>
+      <ul class="check-list no">
+        <li>A GP substantively employed in any Blue PCN practice within the previous 12 months</li>
+        <li>A GP backfilling an existing post funded before 31 March 2019</li>
+        <li>Any GP where we cannot demonstrate additionality (above 2019 baseline)</li>
+        <li>A GP whose GMC registration number is not provided on the ARRS portal claim <span class="badge amber">NEW</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- OTHER ARRS -->
+<section id="other-arrs">
+  <div class="section-head">
+    <div class="tag">ARRS workforce</div>
+    <h2>Other ARRS maximum rates <em>2026/27</em></h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Role</th><th>Band</th><th class="num">2026/27 Max (incl. on-costs)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Digital &amp; Transformation Lead</strong></td><td>8a</td><td class="num"><strong>£78,534</strong></td></tr>
+        <tr><td>Advanced Practitioner</td><td>8a</td><td class="num">£78,534</td></tr>
+        <tr><td>Consultant Nurse Primary Care</td><td>8c</td><td class="num">£109,943</td></tr>
+        <tr><td>Clinical Pharmacist</td><td>7–8a</td><td class="num">£71,725</td></tr>
+        <tr><td>Physician Associate</td><td>7</td><td class="num">£69,515</td></tr>
+        <tr><td>First Contact Physiotherapist</td><td>7–8a</td><td class="num">£71,725</td></tr>
+        <tr><td>Experienced GP Nurse</td><td>6</td><td class="num">£57,114</td></tr>
+        <tr><td>Pharmacy Technician</td><td>5</td><td class="num">£46,447</td></tr>
+        <tr><td>Social Prescribing Link Worker</td><td>Up to 5</td><td class="num">£46,447</td></tr>
+        <tr><td>New to GP Nurse</td><td>5</td><td class="num">£46,447</td></tr>
+        <tr><td>Care Co-ordinator</td><td>4</td><td class="num">£38,739</td></tr>
+        <tr><td>Healthcare Support Worker</td><td>3</td><td class="num">£34,469</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- NON-DIRECT ARRS -->
+<section id="nondirect">
+  <div class="section-head">
+    <div class="tag">New in 2026/27</div>
+    <h2>Non-direct patient care <em>ARRS roles</em> (Section 7.3.2-C)</h2>
+  </div>
+
+  <div class="card">
+    <p style="margin-bottom:1rem">For the first time, Blue PCN can claim ARRS reimbursement for <strong>non-direct patient care roles</strong> — operational, administrative, and enabling roles — subject to commissioner agreement and five tests.</p>
+    <p><strong>Ceiling:</strong> Band 8c (£109,943 incl. on-costs) nationally. No fixed table rate — the PCN proposes, the commissioner agrees.</p>
+
+    <h4>The five tests the commissioner will apply</h4>
+    <ol style="padding-left:1.2rem;margin:.8rem 0">
+      <li style="margin-bottom:.3rem"><strong>Additional</strong> — genuinely new headcount, not an existing post transferred to ARRS.</li>
+      <li style="margin-bottom:.3rem"><strong>Demonstrably different</strong> — does not duplicate another ARRS role already available.</li>
+      <li style="margin-bottom:.3rem"><strong>Clear scope of practice</strong> — written role description with training requirements.</li>
+      <li style="margin-bottom:.3rem"><strong>No local duplication</strong> — unless a clear local need can be demonstrated.</li>
+      <li><strong>Rate appropriate to scope</strong> — proportionate to the role, up to Band 8c max.</li>
+    </ol>
+  </div>
+
+  <h4 style="font-family:'Fraunces', serif;font-size:1.2rem;color:var(--navy);margin:2rem 0 1rem;font-weight:600">Roles Blue PCN might consider</h4>
+
+  <div class="two-col">
+    <div class="card" style="padding:1.25rem">
+      <span class="badge teal">NEW POST</span>
+      <h4 style="margin-top:.6rem">Population Health / Data Analyst</h4>
+      <p style="font-size:.9rem">Band 6–7. Strong case given the new digital risk stratification requirements. Could support cancer screening uptake analysis and continuity-of-care targeting.</p>
+    </div>
+    <div class="card" style="padding:1.25rem">
+      <span class="badge teal">NEW POST</span>
+      <h4 style="margin-top:.6rem">Workforce / HR Coordinator</h4>
+      <p style="font-size:.9rem">Band 5–6. Relevant as ARRS headcount grows and GPSS compliance bites (including third-party employer email requirements).</p>
+    </div>
+    <div class="card" style="padding:1.25rem">
+      <span class="badge teal">NEW POST</span>
+      <h4 style="margin-top:.6rem">Communications &amp; Engagement Lead</h4>
+      <p style="font-size:.9rem">Band 5–6. Supports Enhanced Access promotion, GPSS participation, and neighbourhood health engagement.</p>
+    </div>
+    <div class="card" style="padding:1.25rem">
+      <span class="badge teal">NEW POST</span>
+      <h4 style="margin-top:.6rem">Finance / Governance Officer</h4>
+      <p style="font-size:.9rem">Band 5–6. Supports ARRS claim compliance (including new registration-number requirement), PCN financial reporting, and governance documentation.</p>
+    </div>
+  </div>
+
+  <div class="callout danger">
+    <div class="icon">🚫</div>
+    <div>
+      <h4>The additionality trap — do not move Claire's post onto ARRS</h4>
+      <p>Blue PCN's existing PCN Manager and operational roles (funded since PCN formation) are <strong>not additional</strong> under 7.3.2-C — they are existing costs. Deliberate attempts to subvert additionality may be referred for fraud investigation. The rule: new money for new posts, not subsidy for existing ones.</p>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <div class="icon">⚠️</div>
+    <div>
+      <h4>Commissioner agreement is mandatory — not retrospective</h4>
+      <p>Unlike other ARRS roles, 7.3.2-C requires <strong>advance written commissioner agreement</strong> before recruitment. We should engage NHS Northamptonshire ICB early with the five-test evidence and secure sign-off before committing to any hire.</p>
+    </div>
+  </div>
+</section>
+
+<!-- NEW CHANGES -->
+<section id="changes">
+  <div class="section-head">
+    <div class="tag">Contract requirements</div>
+    <h2>New &amp; changed <em>requirements</em></h2>
+  </div>
+
+  <div class="card" style="padding:1.5rem">
+    <span class="badge red">ENDED</span>
+    <h4 style="margin-top:.6rem">PCN Grouping for vaccine sharing — abolished</h4>
+    <p>The PCN Grouping mechanism that allowed flu/COVID vaccines to be shared between Blue PCN member practices ends 1 April 2026. Subcontracting or agency arrangements must be in place. This is an immediate operational action for the Board.</p>
+  </div>
+
+  <div class="card" style="padding:1.5rem">
+    <span class="badge teal">NEW</span>
+    <h4 style="margin-top:.6rem">Flu/COVID vaccination in Aligned Care Homes (our 349 beds)</h4>
+    <p>Where Blue PCN Core Network Practices participate in the flu/COVID Enhanced Service, the PCN must ensure all Aligned Care Home residents are offered vaccination. Our Network Agreement must be updated to document collaborative arrangements.</p>
+  </div>
+
+  <div class="card" style="padding:1.5rem">
+    <span class="badge teal">NEW</span>
+    <h4 style="margin-top:.6rem">Cancer screening uptake duties</h4>
+    <p>Explicit new duties to improve uptake of breast, cervical, bowel, lung, diabetic eye, AAA, and antenatal/newborn screening — including NHS App signposting. Also a new duty to review cancer referral quality against NICE Guideline 12.</p>
+  </div>
+
+  <div class="card" style="padding:1.5rem">
+    <span class="badge teal">NEW</span>
+    <h4 style="margin-top:.6rem">Digital risk stratification for continuity of care</h4>
+    <p>Blue PCN should now use digital risk stratification tools to identify patients who would benefit most from continuity of care — including named GP allocation where appropriate.</p>
+  </div>
+
+  <div class="card" style="padding:1.5rem">
+    <span class="badge teal">NEW</span>
+    <h4 style="margin-top:.6rem">Vaccination status review for care home residents</h4>
+    <p>Blue PCN must review the vaccination status of all 349 Aligned Care Home residents and notify the registered practice of any gaps in routine vaccination programmes.</p>
+  </div>
+
+  <div class="card" style="padding:1.5rem">
+    <span class="badge teal">NEW</span>
+    <h4 style="margin-top:.6rem">GPSS survey — third-party employers</h4>
+    <p>All ARRS staff must participate in the GP Staff Survey. Where employed by a third-party organisation, the employer must provide that individual's email address to Blue PCN's GPSS key contact.</p>
+  </div>
+
+  <div class="card" style="padding:1.5rem">
+    <span class="badge amber">CLARIFIED</span>
+    <h4 style="margin-top:.6rem">Neighbourhood alignment — limited safety net</h4>
+    <p>Where a commissioner (with local authority) defines a neighbourhood not aligned with our Network Area, the PCN must collaborate on alignment. Described explicitly as limited — not widespread reconfiguration.</p>
+  </div>
+</section>
+
+<!-- ACTIONS -->
+<section id="actions">
+  <div class="section-head">
+    <div class="tag">Board decisions required</div>
+    <h2>What Blue PCN needs to do <em>now</em></h2>
+  </div>
+
+  <div class="action">
+    <div class="action-num">1</div>
+    <div class="action-body">
+      <div class="when">Immediate — April 2026</div>
+      <h4>Confirm care home vaccine sharing arrangements</h4>
+      <p>Formalise any flu/COVID vaccine sharing between the six practices via subcontracting or agency arrangement. PCN Grouping ends 1 April 2026 — no safety net.</p>
+      <span class="owner">Lead: Clinical Director · Claire Curley to action with practices</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">2</div>
+    <div class="action-body">
+      <div class="when">From April 2026 — operational</div>
+      <h4>ARRS portal — capture registration numbers for all regulated staff</h4>
+      <p>Ensure GMC/NMC/GPhC registration numbers for all regulated ARRS staff (GPs, pharmacists, physios, nurses) are captured and included in monthly portal claims. Claims without are non-compliant.</p>
+      <span class="owner">Lead: PCN Manager (Claire Curley)</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">3</div>
+    <div class="action-body">
+      <div class="when">From April 2026 — ongoing</div>
+      <h4>GPSS — collect third-party employer email addresses</h4>
+      <p>Where Blue PCN ARRS staff are employed by third parties (federation, partner organisations), ensure those employers provide individual email addresses to our GPSS key contact.</p>
+      <span class="owner">Lead: PCN Manager</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">4</div>
+    <div class="action-body">
+      <div class="when">Strategic — Q1/Q2 2026/27</div>
+      <h4>GP Reimbursement Scheme — coordinate across the six practices</h4>
+      <p>£240,885 flows direct to practices, tied to clinically urgent same-day access. The Board should agree a shared framework so practice-level decisions produce coherent network-wide same-day access capacity. Identify which practices may be in-scope for the ICB application route (high GP-to-patient ratio).</p>
+      <span class="owner">Lead: Clinical Director + Practice Managers</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">5</div>
+    <div class="action-body">
+      <div class="when">Strategic — Q1/Q2 2026/27</div>
+      <h4>GP ARRS — decide whether Blue PCN will recruit an experienced GP</h4>
+      <p>Experienced GPs are now eligible. Max reimbursement is £152,900 per FTE. Recruiting one consumes ~11% of our £1.37m ARRS envelope. Is this the right trade-off versus other roles? Board decision required before recruitment.</p>
+      <span class="owner">Lead: Board decision</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">6</div>
+    <div class="action-body">
+      <div class="when">Strategic — Q1/Q2 2026/27</div>
+      <h4>Section 7.3.2-C — scope one or two non-direct patient care roles</h4>
+      <p>Potentially qualifying roles for Blue PCN: Population Health Analyst, Workforce Coordinator, Finance/Governance Officer. All require advance commissioner agreement and five-test evidence. Scope the business case; engage the ICB before recruitment.</p>
+      <span class="owner">Lead: PCN Manager + Digital &amp; Transformation Lead</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">7</div>
+    <div class="action-body">
+      <div class="when">By 31 October 2026</div>
+      <h4>Workforce Plan submission to commissioner</h4>
+      <p>A completed Blue PCN Workforce Plan must be submitted to the commissioner by 31 October 2026. Begin review of our staffing mix early (Q2) to allow preparation time — especially relevant given the new GP ARRS flexibilities and Section 7.3.2-C opportunities.</p>
+      <span class="owner">Lead: PCN Manager + Digital &amp; Transformation Lead</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">8</div>
+    <div class="action-body">
+      <div class="when">Ongoing — population health</div>
+      <h4>Cancer screening &amp; referral quality review</h4>
+      <p>Incorporate new screening uptake duties (breast, cervical, bowel, lung, diabetic eye, AAA, antenatal/newborn) and cancer referral quality review (NICE Guideline 12) into Blue PCN population health management planning and INT discussions. Strong case to link this work to a potential Population Health Analyst role under 7.3.2-C.</p>
+      <span class="owner">Lead: Clinical Director</span>
+    </div>
+  </div>
+
+  <div class="action">
+    <div class="action-num">9</div>
+    <div class="action-body">
+      <div class="when">Ongoing — care homes</div>
+      <h4>Review vaccination status for all 349 aligned care home beds</h4>
+      <p>New duty: review vaccination status of all Aligned Care Home residents and notify registered practices of gaps. Link this with the Care Home Premium (£46,472 income) — ensures we meet the service obligation that funds it.</p>
+      <span class="owner">Lead: Clinical Director + practice-level clinical leads</span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <h4>Blue PCN — Network Contract DES 2026/27 Board Briefing</h4>
+    <p>Prepared by Malcolm Railson, Digital &amp; Transformation Lead, Blue PCN. Based on the source briefing at <a href="https://gpnotewell.co.uk/documents/DES27/des-2627-briefing.html">gpnotewell.co.uk/documents/DES27/des-2627-briefing.html</a>, customised with Blue PCN list sizes from the Haresign PCN Funding Split Calculator.</p>
+    <p style="margin-top:.8rem">Source: <a href="https://www.england.nhs.uk/gp/investment/gp-contract/network-contract-directed-enhanced-service-des/">PRN02355iii Network Contract DES 2026/27</a>, NHS England, 26 March 2026.</p>
+    <div class="meta">
+      For informational purposes for the Blue PCN Board. Always refer to the published specification for definitive contractual requirements. GP Reimbursement Scheme distribution formula pending SFE update (expected May 2026); figures shown use the national average of £4.58 per registered patient.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
