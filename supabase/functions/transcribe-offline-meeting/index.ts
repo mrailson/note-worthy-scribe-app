@@ -380,7 +380,7 @@ serve(async (req) => {
         .delete()
         .eq("meeting_id", meetingId)
         .eq("session_id", sessionId)
-        .eq("source", OFFLINE_WHISPER_SOURCE);
+        .eq("transcriber_type", "whisper");
     }
 
     const source = chunkSources[numericChunkIndex];
