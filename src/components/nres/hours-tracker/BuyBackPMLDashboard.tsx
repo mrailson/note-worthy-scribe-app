@@ -1251,7 +1251,7 @@ export function BuyBackPMLDashboard({
 
       {/* Role toggle — Finance-only users (not Director / Super Admin / Mgmt Lead) see only the Finance tab */}
       {(() => {
-        const financeOnly = isPMLFinance && !isPMLDirector && !isSuperAdmin && !isManagementLead;
+        const financeOnly = isPMLFinance && !isPMLDirector && !isSuperAdmin;
         const visibleViews: PMLView[] = financeOnly ? ['finance'] : ['director', 'finance'];
         return (
       <div style={{
