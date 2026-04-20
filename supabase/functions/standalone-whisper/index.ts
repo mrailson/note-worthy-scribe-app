@@ -257,6 +257,57 @@ function collapseRepeatedClauses(text: string) {
   return { text: deduped.join(', ').replace(/\s+/g, ' ').trim() || text, removed };
 }
 
+// ── Hallucination loop detector ─────────────────────────────────────────────
+// Flags any ≥6-word phrase repeating >3 times verbatim and collapses the run
+// to a single instance with a [repetition_detected] marker. Operates on
+// Whisper segments where present so timestamps stay coherent.
+const LOOP_MIN_WORDS = 6;
+const LOOP_MAX_REPEATS = 3;
+const LOOP_MARKER = ' [repetition_detected]';
+
+function _normaliseForLoop(s: string): string {
+  return (s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function collapseLoopsInSegments(segments: any[]) {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return { text: '', segments: [] as any[], loopsCollapsed: 0, repeatsRemoved: 0 };
+  }
+  const out: any[] = [];
+  let loopsCollapsed = 0;
+  let repeatsRemoved = 0;
+  let i = 0;
+  while (i < segments.length) {
+    const cur = segments[i];
+    const curNorm = _normaliseForLoop(cur.text || '');
+    const wordCount = curNorm ? curNorm.split(' ').length : 0;
+    if (wordCount >= LOOP_MIN_WORDS) {
+      let j = i + 1;
+      while (j < segments.length && _normaliseForLoop(segments[j].text || '') === curNorm) j++;
+      const runLength = j - i;
+      if (runLength > LOOP_MAX_REPEATS) {
+        out.push({ ...cur, end: segments[j - 1].end ?? cur.end, text: (cur.text || '').trim() + LOOP_MARKER });
+        loopsCollapsed += 1;
+        repeatsRemoved += runLength - 1;
+        i = j;
+        continue;
+      }
+    }
+    out.push(cur);
+    i++;
+  }
+  const text = out.map(s => (s.text || '').trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  return { text, segments: out, loopsCollapsed, repeatsRemoved };
+}
+
+function collapseLoopsInText(text: string) {
+  if (!text || !text.trim()) return { text: '', segments: [] as any[], loopsCollapsed: 0, repeatsRemoved: 0 };
+  const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  const fauxSegments = sentences.map(s => ({ text: s }));
+  const res = collapseLoopsInSegments(fauxSegments);
+  return { ...res, text: res.text || text };
+}
+
 // ── Main handler ────────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -361,12 +412,19 @@ serve(async (req) => {
     formData.append('language', 'en');
     formData.append('response_format', resolvedFormat);
     formData.append('temperature', String(temperature));
+    // Anti-hallucination decode params (recommended Whisper config).
+    // condition_on_previous_text=false stops looped output being re-fed into the decoder,
+    // which is the primary trigger for "phrase repeats N times verbatim" failures.
+    formData.append('condition_on_previous_text', 'false');
+    formData.append('compression_ratio_threshold', '2.4');
+    formData.append('no_speech_threshold', '0.6');
+    formData.append('logprob_threshold', '-1.0');
 
     if (whisperPrompt) {
       formData.append('prompt', whisperPrompt);
     }
 
-    console.log(`🤖 [${requestId}] Using model=${model}, format=${resolvedFormat}, temperature=${temperature}, prompt=${whisperPrompt ? 'yes (' + whisperPrompt.length + ' chars)' : 'none'}`);
+    console.log(`🤖 [${requestId}] Using model=${model}, format=${resolvedFormat}, temperature=${temperature}, condition_on_previous_text=false, compression_ratio_threshold=2.4, no_speech_threshold=0.6, prompt=${whisperPrompt ? 'yes (' + whisperPrompt.length + ' chars)' : 'none'}`);
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -377,13 +435,26 @@ serve(async (req) => {
     if (response.ok) {
       if (resolvedFormat === 'text' || resolvedFormat === 'srt' || resolvedFormat === 'vtt') {
         const textResult = await response.text();
-        const cleanedText = cleanHallucinations(textResult, requestId);
+        let cleanedText = cleanHallucinations(textResult, requestId);
+        let loopsCollapsed = 0;
+        let repeatsRemoved = 0;
+        if (resolvedFormat === 'text' && cleanedText) {
+          const collapsed = collapseLoopsInText(cleanedText);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector (text): collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeats`);
+            cleanedText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        }
         console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${cleanedText.slice(0, 100)}…`);
         return new Response(
           JSON.stringify({
             text: cleanedText,
             service: 'whisper',
             format: forwardMime,
+            loopsCollapsed,
+            repeatsRemoved,
             ...(includeDiagnostics ? { diagnostics } : {}),
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -398,6 +469,30 @@ serve(async (req) => {
       if (cleaned !== finalText) {
         finalText = cleaned;
         segments = [];
+      }
+
+      // ── Loop detector: collapse ≥6-word phrases repeated >3 times ──
+      let loopsCollapsed = 0;
+      let repeatsRemoved = 0;
+      if (finalText) {
+        if (Array.isArray(segments) && segments.length > 0) {
+          const collapsed = collapseLoopsInSegments(segments);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector: collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeated segment(s)`);
+            segments = collapsed.segments;
+            finalText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        } else {
+          const collapsed = collapseLoopsInText(finalText);
+          if (collapsed.loopsCollapsed > 0) {
+            console.warn(`🔁 [${requestId}] Loop detector (text): collapsed ${collapsed.loopsCollapsed} loop(s), removed ${collapsed.repeatsRemoved} repeats`);
+            finalText = collapsed.text;
+            loopsCollapsed = collapsed.loopsCollapsed;
+            repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        }
       }
 
       if (!finalText && firstChunkLikely) {
@@ -415,6 +510,8 @@ serve(async (req) => {
         text: finalText,
         service: 'whisper',
         format: forwardMime,
+        loopsCollapsed,
+        repeatsRemoved,
       };
 
       if (resolvedFormat === 'verbose_json') {
@@ -429,6 +526,8 @@ serve(async (req) => {
           openaiDuration: result.duration || 0,
           openaiLanguage: result.language || 'en',
           openaiSegmentCount: Array.isArray(result.segments) ? result.segments.length : 0,
+          loopsCollapsed,
+          repeatsRemoved,
         };
       }
 
