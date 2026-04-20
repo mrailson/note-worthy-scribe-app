@@ -1,72 +1,51 @@
 
-Goal: fix why saved practice letterheads are not being used in complaint letters, confirm letterheads are scoped to the logged-in user’s practice(s), and show the current practice clearly on the Practice Letterhead page.
 
-What I found
-1. The settings page and the generated letter preview are using different data paths.
-   - Settings page signs and previews `storage_path` (the original PDF/DOCX).
-   - Generated letters still call `getActiveLetterhead()` in `src/utils/practiceLetterhead.ts`, which only reads/signs `rendered_png_path`.
-2. Your screenshots and network data support that:
-   - Letterhead settings shows the Byfield PDF from `.../originals/...Headed_paper.pdf`.
-   - The complaint letter preview is still requesting `.../rendered/...letterhead.png`, and that PNG is the old Oak Lane image.
-3. The complaints letter preview does pass `complaint.practice_id`, so the preview component is asking for the complaint’s practice. The problem is the resolver/helper logic, not the modal itself.
-4. If letterhead lookup fails, `FormattedLetterContent` falls back to legacy practice logo logic from `practice_details`, which explains why Oak Lane still appears.
-5. Practice scoping looks broadly correct already:
-   - The settings page only loads practices from `get_user_practice_ids(user.id)`.
-   - Upload sends the selected `practice_id`.
-   - The edge function checks `can_manage_practice_letterhead(_practice_id)` against the caller’s authorised practices.
-   This means letterheads should only be saved for practices the logged-in user is allowed to manage.
-6. There is still one reliability gap:
-   - `getActiveLetterhead()` uses `.maybeSingle()` with no ordering and only looks at `active = true`.
-   - If more than one row is still marked active for a practice from older data, selection is brittle.
+## Why Anna Hicks's meeting (and last week's) didn't auto-generate
 
-Implementation plan
-1. Unify letterhead resolution
-   - Update `src/utils/practiceLetterhead.ts` so the active letterhead model includes:
-     - `storage_path`
-     - `original_mime_type`
-     - `rendered_png_path` as optional
-   - Make it prefer the original uploaded file when present, not just `rendered_png_path`.
-   - Order by newest active record to avoid ambiguous selection.
+### What I found
 
-2. Fix complaint/preview rendering to use the saved original file
-   - Update `src/utils/letterheadToImage.ts` to use the original file path + mime type from the active row.
-   - Keep PDF.js for PDFs and Mammoth/html2canvas for DOCX.
-   - Only fall back to legacy logo when there is genuinely no active practice letterhead.
+**The meeting**
+- ID: `c4bbe760-d281-429c-b303-7cd545ef4622`, titled generically `Meeting - Mon, 20th April 2026 (8:45 am)` — Anna Hicks isn't in the attendees table, so I'm matching on the only meeting today owned by you with a real transcript (CDR / palliative-care discussion). Confirm this is the right one.
+- Status: `completed`. Transcript: present and substantial (multi-page). **No row in `meeting_summaries`. No row in `meeting_notes_multi`.** So nothing was generated.
 
-3. Fix email/Word export paths
-   - Update `src/utils/formatLetterForEmail.ts` and `src/utils/letterFormatter.ts` to use the same unified active-letterhead data.
-   - Ensure exports no longer depend on stale `rendered_png_path` rows.
-   - This keeps on-screen preview, email output, and Word download consistent.
+**The queue**
+- `meeting_notes_queue` row exists for this meeting:
+  - `status: failed`
+  - `error_message: "Edge Function returned a non-2xx status code"`
+  - `retry_count: 1`, `max_attempts: 3`, `attempts: 0`
+  - Created 07:45:08, failed by 07:46:01
 
-4. Make active-row selection robust
-   - Update the active letterhead query to prefer:
-     - `active = true`
-     - latest `uploaded_at` / `created_at`
-   - Add a defensive cleanup step if needed so older duplicate active rows do not win.
+**Last week (13 April) and the week before (7 April)** — same exact error message recorded on their queue rows. Difference: those eventually flipped to `completed` (likely after a manual trigger or a downstream retry). Today's stayed `failed`.
 
-5. Verify practice scoping end-to-end
-   - Review the complaint letter generation flow to confirm it always uses `complaint.practice_id`.
-   - If any path still falls back to the logged-in user’s default practice before trying the complaint’s practice, correct that order.
-   - Confirm the settings page cannot upload/manage a practice outside `get_user_practice_ids()`.
+### Root cause — two compounding bugs
 
-6. Improve the Practice Letterhead page
-   - Always show which practice is being configured, even when the user only has one practice.
-   - For multiple practices, keep the selector.
-   - For a single practice, show a clear non-editable label such as “Current practice: Byfield Medical Centre”.
-   - Optionally also show the practice name on the active letterhead card for clarity.
+1. **The queue processor cron is firing into a 404.**
+   Two cron jobs run every 2 minutes:
+   - `process-meeting-notes-queue` → function **does not exist** in the codebase
+   - `process-notes-queue` → function **does not exist** in the codebase (confirmed 404 in edge logs at 07:50)
+   
+   So `failed` queue rows never get retried by the scheduled worker. They sit there forever unless something else picks them up.
 
-Technical notes
-- Files likely to change:
-  - `src/utils/practiceLetterhead.ts`
-  - `src/utils/letterheadToImage.ts`
-  - `src/components/FormattedLetterContent.tsx`
-  - `src/utils/formatLetterForEmail.ts`
-  - `src/utils/letterFormatter.ts`
-  - `src/pages/complaints/LetterheadSettings.tsx`
-- Likely no database schema change is required unless we decide to harden data further.
-- If duplicate active rows exist, I may add a small migration to normalise them safely.
+2. **The initial trigger in `graceful-end-meeting` failed once and there's no fallback.**
+   When you stop a recording, `graceful-end-meeting` invokes `auto-generate-meeting-notes` directly (step 5). That call returned a non-2xx status (likely a 504 / timeout — this transcript is long and the function does multi-tier note generation inline). That failure was written to the queue, and then nobody retried it because of bug #1. The other "stuck meeting" cron only handles `status IN ('queued','uploaded')` or word_count-based recovery, **not** `meeting_notes_queue` rows in `failed` state.
 
-Expected outcome
-- The Byfield letterhead shown on the settings page will also appear in complaint preview, email, and Word download for complaints belonging to Byfield.
-- Oak Lane will only appear for Oak Lane complaints, or as a fallback when no Byfield letterhead exists.
-- The Practice Letterhead page will clearly state which practice is being configured.
+3. **Why last week "worked":** the same first-attempt failure happened, but the meeting got a real title later (16 April, 16:13 — three days after the meeting), strongly suggesting you or a downstream batch process manually triggered it. Today nobody has done that yet, so it's still blank.
+
+### Immediate fix for today's meeting (one click, no deploy needed)
+
+Reset the queue row to `pending` and invoke `auto-generate-meeting-notes` directly with `forceRegenerate: true`. Either I do this for you now via the existing recovery utility, or I can add a one-liner button to your recovery tool.
+
+### Permanent fix (queued as the next ticket — needs your go-ahead)
+
+Three small changes, in priority order:
+
+1. **Restore the queue processor** — either rebuild `process-meeting-notes-queue` as an edge function that scans `meeting_notes_queue` for `status='pending'` OR `status='failed' AND retry_count < max_attempts`, calls `auto-generate-meeting-notes`, and updates the row. OR delete the dead cron jobs and replace them with a SQL-only `pg_cron` job that does the same work via `net.http_post`.
+2. **Add a Postgres safety net** — extend the existing `auto-process-stuck-meetings` cron to also pick up `meeting_notes_queue` rows where `status='failed' AND retry_count < max_attempts AND updated_at < now() - interval '5 minutes'` and re-fire `auto-generate-meeting-notes`.
+3. **Make `auto-generate-meeting-notes` resilient to long transcripts** — the original failure was almost certainly a timeout on a long meeting. Switch the long-transcript path to the chunked `generateMinutesFast` orchestrator (already exists in `src/utils/MeetingMinutesOrchestrator.ts`) on the server side, with map-reduce summarisation. This fixes the underlying cause, not just the retry.
+
+### What I want from you
+
+- Confirm `c4bbe760-d281-429c-b303-7cd545ef4622` is Anna Hicks's meeting (Heather, palliative care, QR code feedback, John Vidler).
+- Say "recover it now" and I'll re-queue + force-regenerate today's notes immediately.
+- Then I'll raise items 1–3 above as the next ticket so this stops happening week after week.
+
