@@ -24,8 +24,11 @@ type Callbacks = {
 const PROXY_WS_URL =
   "wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime";
 
-const RECONNECT_DELAY_MS = 5000;
-const MAX_RECONNECT_ATTEMPTS = 2;
+const MAX_RECONNECT_ATTEMPTS = 6;
+// Exponential backoff schedule (ms): 2s, 4s, 8s, 16s, 30s, 30s
+const RECONNECT_BACKOFF_MS = [2000, 4000, 8000, 16000, 30000, 30000];
+// AssemblyAI realtime sessions are capped at ~60 min; rotate at 55 min to avoid abrupt termination
+const SESSION_ROTATE_MS = 55 * 60 * 1000;
 
 export class AssemblyRealtimeClient {
   private ws?: WebSocket;
@@ -67,6 +70,9 @@ export class AssemblyRealtimeClient {
   private committedWordCount: number = 0;
   private turnCommitTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly TURN_COMMIT_TIMEOUT_MS = 30000;
+
+  // Pre-emptive session rotation (avoid AAI's ~60-min hard cap)
+  private sessionRotateTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private cb: Callbacks = {}) {}
 
@@ -249,6 +255,21 @@ export class AssemblyRealtimeClient {
       this.cb.onOpen?.();
       console.log("✅ AssemblyRealtimeClient: connected and sending audio via AudioWorklet");
     }
+
+    // Arm pre-emptive session rotation to avoid AAI's ~60-min hard cap
+    this.armSessionRotation();
+  }
+
+  private armSessionRotation() {
+    if (this.sessionRotateTimer) clearTimeout(this.sessionRotateTimer);
+    this.sessionRotateTimer = setTimeout(() => {
+      if (this.manualStop) return;
+      console.log(`♻️ AssemblyRealtimeClient: pre-emptive session rotation at ${SESSION_ROTATE_MS / 60000}min — reconnecting before AAI cap`);
+      this.reconnectAttempts = 0;
+      this.isReconnecting = false;
+      // Force a clean WS close — onclose handler will trigger attemptReconnect
+      try { this.ws?.close(1000, "session_rotate"); } catch {}
+    }, SESSION_ROTATE_MS);
   }
 
   private async attemptReconnect() {
@@ -257,10 +278,11 @@ export class AssemblyRealtimeClient {
     this.isReconnecting = true;
     this.reconnectAttempts++;
 
-    console.log(`🔄 AssemblyRealtimeClient: reconnecting (attempt ${this.reconnectAttempts})...`);
+    const delay = RECONNECT_BACKOFF_MS[Math.min(this.reconnectAttempts - 1, RECONNECT_BACKOFF_MS.length - 1)];
+    console.log(`🔄 AssemblyRealtimeClient: reconnecting (attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
     this.cb.onReconnecting?.();
 
-    await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+    await new Promise(resolve => setTimeout(resolve, delay));
 
     if (this.manualStop) return;
 
@@ -383,6 +405,7 @@ export class AssemblyRealtimeClient {
     this.reconnectAttempts = 0;
     this.cb.onReconnected?.();
     console.log("✅ AssemblyRealtimeClient: reconnected and sending audio");
+    this.armSessionRotation();
   }
 
   stop() {
@@ -402,6 +425,7 @@ export class AssemblyRealtimeClient {
       this.committedWordCount = 0;
     }
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+    if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
 
     try {
       this.sending = false;
@@ -433,6 +457,7 @@ export class AssemblyRealtimeClient {
     } catch {}
 
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+    if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
 
     // Only clean up audio nodes (worklet/processor/context) — NOT the mic stream
     // if we don't own it, so the next client can reuse the same stream.
