@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import CommunicationsModal from "@/components/CommunicationsModal";
+import { AgeingWellKnowledgeCard } from "@/components/AgeingWellKnowledgeCard";
 import PatientSupportPlanModal from "@/components/demo/PatientSupportPlanModal";
 import HomeVisitCaptureModal from "@/components/demo/HomeVisitCaptureModal";
 import { DEMO_PATIENTS } from "@/data/demoPatients";
@@ -1576,7 +1577,7 @@ const AgewellDemoHub: React.FC = () => {
 
       {/* Modals */}
       <CommunicationsModal isOpen={showComms} onClose={() => setShowComms(false)} />
-      <ProgrammeModal open={showProgramme} onClose={() => setShowProgramme(false)} />
+      <AgeingWellKnowledgeCard open={showProgramme} onOpenChange={setShowProgramme} />
       <AgeingWellDemoModal
         isOpen={showDemo}
         onClose={() => setShowDemo(false)}
