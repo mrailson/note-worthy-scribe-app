@@ -694,10 +694,9 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           {view === 'finance' && (displayStatus === 'approved' || displayStatus === 'invoiced' || isPaidFull) && (() => {
             const steps = [
               { key: 'received', label: 'Received', color: '#0369a1' },
-              { key: 'scheduled', label: 'Scheduled', color: '#d97706' },
               { key: 'payment_sent', label: 'Paid', color: '#166534' },
             ];
-            const currentStep = isPaidFull ? 2 : isScheduled ? 1 : isReceived ? 0 : -1;
+            const currentStep = isPaidFull ? 1 : isReceived ? 0 : -1;
 
             return (
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6' }}>
@@ -751,23 +750,28 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                   </div>
                 )}
 
-                {/* STATE 2: Received, schedule payment */}
-                {isReceived && !isScheduled && !isPaidFull && (
+                {/* STATE 2: Received (or legacy Scheduled) — record payment */}
+                {(isReceived || isScheduled) && !isPaidFull && (
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>Schedule payment run</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10 }}>Record payment</div>
+                    {isScheduled && (claim as any).expected_payment_date && (
+                      <div style={{ fontSize: 11, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', padding: '6px 10px', borderRadius: 6, marginBottom: 10 }}>
+                        Legacy scheduled payment date: {new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 10 }}>
                       <div>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Payment date</div>
-                        <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
-                          style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', cursor: 'pointer' }} />
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Payment date <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></div>
+                        <input type="date" value={actualDate} onChange={e => setActualDate(e.target.value)}
+                          style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid #86efac', fontSize: 13, outline: 'none', cursor: 'pointer' }} />
                       </div>
                       <div style={{ flex: '1 1 120px', minWidth: 120 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>BACS / Cheque ref</div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>BACS / Cheque ref <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></div>
                         <input value={bacsRef} onChange={e => setBacsRef(e.target.value)} placeholder="e.g. NRES-APR26-003"
                           style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
                       </div>
                       <div style={{ flex: '1 1 120px', minWidth: 120 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>PO reference</div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>PO reference <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></div>
                         <input value={poRef} onChange={e => setPoRef(e.target.value)} placeholder="Optional"
                           style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }} />
                       </div>
@@ -785,54 +789,16 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <button
                         onClick={() => {
-                          if (!schedDate || !onSchedulePayment) return;
-                          onSchedulePayment(claim.id, schedDate, bacsRef || undefined, poRef || undefined, payMethod || undefined, financeNote || undefined);
-                        }}
-                        disabled={saving || !schedDate}
-                        style={{
-                          padding: '9px 20px', borderRadius: 8, border: 'none',
-                          background: (!schedDate || saving) ? '#94a3b8' : '#d97706',
-                          color: '#fff', fontSize: 13, fontWeight: 600,
-                          cursor: (!schedDate || saving) ? 'not-allowed' : 'pointer',
-                          opacity: (!schedDate || saving) ? 0.6 : 1,
-                        }}
-                      >
-                        📅 Schedule Payment
-                      </button>
-                      <input value={financeNote} onChange={e => setFinanceNote(e.target.value)} placeholder="Optional note…"
-                        style={{ flex: 1, minWidth: 140, padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 12, outline: 'none' }} />
-                    </div>
-                  </div>
-                )}
-
-                {/* STATE 3: Scheduled, confirm payment sent */}
-                {isScheduled && !isPaidFull && (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Payment scheduled</span>
-                      {(claim as any).expected_payment_date && (
-                        <span style={{ fontSize: 12, color: '#d97706', fontWeight: 500 }}>
-                          {new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </span>
-                      )}
-                      {(claim as any).bacs_reference && <span style={{ fontSize: 11, color: '#6b7280' }}>BACS: {(claim as any).bacs_reference}</span>}
-                    </div>
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Actual payment date</div>
-                        <input type="date" value={actualDate} onChange={e => setActualDate(e.target.value)}
-                          style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid #86efac', fontSize: 13, outline: 'none', cursor: 'pointer' }} />
-                      </div>
-                      <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Confirm BACS ref</div>
-                        <input value={bacsRef} onChange={e => setBacsRef(e.target.value)} placeholder="BACS reference"
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid #86efac', fontSize: 13, outline: 'none' }} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => {
-                          if (onMarkPaid) onMarkPaid(claim.id, `Paid ${actualDate}${bacsRef ? ' · BACS: ' + bacsRef : ''}${financeNote ? ' · ' + financeNote : ''}`);
+                          if (!onMarkPaid) return;
+                          const paidDate = actualDate || new Date().toISOString().slice(0, 10);
+                          // Persist optional fields via the existing schedule path so BACS / PO / method / date columns are saved
+                          if (onSchedulePayment) {
+                            onSchedulePayment(claim.id, paidDate, bacsRef || undefined, poRef || undefined, payMethod || undefined, financeNote || undefined);
+                          }
+                          const noteParts = [`Paid ${paidDate}`];
+                          if (bacsRef) noteParts.push(`BACS: ${bacsRef}`);
+                          if (financeNote) noteParts.push(financeNote);
+                          onMarkPaid(claim.id, noteParts.join(' · '));
                         }}
                         disabled={saving}
                         style={{
@@ -842,21 +808,15 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                           cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
                         }}
                       >
-                        ✓ Confirm Payment Sent
+                        ✓ Mark as Paid
                       </button>
-                      <button
-                        onClick={() => {
-                          if (onSchedulePayment) onSchedulePayment(claim.id, '', undefined, undefined, undefined, 'Rescheduled');
-                        }}
-                        style={{ padding: '8px 14px', borderRadius: 7, border: '1px solid #d1d5db', background: '#fff', color: '#6b7280', fontSize: 12, cursor: 'pointer' }}
-                      >
-                        Reschedule
-                      </button>
+                      <input value={financeNote} onChange={e => setFinanceNote(e.target.value)} placeholder="Optional note…"
+                        style={{ flex: 1, minWidth: 140, padding: '8px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 12, outline: 'none' }} />
                     </div>
                   </div>
                 )}
 
-                {/* STATE 4: Paid — audit summary */}
+                {/* STATE 3: Paid — audit summary */}
                 {isPaidFull && (
                   <div>
                     <div style={{ textAlign: 'center', marginBottom: 10 }}>
