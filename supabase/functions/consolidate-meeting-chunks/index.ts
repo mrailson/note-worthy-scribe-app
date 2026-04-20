@@ -1076,13 +1076,17 @@ serve(async (req) => {
         confidence: confidence
       };
 
-      if (chunk.transcriber_type === 'assembly' && chunk.start_time) {
-        try {
-          rawChunk.startSec = new Date(chunk.start_time).getTime() / 1000;
-          if (chunk.end_time) {
-            rawChunk.endSec = new Date(chunk.end_time).getTime() / 1000;
-          }
-        } catch { /* Ignore timing parse errors */ }
+      if (chunk.start_time != null) {
+        const parsedStart = Number(chunk.start_time);
+        if (Number.isFinite(parsedStart)) {
+          rawChunk.startSec = parsedStart;
+        }
+      }
+      if (chunk.end_time != null) {
+        const parsedEnd = Number(chunk.end_time);
+        if (Number.isFinite(parsedEnd)) {
+          rawChunk.endSec = parsedEnd;
+        }
       }
 
       if (chunk.transcriber_type === 'assembly') {
