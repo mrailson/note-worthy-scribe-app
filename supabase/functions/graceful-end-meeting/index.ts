@@ -188,26 +188,36 @@ Deno.serve(async (req) => {
         if (!userEmail) {
           steps.push({ step: 'send_email', success: false, message: 'No email found for user', durationMs: Date.now() - stepStart });
         } else {
-          // Wait a moment for notes generation to complete
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Wait and poll for notes + AI-generated title (auto-generate may still be running)
+          const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
+          const GENERIC_PATTERNS = [
+            /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,
+            /^Mobile Recording\b/i,
+            /^Meeting\s*-\s*/i,
+            /^Meeting\s+\d+$/i,
+          ];
+          const isGenericTitle = (t: string | null | undefined) => {
+            const c = (t || '').replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+            return !c || GENERIC_TITLES.includes(c.toLowerCase()) || GENERIC_PATTERNS.some(p => p.test(c));
+          };
 
-          // Fetch the generated notes
-          const { data: summaryData } = await supabase
-            .from('meeting_summaries')
-            .select('summary')
-            .eq('meeting_id', meetingId)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          // Poll up to 20s for notes and a non-generic title
+          let latestTitle = meeting.title || '';
+          let notesContent = '';
+          for (let poll = 0; poll < 5; poll++) {
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            const [{ data: freshMtg }, { data: summaryData }, { data: meetingNotes }] = await Promise.all([
+              supabase.from('meetings').select('title').eq('id', meetingId).single(),
+              supabase.from('meeting_summaries').select('summary').eq('meeting_id', meetingId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
+              supabase.from('meetings').select('notes_style_3').eq('id', meetingId).single(),
+            ]);
+            latestTitle = freshMtg?.title || latestTitle;
+            notesContent = summaryData?.summary || meetingNotes?.notes_style_3 || '';
+            if (notesContent && !isGenericTitle(latestTitle)) break;
+            console.log(`⏳ Email poll ${poll + 1}/5: title="${latestTitle}", hasNotes=${!!notesContent}`);
+          }
 
-          // Also check meetings.notes_style_3
-          const { data: meetingNotes } = await supabase
-            .from('meetings')
-            .select('notes_style_3')
-            .eq('id', meetingId)
-            .single();
-
-          const notesContent = summaryData?.summary || meetingNotes?.notes_style_3 || '';
+          const emailTitle = (latestTitle || '').replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim() || 'Untitled Meeting';
           const cleanedNotesContent = notesContent
             .replace(/\\\*/g, '')
             .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -234,7 +244,7 @@ Deno.serve(async (req) => {
               <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none;">
                 <p style="color: #374151; margin: 0 0 16px;">Hi ${userName},</p>
                 <p style="color: #374151; margin: 0 0 16px;">
-                  Your meeting <strong>"${meeting.title || 'Untitled Meeting'}"</strong> has been completed and your AI-generated minutes are ready.
+                  Your meeting <strong>"${emailTitle}"</strong> has been completed and your AI-generated minutes are ready.
                 </p>
                 <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
                   <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">📅 ${meetingDate}</p>
