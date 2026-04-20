@@ -61,7 +61,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 const ROLE_CONFIG = {
   director: {
     label: 'PML Director',
-    subtitle: 'Review, approve or query claims before payment',
+    subtitle: 'Review, approve or query claims before payment as SNO Finance Director',
     userLabel: 'PML Director',
   },
   finance: {
