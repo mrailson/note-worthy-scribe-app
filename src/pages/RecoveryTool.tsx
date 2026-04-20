@@ -986,6 +986,93 @@ export default function RecoveryToolPage() {
       <div style={{ marginTop: 24, fontSize: 11, color: '#aaa', textAlign: 'center', paddingBottom: 40 }}>
         This tool reads data directly from this browser&rsquo;s IndexedDB. It must be run on the same device and browser that was used to record.
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => deletingId ? null : setDeleteTarget(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 20,
+              maxWidth: 420,
+              width: '100%',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
+            }}
+          >
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px', color: '#1a1a2e' }}>
+              Delete this recording?
+            </h2>
+            <p style={{ fontSize: 14, color: '#444', lineHeight: 1.5, margin: '0 0 12px' }}>
+              You&rsquo;re about to permanently delete{' '}
+              <strong>{getSessionTitle(deleteTarget)}</strong> from this device.
+            </p>
+            <div style={{
+              background: '#fff3e0',
+              border: '1px solid #ffb74d',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 13,
+              color: '#7c4a00',
+              marginBottom: 16,
+            }}>
+              ⚠️ This cannot be undone. If the recording hasn&rsquo;t been uploaded or emailed yet, the audio will be lost.
+              <div style={{ marginTop: 6, fontSize: 12 }}>
+                Size: {formatBytes(deleteTarget.totalSize)} · Created: {new Date(deleteTarget.createdAt).toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={!!deletingId}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #ccc',
+                  background: '#fff',
+                  color: '#333',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: deletingId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteSession}
+                disabled={!!deletingId}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: deletingId ? '#999' : '#c62828',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: deletingId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {deletingId ? 'Deleting…' : 'Delete recording'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
