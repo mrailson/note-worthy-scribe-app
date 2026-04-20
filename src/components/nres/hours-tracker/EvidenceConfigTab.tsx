@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useNRESEvidenceConfig, type AppliesToValue } from '@/hooks/useNRESEvidenceConfig';
 import { cn } from '@/lib/utils';
 
-const APPLIES_TO_ORDER: AppliesToValue[] = ['all', 'buyback', 'new_sda', 'management'];
+const APPLIES_TO_ORDER: AppliesToValue[] = ['all', 'buyback', 'new_sda', 'management', 'gp_locum'];
 
 const appliesToLabel = (v: AppliesToValue) => {
   switch (v) {
@@ -16,6 +16,7 @@ const appliesToLabel = (v: AppliesToValue) => {
     case 'buyback': return 'Buy-back only';
     case 'new_sda': return 'New SDA only';
     case 'management': return 'Management only';
+    case 'gp_locum': return 'GP Locum only';
   }
 };
 
@@ -24,6 +25,8 @@ const appliesToClasses = (v: AppliesToValue) => {
     case 'all': return 'bg-[#E6F1FB] text-[#0C447C] hover:bg-[#d0e5f7]';
     case 'buyback': return 'bg-[#FAEEDA] text-[#633806] hover:bg-[#f5e0c5]';
     case 'new_sda': return 'bg-[#EAF3DE] text-[#3B6D11] hover:bg-[#ddecc8]';
+    case 'management': return 'bg-[#EDE9FE] text-[#5B21B6] hover:bg-[#ddd6fe]';
+    case 'gp_locum': return 'bg-[#FCE7F3] text-[#9D174D] hover:bg-[#fbcfe8]';
   }
 };
 
@@ -217,6 +220,7 @@ export function EvidenceConfigTab() {
                               <option value="buyback">Buy-back only</option>
                               <option value="new_sda">New SDA only</option>
                               <option value="management">Management only</option>
+                              <option value="gp_locum">GP Locum only</option>
                             </select>
                           </div>
                         </div>
