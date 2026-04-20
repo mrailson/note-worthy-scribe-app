@@ -1,41 +1,55 @@
 
 
-## Goal
-Simplify the PML Finance payment flow in SDA Claims so Finance only needs to mark a claim as **Paid** — with an optional payment date. Remove the "Schedule Payment" step and its mandatory date entry.
+## Why your 639-word meeting failed — definitive answer
 
-## Current Flow (3 steps)
-`Received → Scheduled (date required) → Paid`
+**Meeting**: `9f7b61b4-7281-4a1d-8a27-7cb065116833` — "Meeting 20 Apr 12:52" (created 11:52:05, failed 11:52:20 UTC).
 
-The "Schedule Payment" button is currently disabled until Finance picks a date, and there's a separate "Confirm Payment Sent" step afterwards. This is more friction than the team needs.
+### Root cause (NOT the Notewell publish, NOT the 100-word guard)
 
-## New Flow (2 steps)
-`Received → Paid`
+The transcript **does exist** in the database (`meeting_transcription_chunks` — 2 Whisper chunks, 639 words, fully readable via `get_meeting_full_transcript`). But the **consolidation step never ran**, so on the `meetings` row:
 
-After Finance clicks "Received & Processing", they go straight to a single "Mark as Paid" panel with:
-- **Payment date** — optional (defaults to today if left blank)
-- **BACS / Cheque reference** — optional (existing)
-- **PO reference** — optional (existing)
-- **Method** — optional, defaults to BACS (existing)
-- **Note** — optional (existing)
+- `status: pending_transcription` (never advanced to `completed`)
+- `best_of_all_transcript`, `assembly_ai_transcript`, `whisper_transcript_text`, `live_transcript_text` — **all NULL**
+- `transcript_updated_at: NULL`, `primary_transcript_source: whisper`
 
-One green **✓ Mark as Paid** button. No date validation, no disabled state based on date.
+The whole thing failed in 15 seconds — that's the recording-stop handler tripping the auto-trigger before consolidation finished writing the merged transcript onto the `meetings` row.
 
-## Changes (single file: `BuyBackPMLDashboard.tsx`)
+### Did publishing from Notewell break it?
 
-1. **Step indicator**: drop the middle "Scheduled" pill. Show only `Received → Paid` (2 circles instead of 3).
-2. **STATE 2 (Received, not yet paid)**: replace the existing "Schedule payment run" block with a "Record payment" block — same field layout (date, BACS, PO, method, note) but the primary action becomes **✓ Mark as Paid** (green `#166534`), always enabled.
-   - On click, call `onMarkPaid(claim.id, "Paid <date or today> · BACS: <ref> · <note>")` and persist the optional fields via the existing payment-update path (BACS ref, PO, method, actual_payment_date).
-3. **STATE 3 (Scheduled)**: delete entirely — no longer reachable for new claims. Existing scheduled claims will be handled by the same new "Record payment" UI (the panel shows whether `isReceived || isScheduled`).
-4. **STATE 4 (Paid audit summary)**: unchanged — still shows paid date, BACS, PO, method, processed-by, history.
-5. **Header chips** (lines 499-504): keep "Scheduled payment" pill display logic for any legacy claims still in `scheduled` status, so historic data still renders correctly. New claims simply won't enter that state.
+**No.** Publishing only swaps the frontend bundle. It doesn't touch edge functions, the database, or in-flight server jobs. The two are unrelated. The timing was coincidence.
 
-## Out of scope
-- No DB schema changes — `expected_payment_date`, `bacs_reference`, `payment_method`, `pml_po_reference`, `actual_payment_date` columns all stay.
-- `onSchedulePayment` callback remains in the prop signature (used elsewhere, and harmless) but is no longer invoked from the new UI.
-- BuyBackPracticeDashboard "Scheduled payment" display blocks stay as-is for backwards compatibility with any in-flight scheduled claims.
+### What actually broke (the real bug)
 
-## Files touched
-- `src/components/nres/hours-tracker/BuyBackPMLDashboard.tsx` — replace STATE 2 + STATE 3 blocks and shrink the step indicator.
+`auto-generate-meeting-notes` is racing the consolidation pipeline. When the recorder stops:
+1. Whisper writes chunks to `meeting_transcription_chunks` ✅ (worked)
+2. Consolidator should merge them onto `meetings.best_of_all_transcript` ❌ (didn't run / didn't finish)
+3. Auto-generator fires immediately ❌ (sees NULL transcript columns, marks `failed`)
 
-No migration, no edge function changes, no impact on Director / Practice / Verifier views.
+Ironically, `get_meeting_full_transcript` (the RPC) **does** read from `meeting_transcription_chunks` as a fallback — so the data was always recoverable. The auto-generator either didn't use that RPC, or marked failure before retrying.
+
+---
+
+## Plan
+
+### Step 1 — Recover this meeting now (30 seconds)
+Re-trigger generation via `manualTriggerAutoNotes('9f7b61b4-7281-4a1d-8a27-7cb065116833')`. The RPC will pull the 639 words from `meeting_transcription_chunks` and Claude will produce notes + a real title.
+
+### Step 2 — Harden auto-generator against this race (the actual fix)
+In `supabase/functions/auto-generate-meeting-notes/index.ts`:
+
+- **Always** fetch transcript via `get_meeting_full_transcript` RPC first (it already handles the chunks fallback) before checking the `meetings.*_transcript` columns.
+- If transcript length ≥ 100 words but `meetings.status = 'pending_transcription'`, **wait + retry** up to 3× (5s, 15s, 30s) instead of failing immediately.
+- On final failure, write a human-readable reason to `meetings.notes_generation_status` (e.g. `failed_no_transcript` vs `failed_llm_timeout`) so the UI can show why.
+
+### Step 3 — Surface a one-click "Retry" on failed meetings
+In the meeting card, when `notes_generation_status = 'failed'`, show a small "Retry generation" button that calls `manualTriggerAutoNotes(meetingId)` — so users (and you) never have to dig into a console again.
+
+### Files to change
+- `supabase/functions/auto-generate-meeting-notes/index.ts` — RPC-first fetch + retry-on-pending logic
+- `src/components/meetings/MeetingCard.tsx` (or equivalent) — failure pill + Retry button wired to `manualTriggerAutoNotes`
+
+### What I will NOT touch
+- The 100-word guard (correctly didn't trigger here — 639 ≫ 100)
+- Notewell publish flow (unrelated)
+- Consolidation pipeline (it works; the race is on the consumer side)
 
