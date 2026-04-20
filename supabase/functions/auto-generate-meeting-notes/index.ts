@@ -1609,7 +1609,7 @@ ${cleanedTranscript}`;
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
     const skipSingleShot = generatedNotes.trim().length > 0;
     
-    try {
+    if (!skipSingleShot) try {
       if (modelOverride.startsWith('claude-')) {
         // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
         console.log(`🧠 Using Claude model: ${modelOverride}`);
