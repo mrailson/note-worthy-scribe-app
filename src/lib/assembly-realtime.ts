@@ -425,6 +425,7 @@ export class AssemblyRealtimeClient {
       this.committedWordCount = 0;
     }
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+    if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
 
     try {
       this.sending = false;
@@ -456,6 +457,7 @@ export class AssemblyRealtimeClient {
     } catch {}
 
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
+    if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
 
     // Only clean up audio nodes (worklet/processor/context) — NOT the mic stream
     // if we don't own it, so the next client can reuse the same stream.
