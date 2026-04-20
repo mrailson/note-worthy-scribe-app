@@ -361,12 +361,19 @@ serve(async (req) => {
     formData.append('language', 'en');
     formData.append('response_format', resolvedFormat);
     formData.append('temperature', String(temperature));
+    // Anti-hallucination decode params (recommended Whisper config).
+    // condition_on_previous_text=false stops looped output being re-fed into the decoder,
+    // which is the primary trigger for "phrase repeats N times verbatim" failures.
+    formData.append('condition_on_previous_text', 'false');
+    formData.append('compression_ratio_threshold', '2.4');
+    formData.append('no_speech_threshold', '0.6');
+    formData.append('logprob_threshold', '-1.0');
 
     if (whisperPrompt) {
       formData.append('prompt', whisperPrompt);
     }
 
-    console.log(`🤖 [${requestId}] Using model=${model}, format=${resolvedFormat}, temperature=${temperature}, prompt=${whisperPrompt ? 'yes (' + whisperPrompt.length + ' chars)' : 'none'}`);
+    console.log(`🤖 [${requestId}] Using model=${model}, format=${resolvedFormat}, temperature=${temperature}, condition_on_previous_text=false, compression_ratio_threshold=2.4, no_speech_threshold=0.6, prompt=${whisperPrompt ? 'yes (' + whisperPrompt.length + ' chars)' : 'none'}`);
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',

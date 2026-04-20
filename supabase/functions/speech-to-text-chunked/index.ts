@@ -15,6 +15,69 @@ function sleep(ms: number) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// ── Hallucination loop detector ─────────────────────────────────────────────
+// Flags any ≥6-word phrase repeating more than 3 times verbatim and collapses
+// the run to a single instance with a [repetition_detected] marker. Operates
+// on Whisper segments where applicable so timestamps stay coherent.
+const LOOP_MIN_WORDS = 6;
+const LOOP_MAX_REPEATS = 3;        // >3 repeats triggers collapse
+const LOOP_MARKER = ' [repetition_detected]';
+
+function normaliseForLoop(s: string): string {
+  return (s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]+/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+
+interface LoopCollapseResult {
+  text: string;
+  segments: any[];
+  loopsCollapsed: number;
+  repeatsRemoved: number;
+}
+
+function collapseLoopsInSegments(segments: any[]): LoopCollapseResult {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return { text: '', segments: [], loopsCollapsed: 0, repeatsRemoved: 0 };
+  }
+  const out: any[] = [];
+  let loopsCollapsed = 0;
+  let repeatsRemoved = 0;
+  let i = 0;
+  while (i < segments.length) {
+    const cur = segments[i];
+    const curNorm = normaliseForLoop(cur.text || '');
+    const wordCount = curNorm ? curNorm.split(' ').length : 0;
+    if (wordCount >= LOOP_MIN_WORDS) {
+      let j = i + 1;
+      while (j < segments.length && normaliseForLoop(segments[j].text || '') === curNorm) j++;
+      const runLength = j - i;
+      if (runLength > LOOP_MAX_REPEATS) {
+        const merged = {
+          ...cur,
+          end: segments[j - 1].end ?? cur.end,
+          text: (cur.text || '').trim() + LOOP_MARKER,
+        };
+        out.push(merged);
+        loopsCollapsed += 1;
+        repeatsRemoved += runLength - 1;
+        i = j;
+        continue;
+      }
+    }
+    out.push(cur);
+    i++;
+  }
+  const text = out.map(s => (s.text || '').trim()).filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  return { text, segments: out, loopsCollapsed, repeatsRemoved };
+}
+
+function collapseLoopsInText(text: string): LoopCollapseResult {
+  if (!text || !text.trim()) return { text: '', segments: [], loopsCollapsed: 0, repeatsRemoved: 0 };
+  const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  const fauxSegments = sentences.map(s => ({ text: s }));
+  const res = collapseLoopsInSegments(fauxSegments);
+  return { ...res, text: res.text || text };
+}
+
 // ── Preprocessing helper ────────────────────────────────────────────────────
 
 function inferExtension(mime: string): string {
