@@ -130,7 +130,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
   switch (type) {
     case 'claim_submitted':
       bodyContent = `
-        <p>A new ${claimLabel.toLowerCase()} has been submitted and requires your review.</p>
+        <p>A new ${claimLabelLower} has been submitted and requires your review.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
         ${staffBreakdown}
         <div style="margin:20px 0;text-align:center;">
@@ -140,7 +140,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'submission_confirmation':
       bodyContent = `
-        <p>Your ${claimLabel.toLowerCase()} has been successfully submitted for approval.</p>
+        <p>Your ${claimLabelLower} has been successfully submitted for approval.</p>
         <table width="100%" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;" cellpadding="0" cellspacing="0">
           <tr style="background:#f0f4ff;">
             <td style="padding:10px 16px;font-size:13px;font-weight:600;color:#1e40af;" colspan="2">Submission Details</td>
@@ -171,7 +171,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'claim_verified':
       bodyContent = `
-        <p>Your ${claimLabel.toLowerCase()} has been verified by the NRES Neighbourhood team.</p>
+        <p>Your ${claimLabelLower} has been verified by the NRES Neighbourhood team.</p>
         ${data.reviewerName ? `<p><strong>Verified by:</strong> ${data.reviewerName}</p>` : ''}
         ${data.reviewNotes ? `<p><strong>Notes:</strong> ${data.reviewNotes}</p>` : ''}
         ${staffBreakdown}
@@ -184,7 +184,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'verification_confirmation':
       bodyContent = `
-        <p>This confirms that you have verified the following ${claimLabel.toLowerCase()}. It has been forwarded to PML for final approval.</p>
+        <p>This confirms that you have verified the following ${claimLabelLower}. It has been forwarded to PML for final approval.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
         ${staffBreakdown}
         <div style="margin:20px 0;text-align:center;">
@@ -194,7 +194,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'claim_approved':
       bodyContent = `
-        <p>Your ${claimLabel.toLowerCase()} has been approved.</p>
+        <p>Your ${claimLabelLower} has been approved.</p>
         ${data.reviewerName ? `<p><strong>Approved by:</strong> ${data.reviewerName}</p>` : ''}
         ${data.reviewNotes ? `<p><strong>Notes:</strong> ${data.reviewNotes}</p>` : ''}
         ${staffBreakdown}
@@ -202,7 +202,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'approval_confirmation':
       bodyContent = `
-        <p>This confirms that you have approved the following ${claimLabel.toLowerCase()}.</p>
+        <p>This confirms that you have approved the following ${claimLabelLower}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
         ${staffBreakdown}
         <div style="margin:20px 0;text-align:center;">
@@ -212,7 +212,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'claim_rejected':
       bodyContent = `
-        <p>Your ${claimLabel.toLowerCase()} has been declined.</p>
+        <p>Your ${claimLabelLower} has been declined.</p>
         ${data.reviewerName ? `<p><strong>Reviewed by:</strong> ${data.reviewerName}</p>` : ''}
         ${data.reviewNotes ? `<p><strong>Reason:</strong> ${data.reviewNotes}</p>` : ''}
         ${staffBreakdown}
@@ -221,7 +221,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
       break;
     case 'rejection_confirmation':
       bodyContent = `
-        <p>This confirms that you have declined the following ${claimLabel.toLowerCase()}.</p>
+        <p>This confirms that you have declined the following ${claimLabelLower}.</p>
         <p><strong>Submitted by:</strong> ${data.submitterName || data.submitterEmail}</p>
         ${data.reviewNotes ? `<p><strong>Your notes:</strong> ${data.reviewNotes}</p>` : ''}
         ${staffBreakdown}
