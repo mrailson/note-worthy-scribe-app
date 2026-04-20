@@ -1,36 +1,52 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+// Claude Haiku 4.5 — fast per-chunk summariser for the map step of the
+// chunked-notes pipeline. Project policy: claude family only (memory rule).
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// V2 Amanda-compliant system prompt for NHS governance
-const SYSTEM_PROMPT_V2 = `You are an expert NHS meeting secretary. You create professional, factual, and neutral minutes suitable for board and governance distribution.
-Use British English and adhere strictly to NHS and UK healthcare documentation standards.
+const SYSTEM_PROMPT = `You are an expert NHS meeting secretary producing a partial chunk summary for later merging.
+British English. Professional, factual, neutral. Filter out banter, personal anecdotes, humour, off-topic remarks.
+Keep substantive content only. Preserve names, decisions, actions, dates, numbers verbatim where present.
+Output structured markdown with these sections (omit empty ones):
+- Key Points
+- Decisions (use prefixes RESOLVED / AGREED / NOTED in bold where applicable)
+- Actions ([Owner] – Action – Due date if mentioned)
+- Risks/Issues
+Avoid preambles. Keep concise — this is one chunk, not the full minutes.`;
 
-Additional Behavioural Rules:
-- Never include jokes, humour, idioms, or personal remarks (e.g. "wolf ready to pounce").
-- Filter out gossip, personal anecdotes, or informal exchanges — only retain professional, factual, or decision-relevant dialogue.
-- Replace informal references (e.g. "Rich's mother-in-law") with the person's correct role or designation if known (e.g. "SPLW candidate"). If uncertain, use a neutral descriptor like "a candidate for the SPLW post".
-- Where tone in a section may sound critical, rephrase diplomatically (e.g. "members discussed differing perspectives on autonomy" rather than "the federation was criticised").
-- Maintain balance: represent differing views fairly, but without attributing emotional tone.
-- Prioritise clarity, professionalism, and governance readability over verbatim fidelity.
-
-Content Filtering Rules:
-- Exclude informal banter, personal anecdotes, humour, off-topic remarks, or non-work-related comments.
-- Preserve only substantive discussions, decisions, and actions relevant to NHS/PCN governance.
-- When sensitive or critical issues are discussed (e.g. "PCN autonomy vs federation"), maintain factual accuracy but use measured, neutral phrasing — no subjective or emotive language.
-- Ensure every paragraph could safely appear in a circulated Board pack.
-
-Output Format:
-- Keep headings consistent: Attendees, Agenda, Key Points, Decisions, Actions, Risks/Issues, Next Steps.
-- Preserve unique details. Avoid repeating context that may appear in other chunks.
-- Use bullet points. Keep action items in "[Owner] – Action – Due date (if mentioned)" format.
-- British English throughout.`;
+async function callClaude(model: string, systemPrompt: string, userPrompt: string, signal: AbortSignal) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': anthropicApiKey!,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+    signal,
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Anthropic ${response.status}: ${errText.slice(0, 400)}`);
+  }
+  const data = await response.json();
+  const text = (data.content || [])
+    .filter((b: any) => b.type === 'text')
+    .map((b: any) => b.text)
+    .join('\n');
+  return text || '';
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -38,8 +54,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      return new Response(JSON.stringify({ error: 'OPENAI_API_KEY is not configured' }), {
+    if (!anthropicApiKey) {
+      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -54,48 +70,49 @@ serve(async (req) => {
       });
     }
 
-    const user = `Meeting: ${meetingTitle || 'Meeting'}\nChunk ${chunkIndex + 1} of ${totalChunks}. Detail level: ${detailLevel}.
-
-IMPORTANT: Filter out any informal banter, personal anecdotes, humour, or off-topic remarks. Only include substantive, governance-relevant content.
+    const userPrompt = `Meeting: ${meetingTitle || 'Meeting'}
+Chunk ${chunkIndex + 1} of ${totalChunks}. Detail level: ${detailLevel}.
 
 Transcript chunk:
 """
 ${text}
 """`;
 
-    const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0.2,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT_V2 },
-          { role: 'user', content: user }
-        ],
-      }),
-    });
+    // Retry-once policy with 30s wall-clock per attempt.
+    // On both failures, return a deterministic excerpt placeholder so the
+    // merge step still has continuity for this chunk. The whole meeting
+    // never fails on a single chunk timeout.
+    let summary = '';
+    let usedFallback = false;
+    let lastError: string | null = null;
 
-    if (!aiRes.ok) {
-      const errText = await aiRes.text();
-      console.error('OpenAI error:', errText);
-      return new Response(JSON.stringify({ error: 'OpenAI error', details: errText }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      try {
+        summary = await callClaude('claude-haiku-4-5', SYSTEM_PROMPT, userPrompt, controller.signal);
+        clearTimeout(timer);
+        if (summary.trim()) break;
+        lastError = 'empty response';
+      } catch (e: any) {
+        clearTimeout(timer);
+        lastError = e?.name === 'AbortError' ? 'timeout after 30s' : (e?.message || 'unknown error');
+        console.warn(`[summarize-transcript-chunk] chunk ${chunkIndex} attempt ${attempt} failed: ${lastError}`);
+      }
     }
 
-    const data = await aiRes.json();
-    const summary = data.choices?.[0]?.message?.content || '';
+    if (!summary.trim()) {
+      usedFallback = true;
+      const excerpt = text.slice(0, 1800).replace(/\s+$/, '');
+      summary = `_[unsummarised excerpt — chunk ${chunkIndex + 1}/${totalChunks}, reason: ${lastError ?? 'unknown'}]_\n\n${excerpt}${text.length > 1800 ? '…' : ''}`;
+      console.error(`[summarize-transcript-chunk] chunk ${chunkIndex} fell back to excerpt placeholder: ${lastError}`);
+    }
 
-    return new Response(JSON.stringify({ chunkIndex, totalChunks, summary }), {
+    return new Response(JSON.stringify({ chunkIndex, totalChunks, summary, usedFallback, error: usedFallback ? lastError : null }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('summarize-transcript-chunk error:', error);
+    console.error('summarize-transcript-chunk fatal:', error);
     return new Response(JSON.stringify({ error: error?.message || 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

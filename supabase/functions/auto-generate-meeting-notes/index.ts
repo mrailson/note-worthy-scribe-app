@@ -1549,16 +1549,68 @@ ${cleanedTranscript}`;
     console.log('🔧 Using selected model for manual regeneration:', modelOverride);
     console.log('📊 System prompt length:', systemPrompt.length, 'chars');
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
-    
-    // Create AbortController with 2 minute timeout for AI generation
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
-    
+
+    // ============= CHUNKED MAP-REDUCE PATH (long transcripts only) =============
+    // Triggered for transcripts >7,000 chars on Claude path. Map step uses
+    // claude-haiku-4-5 in parallel; reduce step uses claude-sonnet-4-6.
+    // Single-shot path below remains the fallback if this errors out.
+    const CHUNK_THRESHOLD_CHARS = 7000;
+    const CHUNK_SIZE = 3500;
+    const CHUNK_OVERLAP = 200;
+    const CHUNK_CONCURRENCY = 4;
+
     const notesGenStart = Date.now();
     let generatedNotes = '';
     let modelUsed = modelOverride;
-    
-    try {
+
+    if (modelOverride.startsWith('claude-') && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS) {
+      try {
+        console.log(`🧩 Chunked path: ${cleanedTranscript.length} chars > ${CHUNK_THRESHOLD_CHARS}, splitting…`);
+        const chunks = splitTextIntoChunks(cleanedTranscript, CHUNK_SIZE, CHUNK_OVERLAP);
+        console.log(`🧩 ${chunks.length} chunks; concurrency=${CHUNK_CONCURRENCY}`);
+
+        const summaries: string[] = new Array(chunks.length);
+        let cursor = 0;
+        const worker = async () => {
+          while (true) {
+            const i = cursor++;
+            if (i >= chunks.length) break;
+            const { data, error } = await supabase.functions.invoke('summarize-transcript-chunk', {
+              body: { text: chunks[i], meetingTitle: generatedTitle, chunkIndex: i, totalChunks: chunks.length, detailLevel: 'standard' },
+            });
+            if (error) {
+              console.warn(`🧩 chunk ${i} invoke error: ${error.message ?? error}`);
+              summaries[i] = `_[unsummarised excerpt — chunk ${i + 1}/${chunks.length}, reason: invoke error]_\n\n${chunks[i].slice(0, 1800)}`;
+            } else {
+              summaries[i] = data?.summary || `_[unsummarised excerpt — chunk ${i + 1}/${chunks.length}, reason: empty]_\n\n${chunks[i].slice(0, 1800)}`;
+            }
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(CHUNK_CONCURRENCY, chunks.length) }, worker));
+
+        console.log('🧩 All chunks summarised; invoking merge-meeting-minutes…');
+        const { data: merged, error: mergeErr } = await supabase.functions.invoke('merge-meeting-minutes', {
+          body: { summaries, meetingTitle: generatedTitle, meetingDate: formattedDate, meetingTime: formattedStartTime, detailLevel: 'standard' },
+        });
+        if (mergeErr) throw new Error(`merge-meeting-minutes failed: ${mergeErr.message ?? mergeErr}`);
+        generatedNotes = merged?.meetingMinutes || '';
+        if (!generatedNotes.trim()) throw new Error('merge step returned empty content');
+        modelUsed = `${modelOverride}+chunked-haiku`;
+        console.log(`✅ Chunked path complete in ${Date.now() - notesGenStart}ms, ${generatedNotes.length} chars`);
+      } catch (chunkedErr: any) {
+        console.warn(`⚠️ Chunked path failed (${chunkedErr.message}); falling through to single-shot.`);
+        generatedNotes = '';
+      }
+    }
+
+    // Single-shot path: runs when chunked path was skipped or failed.
+    // Create AbortController with 2 minute timeout for AI generation.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+    const skipSingleShot = generatedNotes.trim().length > 0;
+    if (skipSingleShot) clearTimeout(timeoutId);
+
+    if (!skipSingleShot) try {
       if (modelOverride.startsWith('claude-')) {
         // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
         console.log(`🧠 Using Claude model: ${modelOverride}`);
