@@ -943,6 +943,7 @@ const EMAIL_TYPES_TABLE = [
   { type: 'Approval Confirmation', trigger: 'Claim is approved', recipient: 'The reviewing approver' },
   { type: 'Claim Declined', trigger: 'Claim is declined', recipient: 'The submitting user' },
   { type: 'Decline Confirmation', trigger: 'Claim is declined', recipient: 'The reviewing approver' },
+  { type: 'Payment Sent', trigger: 'PML Finance marks claim as paid', recipient: 'The submitting user' },
 ];
 
 const NOTIFICATION_TOGGLES = [
