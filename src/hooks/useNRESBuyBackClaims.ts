@@ -733,13 +733,24 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             if (emailConfig?.emailSendingDisabled && !emailConfig?.allowInvoiceWhenSuppressed) {
               console.log('[Email suppressed] Invoice email — sending disabled for high-volume testing');
             } else {
-            // In testing mode, redirect invoice email to current user
+            // Invoice email goes to the person who submitted the claim (the claim raiser).
+            // The Practice Manager (from NRES_PRACTICE_CONTACTS) and PML are CC'd so they
+            // are still kept informed. In testing mode, everything is redirected to the
+            // current user with no CCs.
+            const submitterEmail = (freshClaim as any)?.submitted_by_email || claim?.submitted_by_email || '';
+            const primaryRecipient = submitterEmail || pmContact.email;
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
-              : pmContact.email;
+              : primaryRecipient;
+            // CC the practice manager (if different from submitter) and PML finance
+            const ccList: string[] = [];
+            if (pmContact.email && pmContact.email.toLowerCase() !== (submitterEmail || '').toLowerCase()) {
+              ccList.push(pmContact.email);
+            }
+            ccList.push('amanda.palin2@nhs.net');
             const invoiceCc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? []
-              : ['amanda.palin2@nhs.net'];
+              : ccList;
 
             // Build approved-items rows + GL subtotals
             const totalAmount = (gpTotal || 0) + (otherTotal || 0);
