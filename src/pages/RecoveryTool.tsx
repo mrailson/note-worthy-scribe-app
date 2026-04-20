@@ -113,7 +113,52 @@ async function readMobileRecorderDB(): Promise<MobileRecording[]> {
   });
 }
 
-function buildMobileRecordingBlobs(recording: MobileRecording): { blobs: Blob[]; mimeType: string } {
+async function deleteFromRecoveryDB(sessionId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('notewell_recording_recovery', 1);
+    request.onerror = () => resolve();
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('audio_chunks')) {
+        db.close();
+        resolve();
+        return;
+      }
+      const tx = db.transaction('audio_chunks', 'readwrite');
+      const store = tx.objectStore('audio_chunks');
+      const getAll = store.getAll();
+      getAll.onsuccess = () => {
+        const all = (getAll.result || []) as RecoveryChunk[];
+        for (const item of all) {
+          if (item.sessionId === sessionId) {
+            store.delete(item.id);
+          }
+        }
+      };
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); resolve(); };
+    };
+  });
+}
+
+async function deleteFromMobileRecorderDB(recordingId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('notewell_recordings_v1', 1);
+    request.onerror = () => resolve();
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('recordings')) {
+        db.close();
+        resolve();
+        return;
+      }
+      const tx = db.transaction('recordings', 'readwrite');
+      tx.objectStore('recordings').delete(recordingId);
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); resolve(); };
+    };
+  });
+}
   if (Array.isArray(recording.chunks) && recording.chunks.length > 0) {
     const mimeType = recording.mimeType || recording.chunks[0]?.mimeType || 'audio/webm';
     return {
