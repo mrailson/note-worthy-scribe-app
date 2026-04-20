@@ -34,6 +34,7 @@ interface BuyBackPMLDashboardProps {
   onRejectMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
   savingClaim?: boolean;
   defaultView?: PMLView;
+  hideDirectorTab?: boolean;
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
   showSettings?: boolean;
@@ -1041,6 +1042,7 @@ export function BuyBackPMLDashboard({
   onRejectMeetingEntries,
   savingClaim,
   defaultView,
+  hideDirectorTab,
   onGuideOpen,
   onSettingsOpen,
   showSettings,
@@ -1251,7 +1253,7 @@ export function BuyBackPMLDashboard({
 
       {/* Role toggle — Finance-only users (not Director / Super Admin / Mgmt Lead) see only the Finance tab */}
       {(() => {
-        const financeOnly = isPMLFinance && !isPMLDirector && !isSuperAdmin;
+        const financeOnly = hideDirectorTab || (isPMLFinance && !isPMLDirector && !isSuperAdmin);
         const visibleViews: PMLView[] = financeOnly ? ['finance'] : ['director', 'finance'];
         return (
       <div style={{
