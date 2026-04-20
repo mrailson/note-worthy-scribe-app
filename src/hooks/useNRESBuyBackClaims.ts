@@ -193,6 +193,7 @@ export interface BuyBackClaimsEmailConfig {
   emailTestingMode: boolean;
   emailSendingDisabled?: boolean;
   allowInvoiceWhenSuppressed?: boolean;
+  notifySubmitterOnPaid?: boolean;
   currentUserEmail?: string;
   currentUserName?: string;
 }
