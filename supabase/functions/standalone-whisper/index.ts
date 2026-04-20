@@ -271,51 +271,87 @@ serve(async (req) => {
     if (!openAIApiKey) throw new Error('OpenAI API key not configured');
 
     const body = await req.json();
-    const { audio, storagePath, bucket, responseFormat, prompt: whisperPrompt } = body;
-    
-    // Validate response format — default to 'json' for backward compat
+    const {
+      audio,
+      storagePath,
+      bucket,
+      responseFormat,
+      prompt: whisperPrompt,
+      meetingId = null,
+      sessionId = null,
+      chunkIndex = null,
+      includeDiagnostics = false,
+    } = body;
+
     const validFormats = ['json', 'verbose_json', 'text', 'srt', 'vtt'];
     const resolvedFormat = validFormats.includes(responseFormat) ? responseFormat : 'json';
-    
+
     if (!audio && !storagePath) throw new Error('No audio data or storagePath provided');
 
     let binaryAudio: Uint8Array;
 
     if (storagePath) {
-      // ── Storage-first path: download from Supabase Storage ──
       binaryAudio = await downloadFromStorage(bucket || 'recordings', storagePath, requestId);
     } else {
-      // ── Legacy base64 path (for small files / backward compat) ──
       console.log(`📋 [${requestId}] Processing audio chunk, base64 size: ${audio.length}`);
       binaryAudio = processBase64Chunks(audio);
     }
 
     console.log(`📦 [${requestId}] Binary audio: ${binaryAudio.length} bytes`);
 
-    // Check Whisper 25MB limit
     if (binaryAudio.length > 25 * 1024 * 1024) {
       throw new Error(`Audio file too large (${Math.round(binaryAudio.length / (1024 * 1024))}MB). Whisper limit is 25MB.`);
     }
 
-    // Smart format detection from magic bytes
     const format = detectFormat(binaryAudio);
+    const numericChunkIndex = typeof chunkIndex === 'number' ? chunkIndex : Number(chunkIndex);
+    const firstChunkLikely = Number.isFinite(numericChunkIndex) && numericChunkIndex === 0;
+    const headerPreviewHex = Array.from(binaryAudio.slice(0, 16))
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join(' ');
+    const webmInitSegmentValid = format.extension !== 'webm'
+      ? true
+      : binaryAudio.length >= 4 && binaryAudio[0] === 0x1A && binaryAudio[1] === 0x45 && binaryAudio[2] === 0xDF && binaryAudio[3] === 0xA3;
+
+    const diagnostics: Record<string, unknown> = {
+      requestId,
+      meetingId,
+      sessionId,
+      chunkIndex: Number.isFinite(numericChunkIndex) ? numericChunkIndex : chunkIndex,
+      storagePath: storagePath || null,
+      bucket: bucket || null,
+      firstChunkLikely,
+      originalBytes: binaryAudio.length,
+      detectedMimeType: format.mimeType,
+      detectedExtension: format.extension,
+      headerPreviewHex,
+      webmInitSegmentValid,
+      preprocessed: false,
+      preprocessedBytes: null,
+      forwardMimeType: null,
+      forwardExtension: null,
+    };
+
+    if (firstChunkLikely && format.extension === 'webm' && !webmInitSegmentValid) {
+      console.warn(`⚠️ [${requestId}] First chunk appears to have an invalid WebM init segment`, diagnostics);
+    }
+
     console.log(`🎵 [${requestId}] Detected format: ${format.mimeType} (.${format.extension})`);
 
-    // ── Preprocess through transcode-audio ──
     const preprocessed = await preprocessAudioViaTranscode(binaryAudio, format.mimeType, requestId);
 
     const forwardMime = preprocessed.preprocessed ? preprocessed.mimeType : format.mimeType;
     const forwardExt = preprocessed.preprocessed ? preprocessed.extension : format.extension;
 
+    diagnostics.preprocessed = preprocessed.preprocessed;
+    diagnostics.preprocessedBytes = preprocessed.bytes.length;
+    diagnostics.forwardMimeType = forwardMime;
+    diagnostics.forwardExtension = forwardExt;
+
     console.log(`📡 [${requestId}] Forwarding to OpenAI: ${preprocessed.bytes.length}B as ${forwardMime} (.${forwardExt}), preprocessed=${preprocessed.preprocessed}, format=${resolvedFormat}`);
 
-    // Model selection: default to whisper-1 (battle-tested with browser webm/opus).
-    // gpt-4o-mini-transcribe can be requested explicitly via body.model but only supports
-    // 'json' and 'text' formats — verbose_json always requires whisper-1.
     const requestedModel = body.model || 'whisper-1';
     const model = resolvedFormat === 'verbose_json' ? 'whisper-1' : requestedModel;
-
-    // Temperature 0 = adaptive mode (Whisper auto-increases when confidence is low)
     const temperature = body.temperature ?? '0';
 
     const formData = new FormData();
@@ -325,8 +361,7 @@ serve(async (req) => {
     formData.append('language', 'en');
     formData.append('response_format', resolvedFormat);
     formData.append('temperature', String(temperature));
-    
-    // Add prompt if provided (helps Whisper with context/terminology)
+
     if (whisperPrompt) {
       formData.append('prompt', whisperPrompt);
     }
@@ -340,41 +375,61 @@ serve(async (req) => {
     });
 
     if (response.ok) {
-      // Parse response based on format
       if (resolvedFormat === 'text' || resolvedFormat === 'srt' || resolvedFormat === 'vtt') {
         const textResult = await response.text();
         const cleanedText = cleanHallucinations(textResult, requestId);
         console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${cleanedText.slice(0, 100)}…`);
         return new Response(
-          JSON.stringify({ text: cleanedText, service: 'whisper', format: forwardMime }),
+          JSON.stringify({
+            text: cleanedText,
+            service: 'whisper',
+            format: forwardMime,
+            ...(includeDiagnostics ? { diagnostics } : {}),
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
+
       const result = await response.json();
       let finalText = result.text || '';
       let segments = result.segments || [];
 
-      // ── Hallucination detection ──
       const cleaned = cleanHallucinations(finalText, requestId);
       if (cleaned !== finalText) {
         finalText = cleaned;
-        segments = []; // Segments are invalid after cleaning
+        segments = [];
+      }
+
+      if (!finalText && firstChunkLikely) {
+        console.warn(`⚠️ [${requestId}] First chunk returned empty transcript from OpenAI`, {
+          ...diagnostics,
+          openaiDuration: result.duration || 0,
+          openaiLanguage: result.language || 'en',
+          openaiSegmentCount: Array.isArray(result.segments) ? result.segments.length : 0,
+        });
       }
 
       console.log(`✅ [${requestId}] Whisper result: ${finalText.slice(0, 100)}…`);
 
-      // For verbose_json, include segments in the response
       const responseBody: Record<string, any> = {
         text: finalText,
         service: 'whisper',
         format: forwardMime,
       };
-      
+
       if (resolvedFormat === 'verbose_json') {
         responseBody.segments = segments;
         responseBody.language = result.language || 'en';
         responseBody.duration = result.duration || 0;
+      }
+
+      if (includeDiagnostics || (!finalText && firstChunkLikely)) {
+        responseBody.diagnostics = {
+          ...diagnostics,
+          openaiDuration: result.duration || 0,
+          openaiLanguage: result.language || 'en',
+          openaiSegmentCount: Array.isArray(result.segments) ? result.segments.length : 0,
+        };
       }
 
       return new Response(
@@ -385,7 +440,19 @@ serve(async (req) => {
 
     const errorText = await response.text();
     console.error(`❌ [${requestId}] OpenAI API error (${response.status}): ${errorText}`);
-    throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
+    return new Response(
+      JSON.stringify({
+        error: `OpenAI API error (${response.status}): ${errorText}`,
+        service: 'whisper',
+        diagnostics,
+        openaiStatus: response.status,
+        openaiErrorBody: errorText,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
 
   } catch (error) {
     console.error(`❌ [${requestId}] Standalone Whisper error:`, error);
