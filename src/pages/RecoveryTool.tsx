@@ -248,6 +248,14 @@ export default function RecoveryToolPage() {
   const [reprocessTotal, setReprocessTotal] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<RecoveryDBSession | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Sessions older than 24 hours
+  const staleSessions = sessions.filter(s => {
+    const ageMs = Date.now() - new Date(s.createdAt).getTime();
+    return ageMs > 24 * 60 * 60 * 1000;
+  });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
