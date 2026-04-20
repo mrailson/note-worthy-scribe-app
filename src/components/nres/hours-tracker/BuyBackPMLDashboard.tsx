@@ -1280,6 +1280,8 @@ export function BuyBackPMLDashboard({
           );
         })}
       </div>
+        );
+      })()}
 
       {/* Finance role banner */}
       {view === 'finance' && (
