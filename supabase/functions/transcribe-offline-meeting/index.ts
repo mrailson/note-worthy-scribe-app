@@ -436,7 +436,6 @@ serve(async (req) => {
         .eq("session_id", sessionId)
         .eq("chunk_number", source.chunkNumber)
         .eq("transcriber_type", "whisper")
-        .eq("source", OFFLINE_WHISPER_SOURCE)
         .maybeSingle();
 
       if (existingErr || !existingRow) {
