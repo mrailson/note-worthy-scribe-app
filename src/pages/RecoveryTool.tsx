@@ -246,6 +246,8 @@ export default function RecoveryToolPage() {
   const [reprocessSegments, setReprocessSegments] = useState<ReprocessSegmentResult[]>([]);
   const [reprocessDone, setReprocessDone] = useState(0);
   const [reprocessTotal, setReprocessTotal] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<RecoveryDBSession | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
