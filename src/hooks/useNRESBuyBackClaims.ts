@@ -1228,21 +1228,42 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               ? []
               : ['amanda.palin2@nhs.net'];
 
+            // Derive claim type label from staff categories
+            const paidStaffDetails = (updatedClaim?.staff_details as any[]) || [];
+            const paidClaimTypeLabel = (() => {
+              const cats = Array.from(new Set(paidStaffDetails.map((s: any) => s.staff_category).filter(Boolean)));
+              const labelMap: Record<string, string> = {
+                gp_locum: 'GP Locum',
+                meeting: 'Meeting Attendance',
+                salaried: 'Buy-Back',
+                buyback: 'Buy-Back',
+                management: 'NRES Management',
+                additional: 'SDA',
+                sda: 'SDA',
+              };
+              if (cats.length === 0) {
+                return (updatedClaim?.claim_type === 'additional') ? 'SDA' : 'Buy-Back';
+              }
+              if (cats.length === 1) return labelMap[cats[0] as string] || 'Buy-Back';
+              return 'Mixed';
+            })();
+            const paidClaimTypeLabelLower = paidClaimTypeLabel === 'Buy-Back' ? 'buy-back' : paidClaimTypeLabel;
+
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: recipient,
-                subject: `Payment sent — ${claimMonthLabel} buy-back claim — ${totalLabel}`,
+                subject: `Payment sent — ${claimMonthLabel} ${paidClaimTypeLabelLower} claim — ${totalLabel}`,
                 html_content: `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
   <div style="background:#166534;padding:22px 28px;">
-    <p style="color:#bbf7d0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES Neighbourhood Access Service</p>
+    <p style="color:#bbf7d0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES NEIGHBOURHOOD ACCESS SERVICE</p>
     <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;">Payment sent</h1>
     <p style="color:#dcfce7;font-size:13px;margin:0;">${practiceName} · ${claimMonthLabel}</p>
   </div>
   <div style="padding:26px 28px 8px;">
     <p style="margin:0 0 10px;font-size:15px;">Hi ${submitterFirstName || 'there'},</p>
     <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">
-      PML Finance has marked your ${claimMonthLabel} buy-back claim as <strong>paid</strong>.
+      PML Finance has marked your ${claimMonthLabel} ${paidClaimTypeLabelLower} claim as <strong>paid</strong>.
       ${paymentDateLabel ? `Payment was sent on <strong>${paymentDateLabel}</strong>.` : 'Payment has been issued.'}
       Please allow standard banking time for the funds to clear.
     </p>
