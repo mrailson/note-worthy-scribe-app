@@ -1211,12 +1211,15 @@ export function BuyBackPMLDashboard({
     [meetingGroups, statusFilter, practiceFilter, searchTerm]
   );
 
-  // On first mount: if default action-queue is empty, fall back gracefully
+  // On first mount for Director view: if "Awaiting Review" is empty, fall back gracefully.
+  // Finance view ALWAYS lands on "Invoiced" (per product requirement) so the user goes
+  // straight to the section where they can open invoices and mark them paid.
   useEffect(() => {
     try {
       if (sessionStorage.getItem(sessionKey)) return; // user has a stored choice
     } catch {}
-    const preferred = view === 'finance' ? 'invoiced' : 'awaiting_review';
+    if (view === 'finance') return; // never auto-redirect away from Invoiced
+    const preferred = 'awaiting_review';
     if (statusFilter !== preferred) return;
     if ((counts[preferred] || 0) > 0) return;
     if ((counts.queried || 0) > 0) setStatusFilter('queried');
