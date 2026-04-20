@@ -81,9 +81,15 @@ function formatCurrency(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** Lowercase a claim label while preserving acronyms NRES and SDA in uppercase. */
+function lowercasePreserveAcronyms(label: string): string {
+  return label.toLowerCase().replace(/\bnres\b/g, 'NRES').replace(/\bsda\b/g, 'SDA');
+}
+
 function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string {
   const cfg = EMAIL_TYPE_CONFIG[type];
   const claimLabel = getClaimTypeLabel(data.staffCategories);
+  const claimLabelLower = lowercasePreserveAcronyms(claimLabel);
   const practiceName = NRES_PRACTICES[data.practiceKey] || data.practiceKey;
   const month = formatMonth(data.claimMonth);
   const amount = formatCurrency(data.totalAmount);
