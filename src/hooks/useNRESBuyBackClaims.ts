@@ -743,11 +743,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
               : primaryRecipient;
-            // CC the practice manager (if different from submitter) and PML finance
+            // CC PML finance only (removed practice manager - Lucy request)
             const ccList: string[] = [];
-            if (pmContact.email && pmContact.email.toLowerCase() !== (submitterEmail || '').toLowerCase()) {
-              ccList.push(pmContact.email);
-            }
             ccList.push('amanda.palin2@nhs.net');
             const invoiceCc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? []
