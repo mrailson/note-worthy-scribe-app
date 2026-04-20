@@ -591,7 +591,6 @@ serve(async (req) => {
       .eq("meeting_id", meetingId)
       .eq("session_id", sessionId)
       .eq("transcriber_type", "whisper")
-      .eq("source", OFFLINE_WHISPER_SOURCE)
       .order("chunk_number", { ascending: true })
       .order("created_at", { ascending: false });
 
