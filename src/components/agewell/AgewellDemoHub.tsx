@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import CommunicationsModal from "@/components/CommunicationsModal";
+import { AgeingWellKnowledgeCard } from "@/components/AgeingWellKnowledgeCard";
 import PatientSupportPlanModal from "@/components/demo/PatientSupportPlanModal";
 import HomeVisitCaptureModal from "@/components/demo/HomeVisitCaptureModal";
 import { DEMO_PATIENTS } from "@/data/demoPatients";
