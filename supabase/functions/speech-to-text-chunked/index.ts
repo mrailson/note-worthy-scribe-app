@@ -191,7 +191,9 @@ serve(async (req) => {
     fd.append("response_format", "verbose_json");
     // Whisper decode settings (Option A – 90s chunks)
     fd.append("temperature", "0");                         // Reduces creative drift
-    fd.append("condition_on_previous_text", "true");       // Continuity within chunk
+    // Anti-hallucination: false prevents Whisper from feeding its own previous (possibly looped)
+    // output back into the decoder, which is the primary cause of the "phrase repeated 24x" failure mode.
+    fd.append("condition_on_previous_text", "false");
     fd.append("no_speech_threshold", "0.6");               // Hallucination silence gate
     // Extended decode params (used by self-hosted Whisper; ignored by OpenAI API)
     fd.append("beam_size", "5");
