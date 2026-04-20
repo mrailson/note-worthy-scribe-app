@@ -175,7 +175,7 @@ serve(async (req: Request) => {
       }
     }
 
-    console.log(`📋 Using title for email: "${meetingTitle}"`);
+    console.log(`📧 [deliver-mobile-meeting-email] Title before email: "${meetingTitle}" | isGeneric: ${isGenericMeetingTitle(meetingTitle)} | codePath: edge-function-deliver`);
 
     const meetingDate = meeting.start_time
       ? new Date(meeting.start_time).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })

@@ -105,6 +105,7 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
   }
 
   const meetingTitle = cleanMeetingTitle(meeting?.title) || "Meeting Notes";
+  console.log(`📧 [sendMeetingNotesEmail] Title before email: "${meetingTitle}" | isGeneric: ${isGenericTitle(meeting?.title)} | codePath: client-shared-helper`);
 
   // 2. Fetch summary
   const { data: summary } = await supabase

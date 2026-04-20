@@ -1848,6 +1848,7 @@ export default function NoteWellRecorder() {
       }
 
       const { sendMeetingNotesEmail } = await import("@/utils/sendMeetingNotesEmail");
+      console.log(`📧 [triggerPostNoteActions] About to send email for meeting ${meetingId} via mobile path`);
       await sendMeetingNotesEmail({
         meetingId,
         recipientEmail: userEmail,
