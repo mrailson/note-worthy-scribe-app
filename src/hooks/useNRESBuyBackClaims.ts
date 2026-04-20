@@ -733,13 +733,24 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             if (emailConfig?.emailSendingDisabled && !emailConfig?.allowInvoiceWhenSuppressed) {
               console.log('[Email suppressed] Invoice email — sending disabled for high-volume testing');
             } else {
-            // In testing mode, redirect invoice email to current user
+            // Invoice email goes to the person who submitted the claim (the claim raiser).
+            // The Practice Manager (from NRES_PRACTICE_CONTACTS) and PML are CC'd so they
+            // are still kept informed. In testing mode, everything is redirected to the
+            // current user with no CCs.
+            const submitterEmail = (freshClaim as any)?.submitted_by_email || claim?.submitted_by_email || '';
+            const primaryRecipient = submitterEmail || pmContact.email;
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
-              : pmContact.email;
+              : primaryRecipient;
+            // CC the practice manager (if different from submitter) and PML finance
+            const ccList: string[] = [];
+            if (pmContact.email && pmContact.email.toLowerCase() !== (submitterEmail || '').toLowerCase()) {
+              ccList.push(pmContact.email);
+            }
+            ccList.push('amanda.palin2@nhs.net');
             const invoiceCc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? []
-              : ['amanda.palin2@nhs.net'];
+              : ccList;
 
             // Build approved-items rows + GL subtotals
             const totalAmount = (gpTotal || 0) + (otherTotal || 0);
@@ -778,7 +789,16 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             paymentDueDate.setDate(paymentDueDate.getDate() + 30);
             const paymentDueLabel = paymentDueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             const invoiceDateLabel = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-            const firstName = (pmContact.practiceManager || '').split(' ')[0] || pmContact.practiceManager;
+            // Greet the actual recipient: prefer the submitter's name (derived from email
+            // local-part as a friendly fallback), otherwise fall back to the practice manager.
+            const submitterFirstName = submitterEmail
+              ? (() => {
+                  const local = submitterEmail.split('@')[0] || '';
+                  const first = local.split(/[._-]/)[0] || local;
+                  return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : '';
+                })()
+              : '';
+            const firstName = submitterFirstName || (pmContact.practiceManager || '').split(' ')[0] || pmContact.practiceManager;
             const pdfFilename = `Invoice_${invoiceNum}.pdf`;
 
             supabase.functions.invoke('send-meeting-email-resend', {
@@ -870,11 +890,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                 }],
               },
             }).then(() => {
-              const recipientLabel = (emailConfig?.emailTestingMode) ? `${invoiceRecipient} (test mode)` : pmContact.practiceManager;
+              const recipientLabel = (emailConfig?.emailTestingMode)
+                ? `${invoiceRecipient} (test mode)`
+                : invoiceRecipient;
               toast.success(`Invoice emailed to ${recipientLabel}`);
             }).catch((emailErr) => {
-              console.error('Failed to email invoice to PM:', emailErr);
-              toast.error('Invoice generated but email to Practice Manager failed');
+              console.error('Failed to email invoice to claim submitter:', emailErr);
+              toast.error('Invoice generated but email failed to send');
             });
             } // end else (sending not disabled)
           }
