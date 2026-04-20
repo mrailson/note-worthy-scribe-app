@@ -651,6 +651,34 @@ export default function RecoveryToolPage() {
     }
   }, [user, uploadStatus]);
 
+  const confirmDeleteSession = useCallback(async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeletingId(target.sessionId);
+    setUploadStatus(prev => ({ ...prev, [target.sessionId]: '🗑️ Deleting…' }));
+    try {
+      if (target.source === 'offline-backups') {
+        await deleteBackupSession(target.sessionId);
+      } else if (target.source === 'notewell_recording_recovery') {
+        await deleteFromRecoveryDB(target.sessionId);
+      } else if (target.source === 'notewell_recordings_v1') {
+        await deleteFromMobileRecorderDB(target.sessionId);
+      }
+      setSessions(prev => prev.filter(x => !(x.sessionId === target.sessionId && x.source === target.source)));
+      setUploadStatus(prev => {
+        const next = { ...prev };
+        delete next[target.sessionId];
+        return next;
+      });
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      setUploadStatus(prev => ({ ...prev, [target.sessionId]: `❌ Delete failed: ${err.message || err}` }));
+    } finally {
+      setDeletingId(null);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget]);
+
   return (
     <div style={{
       padding: '16px',
