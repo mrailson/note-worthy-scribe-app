@@ -784,6 +784,27 @@ export default function RecoveryToolPage() {
         {scanning ? '🔍 Scanning IndexedDB...' : scanned ? '🔄 Re-scan IndexedDB' : '🔍 Scan for Lost Recordings'}
       </button>
 
+      {scanned && staleSessions.length > 0 && (
+        <button
+          onClick={() => setShowBulkDelete(true)}
+          disabled={bulkDeleting}
+          style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: 10,
+            border: '1px solid #c62828',
+            background: '#fff',
+            color: '#c62828',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: bulkDeleting ? 'wait' : 'pointer',
+            marginBottom: 20,
+          }}
+        >
+          🗑️ Delete all over 24 hrs old ({staleSessions.length})
+        </button>
+      )}
+
       {scanned && sessions.length === 0 && (
         <div style={{
           textAlign: 'center',
