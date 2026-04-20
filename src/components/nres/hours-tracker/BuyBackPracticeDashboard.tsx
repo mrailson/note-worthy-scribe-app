@@ -2020,12 +2020,12 @@ export function StaffRosterSection({
             </div>
             {category === 'gp_locum' && (
               <div style={{ flex: '0 1 80px', minWidth: 70 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Day rate £</div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Session rate £</div>
                 <input
                   type="number"
                   value={addHourlyRate}
                   onChange={(e) => setAddHourlyRate(e.target.value)}
-                  placeholder="e.g. 750"
+                  placeholder="e.g. 375"
                   style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
                 />
               </div>
