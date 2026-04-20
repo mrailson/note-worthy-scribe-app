@@ -271,7 +271,7 @@ ${cleanedNotesContent}
           const { error: emailError } = await supabase.functions.invoke('send-meeting-email-resend', {
             body: {
               to_email: userEmail,
-              subject: `Meeting Notes: ${meeting.title || 'Untitled Meeting'} — ${meetingDate}`,
+              subject: `Meeting Notes: ${emailTitle} — ${meetingDate}`,
               html_content: htmlContent,
             },
           });
