@@ -123,7 +123,7 @@ const CATEGORY_BADGE_CONFIG: Record<string, { label: string; color: string; bg: 
 };
 
 const ClaimTypeBadge = ({ claim }: { claim: BuyBackClaim }) => {
-  const dets = ((claim as any).staff_details || []) as any[];
+  const dets = ((claim as any).staff_lines ?? (claim as any).staff_details ?? []) as any[];
   const cats = Array.from(new Set(dets.map(d => d.staff_category || 'buyback')));
   const fallback = cats.length === 0 ? [claim.claim_type === 'additional' ? 'additional' : 'buyback'] : cats;
   return (
