@@ -34,6 +34,7 @@ interface BuyBackPMLDashboardProps {
   onRejectMeetingEntries?: (ids: string[], notes?: string) => Promise<boolean>;
   savingClaim?: boolean;
   defaultView?: PMLView;
+  hideDirectorTab?: boolean;
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
   showSettings?: boolean;
