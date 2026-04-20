@@ -872,6 +872,24 @@ export default function RecoveryToolPage() {
               >
                 {reprocessingId === s.sessionId ? '⏳ Reprocessing...' : '🔄 Reprocess'}
               </button>
+              <button
+                onClick={() => setDeleteTarget(s)}
+                disabled={deletingId === s.sessionId}
+                style={{
+                  flex: 1,
+                  minWidth: 90,
+                  padding: '10px',
+                  borderRadius: 8,
+                  border: '1px solid #c62828',
+                  background: deletingId === s.sessionId ? '#eee' : '#fff',
+                  color: deletingId === s.sessionId ? '#999' : '#c62828',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: deletingId === s.sessionId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {deletingId === s.sessionId ? '⏳ Deleting...' : '🗑️ Delete'}
+              </button>
             </div>
 
             {/* Chunk-by-chunk reprocessing progress */}
