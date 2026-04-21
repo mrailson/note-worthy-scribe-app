@@ -1,4 +1,4 @@
-import { encode as encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
