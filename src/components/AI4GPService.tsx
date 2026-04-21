@@ -648,7 +648,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                               )} />
                               <div className="flex flex-col min-w-0">
                                 <span className="hidden sm:inline truncate">
-                                  {selectedRole === 'practice-manager' ? 'Ask AI' : 'AI 4 GP Service'}
+                                  {selectedRole === 'practice-manager' ? 'Ask AI' : selectedRole === 'ageing-well' ? 'Ageing Well AI' : 'AI 4 GP Service'}
                                 </span>
                               <span className={cn(
                                   "sm:hidden truncate font-semibold",
