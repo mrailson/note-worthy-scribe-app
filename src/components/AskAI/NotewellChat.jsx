@@ -46,7 +46,8 @@ const uid=()=>Math.random().toString(36).slice(2,10);
 const fmt=d=>d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
 const fmtDate=d=>d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
 const fmtSize=b=>b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";
-const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp"];
+const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp","image/gif"];
+const IMAGE_TYPES=new Set(["image/png","image/jpeg","image/webp","image/gif"]);
 function readBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
 function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.style.position="fixed";a.style.top="-9999px";a.style.left="-9999px";document.body.appendChild(a);a.dispatchEvent(new MouseEvent("click",{bubbles:false,cancelable:true,view:window}));document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),2000);}
 // FIX 1: 30-second timeout on script load
@@ -1766,9 +1767,23 @@ export default function NotewellChat({ user, onNavigateHome }) {
   },[files]);
 
   const handlePaste=useCallback((e)=>{
-    const text=e.clipboardData?.getData("text/plain");
-    if(text!==undefined){e.stopPropagation();const ta=textareaRef.current;if(ta){e.preventDefault();const start=ta.selectionStart;const end=ta.selectionEnd;const newVal=input.slice(0,start)+text+input.slice(end);setInput(newVal);requestAnimationFrame(()=>{if(textareaRef.current){textareaRef.current.selectionStart=start+text.length;textareaRef.current.selectionEnd=start+text.length;}});}}
-  },[input]);
+    const cd=e.clipboardData;if(!cd)return;
+    // Check for image files in clipboard
+    const imageFiles=[];
+    if(cd.files&&cd.files.length>0){for(const f of cd.files){if(IMAGE_TYPES.has(f.type))imageFiles.push(f);}}
+    if(cd.items){for(const item of cd.items){if(item.kind==="file"&&IMAGE_TYPES.has(item.type)){const f=item.getAsFile();if(f&&!imageFiles.some(x=>x.size===f.size&&x.type===f.type))imageFiles.push(f);}}}
+    // Handle images
+    if(imageFiles.length>0){
+      const now=new Date();const ts=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0")+"-"+String(now.getHours()).padStart(2,"0")+String(now.getMinutes()).padStart(2,"0")+String(now.getSeconds()).padStart(2,"0");
+      const renamed=imageFiles.map((f,i)=>{const ext=f.type.split("/")[1]||"png";const name=`pasted-image-${ts}${imageFiles.length>1?`-${i+1}`:""}.${ext}`;return new File([f],name,{type:f.type});});
+      handleFiles(renamed);
+      toast.success("Image attached",{duration:2000});
+    }
+    // Handle text paste (allow default if no images, or insert manually if images present too)
+    const text=cd.getData("text/plain");
+    if(text){e.stopPropagation();const ta=textareaRef.current;if(ta){e.preventDefault();const start=ta.selectionStart;const end=ta.selectionEnd;const newVal=input.slice(0,start)+text+input.slice(end);setInput(newVal);requestAnimationFrame(()=>{if(textareaRef.current){textareaRef.current.selectionStart=start+text.length;textareaRef.current.selectionEnd=start+text.length;}});}}
+    else if(imageFiles.length>0){e.preventDefault();}
+  },[input,handleFiles]);
 
   // FIX 6: Runware image generation handler
   const handleRunwareImage = useCallback(async (text, userMsg) => {
