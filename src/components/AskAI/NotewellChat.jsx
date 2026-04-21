@@ -7,6 +7,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { PencilLine } from "lucide-react";
 
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
@@ -1338,9 +1339,12 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,se
           <style>{`
             .nw-sc::-webkit-scrollbar{display:none}
             .nw-sc{scrollbar-width:none}
+            .nw-suggestion-card .nw-insert-btn{opacity:.6}
+            .nw-suggestion-card:hover .nw-insert-btn{opacity:1}
           `}</style>
           {suggestions.map((s,i)=>(
-            <button key={i} onClick={()=>onSuggestion(s)}
+            <div key={i} role="button" tabIndex={0} onClick={()=>onSuggestion(s)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onSuggestion(s);}}}
+              className="nw-suggestion-card"
               style={{
                 flex:"0 0 175px",
                 minWidth:175,
@@ -1349,7 +1353,7 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,se
                 background:"#fff",
                 border:`1.5px solid ${NHS.paleGrey}`,
                 borderRadius:12,
-                padding:"10px 30px 10px 12px",
+                padding:"28px 12px 10px 12px",
                 cursor:"pointer",
                 textAlign:"left",
                 fontSize:"0.76rem",
@@ -1359,11 +1363,12 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,se
                 transition:"all .17s",
                 overflow:"hidden",
                 display:"-webkit-box",
-                WebkitLineClamp:4,
+                WebkitLineClamp:3,
                 WebkitBoxOrient:"vertical",
                 textOverflow:"ellipsis",
                 wordBreak:"break-word",
                 position:"relative",
+                boxSizing:"border-box",
               }}
               onMouseEnter={e=>{
                 e.currentTarget.style.borderColor=NHS.brightBlue;
@@ -1378,15 +1383,18 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,se
                 e.currentTarget.style.background="#fff";
               }}>
               <span style={{
-                position:"absolute",top:8,right:9,
+                position:"absolute",top:8,left:9,
                 fontSize:"0.62rem",
                 background:NHS.blue+"18",
                 color:NHS.blue,
                 borderRadius:20,padding:"1px 7px",
                 fontWeight:600,
               }}>{i+1}</span>
+              <button type="button" className="nw-insert-btn" title="Insert prompt to edit before sending" aria-label="Insert this prompt into the chat box to edit before sending" onClick={e=>{e.stopPropagation();onPopulateInput?.(s);}} onKeyDown={e=>e.stopPropagation()} style={{position:"absolute",top:4,right:5,width:28,height:28,border:"none",borderRadius:8,background:"transparent",color:NHS.midGrey,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"opacity .17s,color .17s,background .17s"}} onMouseEnter={e=>{e.currentTarget.style.color=NHS.blue;e.currentTarget.style.background=NHS.blue+"12";}} onMouseLeave={e=>{e.currentTarget.style.color=NHS.midGrey;e.currentTarget.style.background="transparent";}}>
+                <PencilLine size={15} strokeWidth={2.2}/>
+              </button>
               {s}
-            </button>
+            </div>
           ))}
         </div>
         {/* Dot counter */}
@@ -1939,7 +1947,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onPopulateInput={t=>setInput(t)} settings={settings}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)} onOpenArtifact={a=>setActiveArtifact(activeArtifact?.title===a.title?null:a)}/></div>)}
+            {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onPopulateInput={t=>setInput(prev=>{const next=prev.trim()?`${prev}\n${t}`:t;requestAnimationFrame(()=>{const ta=textareaRef.current;if(ta){ta.focus();ta.setSelectionRange(next.length,next.length);ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,150)+"px";}});return next;})} settings={settings}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)} onOpenArtifact={a=>setActiveArtifact(activeArtifact?.title===a.title?null:a)}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/favicon-option1.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
