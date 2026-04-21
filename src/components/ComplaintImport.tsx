@@ -765,6 +765,17 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
             </TabsList>
 
             <TabsContent value="file" className="space-y-4">
+              {/* Hand-written letter warning banner */}
+              <Alert className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100 mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-semibold mb-1">Check imported content carefully</p>
+                  <p className="text-sm">
+                    We're aware of an issue where <strong>hand-written letters</strong> can produce inaccurate or hallucinated content during import. Please verify all extracted details against the original letter before saving or actioning the complaint. A fix is in progress.
+                  </p>
+                </AlertDescription>
+              </Alert>
+
               <div className={cn(
                 "border-2 border-dashed border-gray-300 rounded-lg text-center",
                 deviceInfo.isIPhone ? "p-6" : "p-8"
