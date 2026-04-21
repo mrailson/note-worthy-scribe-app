@@ -173,67 +173,62 @@ function cleanHallucinations(text: string, requestId: string): string {
   const wordCount = words.length;
   const isContentRich = wordCount >= 120;
 
-  // 1. Check for hallucination phrases (only blank short/thin chunks)
+  // NOTE: We now LOG potential hallucinations but ALWAYS store the transcript.
+  // Hallucinated content (repeated words) doesn't materially affect notes generation,
+  // and discarding valid audio was causing more harm than keeping borderline content.
+
+  // 1. Check for hallucination phrases — log only
   for (const phrase of HALLUCINATION_PHRASES) {
     if (lowerText.includes(phrase)) {
-      console.log(`🚫 [${requestId}] Hallucination phrase detected: "${phrase}"`);
-      if (wordCount < 100 && !isContentRich) {
-        return '';
-      }
+      console.log(`⚠️ [${requestId}] Possible hallucination phrase detected (stored anyway): "${phrase}"`);
       break;
     }
   }
 
-  // 2. Phone-number / numeric spam detection (e.g. "1-800-637-8485" repeated)
+  // 2. Phone-number / numeric spam detection — log only
   const phonePattern = /\b\d[\d\-]{5,}\d\b/g;
   const phoneMatches = text.match(phonePattern) || [];
   if (phoneMatches.length >= 3) {
     const phoneRatio = phoneMatches.join(' ').split(/\s+/).length / Math.max(wordCount, 1);
     if (phoneRatio > 0.4) {
-      console.log(`🚫 [${requestId}] Phone-number hallucination detected: ${phoneMatches.length} occurrences (ratio ${(phoneRatio * 100).toFixed(0)}%)`);
-      return '';
+      console.log(`⚠️ [${requestId}] Possible phone-number hallucination (stored anyway): ${phoneMatches.length} occurrences (ratio ${(phoneRatio * 100).toFixed(0)}%)`);
     }
   }
 
-  // 2b. Repeating numeric/dot pattern detection (e.g. "1.1.1.1.1.1...")
-  // Strip all whitespace and check if >60% of remaining chars are digits or dots
+  // 2b. Repeating numeric/dot pattern detection — log only
   const stripped = text.replace(/\s+/g, '');
   const numericDotChars = (stripped.match(/[\d.]/g) || []).length;
   const numericDotRatio = stripped.length > 0 ? numericDotChars / stripped.length : 0;
   if (stripped.length >= 20 && numericDotRatio > 0.60) {
-    console.log(`🚫 [${requestId}] Numeric dot-repeat hallucination detected (${(numericDotRatio * 100).toFixed(0)}% numeric/dot chars in ${stripped.length} chars)`);
-    return '';
+    console.log(`⚠️ [${requestId}] Possible numeric dot-repeat hallucination (stored anyway): ${(numericDotRatio * 100).toFixed(0)}% numeric/dot chars`);
   }
 
-  // 3. Detect repetitive content (low unique-word ratio)
+  // 3. Detect repetitive content — log only
   const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
   const uniqueRatio = wordCount > 0 ? uniqueWords / wordCount : 1;
   if (wordCount >= 8 && uniqueRatio < 0.20 && !isContentRich) {
-    console.log(`🚫 [${requestId}] Repetitive hallucination (unique ratio ${(uniqueRatio * 100).toFixed(0)}%)`);
-    return '';
+    console.log(`⚠️ [${requestId}] Possible repetitive hallucination (stored anyway): unique ratio ${(uniqueRatio * 100).toFixed(0)}%`);
   }
 
-  // 4. Detect repeated-phrase loops (split on sentence/clause boundaries)
+  // 4. Detect repeated-phrase loops — collapse duplicates but keep content
   const phrases = text.split(/[,.]/).map(p => p.trim().toLowerCase()).filter(p => p.length > 3);
   if (phrases.length >= 4) {
     const uniquePhrases = new Set(phrases).size;
     const phraseUniqueRatio = uniquePhrases / phrases.length;
     if (phraseUniqueRatio < 0.15 && phrases.length >= 6) {
-      // Severe repetition — try collapsing
       const collapsed = collapseRepeatedClauses(text);
       if (collapsed.removed >= 3 && collapsed.text.split(/\s+/).length >= 6) {
-        console.log(`🧹 [${requestId}] Collapsed ${collapsed.removed} repeated clauses`);
+        console.log(`🧹 [${requestId}] Collapsed ${collapsed.removed} repeated clauses (content preserved)`);
         return collapsed.text;
       }
-      console.log(`🚫 [${requestId}] Severe phrase repetition (${(phraseUniqueRatio * 100).toFixed(0)}% unique)`);
-      return '';
+      console.log(`⚠️ [${requestId}] Severe phrase repetition detected (stored anyway): ${(phraseUniqueRatio * 100).toFixed(0)}% unique`);
     }
     if (phraseUniqueRatio < 0.30 && !isContentRich) {
-      console.log(`🚫 [${requestId}] Phrase-loop hallucination (${(phraseUniqueRatio * 100).toFixed(0)}% unique)`);
-      return '';
+      console.log(`⚠️ [${requestId}] Phrase-loop pattern detected (stored anyway): ${(phraseUniqueRatio * 100).toFixed(0)}% unique`);
     }
   }
 
+  // Always return the original text — let downstream note generation handle any noise
   return text;
 }
 
