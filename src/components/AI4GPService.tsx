@@ -46,6 +46,7 @@ const PromptsModal = lazy(() => import('@/components/ai4gp/PromptsModal').then(m
 const QuickActionsPanel = lazy(() => import('@/components/ai4gp/QuickActionsPanel').then(m => ({ default: m.QuickActionsPanel })));
 const PMHomeScreen = lazy(() => import('@/components/ai4gp/PMHomeScreen').then(m => ({ default: m.PMHomeScreen })));
 const GPHomeScreen = lazy(() => import('@/components/ai4gp/GPHomeScreen').then(m => ({ default: m.GPHomeScreen })));
+const AgeingWellHomeScreen = lazy(() => import('@/components/ai4gp/AgeingWellHomeScreen').then(m => ({ default: m.AgeingWellHomeScreen })));
 const SettingsModal = lazy(() => import('@/components/ai4gp/SettingsModal').then(m => ({ default: m.SettingsModal })));
 const SearchHistorySidebar = lazy(() => import('@/components/ai4gp/SearchHistorySidebar').then(m => ({ default: m.SearchHistorySidebar })));
 const AIVoiceStudio = lazy(() => import('@/components/ai4gp/AIVoiceStudio'));
@@ -205,9 +206,9 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [showEmbeddedPMGenie, setShowEmbeddedPMGenie] = useState(false);
   const [isBNFViewActive, setIsBNFViewActive] = useState(false);
   
-  const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
+  const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager' | 'ageing-well'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
-    if (saved === 'gp' || saved === 'practice-manager') {
+    if (saved === 'gp' || saved === 'practice-manager' || saved === 'ageing-well') {
       return saved;
     }
     return 'gp';
@@ -647,7 +648,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                               )} />
                               <div className="flex flex-col min-w-0">
                                 <span className="hidden sm:inline truncate">
-                                  {selectedRole === 'practice-manager' ? 'Ask AI' : 'AI 4 GP Service'}
+                                  {selectedRole === 'practice-manager' ? 'Ask AI' : selectedRole === 'ageing-well' ? 'Ageing Well AI' : 'AI 4 GP Service'}
                                 </span>
                               <span className={cn(
                                   "sm:hidden truncate font-semibold",
@@ -898,17 +899,22 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                                 )}
                               >
                                 <Lightbulb className="w-3.5 h-3.5" />
-                                <span>{selectedRole === 'practice-manager' ? '150+' : '110+'} Prompts</span>
+                                <span>{selectedRole === 'practice-manager' ? '150+' : selectedRole === 'ageing-well' ? '10' : '110+'} Prompts</span>
                               </button>
                             </div>
                             
-                            {/* Show PMHomeScreen for Practice Managers, GPHomeScreen for GP */}
+                            {/* Show home screen based on selected role */}
                             {selectedRole === 'practice-manager' ? (
                               <PMHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
                                 onOpenImageStudio={() => setShowImageStudio(true)}
                                 onOpenDocumentStudio={() => setShowDocumentStudio(true)}
+                              />
+                            ) : selectedRole === 'ageing-well' ? (
+                              <AgeingWellHomeScreen
+                                setInput={setInput}
+                                focusInput={() => inputRef.current?.focus()}
                               />
                             ) : (
                               <GPHomeScreen

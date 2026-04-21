@@ -20,7 +20,7 @@ interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
   setShowAllQuickActions: (show: boolean) => void;
   setInput: (input: string) => void;
-  selectedRole?: 'gp' | 'practice-manager';
+  selectedRole?: 'gp' | 'practice-manager' | 'ageing-well';
   onOpenAITestModal?: () => void;
   onInsertIntoChat?: (message: string) => void;
   onQuickResponse?: (response: string) => void;

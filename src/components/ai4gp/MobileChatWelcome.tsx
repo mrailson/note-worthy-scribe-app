@@ -1,8 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import { Stethoscope, Building2, Sparkles } from 'lucide-react';
+import { Stethoscope, Building2, HeartPulse, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-type MobileRole = 'gp' | 'practice-manager';
+import type { AskAIRole } from './RoleToggle';
 
 // Top quick-start chips per role
 const GP_CHIPS = [
@@ -27,6 +26,17 @@ const PM_CHIPS = [
   { label: "GMS contract", prompt: "Explain the key elements of the GMS contract" },
 ];
 
+const AW_CHIPS = [
+  { label: "Care plan (PCSP)", prompt: "Generate a Personalised Care and Support Plan for a frail elderly patient" },
+  { label: "Care Home round", prompt: "Draft a Care Home weekly round template with RAG review status" },
+  { label: "Polypharmacy review", prompt: "Run a STOPP/START polypharmacy review on a sample medication list" },
+  { label: "Falls assessment", prompt: "Falls multifactorial risk assessment with intervention plan" },
+  { label: "MDT agenda (75+)", prompt: "MDT meeting agenda for over-75s with eFI > 0.36" },
+  { label: "Dementia letter", prompt: "Draft a dementia diagnosis communication letter" },
+  { label: "Carer support", prompt: "Carer support pack with local signposting" },
+  { label: "End of Life guide", prompt: "End of Life conversation guide for the GP consultation" },
+];
+
 const ROLE_CONFIG = {
   gp: {
     icon: Stethoscope,
@@ -40,11 +50,17 @@ const ROLE_CONFIG = {
     welcome: "Hello! I'm here to help with practice management — from CQC compliance and HR policies to complaint responses and team communications.",
     chips: PM_CHIPS,
   },
+  'ageing-well': {
+    icon: HeartPulse,
+    subtitle: 'Ageing Well Mode',
+    welcome: "Hello! I'm here to support Ageing Well services — frailty reviews, anticipatory care planning, MDT coordination, and proactive patient identification.",
+    chips: AW_CHIPS,
+  },
 } as const;
 
 interface MobileChatWelcomeProps {
-  selectedRole: MobileRole;
-  onRoleChange: (role: MobileRole) => void;
+  selectedRole: AskAIRole;
+  onRoleChange: (role: AskAIRole) => void;
   onSelectPrompt: (prompt: string) => void;
   isLoading?: boolean;
 }
@@ -58,7 +74,6 @@ export const MobileChatWelcome: React.FC<MobileChatWelcomeProps> = ({
   const config = ROLE_CONFIG[selectedRole];
   const chipsRef = useRef<HTMLDivElement>(null);
 
-  // Reset chip scroll when role changes
   useEffect(() => {
     if (chipsRef.current) {
       chipsRef.current.scrollLeft = 0;
@@ -79,6 +94,7 @@ export const MobileChatWelcome: React.FC<MobileChatWelcomeProps> = ({
           {([
             { key: 'gp' as const, label: 'GP Clinical', icon: Stethoscope },
             { key: 'practice-manager' as const, label: 'Practice Manager', icon: Building2 },
+            { key: 'ageing-well' as const, label: 'Ageing Well', icon: HeartPulse },
           ]).map((tab) => {
             const active = selectedRole === tab.key;
             return (
@@ -92,7 +108,6 @@ export const MobileChatWelcome: React.FC<MobileChatWelcomeProps> = ({
               >
                 <tab.icon className="h-4 w-4" />
                 <span>{tab.label}</span>
-                {/* Underline indicator */}
                 {active && (
                   <span className="absolute bottom-0 left-0 right-0 h-[2.5px] rounded-full bg-white" />
                 )}
