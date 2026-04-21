@@ -1145,7 +1145,17 @@ const ROLE_SUGGESTIONS = {
     "🧠 Draft a dementia diagnosis communication letter for patient and family",
     "🤝 Carer support pack with local signposting",
     "🕊️ End of Life conversation guide for the GP consultation",
-    "📊 Define cohort logic to identify patients eligible for proactive Ageing Well review"
+    "📊 Define cohort logic to identify patients eligible for proactive Ageing Well review",
+    "🧠 Complete a 4AT delirium screen with TIME bundle management plan",
+    "💊 Structured Medication Review using the NHS 7-Steps framework",
+    "🚑 Draft an Urgent Community Response referral for admission avoidance",
+    "⚖️ Mental Capacity Act assessment with 2-stage test and best interests",
+    "🛡️ Safeguarding Adults referral with Making Safeguarding Personal",
+    "🍽️ MUST nutrition screen with food-first action plan",
+    "📞 72-hour post-discharge follow-up consultation template",
+    "🤝 Social prescribing referral with holistic rationale and local services",
+    "🕯️ Bereavement support pack with 6-week and 6-month follow-up plan",
+    "📋 Annual over-75 health check template with full CGA domains"
   ]
 };
 
