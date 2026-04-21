@@ -899,17 +899,22 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                                 )}
                               >
                                 <Lightbulb className="w-3.5 h-3.5" />
-                                <span>{selectedRole === 'practice-manager' ? '150+' : '110+'} Prompts</span>
+                                <span>{selectedRole === 'practice-manager' ? '150+' : selectedRole === 'ageing-well' ? '10' : '110+'} Prompts</span>
                               </button>
                             </div>
                             
-                            {/* Show PMHomeScreen for Practice Managers, GPHomeScreen for GP */}
+                            {/* Show home screen based on selected role */}
                             {selectedRole === 'practice-manager' ? (
                               <PMHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
                                 onOpenImageStudio={() => setShowImageStudio(true)}
                                 onOpenDocumentStudio={() => setShowDocumentStudio(true)}
+                              />
+                            ) : selectedRole === 'ageing-well' ? (
+                              <AgeingWellHomeScreen
+                                setInput={setInput}
+                                focusInput={() => inputRef.current?.focus()}
                               />
                             ) : (
                               <GPHomeScreen
