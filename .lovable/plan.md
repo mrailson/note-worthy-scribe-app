@@ -1,27 +1,37 @@
 
 
-## Upload PCN DES 26/27 Board Briefing to public folder
+## Add Role Pill Visibility Toggles to My Profile
 
-### What I'll do
-Copy the uploaded file `Blue_PCN_DES_2627_Board_Briefing.html` into the project's `public/documents/DES27/` folder so it's served as a static file (no login required, no code changes needed beyond the file copy).
+### Summary
+Add a new section in the **My Profile** modal (under the "👤 My Profile" tab) that lets you show or hide each role pill on the Ask AI welcome screen. Each role gets an on/off toggle, and the preference persists via the existing `nw_ai_settings` localStorage mechanism.
 
-### File placement
-- **Source**: `user-uploads://Blue_PCN_DES_2627_Board_Briefing.html`
-- **Destination**: `public/documents/DES27/blue-pcn-des-2627-board-briefing.html`
+### Changes — single file: `src/components/AskAI/NotewellChat.jsx`
 
-(Lowercased, hyphenated filename to match the existing convention used by `des-2627-briefing.html` in the same folder.)
+**1. Extend `DEFAULT_SETTINGS` (line ~23)**
+Add a new key `visibleRoles` with all five roles enabled by default:
+```js
+visibleRoles: {
+  "Practice Manager": true,
+  "GP Partner": true,
+  "Admin / Reception": true,
+  "PCN Manager": true,
+  "Ageing Well": true,
+}
+```
 
-### Public links (live immediately after the file is copied and the frontend is republished)
-- https://gpnotewell.co.uk/documents/DES27/blue-pcn-des-2627-board-briefing.html
-- https://notewell.dialai.co.uk/documents/DES27/blue-pcn-des-2627-board-briefing.html
-- https://meetingmagic.lovable.app/documents/DES27/blue-pcn-des-2627-board-briefing.html
+**2. Add toggle UI to the Profile tab in `UserProfileModal` (after the Quick-add section, ~line 728)**
+Insert a new section titled **"Role pills"** with a brief description ("Choose which role pills appear on the welcome screen") and five toggle rows — one per role — styled identically to the existing Document Settings toggles (same switch button, label, and layout pattern). Each toggle calls `saveSettings` to patch the `visibleRoles` object.
 
-These URLs bypass React Router and the auth guard entirely — anyone with the link can open them, no Notewell account needed.
+**3. Filter visible roles in `WelcomeScreen` (line ~1146)**
+Replace `const ROLES = Object.keys(ROLE_SUGGESTIONS);` with a filtered version that reads `settings.visibleRoles` and only includes roles where the value is `true` (defaulting to all visible if the setting is missing).
 
-### Important note on publishing
-Static files in `public/` are part of the **frontend bundle**. After the copy, you'll need to click **Publish → Update** in Lovable for the file to appear on `gpnotewell.co.uk`. Until then it will only be visible on the preview URL.
+**4. Pass `settings` to `WelcomeScreen`**
+The `WelcomeScreen` component currently receives `user, vp, onSuggestion, onHelp, onProfile, onPopulateInput`. Add `settings` as an additional prop, threaded from the parent `NotewellChat` component where it is already available.
 
-### What I will NOT do
-- No new React route, no in-app viewer chrome, no homepage tile, no login-page promotion — just the file copy and the public link, as requested.
-- No edits to the HTML itself.
+### Behaviour
+- All five pills visible by default (backward-compatible).
+- Toggling a pill off hides it immediately on next visit to the welcome screen.
+- If the currently active role is hidden, the active role resets to the first visible one.
+- Settings persist across sessions via `localStorage` (`nw_ai_settings`), same as all other settings.
+- No database changes required.
 
