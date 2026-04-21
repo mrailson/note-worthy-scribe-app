@@ -727,6 +727,24 @@ function UserProfileModal({user,onClose,vp,onNavigateHome,initialTab="profile",s
               <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                 {PROFILE_SUGGESTIONS.map((s,i)=><button key={i} onClick={()=>append(setPt,pt,s)} style={{background:"#EDF4FF",border:"1.5px solid #005EB833",borderRadius:20,padding:"6px 11px",cursor:"pointer",fontSize:"0.72rem",color:"#003087",lineHeight:1.4,minHeight:36}} onMouseEnter={e=>e.currentTarget.style.background="#D5E8FF"} onMouseLeave={e=>e.currentTarget.style.background="#EDF4FF"}>+ {s.length>46?s.slice(0,46)+"…":s}</button>)}
               </div>
+              {/* Role pill visibility toggles */}
+              <div style={{marginTop:18}}>
+                <div style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",marginBottom:5}}>Role pills</div>
+                <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 10px",lineHeight:1.55}}>Choose which role pills appear on the welcome screen.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {Object.keys(DEFAULT_SETTINGS.visibleRoles).map(role=>{
+                    const on=settings.visibleRoles?.[role]!==false;
+                    return(
+                      <div key={role} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:on?"#F0F8FF":"#F9FAFB",border:"1.5px solid "+(on?"#005EB833":"#E8EDEE"),borderRadius:10,minHeight:42}}>
+                        <span style={{fontSize:"0.79rem",fontWeight:600,color:on?"#003087":"#999"}}>{({"Practice Manager":"🗂️","GP Partner":"🩺","Admin / Reception":"📋","PCN Manager":"🏥","Ageing Well":"🧓"})[role]||"💼"} {role}</span>
+                        <button onClick={()=>{const vr={...DEFAULT_SETTINGS.visibleRoles,...settings.visibleRoles,[role]:!on};saveSettings({visibleRoles:vr});}} style={{width:42,height:24,borderRadius:12,border:"none",cursor:"pointer",background:on?"#005EB8":"#D1D5DB",position:"relative",transition:"background .2s",flexShrink:0}}>
+                          <span style={{position:"absolute",top:2,left:on?20:2,width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,.2)",transition:"left .2s"}}/>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
           {tab==="instructions"&&(
@@ -1874,25 +1892,6 @@ export default function NotewellChat({ user, onNavigateHome }) {
                 {profileActive && <span style={{marginLeft:2}}>· Profile active</span>}
               </span>
               </div>
-              {/* Role pill visibility toggles */}
-              <div style={{marginTop:18}}>
-                <div style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",marginBottom:5}}>Role pills</div>
-                <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 10px",lineHeight:1.55}}>Choose which role pills appear on the welcome screen.</p>
-                <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {Object.keys(DEFAULT_SETTINGS.visibleRoles).map(role=>{
-                    const on=settings.visibleRoles?.[role]!==false;
-                    return(
-                      <div key={role} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:on?"#F0F8FF":"#F9FAFB",border:"1.5px solid "+(on?"#005EB833":"#E8EDEE"),borderRadius:10,minHeight:42}}>
-                        <span style={{fontSize:"0.79rem",fontWeight:600,color:on?"#003087":"#999"}}>{({"Practice Manager":"🗂️","GP Partner":"🩺","Admin / Reception":"📋","PCN Manager":"🏥","Ageing Well":"🧓"})[role]||"💼"} {role}</span>
-                        <button onClick={()=>{const vr={...DEFAULT_SETTINGS.visibleRoles,...settings.visibleRoles,[role]:!on};saveSettings({visibleRoles:vr});}} style={{width:42,height:24,borderRadius:12,border:"none",cursor:"pointer",background:on?"#005EB8":"#D1D5DB",position:"relative",transition:"background .2s",flexShrink:0}}>
-                          <span style={{position:"absolute",top:2,left:on?20:2,width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,.2)",transition:"left .2s"}}/>
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
             {/* + New Chat — left side */}
             <button onClick={()=>{newConv();}} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}} title="New conversation">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
