@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X, User, ClipboardPaste, QrCode, Smartphone } from 'lucide-react';
+import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X, User, ClipboardPaste, QrCode, Smartphone, AlertTriangle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -765,6 +765,15 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
             </TabsList>
 
             <TabsContent value="file" className="space-y-4">
+              {/* Hand-written letter warning banner */}
+              <Alert className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100 mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Check imported content carefully</AlertTitle>
+                <AlertDescription>
+                  We're aware of an issue where <strong>hand-written letters</strong> can produce inaccurate or hallucinated content during import. Please verify all extracted details against the original letter before saving or actioning the complaint. A fix is in progress.
+                </AlertDescription>
+              </Alert>
+
               <div className={cn(
                 "border-2 border-dashed border-gray-300 rounded-lg text-center",
                 deviceInfo.isIPhone ? "p-6" : "p-8"
