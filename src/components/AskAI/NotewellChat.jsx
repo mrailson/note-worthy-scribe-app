@@ -1115,6 +1115,18 @@ const ROLE_SUGGESTIONS = {
     "Create an Excel dashboard for PCN QOF performance tracking",
     "Write a risk register template for PCN governance",
     "Draft a board paper on neighbourhood care implementation progress"
+  ],
+  "Ageing Well": [
+    "📋 Generate a Personalised Care and Support Plan (PCSP) for a frail elderly patient",
+    "🏥 Draft a Care Home weekly round template with RAG review status per resident",
+    "💊 Run a STOPP/START polypharmacy review on a sample medication list",
+    "📝 Produce an Anticipatory Care Plan aligned to ReSPECT",
+    "🚶 Falls multifactorial risk assessment with intervention plan",
+    "👥 MDT meeting agenda for over-75s with eFI > 0.36",
+    "🧠 Draft a dementia diagnosis communication letter for patient and family",
+    "🤝 Carer support pack with local signposting",
+    "🕊️ End of Life conversation guide for the GP consultation",
+    "📊 Define cohort logic to identify patients eligible for proactive Ageing Well review"
   ]
 };
 
