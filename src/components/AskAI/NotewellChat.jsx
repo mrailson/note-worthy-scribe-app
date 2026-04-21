@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PencilLine, X } from "lucide-react";
+import { toast } from "sonner";
 
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
@@ -46,7 +47,8 @@ const uid=()=>Math.random().toString(36).slice(2,10);
 const fmt=d=>d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
 const fmtDate=d=>d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
 const fmtSize=b=>b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";
-const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp"];
+const ALLOWED_TYPES=["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","text/csv","image/png","image/jpeg","image/webp","image/gif"];
+const IMAGE_TYPES=new Set(["image/png","image/jpeg","image/webp","image/gif"]);
 function readBase64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});}
 function triggerDownload(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;a.style.position="fixed";a.style.top="-9999px";a.style.left="-9999px";document.body.appendChild(a);a.dispatchEvent(new MouseEvent("click",{bubbles:false,cancelable:true,view:window}));document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),2000);}
 // FIX 1: 30-second timeout on script load
@@ -1766,9 +1768,23 @@ export default function NotewellChat({ user, onNavigateHome }) {
   },[files]);
 
   const handlePaste=useCallback((e)=>{
-    const text=e.clipboardData?.getData("text/plain");
-    if(text!==undefined){e.stopPropagation();const ta=textareaRef.current;if(ta){e.preventDefault();const start=ta.selectionStart;const end=ta.selectionEnd;const newVal=input.slice(0,start)+text+input.slice(end);setInput(newVal);requestAnimationFrame(()=>{if(textareaRef.current){textareaRef.current.selectionStart=start+text.length;textareaRef.current.selectionEnd=start+text.length;}});}}
-  },[input]);
+    const cd=e.clipboardData;if(!cd)return;
+    // Check for image files in clipboard
+    const imageFiles=[];
+    if(cd.files&&cd.files.length>0){for(const f of cd.files){if(IMAGE_TYPES.has(f.type))imageFiles.push(f);}}
+    if(cd.items){for(const item of cd.items){if(item.kind==="file"&&IMAGE_TYPES.has(item.type)){const f=item.getAsFile();if(f&&!imageFiles.some(x=>x.size===f.size&&x.type===f.type))imageFiles.push(f);}}}
+    // Handle images
+    if(imageFiles.length>0){
+      const now=new Date();const ts=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0")+"-"+String(now.getHours()).padStart(2,"0")+String(now.getMinutes()).padStart(2,"0")+String(now.getSeconds()).padStart(2,"0");
+      const renamed=imageFiles.map((f,i)=>{const ext=f.type.split("/")[1]||"png";const name=`pasted-image-${ts}${imageFiles.length>1?`-${i+1}`:""}.${ext}`;return new File([f],name,{type:f.type});});
+      handleFiles(renamed);
+      toast.success("Image attached",{duration:2000});
+    }
+    // Handle text paste (allow default if no images, or insert manually if images present too)
+    const text=cd.getData("text/plain");
+    if(text){e.stopPropagation();const ta=textareaRef.current;if(ta){e.preventDefault();const start=ta.selectionStart;const end=ta.selectionEnd;const newVal=input.slice(0,start)+text+input.slice(end);setInput(newVal);requestAnimationFrame(()=>{if(textareaRef.current){textareaRef.current.selectionStart=start+text.length;textareaRef.current.selectionEnd=start+text.length;}});}}
+    else if(imageFiles.length>0){e.preventDefault();}
+  },[input,handleFiles]);
 
   // FIX 6: Runware image generation handler
   const handleRunwareImage = useCallback(async (text, userMsg) => {
@@ -1959,7 +1975,19 @@ export default function NotewellChat({ user, onNavigateHome }) {
           <div style={{maxWidth:"100%",margin:"0 auto",padding:ig}}>
             {guardrailAlert&&<div style={{background:"#FFF5F5",border:`1.5px solid ${NHS.red}`,borderRadius:9,padding:"7px 13px",display:"flex",gap:7,alignItems:"flex-start",marginBottom:7,fontSize:"0.79rem",animation:"nwFadeIn .2s ease"}}><span style={{flexShrink:0}}>⚠️</span><div style={{flex:1,color:"#7a1010"}}><strong style={{color:NHS.red}}>Patient Data Warning</strong><p style={{margin:"2px 0 0"}}>{guardrailAlert}</p></div><button onClick={()=>setGuardrailAlert(null)} style={{background:"none",border:"none",cursor:"pointer",color:NHS.red,fontSize:".88rem",padding:0,flexShrink:0}}>✕</button></div>}
             {fileError&&<div style={{background:"#FFF5EC",border:`1px solid ${NHS.warmYellow}`,borderRadius:7,padding:"4px 11px",fontSize:"0.75rem",color:"#7a4a00",marginBottom:6,display:"flex",justifyContent:"space-between"}}><span>⚠️ {fileError}</span><button onClick={()=>setFileError(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#7a4a00"}}>✕</button></div>}
-            {files.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:6}}>{files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name} <span style={{color:NHS.midGrey}}>{fmtSize(f.size)}</span><button onClick={()=>setFiles(p=>p.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",color:NHS.midGrey,padding:0,fontSize:".76rem"}}>✕</button></div>)}</div>}
+            {files.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6,alignItems:"flex-end"}}>
+              {files.map((f,i)=>{
+                const isImg=IMAGE_TYPES.has(f.mediaType);
+                return isImg?(
+                  <div key={i} style={{position:"relative",width:68,height:68,borderRadius:8,overflow:"hidden",border:`1.5px solid ${NHS.lightBlue}`,background:"#F0F4F8",animation:"nwFadeIn .2s ease",flexShrink:0}} title={`${f.name} · ${fmtSize(f.size)}`}>
+                    <img src={`data:${f.mediaType};base64,${f.data}`} alt={f.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    <button onClick={()=>setFiles(p=>p.filter((_,j)=>j!==i))} aria-label={`Remove attachment ${f.name}`} style={{position:"absolute",top:2,right:2,width:20,height:20,borderRadius:"50%",background:"rgba(0,0,0,.55)",border:"none",cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.65rem",lineHeight:1}}>✕</button>
+                  </div>
+                ):(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name} <span style={{color:NHS.midGrey}}>{fmtSize(f.size)}</span><button onClick={()=>setFiles(p=>p.filter((_,j)=>j!==i))} aria-label={`Remove attachment ${f.name}`} style={{background:"none",border:"none",cursor:"pointer",color:NHS.midGrey,padding:0,fontSize:".76rem"}}>✕</button></div>
+                );
+              })}
+            </div>}
             
             <div style={{position:"relative",border:`1.5px solid ${isListening?NHS.red:NHS.paleGrey}`,borderRadius:12,background:"#F8FAFC",boxShadow:isListening?"0 0 0 3px rgba(220,38,38,.15)":"0 2px 10px rgba(0,0,0,.05)",transition:"border-color .17s,box-shadow .17s",animation:isListening?"nwPulseRed 1.5s ease-in-out infinite":"none"}} onFocusCapture={e=>{if(!isListening){e.currentTarget.style.borderColor=NHS.brightBlue;e.currentTarget.style.boxShadow=`0 0 0 3px rgba(0,114,206,.08)`;}}} onBlurCapture={e=>{if(!isListening){e.currentTarget.style.borderColor=NHS.paleGrey;e.currentTarget.style.boxShadow="0 2px 10px rgba(0,0,0,.05)";}}}>
               {input.length>0&&<button type="button" onClick={()=>{setInput("");requestAnimationFrame(()=>textareaRef.current?.focus());}} title="Clear input" aria-label="Clear the input box" style={{position:"absolute",top:8,right:8,zIndex:2,width:24,height:24,border:"none",borderRadius:7,background:"transparent",color:"#9CA3AF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:1,transition:"opacity .17s,color .17s,background .17s"}} onMouseEnter={e=>{e.currentTarget.style.color=NHS.blue;e.currentTarget.style.background=NHS.blue+"12";}} onMouseLeave={e=>{e.currentTarget.style.color="#9CA3AF";e.currentTarget.style.background="transparent";}}>
