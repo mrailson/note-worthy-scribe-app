@@ -24,6 +24,7 @@ const DEFAULT_SETTINGS = {
   responseLength:"balanced", tone:"professional", includeUserContext:true,
   fontSize:"medium", sidebarMode:"collapsed", compactMessages:false, showClinicalCaveats:true,
   useLetterhead:true, showDocFooter:true, includeLogoInDocx:true, includePracticeDetails:true,
+  visibleRoles:{"Practice Manager":true,"GP Partner":true,"Admin / Reception":true,"PCN Manager":true,"Ageing Well":true},
 };
 const FONT_SCALE = { small:0.84, medium:0.91, large:0.98 };
 
@@ -1130,7 +1131,7 @@ const ROLE_SUGGESTIONS = {
   ]
 };
 
-function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
+function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,settings}){
   const h=new Date().getHours();
   const g=h<12?"morning":h<17?"afternoon":"evening";
   const isMobile=vp==="mobile";
@@ -1143,8 +1144,9 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
     if(s.includes("ageing")||s.includes("aging")||s.includes("frailty")||s.includes("elderly"))return"Ageing Well";
     return"Practice Manager";
   };
-  const ROLES=Object.keys(ROLE_SUGGESTIONS);
-  const [activeRole,setActiveRole]=useState(()=>getRoleKey(user.role));
+  const vr=settings?.visibleRoles||DEFAULT_SETTINGS.visibleRoles;
+  const ROLES=Object.keys(ROLE_SUGGESTIONS).filter(r=>vr[r]!==false);
+  const [activeRole,setActiveRole]=useState(()=>{const def=getRoleKey(user.role);return ROLES.includes(def)?def:ROLES[0]||"Practice Manager";});
   const scrollRef=useRef(null);
   const [canScrollLeft,setCanScrollLeft]=useState(false);
   const [canScrollRight,setCanScrollRight]=useState(true);
@@ -1871,7 +1873,25 @@ export default function NotewellChat({ user, onNavigateHome }) {
                 Ready
                 {profileActive && <span style={{marginLeft:2}}>· Profile active</span>}
               </span>
-            </div>
+              </div>
+              {/* Role pill visibility toggles */}
+              <div style={{marginTop:18}}>
+                <div style={{fontWeight:700,fontSize:"0.84rem",color:"#003087",marginBottom:5}}>Role pills</div>
+                <p style={{fontSize:"0.77rem",color:"#425563",margin:"0 0 10px",lineHeight:1.55}}>Choose which role pills appear on the welcome screen.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {Object.keys(DEFAULT_SETTINGS.visibleRoles).map(role=>{
+                    const on=settings.visibleRoles?.[role]!==false;
+                    return(
+                      <div key={role} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:on?"#F0F8FF":"#F9FAFB",border:"1.5px solid "+(on?"#005EB833":"#E8EDEE"),borderRadius:10,minHeight:42}}>
+                        <span style={{fontSize:"0.79rem",fontWeight:600,color:on?"#003087":"#999"}}>{({"Practice Manager":"🗂️","GP Partner":"🩺","Admin / Reception":"📋","PCN Manager":"🏥","Ageing Well":"🧓"})[role]||"💼"} {role}</span>
+                        <button onClick={()=>{const vr={...DEFAULT_SETTINGS.visibleRoles,...settings.visibleRoles,[role]:!on};saveSettings({visibleRoles:vr});}} style={{width:42,height:24,borderRadius:12,border:"none",cursor:"pointer",background:on?"#005EB8":"#D1D5DB",position:"relative",transition:"background .2s",flexShrink:0}}>
+                          <span style={{position:"absolute",top:2,left:on?20:2,width:20,height:20,borderRadius:"50%",background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,.2)",transition:"left .2s"}}/>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
             {/* + New Chat — left side */}
             <button onClick={()=>{newConv();}} style={{background:"transparent",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:7,padding:"4px 9px",cursor:"pointer",fontSize:"0.74rem",color:"#fff",transition:"all .13s",display:"flex",alignItems:"center",gap:4}} onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.15)";}} onMouseLeave={e=>{e.currentTarget.style.background="transparent";}} title="New conversation">
@@ -1910,7 +1930,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onPopulateInput={t=>setInput(t)}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)} onOpenArtifact={a=>setActiveArtifact(activeArtifact?.title===a.title?null:a)}/></div>)}
+            {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onPopulateInput={t=>setInput(t)} settings={settings}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)} onOpenArtifact={a=>setActiveArtifact(activeArtifact?.title===a.title?null:a)}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/favicon-option1.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
