@@ -1,8 +1,8 @@
 import React from 'react';
-import { Stethoscope, Building2 } from 'lucide-react';
+import { Stethoscope, Building2, HeartPulse } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { AskAIRole } from './RoleToggle';
 
-// Top 10 quick picks for GPs/Clinical staff
 const GP_QUICK_PICKS = [
   { label: "NICE hypertension", prompt: "What does NICE recommend for hypertension management?" },
   { label: "Red flags headache", prompt: "What are the red flag symptoms for headache?" },
@@ -16,7 +16,6 @@ const GP_QUICK_PICKS = [
   { label: "QOF indicators", prompt: "What are the key QOF indicators for diabetes management?" },
 ];
 
-// Top 10 quick picks for Practice Managers
 const PM_QUICK_PICKS = [
   { label: "Complaint response", prompt: "Help me draft a response to a patient complaint" },
   { label: "CQC prep", prompt: "What should I prepare for a CQC inspection?" },
@@ -30,8 +29,21 @@ const PM_QUICK_PICKS = [
   { label: "Contract query", prompt: "Explain the key elements of the GMS contract" },
 ];
 
+const AW_QUICK_PICKS = [
+  { label: "Care plan (PCSP)", prompt: "Generate a Personalised Care and Support Plan (PCSP) for a frail elderly patient" },
+  { label: "Care Home round", prompt: "Draft a Care Home weekly round template with RAG review status per resident" },
+  { label: "Polypharmacy review", prompt: "Run a STOPP/START polypharmacy review on a sample medication list" },
+  { label: "Anticipatory care", prompt: "Produce an Anticipatory Care Plan aligned to ReSPECT" },
+  { label: "Falls assessment", prompt: "Falls multifactorial risk assessment with intervention plan" },
+  { label: "MDT agenda (75+)", prompt: "MDT meeting agenda for over-75s with eFI > 0.36" },
+  { label: "Dementia letter", prompt: "Draft a dementia diagnosis communication letter for patient and family" },
+  { label: "Carer support", prompt: "Carer support pack with local signposting" },
+  { label: "End of Life guide", prompt: "End of Life conversation guide for the GP consultation" },
+  { label: "Cohort logic", prompt: "Define cohort logic to identify patients eligible for proactive Ageing Well review" },
+];
+
 interface MobileRoleQuickPicksProps {
-  selectedRole: 'gp' | 'practice-manager';
+  selectedRole: AskAIRole;
   onSelectPrompt: (prompt: string) => void;
   isLoading?: boolean;
 }
@@ -41,16 +53,24 @@ export const MobileRoleQuickPicks: React.FC<MobileRoleQuickPicksProps> = ({
   onSelectPrompt,
   isLoading = false,
 }) => {
-  const quickPicks = selectedRole === 'practice-manager' ? PM_QUICK_PICKS : GP_QUICK_PICKS;
+  const quickPicks = selectedRole === 'practice-manager' 
+    ? PM_QUICK_PICKS 
+    : selectedRole === 'ageing-well'
+    ? AW_QUICK_PICKS
+    : GP_QUICK_PICKS;
+
+  const roleIcon = selectedRole === 'practice-manager'
+    ? Building2
+    : selectedRole === 'ageing-well'
+    ? HeartPulse
+    : Stethoscope;
+
+  const Icon = roleIcon;
 
   return (
     <div className="p-4 space-y-3">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        {selectedRole === 'practice-manager' ? (
-          <Building2 className="w-4 h-4" />
-        ) : (
-          <Stethoscope className="w-4 h-4" />
-        )}
+        <Icon className="w-4 h-4" />
         <span>Quick start prompts</span>
       </div>
       

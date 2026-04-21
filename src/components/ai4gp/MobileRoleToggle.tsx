@@ -1,33 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { Stethoscope, Building2 } from 'lucide-react';
+import { Stethoscope, Building2, HeartPulse } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-type MobileRole = 'gp' | 'practice-manager';
+import type { AskAIRole } from './RoleToggle';
 
 interface MobileRoleToggleProps {
-  selectedRole: MobileRole;
-  onRoleChange: (role: MobileRole) => void;
+  selectedRole: AskAIRole;
+  onRoleChange: (role: AskAIRole) => void;
 }
 
 const STORAGE_KEY = 'mobile-ask-ai-role';
 
-export const useMobileRolePreference = (): [MobileRole, (role: MobileRole) => void] => {
-  const [role, setRoleState] = useState<MobileRole>('gp');
+export const useMobileRolePreference = (): [AskAIRole, (role: AskAIRole) => void] => {
+  const [role, setRoleState] = useState<AskAIRole>('gp');
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'gp' || saved === 'practice-manager') {
+    if (saved === 'gp' || saved === 'practice-manager' || saved === 'ageing-well') {
       setRoleState(saved);
     }
   }, []);
 
-  const setRole = (newRole: MobileRole) => {
+  const setRole = (newRole: AskAIRole) => {
     setRoleState(newRole);
     localStorage.setItem(STORAGE_KEY, newRole);
   };
 
   return [role, setRole];
 };
+
+const MOBILE_ROLES: { key: AskAIRole; label: string; icon: typeof Stethoscope }[] = [
+  { key: 'gp', label: 'GP', icon: Stethoscope },
+  { key: 'practice-manager', label: 'PM', icon: Building2 },
+  { key: 'ageing-well', label: 'AW', icon: HeartPulse },
+];
 
 export const MobileRoleToggle: React.FC<MobileRoleToggleProps> = ({
   selectedRole,
@@ -39,45 +44,26 @@ export const MobileRoleToggle: React.FC<MobileRoleToggleProps> = ({
       role="radiogroup"
       aria-label="Select role"
     >
-      {/* Sliding indicator */}
-      <div
-        className={cn(
-          "absolute h-7 w-[42px] rounded-full bg-background shadow-sm border border-border/30 transition-transform duration-200 ease-out",
-          selectedRole === 'practice-manager' ? 'translate-x-[44px]' : 'translate-x-0'
-        )}
-      />
-      
-      {/* GP option */}
-      <button
-        onClick={() => onRoleChange('gp')}
-        role="radio"
-        aria-checked={selectedRole === 'gp'}
-        className={cn(
-          "relative z-10 flex items-center justify-center gap-1 px-2.5 py-1.5 min-h-[32px] min-w-[42px] rounded-full text-xs font-medium transition-colors duration-200",
-          selectedRole === 'gp'
-            ? 'text-foreground'
-            : 'text-muted-foreground hover:text-muted-foreground/80'
-        )}
-      >
-        <Stethoscope className="h-3.5 w-3.5" />
-        <span>GP</span>
-      </button>
-      
-      {/* PM option */}
-      <button
-        onClick={() => onRoleChange('practice-manager')}
-        role="radio"
-        aria-checked={selectedRole === 'practice-manager'}
-        className={cn(
-          "relative z-10 flex items-center justify-center gap-1 px-2.5 py-1.5 min-h-[32px] min-w-[42px] rounded-full text-xs font-medium transition-colors duration-200",
-          selectedRole === 'practice-manager'
-            ? 'text-foreground'
-            : 'text-muted-foreground hover:text-muted-foreground/80'
-        )}
-      >
-        <Building2 className="h-3.5 w-3.5" />
-        <span>PM</span>
-      </button>
+      {MOBILE_ROLES.map((role) => {
+        const isSelected = selectedRole === role.key;
+        return (
+          <button
+            key={role.key}
+            onClick={() => onRoleChange(role.key)}
+            role="radio"
+            aria-checked={isSelected}
+            className={cn(
+              "relative z-10 flex items-center justify-center gap-1 px-2.5 py-1.5 min-h-[32px] min-w-[42px] rounded-full text-xs font-medium transition-colors duration-200",
+              isSelected
+                ? 'bg-background text-foreground shadow-sm border border-border/30'
+                : 'text-muted-foreground hover:text-muted-foreground/80'
+            )}
+          >
+            <role.icon className="h-3.5 w-3.5" />
+            <span>{role.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };
