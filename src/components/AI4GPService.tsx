@@ -46,6 +46,7 @@ const PromptsModal = lazy(() => import('@/components/ai4gp/PromptsModal').then(m
 const QuickActionsPanel = lazy(() => import('@/components/ai4gp/QuickActionsPanel').then(m => ({ default: m.QuickActionsPanel })));
 const PMHomeScreen = lazy(() => import('@/components/ai4gp/PMHomeScreen').then(m => ({ default: m.PMHomeScreen })));
 const GPHomeScreen = lazy(() => import('@/components/ai4gp/GPHomeScreen').then(m => ({ default: m.GPHomeScreen })));
+const AgeingWellHomeScreen = lazy(() => import('@/components/ai4gp/AgeingWellHomeScreen').then(m => ({ default: m.AgeingWellHomeScreen })));
 const SettingsModal = lazy(() => import('@/components/ai4gp/SettingsModal').then(m => ({ default: m.SettingsModal })));
 const SearchHistorySidebar = lazy(() => import('@/components/ai4gp/SearchHistorySidebar').then(m => ({ default: m.SearchHistorySidebar })));
 const AIVoiceStudio = lazy(() => import('@/components/ai4gp/AIVoiceStudio'));
