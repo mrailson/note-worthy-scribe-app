@@ -1140,6 +1140,7 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
     if(s.includes("pcn")||s.includes("network")||s.includes("neighbourhood"))return"PCN Manager";
     if(s.includes("manager")||s.includes("pm")||s.includes("practice manager"))return"Practice Manager";
     if(s.includes("admin")||s.includes("reception")||s.includes("coordinator")||s.includes("practice user"))return"Admin / Reception";
+    if(s.includes("ageing")||s.includes("aging")||s.includes("frailty")||s.includes("elderly"))return"Ageing Well";
     return"Practice Manager";
   };
   const ROLES=Object.keys(ROLE_SUGGESTIONS);
@@ -1171,6 +1172,7 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput}){
     "GP Partner":"🩺",
     "Admin / Reception":"📋",
     "PCN Manager":"🏥",
+    "Ageing Well":"🧓",
   };
   return(
     <div style={{
