@@ -3432,6 +3432,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               patientLanguageFlag={languageInfo?.flag}
               isListening={isListening && !isMicPaused}
               disabled={isConnecting}
+              staffLabel={isTrainingMode && TRAINING_SCENARIOS.find(s => s.id === trainingScenario)?.category === 'Ageing Well' ? 'Ageing Well' : 'Receptionist'}
             >
               {/* Mic controls as children */}
               <div className="flex items-center gap-3">
