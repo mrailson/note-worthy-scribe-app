@@ -123,6 +123,7 @@ interface SpeakerModeSelectorProps {
   isListening: boolean;
   disabled?: boolean;
   children?: React.ReactNode;
+  staffLabel?: string;
 }
 
 export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
@@ -133,7 +134,8 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
   patientLanguageFlag,
   isListening,
   disabled,
-  children
+  children,
+  staffLabel = 'Receptionist'
 }) => {
   const patientLabel = PATIENT_LABELS[patientLanguageCode] || PATIENT_LABELS['en'];
   const nativeLanguageName = NATIVE_LANGUAGE_NAMES[patientLanguageCode] || patientLanguageName;
@@ -157,7 +159,7 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
             )}
           >
             <User className="h-4 w-4" />
-            <span>Receptionist</span>
+            <span>{staffLabel}</span>
             <span className="text-xs opacity-80">🇬🇧</span>
           </button>
 

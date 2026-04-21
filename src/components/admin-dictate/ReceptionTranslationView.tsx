@@ -2925,9 +2925,19 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     <div className={embedded ? "flex flex-col h-full w-full overflow-hidden bg-background" : "fixed inset-0 z-50 bg-background flex flex-col"}>
       {/* Training Mode Banner */}
       {isTrainingMode && (
-        <div className="bg-amber-500 text-white text-center py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-center gap-2">
-          <GraduationCap className="h-4 w-4" />
-          TRAINING MODE — {TRAINING_SCENARIOS.find(s => s.id === trainingScenario)?.title || 'AI is playing the patient role'}
+        <div className="bg-amber-500 text-white py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-between gap-2">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1 text-xs font-medium hover:underline opacity-90 hover:opacity-100 transition-opacity"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Back to Notewell
+          </button>
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-4 w-4" />
+            TRAINING MODE — {TRAINING_SCENARIOS.find(s => s.id === trainingScenario)?.title || 'AI is playing the patient role'}
+          </div>
+          <div className="w-[110px]" />
         </div>
       )}
       {/* Header */}
@@ -3422,6 +3432,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               patientLanguageFlag={languageInfo?.flag}
               isListening={isListening && !isMicPaused}
               disabled={isConnecting}
+              staffLabel={isTrainingMode && TRAINING_SCENARIOS.find(s => s.id === trainingScenario)?.category === 'Ageing Well' ? 'Ageing Well' : 'Receptionist'}
             >
               {/* Mic controls as children */}
               <div className="flex items-center gap-3">
