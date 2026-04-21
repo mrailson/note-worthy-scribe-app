@@ -123,6 +123,7 @@ interface SpeakerModeSelectorProps {
   isListening: boolean;
   disabled?: boolean;
   children?: React.ReactNode;
+  staffLabel?: string;
 }
 
 export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
