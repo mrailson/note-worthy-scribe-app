@@ -42,7 +42,7 @@ interface SidebarMeeting {
 interface AI4GPSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  selectedRole: 'gp' | 'practice-manager';
+  selectedRole: 'gp' | 'practice-manager' | 'ageing-well';
   onNewSearch: () => void;
   onShowHistory: () => void;
   onShowSettings: () => void;
