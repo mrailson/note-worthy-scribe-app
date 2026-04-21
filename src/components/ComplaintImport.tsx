@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X, User, ClipboardPaste, QrCode, Smartphone } from 'lucide-react';
+import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X, User, ClipboardPaste, QrCode, Smartphone, AlertTriangle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
