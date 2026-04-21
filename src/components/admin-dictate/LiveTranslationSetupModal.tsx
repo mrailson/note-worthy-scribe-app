@@ -16,7 +16,7 @@ import { TRAINING_SCENARIOS } from '@/constants/trainingScenarios';
 import { LanguageSelectorV2 } from '@/components/translation/LanguageSelectorV2';
 import { TRANSLATION_LANGUAGES } from '@/constants/translationLanguages';
 
-const CATEGORIES = ['All', 'Routine Reception', 'Urgent Triage', 'Admin & Paperwork'];
+const CATEGORIES = ['All', 'Routine Reception', 'Urgent Triage', 'Admin & Paperwork', 'Ageing Well'];
 
 interface LiveTranslationSetupModalProps {
   isOpen: boolean;
