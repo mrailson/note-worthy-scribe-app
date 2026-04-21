@@ -205,9 +205,9 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [showEmbeddedPMGenie, setShowEmbeddedPMGenie] = useState(false);
   const [isBNFViewActive, setIsBNFViewActive] = useState(false);
   
-  const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
+  const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager' | 'ageing-well'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
-    if (saved === 'gp' || saved === 'practice-manager') {
+    if (saved === 'gp' || saved === 'practice-manager' || saved === 'ageing-well') {
       return saved;
     }
     return 'gp';
