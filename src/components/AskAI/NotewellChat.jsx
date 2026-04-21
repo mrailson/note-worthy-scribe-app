@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PencilLine, X } from "lucide-react";
+import { toast } from "sonner";
 
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
