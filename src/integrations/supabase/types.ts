@@ -8413,6 +8413,7 @@ export type Database = {
           queried_by_role: string | null
           query_flagged_lines: Json | null
           query_notes: string | null
+          query_response: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -8456,6 +8457,7 @@ export type Database = {
           queried_by_role?: string | null
           query_flagged_lines?: Json | null
           query_notes?: string | null
+          query_response?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -8499,6 +8501,7 @@ export type Database = {
           queried_by_role?: string | null
           query_flagged_lines?: Json | null
           query_notes?: string | null
+          query_response?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
