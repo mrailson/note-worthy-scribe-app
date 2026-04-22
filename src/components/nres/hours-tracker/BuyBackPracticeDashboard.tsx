@@ -1102,6 +1102,11 @@ function InlineClaimPanel({
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'Reviewer'}{(claim as any).queried_by ? ` (${(claim as any).queried_by})` : ''}
+                    {(claim as any).queried_at && (
+                      <span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                        {format(new Date((claim as any).queried_at), 'd MMM yyyy, HH:mm')}
+                      </span>
+                    )}
                   </div>
                   {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
                 </div>

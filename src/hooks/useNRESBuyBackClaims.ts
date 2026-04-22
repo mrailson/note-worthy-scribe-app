@@ -43,6 +43,7 @@ export interface BuyBackClaim {
   queried_by_role: string | null;
   query_notes: string | null;
   query_response: string | null;
+  query_responded_at: string | null;
   // Payment fields
   paid_at: string | null;
   paid_by: string | null;
@@ -391,6 +392,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       // Save the practice's response to a query when resubmitting
       if (queryResponseNotes) {
         updatePayload.query_response = queryResponseNotes;
+        updatePayload.query_responded_at = new Date().toISOString();
       }
 
       let query = supabase
