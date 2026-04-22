@@ -138,13 +138,13 @@ export function EvidenceSlot({
           </Button>
         )}
         {!hasFile && canEdit && (
-          <>
-            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif" onChange={handleFileSelect} />
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-              {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-              Upload
-            </Button>
-          </>
+          <SmartUploadZone
+            compact
+            onFilesSelected={(files) => { if (files[0]) onUpload(files[0]); }}
+            uploading={uploading}
+            multiple={false}
+            accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif"
+          />
         )}
       </div>
     </div>
