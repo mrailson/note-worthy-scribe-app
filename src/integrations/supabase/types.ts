@@ -8410,6 +8410,7 @@ export type Database = {
           practice_key: string | null
           queried_at: string | null
           queried_by: string | null
+          queried_by_role: string | null
           query_flagged_lines: Json | null
           query_notes: string | null
           review_notes: string | null
@@ -8452,6 +8453,7 @@ export type Database = {
           practice_key?: string | null
           queried_at?: string | null
           queried_by?: string | null
+          queried_by_role?: string | null
           query_flagged_lines?: Json | null
           query_notes?: string | null
           review_notes?: string | null
@@ -8494,6 +8496,7 @@ export type Database = {
           practice_key?: string | null
           queried_at?: string | null
           queried_by?: string | null
+          queried_by_role?: string | null
           query_flagged_lines?: Json | null
           query_notes?: string | null
           review_notes?: string | null

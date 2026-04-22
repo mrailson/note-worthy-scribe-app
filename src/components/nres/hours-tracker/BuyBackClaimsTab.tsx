@@ -971,7 +971,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           isPMLFinance={isPMLFinance}
           rateParams={rateParams}
           onVerify={verifyClaim}
-          onQuery={queryClaim}
+          onQuery={(id: string, notes: string) => queryClaim(id, notes, 'PML Director')}
           onApprove={approveClaim}
           onReject={rejectClaim}
           onMarkPaid={(id: string, notes?: string) => updatePaymentStatus(id, {
@@ -1724,7 +1724,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                     onApprove={approveClaim}
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
-                    onQuery={queryClaim}
+                    onQuery={(id: string, notes: string) => queryClaim(id, notes, isPMLDirector ? 'PML Director' : 'NRES Management')}
                     onUpdatePayment={updatePaymentStatus}
                     savingPayment={savingClaim}
                     testActive={testActive}
@@ -2911,7 +2911,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             <div className="flex items-start gap-2 mb-2">
               <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <div className="text-sm font-bold text-red-800 dark:text-red-200">⚠️ QUERIED BY DIRECTOR — Action Required</div>
+                <div className="text-sm font-bold text-red-800 dark:text-red-200">⚠️ QUERIED BY {((claim as any).queried_by_role || 'DIRECTOR').toUpperCase()} — Action Required</div>
                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">{displayNotes}</p>
                 <span className="text-xs text-muted-foreground mt-1 block">Queried by: {claim.queried_by} on {claim.queried_at ? format(new Date(claim.queried_at), 'dd/MM/yyyy') + ' at ' + format(new Date(claim.queried_at), 'HH:mm') : '—'}</span>
               </div>
