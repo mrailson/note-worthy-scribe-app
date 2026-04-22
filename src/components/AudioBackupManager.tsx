@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ensureMeetingTitle } from '@/utils/manualTriggerNotes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -412,6 +413,25 @@ export const AudioBackupManager = () => {
           toast.error('Transcription completed but failed to save: ' + (saveData?.error || saveErr?.message));
         } else {
           toast.success(`Reprocessed ${segments.length} segments — ${totalWords.toLocaleString()} words saved`);
+
+          // Step 4: Auto-generate meeting notes, title, overview & email
+          try {
+            toast.info('Generating meeting notes, title and overview…');
+            const { error: notesErr } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+              body: { meetingId, forceRegenerate: true }
+            });
+            if (notesErr) {
+              console.error('Note generation failed:', notesErr);
+              toast.warning('Transcript saved but note generation failed — you can trigger it manually');
+            } else {
+              // Step 5: Safety net for title
+              await ensureMeetingTitle(meetingId);
+              toast.success('Meeting notes, title and overview generated — email sent');
+            }
+          } catch (noteErr) {
+            console.error('Post-reprocess note generation error:', noteErr);
+            toast.warning('Transcript saved but could not generate notes automatically');
+          }
         }
       } else {
         toast.warning('No transcript text was recovered from any segment');
@@ -476,11 +496,26 @@ export const AudioBackupManager = () => {
       if (fullTranscript.length > 0) {
         supabase.functions.invoke('reprocess-audio-segment', {
           body: { action: 'save', meetingId, fullTranscript, wordCount: totalWords }
-        }).then(({ data, error }) => {
+        }).then(async ({ data, error }) => {
           if (error || !data?.success) {
             toast.error('Failed to save updated transcript');
           } else {
             toast.success(`Saved updated transcript — ${totalWords.toLocaleString()} words`);
+            // Auto-generate notes, title, overview & email after retry save
+            try {
+              toast.info('Generating meeting notes, title and overview…');
+              const { error: notesErr } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+                body: { meetingId, forceRegenerate: true }
+              });
+              if (notesErr) {
+                toast.warning('Transcript saved but note generation failed — trigger manually');
+              } else {
+                await ensureMeetingTitle(meetingId);
+                toast.success('Meeting notes, title and overview generated — email sent');
+              }
+            } catch {
+              toast.warning('Transcript saved but could not generate notes automatically');
+            }
           }
         });
       }
