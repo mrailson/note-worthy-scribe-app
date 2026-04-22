@@ -166,7 +166,21 @@ Deno.serve(async (req) => {
         return json({ error: updateErr.message }, 500);
       }
 
-      console.log(`💾 Saved transcript for meeting ${meetingId}: ${finalWordCount} words`);
+      // Mark the backup as reprocessed with timestamp
+      const { error: backupUpdateErr } = await supabaseAdmin
+        .from("meeting_audio_backups")
+        .update({
+          is_reprocessed: true,
+          reprocessed_at: new Date().toISOString(),
+          word_count: finalWordCount,
+        })
+        .eq("meeting_id", meetingId);
+
+      if (backupUpdateErr) {
+        console.warn("Failed to update backup reprocessed status:", backupUpdateErr);
+      }
+
+      console.log(`💾 Saved transcript for meeting ${meetingId}: ${finalWordCount} words (marked as reprocessed)`);
 
       return json({ success: true, meetingId, wordCount: finalWordCount });
     }
