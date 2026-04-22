@@ -81,6 +81,7 @@ interface StorageStats {
 
 export const AudioBackupManager = () => {
   const { user } = useAuth();
+  const { sendEmailAutomatically } = useAutoEmail();
   const [backups, setBackups] = useState<AudioBackup[]>([]);
   const [loading, setLoading] = useState(true);
   const [reprocessing, setReprocessing] = useState<string | null>(null);
