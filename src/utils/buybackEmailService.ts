@@ -157,7 +157,7 @@ function buildEmailHtml(type: BuyBackEmailType, data: BuyBackEmailData): string 
           </tr>
           <tr>
             <td style="padding:8px 16px;font-size:12px;font-weight:600;color:#374151;border-top:1px solid #e5e7eb;">Submitted By</td>
-            <td style="padding:8px 16px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${data.submitterName || 'Unknown'} (${data.submitterEmail})</td>
+            <td style="padding:8px 16px;font-size:12px;color:#374151;border-top:1px solid #e5e7eb;">${data.submitterName && data.submitterName !== data.submitterEmail ? `${data.submitterName} (${data.submitterEmail})` : data.submitterEmail || 'Unknown'}</td>
           </tr>
           <tr style="background:#f9fafb;">
             <td style="padding:8px 16px;font-size:12px;font-weight:600;color:#374151;border-top:1px solid #e5e7eb;">Date &amp; Time</td>
