@@ -19,6 +19,9 @@ interface InvestigationEvidenceTabProps {
 export function InvestigationEvidenceTab({ complaintId, practiceId, patientName, referenceNumber, disabled = false, onCreateOutcomeLetter }: InvestigationEvidenceTabProps) {
   return (
     <div className="space-y-6">
+      {/* Request Information Panel - Top Priority */}
+      <RequestInformationPanel complaintId={complaintId} practiceId={practiceId} disabled={disabled} />
+
       {/* Patient Context Banner */}
       {(patientName || referenceNumber) && (
         <Alert className="border-amber-300 bg-amber-50">
@@ -30,9 +33,6 @@ export function InvestigationEvidenceTab({ complaintId, practiceId, patientName,
           </AlertDescription>
         </Alert>
       )}
-
-      {/* Request Information Panel - Top Priority */}
-      <RequestInformationPanel complaintId={complaintId} practiceId={practiceId} disabled={disabled} />
 
       {/* Evidence & Transcripts Section */}
       <InvestigationEvidence complaintId={complaintId} disabled={disabled} />
