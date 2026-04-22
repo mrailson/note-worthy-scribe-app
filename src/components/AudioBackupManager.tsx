@@ -533,6 +533,22 @@ export const AudioBackupManager = () => {
                 toast.warning('Transcript saved but note generation failed — trigger manually');
               } else {
                 await ensureMeetingTitle(meetingId);
+                // Send email with generated notes
+                try {
+                  const { data: meetingData } = await supabase
+                    .from('meetings')
+                    .select('title, notes_style_3')
+                    .eq('id', meetingId)
+                    .single();
+                  if (meetingData?.notes_style_3) {
+                    await sendEmailAutomatically(
+                      meetingData.notes_style_3,
+                      meetingData.title || 'Reprocessed Meeting Notes'
+                    );
+                  }
+                } catch (emailErr) {
+                  console.warn('Email sending after retry reprocess failed:', emailErr);
+                }
                 toast.success('Meeting notes, title and overview generated — email sent');
               }
             } catch {
