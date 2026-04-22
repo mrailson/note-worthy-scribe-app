@@ -1388,7 +1388,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             practiceFilter={effectiveFilterPractice}
             onPracticeFilterChange={setFilterPractice}
             practiceOptions={directorPracticeOptions}
-            defaultView="spreadsheet"
+            defaultView="cards"
             exportVariant={isPMLFinance ? 'finance' : 'director'}
           />
         </>
