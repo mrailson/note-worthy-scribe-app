@@ -1,0 +1,1 @@
+ALTER TABLE nres_buyback_claims ADD COLUMN IF NOT EXISTS holiday_weeks_deducted NUMERIC DEFAULT 0;

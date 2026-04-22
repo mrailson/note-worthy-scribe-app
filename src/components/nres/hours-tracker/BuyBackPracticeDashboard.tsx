@@ -24,7 +24,7 @@ interface BuyBackPracticeDashboardProps {
   managementRoles?: ManagementRoleConfig[];
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
-  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number) => Promise<any>;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onRemoveStaff?: (id: string) => Promise<void>;
   onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
@@ -359,7 +359,7 @@ function InlineClaimPanel({
   monthLabel: string;
   existingClaim: BuyBackClaim | null;
   rateParams?: RateParams;
-  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number) => Promise<any>;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string) => void;
@@ -381,6 +381,8 @@ function InlineClaimPanel({
 
   // Claimed amount state for standard (non-locum, non-meeting) claims
   const [standardClaimedAmount, setStandardClaimedAmount] = useState<number>(0);
+  // Holiday weeks deducted for management claims
+  const [holidayWeeks, setHolidayWeeks] = useState<number>(0);
   const meetingRate = staffMember.hourly_rate || 0;
   const [meetingHours, setMeetingHours] = useState<number>(0);
   const meetingMaxAmount = useMemo(() => meetingHours * meetingRate, [meetingHours, meetingRate]);
@@ -425,8 +427,8 @@ function InlineClaimPanel({
 
   const calculatedAmount = useMemo(() => {
     if (!rateParams) return 0;
-    return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
-  }, [staffMember, monthDate, rateParams]);
+    return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeks);
+  }, [staffMember, monthDate, rateParams, holidayWeeks]);
 
   // Sync to calculatedAmount whenever it changes
   useEffect(() => {
@@ -816,23 +818,43 @@ function InlineClaimPanel({
                   </div>
 
                   {/* Management breakdown (existing rich rows) */}
-                  {(staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && rateParams?.workingWeeksInMonth && staffMember.hourly_rate ? (() => {
-                    const ww = rateParams.workingWeeksInMonth!;
+                  {(staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth) && staffMember.hourly_rate ? (() => {
+                    const rawWw = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
+                    const effectiveWw = Math.max(0, rawWw - holidayWeeks);
                     const baseRate = staffMember.hourly_rate;
                     const multiplier = rateParams.onCostMultiplier ?? 1;
                     const effectiveRate = baseRate * multiplier;
                     const weeklyHours = staffMember.allocation_value;
                     const niPct = rateParams.employerNiPct ?? 13.8;
                     const penPct = rateParams.employerPensionPct ?? 14.38;
-                    const bhCount = rateParams.bankHolidaysInMonth ?? 0;
-                    const bhDetails = (rateParams as any).bankHolidayDetails as { name: string; formatted: string }[] | undefined;
                     const fullMonth = new Date(monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
                     return (
                       <div style={{ marginBottom: 12 }}>
+                        {/* Holiday selector */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: '8px 12px', background: '#f0fdf4', borderRadius: 7, border: '1px solid #bbf7d0' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>Holiday taken this month</span>
+                          <select
+                            value={holidayWeeks}
+                            onChange={e => setHolidayWeeks(Number(e.target.value))}
+                            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #86efac', fontSize: 13, fontWeight: 600, background: '#fff', color: '#15803d', cursor: 'pointer' }}
+                          >
+                            {[0, 0.5, 1, 1.5, 2].map(v => (
+                              <option key={v} value={v}>{v === 0 ? 'None' : `${v} week${v > 1 ? 's' : ''}`}</option>
+                            ))}
+                          </select>
+                          {holidayWeeks > 0 && (
+                            <span style={{ fontSize: 11, color: '#059669', fontWeight: 500 }}>
+                              ({rawWw.toFixed(1)} less {holidayWeeks} wk holiday = {effectiveWw.toFixed(1)} weeks)
+                            </span>
+                          )}
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8, fontSize: 13 }}>
                           <span style={{ fontWeight: 700, color: '#005eb8' }}>{weeklyHours} hrs/wk</span>
                           <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
-                          <span style={{ fontWeight: 700, color: '#005eb8' }}>{ww.toFixed(1)} working weeks in {fullMonth}</span>
+                          <span style={{ fontWeight: 700, color: '#005eb8' }}>
+                            {effectiveWw.toFixed(1)} weeks in {fullMonth}
+                            {holidayWeeks > 0 && <span style={{ fontWeight: 400, color: '#6b7280', fontSize: 11 }}> ({rawWw.toFixed(1)} − {holidayWeeks} hol)</span>}
+                          </span>
                           <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
                           <span style={{ fontWeight: 700, color: '#005eb8' }}>{fmtGBP(effectiveRate)}/hr</span>
                           <span style={{ color: '#9ca3af', fontSize: 11 }}>(incl. on-costs)</span>
@@ -846,11 +868,6 @@ function InlineClaimPanel({
                           <span style={{ color: '#9ca3af' }}>(NI {niPct}% + Pension {penPct}%)</span>
                           <span style={{ color: '#9ca3af' }}>=</span>
                           <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
-                          {bhCount > 0 && (
-                            <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 600, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 6px' }}>
-                              {bhCount} bank hol{bhCount > 1 ? 's' : ''} excluded{bhDetails && bhDetails.length > 0 ? ` (${bhDetails.map((b: { name: string }) => b.name).join(', ')})` : ''}
-                            </span>
-                          )}
                         </div>
                       </div>
                     );
@@ -948,7 +965,8 @@ function InlineClaimPanel({
                         const amountToUse = (staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management')
                           ? (standardClaimedAmount > 0 ? standardClaimedAmount : calculatedAmount)
                           : calculatedAmount;
-                        const result = await onCreateClaim(monthDate, staffMember, amountToUse);
+                        const holWeeks = (staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') ? holidayWeeks : 0;
+                        const result = await onCreateClaim(monthDate, staffMember, amountToUse, holWeeks);
                         if (result) setLocalClaim(result);
                       } finally {
                         setCreating(false);
@@ -1892,7 +1910,7 @@ export function StaffRosterSection({
   onRemoveStaff?: (id: string) => Promise<void>;
   onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
   staffRoles?: string[]; showAddButton: boolean; rateParams?: RateParams;
-  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember) => Promise<any>;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string) => void; onResubmit?: (id: string, notes?: string) => void;

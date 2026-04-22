@@ -57,6 +57,8 @@ export interface BuyBackClaim {
   actual_payment_date: string | null;
   payment_notes: string | null;
   payment_audit_trail: any[];
+  // Holiday deduction for management claims
+  holiday_weeks_deducted: number;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +83,8 @@ export interface RateParams {
   employerPensionPct?: number;
   /** Pre-calculated working weeks for a given claim month (used for management billing) */
   workingWeeksInMonth?: number;
+  /** Raw weekday-based working weeks (weekdays ÷ 5, no bank holiday subtraction — used for management) */
+  rawWorkingWeeksInMonth?: number;
   /** Working days in the claim month */
   workingDaysInMonth?: number;
   /** Number of bank holidays excluded from the month */
@@ -99,6 +103,7 @@ export function calculateStaffMonthlyAmount(
   claimMonth?: string,
   startDate?: string | null,
   rateParams?: RateParams,
+  holidayWeeksDeducted: number = 0,
 ): number {
   let fullMonthly: number;
 
@@ -125,10 +130,12 @@ export function calculateStaffMonthlyAmount(
     }
   }
   // Management category: hourly_rate × weekly_hours × working_weeks_in_month
-  else if (((staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management') && (staff as any).hourly_rate && rateParams?.workingWeeksInMonth) {
+  else if (((staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management') && (staff as any).hourly_rate && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth)) {
     const hourlyRate = (staff as any).hourly_rate as number;
     const weeklyHours = staff.allocation_value;
-    const workingWeeks = rateParams.workingWeeksInMonth;
+    // Use raw weeks (weekdays ÷ 5, no bank holiday subtraction) for management
+    const rawWeeks = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
+    const workingWeeks = Math.max(0, rawWeeks - holidayWeeksDeducted);
     fullMonthly = hourlyRate * weeklyHours * workingWeeks;
   } else if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     const roleRate = rateParams.getRoleAnnualRate(staff.staff_role);
@@ -312,6 +319,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     practiceKey?: string | null,
     rateParams?: RateParams,
     claimType: ClaimType = 'buyback',
+    holidayWeeksDeducted: number = 0,
   ) => {
     if (!user?.id) return null;
     try {
@@ -354,7 +362,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           claimed_amount: claimedAmount,
           practice_key: practiceKey || null,
           status: 'draft',
-        })
+          holiday_weeks_deducted: holidayWeeksDeducted,
+        } as any)
         .select()
         .single();
 

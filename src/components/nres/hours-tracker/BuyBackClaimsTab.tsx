@@ -68,11 +68,10 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocV
     }
   }
 
-  // Management: hourly_rate × weekly_hours × working_weeks
-  if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
-    const ww = rateParams.workingWeeksInMonth;
-    const bhNote = rateParams.bankHolidaysInMonth ? ` (${rateParams.bankHolidaysInMonth} bank hol${rateParams.bankHolidaysInMonth > 1 ? 's' : ''} excluded)` : '';
-    return `${allocValue} hrs/wk × ${ww.toFixed(1)} working weeks${bhNote} × ${fmtGBP(hourlyRate)}/hr`;
+  // Management: hourly_rate × weekly_hours × working_weeks (no bank holiday subtraction)
+  if ((category === 'management' || role === 'NRES Management') && hourlyRate && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth)) {
+    const ww = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
+    return `${allocValue} hrs/wk × ${ww.toFixed(1)} weeks × ${fmtGBP(hourlyRate)}/hr`;
   }
 
   const roleConfig = rateParams?.getRoleConfig?.(role ?? '');
@@ -476,7 +475,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
 
   const bankHolidayDates = useMemo(() => bankHolidayData.map(b => b.date), [bankHolidayData]);
 
-  const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays } = useMemo(() => {
+  const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays, getRawWorkingWeeksInMonth: calcRawWorkingWeeks } = useMemo(() => {
     // Inline helpers using fetched bank holidays
     const getWorkingDaysInMonth = (claimMonth: string): number => {
       const start = new Date(claimMonth);
@@ -494,8 +493,21 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       });
       return weekdays - bhInMonth.length;
     };
+    // Raw weekdays / 5 — no bank holiday subtraction (for management claims)
+    const getRawWorkingWeeksInMonth = (claimMonth: string): number => {
+      const start = new Date(claimMonth);
+      const year = start.getFullYear();
+      const month = start.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let weekdays = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const day = new Date(year, month, d).getDay();
+        if (day !== 0 && day !== 6) weekdays++;
+      }
+      return weekdays / 5;
+    };
     const getWorkingWeeksInMonth = (claimMonth: string): number => getWorkingDaysInMonth(claimMonth) / 5;
-    return { getWorkingWeeksInMonth, getWorkingDaysInMonth };
+    return { getWorkingWeeksInMonth, getWorkingDaysInMonth, getRawWorkingWeeksInMonth };
   }, [bankHolidayDates]);
 
   // Get bank holidays in a specific month with names and formatted dates
@@ -536,6 +548,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   // Build rateParams with working weeks for the current claim month
   const claimMonthDate = `${claimMonth}-01`;
   const workingWeeksForMonth = calcWorkingWeeks(claimMonthDate);
+  const rawWorkingWeeksForMonth = calcRawWorkingWeeks(claimMonthDate);
   const bankHolidaysForMonth = getBankHolidaysInMonth(claimMonthDate);
   const bankHolidayDetailsForMonth = getBankHolidayDetailsInMonth(claimMonthDate);
 
@@ -546,6 +559,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     employerNiPct: rateSettings.employer_ni_pct,
     employerPensionPct: rateSettings.employer_pension_pct,
     workingWeeksInMonth: workingWeeksForMonth,
+    rawWorkingWeeksInMonth: rawWorkingWeeksForMonth,
     workingDaysInMonth: calcWorkingDays(claimMonthDate),
     bankHolidaysInMonth: bankHolidaysForMonth,
     bankHolidayDetails: bankHolidayDetailsForMonth,
@@ -884,12 +898,12 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           staff={practiceStaff}
           onSubmit={canSubmitForPractice ? submitClaim : undefined}
           onResubmit={canSubmitForPractice ? (id, notes) => submitClaim(id, notes) : undefined}
-          onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount) => {
-            const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
+          onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount, holidayWeeksDeducted) => {
+            const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeksDeducted ?? 0);
             const actualClaimed = (claimedAmount && claimedAmount > 0 && claimedAmount <= maxAmt)
               ? claimedAmount
               : maxAmt;
-            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams);
+            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams, 'buyback', holidayWeeksDeducted ?? 0);
           } : undefined}
           onAddStaff={canSubmitForPractice ? addStaff : undefined}
           onRemoveStaff={isAdmin ? undefined : (canSubmitForPractice ? removeStaff : undefined)}
@@ -1856,13 +1870,12 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     };
   }
 
-  // Management: simple hourly × weekly hours × working weeks
-  if (isManagement && staff.hourly_rate && rateParams?.workingWeeksInMonth) {
+  // Management: simple hourly × weekly hours × working weeks (no bank holiday subtraction)
+  if (isManagement && staff.hourly_rate && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth)) {
     const hourlyRate = staff.hourly_rate as number;
-    const workingWeeks = rateParams.workingWeeksInMonth;
+    const workingWeeks = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
     const totalHours = allocValue * workingWeeks;
     const finalMonthly = hourlyRate * totalHours;
-    const bhCount = rateParams.bankHolidaysInMonth ?? 0;
 
     // Reverse-engineer on-costs from the gross hourly rate
     const onCostPct = rateParams ? (rateParams.onCostMultiplier - 1) * 100 : 29.38;
@@ -1880,7 +1893,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate, baseHourlyRate, niPerHour, pensionPerHour, onCostsPerHour,
       mgmtNiPct, mgmtPensionPct, mgmtOnCostPct: onCostPct,
       grossHoursCost, totalOnCosts, weeklyHours: allocValue, workingWeeks, totalHours,
-      bankHolidaysExcluded: bhCount, bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
