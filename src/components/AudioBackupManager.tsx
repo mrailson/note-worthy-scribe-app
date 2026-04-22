@@ -165,13 +165,17 @@ export const AudioBackupManager = () => {
     try {
       const { data, error } = await supabase
         .from('meeting_audio_backups')
-        .select('*, meetings!meeting_audio_backups_meeting_id_fkey(device_type, device_browser, import_source, user_id)')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      const backupData = data || [];
 
-      // Collect unique user IDs to fetch emails
-      const userIds = Array.from(new Set((data || []).map((b: any) => b.user_id).filter(Boolean)));
+      // Collect unique user IDs and meeting IDs
+      const userIds = Array.from(new Set(backupData.map((b: any) => b.user_id).filter(Boolean)));
+      const meetingIds = Array.from(new Set(backupData.map((b: any) => b.meeting_id).filter(Boolean)));
+
+      // Fetch user emails from profiles
       let emailMap: Record<string, string> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
@@ -185,12 +189,30 @@ export const AudioBackupManager = () => {
         }
       }
 
-      const enriched = (data || []).map((b: any) => ({
+      // Fetch meeting device info
+      let meetingMap: Record<string, { device_type?: string; device_browser?: string; import_source?: string }> = {};
+      if (meetingIds.length > 0) {
+        const { data: meetings } = await supabase
+          .from('meetings')
+          .select('id, device_type, device_browser, import_source')
+          .in('id', meetingIds);
+        if (meetings) {
+          for (const m of meetings) {
+            meetingMap[m.id] = {
+              device_type: m.device_type || undefined,
+              device_browser: m.device_browser || undefined,
+              import_source: m.import_source || undefined,
+            };
+          }
+        }
+      }
+
+      const enriched = backupData.map((b: any) => ({
         ...b,
         user_email: emailMap[b.user_id] || undefined,
-        device_type: b.meetings?.device_type || undefined,
-        device_browser: b.meetings?.device_browser || undefined,
-        import_source: b.meetings?.import_source || undefined,
+        device_type: meetingMap[b.meeting_id]?.device_type,
+        device_browser: meetingMap[b.meeting_id]?.device_browser,
+        import_source: meetingMap[b.meeting_id]?.import_source,
       }));
 
       setBackups(enriched);
