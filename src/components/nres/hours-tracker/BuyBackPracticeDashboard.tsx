@@ -1243,13 +1243,6 @@ function InlineClaimPanel({
                               <span style={{ color: '#9ca3af' }}>=</span>
                               <span style={{ fontWeight: 700, color: '#111827' }}>{fmtGBP(maxAmt)}</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, padding: '5px 8px', background: '#eff6ff', borderRadius: 6, fontSize: 10, color: '#374151' }}>
-                              <span>Base {fmtGBP(baseRate)}/hr</span>
-                              <span style={{ color: '#9ca3af' }}>×</span>
-                              <span>{multiplier.toFixed(4)} on-costs (NI {niPct}% + Pension {penPct}%)</span>
-                              <span style={{ color: '#9ca3af' }}>=</span>
-                              <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
-                            </div>
                           </div>
                         );
                       })() : null}
@@ -1399,13 +1392,6 @@ function InlineClaimPanel({
                               <span style={{ color: '#9ca3af', fontSize: 10 }}>(incl. on-costs)</span>
                               <span style={{ color: '#9ca3af' }}>=</span>
                               <span style={{ fontWeight: 700, color: '#111827' }}>{fmtGBP(maxAmt)}</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, padding: '5px 8px', background: '#eff6ff', borderRadius: 6, fontSize: 10, color: '#374151' }}>
-                              <span>Base {fmtGBP(baseRate)}/hr</span>
-                              <span style={{ color: '#9ca3af' }}>×</span>
-                              <span>{multiplier.toFixed(4)} on-costs (NI {niPct}% + Pension {penPct}%)</span>
-                              <span style={{ color: '#9ca3af' }}>=</span>
-                              <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
                             </div>
                           </div>
                         );
