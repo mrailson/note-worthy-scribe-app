@@ -2018,14 +2018,75 @@ const ComplaintsSystem = () => {
                               </Tooltip>
                             </div>
                             <div style={{ padding: '0 8px' }}>
-                              <Badge className={getStatusColor(complaint.status)} style={{ fontSize: '11px', padding: '3px 8px', maxWidth: '130px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex' }}>
-                                {complaint.status === 'under_review' && complaint.acknowledged_at ? (
-                                  <Mail className="mr-1 shrink-0" style={{ width: '12px', height: '12px' }} />
-                                ) : (
-                                  <span className="mr-1 shrink-0 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
-                                )}
-                                <span className="truncate">{getStatusDisplayLabel(complaint)}</span>
-                              </Badge>
+                              <HoverCard openDelay={200} closeDelay={100}>
+                                <HoverCardTrigger asChild>
+                                  <Badge className={`${getStatusColor(complaint.status)} cursor-default`} style={{ fontSize: '11px', padding: '3px 8px', maxWidth: '130px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex' }}>
+                                    {complaint.status === 'under_review' && complaint.acknowledged_at ? (
+                                      <Mail className="mr-1 shrink-0" style={{ width: '12px', height: '12px' }} />
+                                    ) : (
+                                      <span className="mr-1 shrink-0 [&>svg]:w-3 [&>svg]:h-3">{getStatusIcon(complaint.status)}</span>
+                                    )}
+                                    <span className="truncate">{getStatusDisplayLabel(complaint)}</span>
+                                  </Badge>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80 p-0" align="start" side="bottom" sideOffset={5}>
+                                  <div className="p-3 bg-muted/50 border-b">
+                                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                                      <FileText className="h-4 w-4" />
+                                      Complaint Overview
+                                    </h4>
+                                  </div>
+                                  <div className="p-3 space-y-3 text-sm">
+                                    <div className="space-y-1.5">
+                                      <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">Title:</span>
+                                        <span className="text-right font-medium truncate">{complaint.complaint_title}</span>
+                                      </div>
+                                      <div className="flex justify-between gap-2">
+                                        <span className="text-muted-foreground shrink-0">Category:</span>
+                                        <span className="text-right">{getCategoryLabel(complaint.category)}</span>
+                                      </div>
+                                    </div>
+                                    <Separator />
+                                    <div>
+                                      <span className="text-muted-foreground text-xs">Summary:</span>
+                                      <p className="mt-1 text-xs leading-relaxed">
+                                        {complaint.complaint_description
+                                          ? complaint.complaint_description.length > 150
+                                            ? complaint.complaint_description.slice(0, 150) + '…'
+                                            : complaint.complaint_description
+                                          : 'No description available'}
+                                      </p>
+                                    </div>
+                                    <Separator />
+                                    <div className="space-y-1.5">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Acknowledgement:</span>
+                                        <span className="text-xs font-medium">
+                                          {lettersStatus[complaint.id]?.hasAcknowledgement ? '✅ Sent' : '⏳ Pending'}
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Outcome Letter:</span>
+                                        <span className="text-xs font-medium">
+                                          {lettersStatus[complaint.id]?.hasOutcome ? '✅ Sent' : '⏳ Pending'}
+                                        </span>
+                                      </div>
+                                      {lettersStatus[complaint.id]?.hasOutcome && lettersStatus[complaint.id]?.outcomeType && (
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-muted-foreground">Outcome Type:</span>
+                                          <span className="text-xs font-medium">
+                                            {lettersStatus[complaint.id].outcomeType === 'rejected' ? 'Not Upheld' :
+                                             lettersStatus[complaint.id].outcomeType === 'withdrawn' ? 'Withdrawn/Resolved' :
+                                             lettersStatus[complaint.id].outcomeType!.charAt(0).toUpperCase() + 
+                                             lettersStatus[complaint.id].outcomeType!.slice(1).replace('_', ' ')}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
                             </div>
                             <div className="flex items-center gap-2 justify-end" style={{ padding: '0 12px' }}>
                               <Button
