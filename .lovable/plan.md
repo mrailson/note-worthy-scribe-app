@@ -1,46 +1,68 @@
 
 
-## Add "Closed – Withdrawn/Resolved" Complaint Status
+## Reduce Hallucinations in Handwritten Complaint Letter Import
 
 ### Problem
-When a patient withdraws their complaint (e.g. issue resolved informally), there is no way to close it without going through the full outcome letter questionnaire. Practice Managers need a quick "Withdrawn/Resolved" closure path.
+When a practice manager uploads a photo of a handwritten complaint letter, the system uses GPT-4.1 Vision to OCR the text, then immediately auto-populates the complaint form. There are no safeguards specific to handwriting — no confidence scoring, no hallucination detection, and no human review step before the data is saved. Handwritten text is inherently ambiguous, so the AI frequently fabricates names, dates, and complaint details.
+
+### Root Causes
+1. **Single-pass OCR with no verification** — one GPT-4.1 Vision call extracts text, with a generic prompt ("extract all text accurately") that has no handwriting-specific guidance
+2. **No preview step for images** — extracted data is immediately pushed into the form via `onDataExtracted()` + `onClose()`, bypassing the existing preview panel
+3. **No confidence signal** — the AI never reports which words it is uncertain about
+4. **No hallucination detection** — the existing `documentResponseValidation.ts` checks are not wired into this flow
 
 ### Changes
 
-**1. Add "Withdrawn/Resolved" as an outcome type option in the Outcome Questionnaire**
-- File: `src/components/ComplaintOutcomeQuestionnaire.tsx`
-- Add `'withdrawn'` to the `outcome_type` union type in `QuestionnaireData`
-- Add a new radio/select option: "Withdrawn / Resolved Informally"
-- When `withdrawn` is selected, skip the outcome letter generation step — save directly to `complaint_outcomes` with `outcome_type: 'withdrawn'` and a brief summary
-- The questionnaire should still collect: a short resolution note (what was done), and who resolved it — but skip tone, letter generation, and detailed findings
+**1. Add handwriting-aware OCR prompt with uncertainty markers** (Edge function)
+- File: `supabase/functions/import-complaint-data/index.ts`
+- Replace the generic image OCR prompt with a handwriting-specific version that instructs GPT-4.1 to:
+  - Mark uncertain words with `[?]` suffix (e.g. "Thornton[?]")
+  - Never guess dates, NHS numbers, or phone numbers — output `[illegible]` instead
+  - Describe letter structure (greeting, body, sign-off) rather than inventing missing sections
+- Add a `confidence_notes` field to the response: a brief list of words/sections the AI was uncertain about
 
-**2. Update status display labels across all views**
-- File: `src/pages/ComplaintDetails.tsx` — Add `'withdrawn'` mapping in the two `outcomeType` display blocks (~lines 1811-1817, 2255-2261) and the outcome letter heading (~line 2700-2720) to show "Closed – Withdrawn/Resolved"
-- File: `src/pages/ComplaintsSystem.tsx` — Add `withdrawn: 'Withdrawn/Resolved'` to the `outcomeLabels` map in `getStatusDisplayLabel` (~line 1483)
-- File: `src/components/complaints/ComplaintsSummaryView.tsx` — Already has `withdrawn: 'Withdrawn'` in `OUTCOME_LABELS` (line 69); update to `'Withdrawn/Resolved'`
+**2. Dual-pass verification for image uploads** (Edge function)
+- File: `supabase/functions/import-complaint-data/index.ts`
+- For image files only, run two separate OCR calls with slightly different prompts (one strict transcription, one structured extraction)
+- Compare key fields (patient name, dates, phone numbers) between passes
+- Flag any field where the two passes disagree as `[unverified]`
+- Return a `verification_status`: `verified` (both passes agree), `partial` (some disagreements), or `unverified` (major disagreements)
 
-**3. Update the validation gate**
-- File: `src/components/ComplaintOutcomeQuestionnaire.tsx` (~line 911) — Add `'withdrawn'` to the allowed outcome types array so it passes validation
+**3. Add extracted text preview step for image imports** (Client)
+- File: `src/components/ComplaintImport.tsx`
+- When the source is an image file (photo of handwritten letter), do NOT auto-close the modal
+- Instead, show an intermediate "Review Extracted Text" panel displaying:
+  - The raw OCR text with `[?]` and `[illegible]` markers highlighted in amber
+  - A verification status badge (Verified / Partially Verified / Needs Review)
+  - An editable textarea so the PM can correct misread words before proceeding
+  - "Confirm & Import" button to proceed, "Re-scan" button to retry
+- Only after the PM confirms does the structured extraction (second AI call) run
 
-**4. Handle the withdrawn flow in the questionnaire UI**
-- When "Withdrawn / Resolved Informally" is selected, show a simplified panel:
-  - Resolution summary textarea (required, e.g. "Spoke to patient, prescription issued, future appointment booked")
-  - Skip letter tone, formal findings, improvements sections
-  - Button label: "Close as Withdrawn/Resolved" instead of "Generate Outcome Letter"
-- Save to DB via the existing `create_complaint_outcome` RPC with `outcome_type: 'withdrawn'`, summary text, and no outcome letter
+**4. Add hallucination guard to the structuring prompt** (Edge function)
+- File: `supabase/functions/import-complaint-data/index.ts`
+- Update the system prompt for the JSON extraction step to include:
+  - "If a field value was marked [illegible] or [?] in the source text, set it to null rather than guessing"
+  - "Never infer an NHS number, date of birth, or phone number that is not clearly present"
+  - "Set `confidence: 'low'` on any field derived from uncertain text"
+- Add a `low_confidence_fields` array to the JSON response listing which fields had uncertain source text
 
-**5. No database schema changes needed**
-- The `complaint_outcomes.outcome_type` column already accepts text values; `withdrawn` is already referenced in `OUTCOME_LABELS`
+**5. Show confidence warnings on the complaint form** (Client)
+- File: `src/components/ComplaintImport.tsx`
+- After import, if `low_confidence_fields` is non-empty, show an amber alert banner listing which fields need manual verification
+- Highlight those specific form fields with an amber border (pass field names to the parent via `onDataExtracted`)
 
-### Files changed
-- `src/components/ComplaintOutcomeQuestionnaire.tsx` — Add withdrawn option, simplified flow, validation update
-- `src/pages/ComplaintDetails.tsx` — Display label mappings for withdrawn
-- `src/pages/ComplaintsSystem.tsx` — Display label in list view
-- `src/components/complaints/ComplaintsSummaryView.tsx` — Update outcome label text
+**6. Update edge function standards** (Edge function)
+- File: `supabase/functions/import-complaint-data/index.ts`
+- Replace `esm.sh` import with `npm:` specifier for supabase-js (per project standards)
+- Replace deprecated `serve()` with `Deno.serve()`
+
+### Files Changed
+- `supabase/functions/import-complaint-data/index.ts` — Handwriting-aware prompts, dual-pass verification, confidence metadata, Deno.serve migration
+- `src/components/ComplaintImport.tsx` — Preview step for image imports, confidence warnings, editable OCR text
 
 ### Behaviour
-- Existing complaint closure flows (Upheld, Partially Upheld, Not Upheld) are completely unchanged
-- "Withdrawn/Resolved" skips letter generation — saves time for informal resolutions
-- Complaint status shows as "Closed – Withdrawn/Resolved" across all views
-- The complaint is properly closed with an audit trail of what was resolved
+- **Text/email/Word imports**: Unchanged — auto-populate as before
+- **Image imports (handwritten letters)**: Now show an intermediate review screen with highlighted uncertain text, allowing the PM to correct before importing
+- **All imports**: Low-confidence fields are flagged on the form after import
+- **No database changes required** — all new fields are transient (passed in the API response, not stored)
 
