@@ -549,6 +549,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   // Build rateParams with working weeks for the current claim month
   const claimMonthDate = `${claimMonth}-01`;
   const workingWeeksForMonth = calcWorkingWeeks(claimMonthDate);
+  const rawWorkingWeeksForMonth = calcRawWorkingWeeks(claimMonthDate);
   const bankHolidaysForMonth = getBankHolidaysInMonth(claimMonthDate);
   const bankHolidayDetailsForMonth = getBankHolidayDetailsInMonth(claimMonthDate);
 
@@ -559,6 +560,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     employerNiPct: rateSettings.employer_ni_pct,
     employerPensionPct: rateSettings.employer_pension_pct,
     workingWeeksInMonth: workingWeeksForMonth,
+    rawWorkingWeeksInMonth: rawWorkingWeeksForMonth,
     workingDaysInMonth: calcWorkingDays(claimMonthDate),
     bankHolidaysInMonth: bankHolidaysForMonth,
     bankHolidayDetails: bankHolidayDetailsForMonth,
