@@ -359,6 +359,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
+  const isManagement = lines.length > 0 && lines.every((l: any) => l.staff_category === 'management');
   const isSubmitted = claim.status === 'submitted';
   const hasPartA = (claim as any).part_a ?? true;
   const hasPartB = !!(claim as any).part_b;
@@ -401,10 +402,12 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             {(() => { const name = resolveSubmitterName(claim, profileNames || {}); return name ? <InfoBlock label="Submitted by" value={name} sub={claim.submitted_by_email || undefined} /> : claim.submitted_by_email ? <InfoBlock label="Submitted by" value={claim.submitted_by_email} /> : null; })()}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              <EvidencePill label="Part A" met={hasPartA} />
-              <EvidencePill label="Part B" met={hasPartB} />
-            </div>
+            {!isManagement && (
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                <EvidencePill label="Part A" met={hasPartA} />
+                <EvidencePill label="Part B" met={hasPartB} />
+              </div>
+            )}
           </div>
 
           {/* Bank details */}
@@ -421,7 +424,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           )}
 
           {/* Part B substantiation */}
-          {partBDetail && (
+          {!isManagement && partBDetail && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0c4a6e' }}>
               <strong>Part B Substantiation:</strong> {partBDetail}
             </div>
