@@ -233,6 +233,12 @@ function getSourceLabel(source: RecoveryDBSession['source']): string {
   return '🔄 Recovery DB';
 }
 
+function getMeetingImportSource(source: RecoveryDBSession['source']): string {
+  if (source === 'offline-backups') return 'mobile_offline';
+  if (source === 'notewell_recordings_v1') return 'mobile_offline';
+  return 'recovery_upload';
+}
+
 export default function RecoveryToolPage() {
   const [sessions, setSessions] = useState<RecoveryDBSession[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -387,6 +393,7 @@ export default function RecoveryToolPage() {
           start_time: s.createdAt,
           duration_minutes: Math.round(s.totalDuration / 60) || 1,
           word_count: 0,
+          import_source: getMeetingImportSource(s.source),
         })
         .select('id')
         .single();

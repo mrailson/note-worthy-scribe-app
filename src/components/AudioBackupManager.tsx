@@ -46,6 +46,29 @@ interface AudioBackup {
   import_source?: string;
 }
 
+const getRecordingSourceLabel = (backup: AudioBackup): string | null => {
+  const source = backup.import_source?.toLowerCase();
+  const deviceType = backup.device_type?.toLowerCase();
+  const browser = backup.device_browser?.toLowerCase();
+  const reason = backup.backup_reason?.toLowerCase();
+
+  if (source === 'mobile_offline') return 'Offline Mobile';
+  if (source === 'mobile_live') return 'Live Mobile';
+
+  if (deviceType === 'chromium_desktop' && browser === 'edge') return 'Edge Desktop';
+  if (deviceType === 'chromium_desktop' && browser === 'chrome') return 'Chrome Desktop';
+  if (deviceType === 'chromium_desktop') return `${backup.device_browser || 'Desktop'} Recording`;
+  if (deviceType === 'iphone' || deviceType === 'android') {
+    return `${backup.device_browser || 'Mobile'} (${deviceType === 'iphone' ? 'iPhone' : 'Android'})`;
+  }
+  if (browser) return `${backup.device_browser} Recording`;
+
+  if (reason === 'offline_backup') return 'Offline Mobile';
+  if (reason === 'emergency_recovery') return 'Recovery Upload';
+
+  return null;
+};
+
 interface StorageStats {
   totalFiles: number;
   totalSize: number;
@@ -771,27 +794,8 @@ export const AudioBackupManager = () => {
                       </div>
                       <div className="flex gap-2 flex-wrap justify-end">
                         {(() => {
-                          const src = backup.import_source;
-                          const dev = backup.device_type;
-                          const browser = backup.device_browser;
-                          let label = '';
-                          let variant: 'default' | 'secondary' | 'outline' = 'secondary';
-                          if (src === 'mobile_offline') {
-                            label = 'Offline Mobile';
-                          } else if (src === 'mobile_live') {
-                            label = 'Live Mobile';
-                          } else if (dev === 'chromium_desktop' && browser === 'Edge') {
-                            label = 'Edge Desktop';
-                          } else if (dev === 'chromium_desktop' && browser === 'Chrome') {
-                            label = 'Chrome Desktop';
-                          } else if (dev === 'chromium_desktop') {
-                            label = `${browser || 'Desktop'} Recording`;
-                          } else if (dev === 'iphone' || dev === 'android') {
-                            label = `${browser || 'Mobile'} (${dev === 'iphone' ? 'iPhone' : 'Android'})`;
-                          } else if (browser) {
-                            label = `${browser} Recording`;
-                          }
-                          return label ? <Badge variant={variant}>{label}</Badge> : null;
+                          const label = getRecordingSourceLabel(backup);
+                          return label ? <Badge variant="secondary">{label}</Badge> : null;
                         })()}
                         
                         {backup.is_reprocessed && (
