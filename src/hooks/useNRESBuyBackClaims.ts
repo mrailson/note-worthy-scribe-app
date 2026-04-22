@@ -57,6 +57,8 @@ export interface BuyBackClaim {
   actual_payment_date: string | null;
   payment_notes: string | null;
   payment_audit_trail: any[];
+  // Holiday deduction for management claims
+  holiday_weeks_deducted: number;
   created_at: string;
   updated_at: string;
 }
