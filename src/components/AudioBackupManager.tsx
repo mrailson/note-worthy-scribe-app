@@ -65,6 +65,8 @@ export const AudioBackupManager = () => {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [storageStats, setStorageStats] = useState<StorageStats>({ totalFiles: 0, totalSize: 0, totalMeetings: 0 });
   const [activeTab, setActiveTab] = useState('overview');
+  const [deletingSingle, setDeletingSingle] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Chunk-by-chunk reprocessing state
   interface SegmentResult {
@@ -180,11 +182,11 @@ export const AudioBackupManager = () => {
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, email')
-          .in('id', userIds);
+          .select('user_id, email')
+          .in('user_id', userIds);
         if (profiles) {
           for (const p of profiles) {
-            if (p.email) emailMap[p.id] = p.email;
+            if (p.email && p.user_id) emailMap[p.user_id] = p.email;
           }
         }
       }
@@ -525,6 +527,23 @@ export const AudioBackupManager = () => {
     }
   };
 
+  const deleteSingleBackup = async (backupId: string, filePath: string) => {
+    try {
+      setDeletingSingle(backupId);
+      await supabase.storage.from('meeting-audio-backups').remove([filePath]);
+      const { error } = await supabase.from('meeting_audio_backups').delete().eq('id', backupId);
+      if (error) throw error;
+      setBackups(prev => prev.filter(b => b.id !== backupId));
+      toast.success('Audio backup deleted');
+    } catch (error) {
+      console.error('Error deleting backup:', error);
+      toast.error('Failed to delete backup');
+    } finally {
+      setDeletingSingle(null);
+      setConfirmDeleteId(null);
+    }
+  };
+
   const downloadAudio = async (backup: AudioBackup) => {
     try {
       toast.info('Downloading audio backup...');
@@ -842,7 +861,49 @@ export const AudioBackupManager = () => {
                         )}
                         Reprocess Audio
                       </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setConfirmDeleteId(backup.id)}
+                        disabled={deletingSingle === backup.id}
+                      >
+                        {deletingSingle === backup.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-2" />
+                        )}
+                        Delete
+                      </Button>
                     </div>
+
+                    {/* Single backup delete confirmation */}
+                    <AlertDialog open={confirmDeleteId === backup.id} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this audio backup?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the audio file and database record. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={deletingSingle === backup.id}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteSingleBackup(backup.id, backup.file_path)}
+                            disabled={deletingSingle === backup.id}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deletingSingle === backup.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Deleting...
+                              </>
+                            ) : (
+                              'Delete'
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
 
                     {/* Chunk-by-chunk progress UI */}
                     {reprocessing === backup.id && reprocessSegments.length > 0 && (
