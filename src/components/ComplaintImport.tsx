@@ -853,9 +853,9 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               {/* Hand-written letter warning banner */}
               <Alert className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100 mb-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Check imported content carefully</AlertTitle>
+                <AlertTitle>Handwritten letters — review before saving</AlertTitle>
                 <AlertDescription>
-                  We're aware of an issue where <strong>hand-written letters</strong> can produce inaccurate or hallucinated content during import. Please verify all extracted details against the original letter before saving or actioning the complaint. A fix is in progress.
+                  When importing photos of <strong>hand-written letters</strong>, AI will extract the text and show it for your review. Words it cannot read clearly will be flagged. Please verify all details against the original before saving.
                 </AlertDescription>
               </Alert>
 
