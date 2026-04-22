@@ -95,6 +95,18 @@ function dateStr(iso: string | null): string {
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} at ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
+/** Resolve a display name — if stored value looks like an email, derive a readable name from it */
+function resolveSubmitterName(claim: BuyBackClaim, profileNames: Record<string, string>): string | undefined {
+  const email = claim.submitted_by_email;
+  if (email && profileNames[email.toLowerCase()]) return profileNames[email.toLowerCase()];
+  const raw = (claim as any).submitted_by_name;
+  if (!raw) return undefined;
+  if (!raw.includes('@')) return raw;
+  // Derive name from email: malcolm.railson@nhs.net → Malcolm Railson
+  const local = raw.split('@')[0];
+  return local.split(/[._-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
 // --- Sub-components ---
 
 function StatusBadge({ status }: { status: string }) {
