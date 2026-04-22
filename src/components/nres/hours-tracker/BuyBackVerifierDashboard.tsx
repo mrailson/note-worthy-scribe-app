@@ -410,7 +410,13 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             )}
           </div>
 
-          {/* Bank details */}
+          {/* Practice notes */}
+          {(claim as any).practice_notes && (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+              <strong>Practice Note:</strong> {(claim as any).practice_notes}
+            </div>
+          )}
+
           {bankDetails && (
             <div style={{ display: 'flex', gap: 20, padding: '10px 0', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
