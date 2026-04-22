@@ -25,6 +25,7 @@ export interface BuyBackClaim {
   status: 'draft' | 'submitted' | 'verified' | 'approved' | 'queried' | 'invoiced' | 'paid' | 'rejected';
   submitted_at: string | null;
   submitted_by_email: string | null;
+  submitted_by_name: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_notes: string | null;
@@ -388,6 +389,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         status: 'submitted',
         submitted_at: new Date().toISOString(),
         submitted_by_email: user.email || null,
+        submitted_by_name: emailConfig?.currentUserName || user.email || null,
       };
       // Save the practice's response to a query when resubmitting
       if (queryResponseNotes) {
