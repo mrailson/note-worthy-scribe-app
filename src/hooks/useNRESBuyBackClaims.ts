@@ -103,6 +103,7 @@ export function calculateStaffMonthlyAmount(
   claimMonth?: string,
   startDate?: string | null,
   rateParams?: RateParams,
+  holidayWeeksDeducted: number = 0,
 ): number {
   let fullMonthly: number;
 
