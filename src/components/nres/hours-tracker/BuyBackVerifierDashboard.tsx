@@ -523,7 +523,16 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
                         {overMax && <span style={{ marginLeft: 4, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>!</span>}
                       </td>
                       <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
-                        {mi.max > 0 ? <span title={mi.formula}>{fmt(mi.max)}</span> : '—'}
+                        {mi.max > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                            <span title={mi.formula}>{fmt(mi.max)}</span>
+                            {l.staff_category === 'management' && (
+                              <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right', maxWidth: 220 }}>
+                                {mi.formula}
+                              </span>
+                            )}
+                          </div>
+                        ) : '—'}
                       </td>
                     </tr>
                     );
