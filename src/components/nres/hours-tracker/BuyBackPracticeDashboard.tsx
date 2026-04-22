@@ -3040,50 +3040,103 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             </div>
           )}
 
-          <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr>
-                  {['Name', 'Role', 'GL Cat', 'Allocation', 'Amount'].map((h, i) => (
-                    <th key={h} style={{
-                      textAlign: i >= 3 ? 'right' : 'left', padding: '7px 10px',
-                      fontSize: 11, fontWeight: 600, color: '#6b7280',
-                      textTransform: 'uppercase' as const, letterSpacing: '0.04em',
-                      borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap' as const,
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {staffDets.map((s: any, i: number) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{s.staff_name || '—'}</td>
-                    <td style={{ padding: '10px', color: '#374151' }}>{s.staff_role || '—'}</td>
-                    <td style={{ padding: '10px' }}>
-                      <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
-                        {s.gl_code || (s.staff_category === 'management' ? 'N/A' : '—')}
-                      </code>
-                    </td>
-                    <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                      {s.allocation_value} {s.allocation_type}
-                    </td>
-                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#111827' }}>
-                      {fmtGBP(s.claimed_amount ?? s.calculated_amount ?? 0)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={3} style={{ padding: '10px' }} />
-                  <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
-                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
-                    {fmtGBP(total)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          {(() => {
+            const hasLocum = staffDets.some((s: any) => s.staff_category === 'gp_locum');
+            const MINUTES_PER_SESSION = 250; // 4h 10m
+            const headers = hasLocum
+              ? ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Amount']
+              : ['Name', 'Role', 'GL Cat', 'Allocation', 'Amount'];
+            const rightAlignFrom = hasLocum ? 4 : 3;
+            const colCount = headers.length;
+
+            const formatLocumHours = (sessions: number) => {
+              const totalMins = Math.round(sessions * MINUTES_PER_SESSION);
+              const h = Math.floor(totalMins / 60);
+              const m = totalMins % 60;
+              return { display: m > 0 ? `${h}h ${m}m` : `${h}h`, decimal: (totalMins / 60).toFixed(1) };
+            };
+
+            // Compute total hours for locum claims
+            const totalLocumHrs = hasLocum ? staffDets.reduce((sum: number, s: any) => {
+              const sess = s.staff_category === 'gp_locum' ? (s.allocation_value || 0) : 0;
+              return sum + Math.round(sess * MINUTES_PER_SESSION) / 60;
+            }, 0) : 0;
+
+            return (
+              <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      {headers.map((h, i) => (
+                        <th key={h} style={{
+                          textAlign: i >= rightAlignFrom ? 'right' : 'left', padding: '7px 10px',
+                          fontSize: 11, fontWeight: 600, color: '#6b7280',
+                          textTransform: 'uppercase' as const, letterSpacing: '0.04em',
+                          borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap' as const,
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staffDets.map((s: any, i: number) => {
+                      const isLocum = s.staff_category === 'gp_locum';
+                      const locumHrs = isLocum ? formatLocumHours(s.allocation_value || 0) : null;
+                      return (
+                        <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{s.staff_name || '—'}</td>
+                          <td style={{ padding: '10px', color: '#374151' }}>{s.staff_role || '—'}</td>
+                          <td style={{ padding: '10px' }}>
+                            <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
+                              {s.gl_code || (s.staff_category === 'management' ? 'N/A' : '—')}
+                            </code>
+                          </td>
+                          {hasLocum ? (
+                            <>
+                              <td style={{ padding: '10px', color: '#374151' }}>{s.start_date ? new Date(s.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</td>
+                              <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+                                {isLocum && locumHrs ? locumHrs.display : '—'}
+                              </td>
+                              <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+                                {isLocum && locumHrs ? locumHrs.decimal : '—'}
+                              </td>
+                            </>
+                          ) : (
+                            <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+                              {s.allocation_value} {s.allocation_type}
+                            </td>
+                          )}
+                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#111827' }}>
+                            {fmtGBP(s.claimed_amount ?? s.calculated_amount ?? 0)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      {hasLocum ? (
+                        <>
+                          <td colSpan={colCount - 3} style={{ padding: '10px' }} />
+                          <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
+                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#374151', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
+                            {totalLocumHrs.toFixed(1)}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td colSpan={colCount - 2} style={{ padding: '10px' }} />
+                          <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
+                        </>
+                      )}
+                      <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
+                        {fmtGBP(total)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            );
+          })()}
 
           {(isDraft || isQueried) && (
             <div style={{ marginTop: 12 }}>
