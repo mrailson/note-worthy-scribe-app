@@ -462,6 +462,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   const highlightColor = view === 'finance' ? '#c4b5fd' : '#93c5fd';
   const glowColor = view === 'finance' ? 'rgba(139,92,246,0.06)' : 'rgba(59,130,246,0.06)';
 
+  const isManagement = staffDetails.length > 0 && staffDetails.every((s: any) => s.staff_category === 'management');
   const hasPartA = claim.declaration_confirmed;
   const hasPartB = staffDetails.length > 0;
 
