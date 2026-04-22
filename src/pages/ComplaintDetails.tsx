@@ -1808,11 +1808,12 @@ const ComplaintDetails = () => {
                   {complaint.status === 'under_review' && acknowledgementSentToPatient && (
                     <Mail className="h-3 w-3 inline ml-1 mr-1" />
                   )}
-                  {complaint.status === 'closed' && outcomeType
-                    ? `Closed - Complaint ${
-                        outcomeType === 'rejected' ? 'Not Upheld' :
-                        outcomeType === 'upheld' ? 'Upheld' :
-                        outcomeType === 'partially_upheld' ? 'Partially Upheld' :
+                   {complaint.status === 'closed' && outcomeType
+                    ? `Closed - ${
+                        outcomeType === 'rejected' ? 'Complaint Not Upheld' :
+                        outcomeType === 'upheld' ? 'Complaint Upheld' :
+                        outcomeType === 'partially_upheld' ? 'Complaint Partially Upheld' :
+                        outcomeType === 'withdrawn' ? 'Withdrawn/Resolved' :
                         outcomeType.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
                       }`
                     : getStatusLabel(complaint.status)}
@@ -2252,11 +2253,12 @@ const ComplaintDetails = () => {
                           {complaint.status === 'under_review' && acknowledgementSentToPatient && (
                             <Mail className="h-3 w-3 mr-1" />
                           )}
-                          {complaint.status === 'closed' && outcomeType
-                            ? `Closed - Complaint ${
-                                outcomeType === 'rejected' ? 'Not Upheld' :
-                                outcomeType === 'upheld' ? 'Upheld' :
-                                outcomeType === 'partially_upheld' ? 'Partially Upheld' :
+                           {complaint.status === 'closed' && outcomeType
+                            ? `Closed - ${
+                                outcomeType === 'rejected' ? 'Complaint Not Upheld' :
+                                outcomeType === 'upheld' ? 'Complaint Upheld' :
+                                outcomeType === 'partially_upheld' ? 'Complaint Partially Upheld' :
+                                outcomeType === 'withdrawn' ? 'Withdrawn/Resolved' :
                                 outcomeType.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
                               }`
                             : getStatusLabel(complaint.status)}
@@ -2698,11 +2700,11 @@ const ComplaintDetails = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-green-800">
                       <FileText className="h-5 w-5" />
-                      Outcome Letter - Complaint {
+                      {existingOutcome.outcome_type === 'withdrawn' ? 'Closed – Withdrawn/Resolved' : `Outcome Letter - Complaint ${
                         existingOutcome.outcome_type === 'upheld' ? 'Upheld' :
-                        existingOutcome.outcome_type === 'partially_upheld' ? 'Partially upheld' :
+                        existingOutcome.outcome_type === 'partially_upheld' ? 'Partially Upheld' :
                         'Not Upheld'
-                      }
+                      }`}
                     </CardTitle>
                     <CardDescription className="text-green-700">
                       The final outcome letter for this complaint has been generated and is ready to view or download
@@ -2714,10 +2716,11 @@ const ComplaintDetails = () => {
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <Badge variant="default" className="bg-green-600 text-white">
-                              Outcome: {
-                                existingOutcome.outcome_type === 'upheld' ? 'Complaint Upheld' :
-                                existingOutcome.outcome_type === 'partially_upheld' ? 'Complaint Partially upheld' :
-                                'Complaint Not Upheld'
+                               Outcome: {
+                                 existingOutcome.outcome_type === 'upheld' ? 'Complaint Upheld' :
+                                 existingOutcome.outcome_type === 'partially_upheld' ? 'Complaint Partially Upheld' :
+                                 existingOutcome.outcome_type === 'withdrawn' ? 'Withdrawn/Resolved' :
+                                 'Complaint Not Upheld'
                               }
                             </Badge>
                             {!outcomeLetterSent && (

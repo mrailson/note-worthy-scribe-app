@@ -1484,6 +1484,7 @@ const ComplaintsSystem = () => {
         rejected: 'Not Upheld',
         upheld: 'Upheld',
         partially_upheld: 'Partially Upheld',
+        withdrawn: 'Withdrawn/Resolved',
       };
       const formattedOutcome = outcomeLabels[outcomeType] || outcomeType
         .split('_')
