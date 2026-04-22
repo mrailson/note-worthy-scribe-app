@@ -3372,16 +3372,20 @@ export function BuyBackPracticeDashboard({
       <div style={{ height: 1, background: '#e5e7eb', margin: '8px 0 20px' }} />
 
       {/* Unified Claims section */}
-      <ClaimsViewSwitcher
-        claims={practiceClaims}
-        practiceKey={practiceKey}
-        practiceName={practiceName}
-        onToggleCard={(id) => setExpandedClaimId(expandedClaimId === id ? null : id)}
-        expandedClaimId={expandedClaimId}
-        onSubmit={onSubmit}
-        onResubmit={onResubmit}
-        saving={savingClaim}
-      />
+      <div ref={claimsRef}>
+        <ClaimsViewSwitcher
+          claims={practiceClaims}
+          practiceKey={practiceKey}
+          practiceName={practiceName}
+          onToggleCard={(id) => setExpandedClaimId(expandedClaimId === id ? null : id)}
+          expandedClaimId={expandedClaimId}
+          onSubmit={onSubmit}
+          onResubmit={onResubmit}
+          saving={savingClaim}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+        />
+      </div>
 
       {/* Footer */}
       <div style={{
