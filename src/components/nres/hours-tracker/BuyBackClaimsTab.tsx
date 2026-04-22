@@ -68,11 +68,10 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocV
     }
   }
 
-  // Management: hourly_rate × weekly_hours × working_weeks
-  if ((category === 'management' || role === 'NRES Management') && hourlyRate && rateParams?.workingWeeksInMonth) {
-    const ww = rateParams.workingWeeksInMonth;
-    const bhNote = rateParams.bankHolidaysInMonth ? ` (${rateParams.bankHolidaysInMonth} bank hol${rateParams.bankHolidaysInMonth > 1 ? 's' : ''} excluded)` : '';
-    return `${allocValue} hrs/wk × ${ww.toFixed(1)} working weeks${bhNote} × ${fmtGBP(hourlyRate)}/hr`;
+  // Management: hourly_rate × weekly_hours × working_weeks (no bank holiday subtraction)
+  if ((category === 'management' || role === 'NRES Management') && hourlyRate && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth)) {
+    const ww = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
+    return `${allocValue} hrs/wk × ${ww.toFixed(1)} weeks × ${fmtGBP(hourlyRate)}/hr`;
   }
 
   const roleConfig = rateParams?.getRoleConfig?.(role ?? '');
