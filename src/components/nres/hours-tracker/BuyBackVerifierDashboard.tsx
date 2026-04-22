@@ -319,7 +319,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
   const hasPartB = !!(claim as any).part_b;
   const partBDetail = (claim as any).part_b_detail;
   const bankDetails = (claim as any).bank_details;
-  const directorNotes = (claim as any).director_notes || (claim as any).query_notes || '';
+  const directorNotes = ((claim as any).director_notes || (claim as any).query_notes || '').replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '');
   const financeNotes = (claim as any).finance_notes || (claim as any).payment_notes || '';
 
   return (

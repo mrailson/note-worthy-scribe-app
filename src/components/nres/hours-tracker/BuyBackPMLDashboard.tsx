@@ -641,7 +641,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                   border: `1px solid ${claim.status === 'queried' ? '#fecaca' : '#fde68a'}`,
                   color: claim.status === 'queried' ? '#991b1b' : '#92400e',
                 }}>
-                  <strong>Query Note:</strong> {claim.query_notes}
+                  <strong>Query Note:</strong> {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
                 </div>
               )}
               {claim.verified_notes && (
