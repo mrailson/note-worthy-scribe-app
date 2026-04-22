@@ -1195,6 +1195,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
                     onVerify={onVerify}
                     onReturn={onReturnToPractice}
                     saving={savingClaim}
+                    profileNames={profileNames}
                   />
                 ))}
                 {filteredMeetingGroups.map((group) => {
