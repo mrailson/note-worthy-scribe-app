@@ -848,7 +848,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
   <div style="padding:26px 28px 8px;">
     <p style="margin:0 0 10px;font-size:15px;">Hi ${firstName},</p>
-    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">PML has approved your ${claimMonthLabel} ${claimTypeLabelLower} claim. The matching invoice is attached — no action needed.</p>
+    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">PML has approved your ${claimMonthLabel} ${claimTypeLabelLower} claim for <strong>${practiceName}</strong>. The matching invoice is attached — no action needed.</p>
 
     <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:10px 0;margin:0 -10px 22px;">
       <tr>
@@ -1279,7 +1279,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
   <div style="padding:26px 28px 8px;">
     <p style="margin:0 0 10px;font-size:15px;">Hi ${submitterFirstName || 'there'},</p>
     <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">
-      PML Finance has marked your ${claimMonthLabel} ${paidClaimTypeLabelLower} claim as <strong>paid</strong>.
+      PML Finance has marked your ${claimMonthLabel} ${paidClaimTypeLabelLower} claim for <strong>${practiceName}</strong> as <strong>paid</strong>.
       ${paymentDateLabel ? `Payment was sent on <strong>${paymentDateLabel}</strong>.` : 'Payment has been issued.'}
       Please allow standard banking time for the funds to clear.
     </p>
