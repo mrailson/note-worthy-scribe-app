@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       }
 
       const sizeMB = audioData.size / 1024 / 1024;
-      console.log(`🎙️ Transcribing segment ${segmentIndex} (${sizeMB.toFixed(1)} MB)`);
+      console.log(`🎙️ Transcribing segment ${segmentIndex} (${sizeMB.toFixed(1)} MB, ${audioData.size} bytes)`);
 
       // Guard rail: reject segments over 20 MB
       if (sizeMB > 20) {
@@ -115,11 +115,13 @@ Deno.serve(async (req) => {
       formData.append("language", "en");
       formData.append("response_format", "text");
 
+      console.log(`📤 Sending segment ${segmentIndex} to Whisper (Content-Length: ${audioData.size} bytes)`);
+
       const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: { Authorization: `Bearer ${openaiKey}` },
         body: formData,
-        signal: AbortSignal.timeout(120_000), // 2-minute timeout for clear error
+        signal: AbortSignal.timeout(150_000), // 2.5-minute timeout for large segments
       });
 
       if (!whisperRes.ok) {

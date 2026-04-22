@@ -44,6 +44,8 @@ interface AudioBackup {
   device_type?: string;
   device_browser?: string;
   import_source?: string;
+  // Enriched from storage
+  segmentDetails?: { name: string; size: number }[];
 }
 
 const getRecordingSourceLabel = (backup: AudioBackup): string | null => {
@@ -241,6 +243,32 @@ export const AudioBackupManager = () => {
       }));
 
       setBackups(enriched);
+
+      // Fetch segment details from storage for each backup (non-blocking)
+      enriched.forEach(async (backup: AudioBackup) => {
+        try {
+          const folderPath = backup.file_path.substring(0, backup.file_path.lastIndexOf('/'));
+          if (!folderPath) return;
+          const { data: files } = await supabase.storage
+            .from('meeting-audio-backups')
+            .list(folderPath, { limit: 200 });
+          if (!files) return;
+          const audioExts = ['.webm', '.m4a', '.mp3', '.wav', '.ogg', '.weba'];
+          const segments = files
+            .filter((f: any) => f.id && audioExts.some(ext => f.name.toLowerCase().endsWith(ext)))
+            .sort((a: any, b: any) => {
+              const numA = parseInt(a.name.match(/(\d+)/)?.[1] || '0');
+              const numB = parseInt(b.name.match(/(\d+)/)?.[1] || '0');
+              return numA - numB;
+            })
+            .map((f: any) => ({ name: f.name, size: (f.metadata as any)?.size || 0 }));
+          if (segments.length > 0) {
+            setBackups(prev => prev.map(b => b.id === backup.id ? { ...b, segmentDetails: segments } : b));
+          }
+        } catch (err) {
+          console.warn('Failed to fetch segments for backup', backup.id, err);
+        }
+      });
     } catch (error) {
       console.error('Error fetching audio backups:', error);
       toast.error('Failed to load audio backups');
@@ -278,7 +306,7 @@ export const AudioBackupManager = () => {
               ? { ...seg, status: 'processing', error: `retrying (${attempt}/${maxAttempts})…` }
               : seg)
           );
-          await new Promise(r => setTimeout(r, 3000)); // 3s backoff
+          await new Promise(r => setTimeout(r, 5000)); // 5s backoff
         }
 
         const { data: txData, error: txErr } = await supabase.functions.invoke('reprocess-audio-segment', {
@@ -334,7 +362,7 @@ export const AudioBackupManager = () => {
       // Step 2: Transcribe each segment one by one with retry
       for (let i = 0; i < segments.length; i++) {
         // 1s delay between segments to prevent function boot storms
-        if (i > 0) await new Promise(r => setTimeout(r, 1000));
+        if (i > 0) await new Promise(r => setTimeout(r, 2000)); // 2s cooldown between segments
 
         const startTime = Date.now();
         setReprocessSegments(prev =>
@@ -808,7 +836,7 @@ export const AudioBackupManager = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="font-medium">Duration:</span>
                         <p>{formatDuration(backup.duration_seconds)}</p>
@@ -820,6 +848,19 @@ export const AudioBackupManager = () => {
                       <div>
                         <span className="font-medium">Word Count:</span>
                         <p>{backup.word_count} / {backup.expected_word_count}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Segments:</span>
+                        {backup.segmentDetails ? (
+                          <p>
+                            {backup.segmentDetails.length} segment{backup.segmentDetails.length !== 1 ? 's' : ''}
+                            <span className="text-muted-foreground ml-1">
+                              ({backup.segmentDetails.map(s => formatFileSize(s.size)).join(', ')})
+                            </span>
+                          </p>
+                        ) : (
+                          <p className="text-muted-foreground">Loading…</p>
+                        )}
                       </div>
                     </div>
 
