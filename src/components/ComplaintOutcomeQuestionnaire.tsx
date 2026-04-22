@@ -1601,7 +1601,7 @@ export const ComplaintOutcomeQuestionnaire = ({
           </div>
         )}
 
-        {/* Navigation Buttons */}
+        {data.outcome_type !== 'withdrawn' && (
         <div className="flex justify-between mt-6">
           <Button variant="outline" onClick={handleBack} disabled={step === 1 || isSubmitting}>
             Back
