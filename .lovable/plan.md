@@ -1,49 +1,25 @@
 
 
-## Plan: Fix Management Claim Calculation and Add Holiday Deduction
+## Plan: Auto-Send Email with Word Doc After Manual Note Generation
+
+### Summary
+
+When a user manually clicks "Generate Notes" (or "Regenerate Notes") via the `ManualNoteGenerationButton`, the system currently generates notes but does not send the automated email. This change will trigger the same email-with-Word-attachment flow that the automatic pipeline uses, immediately after notes are successfully generated.
 
 ### What Changes
 
-**1. Change the working weeks calculation for Management claims**
+**File: `src/components/meeting-recovery/ManualNoteGenerationButton.tsx`**
 
-Currently the system counts weekdays in the month, subtracts bank holidays, then divides by 5. The user wants a simpler, straight calculation: count the Mon-Fri weeks in the month (e.g. a month with 20 weekdays = 4.0 weeks, 22 weekdays = 4.4 weeks). Bank holidays should **not** be subtracted from this count — the formula is purely weekdays ÷ 5.
+1. After the successful `generate-meeting-notes-claude` edge function call (line 89), add a call to the existing `sendMeetingNotesEmail` helper from `src/utils/sendMeetingNotesEmail.ts`.
+2. Look up the current user's email from `supabase.auth.getUser()`.
+3. Call `sendMeetingNotesEmail({ meetingId, recipientEmail: userEmail })` — this helper already handles fetching the meeting summary, building the HTML email, generating the Word attachment, and sending via the `send-meeting-email-resend` edge function.
+4. Add a brief delay (~3 seconds) before calling the email helper, to allow the edge function to commit the generated notes/summary to the database.
+5. Show a toast on email success ("Meeting notes emailed to you") or a warning toast if the email fails (non-blocking — notes were still generated successfully).
 
-The formula becomes:
-```
-(working_weeks - holiday_weeks) × hours_per_week × effective_hourly_rate
-```
+### Technical Details
 
-**2. Add "Holiday Weeks Taken" input per management staff member per month**
-
-A new dropdown/input on each management claim card allowing the practice to enter 0, 0.5, 1, 1.5, or 2 weeks of holiday taken that month. This deducts from the working weeks before multiplying.
-
-**3. Store holiday weeks on the claim record**
-
-Add a `holiday_weeks_deducted` column (numeric, default 0) to `nres_buyback_claims` so the deduction is persisted and visible in all dashboards.
-
-### Files to Change
-
-| File | Change |
-|------|--------|
-| **New migration** | Add `holiday_weeks_deducted NUMERIC DEFAULT 0` to `nres_buyback_claims` |
-| `src/hooks/useNRESBuyBackClaims.ts` | Remove bank holiday subtraction from management working weeks calc (lines 128-132). Apply `workingWeeks - holidayWeeks` in the formula. Pass `holiday_weeks_deducted` when creating claims. |
-| `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` | Remove bank holiday subtraction from `getWorkingDaysInMonth` for management context. Update breakdown text to show holiday deduction instead of bank hols. |
-| `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx` | Add holiday weeks selector (0, 0.5, 1, 1.5, 2) per management staff card. Update the breakdown display (lines 818-856) to show the deduction. Pass the value into claim creation. |
-| `src/components/nres/hours-tracker/BuyBackPMLDashboard.tsx` | Display holiday weeks deducted in the claim detail view |
-| `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx` | Display holiday weeks deducted in the claim detail view |
-| `src/components/nres/hours-tracker/ClaimsUserGuide.tsx` | Update FAQ and help text to reflect the new calculation method |
-| `src/utils/workingDays.ts` | No change needed — the utility stays; management claims just won't use the bank holiday subtraction |
-
-### Calculation Example
-
-April 2026: 22 weekdays = 4.4 working weeks.
-- No holiday: 4.4 × 8 hrs × £85/hr = £2,992
-- 1 week holiday: 3.4 × 8 hrs × £85/hr = £2,312
-- 2 weeks holiday: 2.4 × 8 hrs × £85/hr = £1,632
-
-### UI for Holiday Deduction
-
-On each management staff card in the Practice Dashboard, below the hours/week display, a labelled dropdown:
-- **"Holiday taken this month"**: 0 weeks (default), 0.5, 1, 1.5, 2 weeks
-- The breakdown line updates live to show: `8 hrs/wk × 3.4 weeks (4.4 less 1 wk holiday) × £85/hr`
+- The `sendMeetingNotesEmail` utility already exists and is battle-tested across desktop and mobile flows.
+- No new edge functions or database changes are needed.
+- The email send is wrapped in a try/catch so a failure does not affect the "notes generated successfully" outcome.
+- The button's loading state will remain active until both note generation and email sending complete.
 
