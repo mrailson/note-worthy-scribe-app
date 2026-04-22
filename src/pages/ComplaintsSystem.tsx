@@ -2018,7 +2018,7 @@ const ComplaintsSystem = () => {
                               </Tooltip>
                             </div>
                             <div style={{ padding: '0 8px' }}>
-                              <HoverCard openDelay={200} closeDelay={100}>
+                              <HoverCard key={`hover-${complaint.id}`} openDelay={200} closeDelay={100}>
                                 <HoverCardTrigger asChild>
                                   <Badge className={`${getStatusColor(complaint.status)} cursor-default`} style={{ fontSize: '11px', padding: '3px 8px', maxWidth: '130px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex' }}>
                                     {complaint.status === 'under_review' && complaint.acknowledged_at ? (
