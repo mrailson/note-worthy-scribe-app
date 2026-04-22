@@ -430,16 +430,25 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   const neighbourhoodLabel = isENN ? 'ENN' : 'NRES';
   const managerName = isENN ? 'Rebecca Gane (Transformation Manager, 3Sixty Care Partnership)' : 'Malcolm Railson (Neighbourhood Manager, PCN Services Ltd)';
   const { user } = useAuth();
+  // Fetch profile name (profiles table is the source of truth, not auth metadata)
+  const [profileName, setProfileName] = useState<string | undefined>();
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle().then(({ data }) => {
+      if (data?.full_name) setProfileName(data.full_name);
+    });
+  }, [user?.id]);
   const { activeStaff, loading: loadingStaff, saving: savingStaff, admin, addStaff, updateStaff, removeStaff } = useNRESBuyBackStaff();
   const { staffRoles, settings: rateSettings, onCostMultiplier, getAnnualRate, loading: loadingRates } = useNRESBuyBackRateSettings();
+  const resolvedUserName = profileName || user?.user_metadata?.full_name || user?.email || undefined;
   const emailConfig = useMemo(() => ({
     emailTestingMode: rateSettings.email_testing_mode,
     emailSendingDisabled: rateSettings.email_sending_disabled,
     allowInvoiceWhenSuppressed: rateSettings.allow_invoice_email_when_suppressed,
     notifySubmitterOnPaid: rateSettings.notify_submitter_on_paid,
     currentUserEmail: user?.email || undefined,
-    currentUserName: user?.user_metadata?.full_name || user?.email || undefined,
-  }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, rateSettings.notify_submitter_on_paid, user?.email, user?.user_metadata?.full_name]);
+    currentUserName: resolvedUserName,
+  }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, rateSettings.notify_submitter_on_paid, user?.email, resolvedUserName]);
   const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine, refetch: refetchClaims } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries, verifyMeetingEntries, returnMeetingEntries, approveMeetingEntries, rejectMeetingEntries, queryMeetingEntries, refetch: refetchMeetingLog } = useNRESMeetingLog();
