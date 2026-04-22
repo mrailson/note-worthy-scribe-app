@@ -1291,7 +1291,7 @@ function InlineClaimPanel({
 
             // Build audit timeline for paid status
             const trail: { label: string; detail?: string; time?: string | null; color?: string }[] = [];
-            if (claim.submitted_at) trail.push({ label: 'Submitted by practice', time: claim.submitted_at, color: '#6b7280' });
+            if (claim.submitted_at) trail.push({ label: `Submitted by ${(claim as any).submitted_by_name || emailToName(claim.submitted_by_email || '') || 'practice'}`, time: claim.submitted_at, color: '#6b7280' });
             if (claim.verified_by) trail.push({ label: `Verified by ${emailToName(claim.verified_by)} (Management Lead)`, time: claim.verified_at, color: '#0369a1' });
             if (claim.approved_by_email) trail.push({ label: `Approved by ${emailToName(claim.approved_by_email)} (PML Director)`, time: (claim as any).approved_at, color: '#7c3aed' });
             if (claim.invoice_generated_at) trail.push({ label: `Invoice ${claim.invoice_number || ''} generated`, time: claim.invoice_generated_at, color: '#d97706' });
