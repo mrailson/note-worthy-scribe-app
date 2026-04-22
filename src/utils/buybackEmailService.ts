@@ -45,14 +45,20 @@ interface SendEmailPayload {
 
 /**
  * Determine the claim type label based on staff categories.
- * All buy-back → "Buy-Back Claim", all new_sda → "SDA Staff Claim", mixed → "NRES SDA Staff and Buy-Back Claim"
+ * Returns a specific label for single-category claims, or a generic fallback for mixed.
  */
 function getClaimTypeLabel(categories?: string[]): string {
   if (!categories || categories.length === 0) return 'SDA Claim';
   const unique = [...new Set(categories)];
-  if (unique.length === 1 && unique[0] === 'buyback') return 'Buy-Back Claim';
-  if (unique.length === 1 && unique[0] === 'new_sda') return 'SDA Staff Claim';
-  return 'NRES SDA Staff and Buy-Back Claim';
+  if (unique.length === 1) {
+    const cat = unique[0];
+    if (cat === 'buyback' || cat === 'salaried') return 'Buy-Back Claim';
+    if (cat === 'new_sda' || cat === 'additional' || cat === 'sda') return 'New SDA Claim';
+    if (cat === 'management') return 'NRES Management Claim';
+    if (cat === 'gp_locum') return 'GP Locum Claim';
+    if (cat === 'meeting') return 'Meeting Attendance Claim';
+  }
+  return 'SDA Claim';
 }
 
 const EMAIL_TYPE_CONFIG: Record<BuyBackEmailType, { subjectAction: string; heading: (label: string) => string; colour: string }> = {
