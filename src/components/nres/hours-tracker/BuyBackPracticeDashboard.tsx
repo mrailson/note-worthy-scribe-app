@@ -1074,7 +1074,7 @@ function InlineClaimPanel({
                 </div>
                 {onDeleteClaim && (
                   <button
-                    onClick={handleDeleteDraft}
+                    onClick={() => handleDeleteDraft(false)}
                     disabled={deletingDraft}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
@@ -1130,7 +1130,7 @@ function InlineClaimPanel({
                 </button>
                   {onDeleteClaim && (
                     <button
-                      onClick={handleDeleteDraft}
+                      onClick={() => handleDeleteDraft(true)}
                       disabled={deletingDraft}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
