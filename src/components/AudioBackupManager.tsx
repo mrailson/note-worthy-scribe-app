@@ -431,16 +431,16 @@ export const AudioBackupManager = () => {
               
               // Step 6: Send email with generated notes
               try {
-                const { data: meetingNotes } = await supabase
+                const { data: meetingData } = await supabase
                   .from('meetings')
-                  .select('title, meeting_notes')
+                  .select('title, notes_style_3')
                   .eq('id', meetingId)
                   .single();
                 
-                if (meetingNotes?.meeting_notes) {
+                if (meetingData?.notes_style_3) {
                   await sendEmailAutomatically(
-                    meetingNotes.meeting_notes,
-                    meetingNotes.title || 'Reprocessed Meeting Notes'
+                    meetingData.notes_style_3,
+                    meetingData.title || 'Reprocessed Meeting Notes'
                   );
                 }
               } catch (emailErr) {
