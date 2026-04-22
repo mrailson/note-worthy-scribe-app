@@ -516,14 +516,14 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
                       )}
                       <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
                         {(() => {
-                          const raw = l.date || l.claim_month || '';
+                          const raw = l.date || l.claim_month || claim.claim_month || '';
                           if (!raw) return '—';
                           const d = new Date(raw + (raw.length <= 7 ? '-01' : '') + 'T12:00:00');
                           return isNaN(d.getTime()) ? raw : d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
                         })()}
                       </td>
                       <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
-                        {isLocum && locHrs ? locHrs.display : (l.hours_worked || l.hours || '—')}
+                        {isLocum && locHrs ? locHrs.display : l.staff_category === 'management' ? `${l.allocation_value ?? 0} hrs/wk` : (l.hours_worked || l.hours || '—')}
                       </td>
                       <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
                         {isLocum && locHrs ? locHrs.decimal : (() => {
