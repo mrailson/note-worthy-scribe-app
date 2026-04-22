@@ -40,6 +40,7 @@ export interface BuyBackClaim {
   // Query fields
   queried_at: string | null;
   queried_by: string | null;
+  queried_by_role: string | null;
   query_notes: string | null;
   // Payment fields
   paid_at: string | null;
@@ -1079,7 +1080,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
   };
 
   /** Query a claim (Verified → Queried) — returns to editable status */
-  const queryClaim = async (id: string, notes: string) => {
+  const queryClaim = async (id: string, notes: string, queryRole?: string) => {
     if (!user?.id || !admin) return;
     if (!notes.trim()) {
       toast.error('Please provide query notes explaining what needs attention');
@@ -1097,6 +1098,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .update({
           status: 'queried',
           queried_by: user.email || null,
+          queried_by_role: queryRole || null,
           queried_at: new Date().toISOString(),
           query_notes: notes,
           query_flagged_lines: flaggedLines.length > 0 ? flaggedLines : null,
