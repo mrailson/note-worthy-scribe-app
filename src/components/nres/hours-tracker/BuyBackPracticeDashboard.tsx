@@ -3153,6 +3153,8 @@ export function BuyBackPracticeDashboard({
 }: BuyBackPracticeDashboardProps) {
   const [activeClaimKey, setActiveClaimKey] = useState<string | null>(null);
   const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const claimsRef = React.useRef<HTMLDivElement>(null);
 
   const practiceName = getPracticeName(practiceKey);
   const practiceCode = NRES_ODS_CODES[practiceKey] || '—';
