@@ -2518,7 +2518,7 @@ const ComplaintDetails = () => {
                   <CardContent>
                     <Button 
                       variant="outline"
-                      onClick={() => setShowOutcomeQuestionnaire(true)}
+                      onClick={() => setShowQuestionnaireModal(true)}
                       className="w-full sm:w-auto border-orange-300 text-orange-700 hover:bg-orange-100"
                     >
                       <XCircle className="h-4 w-4 mr-2" />
