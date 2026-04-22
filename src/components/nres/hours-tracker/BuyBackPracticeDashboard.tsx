@@ -3044,23 +3044,47 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             const hasLocum = staffDets.some((s: any) => s.staff_category === 'gp_locum');
             const MINUTES_PER_SESSION = 250; // 4h 10m
             const headers = hasLocum
-              ? ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Amount']
-              : ['Name', 'Role', 'GL Cat', 'Allocation', 'Amount'];
-            const rightAlignFrom = hasLocum ? 4 : 3;
+              ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Amount', 'Max Claimable']
+              : ['Name', 'Role', 'GL Cat', 'Allocation', 'Amount', 'Max Claimable'];
+            const rightAlignFrom = hasLocum ? 5 : 3;
             const colCount = headers.length;
 
-            const formatLocumHours = (sessions: number) => {
+            const formatLocumHrs = (sessions: number) => {
               const totalMins = Math.round(sessions * MINUTES_PER_SESSION);
               const h = Math.floor(totalMins / 60);
               const m = totalMins % 60;
               return { display: m > 0 ? `${h}h ${m}m` : `${h}h`, decimal: (totalMins / 60).toFixed(1) };
             };
 
-            // Compute total hours for locum claims
             const totalLocumHrs = hasLocum ? staffDets.reduce((sum: number, s: any) => {
               const sess = s.staff_category === 'gp_locum' ? (s.allocation_value || 0) : 0;
               return sum + Math.round(sess * MINUTES_PER_SESSION) / 60;
             }, 0) : 0;
+
+            // Max claimable helper inline
+            const getMaxInfo = (s: any) => {
+              const cat = s.staff_category || 'buyback';
+              const allocVal = s.allocation_value ?? 0;
+              const calcAmt = s.calculated_amount ?? 0;
+              if (cat === 'gp_locum') {
+                if (s.allocation_type === 'daily') return { max: calcAmt || allocVal * 750, formula: `${allocVal} day${allocVal !== 1 ? 's' : ''} × £750` };
+                return { max: calcAmt || allocVal * 375, formula: `${allocVal} sess × £375` };
+              }
+              if (cat === 'meeting') {
+                const hrs = s.total_hours ?? allocVal ?? 0;
+                const rate = s.hourly_rate ?? 0;
+                return { max: calcAmt || hrs * rate, formula: `${hrs} hrs × £${rate}/hr` };
+              }
+              if (cat === 'management' && s.allocation_type === 'hours') {
+                const rate = s.hourly_rate ?? 0;
+                return { max: calcAmt, formula: `${allocVal} hrs/wk × £${rate}/hr` };
+              }
+              if (calcAmt > 0) return { max: calcAmt, formula: s.allocation_type === 'wte' ? `${allocVal} WTE × on-costs` : 'Max' };
+              return { max: 0, formula: '—' };
+            };
+
+            const totalClaimed = staffDets.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
+            const totalMax = staffDets.reduce((sum: number, s: any) => sum + getMaxInfo(s).max, 0);
 
             return (
               <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
@@ -3070,7 +3094,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                       {headers.map((h, i) => (
                         <th key={h} style={{
                           textAlign: i >= rightAlignFrom ? 'right' : 'left', padding: '7px 10px',
-                          fontSize: 11, fontWeight: 600, color: '#6b7280',
+                          fontSize: 11, fontWeight: 600, color: h === 'Max Claimable' ? '#9ca3af' : '#6b7280',
                           textTransform: 'uppercase' as const, letterSpacing: '0.04em',
                           borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap' as const,
                         }}>{h}</th>
@@ -3080,7 +3104,10 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                   <tbody>
                     {staffDets.map((s: any, i: number) => {
                       const isLocum = s.staff_category === 'gp_locum';
-                      const locumHrs = isLocum ? formatLocumHours(s.allocation_value || 0) : null;
+                      const locumHrs = isLocum ? formatLocumHrs(s.allocation_value || 0) : null;
+                      const claimedAmt = s.claimed_amount ?? s.calculated_amount ?? 0;
+                      const maxInfo = getMaxInfo(s);
+                      const overMax = maxInfo.max > 0 && claimedAmt > maxInfo.max;
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
                           <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{s.staff_name || '—'}</td>
@@ -3092,6 +3119,9 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                           </td>
                           {hasLocum ? (
                             <>
+                              <td style={{ padding: '10px', textAlign: 'center', color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                                {isLocum ? (s.allocation_value || 0) : '—'}
+                              </td>
                               <td style={{ padding: '10px', color: '#374151' }}>{s.start_date ? new Date(s.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</td>
                               <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
                                 {isLocum && locumHrs ? locumHrs.display : '—'}
@@ -3105,8 +3135,14 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                               {s.allocation_value} {s.allocation_type}
                             </td>
                           )}
-                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#111827' }}>
-                            {fmtGBP(s.claimed_amount ?? s.calculated_amount ?? 0)}
+                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: overMax ? '#dc2626' : '#111827' }}>
+                            {fmtGBP(claimedAmt)}
+                            {overMax && <span style={{ marginLeft: 4, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>!</span>}
+                          </td>
+                          <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
+                            {maxInfo.max > 0 ? (
+                              <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
+                            ) : '—'}
                           </td>
                         </tr>
                       );
@@ -3116,7 +3152,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                     <tr>
                       {hasLocum ? (
                         <>
-                          <td colSpan={colCount - 3} style={{ padding: '10px' }} />
+                          <td colSpan={colCount - 4} style={{ padding: '10px' }} />
                           <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
                           <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#374151', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
                             {totalLocumHrs.toFixed(1)}
@@ -3124,12 +3160,15 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                         </>
                       ) : (
                         <>
-                          <td colSpan={colCount - 2} style={{ padding: '10px' }} />
+                          <td colSpan={colCount - 3} style={{ padding: '10px' }} />
                           <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
                         </>
                       )}
                       <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
-                        {fmtGBP(total)}
+                        {fmtGBP(totalClaimed)}
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontSize: 12, color: '#9ca3af', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
+                        {totalMax > 0 ? fmtGBP(totalMax) : '—'}
                       </td>
                     </tr>
                   </tfoot>
