@@ -428,6 +428,26 @@ export const AudioBackupManager = () => {
             } else {
               // Step 5: Safety net for title
               await ensureMeetingTitle(meetingId);
+              
+              // Step 6: Send email with generated notes
+              try {
+                const { data: meetingNotes } = await supabase
+                  .from('meetings')
+                  .select('title, meeting_notes')
+                  .eq('id', meetingId)
+                  .single();
+                
+                if (meetingNotes?.meeting_notes) {
+                  await sendEmailAutomatically(
+                    meetingNotes.meeting_notes,
+                    meetingNotes.title || 'Reprocessed Meeting Notes'
+                  );
+                }
+              } catch (emailErr) {
+                console.warn('Email sending after reprocess failed:', emailErr);
+                toast.warning('Notes generated but email could not be sent');
+              }
+              
               toast.success('Meeting notes, title and overview generated — email sent');
             }
           } catch (noteErr) {
