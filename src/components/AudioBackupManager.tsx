@@ -793,7 +793,7 @@ export const AudioBackupManager = () => {
                           }
                           return label ? <Badge variant={variant}>{label}</Badge> : null;
                         })()}
-                        {getQualityBadge(backup.transcription_quality_score)}
+                        
                         {backup.is_reprocessed && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -804,7 +804,7 @@ export const AudioBackupManager = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                       <div>
                         <span className="font-medium">Duration:</span>
                         <p>{formatDuration(backup.duration_seconds)}</p>
@@ -816,10 +816,6 @@ export const AudioBackupManager = () => {
                       <div>
                         <span className="font-medium">Word Count:</span>
                         <p>{backup.word_count} / {backup.expected_word_count}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Quality Score:</span>
-                        <p>{(backup.transcription_quality_score * 100).toFixed(1)}%</p>
                       </div>
                     </div>
 
