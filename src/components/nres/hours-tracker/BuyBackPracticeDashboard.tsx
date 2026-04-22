@@ -3114,11 +3114,20 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={colCount - 2} style={{ padding: '10px' }} />
-                      <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>
-                        {hasLocum ? totalLocumHrs.toFixed(1) : ''}
-                      </td>
-                      <td colSpan={hasLocum ? 0 : 1} style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
+                      {hasLocum ? (
+                        <>
+                          <td colSpan={colCount - 3} style={{ padding: '10px' }} />
+                          <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
+                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#374151', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
+                            {totalLocumHrs.toFixed(1)}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td colSpan={colCount - 2} style={{ padding: '10px' }} />
+                          <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' as const }}>Total</td>
+                        </>
+                      )}
                       <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
                         {fmtGBP(total)}
                       </td>
