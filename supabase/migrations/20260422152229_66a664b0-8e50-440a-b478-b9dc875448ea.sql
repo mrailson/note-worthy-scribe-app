@@ -1,0 +1,1 @@
+DELETE FROM public.complaint_outcomes WHERE complaint_id = '628b0936-5612-437e-8fa4-5385a8a90218';
