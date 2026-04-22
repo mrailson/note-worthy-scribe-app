@@ -1,30 +1,46 @@
 
 
-## Grant Samantha Eggleton Policy Access + Add Separate Policies Toggle
+## Add "Closed – Withdrawn/Resolved" Complaint Status
 
 ### Problem
-Currently, the Practice Policies toggle is bundled with CQC Compliance — toggling CQC on/off also toggles Policies. Samantha Eggleton (`s.eggleton@nhs.net`) has CQC enabled but no `policy_service` activation record, so Policies does not appear for her. There is no independent way for a Practice Manager to grant Policies access separately.
+When a patient withdraws their complaint (e.g. issue resolved informally), there is no way to close it without going through the full outcome letter questionnaire. Practice Managers need a quick "Withdrawn/Resolved" closure path.
 
 ### Changes
 
-**1. Database: Grant Samantha Eggleton policy_service access (immediate fix)**
-- Insert a `user_service_activations` record for user_id `9db2022b-f6ac-41eb-85e9-feb9886fa7bf` with service `policy_service`.
+**1. Add "Withdrawn/Resolved" as an outcome type option in the Outcome Questionnaire**
+- File: `src/components/ComplaintOutcomeQuestionnaire.tsx`
+- Add `'withdrawn'` to the `outcome_type` union type in `QuestionnaireData`
+- Add a new radio/select option: "Withdrawn / Resolved Informally"
+- When `withdrawn` is selected, skip the outcome letter generation step — save directly to `complaint_outcomes` with `outcome_type: 'withdrawn'` and a brief summary
+- The questionnaire should still collect: a short resolution note (what was done), and who resolved it — but skip tone, letter generation, and detailed findings
 
-**2. UI: Add separate Practice Policies toggle in PracticeUserManagement.tsx**
-- Decouple `policy_service_access` from the CQC Compliance toggle (remove line 1134 that auto-sets `policy_service_access: checked` when CQC changes).
-- Add a new independent toggle row for "Practice Policies" directly below the CQC Compliance toggle, matching the existing switch + label pattern.
-- Update the helper text under CQC to read "Mock CQC Inspection" only (removing "& Practice Policies").
-- Ensure the new toggle reads/writes `policy_service_access` in `userFormData.module_access` independently.
+**2. Update status display labels across all views**
+- File: `src/pages/ComplaintDetails.tsx` — Add `'withdrawn'` mapping in the two `outcomeType` display blocks (~lines 1811-1817, 2255-2261) and the outcome letter heading (~line 2700-2720) to show "Closed – Withdrawn/Resolved"
+- File: `src/pages/ComplaintsSystem.tsx` — Add `withdrawn: 'Withdrawn/Resolved'` to the `outcomeLabels` map in `getStatusDisplayLabel` (~line 1483)
+- File: `src/components/complaints/ComplaintsSummaryView.tsx` — Already has `withdrawn: 'Withdrawn'` in `OUTCOME_LABELS` (line 69); update to `'Withdrawn/Resolved'`
 
-**3. Default for new practice_manager users**
-- Update the default module access for `practice_manager` role so `policy_service_access` defaults to `true` (currently `false` at line 658).
+**3. Update the validation gate**
+- File: `src/components/ComplaintOutcomeQuestionnaire.tsx` (~line 911) — Add `'withdrawn'` to the allowed outcome types array so it passes validation
+
+**4. Handle the withdrawn flow in the questionnaire UI**
+- When "Withdrawn / Resolved Informally" is selected, show a simplified panel:
+  - Resolution summary textarea (required, e.g. "Spoke to patient, prescription issued, future appointment booked")
+  - Skip letter tone, formal findings, improvements sections
+  - Button label: "Close as Withdrawn/Resolved" instead of "Generate Outcome Letter"
+- Save to DB via the existing `create_complaint_outcome` RPC with `outcome_type: 'withdrawn'`, summary text, and no outcome letter
+
+**5. No database schema changes needed**
+- The `complaint_outcomes.outcome_type` column already accepts text values; `withdrawn` is already referenced in `OUTCOME_LABELS`
 
 ### Files changed
-- `supabase/migrations/` — new migration to insert activation record for Samantha
-- `src/components/PracticeUserManagement.tsx` — decouple toggles, add Policies row, update default
+- `src/components/ComplaintOutcomeQuestionnaire.tsx` — Add withdrawn option, simplified flow, validation update
+- `src/pages/ComplaintDetails.tsx` — Display label mappings for withdrawn
+- `src/pages/ComplaintsSystem.tsx` — Display label in list view
+- `src/components/complaints/ComplaintsSummaryView.tsx` — Update outcome label text
 
 ### Behaviour
-- Existing users are unaffected; their current access state is preserved.
-- Practice Managers can now independently grant or revoke Policies access per user.
-- New practice_manager users get Policies enabled by default.
-- Samantha Eggleton will see Practice Policies immediately after the migration runs.
+- Existing complaint closure flows (Upheld, Partially Upheld, Not Upheld) are completely unchanged
+- "Withdrawn/Resolved" skips letter generation — saves time for informal resolutions
+- Complaint status shows as "Closed – Withdrawn/Resolved" across all views
+- The complaint is properly closed with an audit trail of what was resolved
+
