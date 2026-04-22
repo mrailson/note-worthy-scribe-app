@@ -720,10 +720,38 @@ export const AudioBackupManager = () => {
                       <div>
                         <CardTitle className="text-lg">Meeting Audio Backup</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          Created: {new Date(backup.created_at).toLocaleString()}
+                          Created: {new Date(backup.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
+                        {backup.user_email && (
+                          <p className="text-sm font-medium text-foreground mt-1">
+                            User: {backup.user_email}
+                          </p>
+                        )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        {(() => {
+                          const src = backup.import_source;
+                          const dev = backup.device_type;
+                          const browser = backup.device_browser;
+                          let label = '';
+                          let variant: 'default' | 'secondary' | 'outline' = 'secondary';
+                          if (src === 'mobile_offline') {
+                            label = 'Offline Mobile';
+                          } else if (src === 'mobile_live') {
+                            label = 'Live Mobile';
+                          } else if (dev === 'chromium_desktop' && browser === 'Edge') {
+                            label = 'Edge Desktop';
+                          } else if (dev === 'chromium_desktop' && browser === 'Chrome') {
+                            label = 'Chrome Desktop';
+                          } else if (dev === 'chromium_desktop') {
+                            label = `${browser || 'Desktop'} Recording`;
+                          } else if (dev === 'iphone' || dev === 'android') {
+                            label = `${browser || 'Mobile'} (${dev === 'iphone' ? 'iPhone' : 'Android'})`;
+                          } else if (browser) {
+                            label = `${browser} Recording`;
+                          }
+                          return label ? <Badge variant={variant}>{label}</Badge> : null;
+                        })()}
                         {getQualityBadge(backup.transcription_quality_score)}
                         {backup.is_reprocessed && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
