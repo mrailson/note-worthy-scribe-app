@@ -965,7 +965,8 @@ function InlineClaimPanel({
                         const amountToUse = (staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management')
                           ? (standardClaimedAmount > 0 ? standardClaimedAmount : calculatedAmount)
                           : calculatedAmount;
-                        const result = await onCreateClaim(monthDate, staffMember, amountToUse);
+                        const holWeeks = (staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') ? holidayWeeks : 0;
+                        const result = await onCreateClaim(monthDate, staffMember, amountToUse, holWeeks);
                         if (result) setLocalClaim(result);
                       } finally {
                         setCreating(false);
