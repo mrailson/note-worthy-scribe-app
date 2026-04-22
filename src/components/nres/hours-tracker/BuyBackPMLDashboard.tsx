@@ -572,6 +572,13 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             )}
           </div>
 
+          {/* Practice notes */}
+          {(claim as any).practice_notes && (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+              <strong>Practice Note:</strong> {(claim as any).practice_notes}
+            </div>
+          )}
+
           {/* Bank details for payment verification */}
           {(() => {
             const bankDetails = NRES_PRACTICE_BANK_DETAILS[claim.practice_key as NRESPracticeKey];

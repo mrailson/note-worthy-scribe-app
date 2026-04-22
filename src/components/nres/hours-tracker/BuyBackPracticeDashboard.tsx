@@ -22,7 +22,7 @@ interface BuyBackPracticeDashboardProps {
   staffRoles?: string[];
   rateParams?: RateParams;
   managementRoles?: ManagementRoleConfig[];
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
@@ -362,7 +362,7 @@ function InlineClaimPanel({
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   onClose: () => void;
@@ -371,6 +371,7 @@ function InlineClaimPanel({
   const [creating, setCreating] = useState(false);
   const [declared, setDeclared] = useState(false);
   const [queryResponse, setQueryResponse] = useState('');
+  const [practiceNotes, setPracticeNotes] = useState('');
   const [localClaim, setLocalClaim] = useState<BuyBackClaim | null>(existingClaim);
 
   useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
@@ -451,7 +452,7 @@ function InlineClaimPanel({
     if (confirmDeclaration) {
       await confirmDeclaration(localClaim.id, true);
     }
-    onSubmit(localClaim.id);
+    onSubmit(localClaim.id, practiceNotes.trim() || undefined);
   };
 
   const handleDeleteDraft = async (requireConfirm = false) => {
@@ -1039,6 +1040,28 @@ function InlineClaimPanel({
                     onDownload={getDownloadUrl}
                   />
                 ))}
+              </div>
+
+              {/* Practice notes (optional) */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  Practice Note <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — visible to verifiers and finance)</span>
+                </label>
+                <textarea
+                  value={practiceNotes}
+                  onChange={(e) => setPracticeNotes(e.target.value)}
+                  placeholder="Add any notes for the verifier or finance team…"
+                  maxLength={500}
+                  rows={2}
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb',
+                    fontSize: 13, color: '#374151', resize: 'vertical', fontFamily: 'inherit',
+                    background: '#fafafa',
+                  }}
+                />
+                {practiceNotes.length > 0 && (
+                  <div style={{ fontSize: 10, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{practiceNotes.length}/500</div>
+                )}
               </div>
 
               {/* Declaration */}
@@ -1890,7 +1913,7 @@ export function StaffRosterSection({
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
-  onSubmit?: (id: string) => void; onResubmit?: (id: string, notes?: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void; onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   practiceKey?: string; saving?: boolean;
   meetingLogEntries?: MeetingLogEntry[];
@@ -2377,7 +2400,7 @@ export function ClaimsViewSwitcher({
   practiceName: string;
   onToggleCard: (id: string) => void;
   expandedClaimId: string | null;
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
   directorMode?: boolean;
@@ -2861,7 +2884,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
 }) {
