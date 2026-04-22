@@ -1100,7 +1100,7 @@ function InlineClaimPanel({
                   background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13,
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'PML Director'}
+                    <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'Reviewer'}
                   </div>
                   {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
                 </div>
@@ -1110,7 +1110,7 @@ function InlineClaimPanel({
                   type="text"
                   value={queryResponse}
                   onChange={(e) => setQueryResponse(e.target.value)}
-                  placeholder="Your response to the query…"
+                  placeholder={`Your response to the ${(claim as any).queried_by_role || 'Reviewer'} query…`}
                   style={{
                     flex: 1, minWidth: 220, padding: '8px 12px', borderRadius: 8,
                     border: '1px solid #d1d5db', fontSize: 13, outline: 'none',
@@ -2962,7 +2962,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b',
             }}>
               <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'PML Director'}
+                <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'Reviewer'}
               </div>
               {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
             </div>
@@ -3085,7 +3085,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                   type="text"
                   value={queryResponse}
                   onChange={(e) => setQueryResponse(e.target.value)}
-                  placeholder="Your response to the PML Director query…"
+                  placeholder={`Your response to the ${(claim as any).queried_by_role || 'Reviewer'} query…`}
                   style={{ flex: 1, minWidth: 250, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
                 <button
