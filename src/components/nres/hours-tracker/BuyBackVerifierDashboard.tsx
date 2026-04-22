@@ -316,11 +316,12 @@ const PracticeQueueTable = ({ claims }: { claims: BuyBackClaim[] }) => {
 };
 
 // ─── Claim Card ───────────────────────────────────────────────────────────────
-const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, saving }: {
+const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, saving, profileNames }: {
   claim: BuyBackClaim; expanded: boolean; onToggle: () => void;
   onVerify: (id: string, notes?: string) => Promise<any>;
   onReturn: (id: string, notes?: string) => Promise<any>;
   saving: boolean;
+  profileNames?: Record<string, string>;
 }) => {
   const [notes, setNotes] = useState('');
   const total = claimTotal(claim);
