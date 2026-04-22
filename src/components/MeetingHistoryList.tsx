@@ -2442,8 +2442,8 @@ export const MeetingHistoryList = ({
                       })() : null}
                     </div>
 
-                    {/* Recording Error Card for failed/too-short mobile recordings */}
-                    {meeting.import_source?.startsWith('mobile_') && (!meeting.word_count || meeting.word_count === 0) && (
+                    {/* Recording Error Card for failed/stuck recordings */}
+                    {(meeting.import_source?.startsWith('mobile_') || ((!meeting.word_count || meeting.word_count === 0) && ['processing', 'recording'].includes(meeting.status))) && (!meeting.word_count || meeting.word_count === 0) && (
                       <RecordingErrorCard
                         meetingId={meeting.id}
                         meetingTitle={meeting.title}
