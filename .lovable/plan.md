@@ -1,39 +1,28 @@
 
 
-## Add Status Hover Card with Complaint Overview (Revised)
+## Recover Stuck Meeting and Fix Display
 
-### What it does
-Hovering over the status badge in the complaint list shows a compact pop-up card with a brief complaint summary and action progress — no patient-identifying data.
+### What happened
+The meeting "Meeting 22 Apr 10:58" (`0630b79d-6d2f-4410-9bf0-c98a10cbfdb2`) has its audio successfully uploaded (4 segments, ~38MB total in the `meeting-audio-backups` storage bucket), but transcription was never triggered. The meeting is stuck with:
+- Status: `processing`
+- Word count: `0`
+- No transcript, no notes, no overview
+- `audio_backup_path` is null
+- `import_source` is null — so the error/reprocess card doesn't show in the UI
 
-### Changes
+### Two-part fix
 
-**1. Add HoverCard around the status Badge** (`src/pages/ComplaintsSystem.tsx`)
-- Import `HoverCard`, `HoverCardContent`, `HoverCardTrigger` from `@/components/ui/hover-card`
-- Import `Separator` from `@/components/ui/separator`
-- Wrap the status `Badge` at ~line 2018-2027 inside a `HoverCard` (openDelay 200ms)
-- The HoverCardContent (width ~300px) displays:
+**1. Show the Reprocess/Reupload card for any stuck meeting (code fix)**
+Currently, the `RecordingErrorCard` (with Reupload Audio and Reprocess buttons) only appears when `import_source` starts with `mobile_`. This excludes meetings that were recorded via browser but got stuck. Change the condition in `MeetingHistoryList.tsx` (~line 2446) to also show the card when a meeting has `word_count === 0` and `status` is `processing` or `recording` — regardless of `import_source`.
 
-```text
-┌───────────────────────────────────┐
-│ 📋 Complaint Overview             │
-├───────────────────────────────────┤
-│ Title:     [complaint_title]      │
-│ Category:  [category label]       │
-│ ────────────────────────────────  │
-│ Summary:                          │
-│ [complaint_description, truncated │
-│  to ~150 chars]                   │
-│ ────────────────────────────────  │
-│ Acknowledgement: ✅ Sent / ⏳     │
-│ Outcome Letter:  ✅ Sent / ⏳     │
-│ Outcome Type:    [if closed]      │
-└───────────────────────────────────┘
-```
+**2. Trigger reprocessing for this specific meeting (data fix)**
+- Update the meeting record to set `audio_backup_path` to the actual storage path so the reprocess function can find the audio
+- Call the `reprocess-audio-segment` edge function to transcribe the 4 uploaded segments and save the combined transcript
+- This will populate the transcript, update word count, and allow notes generation
 
-- **Included**: Title, category, short description summary, acknowledgement/outcome letter status
-- **Excluded**: Patient name/DOB/phone/email/address, received date, days open, deadline, priority, staff mentioned, location
-- Description truncated to ~150 characters with ellipsis for readability
+### Files changed
+- `src/components/MeetingHistoryList.tsx` — Broaden the condition for showing `RecordingErrorCard` to cover any meeting with zero words and a stuck status, not just mobile imports
 
-### Files Changed
-- `src/pages/ComplaintsSystem.tsx` — Import HoverCard + Separator, wrap status badge with hover content
+### Manual step after code deployment
+You can use the Recovery Tool page or the newly visible Reprocess button on the meeting card to trigger transcription of the stuck meeting's audio segments.
 
