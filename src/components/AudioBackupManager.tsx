@@ -39,6 +39,11 @@ interface AudioBackup {
   is_reprocessed: boolean;
   reprocessed_at: string | null;
   created_at: string;
+  // Enriched from meetings table
+  user_email?: string;
+  device_type?: string;
+  device_browser?: string;
+  import_source?: string;
 }
 
 interface StorageStats {
@@ -164,7 +169,53 @@ export const AudioBackupManager = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setBackups(data || []);
+      const backupData = data || [];
+
+      // Collect unique user IDs and meeting IDs
+      const userIds = Array.from(new Set(backupData.map((b: any) => b.user_id).filter(Boolean)));
+      const meetingIds = Array.from(new Set(backupData.map((b: any) => b.meeting_id).filter(Boolean)));
+
+      // Fetch user emails from profiles
+      let emailMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .in('id', userIds);
+        if (profiles) {
+          for (const p of profiles) {
+            if (p.email) emailMap[p.id] = p.email;
+          }
+        }
+      }
+
+      // Fetch meeting device info
+      let meetingMap: Record<string, { device_type?: string; device_browser?: string; import_source?: string }> = {};
+      if (meetingIds.length > 0) {
+        const { data: meetings } = await supabase
+          .from('meetings')
+          .select('id, device_type, device_browser, import_source')
+          .in('id', meetingIds);
+        if (meetings) {
+          for (const m of meetings) {
+            meetingMap[m.id] = {
+              device_type: m.device_type || undefined,
+              device_browser: m.device_browser || undefined,
+              import_source: m.import_source || undefined,
+            };
+          }
+        }
+      }
+
+      const enriched = backupData.map((b: any) => ({
+        ...b,
+        user_email: emailMap[b.user_id] || undefined,
+        device_type: meetingMap[b.meeting_id]?.device_type,
+        device_browser: meetingMap[b.meeting_id]?.device_browser,
+        import_source: meetingMap[b.meeting_id]?.import_source,
+      }));
+
+      setBackups(enriched);
     } catch (error) {
       console.error('Error fetching audio backups:', error);
       toast.error('Failed to load audio backups');
@@ -691,10 +742,38 @@ export const AudioBackupManager = () => {
                       <div>
                         <CardTitle className="text-lg">Meeting Audio Backup</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                          Created: {new Date(backup.created_at).toLocaleString()}
+                          Created: {new Date(backup.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
+                        {backup.user_email && (
+                          <p className="text-sm font-medium text-foreground mt-1">
+                            User: {backup.user_email}
+                          </p>
+                        )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        {(() => {
+                          const src = backup.import_source;
+                          const dev = backup.device_type;
+                          const browser = backup.device_browser;
+                          let label = '';
+                          let variant: 'default' | 'secondary' | 'outline' = 'secondary';
+                          if (src === 'mobile_offline') {
+                            label = 'Offline Mobile';
+                          } else if (src === 'mobile_live') {
+                            label = 'Live Mobile';
+                          } else if (dev === 'chromium_desktop' && browser === 'Edge') {
+                            label = 'Edge Desktop';
+                          } else if (dev === 'chromium_desktop' && browser === 'Chrome') {
+                            label = 'Chrome Desktop';
+                          } else if (dev === 'chromium_desktop') {
+                            label = `${browser || 'Desktop'} Recording`;
+                          } else if (dev === 'iphone' || dev === 'android') {
+                            label = `${browser || 'Mobile'} (${dev === 'iphone' ? 'iPhone' : 'Android'})`;
+                          } else if (browser) {
+                            label = `${browser} Recording`;
+                          }
+                          return label ? <Badge variant={variant}>{label}</Badge> : null;
+                        })()}
                         {getQualityBadge(backup.transcription_quality_score)}
                         {backup.is_reprocessed && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
