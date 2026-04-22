@@ -856,18 +856,9 @@ function InlineClaimPanel({
                             {holidayWeeks > 0 && <span style={{ fontWeight: 400, color: '#6b7280', fontSize: 11 }}> ({rawWw.toFixed(1)} − {holidayWeeks} hol)</span>}
                           </span>
                           <span style={{ color: '#9ca3af', fontSize: 11 }}>×</span>
-                          <span style={{ fontWeight: 700, color: '#005eb8' }}>{fmtGBP(effectiveRate)}/hr</span>
-                          <span style={{ color: '#9ca3af', fontSize: 11 }}>(incl. on-costs)</span>
+                          <span style={{ fontWeight: 700, color: '#005eb8' }}>{fmtGBP(baseRate)}/hr</span>
                           <span style={{ color: '#9ca3af', fontSize: 11 }}>=</span>
                           <span style={{ fontWeight: 700, color: '#111827', borderLeft: '2px solid #005eb8', paddingLeft: 8, fontSize: 14 }}>{fmtGBP(calculatedAmount)}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const, padding: '6px 10px', background: '#eff6ff', borderRadius: 7, fontSize: 11, color: '#374151' }}>
-                          <span>Base rate {fmtGBP(baseRate)}/hr</span>
-                          <span style={{ color: '#9ca3af' }}>×</span>
-                          <span>{multiplier.toFixed(4)} on-costs</span>
-                          <span style={{ color: '#9ca3af' }}>(NI {niPct}% + Pension {penPct}%)</span>
-                          <span style={{ color: '#9ca3af' }}>=</span>
-                          <span style={{ fontWeight: 600 }}>{fmtGBP(effectiveRate)}/hr</span>
                         </div>
                       </div>
                     );
