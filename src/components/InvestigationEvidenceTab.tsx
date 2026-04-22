@@ -4,18 +4,33 @@ import { InvestigationEvidence } from '@/components/InvestigationEvidence';
 import { CriticalFriendReview } from '@/components/CriticalFriendReview';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, ArrowRight } from 'lucide-react';
+import { FileText, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface InvestigationEvidenceTabProps {
   complaintId: string;
   practiceId?: string | null;
+  patientName?: string;
+  referenceNumber?: string;
   disabled?: boolean;
   onCreateOutcomeLetter?: () => void;
 }
 
-export function InvestigationEvidenceTab({ complaintId, practiceId, disabled = false, onCreateOutcomeLetter }: InvestigationEvidenceTabProps) {
+export function InvestigationEvidenceTab({ complaintId, practiceId, patientName, referenceNumber, disabled = false, onCreateOutcomeLetter }: InvestigationEvidenceTabProps) {
   return (
     <div className="space-y-6">
+      {/* Patient Context Banner */}
+      {(patientName || referenceNumber) && (
+        <Alert className="border-amber-300 bg-amber-50">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 font-medium">
+            You are uploading evidence for: <span className="font-bold">{patientName || 'Unknown Patient'}</span>
+            {referenceNumber && <span className="ml-2 font-mono text-sm">({referenceNumber})</span>}
+            <span className="ml-2 font-normal text-amber-700">— Please check this is the correct patient before uploading.</span>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Request Information Panel - Top Priority */}
       <RequestInformationPanel complaintId={complaintId} practiceId={practiceId} disabled={disabled} />
 
