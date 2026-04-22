@@ -1,22 +1,37 @@
 
 
-## Plan: Enable Claim Expansion in Admin View and Update Title
+## Plan: Fix Multi-Segment Reprocessing and Add Segment Info to Backup Cards
 
-### What Changes
+### Problem Analysis
 
-**1. Update the Admin section title**
-- Change "Buy-Back & Claims" with the "ADMIN" badge to read **"Claims - Notewell Admin View"**
-- Remove the separate "ADMIN" badge pill since the title itself now indicates admin context
-- Update the subtitle from "System Admin View — Manage staff, create and review claims across all practices" to something shorter, e.g. "Manage staff, create and review claims across all practices"
+The reprocess function works correctly in logic — it lists all segments (confirmed: 4 segments found for the test backup), then transcribes them one-by-one via Whisper. The likely failure point is:
 
-**2. Enable individual claim expansion in Admin view**
-- Add `expandedClaimId` state (currently hardcoded to `null`) in the admin section of `BuyBackClaimsTab.tsx`
-- Wire the `onToggleCard` callback to toggle the expanded claim, matching the behaviour in the Practice view
-- This will allow admins to click on a claim row in the Individual Claim View and see the full detail panel (evidence, query responses, staff line breakdown, etc.)
+1. **Edge function timeout**: Each ~10MB segment takes significant time to download from storage + upload to Whisper API + wait for transcription. Supabase edge functions have a wall-clock limit. After segment 0 succeeds, subsequent segments may hit the timeout or the client-side `supabase.functions.invoke` may time out.
+2. **No visibility**: The UI shows segment progress during reprocessing, but the backup card itself doesn't show how many segments exist or their individual sizes — making it hard to diagnose issues before attempting reprocessing.
+
+### Changes
+
+**1. Add segment count and sizes to each backup card** (`src/components/AudioBackupManager.tsx`)
+
+- On initial load (`fetchAudioBackups`), for each backup record, call the storage API to list files in the backup folder (derived from `file_path`) and count segments + individual sizes.
+- Add a new field to the `AudioBackup` interface: `segmentDetails: { name: string; size: number }[]`.
+- Display on each card: "Segments: 4 (9.2 MB, 9.2 MB, 9.3 MB, 9.1 MB)" in the metadata grid.
+- Expand the grid from 3 to 4 columns to accommodate.
+
+**2. Improve reprocessing resilience** (`supabase/functions/reprocess-audio-segment/index.ts`)
+
+- Increase the Whisper `AbortSignal.timeout` from 120s to 150s to give more headroom for large segments.
+- Add a `Content-Length` log before calling Whisper so failures can be diagnosed in logs.
+
+**3. Improve client-side timeout handling** (`src/components/AudioBackupManager.tsx`)
+
+- In `transcribeWithRetry`, increase the backoff delay between retries from 3s to 5s to reduce function boot contention.
+- Add a longer delay between segments (2s instead of 1s) to allow edge function instances to cool down.
 
 ### Files Modified
 
-- `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` — title text update (~line 1068), add `expandedClaimId` state, update `onToggleCard` and `expandedClaimId` props passed to `ClaimsViewSwitcher` (~lines 1378-1393)
+- `src/components/AudioBackupManager.tsx` — add segment listing on load, display segment count/sizes on cards, adjust retry timing
+- `supabase/functions/reprocess-audio-segment/index.ts` — increase timeout, add diagnostic logging
 
 ### No database or migration changes required.
 
