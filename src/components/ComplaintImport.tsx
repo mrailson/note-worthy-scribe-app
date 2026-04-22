@@ -996,6 +996,90 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                   </Button>
                 </div>
               )}
+
+              {/* OCR Review Panel for handwritten letter imports */}
+              {showOcrReview && ocrReviewText && (
+                <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      Review Extracted Text
+                    </h3>
+                    <Badge 
+                      variant={ocrVerificationStatus === 'verified' ? 'default' : ocrVerificationStatus === 'partial' ? 'secondary' : 'destructive'}
+                    >
+                      {ocrVerificationStatus === 'verified' ? '✓ Verified' : 
+                       ocrVerificationStatus === 'partial' ? '⚠ Partially Verified' : 
+                       ocrVerificationStatus === 'unverified' ? '✗ Needs Review' : 'Review'}
+                    </Badge>
+                  </div>
+
+                  <Alert className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      This text was extracted from a handwritten letter using AI. Words marked with <strong>[?]</strong> are uncertain, and <strong>[illegible]</strong> means the text could not be read. 
+                      Please correct any errors before importing.
+                    </AlertDescription>
+                  </Alert>
+
+                  {ocrDisagreements.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Verification Warnings</AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-disc list-inside text-sm mt-1 space-y-1">
+                          {ocrDisagreements.map((d, i) => (
+                            <li key={i}>{d}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {ocrConfidenceNotes && (
+                    <details className="text-sm">
+                      <summary className="cursor-pointer font-medium text-muted-foreground">Confidence Notes</summary>
+                      <pre className="mt-2 p-3 bg-muted rounded text-xs whitespace-pre-wrap">{ocrConfidenceNotes}</pre>
+                    </details>
+                  )}
+
+                  <Textarea
+                    value={ocrReviewText}
+                    onChange={(e) => setOcrReviewText(e.target.value)}
+                    rows={12}
+                    className="font-mono text-sm min-h-[200px]"
+                    placeholder="Extracted text will appear here..."
+                  />
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleRescanOcr}
+                      disabled={processing}
+                      className="flex-1"
+                    >
+                      Re-scan
+                    </Button>
+                    <Button
+                      onClick={handleConfirmOcrReview}
+                      disabled={processing || !ocrReviewText.trim()}
+                      className="flex-1"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Confirm &amp; Import
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )
             </TabsContent>
 
             <TabsContent value="text" className="space-y-4">
