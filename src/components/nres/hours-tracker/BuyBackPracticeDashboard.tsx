@@ -24,7 +24,7 @@ interface BuyBackPracticeDashboardProps {
   managementRoles?: ManagementRoleConfig[];
   onSubmit?: (id: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
-  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number) => Promise<any>;
+  onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onRemoveStaff?: (id: string) => Promise<void>;
   onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
