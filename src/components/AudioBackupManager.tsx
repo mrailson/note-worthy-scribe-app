@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureMeetingTitle } from '@/utils/manualTriggerNotes';
+import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +81,7 @@ interface StorageStats {
 
 export const AudioBackupManager = () => {
   const { user } = useAuth();
+  const { sendEmailAutomatically } = useAutoEmail();
   const [backups, setBackups] = useState<AudioBackup[]>([]);
   const [loading, setLoading] = useState(true);
   const [reprocessing, setReprocessing] = useState<string | null>(null);
@@ -426,6 +428,26 @@ export const AudioBackupManager = () => {
             } else {
               // Step 5: Safety net for title
               await ensureMeetingTitle(meetingId);
+              
+              // Step 6: Send email with generated notes
+              try {
+                const { data: meetingData } = await supabase
+                  .from('meetings')
+                  .select('title, notes_style_3')
+                  .eq('id', meetingId)
+                  .single();
+                
+                if (meetingData?.notes_style_3) {
+                  await sendEmailAutomatically(
+                    meetingData.notes_style_3,
+                    meetingData.title || 'Reprocessed Meeting Notes'
+                  );
+                }
+              } catch (emailErr) {
+                console.warn('Email sending after reprocess failed:', emailErr);
+                toast.warning('Notes generated but email could not be sent');
+              }
+              
               toast.success('Meeting notes, title and overview generated — email sent');
             }
           } catch (noteErr) {
@@ -511,6 +533,22 @@ export const AudioBackupManager = () => {
                 toast.warning('Transcript saved but note generation failed — trigger manually');
               } else {
                 await ensureMeetingTitle(meetingId);
+                // Send email with generated notes
+                try {
+                  const { data: meetingData } = await supabase
+                    .from('meetings')
+                    .select('title, notes_style_3')
+                    .eq('id', meetingId)
+                    .single();
+                  if (meetingData?.notes_style_3) {
+                    await sendEmailAutomatically(
+                      meetingData.notes_style_3,
+                      meetingData.title || 'Reprocessed Meeting Notes'
+                    );
+                  }
+                } catch (emailErr) {
+                  console.warn('Email sending after retry reprocess failed:', emailErr);
+                }
                 toast.success('Meeting notes, title and overview generated — email sent');
               }
             } catch {
