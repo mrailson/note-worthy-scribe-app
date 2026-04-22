@@ -10,6 +10,8 @@ import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { ClaimsViewSwitcher } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
+import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
+import { StaffLineEvidence } from './ClaimEvidencePanel';
 
 // --- Types ---
 type PMLView = 'director' | 'finance';

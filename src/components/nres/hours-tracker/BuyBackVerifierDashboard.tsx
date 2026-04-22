@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
+import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
+import { StaffLineEvidence } from './ClaimEvidencePanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
