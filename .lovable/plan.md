@@ -1,37 +1,34 @@
 
 
-## Plan: Server-Side Email Trigger After Note Generation
+## Plan: Show Uploaded Supporting Evidence in Management, SNO Approver, and SNO Finance Views
 
 ### Problem
 
-Currently, when a user clicks "Regenerate Notes", the note generation runs server-side (edge function), but the email-with-Word-attachment is triggered client-side afterwards. If the user closes the browser before the 3-second delay and email call complete, the email is never sent.
-
-### Solution
-
-Move the email trigger into the `generate-meeting-notes-claude` edge function itself, so once notes are generated and saved to the database, the edge function calls `send-meeting-email-resend` server-side before returning. This means the user can close the browser immediately after clicking the button and the email will still arrive.
+The Verifier (Management), SNO Approver (Director), and SNO Finance dashboards only display Part A / Part B status pills but do not show the actual uploaded evidence files. Users in these roles cannot view or download the supporting documents that practices have uploaded with their claims.
 
 ### What Changes
 
-**1. `supabase/functions/generate-meeting-notes-claude/index.ts`**
+**1. `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx` (Management View)**
 
-At the end of the function, after notes are successfully saved to the database:
+- Import `useNRESClaimEvidence`, `useNRESEvidenceConfig`, and `StaffLineEvidence` from `ClaimEvidencePanel`
+- Inside the expanded claim card (after the staff line items table, around line 465), add a read-only evidence section for each staff member
+- For each staff line, render `StaffLineEvidence` with `canEdit={false}` so files are visible and downloadable but not editable
+- The `useNRESClaimEvidence` hook will be called with the claim ID to fetch all uploaded files
 
-- Accept an optional `meetingId` parameter from the request body (already passed by the client)
-- Look up the user's email from the meeting's `user_id` via `auth.users`
-- Call `send-meeting-email-resend` internally using the Supabase service-role client (`supabase.functions.invoke(...)`)
-- Wrap in try/catch so email failure does not break the note generation response
-- Log success/failure for debugging
+**2. `src/components/nres/hours-tracker/BuyBackPMLDashboard.tsx` (SNO Approver / SNO Finance View)**
 
-**2. `src/components/meeting-recovery/ManualNoteGenerationButton.tsx`**
+- Same approach: import `useNRESClaimEvidence`, `useNRESEvidenceConfig`, and `StaffLineEvidence`
+- Inside the expanded claim card (after the staff line items table, around line 636), add the same read-only evidence section
+- Render `StaffLineEvidence` with `canEdit={false}` for each staff member
 
-- Remove the client-side email sending block (the 3-second delay, `getUser()`, `sendMeetingNotesEmail` call, and associated toast)
-- Replace with a simple success toast noting that notes have been generated and emailed
-- The `sendMeetingNotesEmail` import can be removed
+**3. Practice View Check (`BuyBackPracticeDashboard.tsx`)**
+
+- Already imports and uses `useNRESClaimEvidence` and `StaffLineEvidence` — no changes needed. Evidence is already visible in the practice view.
 
 ### Technical Details
 
-- The edge function already has a service-role Supabase client, so it can look up the user's email from `auth.users` and invoke `send-meeting-email-resend`
-- The `send-meeting-email-resend` edge function is already used by `deliver-mobile-meeting-email` and `graceful-end-meeting` in exactly this server-to-server pattern
-- No new edge functions or database changes are needed
-- The email will be sent even if the browser is closed, because the entire flow runs server-side
+- `StaffLineEvidence` already supports read-only mode via `canEdit={false}` — upload/delete buttons are hidden, only download links are shown
+- `useNRESClaimEvidence(claimId)` provides `getUploadedTypesForStaff(staffIndex)` and `getFilesForStaff(staffIndex)` which map files to staff lines
+- The evidence section will appear as a collapsible area below each claim's staff table, consistent with the practice view's pattern
+- No database or edge function changes are required — the hooks already handle data fetching via existing RLS-secured queries
 
