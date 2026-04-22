@@ -22,7 +22,7 @@ interface BuyBackPracticeDashboardProps {
   staffRoles?: string[];
   rateParams?: RateParams;
   managementRoles?: ManagementRoleConfig[];
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
@@ -1913,7 +1913,7 @@ export function StaffRosterSection({
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
-  onSubmit?: (id: string) => void; onResubmit?: (id: string, notes?: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void; onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   practiceKey?: string; saving?: boolean;
   meetingLogEntries?: MeetingLogEntry[];
@@ -2400,7 +2400,7 @@ export function ClaimsViewSwitcher({
   practiceName: string;
   onToggleCard: (id: string) => void;
   expandedClaimId: string | null;
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
   directorMode?: boolean;
@@ -2884,7 +2884,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   saving?: boolean;
 }) {
