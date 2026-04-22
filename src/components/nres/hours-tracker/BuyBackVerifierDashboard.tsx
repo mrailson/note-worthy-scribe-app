@@ -46,6 +46,17 @@ const dateStr = (iso: string | null | undefined) => {
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} at ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 };
 
+/** Resolve a display name — if stored value looks like an email, derive a readable name from it */
+function resolveSubmitterName(claim: BuyBackClaim, profileNames: Record<string, string>): string | undefined {
+  const email = claim.submitted_by_email;
+  if (email && profileNames[email.toLowerCase()]) return profileNames[email.toLowerCase()];
+  const raw = (claim as any).submitted_by_name;
+  if (!raw) return undefined;
+  if (!raw.includes('@')) return raw;
+  const local = raw.split('@')[0];
+  return local.split(/[._-]/).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
 const practiceName = (key: string | null | undefined) => {
   if (!key) return '—';
   return (NRES_PRACTICES as Record<string, string>)[key] ?? key;
@@ -305,11 +316,12 @@ const PracticeQueueTable = ({ claims }: { claims: BuyBackClaim[] }) => {
 };
 
 // ─── Claim Card ───────────────────────────────────────────────────────────────
-const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, saving }: {
+const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, saving, profileNames }: {
   claim: BuyBackClaim; expanded: boolean; onToggle: () => void;
   onVerify: (id: string, notes?: string) => Promise<any>;
   onReturn: (id: string, notes?: string) => Promise<any>;
   saving: boolean;
+  profileNames?: Record<string, string>;
 }) => {
   const [notes, setNotes] = useState('');
   const total = claimTotal(claim);
@@ -353,8 +365,8 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           {/* Metadata */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, padding: '14px 0 12px', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
             <InfoBlock label="Practice Manager" value={(claim as any).manager_name || '—'} />
-            <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} sub={claim.submitted_by_email || undefined} />
-            {((claim as any).submitted_by_name || claim.submitted_by_email) && <InfoBlock label="Submitted by" value={(claim as any).submitted_by_name || claim.submitted_by_email} sub={(claim as any).submitted_by_name ? claim.submitted_by_email || undefined : undefined} />}
+            <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
+            {(() => { const name = resolveSubmitterName(claim, profileNames || {}); return name ? <InfoBlock label="Submitted by" value={name} sub={claim.submitted_by_email || undefined} /> : claim.submitted_by_email ? <InfoBlock label="Submitted by" value={claim.submitted_by_email} /> : null; })()}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
@@ -801,6 +813,19 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
+  // Resolve profile names for submitter emails
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const emails = [...new Set(claims.map(c => c.submitted_by_email).filter(Boolean))] as string[];
+    if (!emails.length) return;
+    supabase.from('profiles').select('email, full_name').in('email', emails).then(({ data }) => {
+      if (!data) return;
+      const map: Record<string, string> = {};
+      data.forEach((p: any) => { if (p.email && p.full_name) map[p.email.toLowerCase()] = p.full_name; });
+      setProfileNames(map);
+    });
+  }, [claims]);
+
   // Group meeting entries by person + claim_month for verifier view
   const visibleMeetingGroups = useMemo(() => {
     if (!meetingEntries) return [];
@@ -1170,6 +1195,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
                     onVerify={onVerify}
                     onReturn={onReturnToPractice}
                     saving={savingClaim}
+                    profileNames={profileNames}
                   />
                 ))}
                 {filteredMeetingGroups.map((group) => {
