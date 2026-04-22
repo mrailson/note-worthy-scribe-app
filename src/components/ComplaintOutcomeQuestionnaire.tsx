@@ -1057,19 +1057,113 @@ export const ComplaintOutcomeQuestionnaire = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto px-12">
         <DialogHeader>
-          <DialogTitle>Create Complaint Outcome Letter</DialogTitle>
+          <DialogTitle>{data.outcome_type === 'withdrawn' ? 'Close Complaint – Withdrawn/Resolved' : 'Create Complaint Outcome Letter'}</DialogTitle>
           <DialogDescription>
-            Reference: {complaintData.reference_number} | Step {step} of {totalSteps}
+            Reference: {complaintData.reference_number}{data.outcome_type !== 'withdrawn' && ` | Step ${step} of ${totalSteps}`}
           </DialogDescription>
         </DialogHeader>
 
-        <Progress value={progress} className="mb-4" />
+        {data.outcome_type !== 'withdrawn' && <Progress value={progress} className="mb-4" />}
 
         <div className="px-6 sm:px-10">
 
-        {/* Step 1: Letter Details */}
-        {step === 1 && (
+        {/* Withdrawn / Resolved flow — single-step simplified */}
+        {data.outcome_type === 'withdrawn' && (
+          <div className="space-y-5">
+            <Alert className="border-blue-200 bg-blue-50">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-800">Quick Close</AlertTitle>
+              <AlertDescription className="text-blue-700 text-xs">
+                Use this when a patient has withdrawn their complaint or the issue has been resolved informally. No outcome letter will be generated.
+              </AlertDescription>
+            </Alert>
+
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Resolution Summary *</Label>
+              <Textarea
+                value={data.key_findings}
+                onChange={(e) => setData({ ...data, key_findings: e.target.value })}
+                placeholder="Briefly describe how the complaint was resolved, e.g. 'Spoke to patient, prescription issued, future appointment booked, patient no longer wishes to complain'"
+                rows={4}
+                className="bg-white dark:bg-background"
+              />
+              <div className="mt-2">
+                <SpeechToText
+                  onTranscription={(text) =>
+                    setData(prevData => ({ ...prevData, key_findings: prevData.key_findings + ' ' + text }))
+                  }
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">Resolved By (optional)</Label>
+              <Textarea
+                value={data.actions_taken}
+                onChange={(e) => setData({ ...data, actions_taken: e.target.value })}
+                placeholder="Name and role of person who resolved the issue"
+                rows={2}
+                className="bg-white dark:bg-background"
+              />
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Checkbox 
+                  id="confirm-withdrawn"
+                  checked={confirmProfessionalJudgement}
+                  onCheckedChange={(checked) => setConfirmProfessionalJudgement(checked as boolean)}
+                  className="mt-1"
+                />
+                <label htmlFor="confirm-withdrawn" className="text-sm text-slate-700 leading-relaxed cursor-pointer">
+                  <strong>Required confirmation:</strong> I confirm the patient has withdrawn this complaint or the matter has been resolved informally.
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setData({ ...data, outcome_type: undefined })}>
+                Back
+              </Button>
+              <Button 
+                onClick={handleSubmit}
+                disabled={isSubmitting || !confirmProfessionalJudgement || !data.key_findings || data.key_findings.length < 10}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Closing Complaint...
+                  </>
+                ) : (
+                  'Close as Withdrawn/Resolved'
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Normal outcome flow — Step 1: Letter Details */}
+        {data.outcome_type !== 'withdrawn' && step === 1 && (
           <div className="space-y-6">
+            {/* Quick close option */}
+            <div className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Patient withdrawn or resolved informally?</p>
+                  <p className="text-xs text-slate-500">Close without generating a formal outcome letter</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setData({ ...data, outcome_type: 'withdrawn' })}
+                >
+                  Close as Withdrawn/Resolved
+                </Button>
+              </div>
+            </div>
+
             {/* Auto-fill All button with evidence guard */}
             <div>
               <Button
