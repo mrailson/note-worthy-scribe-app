@@ -202,13 +202,14 @@ function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaf
 
 // --- Sub-components ---
 
-export function KpiCard({ label, value, sub, accent, tooltip }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string }) {
+export function KpiCard({ label, value, sub, accent, tooltip, onClick, active }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string; onClick?: () => void; active?: boolean }) {
   const [hover, setHover] = React.useState(false);
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)', cursor: tooltip ? 'help' : 'default', borderLeft: `3px solid ${accent || '#e5e7eb'}`, position: 'relative' as const }}
+      onClick={onClick}
+      style={{ background: active ? (accent ? `${accent}10` : '#f0f9ff') : '#fff', borderRadius: 10, padding: '10px 12px', border: `1px solid ${active ? accent || '#005eb8' : '#e5e7eb'}`, boxShadow: active ? `0 0 0 1px ${accent || '#005eb8'}` : '0 1px 2px rgba(0,0,0,0.03)', cursor: onClick ? 'pointer' : (tooltip ? 'help' : 'default'), borderLeft: `3px solid ${accent || '#e5e7eb'}`, position: 'relative' as const, transition: 'all 0.15s ease' }}
     >
       <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, color: accent, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
@@ -2367,6 +2368,8 @@ export function ClaimsViewSwitcher({
   defaultView,
   hideSummaryView = false,
   exportVariant = 'practice',
+  statusFilter,
+  onStatusFilterChange,
 }: {
   claims: BuyBackClaim[];
   practiceKey: string;
@@ -2383,8 +2386,10 @@ export function ClaimsViewSwitcher({
   defaultView?: ClaimsView;
   hideSummaryView?: boolean;
   exportVariant?: 'practice' | 'director' | 'finance';
+  statusFilter?: string | null;
+  onStatusFilterChange?: (status: string | null) => void;
 }) {
-  const [view, setView] = useState<ClaimsView>(defaultView || 'spreadsheet');
+  const [view, setView] = useState<ClaimsView>(defaultView || 'cards');
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
@@ -2404,8 +2409,16 @@ export function ClaimsViewSwitcher({
 
   const sorted = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
-    return [...periodClaims].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
-  }, [periodClaims]);
+    let filtered = [...periodClaims];
+    if (statusFilter) {
+      if (statusFilter === 'invoiced') {
+        filtered = filtered.filter(c => c.status === 'approved' || c.status === 'invoiced');
+      } else {
+        filtered = filtered.filter(c => c.status === statusFilter);
+      }
+    }
+    return filtered.sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
+  }, [periodClaims, statusFilter]);
 
   // Flatten staff lines for spreadsheet
   type FlatLine = { claimId: string; claim: BuyBackClaim; staff: any; monthLabel: string; monthDate: string; allocDisplay: string; maxAmt: number; claimedAmt: number; isBelow: boolean };
@@ -2588,6 +2601,18 @@ export function ClaimsViewSwitcher({
       {/* ── SUMMARY VIEW ───────────────────────────────────────── */}
       {view === 'summary' && (
         <HistorySummary claims={periodClaims} hidePeriodFilter />
+      )}
+
+      {/* ── Status filter indicator ─────────────────────────── */}
+      {statusFilter && view === 'cards' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#f0f9ff', borderRadius: 8, border: '1px solid #bae6fd', marginBottom: 8, fontSize: 12 }}>
+          <span style={{ color: '#0369a1', fontWeight: 600 }}>
+            Filtered: {statusFilter === 'invoiced' ? 'Invoiced' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} ({sorted.length} claim{sorted.length !== 1 ? 's' : ''})
+          </span>
+          <button onClick={() => onStatusFilterChange?.(null)} style={{ marginLeft: 'auto', padding: '2px 8px', borderRadius: 4, border: '1px solid #93c5fd', background: '#fff', color: '#2563eb', fontSize: 11, cursor: 'pointer', fontWeight: 500 }}>
+            Clear filter
+          </button>
+        </div>
       )}
 
       {/* ── CARDS VIEW ────────────────────────────────────────── */}
@@ -3128,6 +3153,8 @@ export function BuyBackPracticeDashboard({
 }: BuyBackPracticeDashboardProps) {
   const [activeClaimKey, setActiveClaimKey] = useState<string | null>(null);
   const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const claimsRef = React.useRef<HTMLDivElement>(null);
 
   const practiceName = getPracticeName(practiceKey);
   const practiceCode = NRES_ODS_CODES[practiceKey] || '—';
@@ -3289,14 +3316,14 @@ export function BuyBackPracticeDashboard({
         </div>
       )}
 
-      {/* KPI cards */}
+      {/* KPI cards — clickable to filter claims */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 20 }}>
-        <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted to NRES" />
-        <KpiCard label="Awaiting Verification" value={counts.submitted || 0} sub={fmtShort(totals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES Verification" />
-        <KpiCard label="Awaiting Approval" value={counts.verified || 0} sub={fmtShort(totals.verified)} accent="#7c3aed" tooltip="Verified by NRES, awaiting PML Finance Director Approval" />
-        <KpiCard label="Invoiced" value={(counts.approved || 0) + (counts.invoiced || 0)} sub={fmtShort(totals.approved + totals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" />
-        <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" />
-        <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" />
+        <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted to NRES" onClick={() => { setStatusFilter(statusFilter === 'draft' ? null : 'draft'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'draft'} />
+        <KpiCard label="Awaiting Verification" value={counts.submitted || 0} sub={fmtShort(totals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES Verification" onClick={() => { setStatusFilter(statusFilter === 'submitted' ? null : 'submitted'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'submitted'} />
+        <KpiCard label="Awaiting Approval" value={counts.verified || 0} sub={fmtShort(totals.verified)} accent="#7c3aed" tooltip="Verified by NRES, awaiting PML Finance Director Approval" onClick={() => { setStatusFilter(statusFilter === 'verified' ? null : 'verified'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'verified'} />
+        <KpiCard label="Invoiced" value={(counts.approved || 0) + (counts.invoiced || 0)} sub={fmtShort(totals.approved + totals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" onClick={() => { setStatusFilter(statusFilter === 'invoiced' ? null : 'invoiced'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'invoiced'} />
+        <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" onClick={() => { setStatusFilter(statusFilter === 'paid' ? null : 'paid'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'paid'} />
+        <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" onClick={() => { setStatusFilter(statusFilter === 'queried' ? null : 'queried'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'queried'} />
       </div>
 
       {/* Staff Roster */}
@@ -3345,16 +3372,20 @@ export function BuyBackPracticeDashboard({
       <div style={{ height: 1, background: '#e5e7eb', margin: '8px 0 20px' }} />
 
       {/* Unified Claims section */}
-      <ClaimsViewSwitcher
-        claims={practiceClaims}
-        practiceKey={practiceKey}
-        practiceName={practiceName}
-        onToggleCard={(id) => setExpandedClaimId(expandedClaimId === id ? null : id)}
-        expandedClaimId={expandedClaimId}
-        onSubmit={onSubmit}
-        onResubmit={onResubmit}
-        saving={savingClaim}
-      />
+      <div ref={claimsRef}>
+        <ClaimsViewSwitcher
+          claims={practiceClaims}
+          practiceKey={practiceKey}
+          practiceName={practiceName}
+          onToggleCard={(id) => setExpandedClaimId(expandedClaimId === id ? null : id)}
+          expandedClaimId={expandedClaimId}
+          onSubmit={onSubmit}
+          onResubmit={onResubmit}
+          saving={savingClaim}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+        />
+      </div>
 
       {/* Footer */}
       <div style={{
