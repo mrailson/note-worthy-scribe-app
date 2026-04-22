@@ -381,6 +381,8 @@ function InlineClaimPanel({
 
   // Claimed amount state for standard (non-locum, non-meeting) claims
   const [standardClaimedAmount, setStandardClaimedAmount] = useState<number>(0);
+  // Holiday weeks deducted for management claims
+  const [holidayWeeks, setHolidayWeeks] = useState<number>(0);
   const meetingRate = staffMember.hourly_rate || 0;
   const [meetingHours, setMeetingHours] = useState<number>(0);
   const meetingMaxAmount = useMemo(() => meetingHours * meetingRate, [meetingHours, meetingRate]);
