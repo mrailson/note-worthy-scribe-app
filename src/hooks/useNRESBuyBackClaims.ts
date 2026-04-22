@@ -837,12 +837,12 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: invoiceRecipient,
-                subject: `${claimTypeLabel} claim approved — ${claimMonthLabel} — ${totalLabel}`,
+                subject: `${claimTypeLabel} claim approved — ${practiceName} — ${claimMonthLabel} — ${totalLabel}`,
                 html_content: `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
   <div style="background:#003087;padding:22px 28px;">
     <p style="color:#9fb6e0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES NEIGHBOURHOOD ACCESS SERVICE</p>
-    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">${claimTypeLabel} claim approved</h1>
+    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">${claimTypeLabel} claim approved — ${practiceName}</h1>
     <p style="color:#cdd9ee;font-size:13px;margin:0;">${practiceName} · ${claimMonthLabel}</p>
   </div>
 
@@ -1268,12 +1268,12 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: recipient,
-                subject: `Payment sent — ${claimMonthLabel} ${paidClaimTypeLabelLower} claim — ${totalLabel}`,
+                subject: `Payment sent — ${practiceName} — ${claimMonthLabel} ${paidClaimTypeLabelLower} claim — ${totalLabel}`,
                 html_content: `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
   <div style="background:#166534;padding:22px 28px;">
     <p style="color:#bbf7d0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES NEIGHBOURHOOD ACCESS SERVICE</p>
-    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;">Payment sent</h1>
+    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;">Payment sent — ${practiceName}</h1>
     <p style="color:#dcfce7;font-size:13px;margin:0;">${practiceName} · ${claimMonthLabel}</p>
   </div>
   <div style="padding:26px 28px 8px;">
