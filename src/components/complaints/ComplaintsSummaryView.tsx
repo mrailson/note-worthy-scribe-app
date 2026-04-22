@@ -66,7 +66,7 @@ const OUTCOME_LABELS: Record<string, string> = {
   upheld: 'Upheld',
   partially_upheld: 'Partially Upheld',
   not_upheld: 'Not Upheld',
-  withdrawn: 'Withdrawn',
+  withdrawn: 'Withdrawn/Resolved',
 };
 
 const CATEGORY_SHORT: Record<string, string> = {

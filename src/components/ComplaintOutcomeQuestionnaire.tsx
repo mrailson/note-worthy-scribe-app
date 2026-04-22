@@ -18,7 +18,7 @@ import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkl
 
 interface QuestionnaireData {
   investigation_complete: boolean;
-  outcome_type?: 'upheld' | 'partially_upheld' | 'not_upheld';
+  outcome_type?: 'upheld' | 'partially_upheld' | 'not_upheld' | 'withdrawn';
   tone: 'professional' | 'empathetic' | 'apologetic' | 'factual' | 'strong' | 'firm';
   key_findings: string;
   actions_taken: string;
@@ -882,6 +882,53 @@ export const ComplaintOutcomeQuestionnaire = ({
       
       console.log('✓ Questionnaire saved successfully (RPC returned id):', questionnaireId);
 
+    // Withdrawn/Resolved: skip letter generation, save directly
+      if (finalData.outcome_type === 'withdrawn') {
+        console.log('Step 3: Withdrawn — skipping letter generation...');
+        
+        if (!finalData.outcome_type || !['upheld', 'partially_upheld', 'not_upheld', 'withdrawn'].includes(finalData.outcome_type)) {
+          throw new Error('Invalid outcome type selected');
+        }
+
+        console.log('Step 4: Saving withdrawn outcome to database via RPC...');
+        const { data: outcomeId, error: outcomeError } = await supabase
+          .rpc('create_complaint_outcome', {
+            p_complaint_id: complaintId,
+            p_outcome_type: 'withdrawn',
+            p_outcome_summary: finalData.key_findings,
+            p_outcome_letter: `Complaint withdrawn/resolved informally.\n\nResolution Summary:\n${finalData.key_findings}`,
+          });
+
+        if (outcomeError) {
+          console.error('!!! RPC ERROR SAVING WITHDRAWN OUTCOME !!!');
+          console.error('Error details:', outcomeError);
+          alert(`Failed to save outcome: ${outcomeError.message}. Check console for details.`);
+          throw outcomeError;
+        }
+        
+        console.log('✓ Withdrawn outcome saved, ID:', outcomeId);
+
+        console.log('Step 5: Updating complaint status to closed...');
+        const { error: statusError } = await supabase
+          .from('complaints')
+          .update({ 
+            status: 'closed',
+            closed_at: new Date().toISOString()
+          })
+          .eq('id', complaintId);
+
+        if (statusError) {
+          console.error('Failed to update complaint status:', statusError);
+        } else {
+          console.log('Complaint status updated to closed');
+        }
+
+        console.log('=== Withdrawn outcome completed successfully ===');
+        onSuccess();
+        onOpenChange(false);
+        return;
+      }
+
       console.log('Step 3: Calling edge function to generate letter...');
       
       const { data: letterData, error: letterError } = await supabase.functions.invoke(
@@ -908,7 +955,7 @@ export const ComplaintOutcomeQuestionnaire = ({
       
       console.log('Outcome letter generated successfully, length:', letterData.outcomeLetter?.length);
 
-      if (!finalData.outcome_type || !['upheld', 'partially_upheld', 'not_upheld'].includes(finalData.outcome_type)) {
+      if (!finalData.outcome_type || !['upheld', 'partially_upheld', 'not_upheld', 'withdrawn'].includes(finalData.outcome_type)) {
         throw new Error('Invalid outcome type selected');
       }
 
@@ -1404,8 +1451,9 @@ export const ComplaintOutcomeQuestionnaire = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="upheld">Complaint Upheld</SelectItem>
-                  <SelectItem value="partially_upheld">Complaint Partially upheld</SelectItem>
+                  <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
                   <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
+                  <SelectItem value="withdrawn">Withdrawn / Resolved Informally</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -1478,10 +1526,10 @@ export const ComplaintOutcomeQuestionnaire = ({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Letter...
+                  {data.outcome_type === 'withdrawn' ? 'Closing Complaint...' : 'Generating Letter...'}
                 </>
               ) : (
-                'Generate Outcome Letter'
+                data.outcome_type === 'withdrawn' ? 'Close as Withdrawn/Resolved' : 'Generate Outcome Letter'
               )}
             </Button>
           )}
