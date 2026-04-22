@@ -655,7 +655,7 @@ export const PracticeUserManagement = () => {
         lg_capture_access: false,
         bp_service_access: false,
         survey_manager_access: true,
-        policy_service_access: false,
+        policy_service_access: true,
         document_signoff_access: false
       }
     });
@@ -1130,8 +1130,7 @@ export const PracticeUserManagement = () => {
                           ...prev,
                           module_access: { 
                             ...prev.module_access, 
-                            cqc_compliance_access: checked,
-                            policy_service_access: checked 
+                            cqc_compliance_access: checked
                           }
                         }));
                       }}
@@ -1141,8 +1140,23 @@ export const PracticeUserManagement = () => {
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground -mt-1 ml-10">
-                    Mock CQC Inspection & Practice Policies
+                    Mock CQC Inspection
                   </p>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="policy_service_access"
+                      checked={userFormData.module_access.policy_service_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, policy_service_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="policy_service_access" className="text-sm">
+                      Practice Policies
+                    </Label>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="complaints_manager_access"
