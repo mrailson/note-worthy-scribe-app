@@ -442,6 +442,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       console.error('Error submitting claim:', error);
       toast.error('Failed to submit claim');
     } finally {
+      submitClaimInFlight.current.delete(id);
       setSaving(false);
     }
   };
