@@ -1,0 +1,2 @@
+ALTER TABLE public.complaint_outcomes DROP CONSTRAINT complaint_outcomes_outcome_type_check;
+ALTER TABLE public.complaint_outcomes ADD CONSTRAINT complaint_outcomes_outcome_type_check CHECK (outcome_type = ANY (ARRAY['rejected'::text, 'upheld'::text, 'partially_upheld'::text, 'withdrawn'::text]));
