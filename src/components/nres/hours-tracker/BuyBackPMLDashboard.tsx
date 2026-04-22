@@ -1495,6 +1495,7 @@ export function BuyBackPMLDashboard({
                   onMarkPaid={onMarkPaid}
                   onSchedulePayment={onSchedulePayment}
                   saving={savingClaim}
+                  profileNames={profileNames}
                 />
               ))}
               {filteredMeetingGroups.map(g => (
