@@ -1,6 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +23,139 @@ interface ComplaintData {
   complaint_on_behalf?: boolean;
 }
 
-serve(async (req) => {
+// --- Handwriting-aware OCR prompt ---
+const HANDWRITING_OCR_PROMPT = `You are an expert document transcriber specialising in handwritten NHS complaint letters.
+
+CRITICAL RULES:
+1. Transcribe ONLY what you can actually read. Do NOT invent or guess content.
+2. For any word you are uncertain about, append [?] immediately after it (e.g. "Thornton[?]")
+3. For completely illegible words, write [illegible]
+4. NEVER guess dates, NHS numbers, phone numbers, or postcodes. If you cannot read them clearly, write [illegible] instead.
+5. Describe the letter structure you see (greeting, body paragraphs, sign-off) but do NOT invent missing sections.
+6. Preserve line breaks and paragraph structure as closely as possible.
+7. If a section of the letter is obscured, smudged, or cut off, note it as [section illegible] or [text cut off].
+
+After the transcription, add a section:
+---CONFIDENCE NOTES---
+List any words or sections you were uncertain about, with brief explanations (e.g. "Line 3: name could be 'Thomson' or 'Thornton'").`;
+
+// --- Strict transcription prompt for second pass ---
+const STRICT_TRANSCRIPTION_PROMPT = `You are a careful document reader. Transcribe the visible text from this image as accurately as possible.
+
+Rules:
+- Only write what you can clearly see
+- Use [unclear] for any word you cannot read with confidence
+- Use [illegible] for completely unreadable sections
+- Do NOT add any interpretation, context, or invented content
+- Do NOT guess names, dates, or numbers — mark them [unclear] if not perfectly legible
+- Preserve the original structure and line breaks`;
+
+function isImageFile(fileType: string, fileName: string): boolean {
+  return fileType.includes('image/') || 
+    fileName.endsWith('.jpg') || 
+    fileName.endsWith('.jpeg') || 
+    fileName.endsWith('.png') ||
+    fileName.endsWith('.webp');
+}
+
+async function toBase64(fileItem: File): Promise<string> {
+  const arrayBuffer = await fileItem.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let base64 = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    base64 += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(base64);
+}
+
+async function ocrImageWithPrompt(
+  openaiApiKey: string,
+  base64: string,
+  mimeType: string,
+  prompt: string
+): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4.1-2025-04-14',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
+          ]
+        }
+      ],
+      max_tokens: 3000,
+      temperature: 0.1,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(`OCR failed: ${err.error?.message || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// Compare key fields between two OCR passes and flag disagreements
+function compareOCRPasses(pass1: string, pass2: string): { 
+  verification_status: 'verified' | 'partial' | 'unverified';
+  disagreements: string[];
+} {
+  const disagreements: string[] = [];
+  
+  // Extract potential dates from both
+  const datePattern = /\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/g;
+  const dates1 = pass1.match(datePattern) || [];
+  const dates2 = pass2.match(datePattern) || [];
+  if (dates1.join(',') !== dates2.join(',')) {
+    disagreements.push('Dates differ between passes');
+  }
+  
+  // Extract potential NHS numbers
+  const nhsPattern = /\b\d{3}\s?\d{3}\s?\d{4}\b/g;
+  const nhs1 = pass1.match(nhsPattern) || [];
+  const nhs2 = pass2.match(nhsPattern) || [];
+  if (nhs1.join(',') !== nhs2.join(',')) {
+    disagreements.push('NHS numbers differ between passes');
+  }
+  
+  // Extract potential phone numbers
+  const phonePattern = /\b(?:0\d{10}|0\d{4}\s?\d{6}|\+44\s?\d{10})\b/g;
+  const phones1 = pass1.match(phonePattern) || [];
+  const phones2 = pass2.match(phonePattern) || [];
+  if (phones1.join(',') !== phones2.join(',')) {
+    disagreements.push('Phone numbers differ between passes');
+  }
+  
+  // Check general similarity (word overlap)
+  const words1 = new Set(pass1.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  const words2 = new Set(pass2.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  const intersection = [...words1].filter(w => words2.has(w));
+  const overlap = intersection.length / Math.max(words1.size, words2.size);
+  
+  if (overlap < 0.5) {
+    disagreements.push('Major text content disagreement between passes');
+  }
+
+  const verification_status = disagreements.length === 0 ? 'verified' 
+    : disagreements.length <= 2 ? 'partial' 
+    : 'unverified';
+    
+  return { verification_status, disagreements };
+}
+
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -37,19 +168,24 @@ serve(async (req) => {
 
     const formData = await req.formData();
     
-    // Log what we received for debugging
     console.log('FormData entries:');
     for (const [key, value] of formData.entries()) {
       console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
     }
     
     const files = formData.getAll('files') as File[];
-    const file = formData.get('file') as File; // Also check for single file (backwards compatibility)
+    const file = formData.get('file') as File;
     const textContent = formData.get('textContent') as string;
+    
+    // Check if this is an OCR-only request (for image preview step)
+    const ocrOnly = formData.get('ocrOnly') === 'true';
 
     let extractedText = '';
+    let isImageImport = false;
+    let verificationStatus: 'verified' | 'partial' | 'unverified' | 'not_applicable' = 'not_applicable';
+    let confidenceNotes = '';
+    let disagreements: string[] = [];
 
-    // Handle both single file and multiple files
     const filesToProcess = files.length > 0 ? files : (file ? [file] : []);
 
     if (filesToProcess.length > 0) {
@@ -64,74 +200,39 @@ serve(async (req) => {
         console.log(`Processing file: ${fileItem.name}, type: ${fileType}`);
         let fileText = '';
 
-        if (fileType.includes('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
-          // Handle image files with OCR using OpenAI Vision
-          const arrayBuffer = await fileItem.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
+        if (isImageFile(fileType, fileName)) {
+          // --- HANDWRITING-AWARE DUAL-PASS OCR ---
+          isImageImport = true;
+          const base64 = await toBase64(fileItem);
+          const mimeType = fileType || 'image/jpeg';
           
-          // Convert to base64 in chunks to avoid stack overflow
-          let base64 = '';
-          const chunkSize = 8192;
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            const chunk = bytes.subarray(i, i + chunkSize);
-            base64 += String.fromCharCode.apply(null, Array.from(chunk));
-          }
-          base64 = btoa(base64);
+          console.log('Running handwriting-aware OCR pass 1...');
+          const pass1Result = await ocrImageWithPrompt(openaiApiKey, base64, mimeType, HANDWRITING_OCR_PROMPT);
           
-          const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openaiApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'gpt-4.1-2025-04-14',
-              messages: [
-                {
-                  role: 'user',
-                  content: [
-                    {
-                      type: 'text',
-                      text: 'Please extract all text content from this image. This appears to be a medical complaint or correspondence. Extract all visible text accurately.'
-                    },
-                    {
-                      type: 'image_url',
-                      image_url: {
-                        url: `data:${fileType};base64,${base64}`
-                      }
-                    }
-                  ]
-                }
-              ],
-              max_tokens: 2000
-            }),
-          });
-
-          if (!imageAnalysisResponse.ok) {
-            throw new Error(`Failed to process image ${fileItem.name} with OCR`);
+          // Extract confidence notes from pass 1
+          const confSplit = pass1Result.split('---CONFIDENCE NOTES---');
+          const pass1Text = confSplit[0].trim();
+          if (confSplit.length > 1) {
+            confidenceNotes += confSplit[1].trim() + '\n';
           }
-
-          const imageData = await imageAnalysisResponse.json();
-          fileText = imageData.choices[0].message.content;
+          
+          console.log('Running strict transcription pass 2...');
+          const pass2Text = await ocrImageWithPrompt(openaiApiKey, base64, mimeType, STRICT_TRANSCRIPTION_PROMPT);
+          
+          // Compare the two passes
+          const comparison = compareOCRPasses(pass1Text, pass2Text);
+          verificationStatus = comparison.verification_status;
+          disagreements = comparison.disagreements;
+          
+          console.log(`Dual-pass verification: ${verificationStatus}, disagreements: ${disagreements.length}`);
+          
+          // Use pass 1 (handwriting-aware) as the primary text
+          fileText = pass1Text;
           
         } else if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
-          // Handle PDF files with OCR using OpenAI Vision
-          console.log(`Processing PDF file: ${fileItem.name}, size: ${fileItem.size} bytes`);
-          const arrayBuffer = await fileItem.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
+          const base64 = await toBase64(fileItem);
+          console.log(`Processing PDF file: ${fileItem.name}, base64 length: ${base64.length}`);
           
-          // Convert to base64 in chunks to avoid stack overflow
-          let base64 = '';
-          const chunkSize = 8192;
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            const chunk = bytes.subarray(i, i + chunkSize);
-            base64 += String.fromCharCode.apply(null, Array.from(chunk));
-          }
-          base64 = btoa(base64);
-          
-          console.log(`PDF base64 length: ${base64.length}`);
-          
-          // Use OpenAI Vision with file input for PDF
           const pdfAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -173,16 +274,13 @@ serve(async (req) => {
           console.log(`Successfully extracted ${fileText.length} characters from PDF ${fileItem.name}`);
           
         } else if (fileType.includes('msword') || fileType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-          // Handle Word documents - try XML extraction first, fall back to OCR if needed
           console.log(`Processing Word file: ${fileItem.name}, size: ${fileItem.size} bytes`);
           const arrayBuffer = await fileItem.arrayBuffer();
           const buffer = new Uint8Array(arrayBuffer);
           
-          // Try to extract text from DOCX (which is a ZIP with XML files)
           const decoder = new TextDecoder('utf-8', { fatal: false });
           const text = decoder.decode(buffer);
           
-          // Look for text within <w:t> tags (Word text elements)
           const wordTextMatches = text.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
           const paragraphMatches = text.match(/>([^<]{3,})</g);
           
@@ -219,18 +317,9 @@ serve(async (req) => {
             console.log(`XML extraction got ${fileText.length} characters from ${fileItem.name}`);
           }
           
-          // If XML extraction failed or got very little text, use OCR as fallback
           if (!fileText || fileText.length < 50) {
-            console.log(`XML extraction insufficient (${fileText?.length || 0} chars), falling back to OCR for ${fileItem.name}`);
-            
-            // Convert to base64 for OCR
-            let base64 = '';
-            const chunkSize = 8192;
-            for (let i = 0; i < buffer.length; i += chunkSize) {
-              const chunk = buffer.subarray(i, i + chunkSize);
-              base64 += String.fromCharCode.apply(null, Array.from(chunk));
-            }
-            base64 = btoa(base64);
+            console.log(`XML extraction insufficient, falling back to OCR for ${fileItem.name}`);
+            const base64 = await toBase64(fileItem);
             
             const docAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
@@ -274,7 +363,6 @@ serve(async (req) => {
           }
           
         } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
-          // Handle text files and emails
           fileText = await fileItem.text();
         } else {
           console.error(`Unsupported file type: ${fileType} for file ${fileItem.name}`);
@@ -297,60 +385,79 @@ serve(async (req) => {
 
     console.log('Total extracted text length:', extractedText.length);
 
-    // Use AI to extract structured complaint data
+    // If OCR-only mode, return the raw text for user review
+    if (ocrOnly) {
+      return new Response(JSON.stringify({
+        success: true,
+        ocrOnly: true,
+        extractedText,
+        isImageImport,
+        verificationStatus,
+        confidenceNotes,
+        disagreements,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // --- Hallucination-guarded structuring prompt ---
     const systemPrompt = `You are an expert NHS complaints processor. Extract structured complaint information from the provided text and return it as a JSON object.
 
 IMPORTANT: The text may contain XML artifacts, formatting noise, or be partially garbled from document conversion. Focus on finding the actual complaint content and patient information. Be flexible and look for patterns rather than exact matches.
 
-Return ONLY a valid JSON object with these fields (use null for missing information):
+CRITICAL HALLUCINATION PREVENTION RULES:
+- If a field value was marked [illegible], [unclear], or [?] in the source text, set that field to null rather than guessing.
+- NEVER infer an NHS number, date of birth, or phone number that is not clearly present in the source text.
+- If the source text contains [illegible] where a name should be, set patient_name to null — do NOT guess a name.
+- If a date is marked [illegible] or [?], set the date field to null.
+- For each field you populate, it MUST be directly supported by clearly readable text.
+
+Return ONLY a valid JSON object with these fields (use null for missing or uncertain information):
 {
-  "patient_name": "Full name of the patient",
-  "patient_dob": "Date of birth in YYYY-MM-DD format",
-  "patient_contact_phone": "Phone number",
-  "patient_contact_email": "Email address", 
-  "patient_address": "Full address",
-  "incident_date": "Date of incident in YYYY-MM-DD format",
+  "patient_name": "Full name of the patient (null if illegible or uncertain)",
+  "patient_dob": "Date of birth in YYYY-MM-DD format (null if not clearly present)",
+  "patient_contact_phone": "Phone number (null if not clearly readable)",
+  "patient_contact_email": "Email address (null if not clearly readable)", 
+  "patient_address": "Full address (null if not clearly readable)",
+  "incident_date": "Date of incident in YYYY-MM-DD format (null if not clearly present)",
   "complaint_title": "Brief title summarizing the complaint (max 10 words)",
-  "complaint_description": "A professional, clinical summary of the complaint in 2-4 sentences. Extract the core concerns without preserving offensive language, emotional outbursts, or inappropriate references. Focus on: what happened, when, what the patient is unhappy about, and what outcome they seek. Write in third person, professional tone (e.g. 'The patient reports...').",
+  "complaint_description": "A professional, clinical summary of the complaint in 2-4 sentences. Extract the core concerns without preserving offensive language, emotional outbursts, or inappropriate references. Focus on: what happened, when, what the patient is unhappy about, and what outcome they seek. Write in third person, professional tone (e.g. 'The patient reports...'). If significant portions are illegible, note that in the summary.",
   "category": "One of: Clinical Care & Treatment, Prescriptions, Staff Attitude & Behaviour, Appointments & Access, Communication Issues, Test Results & Follow-Up, Confidentiality & Data, Digital Services, Facilities & Environment, Administration, other",
-  "location_service": "Location or service where incident occurred",
+  "location_service": "Location or service where incident occurred (null if unclear)",
   "staff_mentioned": ["Array", "of", "staff", "names", "mentioned"],
   "priority": "One of: low, medium, high, urgent",
   "consent_given": true/false if mentioned,
-  "complaint_on_behalf": true/false if complaint is made on behalf of someone else
+  "complaint_on_behalf": true/false if complaint is made on behalf of someone else,
+  "low_confidence_fields": ["array of field names where the source text was uncertain, marked with [?], [illegible], or [unclear]"]
 }
 
 CRITICAL: Category Selection Rules (prioritize by severity - highest to lowest):
-1. "Clinical Care & Treatment" - Any medical treatment issues, misdiagnosis, clinical errors, patient safety concerns, adverse medical outcomes
-2. "Prescriptions" - Prescription errors, wrong medication, adverse reactions due to medical errors, medication dispensing issues
-3. "Test Results & Follow-Up" - Delayed or missed test results, inappropriate follow-up care, test result communication failures
-4. "Communication Issues" - Breach of confidentiality, inadequate information sharing, critical communication failures, poor information provision
-5. "Staff Attitude & Behaviour" - Unprofessional behavior, discrimination, harassment, rudeness, inappropriate conduct
-6. "Appointments & Access" - Missed appointments causing health issues, booking system failures, access to care problems
-7. "Confidentiality & Data" - Data breaches, privacy violations, confidentiality concerns
-8. "Digital Services" - Online booking issues, digital system failures, technology-related problems
-9. "Facilities & Environment" - Unsafe or inadequate medical facilities, cleanliness issues, environment problems
-10. "Administration" - Administrative errors, billing issues, record keeping problems
+1. "Clinical Care & Treatment" - Any medical treatment issues, misdiagnosis, clinical errors, patient safety concerns
+2. "Prescriptions" - Prescription errors, wrong medication, adverse reactions
+3. "Test Results & Follow-Up" - Delayed or missed test results
+4. "Communication Issues" - Breach of confidentiality, inadequate information sharing
+5. "Staff Attitude & Behaviour" - Unprofessional behavior, discrimination, harassment
+6. "Appointments & Access" - Missed appointments, booking failures, access problems
+7. "Confidentiality & Data" - Data breaches, privacy violations
+8. "Digital Services" - Online booking issues, digital system failures
+9. "Facilities & Environment" - Unsafe or inadequate facilities
+10. "Administration" - Administrative errors, billing issues
 11. "other" - Anything not covered above
 
-If multiple complaint categories apply, ALWAYS select the most serious category from the hierarchy above.
+If multiple categories apply, ALWAYS select the most serious category.
 
 CRITICAL SUMMARISATION RULES for complaint_description:
 - NEVER copy offensive language, profanity, or inappropriate references verbatim
-- Summarise the complaint professionally in 2-4 sentences maximum
+- Summarise professionally in 2-4 sentences maximum
 - Focus on factual concerns rather than emotional expression
-- Write in third person, clinical tone (e.g., "The patient reports..." or "The complainant states...")
+- Write in third person, clinical tone
 - If the patient mentions specific staff, note that staff were mentioned but do not repeat accusations verbatim
-- Extract the core issue: what happened, when, impact on patient, and desired resolution
 
 Important:
-- The text may be messy with XML tags, namespaces, or formatting artifacts - ignore these and focus on readable content
-- Look for common field markers: "Name:", "Patient:", "Date of Birth:", "DOB:", "Email:", "Phone:", "Tel:", "Address:", etc.
+- The text may be messy with XML tags, namespaces, or formatting artifacts — ignore these
+- Look for common field markers: "Name:", "Patient:", "Date of Birth:", "DOB:", etc.
 - Extract dates carefully and convert to YYYY-MM-DD format
-- If text appears to be an email, extract the complaint content from the body
-- Infer priority based on severity of the complaint
-- ALWAYS choose the most serious applicable category when multiple issues are present
-- Be flexible with formatting - the information might not be perfectly structured
+- Infer priority based on severity
 - Return valid JSON only, no additional text or explanation`;
 
     const userPrompt = `Extract complaint information from this text:\n\n${extractedText}`;
@@ -367,7 +474,7 @@ Important:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.1, // Low temperature for consistent extraction
+        temperature: 0.1,
         max_tokens: 1500,
       }),
     });
@@ -382,8 +489,7 @@ Important:
 
     console.log('AI Response:', aiResponse);
 
-    // Parse the JSON response
-    let complaintData: ComplaintData;
+    let complaintData: ComplaintData & { low_confidence_fields?: string[] };
     try {
       complaintData = JSON.parse(aiResponse);
     } catch (parseError) {
@@ -392,10 +498,18 @@ Important:
       throw new Error('Failed to parse AI response as JSON');
     }
 
+    // Extract low_confidence_fields before returning
+    const lowConfidenceFields = complaintData.low_confidence_fields || [];
+    delete (complaintData as any).low_confidence_fields;
+
     return new Response(JSON.stringify({ 
       success: true,
-      extractedText: extractedText.substring(0, 1000), // First 1000 chars for reference
+      extractedText: extractedText.substring(0, 1000),
       complaintData,
+      isImageImport,
+      verificationStatus,
+      confidenceNotes,
+      lowConfidenceFields,
       usage: data.usage 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

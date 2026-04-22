@@ -67,6 +67,14 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   
+  // OCR review state for image imports
+  const [ocrReviewText, setOcrReviewText] = useState<string | null>(null);
+  const [ocrVerificationStatus, setOcrVerificationStatus] = useState<'verified' | 'partial' | 'unverified' | 'not_applicable'>('not_applicable');
+  const [ocrConfidenceNotes, setOcrConfidenceNotes] = useState('');
+  const [ocrDisagreements, setOcrDisagreements] = useState<string[]>([]);
+  const [showOcrReview, setShowOcrReview] = useState(false);
+  const [lowConfidenceFields, setLowConfidenceFields] = useState<string[]>([]);
+  
   // Patient details import state
   const [patientText, setPatientText] = useState('');
   const [patientProcessing, setPatientProcessing] = useState(false);
@@ -121,6 +129,11 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     }
   };
 
+  // Check if selected files contain images (handwritten letter scenario)
+  const hasImageFiles = selectedFiles.some(f => 
+    f.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(f.name)
+  );
+
   const handleImport = async (source: 'file' | 'text') => {
     if (source === 'file' && selectedFiles.length === 0) {
       showToast.error('Please select at least one file to import', { section: 'complaints' });
@@ -138,7 +151,6 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       const formData = new FormData();
       
       if (source === 'file' && selectedFiles.length > 0) {
-        // If Example 2 is loaded and we have a hidden text file, use that for processing
         if (hiddenTextFile) {
           formData.append('files', hiddenTextFile);
         } else {
@@ -150,7 +162,12 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
         formData.append('textContent', textContent);
       }
 
-      // Use direct fetch for better FormData handling
+      // For image files (handwritten letters), do OCR-only first pass for review
+      const isImageSource = source === 'file' && hasImageFiles && !hiddenTextFile;
+      if (isImageSource) {
+        formData.append('ocrOnly', 'true');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
@@ -173,17 +190,29 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       const data = await response.json();
 
       if (data.success) {
-        // Directly populate form fields without preview step
-        onDataExtracted(data.complaintData);
-        onClose();
-        showToast.success('Complaint data imported successfully!', { section: 'complaints' });
+        if (data.ocrOnly) {
+          // Show OCR review panel for image imports
+          setOcrReviewText(data.extractedText || '');
+          setOcrVerificationStatus(data.verificationStatus || 'not_applicable');
+          setOcrConfidenceNotes(data.confidenceNotes || '');
+          setOcrDisagreements(data.disagreements || []);
+          setShowOcrReview(true);
+          showToast.success('Text extracted — please review before importing', { section: 'complaints' });
+        } else {
+          // Direct import for non-image files
+          if (data.lowConfidenceFields && data.lowConfidenceFields.length > 0) {
+            setLowConfidenceFields(data.lowConfidenceFields);
+          }
+          onDataExtracted(data.complaintData);
+          onClose();
+          showToast.success('Complaint data imported successfully!', { section: 'complaints' });
+        }
       } else {
         throw new Error(data.error || 'Failed to process import');
       }
     } catch (error: any) {
       console.error('Import error:', error);
       
-      // Show specific error messages for different file types
       if (error.message?.includes('Word document')) {
         showToast.error('Word documents require manual text entry. Please copy the text from your document and paste it in the text area below.', { section: 'complaints' });
       } else if (error.message?.includes('PDF')) {
@@ -194,6 +223,62 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     } finally {
       setProcessing(false);
     }
+  };
+
+  // Handle confirming reviewed OCR text and proceeding to structured extraction
+  const handleConfirmOcrReview = async () => {
+    if (!ocrReviewText) return;
+    
+    setProcessing(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('textContent', ocrReviewText);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-complaint-data`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.lowConfidenceFields && data.lowConfidenceFields.length > 0) {
+          setLowConfidenceFields(data.lowConfidenceFields);
+        }
+        onDataExtracted(data.complaintData);
+        onClose();
+        showToast.success('Complaint data imported successfully!', { section: 'complaints' });
+      } else {
+        throw new Error(data.error || 'Failed to process import');
+      }
+    } catch (error) {
+      console.error('OCR confirm error:', error);
+      showToast.error('Failed to process reviewed text', { section: 'complaints' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRescanOcr = () => {
+    setShowOcrReview(false);
+    setOcrReviewText(null);
+    setOcrVerificationStatus('not_applicable');
+    setOcrConfidenceNotes('');
+    setOcrDisagreements([]);
+    handleImport('file');
   };
 
   const handleConfirmData = () => {
@@ -768,9 +853,9 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               {/* Hand-written letter warning banner */}
               <Alert className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100 mb-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Check imported content carefully</AlertTitle>
+                <AlertTitle>Handwritten letters — review before saving</AlertTitle>
                 <AlertDescription>
-                  We're aware of an issue where <strong>hand-written letters</strong> can produce inaccurate or hallucinated content during import. Please verify all extracted details against the original letter before saving or actioning the complaint. A fix is in progress.
+                  When importing photos of <strong>hand-written letters</strong>, AI will extract the text and show it for your review. Words it cannot read clearly will be flagged. Please verify all details against the original before saving.
                 </AlertDescription>
               </Alert>
 
@@ -911,6 +996,91 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                   </Button>
                 </div>
               )}
+
+              {/* OCR Review Panel for handwritten letter imports */}
+              {showOcrReview && ocrReviewText && (
+                <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-base flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                      Review Extracted Text
+                    </h3>
+                    <Badge 
+                      variant={ocrVerificationStatus === 'verified' ? 'default' : ocrVerificationStatus === 'partial' ? 'secondary' : 'destructive'}
+                    >
+                      {ocrVerificationStatus === 'verified' ? '✓ Verified' : 
+                       ocrVerificationStatus === 'partial' ? '⚠ Partially Verified' : 
+                       ocrVerificationStatus === 'unverified' ? '✗ Needs Review' : 'Review'}
+                    </Badge>
+                  </div>
+
+                  <Alert className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      This text was extracted from a handwritten letter using AI. Words marked with <strong>[?]</strong> are uncertain, and <strong>[illegible]</strong> means the text could not be read. 
+                      Please correct any errors before importing.
+                    </AlertDescription>
+                  </Alert>
+
+                  {ocrDisagreements.length > 0 && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Verification Warnings</AlertTitle>
+                      <AlertDescription>
+                        <ul className="list-disc list-inside text-sm mt-1 space-y-1">
+                          {ocrDisagreements.map((d, i) => (
+                            <li key={i}>{d}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {ocrConfidenceNotes && (
+                    <details className="text-sm">
+                      <summary className="cursor-pointer font-medium text-muted-foreground">Confidence Notes</summary>
+                      <pre className="mt-2 p-3 bg-muted rounded text-xs whitespace-pre-wrap">{ocrConfidenceNotes}</pre>
+                    </details>
+                  )}
+
+                  <Textarea
+                    value={ocrReviewText}
+                    onChange={(e) => setOcrReviewText(e.target.value)}
+                    rows={12}
+                    className="font-mono text-sm min-h-[200px]"
+                    placeholder="Extracted text will appear here..."
+                  />
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleRescanOcr}
+                      disabled={processing}
+                      className="flex-1"
+                    >
+                      Re-scan
+                    </Button>
+                    <Button
+                      onClick={handleConfirmOcrReview}
+                      disabled={processing || !ocrReviewText.trim()}
+                      className="flex-1"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Confirm &amp; Import
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
             </TabsContent>
 
             <TabsContent value="text" className="space-y-4">
