@@ -382,7 +382,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
   const submitClaimInFlight = useRef<Set<string>>(new Set());
 
-  const submitClaim = async (id: string, queryResponseNotes?: string) => {
+  const submitClaim = async (id: string, queryResponseNotes?: string, practiceNotes?: string) => {
     if (!user?.id) return;
     // Prevent duplicate submissions (double-click guard)
     if (submitClaimInFlight.current.has(id)) {
@@ -408,6 +408,10 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         submitted_by_email: user.email || null,
         submitted_by_name: emailConfig?.currentUserName || user.email || null,
       };
+      // Save practice notes on submission
+      if (practiceNotes !== undefined) {
+        updatePayload.practice_notes = practiceNotes || null;
+      }
       // Save the practice's response to a query when resubmitting
       if (queryResponseNotes) {
         updatePayload.query_response = queryResponseNotes;
