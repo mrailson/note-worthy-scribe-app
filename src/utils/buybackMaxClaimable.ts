@@ -92,3 +92,42 @@ export function isOverMax(claimedAmount: number, maxAmount: number): boolean {
 export function fmtGBP(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/**
+ * Build a management claim calculation breakdown object.
+ * Returns null if no management staff lines exist.
+ */
+export function getManagementBreakdown(staffLines: any[], holidayWeeksDeducted: number = 0): {
+  rate: number;
+  weeklyHours: number;
+  rawWeeks: number;
+  holidayWeeks: number;
+  workingWeeks: number;
+  total: number;
+  staffName: string;
+} | null {
+  const mgmtLine = staffLines.find((s: any) => s.staff_category === 'management' || s.staff_role === 'NRES Management');
+  if (!mgmtLine) return null;
+
+  const rate = mgmtLine.hourly_rate ?? 0;
+  const weeklyHours = mgmtLine.allocation_value ?? 0;
+  const total = mgmtLine.calculated_amount ?? mgmtLine.claimed_amount ?? 0;
+
+  // Reverse-derive raw weeks from the formula: total = rate × weeklyHours × workingWeeks
+  let workingWeeks = 0;
+  let rawWeeks = 0;
+  if (rate > 0 && weeklyHours > 0) {
+    workingWeeks = total / (rate * weeklyHours);
+    rawWeeks = workingWeeks + holidayWeeksDeducted;
+  }
+
+  return {
+    rate,
+    weeklyHours,
+    rawWeeks: Math.round(rawWeeks * 100) / 100,
+    holidayWeeks: holidayWeeksDeducted,
+    workingWeeks: Math.round(workingWeeks * 100) / 100,
+    total,
+    staffName: mgmtLine.staff_name || mgmtLine.name || 'Management',
+  };
+}
