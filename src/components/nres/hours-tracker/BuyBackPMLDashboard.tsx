@@ -638,7 +638,8 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             </table>
           </div>
 
-          {/* Finance notes */}
+          {/* Supporting Evidence (read-only) */}
+          {staffDetails.length > 0 && <PMLEvidenceSection claimId={claim.id} staffLines={staffDetails} />}
           {(claim.query_notes || claim.verified_notes || claim.payment_notes) && (
             <div className="mt-3 flex flex-col gap-1.5">
               {claim.query_notes && (

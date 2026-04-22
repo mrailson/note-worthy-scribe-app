@@ -467,6 +467,9 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             </div>
           )}
 
+          {/* Supporting Evidence (read-only) */}
+          {lines.length > 0 && <VerifierEvidenceSection claimId={claim.id} staffLines={lines} />}
+
           {/* Notes */}
           {directorNotes && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#5b21b6' }}>
