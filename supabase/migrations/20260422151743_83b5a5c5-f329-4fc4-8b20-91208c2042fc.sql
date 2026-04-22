@@ -1,0 +1,1 @@
+UPDATE public.complaints SET status = 'under_review', updated_at = now() WHERE id = '628b0936-5612-437e-8fa4-5385a8a90218' AND reference_number = 'COMP260042';
