@@ -2505,9 +2505,9 @@ const ComplaintDetails = () => {
 
               {/* Close as Withdrawn/Resolved */}
               {complaint.status !== 'closed' && (
-                <Card className="border-orange-200 bg-orange-50/50">
+                <Card className="border-green-200 bg-green-50/50">
                   <CardHeader>
-                    <CardTitle className="text-orange-800 flex items-center gap-2">
+                    <CardTitle className="text-green-800 flex items-center gap-2">
                       <XCircle className="h-5 w-5" />
                       Close as Withdrawn / Resolved
                     </CardTitle>
@@ -2518,8 +2518,35 @@ const ComplaintDetails = () => {
                   <CardContent>
                     <Button 
                       variant="outline"
-                      onClick={() => setShowQuestionnaireModal(true)}
-                      className="w-full sm:w-auto border-orange-300 text-orange-700 hover:bg-orange-100"
+                      onClick={async () => {
+                        if (!confirm('Are you sure you want to close this complaint as Withdrawn/Resolved? This cannot be undone.')) return;
+                        try {
+                          const { error: outcomeError } = await supabase
+                            .from('complaint_outcomes')
+                            .insert({
+                              complaint_id: complaintId!,
+                              outcome_type: 'withdrawn',
+                              outcome_summary: 'Complaint closed as withdrawn/resolved without formal outcome letter.',
+                              outcome_letter: '',
+                              decided_by: user?.id,
+                              decided_at: new Date().toISOString(),
+                            });
+                          if (outcomeError) throw outcomeError;
+
+                          const { error: statusError } = await supabase
+                            .from('complaints')
+                            .update({ status: 'closed', closed_at: new Date().toISOString() })
+                            .eq('id', complaintId!);
+                          if (statusError) throw statusError;
+
+                          showToast.success('Complaint closed as Withdrawn/Resolved');
+                          fetchComplaintDetails();
+                        } catch (err: any) {
+                          console.error('Error closing complaint:', err);
+                          showToast.error('Failed to close complaint: ' + (err.message || 'Unknown error'));
+                        }
+                      }}
+                      className="w-full sm:w-auto border-green-300 text-green-700 hover:bg-green-100"
                     >
                       <XCircle className="h-4 w-4 mr-2" />
                       Close as Withdrawn/Resolved
