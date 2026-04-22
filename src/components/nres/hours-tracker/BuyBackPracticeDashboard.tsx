@@ -1042,6 +1042,28 @@ function InlineClaimPanel({
                 ))}
               </div>
 
+              {/* Practice notes (optional) */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  Practice Note <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — visible to verifiers and finance)</span>
+                </label>
+                <textarea
+                  value={practiceNotes}
+                  onChange={(e) => setPracticeNotes(e.target.value)}
+                  placeholder="Add any notes for the verifier or finance team…"
+                  maxLength={500}
+                  rows={2}
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb',
+                    fontSize: 13, color: '#374151', resize: 'vertical', fontFamily: 'inherit',
+                    background: '#fafafa',
+                  }}
+                />
+                {practiceNotes.length > 0 && (
+                  <div style={{ fontSize: 10, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{practiceNotes.length}/500</div>
+                )}
+              </div>
+
               {/* Declaration */}
               <div style={{
                 padding: '12px 14px', borderRadius: 8, marginBottom: 12,
