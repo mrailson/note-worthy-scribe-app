@@ -812,6 +812,19 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
+  // Resolve profile names for submitter emails
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const emails = [...new Set(claims.map(c => c.submitted_by_email).filter(Boolean))] as string[];
+    if (!emails.length) return;
+    supabase.from('profiles').select('email, full_name').in('email', emails).then(({ data }) => {
+      if (!data) return;
+      const map: Record<string, string> = {};
+      data.forEach((p: any) => { if (p.email && p.full_name) map[p.email.toLowerCase()] = p.full_name; });
+      setProfileNames(map);
+    });
+  }, [claims]);
+
   // Group meeting entries by person + claim_month for verifier view
   const visibleMeetingGroups = useMemo(() => {
     if (!meetingEntries) return [];
