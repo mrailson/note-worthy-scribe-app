@@ -1265,6 +1265,20 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             })();
             const paidClaimTypeLabelLower = paidClaimTypeLabel === 'Buy-Back' ? 'buy-back' : paidClaimTypeLabel;
 
+            // Build staff breakdown rows for paid email
+            const paidItemsRows = paidStaffDetails.map((s: any) => {
+              const catMap: Record<string, string> = { gp_locum: 'GP Locum', meeting: 'Meeting', salaried: 'Salaried', buyback: 'Buy-Back', management: 'Management', additional: 'SDA', sda: 'SDA' };
+              const cat = catMap[s.staff_category] || s.staff_category || '';
+              const amt = Number(s.claimed_amount || s.calculated_amount || 0);
+              const amtLabel = `£${amt.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              return `<tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:8px 6px;font-size:12px;color:#0f172a;">${s.staff_member || '—'}</td>
+                <td style="padding:8px 6px;font-size:12px;color:#475569;">${s.role || '—'}</td>
+                <td style="padding:8px 6px;font-size:12px;color:#475569;">${cat}</td>
+                <td style="padding:8px 6px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;color:#0f172a;">${amtLabel}</td>
+              </tr>`;
+            }).join('');
+
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: recipient,
@@ -1285,7 +1299,11 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     </p>
     <table style="width:100%;border-collapse:collapse;font-size:13px;margin:0 0 22px;">
       <tr style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
-        <td style="padding:10px 0;color:#64748b;width:45%;">Amount paid</td>
+        <td style="padding:10px 0;color:#64748b;width:45%;">Claim type</td>
+        <td style="padding:10px 0;text-align:right;font-weight:600;color:#0f172a;">${paidClaimTypeLabel}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:10px 0;color:#64748b;">Amount paid</td>
         <td style="padding:10px 0;text-align:right;font-weight:700;color:#14532d;font-variant-numeric:tabular-nums;">${totalLabel}</td>
       </tr>
       <tr style="border-bottom:1px solid #e2e8f0;">
@@ -1313,6 +1331,28 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         <td style="padding:10px 0;text-align:right;color:#0f172a;font-family:monospace;">${poRef}</td>
       </tr>` : ''}
     </table>
+
+    ${paidStaffDetails.length > 0 ? `
+    <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#166534;margin:0 0 10px;font-weight:700;">Staff breakdown</h2>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 22px;">
+      <thead>
+        <tr style="background:#f0fdf4;">
+          <th align="left" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;border-bottom:1px solid #bbf7d0;">Staff member</th>
+          <th align="left" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;border-bottom:1px solid #bbf7d0;">Role</th>
+          <th align="left" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;border-bottom:1px solid #bbf7d0;">Type</th>
+          <th align="right" style="padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#15803d;border-bottom:1px solid #bbf7d0;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${paidItemsRows}
+        <tr style="background:#166534;">
+          <td colspan="3" style="padding:10px 6px;font-size:13px;color:#ffffff;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Total</td>
+          <td style="padding:10px 6px;font-size:14px;color:#ffffff;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;">${totalLabel}</td>
+        </tr>
+      </tbody>
+    </table>
+    ` : ''}
+
     <p style="margin:0 0 8px;font-size:13px;color:#475569;line-height:1.5;">
       If you have not received the payment within 5 working days of the payment date, or if any details look incorrect, please contact PML Finance.
     </p>
