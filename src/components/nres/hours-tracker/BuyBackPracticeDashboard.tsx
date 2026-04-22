@@ -2368,6 +2368,8 @@ export function ClaimsViewSwitcher({
   defaultView,
   hideSummaryView = false,
   exportVariant = 'practice',
+  statusFilter,
+  onStatusFilterChange,
 }: {
   claims: BuyBackClaim[];
   practiceKey: string;
@@ -2384,8 +2386,10 @@ export function ClaimsViewSwitcher({
   defaultView?: ClaimsView;
   hideSummaryView?: boolean;
   exportVariant?: 'practice' | 'director' | 'finance';
+  statusFilter?: string | null;
+  onStatusFilterChange?: (status: string | null) => void;
 }) {
-  const [view, setView] = useState<ClaimsView>(defaultView || 'spreadsheet');
+  const [view, setView] = useState<ClaimsView>(defaultView || 'cards');
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
