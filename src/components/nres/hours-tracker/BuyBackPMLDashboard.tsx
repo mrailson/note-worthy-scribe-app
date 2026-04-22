@@ -1081,6 +1081,7 @@ export function BuyBackPMLDashboard({
   const [practiceFilter, setPracticeFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [financeStatusFilter, setFinanceStatusFilter] = useState<string | null>('invoiced');
 
   useEffect(() => {
     if (hideDirectorTab) {
@@ -1471,6 +1472,8 @@ export function BuyBackPMLDashboard({
             practiceOptions={practiceOptions}
             defaultView={view === 'finance' ? 'cards' : 'spreadsheet'}
             exportVariant={view === 'finance' ? 'finance' : 'director'}
+            statusFilter={view === 'finance' ? financeStatusFilter : undefined}
+            onStatusFilterChange={view === 'finance' ? setFinanceStatusFilter : undefined}
           />
         )}
       </div>
