@@ -1870,13 +1870,12 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     };
   }
 
-  // Management: simple hourly × weekly hours × working weeks
-  if (isManagement && staff.hourly_rate && rateParams?.workingWeeksInMonth) {
+  // Management: simple hourly × weekly hours × working weeks (no bank holiday subtraction)
+  if (isManagement && staff.hourly_rate && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth)) {
     const hourlyRate = staff.hourly_rate as number;
-    const workingWeeks = rateParams.workingWeeksInMonth;
+    const workingWeeks = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
     const totalHours = allocValue * workingWeeks;
     const finalMonthly = hourlyRate * totalHours;
-    const bhCount = rateParams.bankHolidaysInMonth ?? 0;
 
     // Reverse-engineer on-costs from the gross hourly rate
     const onCostPct = rateParams ? (rateParams.onCostMultiplier - 1) * 100 : 29.38;
@@ -1894,7 +1893,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate, baseHourlyRate, niPerHour, pensionPerHour, onCostsPerHour,
       mgmtNiPct, mgmtPensionPct, mgmtOnCostPct: onCostPct,
       grossHoursCost, totalOnCosts, weeklyHours: allocValue, workingWeeks, totalHours,
-      bankHolidaysExcluded: bhCount, bankHolidayDetails: rateParams.bankHolidayDetails ?? [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [],
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
