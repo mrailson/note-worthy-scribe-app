@@ -129,6 +129,11 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     }
   };
 
+  // Check if selected files contain images (handwritten letter scenario)
+  const hasImageFiles = selectedFiles.some(f => 
+    f.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(f.name)
+  );
+
   const handleImport = async (source: 'file' | 'text') => {
     if (source === 'file' && selectedFiles.length === 0) {
       showToast.error('Please select at least one file to import', { section: 'complaints' });
@@ -146,7 +151,6 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       const formData = new FormData();
       
       if (source === 'file' && selectedFiles.length > 0) {
-        // If Example 2 is loaded and we have a hidden text file, use that for processing
         if (hiddenTextFile) {
           formData.append('files', hiddenTextFile);
         } else {
@@ -158,7 +162,12 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
         formData.append('textContent', textContent);
       }
 
-      // Use direct fetch for better FormData handling
+      // For image files (handwritten letters), do OCR-only first pass for review
+      const isImageSource = source === 'file' && hasImageFiles && !hiddenTextFile;
+      if (isImageSource) {
+        formData.append('ocrOnly', 'true');
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
@@ -181,17 +190,29 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       const data = await response.json();
 
       if (data.success) {
-        // Directly populate form fields without preview step
-        onDataExtracted(data.complaintData);
-        onClose();
-        showToast.success('Complaint data imported successfully!', { section: 'complaints' });
+        if (data.ocrOnly) {
+          // Show OCR review panel for image imports
+          setOcrReviewText(data.extractedText || '');
+          setOcrVerificationStatus(data.verificationStatus || 'not_applicable');
+          setOcrConfidenceNotes(data.confidenceNotes || '');
+          setOcrDisagreements(data.disagreements || []);
+          setShowOcrReview(true);
+          showToast.success('Text extracted — please review before importing', { section: 'complaints' });
+        } else {
+          // Direct import for non-image files
+          if (data.lowConfidenceFields && data.lowConfidenceFields.length > 0) {
+            setLowConfidenceFields(data.lowConfidenceFields);
+          }
+          onDataExtracted(data.complaintData);
+          onClose();
+          showToast.success('Complaint data imported successfully!', { section: 'complaints' });
+        }
       } else {
         throw new Error(data.error || 'Failed to process import');
       }
     } catch (error: any) {
       console.error('Import error:', error);
       
-      // Show specific error messages for different file types
       if (error.message?.includes('Word document')) {
         showToast.error('Word documents require manual text entry. Please copy the text from your document and paste it in the text area below.', { section: 'complaints' });
       } else if (error.message?.includes('PDF')) {
@@ -202,6 +223,62 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     } finally {
       setProcessing(false);
     }
+  };
+
+  // Handle confirming reviewed OCR text and proceeding to structured extraction
+  const handleConfirmOcrReview = async () => {
+    if (!ocrReviewText) return;
+    
+    setProcessing(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('textContent', ocrReviewText);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-complaint-data`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.lowConfidenceFields && data.lowConfidenceFields.length > 0) {
+          setLowConfidenceFields(data.lowConfidenceFields);
+        }
+        onDataExtracted(data.complaintData);
+        onClose();
+        showToast.success('Complaint data imported successfully!', { section: 'complaints' });
+      } else {
+        throw new Error(data.error || 'Failed to process import');
+      }
+    } catch (error) {
+      console.error('OCR confirm error:', error);
+      showToast.error('Failed to process reviewed text', { section: 'complaints' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRescanOcr = () => {
+    setShowOcrReview(false);
+    setOcrReviewText(null);
+    setOcrVerificationStatus('not_applicable');
+    setOcrConfidenceNotes('');
+    setOcrDisagreements([]);
+    handleImport('file');
   };
 
   const handleConfirmData = () => {
