@@ -1110,7 +1110,7 @@ function InlineClaimPanel({
                   type="text"
                   value={queryResponse}
                   onChange={(e) => setQueryResponse(e.target.value)}
-                  placeholder="Your response to the query…"
+                  placeholder={`Your response to the ${(claim as any).queried_by_role || 'Reviewer'} query…`}
                   style={{
                     flex: 1, minWidth: 220, padding: '8px 12px', borderRadius: 8,
                     border: '1px solid #d1d5db', fontSize: 13, outline: 'none',
@@ -3085,7 +3085,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                   type="text"
                   value={queryResponse}
                   onChange={(e) => setQueryResponse(e.target.value)}
-                  placeholder="Your response to the PML Director query…"
+                  placeholder={`Your response to the ${(claim as any).queried_by_role || 'Reviewer'} query…`}
                   style={{ flex: 1, minWidth: 250, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
                 <button
