@@ -202,13 +202,14 @@ function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaf
 
 // --- Sub-components ---
 
-export function KpiCard({ label, value, sub, accent, tooltip }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string }) {
+export function KpiCard({ label, value, sub, accent, tooltip, onClick, active }: { label: string; value: string | number; sub?: string; accent?: string; tooltip?: string; onClick?: () => void; active?: boolean }) {
   const [hover, setHover] = React.useState(false);
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ background: '#fff', borderRadius: 10, padding: '10px 12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)', cursor: tooltip ? 'help' : 'default', borderLeft: `3px solid ${accent || '#e5e7eb'}`, position: 'relative' as const }}
+      onClick={onClick}
+      style={{ background: active ? (accent ? `${accent}10` : '#f0f9ff') : '#fff', borderRadius: 10, padding: '10px 12px', border: `1px solid ${active ? accent || '#005eb8' : '#e5e7eb'}`, boxShadow: active ? `0 0 0 1px ${accent || '#005eb8'}` : '0 1px 2px rgba(0,0,0,0.03)', cursor: onClick ? 'pointer' : (tooltip ? 'help' : 'default'), borderLeft: `3px solid ${accent || '#e5e7eb'}`, position: 'relative' as const, transition: 'all 0.15s ease' }}
     >
       <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, color: accent, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
