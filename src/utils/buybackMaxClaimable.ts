@@ -1,0 +1,94 @@
+/**
+ * Max Claimable calculation helpers for Buy-Back claims.
+ * Used across Practice, Verifier, and PML dashboards to show
+ * how invoice totals are derived and whether they exceed limits.
+ */
+
+const MINUTES_PER_SESSION = 250; // 4h 10m
+
+/** Format locum hours from sessions */
+export function formatLocumHours(sessions: number) {
+  const totalMins = Math.round(sessions * MINUTES_PER_SESSION);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return { display: m > 0 ? `${h}h ${m}m` : `${h}h`, decimal: (totalMins / 60).toFixed(1) };
+}
+
+export interface MaxClaimableInfo {
+  maxAmount: number;
+  formula: string;
+}
+
+/**
+ * Derive the max claimable amount and a human-readable formula string
+ * for a single staff detail line.
+ */
+export function formatMaxClaimableInfo(staff: any): MaxClaimableInfo {
+  const category = staff.staff_category || 'buyback';
+  const allocType = staff.allocation_type || '';
+  const allocValue = staff.allocation_value ?? 0;
+  const calculatedAmount = staff.calculated_amount ?? 0;
+  const rate = staff.hourly_rate ?? 0;
+
+  if (category === 'gp_locum') {
+    if (allocType === 'daily') {
+      return {
+        maxAmount: calculatedAmount || allocValue * 750,
+        formula: `${allocValue} day${allocValue !== 1 ? 's' : ''} × £750 = £${(calculatedAmount || allocValue * 750).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+      };
+    }
+    // sessions (default for locum)
+    return {
+      maxAmount: calculatedAmount || allocValue * 375,
+      formula: `${allocValue} session${allocValue !== 1 ? 's' : ''} × £375 = £${(calculatedAmount || allocValue * 375).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+    };
+  }
+
+  if (category === 'meeting') {
+    const hrs = staff.total_hours ?? allocValue ?? 0;
+    return {
+      maxAmount: calculatedAmount || hrs * rate,
+      formula: `${hrs} hr${hrs !== 1 ? 's' : ''} × £${rate}/hr = £${(calculatedAmount || hrs * rate).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+    };
+  }
+
+  if (category === 'management') {
+    if (allocType === 'hours') {
+      // hrs/wk × ~4.33 weeks × rate
+      const weeks = 4.33;
+      const max = calculatedAmount || allocValue * weeks * rate;
+      return {
+        maxAmount: max,
+        formula: `${allocValue} hrs/wk × ${weeks} wks × £${rate}/hr = £${max.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+      };
+    }
+    return {
+      maxAmount: calculatedAmount,
+      formula: `Max £${calculatedAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+    };
+  }
+
+  // Salaried / Buy-Back / New SDA — WTE-based
+  if (allocType === 'wte' && calculatedAmount > 0) {
+    return {
+      maxAmount: calculatedAmount,
+      formula: `${allocValue} WTE × on-costs = £${calculatedAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+    };
+  }
+
+  // Fallback
+  return {
+    maxAmount: calculatedAmount,
+    formula: calculatedAmount > 0 ? `Max £${calculatedAmount.toLocaleString('en-GB', { minimumFractionDigits: 2 })}` : '—',
+  };
+}
+
+/** Check if a claimed amount exceeds the max */
+export function isOverMax(claimedAmount: number, maxAmount: number): boolean {
+  return maxAmount > 0 && claimedAmount > maxAmount;
+}
+
+/** Format GBP */
+export function fmtGBP(n: number): string {
+  return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
