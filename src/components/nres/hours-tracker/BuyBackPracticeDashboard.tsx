@@ -427,8 +427,8 @@ function InlineClaimPanel({
 
   const calculatedAmount = useMemo(() => {
     if (!rateParams) return 0;
-    return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
-  }, [staffMember, monthDate, rateParams]);
+    return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeks);
+  }, [staffMember, monthDate, rateParams, holidayWeeks]);
 
   // Sync to calculatedAmount whenever it changes
   useEffect(() => {
