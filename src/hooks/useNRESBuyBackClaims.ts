@@ -81,6 +81,8 @@ export interface RateParams {
   employerPensionPct?: number;
   /** Pre-calculated working weeks for a given claim month (used for management billing) */
   workingWeeksInMonth?: number;
+  /** Raw weekday-based working weeks (weekdays ÷ 5, no bank holiday subtraction — used for management) */
+  rawWorkingWeeksInMonth?: number;
   /** Working days in the claim month */
   workingDaysInMonth?: number;
   /** Number of bank holidays excluded from the month */
