@@ -53,8 +53,7 @@ import {
   BookOpen,
   Sparkles,
   Loader2,
-  Copy,
-  XCircle
+  Copy
 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from '@/utils/toastWrapper';
