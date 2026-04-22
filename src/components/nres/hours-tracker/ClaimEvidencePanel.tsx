@@ -1,5 +1,5 @@
-import { useRef, useMemo } from 'react';
-import { Upload, FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { useMemo } from 'react';
+import { FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNRESClaimEvidence, type ClaimEvidenceFile } from '@/hooks/useNRESClaimEvidence';
@@ -85,14 +85,7 @@ export function EvidenceSlot({
   onDelete: (id: string) => void;
   onDownload: (path: string) => Promise<string | null>;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const hasFile = !!uploadedFile;
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onUpload(file);
-    e.target.value = '';
-  };
 
   const handleDownload = async () => {
     if (!uploadedFile) return;
@@ -138,13 +131,13 @@ export function EvidenceSlot({
           </Button>
         )}
         {!hasFile && canEdit && (
-          <>
-            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif" onChange={handleFileSelect} />
-            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
-              {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-              Upload
-            </Button>
-          </>
+          <SmartUploadZone
+            compact
+            onFilesSelected={(files) => { if (files[0]) onUpload(files[0]); }}
+            uploading={uploading}
+            multiple={false}
+            accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif"
+          />
         )}
       </div>
     </div>
