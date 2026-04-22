@@ -165,11 +165,35 @@ export const AudioBackupManager = () => {
     try {
       const { data, error } = await supabase
         .from('meeting_audio_backups')
-        .select('*')
+        .select('*, meetings!meeting_audio_backups_meeting_id_fkey(device_type, device_browser, import_source, user_id)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setBackups(data || []);
+
+      // Collect unique user IDs to fetch emails
+      const userIds = Array.from(new Set((data || []).map((b: any) => b.user_id).filter(Boolean)));
+      let emailMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .in('id', userIds);
+        if (profiles) {
+          for (const p of profiles) {
+            if (p.email) emailMap[p.id] = p.email;
+          }
+        }
+      }
+
+      const enriched = (data || []).map((b: any) => ({
+        ...b,
+        user_email: emailMap[b.user_id] || undefined,
+        device_type: b.meetings?.device_type || undefined,
+        device_browser: b.meetings?.device_browser || undefined,
+        import_source: b.meetings?.import_source || undefined,
+      }));
+
+      setBackups(enriched);
     } catch (error) {
       console.error('Error fetching audio backups:', error);
       toast.error('Failed to load audio backups');
