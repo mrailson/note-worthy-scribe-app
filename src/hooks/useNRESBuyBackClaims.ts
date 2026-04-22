@@ -42,6 +42,7 @@ export interface BuyBackClaim {
   queried_by: string | null;
   queried_by_role: string | null;
   query_notes: string | null;
+  query_response: string | null;
   // Payment fields
   paid_at: string | null;
   paid_by: string | null;
@@ -368,7 +369,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   };
 
-  const submitClaim = async (id: string) => {
+  const submitClaim = async (id: string, queryResponseNotes?: string) => {
     if (!user?.id) return;
     try {
       setSaving(true);
@@ -382,9 +383,19 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           .eq('id', id);
       }
 
+      const updatePayload: Record<string, any> = {
+        status: 'submitted',
+        submitted_at: new Date().toISOString(),
+        submitted_by_email: user.email || null,
+      };
+      // Save the practice's response to a query when resubmitting
+      if (queryResponseNotes) {
+        updatePayload.query_response = queryResponseNotes;
+      }
+
       let query = supabase
         .from('nres_buyback_claims')
-        .update({ status: 'submitted', submitted_at: new Date().toISOString(), submitted_by_email: user.email || null })
+        .update(updatePayload)
         .eq('id', id);
       // RLS enforces practice-level permissions
       const { data, error } = await query.select().single();

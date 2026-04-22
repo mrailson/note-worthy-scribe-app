@@ -560,6 +560,15 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             </div>
           )}
 
+          {/* Practice query response */}
+          {(claim as any).query_response && (
+            <div style={{
+              marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
+              background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
+            }}>
+              <strong>Practice Response:</strong> {(claim as any).query_response}
+            </div>
+          )}
           {/* Line items table */}
           <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
