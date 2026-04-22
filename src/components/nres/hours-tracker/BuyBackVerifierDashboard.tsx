@@ -414,9 +414,9 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
                 <div style={{ padding: '10px 14px', borderRadius: '0 0 8px 8px', fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', borderTop: 'none', color: '#92400e' }}>
                   <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                     Practice Response
-                    {(claim as any).query_responded_at && (
+                    {((claim as any).query_responded_at || (claim as any).submitted_at) && (
                       <span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
-                        {format(new Date((claim as any).query_responded_at), 'd MMM yyyy, HH:mm')}
+                        {format(new Date((claim as any).query_responded_at || (claim as any).submitted_at), 'd MMM yyyy, HH:mm')}
                       </span>
                     )}
                   </div>

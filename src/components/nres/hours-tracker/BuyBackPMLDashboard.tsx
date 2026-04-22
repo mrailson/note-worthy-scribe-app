@@ -664,9 +664,9 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                     }}>
                       <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                         Practice Response
-                        {(claim as any).query_responded_at && (
+                        {((claim as any).query_responded_at || claim.submitted_at) && (
                           <span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
-                            {format(new Date((claim as any).query_responded_at), 'd MMM yyyy, HH:mm')}
+                            {format(new Date((claim as any).query_responded_at || claim.submitted_at), 'd MMM yyyy, HH:mm')}
                           </span>
                         )}
                       </div>
