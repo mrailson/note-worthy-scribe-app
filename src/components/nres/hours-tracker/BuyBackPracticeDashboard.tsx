@@ -371,6 +371,7 @@ function InlineClaimPanel({
   const [creating, setCreating] = useState(false);
   const [declared, setDeclared] = useState(false);
   const [queryResponse, setQueryResponse] = useState('');
+  const [practiceNotes, setPracticeNotes] = useState('');
   const [localClaim, setLocalClaim] = useState<BuyBackClaim | null>(existingClaim);
 
   useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
@@ -451,7 +452,7 @@ function InlineClaimPanel({
     if (confirmDeclaration) {
       await confirmDeclaration(localClaim.id, true);
     }
-    onSubmit(localClaim.id);
+    onSubmit(localClaim.id, practiceNotes.trim() || undefined);
   };
 
   const handleDeleteDraft = async (requireConfirm = false) => {
