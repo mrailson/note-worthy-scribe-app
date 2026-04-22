@@ -1620,10 +1620,10 @@ export const ComplaintOutcomeQuestionnaire = ({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {data.outcome_type === 'withdrawn' ? 'Closing Complaint...' : 'Generating Letter...'}
+                  Generating Letter...
                 </>
               ) : (
-                data.outcome_type === 'withdrawn' ? 'Close as Withdrawn/Resolved' : 'Generate Outcome Letter'
+                'Generate Outcome Letter'
               )}
             </Button>
           )}
