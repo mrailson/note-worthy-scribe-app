@@ -3316,14 +3316,14 @@ export function BuyBackPracticeDashboard({
         </div>
       )}
 
-      {/* KPI cards */}
+      {/* KPI cards — clickable to filter claims */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 20 }}>
-        <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted to NRES" />
-        <KpiCard label="Awaiting Verification" value={counts.submitted || 0} sub={fmtShort(totals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES Verification" />
-        <KpiCard label="Awaiting Approval" value={counts.verified || 0} sub={fmtShort(totals.verified)} accent="#7c3aed" tooltip="Verified by NRES, awaiting PML Finance Director Approval" />
-        <KpiCard label="Invoiced" value={(counts.approved || 0) + (counts.invoiced || 0)} sub={fmtShort(totals.approved + totals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" />
-        <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" />
-        <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" />
+        <KpiCard label="Drafts" value={counts.draft || 0} sub={fmtShort(totals.draft)} accent={(counts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted to NRES" onClick={() => { setStatusFilter(statusFilter === 'draft' ? null : 'draft'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'draft'} />
+        <KpiCard label="Awaiting Verification" value={counts.submitted || 0} sub={fmtShort(totals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES Verification" onClick={() => { setStatusFilter(statusFilter === 'submitted' ? null : 'submitted'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'submitted'} />
+        <KpiCard label="Awaiting Approval" value={counts.verified || 0} sub={fmtShort(totals.verified)} accent="#7c3aed" tooltip="Verified by NRES, awaiting PML Finance Director Approval" onClick={() => { setStatusFilter(statusFilter === 'verified' ? null : 'verified'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'verified'} />
+        <KpiCard label="Invoiced" value={(counts.approved || 0) + (counts.invoiced || 0)} sub={fmtShort(totals.approved + totals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" onClick={() => { setStatusFilter(statusFilter === 'invoiced' ? null : 'invoiced'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'invoiced'} />
+        <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" onClick={() => { setStatusFilter(statusFilter === 'paid' ? null : 'paid'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'paid'} />
+        <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" onClick={() => { setStatusFilter(statusFilter === 'queried' ? null : 'queried'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'queried'} />
       </div>
 
       {/* Staff Roster */}
