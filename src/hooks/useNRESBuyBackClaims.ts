@@ -362,7 +362,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           claimed_amount: claimedAmount,
           practice_key: practiceKey || null,
           status: 'draft',
-        })
+          holiday_weeks_deducted: holidayWeeksDeducted,
+        } as any)
         .select()
         .single();
 
