@@ -85,14 +85,7 @@ export function EvidenceSlot({
   onDelete: (id: string) => void;
   onDownload: (path: string) => Promise<string | null>;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const hasFile = !!uploadedFile;
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onUpload(file);
-    e.target.value = '';
-  };
 
   const handleDownload = async () => {
     if (!uploadedFile) return;
