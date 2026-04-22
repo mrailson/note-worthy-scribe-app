@@ -1,0 +1,1 @@
+UPDATE public.meetings SET audio_backup_path = '0630b79d-6d2f-4410-9bf0-c98a10cbfdb2' WHERE id = '0630b79d-6d2f-4410-9bf0-c98a10cbfdb2' AND word_count = 0;
