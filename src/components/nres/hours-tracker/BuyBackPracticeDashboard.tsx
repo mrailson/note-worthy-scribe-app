@@ -2603,6 +2603,18 @@ export function ClaimsViewSwitcher({
         <HistorySummary claims={periodClaims} hidePeriodFilter />
       )}
 
+      {/* ── Status filter indicator ─────────────────────────── */}
+      {statusFilter && view === 'cards' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: '#f0f9ff', borderRadius: 8, border: '1px solid #bae6fd', marginBottom: 8, fontSize: 12 }}>
+          <span style={{ color: '#0369a1', fontWeight: 600 }}>
+            Filtered: {statusFilter === 'invoiced' ? 'Invoiced' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} ({sorted.length} claim{sorted.length !== 1 ? 's' : ''})
+          </span>
+          <button onClick={() => onStatusFilterChange?.(null)} style={{ marginLeft: 'auto', padding: '2px 8px', borderRadius: 4, border: '1px solid #93c5fd', background: '#fff', color: '#2563eb', fontSize: 11, cursor: 'pointer', fontWeight: 500 }}>
+            Clear filter
+          </button>
+        </div>
+      )}
+
       {/* ── CARDS VIEW ────────────────────────────────────────── */}
       {view === 'cards' && sorted.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
