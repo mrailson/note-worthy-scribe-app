@@ -793,7 +793,7 @@ export const AudioBackupManager = () => {
                           }
                           return label ? <Badge variant={variant}>{label}</Badge> : null;
                         })()}
-                        {getQualityBadge(backup.transcription_quality_score)}
+                        
                         {backup.is_reprocessed && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
                             <CheckCircle className="h-3 w-3 mr-1" />
