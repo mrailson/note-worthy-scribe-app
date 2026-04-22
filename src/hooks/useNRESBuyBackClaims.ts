@@ -371,8 +371,16 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   };
 
+  const submitClaimInFlight = useRef<Set<string>>(new Set());
+
   const submitClaim = async (id: string, queryResponseNotes?: string) => {
     if (!user?.id) return;
+    // Prevent duplicate submissions (double-click guard)
+    if (submitClaimInFlight.current.has(id)) {
+      console.log('[submitClaim] Already in-flight for', id);
+      return;
+    }
+    submitClaimInFlight.current.add(id);
     try {
       setSaving(true);
       const claim = claims.find(c => c.id === id);
