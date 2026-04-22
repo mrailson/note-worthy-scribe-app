@@ -1,5 +1,5 @@
-import { useRef, useMemo } from 'react';
-import { Upload, FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { useMemo } from 'react';
+import { FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNRESClaimEvidence, type ClaimEvidenceFile } from '@/hooks/useNRESClaimEvidence';
