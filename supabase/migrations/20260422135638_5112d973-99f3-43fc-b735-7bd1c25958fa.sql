@@ -1,0 +1,1 @@
+ALTER TABLE public.nres_buyback_claims ADD COLUMN IF NOT EXISTS query_responded_at TIMESTAMPTZ;
