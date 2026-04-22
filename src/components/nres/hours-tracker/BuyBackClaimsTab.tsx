@@ -971,7 +971,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           isPMLFinance={isPMLFinance}
           rateParams={rateParams}
           onVerify={verifyClaim}
-          onQuery={queryClaim}
+          onQuery={(id: string, notes: string) => queryClaim(id, notes, 'PML Director')}
           onApprove={approveClaim}
           onReject={rejectClaim}
           onMarkPaid={(id: string, notes?: string) => updatePaymentStatus(id, {
@@ -1724,7 +1724,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                     onApprove={approveClaim}
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
-                    onQuery={queryClaim}
+                    onQuery={(id: string, notes: string) => queryClaim(id, notes, isPMLDirector ? 'PML Director' : 'NRES Management')}
                     onUpdatePayment={updatePaymentStatus}
                     savingPayment={savingClaim}
                     testActive={testActive}
