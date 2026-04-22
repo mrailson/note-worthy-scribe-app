@@ -3311,7 +3311,7 @@ export function BuyBackPracticeDashboard({
           <AlertCircle style={{ width: 16, height: 16, flexShrink: 0 }} />
           <span>
             <strong>{queriedCount} claim{queriedCount !== 1 ? 's' : ''} need your attention</strong>
-            {' — please respond to the PML Director queries below'}
+            {' — please respond to the queries below'}
           </span>
         </div>
       )}
