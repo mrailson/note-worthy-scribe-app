@@ -1101,7 +1101,7 @@ function InlineClaimPanel({
                   background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13,
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'Reviewer'}
+                    <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'Reviewer'}{(claim as any).queried_by ? ` (${(claim as any).queried_by})` : ''}
                   </div>
                   {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
                 </div>
@@ -2987,7 +2987,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b',
             }}>
               <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'Reviewer'}
+                <AlertTriangle style={{ width: 14, height: 14 }} /> Query from {(claim as any).queried_by_role || 'Reviewer'}{(claim as any).queried_by ? ` (${(claim as any).queried_by})` : ''}
               </div>
               {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
             </div>
