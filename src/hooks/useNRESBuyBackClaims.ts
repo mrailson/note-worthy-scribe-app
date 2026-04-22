@@ -319,6 +319,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     practiceKey?: string | null,
     rateParams?: RateParams,
     claimType: ClaimType = 'buyback',
+    holidayWeeksDeducted: number = 0,
   ) => {
     if (!user?.id) return null;
     try {
