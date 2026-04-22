@@ -180,11 +180,11 @@ export const AudioBackupManager = () => {
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, email')
-          .in('id', userIds);
+          .select('user_id, email')
+          .in('user_id', userIds);
         if (profiles) {
           for (const p of profiles) {
-            if (p.email) emailMap[p.id] = p.email;
+            if (p.email && p.user_id) emailMap[p.user_id] = p.email;
           }
         }
       }
