@@ -563,8 +563,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   const [claimPractice, setClaimPractice] = useState<string>('');
 
   // Filters (admin)
-  const [filterPractice, setFilterPractice] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>(isPMLFinance ? 'invoiced' : isPMLDirector ? 'verified' : 'all');
+   const [filterPractice, setFilterPractice] = useState<string>('all');
+   const [filterStatus, setFilterStatus] = useState<string>(isPMLFinance ? 'invoiced' : isPMLDirector ? 'verified' : 'all');
+   const [adminExpandedClaimId, setAdminExpandedClaimId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterRoute, setFilterRoute] = useState<string>('all');
 
@@ -1065,8 +1066,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
               <div style={{ width: 6, height: 26, background: '#005eb8', borderRadius: 3 }} />
-              <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: '#111827' }}>Buy-Back &amp; Claims</h1>
-              <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 9px', borderRadius: 100, background: '#005eb8', color: '#fff', letterSpacing: '0.03em' }}>ADMIN</span>
+              <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: '#111827' }}>Claims — Notewell Admin View</h1>
               {onGuideOpen && (
                 <button onClick={onGuideOpen} title="Claims Guide" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280', marginLeft: 2 }}>
                   <HelpCircle style={{ width: 14, height: 14 }} />
@@ -1074,8 +1074,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
               )}
             </div>
             <p style={{ margin: '2px 0 0 16px', fontSize: 13, color: '#6b7280' }}>
-              System Admin View — Manage staff, create and review claims across all practices
-            </p>
+               Manage staff, create and review claims across all practices
+             </p>
           </div>
 
           {/* Toolbar: Bulk · Import · Settings */}
@@ -1379,8 +1379,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             claims={practiceFilteredClaims}
             practiceKey={effectiveFilterPractice === 'all' ? '' : effectiveFilterPractice}
             practiceName={effectiveFilterPractice === 'all' ? 'All Practices' : (ALL_PRACTICES[effectiveFilterPractice] || '')}
-            onToggleCard={(id) => { /* admin uses spreadsheet/summary by default */ }}
-            expandedClaimId={null}
+            onToggleCard={(id) => setAdminExpandedClaimId(adminExpandedClaimId === id ? null : id)}
+             expandedClaimId={adminExpandedClaimId}
             onSubmit={submitClaim}
             onResubmit={(id) => submitClaim(id)}
             saving={savingClaim}
