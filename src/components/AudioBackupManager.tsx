@@ -597,25 +597,68 @@ export const AudioBackupManager = () => {
 
   const downloadAudio = async (backup: AudioBackup) => {
     try {
-      toast.info('Downloading audio backup...');
-      
-      const { data, error } = await supabase.storage
-        .from('meeting-audio-backups')
-        .download(backup.file_path);
+      const segments = backup.segmentDetails || [];
+      const dateStr = new Date(backup.created_at).toISOString().split('T')[0];
 
-      if (error) throw error;
+      if (segments.length > 1) {
+        // Multi-segment download: download all and combine
+        const folderPath = backup.file_path.split('/').slice(0, -1).join('/');
+        const allBlobs: Blob[] = [];
+        let failedCount = 0;
 
-      // Create download link
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `audio_backup_${backup.meeting_id}_${new Date(backup.created_at).toISOString().split('T')[0]}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        for (let i = 0; i < segments.length; i++) {
+          toast.info(`Downloading segment ${i + 1} of ${segments.length}…`);
+          try {
+            const { data, error } = await supabase.storage
+              .from('meeting-audio-backups')
+              .download(`${folderPath}/${segments[i].name}`);
+            if (error) throw error;
+            if (data) allBlobs.push(data);
+          } catch (segErr) {
+            console.error(`Failed to download segment ${i}:`, segErr);
+            failedCount++;
+          }
+        }
 
-      toast.success('Audio backup downloaded successfully');
+        if (allBlobs.length === 0) {
+          toast.error('Failed to download any audio segments');
+          return;
+        }
+
+        const combined = new Blob(allBlobs, { type: 'audio/webm' });
+        const url = URL.createObjectURL(combined);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audio_backup_${backup.meeting_id}_${dateStr}_all_segments.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        if (failedCount > 0) {
+          toast.warning(`Downloaded ${allBlobs.length} of ${segments.length} segments (${failedCount} failed)`);
+        } else {
+          toast.success(`All ${segments.length} segments downloaded and combined`);
+        }
+      } else {
+        // Single segment or no segment details — original behaviour
+        toast.info('Downloading audio backup…');
+        const { data, error } = await supabase.storage
+          .from('meeting-audio-backups')
+          .download(backup.file_path);
+        if (error) throw error;
+
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audio_backup_${backup.meeting_id}_${dateStr}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success('Audio backup downloaded successfully');
+      }
     } catch (error) {
       console.error('Error downloading audio backup:', error);
       toast.error('Failed to download audio backup');
