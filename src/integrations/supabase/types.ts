@@ -8409,6 +8409,7 @@ export type Database = {
           pml_po_reference: string | null
           practice_id: string | null
           practice_key: string | null
+          practice_notes: string | null
           queried_at: string | null
           queried_by: string | null
           queried_by_role: string | null
@@ -8456,6 +8457,7 @@ export type Database = {
           pml_po_reference?: string | null
           practice_id?: string | null
           practice_key?: string | null
+          practice_notes?: string | null
           queried_at?: string | null
           queried_by?: string | null
           queried_by_role?: string | null
@@ -8503,6 +8505,7 @@ export type Database = {
           pml_po_reference?: string | null
           practice_id?: string | null
           practice_key?: string | null
+          practice_notes?: string | null
           queried_at?: string | null
           queried_by?: string | null
           queried_by_role?: string | null

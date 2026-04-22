@@ -1,0 +1,1 @@
+ALTER TABLE public.nres_buyback_claims ADD COLUMN practice_notes TEXT;
