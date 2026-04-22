@@ -3,7 +3,6 @@ import { FileText, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { sendMeetingNotesEmail } from "@/utils/sendMeetingNotesEmail";
 
 interface ManualNoteGenerationButtonProps {
   meetingId: string;
@@ -87,22 +86,9 @@ export const ManualNoteGenerationButton = ({
         throw error;
       }
 
-      toast.success('Meeting notes generated successfully!', {
+      toast.success('Meeting notes generated and emailed to you!', {
         duration: 5000
       });
-
-      // Auto-send email with Word doc attachment
-      try {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          await sendMeetingNotesEmail({ meetingId, recipientEmail: user.email });
-          toast.success('Meeting notes emailed to you', { duration: 5000 });
-        }
-      } catch (emailError: any) {
-        console.warn('⚠️ Email send failed (notes were still generated):', emailError);
-        toast.warning('Notes generated but email failed to send', { duration: 6000 });
-      }
 
     } catch (error: any) {
       console.error('❌ Error generating notes:', error);

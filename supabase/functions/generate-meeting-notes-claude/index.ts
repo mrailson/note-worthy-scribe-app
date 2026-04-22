@@ -998,6 +998,40 @@ serve(async (req) => {
       }
     }
 
+    // ── Auto-send email with Word doc attachment (server-side, non-blocking) ──
+    if (meetingId && supabaseUrl && serviceKey) {
+      try {
+        const sb = createClient(supabaseUrl, serviceKey);
+        // Look up the user's email from the meeting's user_id
+        const { data: meetingRow } = await sb
+          .from('meetings')
+          .select('user_id')
+          .eq('id', meetingId)
+          .maybeSingle();
+
+        if (meetingRow?.user_id) {
+          const { data: userData } = await sb.auth.admin.getUserById(meetingRow.user_id);
+          const userEmail = userData?.user?.email;
+
+          if (userEmail) {
+            console.log(`📧 Triggering email to ${userEmail} for meeting ${meetingId}`);
+            const { error: emailErr } = await sb.functions.invoke('send-meeting-email-resend', {
+              body: { meetingId, recipientEmail: userEmail },
+            });
+            if (emailErr) {
+              console.warn('⚠️ Email send failed (notes still saved):', emailErr.message || emailErr);
+            } else {
+              console.log('✅ Meeting notes email sent successfully');
+            }
+          } else {
+            console.warn('⚠️ No email found for user — skipping email send');
+          }
+        }
+      } catch (emailError: any) {
+        console.warn('⚠️ Email trigger failed (non-blocking):', emailError.message || emailError);
+      }
+    }
+
     const totalTime = Date.now() - functionStartTime;
     console.log(`✅ Full pipeline complete in ${totalTime}ms`);
 
