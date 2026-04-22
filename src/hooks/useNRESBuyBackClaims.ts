@@ -615,12 +615,26 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
   const deleteClaim = async (id: string) => {
     if (!user?.id) return;
     try {
-      let query = supabase
+      // Delete associated evidence files from storage first
+      const { data: evidence } = await supabase
+        .from('nres_claim_evidence')
+        .select('id, file_path')
+        .eq('claim_id', id);
+
+      if (evidence && evidence.length > 0) {
+        const storagePaths = evidence.map(e => e.file_path).filter(Boolean);
+        if (storagePaths.length > 0) {
+          await supabase.storage.from('claim-evidence').remove(storagePaths);
+        }
+        // Delete evidence records
+        await supabase.from('nres_claim_evidence').delete().eq('claim_id', id);
+      }
+
+      // Delete the claim itself
+      const { error } = await supabase
         .from('nres_buyback_claims')
         .delete()
         .eq('id', id);
-      // RLS enforces practice-level permissions
-      const { error } = await query;
       if (error) throw error;
       setClaims(prev => prev.filter(c => c.id !== id));
       

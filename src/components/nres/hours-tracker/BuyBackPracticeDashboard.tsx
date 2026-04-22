@@ -450,8 +450,14 @@ function InlineClaimPanel({
     onSubmit(localClaim.id);
   };
 
-  const handleDeleteDraft = async () => {
+  const handleDeleteDraft = async (requireConfirm = false) => {
     if (!localClaim || !onDeleteClaim) return;
+    if (requireConfirm) {
+      const confirmed = window.confirm(
+        'Are you sure you want to delete this claim?\n\nAll submission data for this claim will be permanently deleted, including any supporting documents and evidence.\n\nThis action cannot be undone.'
+      );
+      if (!confirmed) return;
+    }
     setDeletingDraft(true);
     try {
       await onDeleteClaim(localClaim.id);
@@ -1068,7 +1074,7 @@ function InlineClaimPanel({
                 </div>
                 {onDeleteClaim && (
                   <button
-                    onClick={handleDeleteDraft}
+                    onClick={() => handleDeleteDraft(false)}
                     disabled={deletingDraft}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
@@ -1124,7 +1130,7 @@ function InlineClaimPanel({
                 </button>
                   {onDeleteClaim && (
                     <button
-                      onClick={handleDeleteDraft}
+                      onClick={() => handleDeleteDraft(true)}
                       disabled={deletingDraft}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
