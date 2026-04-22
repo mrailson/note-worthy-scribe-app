@@ -1147,22 +1147,7 @@ export const ComplaintOutcomeQuestionnaire = ({
         {/* Normal outcome flow — Step 1: Letter Details */}
         {data.outcome_type !== 'withdrawn' && step === 1 && (
           <div className="space-y-6">
-            {/* Quick close option */}
-            <div className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Patient withdrawn or resolved informally?</p>
-                  <p className="text-xs text-slate-500">Close without generating a formal outcome letter</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setData({ ...data, outcome_type: 'withdrawn' })}
-                >
-                  Close as Withdrawn/Resolved
-                </Button>
-              </div>
-            </div>
+
 
             {/* Auto-fill All button with evidence guard */}
             <div>
