@@ -9,6 +9,7 @@ import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { ClaimsViewSwitcher } from './BuyBackPracticeDashboard';
+import { supabase } from '@/integrations/supabase/client';
 
 // --- Types ---
 type PMLView = 'director' | 'finance';
