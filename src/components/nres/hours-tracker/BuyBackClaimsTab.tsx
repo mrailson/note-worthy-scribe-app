@@ -896,7 +896,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           claims={claims}
           practiceKey={practiceDashboardKey}
           staff={practiceStaff}
-          onSubmit={canSubmitForPractice ? submitClaim : undefined}
+          onSubmit={canSubmitForPractice ? (id: string, practiceNotes?: string) => submitClaim(id, undefined, practiceNotes) : undefined}
           onResubmit={canSubmitForPractice ? (id, notes) => submitClaim(id, notes) : undefined}
           onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount, holidayWeeksDeducted) => {
             const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeksDeducted ?? 0);
