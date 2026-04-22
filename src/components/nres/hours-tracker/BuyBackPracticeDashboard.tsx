@@ -3105,6 +3105,29 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               ))}
             </div>
           )}
+          {!isDraft && !isQueried && staffDets.length > 0 && (
+            <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+              <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                Supporting Evidence
+              </div>
+              {staffDets.map((s: any, idx: number) => (
+                <StaffLineEvidence
+                  key={idx}
+                  staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
+                  staffIndex={idx}
+                  staffName={s.staff_name}
+                  staffRole={s.staff_role}
+                  uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+                  allFilesForStaff={getFilesForStaff(idx)}
+                  canEdit={false}
+                  uploading={false}
+                  onUpload={async () => null}
+                  onDelete={async () => {}}
+                  onDownload={getDownloadUrl}
+                />
+              ))}
+            </div>
+          )}
 
           {isDraft && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
