@@ -505,7 +505,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           }}>
             <InfoBlock label="Verified by" value={claim.verified_by || '—'} sub={dateStr(claim.verified_at)} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} sub={claim.submitted_by_email || undefined} />
-            {claim.submitted_by_email && <InfoBlock label="Submitted by" value={claim.submitted_by_email} />}
+            {((claim as any).submitted_by_name || claim.submitted_by_email) && <InfoBlock label="Submitted by" value={(claim as any).submitted_by_name || claim.submitted_by_email} sub={(claim as any).submitted_by_name ? claim.submitted_by_email || undefined : undefined} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             {(claim as any).approved_by_email && (
               <InfoBlock label="Approved by" value={(claim as any).approved_by_email.split('@')[0].replace(/\./g,' ').replace(/\w/g, (c: string) => c.toUpperCase())} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />

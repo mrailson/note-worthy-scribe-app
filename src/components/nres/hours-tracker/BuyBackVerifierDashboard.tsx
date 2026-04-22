@@ -354,7 +354,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, padding: '14px 0 12px', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
             <InfoBlock label="Practice Manager" value={(claim as any).manager_name || '—'} />
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} sub={claim.submitted_by_email || undefined} />
-            {claim.submitted_by_email && <InfoBlock label="Submitted by" value={claim.submitted_by_email} />}
+            {((claim as any).submitted_by_name || claim.submitted_by_email) && <InfoBlock label="Submitted by" value={(claim as any).submitted_by_name || claim.submitted_by_email} sub={(claim as any).submitted_by_name ? claim.submitted_by_email || undefined : undefined} />}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>

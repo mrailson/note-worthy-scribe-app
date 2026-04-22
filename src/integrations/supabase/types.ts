@@ -8422,6 +8422,7 @@ export type Database = {
           status: string
           submitted_at: string | null
           submitted_by_email: string | null
+          submitted_by_name: string | null
           updated_at: string
           user_id: string
           verified_at: string | null
@@ -8467,6 +8468,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by_email?: string | null
+          submitted_by_name?: string | null
           updated_at?: string
           user_id: string
           verified_at?: string | null
@@ -8512,6 +8514,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by_email?: string | null
+          submitted_by_name?: string | null
           updated_at?: string
           user_id?: string
           verified_at?: string | null
