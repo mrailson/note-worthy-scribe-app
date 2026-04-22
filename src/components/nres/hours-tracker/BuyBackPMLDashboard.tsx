@@ -92,6 +92,36 @@ function hasOverRate(claim: BuyBackClaim): boolean {
   return staffDets.some(s => (s.claimed_amount ?? 0) > (s.calculated_amount ?? s.claimed_amount ?? 0) && (s.calculated_amount ?? 0) > 0);
 }
 
+/** Read-only evidence section for PML view */
+function PMLEvidenceSection({ claimId, staffLines }: { claimId: string; staffLines: any[] }) {
+  const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl } = useNRESClaimEvidence(claimId);
+  const hasAnyFiles = staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
+  if (!hasAnyFiles) return null;
+  return (
+    <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151' }}>
+        Supporting Evidence
+      </div>
+      {staffLines.map((s: any, idx: number) => (
+        <StaffLineEvidence
+          key={idx}
+          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
+          staffIndex={idx}
+          staffName={s.staff_name || s.name}
+          staffRole={s.staff_role || s.role}
+          uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+          allFilesForStaff={getFilesForStaff(idx)}
+          canEdit={false}
+          uploading={false}
+          onUpload={async () => null}
+          onDelete={async () => {}}
+          onDownload={getDownloadUrl}
+        />
+      ))}
+    </div>
+  );
+}
+
 function dateStr(iso: string | null): string {
   if (!iso) return '—';
   const d = new Date(iso);
