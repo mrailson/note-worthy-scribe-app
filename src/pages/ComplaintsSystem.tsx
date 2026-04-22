@@ -430,7 +430,7 @@ const ComplaintsSystem = () => {
     compliance_percentage: number;
     outstanding_items: string[];
   } | null>(null);
-  const [lettersStatus, setLettersStatus] = useState<Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean; outcomeType?: string }>>({});
+  const [lettersStatus, setLettersStatus] = useState<Record<string, { hasAcknowledgement: boolean; ackSentToPatient: boolean; hasOutcome: boolean; outcomeType?: string }>>({});
 
   const [formData, setFormData] = useState<ComplaintFormData>({
     patient_name: "",
@@ -549,13 +549,21 @@ const ComplaintsSystem = () => {
 
   const loadLettersStatus = async () => {
     console.log('Loading letters status for', complaints.length, 'complaints');
-    const status: Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean; outcomeType?: string }> = {};
+    const status: Record<string, { hasAcknowledgement: boolean; ackSentToPatient: boolean; hasOutcome: boolean; outcomeType?: string }> = {};
     
     for (const complaint of complaints) {
-      const [hasAck, hasOutcome] = await Promise.all([
-        checkLetterExists(complaint.id, 'acknowledgement'),
-        checkLetterExists(complaint.id, 'outcome')
-      ]);
+      // Check acknowledgement with sent_at status
+      const { data: ackData } = await supabase
+        .from('complaint_acknowledgements')
+        .select('id, sent_at')
+        .eq('complaint_id', complaint.id)
+        .limit(1)
+        .maybeSingle();
+      
+      const hasAck = !!ackData;
+      const ackSentToPatient = !!ackData?.sent_at;
+      
+      const hasOutcome = await checkLetterExists(complaint.id, 'outcome');
       
       let outcomeType: string | undefined;
       if (hasOutcome) {
@@ -571,11 +579,12 @@ const ComplaintsSystem = () => {
       
       status[complaint.id] = {
         hasAcknowledgement: hasAck,
+        ackSentToPatient: ackSentToPatient,
         hasOutcome: hasOutcome,
         outcomeType: outcomeType
       };
       
-      console.log(`Complaint ${complaint.reference_number}:`, { hasAck, hasOutcome, outcomeType });
+      console.log(`Complaint ${complaint.reference_number}:`, { hasAck, ackSentToPatient, hasOutcome, outcomeType });
     }
     
     console.log('Final letters status:', status);
@@ -2063,7 +2072,7 @@ const ComplaintsSystem = () => {
                                       <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Acknowledgement:</span>
                                         <span className="text-xs font-medium">
-                                          {lettersStatus[complaint.id]?.hasAcknowledgement ? '✅ Sent' : '⏳ Pending'}
+                                          {lettersStatus[complaint.id]?.ackSentToPatient ? '✅ Sent to Patient' : lettersStatus[complaint.id]?.hasAcknowledgement ? '📝 Generated (not sent)' : '⏳ Pending'}
                                         </span>
                                       </div>
                                       <div className="flex justify-between items-center">
