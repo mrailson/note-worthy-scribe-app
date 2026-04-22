@@ -1136,12 +1136,9 @@ export const PracticeUserManagement = () => {
                       }}
                     />
                     <Label htmlFor="cqc_compliance_access" className="text-sm">
-                      CQC Compliance
+                      CQC Inspection Prep
                     </Label>
                   </div>
-                  <p className="text-xs text-muted-foreground -mt-1 ml-10">
-                    Mock CQC Inspection
-                  </p>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="policy_service_access"
