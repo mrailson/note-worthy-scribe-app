@@ -10,6 +10,8 @@ import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { ClaimsViewSwitcher } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
+import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
+import { StaffLineEvidence } from './ClaimEvidencePanel';
 
 // --- Types ---
 type PMLView = 'director' | 'finance';
@@ -88,6 +90,36 @@ function claimTotal(claim: BuyBackClaim): number {
 function hasOverRate(claim: BuyBackClaim): boolean {
   const staffDets = (claim.staff_details || []) as any[];
   return staffDets.some(s => (s.claimed_amount ?? 0) > (s.calculated_amount ?? s.claimed_amount ?? 0) && (s.calculated_amount ?? 0) > 0);
+}
+
+/** Read-only evidence section for PML view */
+function PMLEvidenceSection({ claimId, staffLines }: { claimId: string; staffLines: any[] }) {
+  const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl } = useNRESClaimEvidence(claimId);
+  const hasAnyFiles = staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
+  if (!hasAnyFiles) return null;
+  return (
+    <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151' }}>
+        Supporting Evidence
+      </div>
+      {staffLines.map((s: any, idx: number) => (
+        <StaffLineEvidence
+          key={idx}
+          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
+          staffIndex={idx}
+          staffName={s.staff_name || s.name}
+          staffRole={s.staff_role || s.role}
+          uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+          allFilesForStaff={getFilesForStaff(idx)}
+          canEdit={false}
+          uploading={false}
+          onUpload={async () => null}
+          onDelete={async () => {}}
+          onDownload={getDownloadUrl}
+        />
+      ))}
+    </div>
+  );
 }
 
 function dateStr(iso: string | null): string {
@@ -636,7 +668,8 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             </table>
           </div>
 
-          {/* Finance notes */}
+          {/* Supporting Evidence (read-only) */}
+          {staffDetails.length > 0 && <PMLEvidenceSection claimId={claim.id} staffLines={staffDetails} />}
           {(claim.query_notes || claim.verified_notes || claim.payment_notes) && (
             <div className="mt-3 flex flex-col gap-1.5">
               {claim.query_notes && (

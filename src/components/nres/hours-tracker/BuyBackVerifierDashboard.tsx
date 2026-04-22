@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
+import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
+import { StaffLineEvidence } from './ClaimEvidencePanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -39,6 +41,36 @@ const claimHours = (c: BuyBackClaim) =>
   ((c as any).staff_lines ?? c.staff_details ?? []).reduce((a: number, l: any) => a + (l.total_hours ?? l.totalHrs ?? 0), 0);
 
 const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff_details ?? [];
+
+/** Read-only evidence section for verifier view */
+const VerifierEvidenceSection = ({ claimId, staffLines }: { claimId: string; staffLines: any[] }) => {
+  const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl } = useNRESClaimEvidence(claimId);
+  const hasAnyFiles = staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
+  if (!hasAnyFiles) return null;
+  return (
+    <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151' }}>
+        Supporting Evidence
+      </div>
+      {staffLines.map((s: any, idx: number) => (
+        <StaffLineEvidence
+          key={idx}
+          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
+          staffIndex={idx}
+          staffName={s.staff_name || s.name}
+          staffRole={s.staff_role || s.role}
+          uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+          allFilesForStaff={getFilesForStaff(idx)}
+          canEdit={false}
+          uploading={false}
+          onUpload={async () => null}
+          onDelete={async () => {}}
+          onDownload={getDownloadUrl}
+        />
+      ))}
+    </div>
+  );
+};
 
 const dateStr = (iso: string | null | undefined) => {
   if (!iso) return '—';
@@ -464,6 +496,9 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
               </table>
             </div>
           )}
+
+          {/* Supporting Evidence (read-only) */}
+          {lines.length > 0 && <VerifierEvidenceSection claimId={claim.id} staffLines={lines} />}
 
           {/* Notes */}
           {directorNotes && (
