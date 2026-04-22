@@ -615,7 +615,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               const cat = s.staff_category || 'buyback'; const av = s.allocation_value ?? 0; const ca = s.calculated_amount ?? 0;
               if (cat === 'gp_locum') return s.allocation_type === 'daily' ? { max: ca || av*750, formula: `${av} days × £750` } : { max: ca || av*375, formula: `${av} sess × £375` };
               if (cat === 'meeting') { const hrs = s.total_hours ?? av; const r = s.hourly_rate ?? 0; return { max: ca || hrs*r, formula: `${hrs} hrs × £${r}/hr` }; }
-              if (cat === 'management' && s.allocation_type === 'hours') { const r = s.hourly_rate ?? 0; return { max: ca, formula: `${av} hrs/wk × £${r}/hr` }; }
+              if (cat === 'management' && s.allocation_type === 'hours') { const r = s.hourly_rate ?? 0; const wks = (r > 0 && av > 0 && ca > 0) ? (ca / (av * r)).toFixed(1) : '?'; return { max: ca, formula: `${av} hrs/wk × ${wks} wks × £${r}/hr` }; }
               if (ca > 0) return { max: ca, formula: s.allocation_type === 'wte' ? `${av} WTE × on-costs` : 'Max' };
               return { max: 0, formula: '—' };
             };
