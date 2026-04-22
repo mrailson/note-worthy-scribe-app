@@ -8395,6 +8395,7 @@ export type Database = {
           declaration_confirmed: boolean
           expected_payment_date: string | null
           gl_summary: Json | null
+          holiday_weeks_deducted: number | null
           id: string
           invoice_generated_at: string | null
           invoice_number: string | null
@@ -8441,6 +8442,7 @@ export type Database = {
           declaration_confirmed?: boolean
           expected_payment_date?: string | null
           gl_summary?: Json | null
+          holiday_weeks_deducted?: number | null
           id?: string
           invoice_generated_at?: string | null
           invoice_number?: string | null
@@ -8487,6 +8489,7 @@ export type Database = {
           declaration_confirmed?: boolean
           expected_payment_date?: string | null
           gl_summary?: Json | null
+          holiday_weeks_deducted?: number | null
           id?: string
           invoice_generated_at?: string | null
           invoice_number?: string | null
