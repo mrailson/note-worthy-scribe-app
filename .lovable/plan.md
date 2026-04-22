@@ -1,37 +1,28 @@
 
 
-## Plan: Fix Multi-Segment Reprocessing and Add Segment Info to Backup Cards
+## Plan: Download All Segments for a Meeting Audio Backup
 
-### Problem Analysis
+### Problem
+The `downloadAudio` function only downloads `backup.file_path` (a single file). Backups with multiple segments in a storage folder only get the first file downloaded.
 
-The reprocess function works correctly in logic — it lists all segments (confirmed: 4 segments found for the test backup), then transcribes them one-by-one via Whisper. The likely failure point is:
+### Solution
+Update `downloadAudio` in `src/components/AudioBackupManager.tsx` to:
 
-1. **Edge function timeout**: Each ~10MB segment takes significant time to download from storage + upload to Whisper API + wait for transcription. Supabase edge functions have a wall-clock limit. After segment 0 succeeds, subsequent segments may hit the timeout or the client-side `supabase.functions.invoke` may time out.
-2. **No visibility**: The UI shows segment progress during reprocessing, but the backup card itself doesn't show how many segments exist or their individual sizes — making it hard to diagnose issues before attempting reprocessing.
+1. **Use the already-enriched `segmentDetails`** from the backup object to know how many segments exist and their file paths.
+2. **If multiple segments exist**, download each one sequentially from the storage folder, then combine all Blobs into a single file before triggering the download. This gives the user one consolidated `.webm` file per meeting.
+3. **If only one segment** (or no `segmentDetails`), fall back to the current single-file download behaviour.
+4. **Show progress** via toast updates (e.g. "Downloading segment 2 of 4…").
 
-### Changes
+### Technical Details
 
-**1. Add segment count and sizes to each backup card** (`src/components/AudioBackupManager.tsx`)
+**File: `src/components/AudioBackupManager.tsx`**
 
-- On initial load (`fetchAudioBackups`), for each backup record, call the storage API to list files in the backup folder (derived from `file_path`) and count segments + individual sizes.
-- Add a new field to the `AudioBackup` interface: `segmentDetails: { name: string; size: number }[]`.
-- Display on each card: "Segments: 4 (9.2 MB, 9.2 MB, 9.3 MB, 9.1 MB)" in the metadata grid.
-- Expand the grid from 3 to 4 columns to accommodate.
-
-**2. Improve reprocessing resilience** (`supabase/functions/reprocess-audio-segment/index.ts`)
-
-- Increase the Whisper `AbortSignal.timeout` from 120s to 150s to give more headroom for large segments.
-- Add a `Content-Length` log before calling Whisper so failures can be diagnosed in logs.
-
-**3. Improve client-side timeout handling** (`src/components/AudioBackupManager.tsx`)
-
-- In `transcribeWithRetry`, increase the backoff delay between retries from 3s to 5s to reduce function boot contention.
-- Add a longer delay between segments (2s instead of 1s) to allow edge function instances to cool down.
+- Derive the folder path from `backup.file_path` (strip the filename to get the directory).
+- If `backup.segmentDetails` has multiple entries, iterate through each, calling `supabase.storage.from('meeting-audio-backups').download(folderPath + '/' + segment.name)` for each segment.
+- Concatenate all downloaded Blobs into a single `new Blob([...allBlobs], { type: 'audio/webm' })`.
+- Trigger the download of the combined blob with a filename like `audio_backup_{meeting_id}_{date}_all_segments.webm`.
+- If any individual segment fails, log it and continue with the rest, then warn the user about partial downloads.
 
 ### Files Modified
-
-- `src/components/AudioBackupManager.tsx` — add segment listing on load, display segment count/sizes on cards, adjust retry timing
-- `supabase/functions/reprocess-audio-segment/index.ts` — increase timeout, add diagnostic logging
-
-### No database or migration changes required.
+- `src/components/AudioBackupManager.tsx` — rewrite `downloadAudio` function
 
