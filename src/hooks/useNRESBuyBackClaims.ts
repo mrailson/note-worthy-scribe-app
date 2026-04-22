@@ -130,10 +130,12 @@ export function calculateStaffMonthlyAmount(
     }
   }
   // Management category: hourly_rate × weekly_hours × working_weeks_in_month
-  else if (((staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management') && (staff as any).hourly_rate && rateParams?.workingWeeksInMonth) {
+  else if (((staff as any).staff_category === 'management' || staff.staff_role === 'NRES Management') && (staff as any).hourly_rate && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth)) {
     const hourlyRate = (staff as any).hourly_rate as number;
     const weeklyHours = staff.allocation_value;
-    const workingWeeks = rateParams.workingWeeksInMonth;
+    // Use raw weeks (weekdays ÷ 5, no bank holiday subtraction) for management
+    const rawWeeks = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
+    const workingWeeks = Math.max(0, rawWeeks - holidayWeeksDeducted);
     fullMonthly = hourlyRate * weeklyHours * workingWeeks;
   } else if (rateParams?.getRoleAnnualRate && staff.staff_role) {
     const roleRate = rateParams.getRoleAnnualRate(staff.staff_role);
