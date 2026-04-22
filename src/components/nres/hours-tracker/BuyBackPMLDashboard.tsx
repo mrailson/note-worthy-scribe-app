@@ -564,10 +564,12 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               <InfoBlock label="BACS ref" value={(claim as any).bacs_reference} />
             )}
             {claim.paid_at && <InfoBlock label="Paid" value={new Date(claim.paid_at).toLocaleDateString('en-GB')} highlight="#166534" />}
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              <EvidencePill label="Part A" met={!!hasPartA} />
-              <EvidencePill label="Part B" met={hasPartB} />
-            </div>
+            {!isManagement && (
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                <EvidencePill label="Part A" met={!!hasPartA} />
+                <EvidencePill label="Part B" met={hasPartB} />
+              </div>
+            )}
           </div>
 
           {/* Bank details for payment verification */}
@@ -590,7 +592,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               </div>
             );
           })()}
-          {hasPartA && hasPartB && claim.review_notes && (
+          {!isManagement && hasPartA && hasPartB && claim.review_notes && (
             <div style={{
               marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
               background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0c4a6e',
@@ -598,7 +600,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               <strong>Part B Substantiation:</strong> {claim.review_notes}
             </div>
           )}
-          {hasPartA && !hasPartB && (
+          {!isManagement && hasPartA && !hasPartB && (
             <div style={{
               marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
               background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b',
