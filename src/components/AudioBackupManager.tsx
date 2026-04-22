@@ -65,6 +65,8 @@ export const AudioBackupManager = () => {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [storageStats, setStorageStats] = useState<StorageStats>({ totalFiles: 0, totalSize: 0, totalMeetings: 0 });
   const [activeTab, setActiveTab] = useState('overview');
+  const [deletingSingle, setDeletingSingle] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Chunk-by-chunk reprocessing state
   interface SegmentResult {
