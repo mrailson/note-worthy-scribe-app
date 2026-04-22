@@ -13,8 +13,8 @@ const ROLE_OPTIONS: { value: TestRole; label: string; shortLabel: string; color:
   { value: 'admin',        label: 'Admin',        shortLabel: 'Admin',    color: '#374151' },
   { value: 'practice',     label: 'Practice',     shortLabel: 'Practice', color: '#0369a1' },
   { value: 'mgmt_lead',    label: 'Mgmt Lead',    shortLabel: 'Mgmt',     color: '#7c3aed' },
-  { value: 'pml_director', label: 'PML Director', shortLabel: 'Director', color: '#059669' },
-  { value: 'pml_finance',  label: 'PML Finance',  shortLabel: 'Finance',  color: '#d97706' },
+  { value: 'pml_director', label: 'SNO Approver', shortLabel: 'SNO Approver', color: '#059669' },
+  { value: 'pml_finance',  label: 'SNO Finance',  shortLabel: 'SNO Finance',  color: '#d97706' },
 ];
 
 interface TestModeBarProps {
