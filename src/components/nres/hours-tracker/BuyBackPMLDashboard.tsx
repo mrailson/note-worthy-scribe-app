@@ -668,13 +668,23 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                         </td>
                       )}
                       <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
-                        {s.start_date ? format(new Date(s.start_date), 'd MMM yyyy') : '—'}
+                        {(() => {
+                          const raw = s.start_date || claim.claim_month || '';
+                          if (!raw) return '—';
+                          const d = new Date(raw + (raw.length <= 7 ? '-01' : '') + 'T12:00:00');
+                          return isNaN(d.getTime()) ? raw : d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+                        })()}
                       </td>
                       <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
                         {isLocum && locHrs ? locHrs.display : hoursWorked}
                       </td>
                       <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                        {isLocum && locHrs ? locHrs.decimal : (totalHrs !== null ? totalHrs.toFixed(1) : '—')}
+                        {isLocum && locHrs ? locHrs.decimal : (() => {
+                          if (s.staff_category === 'management' && s.hourly_rate > 0 && (s.calculated_amount ?? 0) > 0) {
+                            return (s.calculated_amount / s.hourly_rate).toFixed(1);
+                          }
+                          return totalHrs !== null ? totalHrs.toFixed(1) : '—';
+                        })()}
                       </td>
                       <td style={{
                         padding: '10px', textAlign: 'right', fontWeight: 600,
