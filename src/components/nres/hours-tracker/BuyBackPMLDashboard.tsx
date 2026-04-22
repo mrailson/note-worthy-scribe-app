@@ -389,7 +389,7 @@ function PracticeSummary({ claims }: { claims: BuyBackClaim[] }) {
 }
 
 // ─── Claim Card ───────────────────────────────────────────────────────────────
-function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin, rateParams, onApprove, onQuery, onReject, onMarkPaid, onSchedulePayment, saving }: {
+function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin, rateParams, onApprove, onQuery, onReject, onMarkPaid, onSchedulePayment, saving, profileNames }: {
   claim: BuyBackClaim;
   view: PMLView;
   expanded: boolean;
@@ -404,6 +404,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   onMarkPaid?: (id: string, notes?: string) => void;
   onSchedulePayment?: (id: string, date: string, bacsRef?: string, poRef?: string, payMethod?: string, notes?: string) => void;
   saving?: boolean;
+  profileNames?: Record<string, string>;
 }) {
   const [reviewNotes, setReviewNotes] = useState('');
   const [flaggedLines, setFlaggedLines] = useState<number[]>([]);
