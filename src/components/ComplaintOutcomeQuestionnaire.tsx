@@ -1341,7 +1341,7 @@ export const ComplaintOutcomeQuestionnaire = ({
         )}
 
         {/* Step 2: Final Review */}
-        {step === 2 && (
+        {data.outcome_type !== 'withdrawn' && step === 2 && (
           <div className="space-y-6">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center gap-2 mb-3">
