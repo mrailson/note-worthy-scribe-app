@@ -914,7 +914,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
   </div>
 </div>
                 `,
-                from_name: 'NRES Buy-Back Claims',
+                from_name: `NRES ${claimTypeLabel} Claims`,
                 cc_emails: invoiceCc,
                 extra_attachments: [{
                   content: pdfBase64,
@@ -1361,7 +1361,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     <p style="margin:0;font-size:11px;color:#64748b;line-height:1.5;">Queries: contact PML Finance — Amanda Palin · <a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;text-decoration:none;">amanda.palin2@nhs.net</a></p>
   </div>
 </div>`,
-                from_name: 'NRES Buy-Back Claims',
+                from_name: 'NRES SDA Claims',
                 cc_emails: ccList,
               },
             }).then(() => {
