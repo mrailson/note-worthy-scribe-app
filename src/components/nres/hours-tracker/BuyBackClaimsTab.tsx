@@ -476,7 +476,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
 
   const bankHolidayDates = useMemo(() => bankHolidayData.map(b => b.date), [bankHolidayData]);
 
-  const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays } = useMemo(() => {
+  const { getWorkingWeeksInMonth: calcWorkingWeeks, getWorkingDaysInMonth: calcWorkingDays, getRawWorkingWeeksInMonth: calcRawWorkingWeeks } = useMemo(() => {
     // Inline helpers using fetched bank holidays
     const getWorkingDaysInMonth = (claimMonth: string): number => {
       const start = new Date(claimMonth);
@@ -494,8 +494,21 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       });
       return weekdays - bhInMonth.length;
     };
+    // Raw weekdays / 5 — no bank holiday subtraction (for management claims)
+    const getRawWorkingWeeksInMonth = (claimMonth: string): number => {
+      const start = new Date(claimMonth);
+      const year = start.getFullYear();
+      const month = start.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let weekdays = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const day = new Date(year, month, d).getDay();
+        if (day !== 0 && day !== 6) weekdays++;
+      }
+      return weekdays / 5;
+    };
     const getWorkingWeeksInMonth = (claimMonth: string): number => getWorkingDaysInMonth(claimMonth) / 5;
-    return { getWorkingWeeksInMonth, getWorkingDaysInMonth };
+    return { getWorkingWeeksInMonth, getWorkingDaysInMonth, getRawWorkingWeeksInMonth };
   }, [bankHolidayDates]);
 
   // Get bank holidays in a specific month with names and formatted dates
