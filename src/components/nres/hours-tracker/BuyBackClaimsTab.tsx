@@ -898,12 +898,12 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           staff={practiceStaff}
           onSubmit={canSubmitForPractice ? submitClaim : undefined}
           onResubmit={canSubmitForPractice ? (id, notes) => submitClaim(id, notes) : undefined}
-          onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount) => {
-            const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams);
+          onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount, holidayWeeksDeducted) => {
+            const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeksDeducted ?? 0);
             const actualClaimed = (claimedAmount && claimedAmount > 0 && claimedAmount <= maxAmt)
               ? claimedAmount
               : maxAmt;
-            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams);
+            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams, 'buyback', holidayWeeksDeducted ?? 0);
           } : undefined}
           onAddStaff={canSubmitForPractice ? addStaff : undefined}
           onRemoveStaff={isAdmin ? undefined : (canSubmitForPractice ? removeStaff : undefined)}
