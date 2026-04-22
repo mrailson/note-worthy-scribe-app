@@ -607,14 +607,34 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           )}
 
           {/* Line items table */}
+          {(() => {
+            const hasLocum = staffDetails.some((s: any) => s.staff_category === 'gp_locum');
+            const MINS_PER_SESS = 250;
+            const fmtLocum = (sessions: number) => { const t = Math.round(sessions * MINS_PER_SESS); const h = Math.floor(t/60); const m = t%60; return { display: m > 0 ? `${h}h ${m}m` : `${h}h`, decimal: (t/60).toFixed(1) }; };
+            const getMaxInfo = (s: any) => {
+              const cat = s.staff_category || 'buyback'; const av = s.allocation_value ?? 0; const ca = s.calculated_amount ?? 0;
+              if (cat === 'gp_locum') return s.allocation_type === 'daily' ? { max: ca || av*750, formula: `${av} days × £750` } : { max: ca || av*375, formula: `${av} sess × £375` };
+              if (cat === 'meeting') { const hrs = s.total_hours ?? av; const r = s.hourly_rate ?? 0; return { max: ca || hrs*r, formula: `${hrs} hrs × £${r}/hr` }; }
+              if (cat === 'management' && s.allocation_type === 'hours') { const r = s.hourly_rate ?? 0; return { max: ca, formula: `${av} hrs/wk × £${r}/hr` }; }
+              if (ca > 0) return { max: ca, formula: s.allocation_type === 'wte' ? `${av} WTE × on-costs` : 'Max' };
+              return { max: 0, formula: '—' };
+            };
+            const headers = hasLocum
+              ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Amount', 'Max Claimable']
+              : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Amount', 'Max Claimable'];
+            const rightAlignIdx = hasLocum ? 5 : 4;
+            const totalClaimed = staffDetails.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
+            const totalMax = staffDetails.reduce((sum: number, s: any) => sum + getMaxInfo(s).max, 0);
+
+            return (
           <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr>
-                  {['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Amount'].map((h, i) => (
+                  {headers.map((h, i) => (
                     <th key={h} style={{
-                      textAlign: i >= 5 ? 'right' : 'left',
-                      padding: '7px 10px', fontSize: 11, fontWeight: 600, color: '#6b7280',
+                      textAlign: i >= rightAlignIdx ? 'right' : 'left',
+                      padding: '7px 10px', fontSize: 11, fontWeight: 600, color: h === 'Max Claimable' ? '#9ca3af' : '#6b7280',
                       textTransform: 'uppercase', letterSpacing: '0.04em',
                       borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap',
                     }}>{h}</th>
@@ -630,6 +650,9 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                   const glCat = s.gl_code || s.gl_category || (s.staff_role === 'GP' ? '5421' : '—');
                   const hoursWorked = s.allocation_type === 'hours' ? `${s.allocation_value ?? 0} hrs/wk` : s.allocation_type === 'sessions' ? `${s.allocation_value ?? 0} sessions` : s.allocation_type === 'daily' ? `${s.allocation_value ?? 0} days` : `${s.allocation_value ?? 0} WTE`;
                   const totalHrs = s.allocation_type === 'hours' ? (s.allocation_value ?? 0) : null;
+                  const isLocum = s.staff_category === 'gp_locum';
+                  const locHrs = isLocum ? fmtLocum(s.allocation_value || 0) : null;
+                  const mi = getMaxInfo(s);
 
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
@@ -638,12 +661,19 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                       <td style={{ padding: '10px' }}>
                         <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>{glCat}</code>
                       </td>
+                      {hasLocum && (
+                        <td style={{ padding: '10px', textAlign: 'center', color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                          {isLocum ? (s.allocation_value || 0) : '—'}
+                        </td>
+                      )}
                       <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
                         {s.start_date ? format(new Date(s.start_date), 'd MMM yyyy') : '—'}
                       </td>
-                      <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>{hoursWorked}</td>
+                      <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
+                        {isLocum && locHrs ? locHrs.display : hoursWorked}
+                      </td>
                       <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                        {totalHrs !== null ? totalHrs.toFixed(1) : '—'}
+                        {isLocum && locHrs ? locHrs.decimal : (totalHrs !== null ? totalHrs.toFixed(1) : '—')}
                       </td>
                       <td style={{
                         padding: '10px', textAlign: 'right', fontWeight: 600,
@@ -652,21 +682,29 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                         {fmtGBP(claimedAmt)}
                         {lineOver && <span style={{ marginLeft: 4, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>+{fmtGBP(claimedAmt - maxAmt)}</span>}
                       </td>
+                      <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
+                        {mi.max > 0 ? <span title={mi.formula}>{fmtGBP(mi.max)}</span> : '—'}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={5} style={{ padding: '10px' }} />
+                  <td colSpan={headers.length - 3} style={{ padding: '10px' }} />
                   <td style={{ padding: '10px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>Total</td>
                   <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: '#111827', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
-                    {fmtGBP(total)}
+                    {fmtGBP(totalClaimed)}
+                  </td>
+                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontSize: 12, color: '#9ca3af', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #e5e7eb' }}>
+                    {totalMax > 0 ? fmtGBP(totalMax) : '—'}
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
+            );
+          })()}
 
           {/* Supporting Evidence (read-only) */}
           {staffDetails.length > 0 && <PMLEvidenceSection claimId={claim.id} staffLines={staffDetails} />}
