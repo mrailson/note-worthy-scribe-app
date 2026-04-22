@@ -362,7 +362,7 @@ function InlineClaimPanel({
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
-  onSubmit?: (id: string) => void;
+  onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   onClose: () => void;
