@@ -861,7 +861,49 @@ export const AudioBackupManager = () => {
                         )}
                         Reprocess Audio
                       </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setConfirmDeleteId(backup.id)}
+                        disabled={deletingSingle === backup.id}
+                      >
+                        {deletingSingle === backup.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-2" />
+                        )}
+                        Delete
+                      </Button>
                     </div>
+
+                    {/* Single backup delete confirmation */}
+                    <AlertDialog open={confirmDeleteId === backup.id} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this audio backup?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete the audio file and database record. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={deletingSingle === backup.id}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteSingleBackup(backup.id, backup.file_path)}
+                            disabled={deletingSingle === backup.id}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deletingSingle === backup.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Deleting...
+                              </>
+                            ) : (
+                              'Delete'
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
 
                     {/* Chunk-by-chunk progress UI */}
                     {reprocessing === backup.id && reprocessSegments.length > 0 && (
