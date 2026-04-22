@@ -67,6 +67,14 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   
+  // OCR review state for image imports
+  const [ocrReviewText, setOcrReviewText] = useState<string | null>(null);
+  const [ocrVerificationStatus, setOcrVerificationStatus] = useState<'verified' | 'partial' | 'unverified' | 'not_applicable'>('not_applicable');
+  const [ocrConfidenceNotes, setOcrConfidenceNotes] = useState('');
+  const [ocrDisagreements, setOcrDisagreements] = useState<string[]>([]);
+  const [showOcrReview, setShowOcrReview] = useState(false);
+  const [lowConfidenceFields, setLowConfidenceFields] = useState<string[]>([]);
+  
   // Patient details import state
   const [patientText, setPatientText] = useState('');
   const [patientProcessing, setPatientProcessing] = useState(false);
