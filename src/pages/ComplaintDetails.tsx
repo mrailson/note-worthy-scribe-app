@@ -2503,6 +2503,31 @@ const ComplaintDetails = () => {
                 </CardContent>
               </Card>
 
+              {/* Close as Withdrawn/Resolved */}
+              {complaint.status !== 'closed' && (
+                <Card className="border-orange-200 bg-orange-50/50">
+                  <CardHeader>
+                    <CardTitle className="text-orange-800 flex items-center gap-2">
+                      <XCircle className="h-5 w-5" />
+                      Close as Withdrawn / Resolved
+                    </CardTitle>
+                    <CardDescription>
+                      If the patient has withdrawn the complaint or the issue has been resolved informally, you can close it here without generating a formal outcome letter.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowQuestionnaireModal(true)}
+                      className="w-full sm:w-auto border-orange-300 text-orange-700 hover:bg-orange-100"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Close as Withdrawn/Resolved
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Delete Complaint Section */}
               <Card className="border-muted">
                 <CardHeader>
