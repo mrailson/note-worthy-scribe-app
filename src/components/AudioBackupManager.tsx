@@ -952,8 +952,8 @@ export const AudioBackupManager = () => {
                     {backup.reprocessed_at && (
                       <div>
                         <span className="font-medium text-sm">Reprocessed:</span>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(backup.reprocessed_at).toLocaleString()}
+                        <p className="text-sm text-green-600 font-medium">
+                          ✅ {new Date(backup.reprocessed_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} at {new Date(backup.reprocessed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     )}
