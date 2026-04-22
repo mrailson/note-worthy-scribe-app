@@ -383,6 +383,13 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           )}
           {/* Part B Evidence Missing banner and Verification Checklist removed per request */}
 
+          {/* Practice query response */}
+          {(claim as any).query_response && (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+              <strong>Practice Response:</strong> {(claim as any).query_response}
+            </div>
+          )}
+
           {/* Staff line items */}
           {lines.length > 0 && (
             <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
