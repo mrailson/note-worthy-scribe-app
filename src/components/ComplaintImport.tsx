@@ -1079,7 +1079,8 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                     </Button>
                   </div>
                 </div>
-              )
+              )}
+
             </TabsContent>
 
             <TabsContent value="text" className="space-y-4">
