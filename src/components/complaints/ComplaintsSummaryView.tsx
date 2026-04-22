@@ -151,7 +151,7 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                         {statusConfig.icon}
                         <span className="ml-1">{statusConfig.label}</span>
                       </Badge>
-                      {outcome && (
+                      {isClosed && outcome && (
                         <Badge variant="secondary" className="text-xs">
                           {getOutcomeLabel(outcome.outcome_type)}
                         </Badge>

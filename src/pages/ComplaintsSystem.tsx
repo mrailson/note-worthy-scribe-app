@@ -626,7 +626,6 @@ const ComplaintsSystem = () => {
       // Map complaints: prioritise practice_details name over gp_practices name
       const mappedComplaints = (data || []).map(complaint => ({
         ...complaint,
-        status: complaint.complaint_outcomes?.[0]?.outcome_summary ? 'closed' : complaint.status,
         resolved_practice_name: (complaint.practice_id && practiceDetailsMap[complaint.practice_id])
           ? practiceDetailsMap[complaint.practice_id]
           : complaint.gp_practices?.name || null,
@@ -1487,10 +1486,9 @@ const ComplaintsSystem = () => {
   const getStatusDisplayLabel = (complaint: Complaint) => {
     const statusLabel = getStatusLabel(complaint.status);
     
-    // If closed and has outcome type, append it
-    if (complaint.status === 'closed' && complaint.complaint_outcomes?.[0]?.outcome_type) {
+    // Only append the outcome when the complaint is genuinely closed
+    if (complaint.status === 'closed' && complaint.closed_at && complaint.complaint_outcomes?.[0]?.outcome_type) {
       const outcomeType = complaint.complaint_outcomes[0].outcome_type;
-      // Map outcome types to display labels
       const outcomeLabels: Record<string, string> = {
         rejected: 'Not Upheld',
         upheld: 'Upheld',
