@@ -424,7 +424,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           )}
 
           {/* Part B substantiation */}
-          {partBDetail && (
+          {!isManagement && partBDetail && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0c4a6e' }}>
               <strong>Part B Substantiation:</strong> {partBDetail}
             </div>
