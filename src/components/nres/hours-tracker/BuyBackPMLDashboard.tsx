@@ -560,15 +560,6 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             </div>
           )}
 
-          {/* Practice query response */}
-          {(claim as any).query_response && (
-            <div style={{
-              marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12,
-              background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
-            }}>
-              <strong>Practice Response:</strong> {(claim as any).query_response}
-            </div>
-          )}
           {/* Line items table */}
           <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -635,13 +626,39 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           {(claim.query_notes || claim.verified_notes || claim.payment_notes) && (
             <div className="mt-3 flex flex-col gap-1.5">
               {claim.query_notes && (
-                <div style={{
-                  padding: '10px 14px', borderRadius: 8, fontSize: 13,
-                  background: claim.status === 'queried' ? '#fef2f2' : '#fffbeb',
-                  border: `1px solid ${claim.status === 'queried' ? '#fecaca' : '#fde68a'}`,
-                  color: claim.status === 'queried' ? '#991b1b' : '#92400e',
-                }}>
-                  <strong>Query Note:</strong> {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
+                <div style={{ borderRadius: (claim as any).query_response ? '8px 8px 0 0' : 8 }}>
+                  <div style={{
+                    padding: '10px 14px', borderRadius: (claim as any).query_response ? '8px 8px 0 0' : 8, fontSize: 13,
+                    background: claim.status === 'queried' ? '#fef2f2' : '#fffbeb',
+                    border: `1px solid ${claim.status === 'queried' ? '#fecaca' : '#fde68a'}`,
+                    color: claim.status === 'queried' ? '#991b1b' : '#92400e',
+                  }}>
+                    <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      Query from {(claim as any).queried_by_role || 'Reviewer'}{(claim as any).queried_by ? ` (${(claim as any).queried_by})` : ''}
+                      {(claim as any).queried_at && (
+                        <span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                          {format(new Date((claim as any).queried_at), 'd MMM yyyy, HH:mm')}
+                        </span>
+                      )}
+                    </div>
+                    {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
+                  </div>
+                  {(claim as any).query_response && (
+                    <div style={{
+                      padding: '10px 14px', borderRadius: '0 0 8px 8px', fontSize: 13,
+                      background: '#fffbeb', border: '1px solid #fde68a', borderTop: 'none', color: '#92400e',
+                    }}>
+                      <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        Practice Response
+                        {(claim as any).query_responded_at && (
+                          <span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                            {format(new Date((claim as any).query_responded_at), 'd MMM yyyy, HH:mm')}
+                          </span>
+                        )}
+                      </div>
+                      {(claim as any).query_response}
+                    </div>
+                  )}
                 </div>
               )}
               {claim.verified_notes && (

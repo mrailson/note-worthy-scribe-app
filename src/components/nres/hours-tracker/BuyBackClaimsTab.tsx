@@ -934,7 +934,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
         <BuyBackVerifierDashboard
           claims={accessFilteredClaims}
           onVerify={verifyClaim}
-          onReturnToPractice={(id, notes) => queryClaim(id, notes)}
+          onReturnToPractice={(id, notes) => queryClaim(id, notes, 'Verifier')}
           savingClaim={savingClaim}
           onGuideOpen={onGuideOpen}
           onSettingsOpen={onSettingsOpen}

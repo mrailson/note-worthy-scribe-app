@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { format } from 'date-fns';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
@@ -383,10 +384,33 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           )}
           {/* Part B Evidence Missing banner and Verification Checklist removed per request */}
 
-          {/* Practice query response */}
-          {(claim as any).query_response && (
-            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <strong>Practice Response:</strong> {(claim as any).query_response}
+          {/* Query & Response audit thread */}
+          {(claim as any).query_notes && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ padding: '10px 14px', borderRadius: '8px 8px 0 0', fontSize: 12, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b' }}>
+                <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  Query from {(claim as any).queried_by_role || 'Reviewer'}{(claim as any).queried_by ? ` (${(claim as any).queried_by})` : ''}
+                  {(claim as any).queried_at && (
+                    <span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                      {format(new Date((claim as any).queried_at), 'd MMM yyyy, HH:mm')}
+                    </span>
+                  )}
+                </div>
+                {((claim as any).query_notes || '').replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
+              </div>
+              {(claim as any).query_response && (
+                <div style={{ padding: '10px 14px', borderRadius: '0 0 8px 8px', fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', borderTop: 'none', color: '#92400e' }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    Practice Response
+                    {(claim as any).query_responded_at && (
+                      <span style={{ fontWeight: 400, fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                        {format(new Date((claim as any).query_responded_at), 'd MMM yyyy, HH:mm')}
+                      </span>
+                    )}
+                  </div>
+                  {(claim as any).query_response}
+                </div>
+              )}
             </div>
           )}
 
@@ -432,7 +456,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           {/* Notes */}
           {directorNotes && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#f5f3ff', border: '1px solid #c4b5fd', color: '#5b21b6' }}>
-              <strong>Director:</strong> {directorNotes}
+              <strong>{(claim as any).queried_by_role || 'Director'}:</strong> {directorNotes}
             </div>
           )}
           {financeNotes && (
