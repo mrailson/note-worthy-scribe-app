@@ -1096,7 +1096,7 @@ function InlineClaimPanel({
                   <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <AlertTriangle style={{ width: 14, height: 14 }} /> Query from PML Director
                   </div>
-                  {claim.query_notes}
+                  {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
@@ -2958,7 +2958,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
               <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <AlertTriangle style={{ width: 14, height: 14 }} /> Query from PML Director
               </div>
-              {claim.query_notes}
+              {claim.query_notes.replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '')}
             </div>
           )}
 
