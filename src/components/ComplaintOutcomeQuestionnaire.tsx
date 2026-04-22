@@ -1446,7 +1446,7 @@ export const ComplaintOutcomeQuestionnaire = ({
         )}
 
         {/* Step 3: AI Outcome Analysis */}
-        {step === 3 && (
+        {data.outcome_type !== 'withdrawn' && step === 3 && (
           <div className="space-y-6">
             {/* AI Analysis Toggle */}
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 p-4 rounded-lg">
