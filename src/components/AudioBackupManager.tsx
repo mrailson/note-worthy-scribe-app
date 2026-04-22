@@ -39,6 +39,11 @@ interface AudioBackup {
   is_reprocessed: boolean;
   reprocessed_at: string | null;
   created_at: string;
+  // Enriched from meetings table
+  user_email?: string;
+  device_type?: string;
+  device_browser?: string;
+  import_source?: string;
 }
 
 interface StorageStats {
