@@ -564,6 +564,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
                   </tr>
                 </tfoot>
               </table>
+              </div>
             </div>
             );
           })()}

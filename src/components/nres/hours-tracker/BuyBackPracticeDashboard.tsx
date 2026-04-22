@@ -3199,6 +3199,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                     </tr>
                   </tfoot>
                 </table>
+                </div>
               </div>
             );
           })()}

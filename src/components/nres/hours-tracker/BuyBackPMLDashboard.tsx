@@ -730,6 +730,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                 </tr>
               </tfoot>
             </table>
+            </div>
           </div>
             );
           })()}
