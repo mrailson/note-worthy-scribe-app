@@ -1302,7 +1302,7 @@ function InlineClaimPanel({
                     </div>
                   )}
 
-                  {claim.submitted_at && <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>Submitted {dateStr(claim.submitted_at)}</div>}
+                  {claim.submitted_at && <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>Submitted by {(claim as any).submitted_by_name || emailToName(claim.submitted_by_email || '') || 'Practice'} · {dateStr(claim.submitted_at)}</div>}
                 </div>
               );
             }
@@ -2991,7 +2991,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
             display: 'flex', flexWrap: 'wrap' as const, gap: 20, padding: '14px 0 12px',
             fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6',
           }}>
-            {claim.submitted_at && <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />}
+            {claim.submitted_at && <InfoBlock label="Submitted by" value={(claim as any).submitted_by_name || emailToName(claim.submitted_by_email || '') || 'Practice'} sub={dateStr(claim.submitted_at)} />}
             {claim.verified_by && <InfoBlock label="Verified by" value={emailToName(claim.verified_by)} sub={dateStr(claim.verified_at)} />}
             {claim.approved_by_email && <InfoBlock label="Approved by" value={emailToName(claim.approved_by_email)} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />}
             {claim.invoice_generated_at && <InfoBlock label="Invoice date" value={shortDate(claim.invoice_generated_at)} />}
