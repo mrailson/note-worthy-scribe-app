@@ -478,33 +478,9 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             const totalClaimed = lines.reduce((a: number, l: any) => a + (l.claimed_amount ?? l.claimed ?? 0), 0);
             const totalMax = lines.reduce((a: number, l: any) => a + getMaxInfo(l).max, 0);
             const totalLocumHrs = hasLocum ? lines.reduce((a: number, l: any) => a + (l.staff_category === 'gp_locum' ? Math.round((l.allocation_value ?? 0) * MINS_PER_SESS) / 60 : 0), 0) : 0;
-            // Management calculation banner
-            const mgmtBreakdown = (() => {
-              const mgmtLine = lines.find((s: any) => s.staff_category === 'management' || s.staff_role === 'NRES Management');
-              if (!mgmtLine) return null;
-              const rate = mgmtLine.hourly_rate ?? 0;
-              const wkHrs = mgmtLine.allocation_value ?? 0;
-              const total = mgmtLine.calculated_amount ?? mgmtLine.claimed_amount ?? 0;
-              const holidayWks = (claim as any).holiday_weeks_deducted ?? 0;
-              let workWks = 0, rawWks = 0;
-              if (rate > 0 && wkHrs > 0) { workWks = total / (rate * wkHrs); rawWks = workWks + holidayWks; }
-              return { rate, wkHrs, rawWks: Math.round(rawWks * 100) / 100, holidayWks, workWks: Math.round(workWks * 100) / 100, total };
-            })();
 
             return (
             <div style={{ margin: '12px 0 0' }}>
-              {mgmtBreakdown && (
-                <div style={{ padding: '10px 14px', marginBottom: 10, borderRadius: 8, background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: 12, color: '#1e40af', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <strong style={{ marginRight: 2 }}>Calculation:</strong>
-                  <span>£{mgmtBreakdown.rate}/hr × {mgmtBreakdown.wkHrs} hrs/wk × {mgmtBreakdown.workWks} weeks</span>
-                  {mgmtBreakdown.holidayWks > 0 && (
-                    <span style={{ color: '#b45309' }}>
-                      ({mgmtBreakdown.rawWks} weeks − {mgmtBreakdown.holidayWks} week{mgmtBreakdown.holidayWks !== 1 ? 's' : ''} holiday)
-                    </span>
-                  )}
-                  <span>= <strong>{fmt(mgmtBreakdown.total)}</strong></span>
-                </div>
-              )}
               <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
