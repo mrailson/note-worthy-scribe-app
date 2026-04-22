@@ -2409,8 +2409,16 @@ export function ClaimsViewSwitcher({
 
   const sorted = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
-    return [...periodClaims].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
-  }, [periodClaims]);
+    let filtered = [...periodClaims];
+    if (statusFilter) {
+      if (statusFilter === 'invoiced') {
+        filtered = filtered.filter(c => c.status === 'approved' || c.status === 'invoiced');
+      } else {
+        filtered = filtered.filter(c => c.status === statusFilter);
+      }
+    }
+    return filtered.sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
+  }, [periodClaims, statusFilter]);
 
   // Flatten staff lines for spreadsheet
   type FlatLine = { claimId: string; claim: BuyBackClaim; staff: any; monthLabel: string; monthDate: string; allocDisplay: string; maxAmt: number; claimedAmt: number; isBelow: boolean };
