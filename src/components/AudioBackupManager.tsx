@@ -527,6 +527,23 @@ export const AudioBackupManager = () => {
     }
   };
 
+  const deleteSingleBackup = async (backupId: string, filePath: string) => {
+    try {
+      setDeletingSingle(backupId);
+      await supabase.storage.from('meeting-audio-backups').remove([filePath]);
+      const { error } = await supabase.from('meeting_audio_backups').delete().eq('id', backupId);
+      if (error) throw error;
+      setBackups(prev => prev.filter(b => b.id !== backupId));
+      toast.success('Audio backup deleted');
+    } catch (error) {
+      console.error('Error deleting backup:', error);
+      toast.error('Failed to delete backup');
+    } finally {
+      setDeletingSingle(null);
+      setConfirmDeleteId(null);
+    }
+  };
+
   const downloadAudio = async (backup: AudioBackup) => {
     try {
       toast.info('Downloading audio backup...');
