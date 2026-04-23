@@ -7,6 +7,7 @@ import {
   Users, 
   FileText, 
   Shield, 
+  ShieldCheck,
   CheckCircle, 
   MessageSquare,
   Calendar,
@@ -18,6 +19,7 @@ import {
   Mic,
   ExternalLink
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import notewellLogo from "@/assets/notewell-logo.png";
 import { DemoVideoSection } from "@/components/DemoVideoSection";
