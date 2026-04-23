@@ -343,9 +343,12 @@ export const ServiceOverview = () => {
       </Card>
 
       {/* Pilot Context */}
-      <div className="p-4 bg-accent/30 rounded-lg border border-accent text-center">
+      <div className="p-4 bg-accent/30 rounded-lg border border-accent text-center max-w-3xl mx-auto space-y-2">
+        <h3 className="text-base font-bold text-foreground">
+          Clinically assured. Live in Northamptonshire primary care.
+        </h3>
         <p className="text-sm text-muted-foreground">
-          Notewell AI is initially in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout. Features and access vary by role and pilot phase.
+          Notewell AI is a registered Class I medical device operating across GP practices and Primary Care Networks in Northamptonshire, including the NRES and ENN neighbourhood programmes. All modules run under a full clinical risk management system (DCB0129/DCB0160), with human-in-the-loop review, no automatic EMIS/SystmOne write-back, and NHS DSPT-aligned data handling. Features are released in controlled phases with Clinical Safety Officer oversight.
         </p>
       </div>
 
