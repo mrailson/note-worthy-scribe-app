@@ -521,18 +521,6 @@ const Index = () => {
                       <span>NHS compliance monitoring</span>
                     </li>
                   </ul>
-                  <div className="pt-3 border-t border-border ml-11">
-                    <a 
-                      href="https://www.loom.com/share/58d3d16963224dddac2ea8211bd2b90d" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
-                    >
-                      <span>🎬</span>
-                      <span>Watch Training Video</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
                 </div>
               </div>
 
