@@ -2414,6 +2414,10 @@ export function ClaimsViewSwitcher({
   onStatusFilterChange?: (status: string | null) => void;
 }) {
   const [view, setView] = useState<ClaimsView>(defaultView || 'cards');
+
+  useEffect(() => {
+    if (defaultView) setView(defaultView);
+  }, [defaultView]);
   const [period, setPeriod] = useState('all');
   const [downloadingAll, setDownloadingAll] = useState(false);
 
