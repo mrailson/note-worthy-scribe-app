@@ -534,6 +534,7 @@ const Index = () => {
                     </a>
                   </div>
                 </div>
+              </div>
 
               {/* Who is this for? Section */}
               <div className="mt-6 p-4 bg-accent/30 rounded-lg border border-accent">
