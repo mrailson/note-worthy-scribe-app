@@ -386,6 +386,7 @@ const App = () => {
                   </MockInspectionProtectedRoute>
                 } />
                 <Route path="/public/bp-calculator" element={<PublicBPCalculator />} />
+                <Route path="/planning-studio" element={<PublicPlanningStudio />} />
                 <Route path="/scribe" element={<Scribe />} />
                 <Route path="/ai4gp-prompts" element={<AI4GPPromptGuide />} />
                 <Route path="/reception-translate" element={<ReceptionPatientView />} />
