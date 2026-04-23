@@ -567,6 +567,29 @@ const Index = () => {
                   Latest News & Updates
                 </h3>
                 <a 
+                  href="https://gpnotewell.co.uk/planning-studio"
+                  className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
+                        <span className="text-[10px] text-muted-foreground">April 2026</span>
+                      </div>
+                      <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">NHC Planning Studio — free planning aid for ICBs and PCNs</h4>
+                      <p className="text-sm text-muted-foreground">
+                        A hands-on tool for scoping Neighbourhood Health Centre schemes ahead of the 28 May 2026 NHS England pipeline submission deadline. Sizes service tiers to your population, compares integrated vs unintegrated models, displays sample floor plans, and runs a 21-question readiness self-assessment — all grounded in NHS England PRN02455 and PRN02463.
+                      </p>
+                      <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
+                        Open the Planning Studio →
+                      </span>
+                    </div>
+                  </div>
+                </a>
+                <a 
                   href="/documents/DES27/des-2627-briefing.html"
                   target="_blank"
                   rel="noopener noreferrer"
