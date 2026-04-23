@@ -438,6 +438,62 @@ const Index = () => {
                   </div>
                 </div>
 
+                {/* News & Updates */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Newspaper className="h-4 w-4" />
+                    Latest News & Updates
+                  </h3>
+                  <a 
+                    href="https://gpnotewell.co.uk/planning-studio"
+                    className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
+                          <span className="text-[10px] text-muted-foreground">April 2026</span>
+                        </div>
+                        <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">NHC Planning Studio — free planning aid for ICBs and PCNs</h4>
+                        <p className="text-sm text-muted-foreground">
+                          A hands-on tool for scoping Neighbourhood Health Centre schemes ahead of the 28 May 2026 NHS England pipeline submission deadline. Sizes service tiers to your population, compares integrated vs unintegrated models, displays sample floor plans, and runs a 21-question readiness self-assessment — all grounded in NHS England PRN02455 and PRN02463.
+                        </p>
+                        <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
+                          Open the Planning Studio →
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                  <a 
+                    href="/documents/DES27/des-2627-briefing.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
+                          <span className="text-[10px] text-muted-foreground">March 2026</span>
+                        </div>
+                        <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">Network Contract DES 2026/27 — PCN Briefing</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Full breakdown of the 2026/27 Network Contract DES changes, service specifications and key dates for PCNs.
+                        </p>
+                        <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
+                          Read briefing <ExternalLink className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+
                 {/* Complaints Management System */}
                 <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3 mb-3">
@@ -478,142 +534,6 @@ const Index = () => {
                     </a>
                   </div>
                 </div>
-
-                {/* Meeting Recording & Management */}
-                <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-base mb-1">Meeting Recording & Management</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Professional meeting transcription and management for Practice Managers and administrative teams
-                      </p>
-                    </div>
-                  </div>
-                  <ul className="space-y-1.5 ml-11">
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Partnership meeting transcription</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Automated meeting summaries</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Action item tracking</span>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Ask AI (GP & Practice Management) */}
-                <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                      <MessageSquare className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-base mb-1">Ask AI (GP & Practice Management)</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Role-aware AI support for NHS primary care teams, combining GP clinical information tools and Practice Manager operational support in a single, secure service.
-                      </p>
-                    </div>
-                  </div>
-                  <ul className="space-y-1.5 ml-11 mb-3">
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>GP & Practice Manager modes with role-specific prompts</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>NHS guidance, policy, and reference support</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Complaints, governance, workforce and operational queries</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Document drafting, analysis and structured responses</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Audio and meeting content support (where enabled)</span>
-                    </li>
-                  </ul>
-                  {/* Role switcher explanation */}
-                  <p className="text-xs text-muted-foreground ml-11 mb-3 italic">
-                    Users can switch between GP and Practice Manager views to access prompts and tools relevant to their role.
-                  </p>
-                  {/* Safety Guardrail */}
-                  <div className="ml-11 pt-2 border-t border-border space-y-1">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <span>🔒</span>
-                      <span>Information support only · No patient data · No automatic clinical system write-back · Human review required</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Outputs are designed to support professional judgement, not replace it.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* News & Updates */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <Newspaper className="h-4 w-4" />
-                  Latest News & Updates
-                </h3>
-                <a 
-                  href="https://gpnotewell.co.uk/planning-studio"
-                  className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
-                        <span className="text-[10px] text-muted-foreground">April 2026</span>
-                      </div>
-                      <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">NHC Planning Studio — free planning aid for ICBs and PCNs</h4>
-                      <p className="text-sm text-muted-foreground">
-                        A hands-on tool for scoping Neighbourhood Health Centre schemes ahead of the 28 May 2026 NHS England pipeline submission deadline. Sizes service tiers to your population, compares integrated vs unintegrated models, displays sample floor plans, and runs a 21-question readiness self-assessment — all grounded in NHS England PRN02455 and PRN02463.
-                      </p>
-                      <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
-                        Open the Planning Studio →
-                      </span>
-                    </div>
-                  </div>
-                </a>
-                <a 
-                  href="/documents/DES27/des-2627-briefing.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
-                        <span className="text-[10px] text-muted-foreground">March 2026</span>
-                      </div>
-                      <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">Network Contract DES 2026/27 — PCN Briefing</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Full breakdown of the 2026/27 Network Contract DES changes, service specifications and key dates for PCNs.
-                      </p>
-                      <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
-                        Read briefing <ExternalLink className="h-3 w-3" />
-                      </span>
-                    </div>
-                  </div>
-                </a>
               </div>
 
               {/* Who is this for? Section */}
