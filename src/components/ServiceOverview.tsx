@@ -120,8 +120,11 @@ export const ServiceOverview = () => {
         <h2 className="text-2xl font-semibold text-foreground">
           Practical AI Tools for NHS Primary Care
         </h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Secure, clinician-led AI for meetings, complaints, practice management and GP support — designed for real NHS workflows, not experiments
+        <p className="text-lg font-bold text-foreground max-w-2xl mx-auto">
+          An MHRA-registered, clinically assured AI assistant built specifically for NHS primary care.
+        </p>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mt-2">
+          Secure, clinician-led tools for meetings, complaints, practice management and GP support — running live in Northamptonshire.
         </p>
         <TooltipProvider delayDuration={150}>
           <div className="flex flex-wrap justify-center gap-2 mt-4">
