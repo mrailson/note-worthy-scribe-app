@@ -97,6 +97,7 @@ const CSOTrainingContentExport = lazy(() => import("./pages/CSOTrainingContentEx
 const UsingAiNhs = lazy(() => import("./pages/UsingAiNhs"));
 const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
+const PublicPlanningStudio = lazy(() => import("./pages/PublicPlanningStudio"));
 
 const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
 const BPCalculator = lazy(() => import("./pages/BPCalculator"));
