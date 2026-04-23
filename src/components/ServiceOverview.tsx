@@ -123,20 +123,28 @@ export const ServiceOverview = () => {
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Secure, clinician-led AI for meetings, complaints, practice management and GP support — designed for real NHS workflows, not experiments
         </p>
-        <div className="flex flex-wrap justify-center gap-2 mt-4">
-          <Badge variant="secondary" className="text-sm">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            NHS Compliant
-          </Badge>
-          <Badge variant="secondary" className="text-sm">
-            <Shield className="h-3 w-3 mr-1" />
-            Secure & Encrypted
-          </Badge>
-          <Badge variant="secondary" className="text-sm">
-            <Users className="h-3 w-3 mr-1" />
-            Built by Primary Care
-          </Badge>
-        </div>
+        <TooltipProvider delayDuration={150}>
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            {[
+              { icon: CheckCircle, label: "MHRA Class I Registered", tooltip: "UK Medical Device" },
+              { icon: ShieldCheck, label: "DCB0129 & DCB0160 Assured", tooltip: "Clinical safety cases complete" },
+              { icon: Lock, label: "NHS DSPT Aligned", tooltip: "Data Security & Protection Toolkit" },
+              { icon: Users, label: "Built by Primary Care", tooltip: "NHS clinician-led" },
+            ].map(({ icon: Icon, label, tooltip }) => (
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="text-sm cursor-help">
+                    <Icon className="h-3 w-3 mr-1" />
+                    {label}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </TooltipProvider>
       </div>
 
 
