@@ -12701,6 +12701,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_generated_images_archive: {
+        Row: {
+          alt_text: string | null
+          archived_at: string
+          category: string | null
+          created_at: string
+          detailed_prompt: string | null
+          id: string
+          image_settings: Json | null
+          image_url: string
+          is_favourite: boolean | null
+          prompt: string | null
+          quick_pick_id: string | null
+          source: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          alt_text?: string | null
+          archived_at?: string
+          category?: string | null
+          created_at: string
+          detailed_prompt?: string | null
+          id: string
+          image_settings?: Json | null
+          image_url: string
+          is_favourite?: boolean | null
+          prompt?: string | null
+          quick_pick_id?: string | null
+          source?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          alt_text?: string | null
+          archived_at?: string
+          category?: string | null
+          created_at?: string
+          detailed_prompt?: string | null
+          id?: string
+          image_settings?: Json | null
+          image_url?: string
+          is_favourite?: boolean | null
+          prompt?: string | null
+          quick_pick_id?: string | null
+          source?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_image_defaults: {
         Row: {
           created_at: string | null
