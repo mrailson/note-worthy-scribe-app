@@ -660,18 +660,25 @@ const NRESPopulationRisk = () => (
 /* ─── Sub-components ──────────────────────────────────────── */
 
 const KpiCard = ({
-  icon, label, value, sub, tone = "default",
-}: { icon: React.ReactNode; label: string; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good" }) => {
+  icon, label, value, sub, tone = "default", filterKey, onDrill,
+}: { icon: React.ReactNode; label: string; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good"; filterKey?: string; onDrill?: (key: string) => void }) => {
   const bar = tone === "critical" ? palette.vhigh : tone === "warn" ? palette.mod : tone === "good" ? palette.ok : palette.accent;
+  const clickable = !!filterKey && !!onDrill;
+  const Tag = clickable ? "button" : "div";
   return (
-    <div className="bg-white border rounded-lg p-4 flex gap-3 items-start" style={{ borderLeft: `3px solid ${bar}` }}>
+    <Tag
+      type={clickable ? "button" : undefined}
+      onClick={clickable ? () => onDrill!(filterKey!) : undefined}
+      className={`bg-white border rounded-lg p-4 flex gap-3 items-start text-left w-full ${clickable ? "hover:shadow-sm transition-shadow cursor-pointer" : ""}`}
+      style={{ borderLeft: `3px solid ${bar}` }}
+    >
       <span style={{ color: bar }}>{icon}</span>
       <div className="flex-1 min-w-0">
         <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">{label}</div>
-        <div className="text-2xl font-bold tabular-nums leading-tight mt-0.5">{value}</div>
+        <div className={`text-2xl font-bold tabular-nums leading-tight mt-0.5 ${clickable ? "group-hover:underline" : ""}`}>{value}</div>
         {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
       </div>
-    </div>
+    </Tag>
   );
 };
 
