@@ -740,22 +740,36 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
             </PieChart>
           </ResponsiveContainer>
           <div className="grid grid-cols-2 gap-2 mt-3">
-            {ltcBreakdown.map(e => (
-              <div key={e.name} className="flex items-center gap-2 text-xs">
-                <span className="w-2.5 h-2.5 inline-block" style={{ background: e.colour }} />
-                <span className="text-slate-600 flex-1">{e.name}</span>
-                <span className="font-semibold tabular-nums">{e.value.toLocaleString("en-GB")}</span>
-              </div>
-            ))}
+            {ltcBreakdown.map(e => {
+              const drillKey: Record<string, string> = {
+                "Fit (65+)": "over65_fit",
+                "Mild frailty (65+)": "over65_mild",
+                "Moderate (65+)": "over65_moderate",
+                "Severe (65+)": "over65_severe",
+              };
+              const k = drillKey[e.name];
+              return (
+                <button
+                  key={e.name}
+                  type="button"
+                  onClick={k && onDrill ? () => onDrill(k) : undefined}
+                  className={`flex items-center gap-2 text-xs text-left rounded px-1 py-0.5 ${k && onDrill ? "hover:bg-slate-100 cursor-pointer" : ""}`}
+                >
+                  <span className="w-2.5 h-2.5 inline-block" style={{ background: e.colour }} />
+                  <span className="text-slate-600 flex-1">{e.name}</span>
+                  <span className="font-semibold tabular-nums">{e.value.toLocaleString("en-GB")}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div className="bg-white border rounded-lg p-5">
           <h3 className="font-semibold text-base">Polypharmacy — SMR opportunity</h3>
           <p className="text-xs text-muted-foreground mb-3">Clinical Pharmacist structured medication review targets</p>
-          <PolyBar label="10+ repeat medications" value={summary.poly10} max={summary.poly10 || 1} colour={palette.mod} detail="Primary SMR cohort" />
-          <PolyBar label="15+ repeat medications" value={summary.poly15} max={summary.poly10 || 1} colour={palette.high} detail="Complex polypharmacy" />
-          <PolyBar label="20+ repeat medications" value={summary.poly20} max={summary.poly10 || 1} colour={palette.vhigh} detail="Very complex" />
+          <PolyBar label="10+ repeat medications" value={summary.poly10} max={summary.poly10 || 1} colour={palette.mod} detail="Primary SMR cohort" filterKey="drugs_10_plus" onDrill={onDrill} />
+          <PolyBar label="15+ repeat medications" value={summary.poly15} max={summary.poly10 || 1} colour={palette.high} detail="Complex polypharmacy" filterKey="drugs_15_plus" onDrill={onDrill} />
+          <PolyBar label="20+ repeat medications" value={summary.poly20} max={summary.poly10 || 1} colour={palette.vhigh} detail="Very complex" filterKey="drugs_20_plus" onDrill={onDrill} />
           <div className="bg-[#e7f0f4] p-3 mt-4 text-xs border-l-4 border-[#005EB8]">
             <strong>NRES ask:</strong> {summary.poly10} patients × 20 min/review ≈{" "}
             {Math.round((summary.poly10 * 20) / 60)} CP hours/year.
@@ -783,10 +797,16 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
   );
 };
 
-const PolyBar = ({ label, value, max, colour, detail }: { label: string; value: number; max: number; colour: string; detail: string }) => {
+const PolyBar = ({ label, value, max, colour, detail, filterKey, onDrill }: { label: string; value: number; max: number; colour: string; detail: string; filterKey?: string; onDrill?: (key: string) => void }) => {
   const w = (value / max) * 100;
+  const clickable = !!filterKey && !!onDrill;
   return (
-    <div className="mb-3">
+    <button
+      type="button"
+      onClick={clickable ? () => onDrill!(filterKey!) : undefined}
+      className={`mb-3 w-full text-left ${clickable ? "cursor-pointer hover:bg-slate-50 rounded p-1 -m-1" : ""}`}
+      disabled={!clickable}
+    >
       <div className="flex justify-between text-sm mb-1">
         <span className="font-semibold">{label}</span>
         <span className="font-semibold tabular-nums">{value.toLocaleString("en-GB")}</span>
@@ -795,7 +815,7 @@ const PolyBar = ({ label, value, max, colour, detail }: { label: string; value: 
         <div className="h-full" style={{ width: `${w}%`, background: colour }} />
       </div>
       <div className="text-xs text-muted-foreground mt-1">{detail}</div>
-    </div>
+    </button>
   );
 };
 
@@ -966,28 +986,45 @@ const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canVie
             </tr>
           </thead>
           <tbody>
-            {sorted.map((p, i) => (
-              <tr key={p.fkPatientLinkId} className={i % 2 ? "bg-slate-50/50" : ""}>
-                <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
-                {canViewPII && <td className="p-3 tabular-nums">{p.nhsNumber ?? "—"}</td>}
-                {canViewPII && <td className="p-3">{[p.forenames, p.surname].filter(Boolean).join(" ") || "—"}</td>}
-                <td className="p-3 tabular-nums">{p.age ?? "—"}</td>
-                <td className="p-3">
-                  <span className="inline-block px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: frailtyColour(p.frailty) }}>
-                    {p.frailty}
-                  </span>
-                </td>
-                <td className="p-3 tabular-nums">{p.drugCount}</td>
-                <td className="p-3 tabular-nums">{p.inpatientAdmissions}</td>
-                <td className="p-3 font-semibold" style={{ color: rubColour(p.rub) }}>{p.rub || "—"}</td>
-                <td className="p-3 text-right font-bold tabular-nums" style={{ color: palette.vhigh }}>
-                  {p.poA !== null ? `${p.poA.toFixed(1)}%` : "—"}
-                </td>
-                <td className="p-3 text-right tabular-nums text-slate-600">
-                  {p.poLoS !== null ? `${p.poLoS.toFixed(1)}%` : "—"}
-                </td>
-              </tr>
-            ))}
+            {sorted.map((p, i) => {
+              const tier = tierFor(p.poA);
+              const tierKey: Record<RiskTier, string> = {
+                "Very High": "tier_very_high",
+                "High": "tier_high",
+                "Moderate": "tier_moderate",
+                "Rising": "tier_rising",
+                "Low": "tier_low",
+                "Unknown": "tier_unknown",
+              };
+              const drillKey = tierKey[tier];
+              const clickable = !!onDrill && !!drillKey;
+              return (
+                <tr
+                  key={p.fkPatientLinkId}
+                  onClick={clickable ? () => onDrill!(drillKey) : undefined}
+                  className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
+                >
+                  <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
+                  {canViewPII && <td className="p-3 tabular-nums">{p.nhsNumber ?? "—"}</td>}
+                  {canViewPII && <td className="p-3">{[p.forenames, p.surname].filter(Boolean).join(" ") || "—"}</td>}
+                  <td className="p-3 tabular-nums">{p.age ?? "—"}</td>
+                  <td className="p-3">
+                    <span className="inline-block px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: frailtyColour(p.frailty) }}>
+                      {p.frailty}
+                    </span>
+                  </td>
+                  <td className="p-3 tabular-nums">{p.drugCount}</td>
+                  <td className="p-3 tabular-nums">{p.inpatientAdmissions}</td>
+                  <td className="p-3 font-semibold" style={{ color: rubColour(p.rub) }}>{p.rub || "—"}</td>
+                  <td className="p-3 text-right font-bold tabular-nums" style={{ color: palette.vhigh }}>
+                    {p.poA !== null ? `${p.poA.toFixed(1)}%` : "—"}
+                  </td>
+                  <td className="p-3 text-right tabular-nums text-slate-600">
+                    {p.poLoS !== null ? `${p.poLoS.toFixed(1)}%` : "—"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
