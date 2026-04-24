@@ -817,27 +817,37 @@ const CohortsSection = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {cohorts.map(co => (
-          <button
-            key={co.id}
-            onClick={() => setSelected(co.id)}
-            className={`text-left p-4 border rounded-lg transition-all ${
-              selected === co.id ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-1.5 h-1.5 inline-block" style={{ background: co.colour }} />
-              <span className={`text-[10px] uppercase tracking-wider font-semibold ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>
-                {co.detail}
-              </span>
-            </div>
-            <div className="font-semibold mt-1">{co.label}</div>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-2xl font-bold tabular-nums">{fmt(co.n)}</span>
-              <span className={`text-xs ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>{co.weekly}/week</span>
-            </div>
-          </button>
-        ))}
+        {cohorts.map(co => {
+          const cohortFilterKey: Record<string, string> = {
+            vhhr: "mdt_intensive", ltc: "ltc_anchor", smr: "smr_eligible",
+            rising: "rising_prevention", adm: "admission_avoidance",
+            falls: "falls_risk", frev: "frailty_review",
+          };
+          return (
+            <button
+              key={co.id}
+              onClick={() => {
+                setSelected(co.id);
+                onDrill?.(cohortFilterKey[co.id]);
+              }}
+              className={`text-left p-4 border rounded-lg transition-all ${
+                selected === co.id ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-1.5 h-1.5 inline-block" style={{ background: co.colour }} />
+                <span className={`text-[10px] uppercase tracking-wider font-semibold ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>
+                  {co.detail}
+                </span>
+              </div>
+              <div className="font-semibold mt-1">{co.label}</div>
+              <div className="flex items-baseline justify-between mt-2">
+                <span className="text-2xl font-bold tabular-nums hover:underline">{fmt(co.n)}</span>
+                <span className={`text-xs ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>{co.weekly}/week</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {c && (
