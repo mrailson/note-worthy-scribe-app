@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
+import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportModal";
 import {
   applyFilters,
   getFilter,
