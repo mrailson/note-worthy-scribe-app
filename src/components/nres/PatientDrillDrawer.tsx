@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
+import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportModal";
 import {
   applyFilters,
   getFilter,
@@ -54,6 +55,8 @@ interface PatientDrillDrawerProps {
   hasViewElsewhere?: boolean;
   /** UUID of the gp_practices row currently being viewed (for audit + export RPC). */
   practiceId?: string | null;
+  /** Display name of the current practice (used in the export modal + filename). */
+  practiceName?: string;
   /** Route key for the page-load audit log. */
   route?: string;
 }
@@ -84,6 +87,7 @@ export const PatientDrillDrawer = ({
   canExportPII = false,
   hasViewElsewhere = false,
   practiceId = null,
+  practiceName,
   route,
 }: PatientDrillDrawerProps) => {
   const { isOpen, filterKeys, add, remove, close } = useDrillThrough();
@@ -100,6 +104,9 @@ export const PatientDrillDrawer = ({
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
   const [exceptionReason, setExceptionReason] = useState("");
   const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
+
+  // Identifiable CSV export modal — Phase B
+  const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
@@ -245,13 +252,21 @@ export const PatientDrillDrawer = ({
   };
 
   /**
-   * Identifiable CSV export — Phase B placeholder.
-   * In the next turn this opens the reason+checkbox modal and calls the
-   * `narp-export-identifiable` edge function which returns the CSV bytes,
-   * computes SHA-256 server-side, and writes the audit row.
+   * Identifiable CSV export — opens the reason+consent modal.
+   * The modal calls the `narp-export-identifiable` edge function which
+   * decrypts PII server-side, returns CSV bytes + SHA-256, and writes
+   * one audit row to `narp_export_log`.
    */
   const exportCsvIdentifiable = () => {
-    toast.info("Identifiable export — modal + edge function ship in Phase B (next turn).");
+    if (!practiceId) {
+      toast.error("Select a single practice before exporting identifiers");
+      return;
+    }
+    if (!sortedRows.length) {
+      toast.info("Nothing to export");
+      return;
+    }
+    setIdentifiableExportOpen(true);
   };
 
   const titleText = filters.length === 0
@@ -534,6 +549,16 @@ export const PatientDrillDrawer = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Identifiable CSV export — reason + consent modal */}
+      <IdentifiableExportModal
+        open={identifiableExportOpen}
+        onOpenChange={setIdentifiableExportOpen}
+        practiceId={practiceId}
+        practiceName={practiceName}
+        cohortLabel={filters.length > 0 ? filters.map((f) => f.label).join(" + ") : undefined}
+        rowCountHint={sortedRows.length}
+      />
 
       <PatientDetailModal
         patient={activePatient}
