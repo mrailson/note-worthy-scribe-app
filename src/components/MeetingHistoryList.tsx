@@ -993,82 +993,43 @@ export const MeetingHistoryList = ({
     setUploadDialogOpen(true);
   };
 
-  // Handle email minutes click
+  // Handle email minutes click — sends directly using the same pipeline
+  // as the automatic post-meeting email (no modal step).
   const handleEmailMinutesClick = async (meeting: Meeting) => {
     console.log('📧 Email button clicked for meeting:', meeting.id, meeting.title);
-    console.log('📧 Meeting data:', meeting);
-    
-    // Fetch the latest meeting notes/summary from multiple sources
+
+    const toastId = toast.loading('Sending meeting notes…');
     try {
-      console.log('📧 Fetching meeting notes from all sources...');
-      
-      // 1. Check meeting_summaries table
-      const { data: summaryData, error } = await supabase
-        .from('meeting_summaries')
-        .select('summary')
-        .eq('meeting_id', meeting.id)
-        .maybeSingle();
-
-      // 2. Check meeting_notes_multi table for generated notes
-      const { data: multiNotesData } = await supabase
-        .from('meeting_notes_multi')
-        .select('content, note_type')
-        .eq('meeting_id', meeting.id)
-        .order('generated_at', { ascending: false });
-
-      // 3. Fetch meeting note fields (prefer Minutes - Standard)
-      const { data: notesFields, error: notesFieldsError } = await supabase
-        .from('meetings')
-        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5')
-        .eq('id', meeting.id)
-        .maybeSingle();
-
-      console.log('📧 Summary query result:', { summaryData, error });
-      console.log('📧 Multi notes query result:', { multiNotesData });
-      console.log('📧 Meeting note fields:', notesFields, notesFieldsError);
-      
-      if (error) {
-        console.error('Error fetching meeting summary:', error);
-      }
-      
-      // Priority order: Minutes - Standard (notes_style_3) > multi-type notes > summary > transcript
-      let notes = '';
-      
-      const standardFromMeeting = (notesFields as any)?.notes_style_3 || (meeting as any).notes_style_3 || '';
-      if (standardFromMeeting) {
-        notes = standardFromMeeting;
-        console.log('📧 Using Minutes - Standard from meeting:', notes.substring(0, 100) + '...');
-      } else if (multiNotesData && multiNotesData.length > 0) {
-        // Prefer detailed, then brief, then most recent
-        const detailedNote = multiNotesData.find(n => n.note_type === 'detailed');
-        const briefNote = multiNotesData.find(n => n.note_type === 'brief');
-        const anyNote = multiNotesData[0]; // First available (most recent)
-        
-        notes = detailedNote?.content || briefNote?.content || anyNote?.content || '';
-        console.log('📧 Using multi-type notes:', notes.substring(0, 100) + '...');
-      } else {
-        // Fallbacks
-        const meetingData = meeting as any;
-        notes = (notesFields as any)?.notes_style_2 || meetingData.notes_style_2 || (notesFields as any)?.notes_style_1 || meetingData.notes_style_1 ||
-                summaryData?.summary || meeting.meeting_summary || meeting.transcript || '';
-        console.log('📧 Using fallback notes:', notes.substring(0, 100) + '...');
-      }
-      
-      if (!notes.trim()) {
-        console.log('📧 No notes available');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user?.email) {
+        toast.error('Unable to send — no email address on your account', { id: toastId });
         return;
       }
-      
-      console.log('📧 Opening email modal...');
-      // Update the meeting object with latest notes
-      setSelectedMeetingForEmail({
-        ...meeting,
-        meeting_summary: notes
+
+      // Try to derive a friendly sender name from profile
+      let senderName: string | undefined;
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        senderName = profile?.full_name || undefined;
+      } catch {
+        // non-fatal — helper will fall back
+      }
+
+      const { sendMeetingNotesEmail } = await import('@/utils/sendMeetingNotesEmail');
+      await sendMeetingNotesEmail({
+        meetingId: meeting.id,
+        recipientEmail: user.email,
+        senderName,
       });
-      setEmailModalOpen(true);
-      console.log('📧 Email modal should be open now');
-    } catch (error) {
-      console.error('📧 Error preparing email:', error);
+
+      toast.success(`Meeting notes emailed to ${user.email}`, { id: toastId });
+    } catch (error: any) {
+      console.error('📧 Error sending meeting notes email:', error);
+      toast.error(error?.message || 'Failed to send meeting notes email', { id: toastId });
     }
   };
 
