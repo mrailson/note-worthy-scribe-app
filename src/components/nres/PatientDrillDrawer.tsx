@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Eye, Copy, Info } from "lucide-react";
+import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
+import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import {
   applyFilters,
   getFilter,
@@ -33,8 +34,27 @@ export interface DrillPatientRow extends NarpFilterableRow {
 
 interface PatientDrillDrawerProps {
   rows: DrillPatientRow[];
-  /** Whether the current user may reveal NHS number / name. */
+  /**
+   * The current user holds `can_view_narp_identifiable` for the selected practice.
+   * When true, NHS no / name render INLINE — no per-row reveal button is shown.
+   */
   canViewPII?: boolean;
+  /**
+   * The current user holds `can_export_narp_identifiable` for the selected practice.
+   * Controls visibility of the "Export – with identifiers" button.
+   */
+  canExportPII?: boolean;
+  /**
+   * The current user has identifiable access for SOME practice but not the
+   * one currently selected. Enables the cross-practice exception path:
+   * a single banner-level "Reveal identifiers + reason" prompt rather than
+   * the per-row reveal flow.
+   */
+  hasViewElsewhere?: boolean;
+  /** UUID of the gp_practices row currently being viewed (for audit + export RPC). */
+  practiceId?: string | null;
+  /** Route key for the page-load audit log. */
+  route?: string;
 }
 
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
@@ -57,7 +77,14 @@ const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null =
   }
 };
 
-export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDrawerProps) => {
+export const PatientDrillDrawer = ({
+  rows,
+  canViewPII = false,
+  canExportPII = false,
+  hasViewElsewhere = false,
+  practiceId = null,
+  route,
+}: PatientDrillDrawerProps) => {
   const { isOpen, filterKeys, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
   const [search, setSearch] = useState("");
