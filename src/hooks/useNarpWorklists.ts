@@ -106,6 +106,31 @@ export function useNarpWorklistItems(worklistId: string | null | undefined) {
   });
 }
 
+/* ───── Header badge: open worklists visible to this user via RLS ───── */
+export function useOutstandingNarpWorklists() {
+  return useQuery({
+    queryKey: ["narp-worklists-outstanding"],
+    queryFn: async (): Promise<{ openWorklists: number; pendingItems: number }> => {
+      const { data: worklists, error } = await supabase
+        .from("narp_worklists")
+        .select("id")
+        .eq("status", "open")
+        .limit(1000);
+      if (error) throw error;
+      const ids = (worklists ?? []).map((w) => w.id);
+      if (!ids.length) return { openWorklists: 0, pendingItems: 0 };
+      const { count, error: itemError } = await supabase
+        .from("narp_worklist_items")
+        .select("id", { count: "exact", head: true })
+        .in("worklist_id", ids)
+        .eq("review_status", "pending");
+      if (itemError) throw itemError;
+      return { openWorklists: ids.length, pendingItems: count ?? 0 };
+    },
+    staleTime: 30_000,
+  });
+}
+
 /* ───── Linked meetings for a single worklist ───── */
 export function useNarpWorklistMeetings(worklistId: string | null | undefined) {
   return useQuery({
