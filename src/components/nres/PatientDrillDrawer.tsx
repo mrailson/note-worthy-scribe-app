@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Eye, Copy, Info } from "lucide-react";
+import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
+import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import {
   applyFilters,
   getFilter,
@@ -33,8 +35,27 @@ export interface DrillPatientRow extends NarpFilterableRow {
 
 interface PatientDrillDrawerProps {
   rows: DrillPatientRow[];
-  /** Whether the current user may reveal NHS number / name. */
+  /**
+   * The current user holds `can_view_narp_identifiable` for the selected practice.
+   * When true, NHS no / name render INLINE — no per-row reveal button is shown.
+   */
   canViewPII?: boolean;
+  /**
+   * The current user holds `can_export_narp_identifiable` for the selected practice.
+   * Controls visibility of the "Export – with identifiers" button.
+   */
+  canExportPII?: boolean;
+  /**
+   * The current user has identifiable access for SOME practice but not the
+   * one currently selected. Enables the cross-practice exception path:
+   * a single banner-level "Reveal identifiers + reason" prompt rather than
+   * the per-row reveal flow.
+   */
+  hasViewElsewhere?: boolean;
+  /** UUID of the gp_practices row currently being viewed (for audit + export RPC). */
+  practiceId?: string | null;
+  /** Route key for the page-load audit log. */
+  route?: string;
 }
 
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
@@ -57,15 +78,32 @@ const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null =
   }
 };
 
-export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDrawerProps) => {
+export const PatientDrillDrawer = ({
+  rows,
+  canViewPII = false,
+  canExportPII = false,
+  hasViewElsewhere = false,
+  practiceId = null,
+  route,
+}: PatientDrillDrawerProps) => {
   const { isOpen, filterKeys, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
   const [search, setSearch] = useState("");
   const [quickChips, setQuickChips] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [exportWithPII, setExportWithPII] = useState(false);
   const [activePatient, setActivePatient] = useState<DrillPatientRow | null>(null);
   const [renderLimit, setRenderLimit] = useState(200);
+
+  // Cross-practice exception path: identifiers are hidden by default but the
+  // user has identifiable rights for OTHER practices. They can opt in to a
+  // single audit-logged reveal for the current cohort with a reason.
+  const [exceptionRevealed, setExceptionRevealed] = useState(false);
+  const [exceptionReason, setExceptionReason] = useState("");
+  const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
+
+  // Effective inline-PII mode: either the user has direct view rights, OR
+  // they've completed the cross-practice exception reveal for this session.
+  const showInlinePII = canViewPII || (hasViewElsewhere && exceptionRevealed);
 
   // Resolve the current filters
   const filters = useMemo(
@@ -84,11 +122,12 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
       const q = search.trim().toLowerCase();
       result = result.filter((r) =>
         r.fkPatientLinkId.toLowerCase().includes(q) ||
-        (canViewPII && (r.nhsNumber ?? "").toLowerCase().includes(q)),
+        (showInlinePII && (r.nhsNumber ?? "").toLowerCase().includes(q)) ||
+        (showInlinePII && [r.forenames, r.surname].filter(Boolean).join(" ").toLowerCase().includes(q)),
       );
     }
     return result;
-  }, [rows, filterKeys, quickChips, search, canViewPII]);
+  }, [rows, filterKeys, quickChips, search, showInlinePII]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
@@ -99,6 +138,16 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
   }, [filteredRows, sortBy]);
 
   const visibleRows = sortedRows.slice(0, renderLimit);
+
+  // Per-page-load audit: writes ONE row per (practice, route, count) bucket
+  // when identifiers are actually rendered. Suppressed when no patients are
+  // visible or when the user lacks view rights.
+  useNarpIdentifiableAccess({
+    practiceId,
+    patientCountRendered: showInlinePII && isOpen ? visibleRows.length : 0,
+    route: route ?? "/nres/population-risk#drawer",
+    enableAudit: true,
+  });
 
   // Summary strip
   const summary = useMemo(() => {
@@ -162,16 +211,20 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
     clearSelection();
   };
 
-  const exportCsv = () => {
+  /**
+   * Anonymised CSV export — always available to drawer users.
+   * No identifiers; no modal; downloads immediately.
+   * Logged via the export-log table once Phase B's edge function lands.
+   */
+  const exportCsvAnonymised = () => {
     if (!sortedRows.length) {
       toast.info("Nothing to export");
       return;
     }
-    const headers = ["Ref", "Age", "Frailty", "Drug count", "Inpt admissions", "A&E", "RUB", "PoA %", "PoLoS %"];
-    if (exportWithPII && canViewPII) headers.push("NHS Number", "Name");
+    const headers = ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
     const csvRows: string[] = [headers.join(",")];
     for (const r of sortedRows) {
-      const base = [
+      csvRows.push([
         r.fkPatientLinkId,
         r.age ?? "",
         r.frailty,
@@ -181,24 +234,24 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
         `"${(r.rub ?? "").replace(/"/g, '""')}"`,
         r.poA ?? "",
         r.poLoS ?? "",
-      ];
-      if (exportWithPII && canViewPII) {
-        base.push(`"${(r.nhsNumber ?? "").replace(/"/g, '""')}"`);
-        base.push(`"${[r.forenames, r.surname].filter(Boolean).join(" ").replace(/"/g, '""')}"`);
-      }
-      csvRows.push(base.join(","));
+      ].join(","));
     }
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const slug = (filters.map((f) => f.key).join("+") || "all") + (exportWithPII ? "-with-id" : "");
-    a.href = url; a.download = `narp-${slug}.csv`; a.click();
+    const slug = filters.map((f) => f.key).join("+") || "all";
+    a.href = url; a.download = `narp-${slug}-anonymised.csv`; a.click();
     URL.revokeObjectURL(url);
-    // TODO (Phase 1): write export_log row { user_id, filter_key, row_count,
-    // included_identifiers, exported_at } when the persistence layer lands.
-    if (exportWithPII && canViewPII) {
-      console.log("[NRES][audit] CSV exported with identifiers", { rows: sortedRows.length, filters: filterKeys });
-    }
+  };
+
+  /**
+   * Identifiable CSV export — Phase B placeholder.
+   * In the next turn this opens the reason+checkbox modal and calls the
+   * `narp-export-identifiable` edge function which returns the CSV bytes,
+   * computes SHA-256 server-side, and writes the audit row.
+   */
+  const exportCsvIdentifiable = () => {
+    toast.info("Identifiable export — modal + edge function ship in Phase B (next turn).");
   };
 
   const titleText = filters.length === 0
@@ -296,7 +349,7 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder={canViewPII ? "Ref or NHS number" : "Patient ref"}
+                  placeholder={showInlinePII ? "Ref, NHS number or name" : "Patient ref"}
                   className="pl-7 h-8 text-xs"
                 />
               </div>
@@ -331,6 +384,8 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
                     />
                   </th>
                   <th className="p-2">Ref</th>
+                  {showInlinePII && <th className="p-2">NHS no.</th>}
+                  {showInlinePII && <th className="p-2">Name</th>}
                   <th className="p-2">Age</th>
                   <th className="p-2">Frailty</th>
                   <th className="p-2 text-right">Drugs</th>
@@ -357,6 +412,16 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
                       />
                     </td>
                     <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
+                    {showInlinePII && (
+                      <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>
+                        {r.nhsNumber || "—"}
+                      </td>
+                    )}
+                    {showInlinePII && (
+                      <td className="p-2">
+                        {[r.forenames, r.surname].filter(Boolean).join(" ") || "—"}
+                      </td>
+                    )}
                     <td className="p-2 tabular-nums">{r.age ?? "—"}</td>
                     <td className="p-2">{r.frailty}</td>
                     <td className="p-2 text-right tabular-nums">{r.drugCount}</td>
@@ -368,7 +433,7 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
                   </tr>
                 ))}
                 {!visibleRows.length && (
-                  <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No patients match these filters.</td></tr>
+                  <tr><td colSpan={showInlinePII ? 12 : 10} className="p-8 text-center text-muted-foreground">No patients match these filters.</td></tr>
                 )}
               </tbody>
             </table>
@@ -395,25 +460,80 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
                 </>}
               </div>
             </div>
-            {canViewPII && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox checked={exportWithPII} onCheckedChange={(v) => setExportWithPII(!!v)} />
-                Include patient identifiers in CSV (audit-logged)
-              </label>
+            {/* Cross-practice exception path: user has identifiable rights for
+                another practice but not this one. Single audit-logged reveal
+                with a reason — no per-row prompt. */}
+            {hasViewElsewhere && !canViewPII && !exceptionRevealed && (
+              <div className="border border-amber-300 bg-amber-50 rounded-md p-2 text-xs text-amber-900">
+                <div className="font-semibold mb-1 flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  Identifiers hidden — viewing outside your assigned practice
+                </div>
+                <div className="mb-2">Reveal requires a reason. Audit-logged.</div>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setExceptionDialogOpen(true)}>
+                  Reveal identifiers (audit-logged)
+                </Button>
+              </div>
             )}
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1" onClick={sendToBuyBack} disabled={!selected.size}>
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" className="flex-1 min-w-[180px]" onClick={sendToBuyBack} disabled={!selected.size}>
                 <Send className="h-4 w-4 mr-1.5" />
                 Send {selected.size || ""} to Buy-Back Claims
               </Button>
-              <Button size="sm" variant="outline" onClick={exportCsv}>
+              <Button size="sm" variant="outline" onClick={exportCsvAnonymised}>
                 <FileDown className="h-4 w-4 mr-1.5" />
-                Export CSV
+                Export – anonymised
               </Button>
+              {canExportPII && (
+                <Button size="sm" variant="outline" className="border-amber-400 text-amber-900 hover:bg-amber-50" onClick={exportCsvIdentifiable}>
+                  <ShieldCheck className="h-4 w-4 mr-1.5" />
+                  Export – with identifiers
+                </Button>
+              )}
             </div>
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Cross-practice exception reveal dialog */}
+      <Dialog open={exceptionDialogOpen} onOpenChange={setExceptionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reveal identifiers for this cohort</DialogTitle>
+            <DialogDescription>
+              You have identifiable access for another practice but not the one currently selected.
+              This reveal will be audit-logged against your account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              value={exceptionReason}
+              onChange={(e) => setExceptionReason(e.target.value)}
+              placeholder="Reason for access (min. 10 characters)"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setExceptionDialogOpen(false)}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={exceptionReason.trim().length < 10 || !practiceId}
+                onClick={() => {
+                  if (!practiceId) return;
+                  void supabase.rpc("log_narp_pii_page_access", {
+                    _practice_id: practiceId,
+                    _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
+                    _patient_count_rendered: visibleRows.length,
+                  });
+                  setExceptionRevealed(true);
+                  setExceptionDialogOpen(false);
+                  toast.success("Identifiers revealed for this session. Audit row written.");
+                }}
+              >
+                Reveal
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <PatientDetailModal
         patient={activePatient}

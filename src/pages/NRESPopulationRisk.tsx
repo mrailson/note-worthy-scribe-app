@@ -12,6 +12,8 @@ import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
 import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
+import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
+import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -185,9 +187,27 @@ const NRESPopulationRiskInner = () => {
   const [tab, setTab] = useState("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // TODO (Supabase): replace canViewPII with a real call to usePermissions()
-  // once `can_view_patient_identifiable` is wired into the role table.
-  const canViewPII = false;
+  // Resolve the selected practice's UUID so we can scope the NMoC DSA
+  // identifiable-data permission check correctly. "All Practices" deliberately
+  // resolves to null — there is no single practice to grant permission for, so
+  // identifiers stay hidden in that mode.
+  const { data: selectedPracticeId } = useGpPracticeIdByName(
+    selectedPractice === "All Practices" ? null : selectedPractice,
+  );
+
+  // Per-practice NARP identifiable-data access (NMoC DSA).
+  // - canView: see NHS number / name inline for THIS practice
+  // - canExport: see "Export with identifiers" button for THIS practice
+  // - hasViewElsewhere: rare cross-practice exception (reveal + reason flow)
+  const narpAccess = useNarpIdentifiableAccess({
+    practiceId: selectedPracticeId ?? null,
+    patientCountRendered: 0, // updated below once `filtered` is computed
+    route: "/nres/population-risk",
+    enableAudit: false, // audit fires from the inner effect using filtered.length
+  });
+  const canViewPII = narpAccess.canView;
+  const canExportPII = narpAccess.canExport;
+  const hasViewElsewhere = narpAccess.hasViewElsewhere;
 
   const handleUpload = useCallback(async (file: File) => {
     try {
@@ -662,7 +682,14 @@ const NRESPopulationRiskInner = () => {
       </div>
 
       {/* Drill-through drawer (single source of truth for every clickable count) */}
-      <PatientDrillDrawer rows={filtered} canViewPII={canViewPII} />
+      <PatientDrillDrawer
+        rows={filtered}
+        canViewPII={canViewPII}
+        canExportPII={canExportPII}
+        hasViewElsewhere={hasViewElsewhere}
+        practiceId={selectedPracticeId ?? null}
+        route="/nres/population-risk"
+      />
     </div>
   );
 };
