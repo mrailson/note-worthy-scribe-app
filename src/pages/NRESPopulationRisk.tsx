@@ -121,6 +121,7 @@ const mapNarpRow = (r: Record<string, unknown>): NarpRow | null => {
     surname: r["Surname"] ? String(r["Surname"]) : undefined,
     age: parseAge(r["Age"]),
     practiceName: String(r["PracticeName"] ?? ""),
+    practiceKey: normalisePracticeKey(r["PracticeName"]),
     drugCount: parseInt0(r["Drug Count"]),
     frailty: frailtyFromCategory(r["Frailty (eFI) Category"] as string),
     inpatientAdmissions: parseInt0(r["Inpatient - Total Admissions"]),
