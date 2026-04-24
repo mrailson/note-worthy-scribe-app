@@ -193,6 +193,10 @@ export const buildProfessionalMeetingEmail = (
 ): string => {
   const formattedNotes = convertToStyledHTML(content);
 
+  // Derive first name for greeting (fallback to bare "Hi,")
+  const firstName = (senderName || '').trim().split(/\s+/)[0] || '';
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+
   // Extract attendees from notes content if not provided
   let attendeeList = meetingMeta?.attendees || [];
   if (attendeeList.length === 0) {
@@ -239,26 +243,40 @@ export const buildProfessionalMeetingEmail = (
     `;
   }
 
-  // Build meeting details table rows
-  const detailRows: string[] = [];
-  if (meetingMeta?.date) {
-    detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Date</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${meetingMeta.date}</td></tr>`);
-  }
-  if (timeDisplay) {
-    detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Time</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${timeDisplay}${durationDisplay ? ` (${durationDisplay})` : ''}</td></tr>`);
-  }
-  if (formatDisplay) {
-    detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Format</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${formatDisplay}${locationDisplay ? ` — ${locationDisplay}` : ''}</td></tr>`);
-  }
-  if (attendeeList.length > 0) {
-    detailRows.push(`<tr><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #6B7280; font-weight: 600; width: 100px; vertical-align: top;">Attendees</td><td style="padding: 6px 12px; font-family: Arial, sans-serif; font-size: 13px; color: #374151;">${attendeeList.join(', ')}</td></tr>`);
-  }
+  // Build 3-column metadata grid: Date | Duration (or Time) | Attendees
+  const dateValue = meetingMeta?.date || '—';
+  const hasDuration = !!meetingMeta?.duration;
+  const durationLabel = hasDuration ? 'Duration' : 'Time';
+  const durationValue = hasDuration
+    ? `${meetingMeta!.duration} min`
+    : (timeDisplay || '—');
+  const attendeesValue = attendeeList.length === 0
+    ? '—'
+    : attendeeList.length <= 3
+      ? attendeeList.join(', ')
+      : `${attendeeList.length} attendees`;
 
-  const detailsTableHTML = detailRows.length > 0 ? `
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 16px 0; border-radius: 6px;" bgcolor="#F8FAFC">
-      ${detailRows.join('\n')}
+  const labelStyle = 'font-family: Arial, sans-serif; font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px 0;';
+  const valueStyle = 'font-family: Arial, sans-serif; font-size: 14px; font-weight: 500; color: #1a1a1a; margin: 0; line-height: 1.4;';
+
+  const detailsTableHTML = `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 16px 0; border: 0.5px solid #E5E7EB; border-radius: 8px;" bgcolor="#ffffff">
+      <tr>
+        <td style="padding: 12px 16px; width: 33.33%; vertical-align: top;" bgcolor="#ffffff">
+          <p style="${labelStyle}">Date</p>
+          <p style="${valueStyle}">${dateValue}</p>
+        </td>
+        <td style="padding: 12px 16px; width: 33.33%; vertical-align: top; border-left: 0.5px solid #E5E7EB;" bgcolor="#ffffff">
+          <p style="${labelStyle}">${durationLabel}</p>
+          <p style="${valueStyle}">${durationValue}</p>
+        </td>
+        <td style="padding: 12px 16px; width: 33.34%; vertical-align: top; border-left: 0.5px solid #E5E7EB;" bgcolor="#ffffff">
+          <p style="${labelStyle}">Attendees</p>
+          <p style="${valueStyle}">${attendeesValue}</p>
+        </td>
+      </tr>
     </table>
-  ` : '';
+  `;
 
   // Use bgcolor attribute on all coloured table cells for Outlook compatibility
   return `<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
@@ -304,11 +322,11 @@ export const buildProfessionalMeetingEmail = (
       <td bgcolor="#ffffff" style="padding: 24px 28px;">
         
         <p style="margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
-          Dear ${senderName},
+          ${greeting}
         </p>
         
         <p style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
-          Please find below a summary of your meeting, with the full notes attached as a Word document.
+          Your meeting notes are ready. Full minutes are in the attached Word document — summary below.
         </p>
         
         ${detailsTableHTML}
@@ -328,8 +346,6 @@ export const buildProfessionalMeetingEmail = (
           <tr><td style="height: 1px;" bgcolor="#E5E7EB">&nbsp;</td></tr>
         </table>
         
-        <!-- Full notes heading -->
-        <p style="margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 15px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.5px;">Full Meeting Notes</p>
         ${formattedNotes}
         
       </td>
@@ -342,7 +358,7 @@ export const buildProfessionalMeetingEmail = (
     <tr>
       <td bgcolor="#F8FAFC" style="padding: 20px 28px;">
         <p style="margin: 0 0 10px 0; font-family: Arial, sans-serif; font-size: 13px; color: #374151; line-height: 1.5;">
-          Kind regards,<br/>${senderName}
+          — Notewell AI
         </p>
         <p style="margin: 0; font-family: Arial, sans-serif; font-size: 11px; color: #9CA3AF; line-height: 1.5;">
           Generated by Notewell AI — Meeting Intelligence for NHS Primary Care<br/>
