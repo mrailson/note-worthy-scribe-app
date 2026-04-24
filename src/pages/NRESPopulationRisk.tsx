@@ -1017,11 +1017,46 @@ const CohortsSection = ({
   );
 };
 
-const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canViewPII: boolean; onDrill?: (key: string) => void }) => {
+const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpRow[]; canViewPII: boolean; practiceId?: string | null; onDrill?: (key: string) => void }) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
+  const [identifiersVisible, setIdentifiersVisible] = useState(false);
+  const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
   [rows, sortBy]);
+  const refKey = sorted.map((r) => r.fkPatientLinkId).join("|");
+  const showIdentifiers = canViewPII && identifiersVisible;
+
+  useEffect(() => {
+    const refs = refKey.split("|").filter(Boolean);
+    if (!canViewPII || !identifiersVisible || !practiceId || !refs.length) return;
+    const missingRefs = refs.filter((id) => !identifierDetails[id]);
+    if (!missingRefs.length) return;
+    let cancelled = false;
+    (supabase as any).rpc("get_narp_identifiable_by_refs", {
+      _practice_id: practiceId,
+      _fk_patient_link_ids: missingRefs,
+    }).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        toast.error("Could not load identifiable details");
+        setIdentifiersVisible(false);
+        return;
+      }
+      setIdentifierDetails((prev) => {
+        const next = { ...prev };
+        for (const row of data ?? []) {
+          next[row.fk_patient_link_id] = {
+            nhs_number: row.nhs_number ?? null,
+            forenames: row.forenames ?? null,
+            surname: row.surname ?? null,
+          };
+        }
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, refKey]);
 
   const rubColour = (rub: string) => {
     if (rub.startsWith("5")) return palette.vhigh;
