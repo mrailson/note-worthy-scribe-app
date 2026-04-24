@@ -110,6 +110,12 @@ export const NRESHeader = ({ activeTab }: NRESHeaderProps) => {
                     NRES Dashboard
                   </DropdownMenuItem>
                 )}
+                {hasServiceAccess('nres') && (
+                  <DropdownMenuItem onClick={() => navigate('/nres/population-risk')} className="cursor-pointer py-2">
+                    Population Risk
+                    <span className="ml-2 text-[10px] font-semibold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">PoC</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/enn')} className="cursor-pointer py-2">
                   ENN Dashboard
                 </DropdownMenuItem>
