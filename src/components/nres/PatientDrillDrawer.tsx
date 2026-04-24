@@ -156,6 +156,38 @@ export const PatientDrillDrawer = ({
   const visibleRows = sortedRows.slice(0, renderLimit);
   const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
 
+  useEffect(() => {
+    if (!canViewPII || !identifiersVisible || !practiceId || !visibleRows.length) return;
+    const missingRefs = visibleRows.map((r) => r.fkPatientLinkId).filter((id) => !identifierDetails[id]);
+    if (!missingRefs.length) return;
+
+    let cancelled = false;
+    supabase.rpc("get_narp_identifiable_by_refs", {
+      _practice_id: practiceId,
+      _fk_patient_link_ids: missingRefs,
+    }).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        toast.error("Could not load identifiable details");
+        setIdentifiersVisible(false);
+        return;
+      }
+      setIdentifierDetails((prev) => {
+        const next = { ...prev };
+        for (const row of data ?? []) {
+          next[row.fk_patient_link_id] = {
+            nhs_number: row.nhs_number ?? null,
+            forenames: row.forenames ?? null,
+            surname: row.surname ?? null,
+          };
+        }
+        return next;
+      });
+    });
+
+    return () => { cancelled = true; };
+  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, visibleRows]);
+
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
   // visible or when the user lacks view rights.
