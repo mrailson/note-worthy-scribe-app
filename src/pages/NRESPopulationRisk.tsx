@@ -740,22 +740,36 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
             </PieChart>
           </ResponsiveContainer>
           <div className="grid grid-cols-2 gap-2 mt-3">
-            {ltcBreakdown.map(e => (
-              <div key={e.name} className="flex items-center gap-2 text-xs">
-                <span className="w-2.5 h-2.5 inline-block" style={{ background: e.colour }} />
-                <span className="text-slate-600 flex-1">{e.name}</span>
-                <span className="font-semibold tabular-nums">{e.value.toLocaleString("en-GB")}</span>
-              </div>
-            ))}
+            {ltcBreakdown.map(e => {
+              const drillKey: Record<string, string> = {
+                "Fit (65+)": "over65_fit",
+                "Mild frailty (65+)": "over65_mild",
+                "Moderate (65+)": "over65_moderate",
+                "Severe (65+)": "over65_severe",
+              };
+              const k = drillKey[e.name];
+              return (
+                <button
+                  key={e.name}
+                  type="button"
+                  onClick={k && onDrill ? () => onDrill(k) : undefined}
+                  className={`flex items-center gap-2 text-xs text-left rounded px-1 py-0.5 ${k && onDrill ? "hover:bg-slate-100 cursor-pointer" : ""}`}
+                >
+                  <span className="w-2.5 h-2.5 inline-block" style={{ background: e.colour }} />
+                  <span className="text-slate-600 flex-1">{e.name}</span>
+                  <span className="font-semibold tabular-nums">{e.value.toLocaleString("en-GB")}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div className="bg-white border rounded-lg p-5">
           <h3 className="font-semibold text-base">Polypharmacy — SMR opportunity</h3>
           <p className="text-xs text-muted-foreground mb-3">Clinical Pharmacist structured medication review targets</p>
-          <PolyBar label="10+ repeat medications" value={summary.poly10} max={summary.poly10 || 1} colour={palette.mod} detail="Primary SMR cohort" />
-          <PolyBar label="15+ repeat medications" value={summary.poly15} max={summary.poly10 || 1} colour={palette.high} detail="Complex polypharmacy" />
-          <PolyBar label="20+ repeat medications" value={summary.poly20} max={summary.poly10 || 1} colour={palette.vhigh} detail="Very complex" />
+          <PolyBar label="10+ repeat medications" value={summary.poly10} max={summary.poly10 || 1} colour={palette.mod} detail="Primary SMR cohort" filterKey="drugs_10_plus" onDrill={onDrill} />
+          <PolyBar label="15+ repeat medications" value={summary.poly15} max={summary.poly10 || 1} colour={palette.high} detail="Complex polypharmacy" filterKey="drugs_15_plus" onDrill={onDrill} />
+          <PolyBar label="20+ repeat medications" value={summary.poly20} max={summary.poly10 || 1} colour={palette.vhigh} detail="Very complex" filterKey="drugs_20_plus" onDrill={onDrill} />
           <div className="bg-[#e7f0f4] p-3 mt-4 text-xs border-l-4 border-[#005EB8]">
             <strong>NRES ask:</strong> {summary.poly10} patients × 20 min/review ≈{" "}
             {Math.round((summary.poly10 * 20) / 60)} CP hours/year.
