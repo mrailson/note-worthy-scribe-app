@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +65,7 @@ interface PatientDrillDrawerProps {
 }
 
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
+type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 const pct = (n: number) => `${n.toFixed(1)}%`;
@@ -98,6 +101,8 @@ export const PatientDrillDrawer = ({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activePatient, setActivePatient] = useState<DrillPatientRow | null>(null);
   const [renderLimit, setRenderLimit] = useState(200);
+  const [identifiersVisible, setIdentifiersVisible] = useState(false);
+  const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
 
   // Cross-practice exception path: identifiers are hidden by default but the
   // user has identifiable rights for OTHER practices. They can opt in to a
@@ -114,7 +119,7 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const showInlinePII = canViewPII || (hasViewElsewhere && exceptionRevealed);
+  const showInlinePII = (canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed);
 
   // Resolve the current filters
   const filters = useMemo(
