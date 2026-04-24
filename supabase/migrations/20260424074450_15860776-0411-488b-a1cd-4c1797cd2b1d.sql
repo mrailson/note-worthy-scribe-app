@@ -1,0 +1,1 @@
+UPDATE public.profiles SET northamptonshire_icb_active = true WHERE user_id = '8cf36a84-510d-416f-ae94-12aaff2b367f';
