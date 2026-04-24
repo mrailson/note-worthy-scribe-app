@@ -345,6 +345,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   'lucy.hibberd@nhs.net',
                                   'amanda.palin2@nhs.net',
                                   'simon.ellis7@nhs.net',
+                                  'alexander.whitehead@nhs.net',
                                 ];
                                 const userEmail = user?.email?.toLowerCase() || '';
                                 const isAllowedByEmail = NHC_PLANNING_ALLOWED_EMAILS.includes(userEmail);
