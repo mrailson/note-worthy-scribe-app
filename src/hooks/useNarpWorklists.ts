@@ -308,14 +308,11 @@ export function useSetWorklistStatus() {
     mutationFn: async (input: { id: string; practice_id: string; status: WorklistStatus }) => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("Not signed in");
-      const patch: Record<string, unknown> = { status: input.status };
-      if (input.status === "closed") {
-        patch.closed_at = new Date().toISOString();
-        patch.closed_by = auth.user.id;
-      } else {
-        patch.closed_at = null;
-        patch.closed_by = null;
-      }
+      const patch: { status: WorklistStatus; closed_at: string | null; closed_by: string | null } = {
+        status: input.status,
+        closed_at: input.status === "closed" ? new Date().toISOString() : null,
+        closed_by: input.status === "closed" ? auth.user.id : null,
+      };
       const { error } = await supabase
         .from("narp_worklists")
         .update(patch)
