@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +65,7 @@ interface PatientDrillDrawerProps {
 }
 
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
+type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 const pct = (n: number) => `${n.toFixed(1)}%`;
@@ -98,6 +101,8 @@ export const PatientDrillDrawer = ({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activePatient, setActivePatient] = useState<DrillPatientRow | null>(null);
   const [renderLimit, setRenderLimit] = useState(200);
+  const [identifiersVisible, setIdentifiersVisible] = useState(false);
+  const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
 
   // Cross-practice exception path: identifiers are hidden by default but the
   // user has identifiable rights for OTHER practices. They can opt in to a
@@ -114,7 +119,7 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const showInlinePII = canViewPII || (hasViewElsewhere && exceptionRevealed);
+  const showInlinePII = (canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed);
 
   // Resolve the current filters
   const filters = useMemo(
@@ -150,6 +155,40 @@ export const PatientDrillDrawer = ({
 
   const visibleRows = sortedRows.slice(0, renderLimit);
   const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
+  const visibleRefKey = visibleRows.map((r) => r.fkPatientLinkId).join("|");
+
+  useEffect(() => {
+    const refs = visibleRefKey.split("|").filter(Boolean);
+    if (!canViewPII || !identifiersVisible || !practiceId || !refs.length) return;
+    const missingRefs = refs.filter((id) => !identifierDetails[id]);
+    if (!missingRefs.length) return;
+
+    let cancelled = false;
+    (supabase as any).rpc("get_narp_identifiable_by_refs", {
+      _practice_id: practiceId,
+      _fk_patient_link_ids: missingRefs,
+    }).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        toast.error("Could not load identifiable details");
+        setIdentifiersVisible(false);
+        return;
+      }
+      setIdentifierDetails((prev) => {
+        const next = { ...prev };
+        for (const row of data ?? []) {
+          next[row.fk_patient_link_id] = {
+            nhs_number: row.nhs_number ?? null,
+            forenames: row.forenames ?? null,
+            surname: row.surname ?? null,
+          };
+        }
+        return next;
+      });
+    });
+
+    return () => { cancelled = true; };
+  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, visibleRefKey]);
 
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
@@ -399,6 +438,19 @@ export const PatientDrillDrawer = ({
                   </button>
                 );
               })}
+              {canViewPII && (
+                <div className="ml-auto flex items-center gap-2 rounded-md border px-2 py-1 bg-background">
+                  <Label htmlFor="drawer-show-identifiers" className="text-[11px] text-muted-foreground cursor-pointer">
+                    Show identifiable details
+                  </Label>
+                  <Switch
+                    id="drawer-show-identifiers"
+                    checked={identifiersVisible}
+                    onCheckedChange={setIdentifiersVisible}
+                    aria-label="Show identifiable details"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -445,12 +497,15 @@ export const PatientDrillDrawer = ({
                     <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
                     {showInlinePII && (
                       <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>
-                        {r.nhsNumber || "—"}
+                        {identifierDetails[r.fkPatientLinkId]?.nhs_number || r.nhsNumber || "—"}
                       </td>
                     )}
                     {showInlinePII && (
                       <td className="p-2">
-                        {[r.forenames, r.surname].filter(Boolean).join(" ") || "—"}
+                        {[
+                          identifierDetails[r.fkPatientLinkId]?.forenames ?? r.forenames,
+                          identifierDetails[r.fkPatientLinkId]?.surname ?? r.surname,
+                        ].filter(Boolean).join(" ") || "—"}
                       </td>
                     )}
                     <td className="p-2 tabular-nums">{r.age ?? "—"}</td>

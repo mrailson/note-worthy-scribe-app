@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -18,11 +18,14 @@ import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -65,6 +68,7 @@ type NarpRow = {
 };
 
 type RiskTier = "Very High" | "High" | "Moderate" | "Rising" | "Low" | "Unknown";
+type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 
 const tierFor = (poA: number | null): RiskTier => {
   if (poA === null || isNaN(poA)) return "Unknown";
@@ -722,7 +726,7 @@ const NRESPopulationRiskInner = () => {
 
             {/* TOP 25 */}
             <TabsContent value="toprisk" className="space-y-4">
-              <TopRiskSection rows={topRisk} canViewPII={canViewPII} onDrill={drill.open} />
+              <TopRiskSection rows={topRisk} canViewPII={canViewPII} practiceId={selectedPracticeId ?? null} onDrill={drill.open} />
             </TabsContent>
 
             {/* WORKLISTS */}
@@ -1013,11 +1017,46 @@ const CohortsSection = ({
   );
 };
 
-const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canViewPII: boolean; onDrill?: (key: string) => void }) => {
+const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpRow[]; canViewPII: boolean; practiceId?: string | null; onDrill?: (key: string) => void }) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
+  const [identifiersVisible, setIdentifiersVisible] = useState(false);
+  const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
   [rows, sortBy]);
+  const refKey = sorted.map((r) => r.fkPatientLinkId).join("|");
+  const showIdentifiers = canViewPII && identifiersVisible;
+
+  useEffect(() => {
+    const refs = refKey.split("|").filter(Boolean);
+    if (!canViewPII || !identifiersVisible || !practiceId || !refs.length) return;
+    const missingRefs = refs.filter((id) => !identifierDetails[id]);
+    if (!missingRefs.length) return;
+    let cancelled = false;
+    (supabase as any).rpc("get_narp_identifiable_by_refs", {
+      _practice_id: practiceId,
+      _fk_patient_link_ids: missingRefs,
+    }).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        toast.error("Could not load identifiable details");
+        setIdentifiersVisible(false);
+        return;
+      }
+      setIdentifierDetails((prev) => {
+        const next = { ...prev };
+        for (const row of data ?? []) {
+          next[row.fk_patient_link_id] = {
+            nhs_number: row.nhs_number ?? null,
+            forenames: row.forenames ?? null,
+            surname: row.surname ?? null,
+          };
+        }
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, refKey]);
 
   const rubColour = (rub: string) => {
     if (rub.startsWith("5")) return palette.vhigh;
@@ -1051,6 +1090,19 @@ const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canVie
             className={`px-3 py-1.5 border ${sortBy === k ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700"}`}
           >{lbl}</button>
         ))}
+        {canViewPII && (
+          <div className="ml-auto flex items-center gap-2 rounded-md border px-2 py-1.5 bg-background">
+            <Label htmlFor="top-risk-show-identifiers" className="text-xs text-muted-foreground cursor-pointer">
+              Show identifiable details
+            </Label>
+            <Switch
+              id="top-risk-show-identifiers"
+              checked={identifiersVisible}
+              onCheckedChange={setIdentifiersVisible}
+              aria-label="Show identifiable details"
+            />
+          </div>
+        )}
       </div>
 
       <div className="bg-white border rounded-lg overflow-x-auto">
@@ -1058,8 +1110,8 @@ const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canVie
           <thead className="bg-slate-50 text-muted-foreground uppercase text-[10px] tracking-wider">
             <tr>
               <th className="text-left p-3">Ref</th>
-              {canViewPII && <th className="text-left p-3">NHS Number</th>}
-              {canViewPII && <th className="text-left p-3">Name</th>}
+              {showIdentifiers && <th className="text-left p-3">NHS Number</th>}
+              {showIdentifiers && <th className="text-left p-3">Name</th>}
               <th className="text-left p-3">Age</th>
               <th className="text-left p-3">Frailty</th>
               <th className="text-left p-3">Drugs</th>
@@ -1089,8 +1141,8 @@ const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canVie
                   className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
                 >
                   <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
-                  {canViewPII && <td className="p-3 tabular-nums">{p.nhsNumber ?? "—"}</td>}
-                  {canViewPII && <td className="p-3">{[p.forenames, p.surname].filter(Boolean).join(" ") || "—"}</td>}
+                  {showIdentifiers && <td className="p-3 tabular-nums">{identifierDetails[p.fkPatientLinkId]?.nhs_number ?? p.nhsNumber ?? "—"}</td>}
+                  {showIdentifiers && <td className="p-3">{[identifierDetails[p.fkPatientLinkId]?.forenames ?? p.forenames, identifierDetails[p.fkPatientLinkId]?.surname ?? p.surname].filter(Boolean).join(" ") || "—"}</td>}
                   <td className="p-3 tabular-nums">{p.age ?? "—"}</td>
                   <td className="p-3">
                     <span className="inline-block px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: frailtyColour(p.frailty) }}>
