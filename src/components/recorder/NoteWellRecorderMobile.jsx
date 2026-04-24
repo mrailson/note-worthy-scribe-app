@@ -2288,112 +2288,8 @@ export default function NoteWellRecorder() {
       });
       await refresh();
 
+      // Create the meeting row in pending_transcription state
       const durationMins = Math.max(1, Math.round((rec.duration || 0) / 60));
-
-      // ── Decide: use the on-device live transcript, or re-transcribe server-side? ──
-      // If the device captured a usable live transcript during the meeting, prefer it
-      // over re-running Whisper on every uploaded chunk (which duplicates ~minutes of
-      // work and replaces an already-good transcript with a worse, slower one).
-      const liveTranscriptText = (rec.capturedLiveTranscript || "").replace(/\s+/g, " ").trim();
-      const liveWordCount = liveTranscriptText ? liveTranscriptText.split(/\s+/).filter(Boolean).length : 0;
-      // Sanity check: if AssemblyAI dropped out mid-meeting, the live transcript may be
-      // materially shorter than expected. Fall back to server-side Whisper in that case.
-      // Heuristic: expect at least ~30% of (duration_minutes × 100 wpm) words.
-      const expectedMinWords = Math.max(100, Math.round(durationMins * 30));
-      const liveTranscriptUsable =
-        rec.capturedLiveTranscript &&
-        liveWordCount >= 100 &&
-        liveWordCount >= expectedMinWords;
-
-      if (liveTranscriptUsable) {
-        console.log(`[sync] Using on-device live transcript (${liveWordCount} words, ${durationMins} min) — skipping server Whisper`);
-
-        const { data: meeting, error: meetingErr } = await supabase
-          .from("meetings")
-          .insert({
-            title: rec.title || `Mobile Recording ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`,
-            user_id: user.id,
-            status: "completed",
-            meeting_type: "general",
-            start_time: new Date(rec.createdAt).toISOString(),
-            end_time: new Date().toISOString(),
-            duration_minutes: durationMins,
-            word_count: liveWordCount,
-            import_source: mode === "live" ? "mobile_live" : "mobile_offline",
-            upload_session_id: sessionId,
-            remote_chunk_paths: uploadedChunks.map(c => c.storagePath),
-            chunk_count: totalChunks,
-            whisper_transcript_text: liveTranscriptText,
-            primary_transcript_source: "assemblyai_live",
-            notes_generation_status: "generating",
-          })
-          .select("id")
-          .single();
-
-        if (meetingErr || !meeting) {
-          console.error("[sync] db row insertion failed (live-transcript path):", meetingErr);
-          showToast(`Upload succeeded but could not register meeting: ${meetingErr?.message || "unknown"}. Tap Sync again.`, "error");
-          await dbPatch(rec.id, { status: "error", lastSyncError: meetingErr?.message || "DB insert failed" });
-          await refresh();
-          setSyncProgress(null);
-          return;
-        }
-
-        console.log("[sync] db row inserted (live transcript) · meetingId:", meeting.id);
-        attachDeviceInfoToMeeting(meeting.id);
-        await persistUploadedChunkMetadata(meeting.id, uploadedChunks, rec.createdAt);
-
-        // Insert one transcription chunk row so transcript view / regenerate sees it
-        try {
-          await supabase.from("meeting_transcription_chunks").insert({
-            meeting_id: meeting.id,
-            user_id: user.id,
-            session_id: sessionId,
-            chunk_number: 0,
-            transcription_text: liveTranscriptText,
-            is_final: true,
-            source: "assemblyai_live",
-            transcriber_type: "assemblyai",
-            word_count: liveWordCount,
-          });
-        } catch (chunkErr) {
-          console.warn("[sync] Could not insert transcription chunk row (non-fatal):", chunkErr);
-        }
-
-        await dbPatch(rec.id, { meetingId: meeting.id });
-        await refresh();
-
-        setSyncProgress({
-          phase: "complete",
-          currentChunk: totalChunks,
-          totalChunks,
-          percentComplete: 100,
-          message: `Complete — ${liveWordCount} words`,
-          meetingId: meeting.id,
-        });
-        showToast("Meeting created — generating notes…", "success");
-        await logSyncDiagnostic(rec.id, { event: "sync_complete_live_transcript", meetingId: meeting.id, words: liveWordCount });
-
-        // Generate notes immediately from the live transcript (no Whisper re-run)
-        generateNotesForMeeting(meeting.id)
-          .then(() => {
-            showToast("Meeting notes generated ✨", "success");
-            triggerPostNoteActions(meeting.id);
-          })
-          .catch(async (err) => {
-            console.error("[sync] Note generation client error (may be timeout):", err);
-            await pollAndEmailIfReady(meeting.id, "Meeting saved — checking for notes…");
-          })
-          .finally(() => { setSyncProgress(null); refresh(); });
-
-        return;
-      }
-
-      // ── Fallback: no usable live transcript → server-side Whisper (existing path) ──
-      if (rec.capturedLiveTranscript) {
-        console.warn(`[sync] Live transcript present but unusable (${liveWordCount} words, expected >= ${expectedMinWords}). Falling back to server-side Whisper.`);
-      }
-
       const { data: meeting, error: meetingErr } = await supabase
         .from("meetings")
         .insert({
@@ -2521,35 +2417,17 @@ export default function NoteWellRecorder() {
         message: "Transcribing…",
       });
 
-      // ── Prefer the on-device live transcript if one was captured during the meeting ──
-      // Avoids re-running Whisper server-side for audio the device already transcribed.
-      const liveLegacyText = (rec.capturedLiveTranscript || "").replace(/\s+/g, " ").trim();
-      const liveLegacyWC = liveLegacyText ? liveLegacyText.split(/\s+/).filter(Boolean).length : 0;
-      const legacyDurationMins = Math.max(1, Math.round((rec.duration || 0) / 60));
-      const legacyExpectedMinWords = Math.max(100, Math.round(legacyDurationMins * 30));
-      const liveLegacyUsable = liveLegacyText && liveLegacyWC >= 100 && liveLegacyWC >= legacyExpectedMinWords;
+      const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ""}`;
+      const { data: transcriptData, error: fnErr } = await supabase.functions.invoke("standalone-whisper", {
+        body: { storagePath: filePath, bucket: "recordings", prompt },
+      });
+      if (fnErr) throw fnErr;
 
-      let transcriptText;
-      if (liveLegacyUsable) {
-        console.log(`[LegacySync] Using on-device live transcript (${liveLegacyWC} words) — skipping standalone-whisper`);
-        transcriptText = liveLegacyText;
-      } else {
-        if (rec.capturedLiveTranscript) {
-          console.warn(`[LegacySync] Live transcript present but unusable (${liveLegacyWC} words, expected >= ${legacyExpectedMinWords}). Falling back to standalone-whisper.`);
-        }
-        const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ""}`;
-        const { data: transcriptData, error: fnErr } = await supabase.functions.invoke("standalone-whisper", {
-          body: { storagePath: filePath, bucket: "recordings", prompt },
-        });
-        if (fnErr) throw fnErr;
-
-        const cleanedLegacy = cleanWhisperResponse(transcriptData || {});
-        if (cleanedLegacy.cleaningSummary?.totalWordsRemoved > 0) {
-          console.log(`🧹 Mobile legacy sync: cleaner removed ${cleanedLegacy.cleaningSummary.totalWordsRemoved} words`);
-        }
-        transcriptText = (cleanedLegacy.text || transcriptData?.text || "").replace(/\s+/g, " ").trim();
+      const cleanedLegacy = cleanWhisperResponse(transcriptData || {});
+      if (cleanedLegacy.cleaningSummary?.totalWordsRemoved > 0) {
+        console.log(`🧹 Mobile legacy sync: cleaner removed ${cleanedLegacy.cleaningSummary.totalWordsRemoved} words`);
       }
-
+      const transcriptText = (cleanedLegacy.text || transcriptData?.text || "").replace(/\s+/g, " ").trim();
       await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
       await refresh();
 
