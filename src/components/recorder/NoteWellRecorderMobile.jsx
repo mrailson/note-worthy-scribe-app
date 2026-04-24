@@ -19,6 +19,7 @@ import { androidAudioKeepAlive } from "@/utils/androidAudioKeepAlive";
 import { cleanWhisperResponse } from "@/utils/whisper-chunk-cleaner";
 import { ConnectionBanner } from "@/components/recorder/ConnectionBanner";
 import { useRecordingMode } from "@/hooks/useRecordingMode";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
