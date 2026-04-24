@@ -99,6 +99,7 @@ const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
 const PublicPlanningStudio = lazy(() => import("./pages/PublicPlanningStudio"));
 const NRESPlanningStudio = lazy(() => import("./pages/NRESPlanningStudio"));
+const NRESPopulationRisk = lazy(() => import("./pages/NRESPopulationRisk"));
 
 const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
 const BPCalculator = lazy(() => import("./pages/BPCalculator"));
