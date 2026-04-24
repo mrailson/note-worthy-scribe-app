@@ -683,22 +683,6 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
               <div className="nw-mh-safe-bottom" />
             </div>
           )}
-
-          {tab === 'ask-ai' && (
-            <div className="nw-mh-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-              <Suspense fallback={
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-                  <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--nw-blue)' }} />
-                </div>
-              }>
-                <MeetingQAPanel
-                  meetingId={meeting.id}
-                  meetingTitle={meeting.title}
-                />
-              </Suspense>
-              <div className="nw-mh-safe-bottom" />
-            </div>
-          )}
         </>
       ) : (
         <div className="nw-mh-loading">Meeting not found</div>
