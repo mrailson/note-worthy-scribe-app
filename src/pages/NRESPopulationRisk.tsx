@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -18,11 +18,14 @@ import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -65,6 +68,7 @@ type NarpRow = {
 };
 
 type RiskTier = "Very High" | "High" | "Moderate" | "Rising" | "Low" | "Unknown";
+type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 
 const tierFor = (poA: number | null): RiskTier => {
   if (poA === null || isNaN(poA)) return "Unknown";
