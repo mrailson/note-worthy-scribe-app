@@ -546,8 +546,8 @@ const WorklistDetail = ({
 };
 
 const ItemRow = ({
-  item, disabled, onToggleReviewed,
-}: { item: NarpWorklistItem; disabled: boolean; onToggleReviewed: () => void }) => {
+  item, disabled, onToggleReviewed, onOpenPatient,
+}: { item: NarpWorklistItem; disabled: boolean; onToggleReviewed: () => void; onOpenPatient?: (filterKey: string) => void }) => {
   return (
     <tr className="border-b hover:bg-muted/30">
       <td className="p-2">
@@ -564,7 +564,17 @@ const ItemRow = ({
           )}
         </button>
       </td>
-      <td className="p-2 font-mono">{item.fk_patient_link_id}</td>
+      <td className="p-2 font-mono">
+        {onOpenPatient ? (
+          <button
+            type="button"
+            className="text-primary hover:underline underline-offset-2"
+            onClick={() => onOpenPatient(patientFilterKey(item.fk_patient_link_id))}
+          >
+            {item.fk_patient_link_id}
+          </button>
+        ) : item.fk_patient_link_id}
+      </td>
       <td className="p-2 capitalize">{(item.added_risk_tier ?? "—").replace("_", " ")}</td>
       <td className="p-2 text-right tabular-nums">{item.added_poa !== null ? `${item.added_poa.toFixed(1)}%` : "—"}</td>
       <td className="p-2">
