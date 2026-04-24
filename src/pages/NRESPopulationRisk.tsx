@@ -45,6 +45,7 @@ type NarpRow = {
   surname?: string;
   age: number | null;
   practiceName: string;
+  practiceKey: string; // normalised: upper-cased + trimmed + collapsed whitespace
   drugCount: number;
   frailty: "Fit" | "Mild" | "Moderate" | "Severe" | "Unknown";
   inpatientAdmissions: number;
@@ -109,6 +110,12 @@ const parseAge = (raw: unknown): number | null => {
   return isNaN(n) ? null : n;
 };
 
+/** Normalise a practice name for matching (case- and whitespace-insensitive) */
+const normalisePracticeKey = (raw: unknown): string =>
+  String(raw ?? "").toUpperCase().replace(/\s+/g, " ").trim();
+
+const BUGBROOKE_KEY = normalisePracticeKey("Bugbrooke Medical Practice");
+
 /** Map a parsed row from the NARP export to our internal shape */
 const mapNarpRow = (r: Record<string, unknown>): NarpRow | null => {
   const fk = r["FK_Patient_Link_ID"] ?? r["FK Patient Link ID"];
@@ -120,6 +127,7 @@ const mapNarpRow = (r: Record<string, unknown>): NarpRow | null => {
     surname: r["Surname"] ? String(r["Surname"]) : undefined,
     age: parseAge(r["Age"]),
     practiceName: String(r["PracticeName"] ?? ""),
+    practiceKey: normalisePracticeKey(r["PracticeName"]),
     drugCount: parseInt0(r["Drug Count"]),
     frailty: frailtyFromCategory(r["Frailty (eFI) Category"] as string),
     inpatientAdmissions: parseInt0(r["Inpatient - Total Admissions"]),
@@ -169,7 +177,7 @@ const NRESPopulationRisk = () => {
   const isIPhone = useIsIPhone();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
-  const [selectedPractice, setSelectedPractice] = useState<string>("Bugbrooke Medical Practice");
+  const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -207,17 +215,24 @@ const NRESPopulationRisk = () => {
     }
   }, []);
 
-  // Available practices in the loaded data
+  // Available practices in the loaded data — keyed by normalised name, label is first-seen casing
   const practices = useMemo(() => {
-    const set = new Set(rows.map(r => r.practiceName).filter(Boolean));
-    return Array.from(set).sort();
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      if (r.practiceKey && !map.has(r.practiceKey)) {
+        map.set(r.practiceKey, r.practiceName || r.practiceKey);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
-  // Filtered rows for selected practice
+  // Filtered rows for selected practice (compare on normalised key)
   const filtered = useMemo(() => {
     if (!rows.length) return [];
     if (selectedPractice === "All Practices") return rows;
-    return rows.filter(r => r.practiceName === selectedPractice);
+    return rows.filter(r => r.practiceKey === selectedPractice);
   }, [rows, selectedPractice]);
 
   // ── Aggregations ─────────────────────────────────────────
@@ -391,11 +406,11 @@ const NRESPopulationRisk = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Bugbrooke Medical Practice">Bugbrooke Medical Practice</SelectItem>
+                <SelectItem value={BUGBROOKE_KEY}>Bugbrooke Medical Practice</SelectItem>
                 <SelectItem value="All Practices">All Practices (in upload)</SelectItem>
                 {practices
-                  .filter(p => p !== "Bugbrooke Medical Practice")
-                  .map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  .filter(p => p.key !== BUGBROOKE_KEY)
+                  .map(p => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
               </SelectContent>
             </Select>
 
