@@ -438,6 +438,19 @@ export const PatientDrillDrawer = ({
                   </button>
                 );
               })}
+              {canViewPII && (
+                <div className="ml-auto flex items-center gap-2 rounded-md border px-2 py-1 bg-background">
+                  <Label htmlFor="drawer-show-identifiers" className="text-[11px] text-muted-foreground cursor-pointer">
+                    Show identifiable details
+                  </Label>
+                  <Switch
+                    id="drawer-show-identifiers"
+                    checked={identifiersVisible}
+                    onCheckedChange={setIdentifiersVisible}
+                    aria-label="Show identifiable details"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -484,12 +497,15 @@ export const PatientDrillDrawer = ({
                     <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
                     {showInlinePII && (
                       <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>
-                        {r.nhsNumber || "—"}
+                        {identifierDetails[r.fkPatientLinkId]?.nhs_number || r.nhsNumber || "—"}
                       </td>
                     )}
                     {showInlinePII && (
                       <td className="p-2">
-                        {[r.forenames, r.surname].filter(Boolean).join(" ") || "—"}
+                        {[
+                          identifierDetails[r.fkPatientLinkId]?.forenames ?? r.forenames,
+                          identifierDetails[r.fkPatientLinkId]?.surname ?? r.surname,
+                        ].filter(Boolean).join(" ") || "—"}
                       </td>
                     )}
                     <td className="p-2 tabular-nums">{r.age ?? "—"}</td>
