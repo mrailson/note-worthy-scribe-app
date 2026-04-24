@@ -121,11 +121,12 @@ export const PatientDrillDrawer = ({
       const q = search.trim().toLowerCase();
       result = result.filter((r) =>
         r.fkPatientLinkId.toLowerCase().includes(q) ||
-        (canViewPII && (r.nhsNumber ?? "").toLowerCase().includes(q)),
+        (showInlinePII && (r.nhsNumber ?? "").toLowerCase().includes(q)) ||
+        (showInlinePII && [r.forenames, r.surname].filter(Boolean).join(" ").toLowerCase().includes(q)),
       );
     }
     return result;
-  }, [rows, filterKeys, quickChips, search, canViewPII]);
+  }, [rows, filterKeys, quickChips, search, showInlinePII]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
@@ -136,6 +137,16 @@ export const PatientDrillDrawer = ({
   }, [filteredRows, sortBy]);
 
   const visibleRows = sortedRows.slice(0, renderLimit);
+
+  // Per-page-load audit: writes ONE row per (practice, route, count) bucket
+  // when identifiers are actually rendered. Suppressed when no patients are
+  // visible or when the user lacks view rights.
+  useNarpIdentifiableAccess({
+    practiceId,
+    patientCountRendered: showInlinePII && isOpen ? visibleRows.length : 0,
+    route: route ?? "/nres/population-risk#drawer",
+    enableAudit: true,
+  });
 
   // Summary strip
   const summary = useMemo(() => {
