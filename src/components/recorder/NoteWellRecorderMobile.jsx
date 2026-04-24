@@ -17,10 +17,8 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 import { iOSAudioKeepAlive } from "@/utils/iOSAudioKeepAlive";
 import { androidAudioKeepAlive } from "@/utils/androidAudioKeepAlive";
 import { cleanWhisperResponse } from "@/utils/whisper-chunk-cleaner";
-import { ConnectionToggle } from "@/components/ConnectionToggle";
 import { ConnectionBanner } from "@/components/recorder/ConnectionBanner";
 import { useRecordingMode } from "@/hooks/useRecordingMode";
-import { countPendingRecordings } from "@/utils/syncRecordings";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -1158,7 +1156,6 @@ export default function NoteWellRecorder() {
   const healthCheckRef = useRef(null); // Stream health monitor interval
   const [wakeLockStatus, setWakeLockStatus] = useState("unsupported"); // unsupported|active|inactive
   const { requestLock, releaseLock, isLocked, isSupported: wakeLockSupported } = useWakeLock();
-  const [pendingCount, setPendingCount] = useState(0);
 
   // ── Pre-flight modal state ──
   const [showPreFlight, setShowPreFlight] = useState(false);
@@ -1171,14 +1168,6 @@ export default function NoteWellRecorder() {
   const hiddenSinceRef = useRef(null);
   const [suspensionWarning, setSuspensionWarning] = useState(null);
   const suspensionGapsRef = useRef([]); // [{from, to, seconds}]
-
-  // ── Refresh pending-sync count for ConnectionToggle ────────────────────────
-  const refreshPendingCount = useCallback(async () => {
-    const count = await countPendingRecordings();
-    setPendingCount(count);
-  }, []);
-
-  useEffect(() => { refreshPendingCount(); }, [refreshPendingCount]);
 
   // ── Sync wake lock status with hook state ──────────────────────────────────
   useEffect(() => {
