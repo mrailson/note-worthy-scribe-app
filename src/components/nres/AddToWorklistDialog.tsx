@@ -124,7 +124,7 @@ export const AddToWorklistDialog = ({
         </DialogHeader>
 
         {!practiceId && (
-          <div className="text-sm text-amber-700 bg-amber-50 border border-amber-300 rounded-md p-2">
+          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md p-2">
             Select a single practice (not "All Practices") to use worklists.
           </div>
         )}
