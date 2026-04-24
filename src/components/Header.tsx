@@ -339,6 +339,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 <LayoutDashboard className="h-4 w-4 mr-2" />
                                 SDA Pilot Dashboard
                               </DropdownMenuItem>
+                              {(isSystemAdmin || isIcbMember) && (
+                                <DropdownMenuItem 
+                                  onClick={() => navigate('/nres/nhc-planning')}
+                                  className="cursor-pointer py-3"
+                                >
+                                  <Building2 className="h-4 w-4 mr-2" />
+                                  NHC Planning
+                                </DropdownMenuItem>
+                              )}
                               {isSystemAdmin && (
                                 <>
                                   <DropdownMenuSeparator />
