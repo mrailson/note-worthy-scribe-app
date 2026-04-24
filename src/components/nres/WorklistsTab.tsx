@@ -65,6 +65,7 @@ export const WorklistsTab = ({ practiceId, practiceName, onOpenPatient }: Workli
         worklistId={openWorklistId}
         worklist={worklists.find((w) => w.id === openWorklistId)}
         onBack={() => setOpenWorklistId(null)}
+        onOpenPatient={onOpenPatient}
       />
     );
   }
@@ -186,11 +187,12 @@ const WorklistCard = ({ worklist, onOpen }: { worklist: NarpWorklist; onOpen: ()
    Detail view — items + meeting links
    ──────────────────────────────────────────────────────────── */
 const WorklistDetail = ({
-  worklistId, worklist, onBack,
+  worklistId, worklist, onBack, onOpenPatient,
 }: {
   worklistId: string;
   worklist: NarpWorklist | undefined;
   onBack: () => void;
+  onOpenPatient?: (filterKey: string) => void;
 }) => {
   const { data: items = [], isLoading } = useNarpWorklistItems(worklistId);
   const { data: meetingLinks = [] } = useNarpWorklistMeetings(worklistId);
@@ -449,6 +451,7 @@ const WorklistDetail = ({
                           key={item.id}
                           item={item}
                           disabled={closed}
+                          onOpenPatient={onOpenPatient}
                           onToggleReviewed={() =>
                             updateItem.mutate({
                               id: item.id,
