@@ -406,11 +406,11 @@ const NRESPopulationRisk = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Bugbrooke Medical Practice">Bugbrooke Medical Practice</SelectItem>
+                <SelectItem value={BUGBROOKE_KEY}>Bugbrooke Medical Practice</SelectItem>
                 <SelectItem value="All Practices">All Practices (in upload)</SelectItem>
                 {practices
-                  .filter(p => p !== "Bugbrooke Medical Practice")
-                  .map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  .filter(p => p.key !== BUGBROOKE_KEY)
+                  .map(p => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
               </SelectContent>
             </Select>
 
