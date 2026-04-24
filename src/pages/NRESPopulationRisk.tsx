@@ -1090,6 +1090,19 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
             className={`px-3 py-1.5 border ${sortBy === k ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700"}`}
           >{lbl}</button>
         ))}
+        {canViewPII && (
+          <div className="ml-auto flex items-center gap-2 rounded-md border px-2 py-1.5 bg-background">
+            <Label htmlFor="top-risk-show-identifiers" className="text-xs text-muted-foreground cursor-pointer">
+              Show identifiable details
+            </Label>
+            <Switch
+              id="top-risk-show-identifiers"
+              checked={identifiersVisible}
+              onCheckedChange={setIdentifiersVisible}
+              aria-label="Show identifiable details"
+            />
+          </div>
+        )}
       </div>
 
       <div className="bg-white border rounded-lg overflow-x-auto">
@@ -1097,8 +1110,8 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
           <thead className="bg-slate-50 text-muted-foreground uppercase text-[10px] tracking-wider">
             <tr>
               <th className="text-left p-3">Ref</th>
-              {canViewPII && <th className="text-left p-3">NHS Number</th>}
-              {canViewPII && <th className="text-left p-3">Name</th>}
+              {showIdentifiers && <th className="text-left p-3">NHS Number</th>}
+              {showIdentifiers && <th className="text-left p-3">Name</th>}
               <th className="text-left p-3">Age</th>
               <th className="text-left p-3">Frailty</th>
               <th className="text-left p-3">Drugs</th>
@@ -1128,8 +1141,8 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
                   className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
                 >
                   <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
-                  {canViewPII && <td className="p-3 tabular-nums">{p.nhsNumber ?? "—"}</td>}
-                  {canViewPII && <td className="p-3">{[p.forenames, p.surname].filter(Boolean).join(" ") || "—"}</td>}
+                  {showIdentifiers && <td className="p-3 tabular-nums">{identifierDetails[p.fkPatientLinkId]?.nhs_number ?? p.nhsNumber ?? "—"}</td>}
+                  {showIdentifiers && <td className="p-3">{[identifierDetails[p.fkPatientLinkId]?.forenames ?? p.forenames, identifierDetails[p.fkPatientLinkId]?.surname ?? p.surname].filter(Boolean).join(" ") || "—"}</td>}
                   <td className="p-3 tabular-nums">{p.age ?? "—"}</td>
                   <td className="p-3">
                     <span className="inline-block px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: frailtyColour(p.frailty) }}>
