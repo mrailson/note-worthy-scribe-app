@@ -210,16 +210,20 @@ export const PatientDrillDrawer = ({
     clearSelection();
   };
 
-  const exportCsv = () => {
+  /**
+   * Anonymised CSV export — always available to drawer users.
+   * No identifiers; no modal; downloads immediately.
+   * Logged via the export-log table once Phase B's edge function lands.
+   */
+  const exportCsvAnonymised = () => {
     if (!sortedRows.length) {
       toast.info("Nothing to export");
       return;
     }
-    const headers = ["Ref", "Age", "Frailty", "Drug count", "Inpt admissions", "A&E", "RUB", "PoA %", "PoLoS %"];
-    if (exportWithPII && canViewPII) headers.push("NHS Number", "Name");
+    const headers = ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
     const csvRows: string[] = [headers.join(",")];
     for (const r of sortedRows) {
-      const base = [
+      csvRows.push([
         r.fkPatientLinkId,
         r.age ?? "",
         r.frailty,
@@ -229,24 +233,24 @@ export const PatientDrillDrawer = ({
         `"${(r.rub ?? "").replace(/"/g, '""')}"`,
         r.poA ?? "",
         r.poLoS ?? "",
-      ];
-      if (exportWithPII && canViewPII) {
-        base.push(`"${(r.nhsNumber ?? "").replace(/"/g, '""')}"`);
-        base.push(`"${[r.forenames, r.surname].filter(Boolean).join(" ").replace(/"/g, '""')}"`);
-      }
-      csvRows.push(base.join(","));
+      ].join(","));
     }
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const slug = (filters.map((f) => f.key).join("+") || "all") + (exportWithPII ? "-with-id" : "");
-    a.href = url; a.download = `narp-${slug}.csv`; a.click();
+    const slug = filters.map((f) => f.key).join("+") || "all";
+    a.href = url; a.download = `narp-${slug}-anonymised.csv`; a.click();
     URL.revokeObjectURL(url);
-    // TODO (Phase 1): write export_log row { user_id, filter_key, row_count,
-    // included_identifiers, exported_at } when the persistence layer lands.
-    if (exportWithPII && canViewPII) {
-      console.log("[NRES][audit] CSV exported with identifiers", { rows: sortedRows.length, filters: filterKeys });
-    }
+  };
+
+  /**
+   * Identifiable CSV export — Phase B placeholder.
+   * In the next turn this opens the reason+checkbox modal and calls the
+   * `narp-export-identifiable` edge function which returns the CSV bytes,
+   * computes SHA-256 server-side, and writes the audit row.
+   */
+  const exportCsvIdentifiable = () => {
+    toast.info("Identifiable export — modal + edge function ship in Phase B (next turn).");
   };
 
   const titleText = filters.length === 0
@@ -344,7 +348,7 @@ export const PatientDrillDrawer = ({
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder={canViewPII ? "Ref or NHS number" : "Patient ref"}
+                  placeholder={showInlinePII ? "Ref, NHS number or name" : "Patient ref"}
                   className="pl-7 h-8 text-xs"
                 />
               </div>
@@ -379,6 +383,8 @@ export const PatientDrillDrawer = ({
                     />
                   </th>
                   <th className="p-2">Ref</th>
+                  {showInlinePII && <th className="p-2">NHS no.</th>}
+                  {showInlinePII && <th className="p-2">Name</th>}
                   <th className="p-2">Age</th>
                   <th className="p-2">Frailty</th>
                   <th className="p-2 text-right">Drugs</th>
