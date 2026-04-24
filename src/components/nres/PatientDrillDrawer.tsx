@@ -91,12 +91,11 @@ export const PatientDrillDrawer = ({ rows, canViewPII = false }: PatientDrillDra
   }, [rows, filterKeys, quickChips, search, canViewPII]);
 
   const sortedRows = useMemo(() => {
-    return [...filteredRows].sort((a, b) => ((b[sortBy] as number | null) ?? -Infinity > (a[sortBy] as number | null) ?? -Infinity) ? 1 : -1)
-      .sort((a, b) => {
-        const av = (a[sortBy] as number | null) ?? -Infinity;
-        const bv = (b[sortBy] as number | null) ?? -Infinity;
-        return bv === av ? 0 : bv > av ? 1 : -1;
-      });
+    return [...filteredRows].sort((a, b) => {
+      const av = (a[sortBy] as number | null) ?? -Infinity;
+      const bv = (b[sortBy] as number | null) ?? -Infinity;
+      return bv === av ? 0 : bv > av ? 1 : -1;
+    });
   }, [filteredRows, sortBy]);
 
   const visibleRows = sortedRows.slice(0, renderLimit);
