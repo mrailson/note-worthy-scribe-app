@@ -597,63 +597,89 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
 
           {tab === 'transcript' && (
             <div className="nw-mh-section">
-              <div className="nw-mh-section-title">Pipeline sources</div>
-              <div className="nw-mh-pipeline-grid">
-                <div className="nw-mh-pipeline-card best">
-                  <div className="nw-mh-pipeline-label">Best of All (merged)</div>
-                  <div className="nw-mh-pipeline-value" style={{ color: 'var(--nw-blue)' }}>
-                    {transcriptStats.bestOfAllWords > 0 ? transcriptStats.bestOfAllWords.toLocaleString() : '—'}
-                  </div>
-                  <div className="nw-mh-pipeline-sub">Canonical transcript</div>
-                </div>
-                <div className="nw-mh-pipeline-card">
-                  <div className="nw-mh-pipeline-label">Whisper</div>
-                  <div className="nw-mh-pipeline-value">
-                    {transcriptStats.whisperWords > 0 ? transcriptStats.whisperWords.toLocaleString() : '—'}
-                  </div>
-                </div>
-                <div className="nw-mh-pipeline-card">
-                  <div className="nw-mh-pipeline-label">AssemblyAI</div>
-                  <div className="nw-mh-pipeline-value">
-                    {transcriptStats.assemblyWords > 0 ? transcriptStats.assemblyWords.toLocaleString() : '—'}
-                  </div>
-                </div>
-              </div>
-
-              {transcriptStats.avgConfidence > 0 && (
+              {!transcriptsLoaded ? (
+                <div className="nw-mh-loading">Loading transcript…</div>
+              ) : (
                 <>
-                  <div className="nw-mh-section-title">Confidence</div>
-                  <div className="nw-mh-card-content">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ fontSize: 13, color: 'var(--nw-text2)' }}>Average batch confidence</span>
-                      <span style={{
-                        fontSize: 18,
-                        fontWeight: 600,
-                        color: transcriptStats.avgConfidence >= 50 ? 'var(--nw-green)' :
-                               transcriptStats.avgConfidence >= 30 ? 'var(--nw-amber)' : 'var(--nw-red)',
-                      }}>
-                        {transcriptStats.avgConfidence}%
-                      </span>
+                  <div className="nw-mh-section-title">Pipeline sources</div>
+                  <div className="nw-mh-pipeline-grid">
+                    <div className="nw-mh-pipeline-card best">
+                      <div className="nw-mh-pipeline-label">Best of All (merged)</div>
+                      <div className="nw-mh-pipeline-value" style={{ color: 'var(--nw-blue)' }}>
+                        {transcriptStats.bestOfAllWords > 0 ? transcriptStats.bestOfAllWords.toLocaleString() : '—'}
+                      </div>
+                      <div className="nw-mh-pipeline-sub">Canonical transcript</div>
                     </div>
-                    <div className="nw-mh-conf-bar">
-                      <div className="nw-mh-conf-fill" style={{
-                        width: `${transcriptStats.avgConfidence}%`,
-                        background: transcriptStats.avgConfidence >= 50 ? 'var(--nw-green)' :
-                                    transcriptStats.avgConfidence >= 30 ? 'var(--nw-amber)' : 'var(--nw-red)',
-                      }} />
+                    <div className="nw-mh-pipeline-card">
+                      <div className="nw-mh-pipeline-label">Whisper</div>
+                      <div className="nw-mh-pipeline-value">
+                        {transcriptStats.whisperWords > 0 ? transcriptStats.whisperWords.toLocaleString() : '—'}
+                      </div>
+                    </div>
+                    <div className="nw-mh-pipeline-card">
+                      <div className="nw-mh-pipeline-label">AssemblyAI</div>
+                      <div className="nw-mh-pipeline-value">
+                        {transcriptStats.assemblyWords > 0 ? transcriptStats.assemblyWords.toLocaleString() : '—'}
+                      </div>
                     </div>
                   </div>
+
+                  {transcriptStats.avgConfidence > 0 && (
+                    <>
+                      <div className="nw-mh-section-title">Confidence</div>
+                      <div className="nw-mh-card-content">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span style={{ fontSize: 13, color: 'var(--nw-text2)' }}>Average batch confidence</span>
+                          <span style={{
+                            fontSize: 18,
+                            fontWeight: 600,
+                            color: transcriptStats.avgConfidence >= 50 ? 'var(--nw-green)' :
+                                   transcriptStats.avgConfidence >= 30 ? 'var(--nw-amber)' : 'var(--nw-red)',
+                          }}>
+                            {transcriptStats.avgConfidence}%
+                          </span>
+                        </div>
+                        <div className="nw-mh-conf-bar">
+                          <div className="nw-mh-conf-fill" style={{
+                            width: `${transcriptStats.avgConfidence}%`,
+                            background: transcriptStats.avgConfidence >= 50 ? 'var(--nw-green)' :
+                                        transcriptStats.avgConfidence >= 30 ? 'var(--nw-amber)' : 'var(--nw-red)',
+                          }} />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Transcript view */}
+                  {meeting.best_of_all_transcript && (
+                    <TranscriptInlineView transcript={meeting.best_of_all_transcript} />
+                  )}
+
+                  {/* Delete Meeting */}
+                  <DeleteMeetingSection meetingId={meeting.id} onDeleted={onBack} />
                 </>
               )}
 
-              {/* Transcript view */}
-              {meeting.best_of_all_transcript && (
-                <TranscriptInlineView transcript={meeting.best_of_all_transcript} />
+              <div className="nw-mh-safe-bottom" />
+            </div>
+          )}
+
+          {tab === 'ask-ai' && (
+            <div className="nw-mh-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              {askAiMounted ? (
+                <Suspense fallback={
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+                    <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--nw-blue)' }} />
+                  </div>
+                }>
+                  <MeetingQAPanel
+                    meetingId={meeting.id}
+                    meetingTitle={meeting.title}
+                  />
+                </Suspense>
+              ) : (
+                <div className="nw-mh-loading">Loading Ask AI…</div>
               )}
-
-              {/* Delete Meeting */}
-              <DeleteMeetingSection meetingId={meeting.id} onDeleted={onBack} />
-
               <div className="nw-mh-safe-bottom" />
             </div>
           )}
