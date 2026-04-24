@@ -45,6 +45,7 @@ type NarpRow = {
   surname?: string;
   age: number | null;
   practiceName: string;
+  practiceKey: string; // normalised: upper-cased + trimmed + collapsed whitespace
   drugCount: number;
   frailty: "Fit" | "Mild" | "Moderate" | "Severe" | "Unknown";
   inpatientAdmissions: number;
