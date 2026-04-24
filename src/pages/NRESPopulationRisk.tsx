@@ -177,7 +177,7 @@ const NRESPopulationRisk = () => {
   const isIPhone = useIsIPhone();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
-  const [selectedPractice, setSelectedPractice] = useState<string>("Bugbrooke Medical Practice");
+  const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
