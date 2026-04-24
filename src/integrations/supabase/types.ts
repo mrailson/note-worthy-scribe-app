@@ -14298,6 +14298,15 @@ export type Database = {
           surname: string
         }[]
       }
+      get_narp_identifiable_by_refs: {
+        Args: { _fk_patient_link_ids: string[]; _practice_id: string }
+        Returns: {
+          fk_patient_link_id: string
+          forenames: string
+          nhs_number: string
+          surname: string
+        }[]
+      }
       get_old_ai_chats: {
         Args: { days_old?: number }
         Returns: {
