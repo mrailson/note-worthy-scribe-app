@@ -9,6 +9,7 @@ import {
   Upload, FileDown, Beaker,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
+import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -420,6 +421,9 @@ const NRESPopulationRisk = () => {
             </Button>
           </div>
         </div>
+
+        {/* Persisted NARP uploads (Phase 1 — Bugbrooke only) */}
+        <NarpUploadsPanel />
 
         {/* PoC explainer */}
         <Alert className="bg-amber-50 border-amber-200">
