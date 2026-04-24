@@ -584,26 +584,34 @@ const NRESPopulationRiskInner = () => {
                     <tbody>
                       {ageRiskHeatmap.map(r => {
                         const max = (k: keyof typeof r) => Math.max(...ageRiskHeatmap.map(x => x[k] as number), 1);
-                        const cell = (v: number, m: number, c: string, subtle = false) => {
+                        const ageBandKey = r.age.replace("–", "-") as AgeBandKey;
+                        const cell = (v: number, m: number, c: string, tierKey: RiskTierKey, subtle = false) => {
                           const i = Math.min(v / m, 1);
                           const bg = subtle
                             ? `rgba(21,128,61,${i * 0.12})`
                             : hexToRgba(c, i * 0.85 + 0.05);
                           return (
-                            <td className="p-3 text-center tabular-nums border-b"
-                                style={{ background: bg, color: i > 0.5 && !subtle ? "#fff" : undefined, fontWeight: i > 0.4 ? 600 : 400 }}>
-                              {fmt(v)}
+                            <td className="p-0 border-b" style={{ background: bg }}>
+                              <button
+                                type="button"
+                                disabled={!v}
+                                onClick={() => drill.open(ageRiskFilterKey(ageBandKey, tierKey))}
+                                className="w-full h-full p-3 text-center tabular-nums hover:underline disabled:cursor-not-allowed disabled:no-underline"
+                                style={{ color: i > 0.5 && !subtle ? "#fff" : undefined, fontWeight: i > 0.4 ? 600 : 400 }}
+                              >
+                                {fmt(v)}
+                              </button>
                             </td>
                           );
                         };
                         return (
                           <tr key={r.age}>
                             <td className="p-3 font-semibold border-b">{r.age}</td>
-                            {cell(r.VeryHigh, max("VeryHigh"), palette.vhigh)}
-                            {cell(r.High,     max("High"),     palette.high)}
-                            {cell(r.Moderate, max("Moderate"), palette.mod)}
-                            {cell(r.Rising,   max("Rising"),   palette.rising)}
-                            {cell(r.Low,      max("Low"),      palette.ok, true)}
+                            {cell(r.VeryHigh, max("VeryHigh"), palette.vhigh, "very_high")}
+                            {cell(r.High,     max("High"),     palette.high,  "high")}
+                            {cell(r.Moderate, max("Moderate"), palette.mod,   "moderate")}
+                            {cell(r.Rising,   max("Rising"),   palette.rising,"rising")}
+                            {cell(r.Low,      max("Low"),      palette.ok,    "low", true)}
                           </tr>
                         );
                       })}
