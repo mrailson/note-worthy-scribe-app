@@ -545,17 +545,25 @@ const NRESPopulationRiskInner = () => {
                 <div className="bg-white border rounded-lg p-5">
                   <h3 className="font-semibold text-base mb-1">Utilisation by frailty</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Mean PoA, admissions and drug count scale with eFI category.
+                    Click a frailty category to drill into its patients.
                   </p>
                   <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={frailtyStats}>
+                    <BarChart
+                      data={frailtyStats}
+                      onClick={(e: any) => {
+                        const name = e?.activeLabel as string | undefined;
+                        if (!name) return;
+                        const map: Record<string, string> = { Fit: "frailty_fit", Mild: "frailty_mild", Moderate: "frailty_moderate", Severe: "frailty_severe" };
+                        if (map[name]) drill.open(map[name]);
+                      }}
+                    >
                       <CartesianGrid strokeDasharray="2 4" vertical={false} />
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip contentStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="mean_PoA" name="Mean PoA (%)" fill={palette.accent} />
-                      <Bar dataKey="mean_drugs" name="Mean drug count" fill={palette.mod} />
-                      <Bar dataKey="mean_adm" name="Mean admissions" fill={palette.vhigh} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+                      <Bar dataKey="mean_PoA" name="Mean PoA (%)" fill={palette.accent} className="cursor-pointer" />
+                      <Bar dataKey="mean_drugs" name="Mean drug count" fill={palette.mod} className="cursor-pointer" />
+                      <Bar dataKey="mean_adm" name="Mean admissions" fill={palette.vhigh} className="cursor-pointer" />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                     </BarChart>
                   </ResponsiveContainer>
