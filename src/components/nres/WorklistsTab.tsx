@@ -19,6 +19,7 @@ import {
   CheckCircle2, Circle, Mic, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { patientFilterKey } from "@/lib/narp-filters";
 import {
   useNarpWorklists,
   useNarpWorklistItems,
@@ -38,9 +39,10 @@ import {
 interface WorklistsTabProps {
   practiceId: string | null | undefined;
   practiceName?: string;
+  onOpenPatient?: (filterKey: string) => void;
 }
 
-export const WorklistsTab = ({ practiceId, practiceName }: WorklistsTabProps) => {
+export const WorklistsTab = ({ practiceId, practiceName, onOpenPatient }: WorklistsTabProps) => {
   const [includeClosed, setIncludeClosed] = useState(false);
   const [openWorklistId, setOpenWorklistId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
