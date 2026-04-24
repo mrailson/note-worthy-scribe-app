@@ -8093,6 +8093,63 @@ export type Database = {
           },
         ]
       }
+      narp_export_log: {
+        Row: {
+          cohort_label: string | null
+          column_count: number
+          consent_acknowledged: boolean
+          exported_at: string
+          file_checksum: string
+          file_size_bytes: number | null
+          filename: string | null
+          id: string
+          included_identifiers: boolean
+          practice_id: string
+          reason_text: string
+          request_ip: string | null
+          row_count: number
+          user_agent: string | null
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          cohort_label?: string | null
+          column_count: number
+          consent_acknowledged?: boolean
+          exported_at?: string
+          file_checksum: string
+          file_size_bytes?: number | null
+          filename?: string | null
+          id?: string
+          included_identifiers?: boolean
+          practice_id: string
+          reason_text: string
+          request_ip?: string | null
+          row_count: number
+          user_agent?: string | null
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          cohort_label?: string | null
+          column_count?: number
+          consent_acknowledged?: boolean
+          exported_at?: string
+          file_checksum?: string
+          file_size_bytes?: number | null
+          filename?: string | null
+          id?: string
+          included_identifiers?: boolean
+          practice_id?: string
+          reason_text?: string
+          request_ip?: string | null
+          row_count?: number
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       narp_exports: {
         Row: {
           created_at: string
@@ -14016,6 +14073,24 @@ export type Database = {
           system_status: string
           total_active_alerts: number
           warning_alerts: number
+        }[]
+      }
+      get_narp_export_rows: {
+        Args: { _key: string; _practice_id: string }
+        Returns: {
+          ae_attendances: number
+          age: number
+          drug_count: number
+          fk_patient_link_id: string
+          forename: string
+          frailty_category: string
+          inpatient_total_admissions: number
+          nhs_number: string
+          poa: number
+          polos: number
+          risk_tier: string
+          rub: string
+          surname: string
         }[]
       }
       get_old_ai_chats: {
