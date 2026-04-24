@@ -215,17 +215,24 @@ const NRESPopulationRisk = () => {
     }
   }, []);
 
-  // Available practices in the loaded data
+  // Available practices in the loaded data — keyed by normalised name, label is first-seen casing
   const practices = useMemo(() => {
-    const set = new Set(rows.map(r => r.practiceName).filter(Boolean));
-    return Array.from(set).sort();
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      if (r.practiceKey && !map.has(r.practiceKey)) {
+        map.set(r.practiceKey, r.practiceName || r.practiceKey);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [rows]);
 
-  // Filtered rows for selected practice
+  // Filtered rows for selected practice (compare on normalised key)
   const filtered = useMemo(() => {
     if (!rows.length) return [];
     if (selectedPractice === "All Practices") return rows;
-    return rows.filter(r => r.practiceName === selectedPractice);
+    return rows.filter(r => r.practiceKey === selectedPractice);
   }, [rows, selectedPractice]);
 
   // ── Aggregations ─────────────────────────────────────────
