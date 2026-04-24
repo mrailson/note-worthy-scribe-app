@@ -797,10 +797,16 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
   );
 };
 
-const PolyBar = ({ label, value, max, colour, detail }: { label: string; value: number; max: number; colour: string; detail: string }) => {
+const PolyBar = ({ label, value, max, colour, detail, filterKey, onDrill }: { label: string; value: number; max: number; colour: string; detail: string; filterKey?: string; onDrill?: (key: string) => void }) => {
   const w = (value / max) * 100;
+  const clickable = !!filterKey && !!onDrill;
   return (
-    <div className="mb-3">
+    <button
+      type="button"
+      onClick={clickable ? () => onDrill!(filterKey!) : undefined}
+      className={`mb-3 w-full text-left ${clickable ? "cursor-pointer hover:bg-slate-50 rounded p-1 -m-1" : ""}`}
+      disabled={!clickable}
+    >
       <div className="flex justify-between text-sm mb-1">
         <span className="font-semibold">{label}</span>
         <span className="font-semibold tabular-nums">{value.toLocaleString("en-GB")}</span>
@@ -809,7 +815,7 @@ const PolyBar = ({ label, value, max, colour, detail }: { label: string; value: 
         <div className="h-full" style={{ width: `${w}%`, background: colour }} />
       </div>
       <div className="text-xs text-muted-foreground mt-1">{detail}</div>
-    </div>
+    </button>
   );
 };
 
