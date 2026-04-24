@@ -1106,6 +1106,7 @@ function stopSilentAudio() {
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user: authUser } = useAuth();
   // Recording mode + connectivity (persisted preference, three-state pill).
   // Hook owns: localStorage preference, navigator.onLine, auto-fallback flag.
   // We map the hook's "online"/"offline" vocabulary to the recorder's existing
