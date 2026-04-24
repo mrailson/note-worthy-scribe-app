@@ -122,6 +122,39 @@ const normalisePracticeKey = (raw: unknown): string =>
 
 const BUGBROOKE_KEY = normalisePracticeKey("Bugbrooke Medical Practice");
 
+const makeDemoNarpRows = (): NarpRow[] => {
+  const names = [
+    ["Ada", "Patel", 86, "Severe", 18, 3, 62.4, 41.2, "High complexity frailty"],
+    ["George", "Wilson", 79, "Moderate", 12, 2, 34.8, 27.5, "Multiple LTCs"],
+    ["Mary", "Thomas", 72, "Mild", 10, 1, 18.2, 19.1, "Rising utilisation"],
+    ["Iris", "Ahmed", 91, "Severe", 16, 2, 54.6, 36.8, "Advanced frailty"],
+    ["John", "Evans", 68, "Moderate", 9, 1, 22.7, 21.4, "LTC anchor"],
+    ["Nora", "Clarke", 64, "Fit", 7, 0, 7.9, 8.5, "Prevention cohort"],
+    ["Henry", "Brown", 83, "Moderate", 14, 2, 29.3, 24.6, "SMR candidate"],
+    ["Elsie", "Green", 76, "Mild", 5, 0, 4.2, 6.1, "Stable LTC"],
+  ] as const;
+
+  return names.map(([forenames, surname, age, frailty, drugCount, admissions, poA, poLoS, rub], index) => ({
+    fkPatientLinkId: `DEMO-${String(index + 1).padStart(3, "0")}`,
+    nhsNumber: `9449300${String(index + 1).padStart(3, "0")}`,
+    forenames,
+    surname,
+    age,
+    practiceName: "Bugbrooke Medical Practice",
+    practiceKey: BUGBROOKE_KEY,
+    drugCount,
+    frailty,
+    inpatientAdmissions: admissions,
+    aeAttendances: Math.max(0, admissions - 1),
+    electiveAdmissions: 0,
+    outpatientFirst: 1,
+    outpatientFollowUp: 2,
+    rub,
+    poA,
+    poLoS,
+  }));
+};
+
 /** Map a parsed row from the NARP export to our internal shape */
 const mapNarpRow = (r: Record<string, unknown>): NarpRow | null => {
   const fk = r["FK_Patient_Link_ID"] ?? r["FK Patient Link ID"];
@@ -408,6 +441,14 @@ const NRESPopulationRiskInner = () => {
 
   const empty = !rows.length;
 
+  const loadDemoData = () => {
+    const demoRows = makeDemoNarpRows();
+    setRows(demoRows);
+    setLoadedFileName("Demo NARP data");
+    setSelectedPractice(BUGBROOKE_KEY);
+    toast.success(`Loaded ${fmt(demoRows.length)} demo patients`);
+  };
+
   return (
     <div className="min-h-screen bg-[#F0F4F5]">
       <NRESHeader activeTab="population-risk" />
@@ -453,11 +494,15 @@ const NRESPopulationRiskInner = () => {
             <Button
               variant="outline"
               size="sm"
-              className="text-gray-700"
+              className="bg-background text-foreground"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="w-4 h-4 mr-2" />
               Upload NARP data
+            </Button>
+            <Button variant="outline" size="sm" className="bg-background text-foreground" onClick={loadDemoData}>
+              <Beaker className="w-4 h-4 mr-2" />
+              Load demo data
             </Button>
           </div>
         </div>
@@ -685,6 +730,7 @@ const NRESPopulationRiskInner = () => {
               <WorklistsTab
                 practiceId={selectedPracticeId ?? null}
                 practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
+                onOpenPatient={drill.open}
               />
             </TabsContent>
           </Tabs>
