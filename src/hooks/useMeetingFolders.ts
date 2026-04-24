@@ -38,8 +38,11 @@ export const useMeetingFolders = () => {
   useEffect(() => {
     fetchFolders();
 
+    // Unique channel name per hook instance to avoid "add callbacks after subscribe()"
+    // crashes when the hook mounts in multiple components simultaneously.
+    const channelName = `meeting_folders_changes_${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel('meeting_folders_changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'meeting_folders' },
