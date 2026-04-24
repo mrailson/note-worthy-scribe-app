@@ -15,7 +15,7 @@ import { NRESDigitalAndFinance } from "@/components/nres/NRESDigitalAndFinance";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock, Monitor } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock, Monitor, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -98,8 +98,15 @@ const NRESDashboard = () => {
               </AlertDescription>
             </Alert>
 
-            {/* Presentation Link */}
-            <div className="flex justify-end">
+            {/* Sub-page links */}
+            <div className="flex justify-end gap-2 flex-wrap">
+              <Link to="/nres/population-risk">
+                <Button variant="outline" size="sm">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Population Risk
+                  <span className="ml-2 text-[10px] font-semibold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">PoC</span>
+                </Button>
+              </Link>
               <Link to="/nres-presentation">
                 <Button variant="outline" size="sm">
                   <Presentation className="w-4 h-4 mr-2" />
