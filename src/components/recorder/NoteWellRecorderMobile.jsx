@@ -2521,17 +2521,35 @@ export default function NoteWellRecorder() {
         message: "Transcribing…",
       });
 
-      const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ""}`;
-      const { data: transcriptData, error: fnErr } = await supabase.functions.invoke("standalone-whisper", {
-        body: { storagePath: filePath, bucket: "recordings", prompt },
-      });
-      if (fnErr) throw fnErr;
+      // ── Prefer the on-device live transcript if one was captured during the meeting ──
+      // Avoids re-running Whisper server-side for audio the device already transcribed.
+      const liveLegacyText = (rec.capturedLiveTranscript || "").replace(/\s+/g, " ").trim();
+      const liveLegacyWC = liveLegacyText ? liveLegacyText.split(/\s+/).filter(Boolean).length : 0;
+      const legacyDurationMins = Math.max(1, Math.round((rec.duration || 0) / 60));
+      const legacyExpectedMinWords = Math.max(100, Math.round(legacyDurationMins * 30));
+      const liveLegacyUsable = liveLegacyText && liveLegacyWC >= 100 && liveLegacyWC >= legacyExpectedMinWords;
 
-      const cleanedLegacy = cleanWhisperResponse(transcriptData || {});
-      if (cleanedLegacy.cleaningSummary?.totalWordsRemoved > 0) {
-        console.log(`🧹 Mobile legacy sync: cleaner removed ${cleanedLegacy.cleaningSummary.totalWordsRemoved} words`);
+      let transcriptText;
+      if (liveLegacyUsable) {
+        console.log(`[LegacySync] Using on-device live transcript (${liveLegacyWC} words) — skipping standalone-whisper`);
+        transcriptText = liveLegacyText;
+      } else {
+        if (rec.capturedLiveTranscript) {
+          console.warn(`[LegacySync] Live transcript present but unusable (${liveLegacyWC} words, expected >= ${legacyExpectedMinWords}). Falling back to standalone-whisper.`);
+        }
+        const prompt = `NHS primary care meeting transcript.${rec.title ? ` Meeting: ${rec.title}.` : ""}`;
+        const { data: transcriptData, error: fnErr } = await supabase.functions.invoke("standalone-whisper", {
+          body: { storagePath: filePath, bucket: "recordings", prompt },
+        });
+        if (fnErr) throw fnErr;
+
+        const cleanedLegacy = cleanWhisperResponse(transcriptData || {});
+        if (cleanedLegacy.cleaningSummary?.totalWordsRemoved > 0) {
+          console.log(`🧹 Mobile legacy sync: cleaner removed ${cleanedLegacy.cleaningSummary.totalWordsRemoved} words`);
+        }
+        transcriptText = (cleanedLegacy.text || transcriptData?.text || "").replace(/\s+/g, " ").trim();
       }
-      const transcriptText = (cleanedLegacy.text || transcriptData?.text || "").replace(/\s+/g, " ").trim();
+
       await dbPatch(rec.id, { status: "transcribed", transcript: transcriptText });
       await refresh();
 
