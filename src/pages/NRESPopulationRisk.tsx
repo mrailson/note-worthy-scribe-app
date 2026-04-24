@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
+import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
+import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
+import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -173,7 +176,8 @@ const parseCsv = (text: string): Record<string, string>[] => {
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 
-const NRESPopulationRisk = () => {
+const NRESPopulationRiskInner = () => {
+  const drill = useDrillThrough();
   const isIPhone = useIsIPhone();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
@@ -489,10 +493,10 @@ const NRESPopulationRisk = () => {
             {/* OVERVIEW */}
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} />
-                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" />
-                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10%)" value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" />
-                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" />
+                <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} filterKey="all" onDrill={drill.open} />
+                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
+                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10%)" value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
+                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -500,29 +504,40 @@ const NRESPopulationRisk = () => {
                 <div className="bg-white border rounded-lg p-5">
                   <h3 className="font-semibold text-base mb-1">Population risk pyramid</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Tiered by Probability of Emergency Admission (PoA).
+                    Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.
                   </p>
                   <div className="space-y-2">
                     {riskPyramid.filter(r => r.tier !== "Unknown").map(r => {
                       const maxN = Math.max(...riskPyramid.filter(x => x.tier !== "Unknown").map(x => x.n), 1);
                       const w = (r.n / maxN) * 100;
+                      const tierKey = ({ "Very High": "tier_very_high", "High": "tier_high", "Moderate": "tier_moderate", "Rising": "tier_rising", "Low": "tier_low" } as const)[r.tier as Exclude<RiskTier, "Unknown">];
                       return (
-                        <div key={r.tier}>
+                        <button
+                          key={r.tier}
+                          type="button"
+                          disabled={!r.n}
+                          onClick={() => drill.open(tierKey)}
+                          className="w-full text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                           <div className="flex justify-between text-xs mb-1">
                             <span className="font-semibold">{r.tier} <span className="text-muted-foreground font-normal">· {r.band}</span></span>
-                            <span className="tabular-nums">{fmt(r.n)} <span className="text-muted-foreground">({r.pct.toFixed(1)}%)</span></span>
+                            <span className="tabular-nums group-hover:underline">{fmt(r.n)} <span className="text-muted-foreground">({r.pct.toFixed(1)}%)</span></span>
                           </div>
                           <div className="h-5 bg-slate-100 rounded-sm overflow-hidden">
-                            <div className="h-full transition-all" style={{ width: `${w}%`, background: r.colour }} />
+                            <div className="h-full transition-all group-hover:opacity-80" style={{ width: `${w}%`, background: r.colour }} />
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                   {riskPyramid[5].n > 0 && (
-                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-dashed">
+                    <button
+                      type="button"
+                      onClick={() => drill.open("tier_unknown")}
+                      className="text-xs text-muted-foreground mt-3 pt-3 border-t border-dashed w-full text-left hover:underline"
+                    >
                       {fmt(riskPyramid[5].n)} patients ({riskPyramid[5].pct.toFixed(1)}%) have no PoA.
-                    </p>
+                    </button>
                   )}
                 </div>
 
@@ -530,17 +545,25 @@ const NRESPopulationRisk = () => {
                 <div className="bg-white border rounded-lg p-5">
                   <h3 className="font-semibold text-base mb-1">Utilisation by frailty</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Mean PoA, admissions and drug count scale with eFI category.
+                    Click a frailty category to drill into its patients.
                   </p>
                   <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={frailtyStats}>
+                    <BarChart
+                      data={frailtyStats}
+                      onClick={(e: any) => {
+                        const name = e?.activeLabel as string | undefined;
+                        if (!name) return;
+                        const map: Record<string, string> = { Fit: "frailty_fit", Mild: "frailty_mild", Moderate: "frailty_moderate", Severe: "frailty_severe" };
+                        if (map[name]) drill.open(map[name]);
+                      }}
+                    >
                       <CartesianGrid strokeDasharray="2 4" vertical={false} />
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip contentStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="mean_PoA" name="Mean PoA (%)" fill={palette.accent} />
-                      <Bar dataKey="mean_drugs" name="Mean drug count" fill={palette.mod} />
-                      <Bar dataKey="mean_adm" name="Mean admissions" fill={palette.vhigh} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+                      <Bar dataKey="mean_PoA" name="Mean PoA (%)" fill={palette.accent} className="cursor-pointer" />
+                      <Bar dataKey="mean_drugs" name="Mean drug count" fill={palette.mod} className="cursor-pointer" />
+                      <Bar dataKey="mean_adm" name="Mean admissions" fill={palette.vhigh} className="cursor-pointer" />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -569,26 +592,34 @@ const NRESPopulationRisk = () => {
                     <tbody>
                       {ageRiskHeatmap.map(r => {
                         const max = (k: keyof typeof r) => Math.max(...ageRiskHeatmap.map(x => x[k] as number), 1);
-                        const cell = (v: number, m: number, c: string, subtle = false) => {
+                        const ageBandKey = r.age.replace("–", "-") as AgeBandKey;
+                        const cell = (v: number, m: number, c: string, tierKey: RiskTierKey, subtle = false) => {
                           const i = Math.min(v / m, 1);
                           const bg = subtle
                             ? `rgba(21,128,61,${i * 0.12})`
                             : hexToRgba(c, i * 0.85 + 0.05);
                           return (
-                            <td className="p-3 text-center tabular-nums border-b"
-                                style={{ background: bg, color: i > 0.5 && !subtle ? "#fff" : undefined, fontWeight: i > 0.4 ? 600 : 400 }}>
-                              {fmt(v)}
+                            <td className="p-0 border-b" style={{ background: bg }}>
+                              <button
+                                type="button"
+                                disabled={!v}
+                                onClick={() => drill.open(ageRiskFilterKey(ageBandKey, tierKey))}
+                                className="w-full h-full p-3 text-center tabular-nums hover:underline disabled:cursor-not-allowed disabled:no-underline"
+                                style={{ color: i > 0.5 && !subtle ? "#fff" : undefined, fontWeight: i > 0.4 ? 600 : 400 }}
+                              >
+                                {fmt(v)}
+                              </button>
                             </td>
                           );
                         };
                         return (
                           <tr key={r.age}>
                             <td className="p-3 font-semibold border-b">{r.age}</td>
-                            {cell(r.VeryHigh, max("VeryHigh"), palette.vhigh)}
-                            {cell(r.High,     max("High"),     palette.high)}
-                            {cell(r.Moderate, max("Moderate"), palette.mod)}
-                            {cell(r.Rising,   max("Rising"),   palette.rising)}
-                            {cell(r.Low,      max("Low"),      palette.ok, true)}
+                            {cell(r.VeryHigh, max("VeryHigh"), palette.vhigh, "very_high")}
+                            {cell(r.High,     max("High"),     palette.high,  "high")}
+                            {cell(r.Moderate, max("Moderate"), palette.mod,   "moderate")}
+                            {cell(r.Rising,   max("Rising"),   palette.rising,"rising")}
+                            {cell(r.Low,      max("Low"),      palette.ok,    "low", true)}
                           </tr>
                         );
                       })}
@@ -614,44 +645,60 @@ const NRESPopulationRisk = () => {
 
             {/* LTC */}
             <TabsContent value="ltc" className="space-y-4">
-              <LtcSection summary={summary} filtered={filtered} />
+              <LtcSection summary={summary} filtered={filtered} onDrill={drill.open} />
             </TabsContent>
 
             {/* COHORTS */}
             <TabsContent value="cohorts" className="space-y-4">
-              <CohortsSection cohorts={cohorts} totalPatients={summary.total} onExport={exportCohortCsv} />
+              <CohortsSection cohorts={cohorts} totalPatients={summary.total} onExport={exportCohortCsv} onDrill={drill.open} />
             </TabsContent>
 
             {/* TOP 25 */}
             <TabsContent value="toprisk" className="space-y-4">
-              <TopRiskSection rows={topRisk} canViewPII={canViewPII} />
+              <TopRiskSection rows={topRisk} canViewPII={canViewPII} onDrill={drill.open} />
             </TabsContent>
           </Tabs>
         )}
       </div>
+
+      {/* Drill-through drawer (single source of truth for every clickable count) */}
+      <PatientDrillDrawer rows={filtered} canViewPII={canViewPII} />
     </div>
   );
 };
+
+const NRESPopulationRisk = () => (
+  <DrillThroughProvider>
+    <NRESPopulationRiskInner />
+  </DrillThroughProvider>
+);
 
 /* ─── Sub-components ──────────────────────────────────────── */
 
 const KpiCard = ({
-  icon, label, value, sub, tone = "default",
-}: { icon: React.ReactNode; label: string; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good" }) => {
+  icon, label, value, sub, tone = "default", filterKey, onDrill,
+}: { icon: React.ReactNode; label: string; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good"; filterKey?: string; onDrill?: (key: string) => void }) => {
   const bar = tone === "critical" ? palette.vhigh : tone === "warn" ? palette.mod : tone === "good" ? palette.ok : palette.accent;
+  const clickable = !!filterKey && !!onDrill;
+  const Tag = clickable ? "button" : "div";
   return (
-    <div className="bg-white border rounded-lg p-4 flex gap-3 items-start" style={{ borderLeft: `3px solid ${bar}` }}>
+    <Tag
+      type={clickable ? "button" : undefined}
+      onClick={clickable ? () => onDrill!(filterKey!) : undefined}
+      className={`bg-white border rounded-lg p-4 flex gap-3 items-start text-left w-full ${clickable ? "hover:shadow-sm transition-shadow cursor-pointer" : ""}`}
+      style={{ borderLeft: `3px solid ${bar}` }}
+    >
       <span style={{ color: bar }}>{icon}</span>
       <div className="flex-1 min-w-0">
         <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">{label}</div>
-        <div className="text-2xl font-bold tabular-nums leading-tight mt-0.5">{value}</div>
+        <div className={`text-2xl font-bold tabular-nums leading-tight mt-0.5 ${clickable ? "group-hover:underline" : ""}`}>{value}</div>
         {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
       </div>
-    </div>
+    </Tag>
   );
 };
 
-const LtcSection = ({ summary, filtered }: { summary: ReturnType<typeof Object>; filtered: NarpRow[] }) => {
+const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof Object>; filtered: NarpRow[]; onDrill?: (key: string) => void }) => {
   const ltcBreakdown = useMemo(() => {
     const set = filtered.filter(r => (r.age ?? 0) >= 65);
     const fit = set.filter(r => r.frailty === "Fit").length;
@@ -753,8 +800,8 @@ const PolyBar = ({ label, value, max, colour, detail }: { label: string; value: 
 };
 
 const CohortsSection = ({
-  cohorts, totalPatients, onExport,
-}: { cohorts: any[]; totalPatients: number; onExport: (id: string) => void }) => {
+  cohorts, totalPatients, onExport, onDrill,
+}: { cohorts: any[]; totalPatients: number; onExport: (id: string) => void; onDrill?: (key: string) => void }) => {
   const [selected, setSelected] = useState(cohorts[0]?.id ?? "vhhr");
   const c = cohorts.find(x => x.id === selected) ?? cohorts[0];
 
@@ -770,27 +817,37 @@ const CohortsSection = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {cohorts.map(co => (
-          <button
-            key={co.id}
-            onClick={() => setSelected(co.id)}
-            className={`text-left p-4 border rounded-lg transition-all ${
-              selected === co.id ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-1.5 h-1.5 inline-block" style={{ background: co.colour }} />
-              <span className={`text-[10px] uppercase tracking-wider font-semibold ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>
-                {co.detail}
-              </span>
-            </div>
-            <div className="font-semibold mt-1">{co.label}</div>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-2xl font-bold tabular-nums">{fmt(co.n)}</span>
-              <span className={`text-xs ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>{co.weekly}/week</span>
-            </div>
-          </button>
-        ))}
+        {cohorts.map(co => {
+          const cohortFilterKey: Record<string, string> = {
+            vhhr: "mdt_intensive", ltc: "ltc_anchor", smr: "smr_eligible",
+            rising: "rising_prevention", adm: "admission_avoidance",
+            falls: "falls_risk", frev: "frailty_review",
+          };
+          return (
+            <button
+              key={co.id}
+              onClick={() => {
+                setSelected(co.id);
+                onDrill?.(cohortFilterKey[co.id]);
+              }}
+              className={`text-left p-4 border rounded-lg transition-all ${
+                selected === co.id ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-1.5 h-1.5 inline-block" style={{ background: co.colour }} />
+                <span className={`text-[10px] uppercase tracking-wider font-semibold ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>
+                  {co.detail}
+                </span>
+              </div>
+              <div className="font-semibold mt-1">{co.label}</div>
+              <div className="flex items-baseline justify-between mt-2">
+                <span className="text-2xl font-bold tabular-nums hover:underline">{fmt(co.n)}</span>
+                <span className={`text-xs ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>{co.weekly}/week</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {c && (
@@ -852,7 +909,7 @@ const CohortsSection = ({
   );
 };
 
-const TopRiskSection = ({ rows, canViewPII }: { rows: NarpRow[]; canViewPII: boolean }) => {
+const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canViewPII: boolean; onDrill?: (key: string) => void }) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
