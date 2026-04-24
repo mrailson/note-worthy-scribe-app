@@ -402,7 +402,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           .eq('id', id);
       }
 
-      const updatePayload: Record<string, any> = {
+      const updatePayload: any = {
         status: 'submitted',
         submitted_at: new Date().toISOString(),
         submitted_by_email: user.email || null,
