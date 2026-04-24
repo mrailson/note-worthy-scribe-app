@@ -633,9 +633,18 @@ const NRESPopulationRiskInner = () => {
           </Tabs>
         )}
       </div>
+
+      {/* Drill-through drawer (single source of truth for every clickable count) */}
+      <PatientDrillDrawer rows={filtered} canViewPII={canViewPII} />
     </div>
   );
 };
+
+const NRESPopulationRisk = () => (
+  <DrillThroughProvider>
+    <NRESPopulationRiskInner />
+  </DrillThroughProvider>
+);
 
 /* ─── Sub-components ──────────────────────────────────────── */
 
