@@ -688,6 +688,7 @@ const NRESPopulationRiskInner = () => {
         canExportPII={canExportPII}
         hasViewElsewhere={hasViewElsewhere}
         practiceId={selectedPracticeId ?? null}
+        practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
         route="/nres/population-risk"
       />
     </div>
