@@ -109,6 +109,9 @@ export const PatientDrillDrawer = ({
   // Identifiable CSV export modal — Phase B
   const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
 
+  // Add-to-worklist dialog — Phase C
+  const [worklistDialogOpen, setWorklistDialogOpen] = useState(false);
+
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
   const showInlinePII = canViewPII || (hasViewElsewhere && exceptionRevealed);
