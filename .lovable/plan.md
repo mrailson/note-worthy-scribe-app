@@ -1,87 +1,76 @@
-## Goal
+## What's actually happening (confirmed)
 
-When a signed-in user on the mobile recorder (`/new-recorder`) finishes a recording in **Online** mode, the experience should be:
+You are right — it is duplicating the work. I checked your meeting `Meeting 24 Apr 14:59` directly:
 
-- Pill stays green ("Online") throughout.
-- Upload + transcription happen silently in the background.
-- The just-finished recording appears in the local "Recordings (N)" list **immediately** (counter never displays a stale 0).
-- No "Sign in to sync" sheet, no extra login link, no "Syncing…" blue dot flicker that the user has to react to.
+| Stage | Where | Words |
+|---|---|---|
+| During recording (mobile, live AssemblyAI) | On your phone | ~7,000+ (you saw it climbing) |
+| After "Stop" — chunk upload finishes | Server queues `transcribe-offline-meeting` | 0 (whisper hasn't run yet) |
+| Whisper finishes chunk 0 | DB row updated | 1,727 |
+| Chunk 0 + 1 done | DB row updated | 3,825 |
+| All 4 chunks done | DB row updated | 7,722 |
 
-## Root cause
+So the screens you saw (`1.7K → 3.8K → …`) are Whisper redoing every minute of audio chunk-by-chunk, even though your phone already produced a perfectly good live transcript.
 
-The mobile recorder currently has **two parallel connectivity/sync systems running side by side**, and they disagree:
-
-| System | Owner | Data source | What it shows |
-|---|---|---|---|
-| `useRecordingMode` (current) | The Mode Pill ("Live Transcription" / "Offline mode") | `localStorage` preference + `navigator.onLine` | Drives `mode === "live"` everywhere downstream |
-| `ConnectionToggle` + `LoginModal` + `syncRecordings.ts` (legacy) | Imported in `NoteWellRecorderMobile.jsx` (line 20) and bundles its own state machine | A separate IndexedDB read via `countPendingRecordings()` and its own `supabase.auth.getSession()` check | Pops the "Sign in to sync" bottom sheet; flips its own pill to "Syncing…"; shows "Offline · N pending" |
-
-The chunked recorder writes recordings to IndexedDB as multi-chunk objects (`status: "local" | "syncing" | "synced"…`) and uploads them through its own `syncRecording(rec)` flow — it never calls `syncPendingRecordings()` from `utils/syncRecordings.ts`. The legacy `syncPendingRecordings()` only inserts a stub `meetings` row with no audio, so even when the toggle "succeeds" it produces nothing useful.
-
-Symptoms map cleanly onto this:
-
-- **"Says Online but says Syncing"** → both the Mode Pill (green Online from `useRecordingMode`) and the legacy `ConnectionToggle` pill (blue "Syncing…" from its own `syncState`) render at once. The legacy pill kicks itself into `syncing` on mount whenever `pendingCount > 0`.
-- **"Login link at the top of the recorder page"** → `ConnectionToggle.handleTap` (and any path that re-evaluates auth) calls `supabase.auth.getSession()`; on transient session-refresh edge cases or when the session restore is still in-flight it returns `null`, so it sets `showLogin = true` and `LoginModal` renders the "Sign in to sync" sheet over the recorder.
-- **"Recordings (0) hangs"** → `pendingCount` displayed in the legacy toggle is the wrong IndexedDB query path; the recorder card's own `recordings` list (built from `dbAll()`) does populate, but the toggle's "0 pending" sticks until a manual refresh, making the user think nothing was saved.
-
-## Plan
-
-### 1. Remove the legacy `ConnectionToggle` / `LoginModal` / `syncRecordings.ts` path from the mobile recorder
+## Why it happens (root cause in code)
 
 In `src/components/recorder/NoteWellRecorderMobile.jsx`:
 
-- Remove the imports of `ConnectionToggle`, `countPendingRecordings`.
-- Delete `pendingCount` state and `refreshPendingCount` (the recorder already has `recordings` from `dbAll()` which is the source of truth).
-- Verify `ConnectionToggle` is not rendered anywhere in the JSX — it isn't (confirmed), so removal is import-only.
+1. On `stopRecording` (line 1640), the live transcript IS captured into the IndexedDB record as `capturedLiveTranscript`. ✅
+2. But in `syncRecording` (line 2293), when the meeting row is inserted, **only the audio chunks are uploaded** — `capturedLiveTranscript` is never sent. ❌
+3. The meeting is inserted with `status: 'pending_transcription'` and `notes_generation_status: 'queued'`, then `transcribe-offline-meeting` is invoked, which downloads every chunk and re-runs Whisper from scratch.
 
-`ConnectionToggle.tsx`, `LoginModal.tsx`, and `utils/syncRecordings.ts` are not used elsewhere by the recorder. Confirm no other consumers (search project) and either:
-- Leave the files in place but unimported (safe), or
-- Delete them as dead code (cleaner).
+So: ~£X of Whisper compute, several minutes of waiting, and a worse result (Whisper alone vs. AssemblyAI live + word-count drift) — all to recreate something the phone already has.
 
-Recommendation: delete them to prevent re-introduction.
+The legacy single-file path (line 2378) does the same thing — it ignores `capturedLiveTranscript` and runs `standalone-whisper`.
 
-### 2. Single source of truth for connectivity
+## Proposed fix (minimal, safe, reuses existing pipeline)
 
-`useRecordingMode` already owns:
-- Persisted user preference (`online` | `offline` in localStorage).
-- Live `navigator.onLine`.
-- An `isAutoFallback` flag for "user wants online but the network dropped".
+Treat the mobile sync the same way the existing **"already-transcribed"** branch already does (line 2018) — that branch creates the meeting with `status: 'completed'` and `whisper_transcript_text` populated, then jumps straight to note generation. I just need to make the chunked upload path use it when a live transcript exists.
 
-The Mode Pill (`<ModePill>`) already renders the three correct visual states. No changes needed to the hook.
+### Behaviour after fix
 
-### 3. Make post-stop sync silent + immediate in Online mode
+**Case A — Live mode with a usable live transcript (≥100 words):**
+1. Upload chunks to storage (so audio is preserved for re-runs / playback / Best-of-All later).
+2. Insert the meeting with `status: 'completed'`, `whisper_transcript_text = capturedLiveTranscript`, `primary_transcript_source: 'assemblyai_live'`, `word_count = <live count>`.
+3. Insert one `meeting_transcription_chunks` row carrying the live transcript so existing tooling (re-generate notes, transcript view) sees it.
+4. Skip `transcribe-offline-meeting` entirely.
+5. Call `auto-generate-meeting-notes` immediately — same as today. Toast: "Meeting created — generating notes…" then "Meeting notes generated ✨" + auto-email (unchanged).
 
-In the recorder's stop flow (`syncRecording(rec)` and the auto-sync path around line 1770):
+**Case B — Offline / live transcript empty or <100 words (no live data captured):**
+- Behave exactly as today: upload chunks → `pending_transcription` → `transcribe-offline-meeting` → notes. Nothing changes for offline recordings.
 
-- Optimistically push the just-finished recording into the `recordings` array as soon as it's persisted to IndexedDB, so the **"Recordings (N)"** counter increments immediately (no 0 hang). This is largely already the case via `refresh()` after save — confirm `refresh()` is awaited *before* sync starts.
-- Keep the per-row status chip ("Uploading…" / "Synced" / "Transcribed") that already exists in the recordings list — that's the right place for sync feedback.
-- Do not flip any top-of-page pill to "Syncing…". The Mode Pill stays green.
-- Suppress the toast "Back online — resuming sync of N recording(s)" when we're already online and the recording the user just stopped is the only one in the queue (it's not a "rescue" event, just the normal happy path).
+**Case C — Live mode but live transcript looks materially shorter than expected:**
+- Heuristic: if live word count is **< 30%** of expected (rough estimate: `duration_minutes × 100` words/min) AND there are uploaded chunks, fall back to Case B (server-side Whisper) for safety. This protects against the rare case where AssemblyAI dropped out mid-meeting and the live transcript is unreliable. We log a console warning so we can monitor.
 
-### 4. Belt-and-braces: prevent any stray sign-in modal from rendering on the recorder
+### Files to change
 
-- After the import removal in step 1, `LoginModal` can no longer mount from the recorder.
-- Add a guard so that if a future component tries to surface auth UI on `/new-recorder` while `useAuth().user` exists, it's a no-op. (Defensive, optional.)
+1. **`src/components/recorder/NoteWellRecorderMobile.jsx`** — single function `syncRecording` (around lines 2092–2351):
+   - After the chunk uploads succeed, branch on `rec.capturedLiveTranscript`.
+   - If usable → insert completed meeting + chunk row + call `generateNotesForMeeting` directly (mirrors the existing "resume" branch at line 2018).
+   - If not → existing `pending_transcription` + `transcribe-offline-meeting` path.
+   - Same `triggerPostNoteActions` (auto-email) wiring as today, no UI changes.
 
-### 5. QA checklist
+2. **`src/components/recorder/NoteWellRecorderMobile.jsx`** — `syncLegacySingleFile` (line 2378):
+   - Also check `rec.capturedLiveTranscript` first; if present, skip the `standalone-whisper` call and use the live transcript directly. (Low-impact: legacy path is rare, but consistent behaviour helps.)
 
-- Sign in, go to `/new-recorder`, ensure pill = green "Online", no "Sign in to sync" sheet ever appears.
-- Record 30 seconds → Stop → confirm:
-  - Pill stays green Online (no blue "Syncing…" flicker at the top).
-  - "Recordings (1)" appears immediately under the recorder card.
-  - The new row shows its own "Uploading…" → "Synced" → "Transcribed" lifecycle.
-- Toggle Airplane mode mid-recording → verify orange "Offline (no connection)" auto-fallback pill + mid-record `ConnectionBanner`. Restore connection → confirm auto-resume toast and silent upload.
-- Sign out → visit `/new-recorder` → confirm normal auth redirect (handled by `ProtectedRoute`/route guard, not by `LoginModal`).
+No edge functions need modifying. No database migrations. No changes to desktop, no changes to offline mode.
 
-## Files to change
+### What the user will see after the fix
 
-- `src/components/recorder/NoteWellRecorderMobile.jsx` — remove `ConnectionToggle` / `countPendingRecordings` imports, delete `pendingCount` state + `refreshPendingCount` + its `useEffect`, verify no JSX references remain. Tighten the post-stop refresh order so the recordings list updates before sync begins.
-- `src/components/ConnectionToggle.tsx` — delete (legacy, no remaining consumers after step 1).
-- `src/components/LoginModal.tsx` — delete (only consumed by `ConnectionToggle`).
-- `src/utils/syncRecordings.ts` — delete (only consumed by `ConnectionToggle`; the recorder's own `syncRecording` flow is the real path).
+- Stop the meeting → Upload chunks (progress bar, same as now) → "Notes are being generated…" appears with the **correct word count immediately** (e.g. 7.7K straight away, not 1.7K → 3.8K → 7.7K).
+- Notes generation runs once, on the live transcript, and email arrives.
+- For your test meeting today: you'd have skipped ~3 minutes of redundant Whisper processing and seen 7,722 words on the first screen.
 
-## Out of scope (to keep this surgical)
+### Why this is safe
 
-- The `MeetingHistory` (`/meetings`) page is unchanged — the user confirmed the "0" issue was the **in-recorder** counter, not the cloud history.
-- No backend / edge function changes. The fix is entirely in the mobile recorder UI layer.
-- No change to the `useRecordingMode` hook itself — it already behaves correctly.
+- Audio is still uploaded to storage in every case → re-process / playback / "Reprocess Existing Audio" button still works.
+- The `transcribe-offline-meeting` fallback remains intact for offline recordings and short/missing live transcripts.
+- The "already-transcribed resume" branch I'm mirroring is the same pattern already in production for recovered recordings — proven path.
+- Word-count guard (< 100 words) is preserved.
+
+### Out of scope (flag for follow-up if you want)
+
+- "Best-of-All" merging of live AssemblyAI + post-hoc Whisper for highest fidelity. We could optionally still run Whisper in the background and upgrade the transcript later, but that's a separate enhancement and would re-introduce the cost you're trying to avoid. Recommend **not** doing this unless you specifically want it.
+
+Approve and I'll implement.
