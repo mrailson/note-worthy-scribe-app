@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
+import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
+import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
+import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
