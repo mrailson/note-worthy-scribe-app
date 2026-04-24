@@ -986,28 +986,45 @@ const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canVie
             </tr>
           </thead>
           <tbody>
-            {sorted.map((p, i) => (
-              <tr key={p.fkPatientLinkId} className={i % 2 ? "bg-slate-50/50" : ""}>
-                <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
-                {canViewPII && <td className="p-3 tabular-nums">{p.nhsNumber ?? "—"}</td>}
-                {canViewPII && <td className="p-3">{[p.forenames, p.surname].filter(Boolean).join(" ") || "—"}</td>}
-                <td className="p-3 tabular-nums">{p.age ?? "—"}</td>
-                <td className="p-3">
-                  <span className="inline-block px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: frailtyColour(p.frailty) }}>
-                    {p.frailty}
-                  </span>
-                </td>
-                <td className="p-3 tabular-nums">{p.drugCount}</td>
-                <td className="p-3 tabular-nums">{p.inpatientAdmissions}</td>
-                <td className="p-3 font-semibold" style={{ color: rubColour(p.rub) }}>{p.rub || "—"}</td>
-                <td className="p-3 text-right font-bold tabular-nums" style={{ color: palette.vhigh }}>
-                  {p.poA !== null ? `${p.poA.toFixed(1)}%` : "—"}
-                </td>
-                <td className="p-3 text-right tabular-nums text-slate-600">
-                  {p.poLoS !== null ? `${p.poLoS.toFixed(1)}%` : "—"}
-                </td>
-              </tr>
-            ))}
+            {sorted.map((p, i) => {
+              const tier = tierFor(p.poA);
+              const tierKey: Record<RiskTier, string> = {
+                "Very High": "tier_very_high",
+                "High": "tier_high",
+                "Moderate": "tier_moderate",
+                "Rising": "tier_rising",
+                "Low": "tier_low",
+                "Unknown": "tier_unknown",
+              };
+              const drillKey = tierKey[tier];
+              const clickable = !!onDrill && !!drillKey;
+              return (
+                <tr
+                  key={p.fkPatientLinkId}
+                  onClick={clickable ? () => onDrill!(drillKey) : undefined}
+                  className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
+                >
+                  <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
+                  {canViewPII && <td className="p-3 tabular-nums">{p.nhsNumber ?? "—"}</td>}
+                  {canViewPII && <td className="p-3">{[p.forenames, p.surname].filter(Boolean).join(" ") || "—"}</td>}
+                  <td className="p-3 tabular-nums">{p.age ?? "—"}</td>
+                  <td className="p-3">
+                    <span className="inline-block px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: frailtyColour(p.frailty) }}>
+                      {p.frailty}
+                    </span>
+                  </td>
+                  <td className="p-3 tabular-nums">{p.drugCount}</td>
+                  <td className="p-3 tabular-nums">{p.inpatientAdmissions}</td>
+                  <td className="p-3 font-semibold" style={{ color: rubColour(p.rub) }}>{p.rub || "—"}</td>
+                  <td className="p-3 text-right font-bold tabular-nums" style={{ color: palette.vhigh }}>
+                    {p.poA !== null ? `${p.poA.toFixed(1)}%` : "—"}
+                  </td>
+                  <td className="p-3 text-right tabular-nums text-slate-600">
+                    {p.poLoS !== null ? `${p.poLoS.toFixed(1)}%` : "—"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
