@@ -55,6 +55,8 @@ interface PatientDrillDrawerProps {
   hasViewElsewhere?: boolean;
   /** UUID of the gp_practices row currently being viewed (for audit + export RPC). */
   practiceId?: string | null;
+  /** Display name of the current practice (used in the export modal + filename). */
+  practiceName?: string;
   /** Route key for the page-load audit log. */
   route?: string;
 }
@@ -85,6 +87,7 @@ export const PatientDrillDrawer = ({
   canExportPII = false,
   hasViewElsewhere = false,
   practiceId = null,
+  practiceName,
   route,
 }: PatientDrillDrawerProps) => {
   const { isOpen, filterKeys, add, remove, close } = useDrillThrough();
@@ -101,6 +104,9 @@ export const PatientDrillDrawer = ({
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
   const [exceptionReason, setExceptionReason] = useState("");
   const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
+
+  // Identifiable CSV export modal — Phase B
+  const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
