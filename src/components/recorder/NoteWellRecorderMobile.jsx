@@ -1974,19 +1974,28 @@ export default function NoteWellRecorder() {
       showToast("Recording is very large (>100 MB) — sync may take a while on mobile data", "info");
     }
 
-    // Check auth session is valid
-    let user = null;
-    try {
-      const { data: { session } } = await supabase.auth.refreshSession();
-      user = session?.user || null;
-    } catch (e) {
-      console.warn("[sync] session refresh failed:", e);
-    }
+    // Resolve the authenticated user without forcing a token refresh round-trip.
+    // The AuthContext is the source of truth — if it has a user, we are signed
+    // in (the SDK will auto-refresh tokens on the next request as needed).
+    // Falling back to getSession() handles the rare case where the recorder
+    // mounts before AuthContext has hydrated.
+    let user = authUser || null;
     if (!user) {
       try {
-        const { data: { user: fallback } } = await supabase.auth.getUser();
-        user = fallback;
-      } catch { /* */ }
+        const { data: { session } } = await supabase.auth.getSession();
+        user = session?.user || null;
+      } catch (e) {
+        console.warn("[sync] getSession failed:", e);
+      }
+    }
+    if (!user) {
+      // Last-resort refresh — only when we genuinely have no session at all.
+      try {
+        const { data: { session } } = await supabase.auth.refreshSession();
+        user = session?.user || null;
+      } catch (e) {
+        console.warn("[sync] refreshSession failed:", e);
+      }
     }
     if (!user) {
       setSyncProgress({
