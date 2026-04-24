@@ -8241,34 +8241,30 @@ export type Database = {
           accessed_at: string
           context: string | null
           id: number
-          patient_snapshot_id: number | null
+          patient_count_rendered: number
           practice_id: string | null
+          route: string | null
           user_id: string | null
         }
         Insert: {
           accessed_at?: string
           context?: string | null
           id?: number
-          patient_snapshot_id?: number | null
+          patient_count_rendered?: number
           practice_id?: string | null
+          route?: string | null
           user_id?: string | null
         }
         Update: {
           accessed_at?: string
           context?: string | null
           id?: number
-          patient_snapshot_id?: number | null
+          patient_count_rendered?: number
           practice_id?: string | null
+          route?: string | null
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "narp_pii_access_log_patient_snapshot_id_fkey"
-            columns: ["patient_snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "narp_patient_snapshots"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "narp_pii_access_log_practice_id_fkey"
             columns: ["practice_id"]
@@ -13115,6 +13111,8 @@ export type Database = {
           assigned_at: string | null
           assigned_by: string | null
           bp_service_access: boolean | null
+          can_export_narp_identifiable: boolean
+          can_view_narp_identifiable: boolean
           complaints_admin_access: boolean | null
           complaints_manager_access: boolean | null
           cqc_compliance_access: boolean | null
@@ -13129,7 +13127,6 @@ export type Database = {
           meeting_notes_access: boolean | null
           mic_test_service_access: boolean | null
           narp_upload_access: boolean
-          narp_view_pii_access: boolean
           practice_id: string | null
           practice_role: Database["public"]["Enums"]["practice_role"] | null
           replywell_access: boolean | null
@@ -13146,6 +13143,8 @@ export type Database = {
           assigned_at?: string | null
           assigned_by?: string | null
           bp_service_access?: boolean | null
+          can_export_narp_identifiable?: boolean
+          can_view_narp_identifiable?: boolean
           complaints_admin_access?: boolean | null
           complaints_manager_access?: boolean | null
           cqc_compliance_access?: boolean | null
@@ -13160,7 +13159,6 @@ export type Database = {
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
           narp_upload_access?: boolean
-          narp_view_pii_access?: boolean
           practice_id?: string | null
           practice_role?: Database["public"]["Enums"]["practice_role"] | null
           replywell_access?: boolean | null
@@ -13177,6 +13175,8 @@ export type Database = {
           assigned_at?: string | null
           assigned_by?: string | null
           bp_service_access?: boolean | null
+          can_export_narp_identifiable?: boolean
+          can_view_narp_identifiable?: boolean
           complaints_admin_access?: boolean | null
           complaints_manager_access?: boolean | null
           cqc_compliance_access?: boolean | null
@@ -13191,7 +13191,6 @@ export type Database = {
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
           narp_upload_access?: boolean
-          narp_view_pii_access?: boolean
           practice_id?: string | null
           practice_role?: Database["public"]["Enums"]["practice_role"] | null
           replywell_access?: boolean | null
@@ -14260,6 +14259,14 @@ export type Database = {
         Args: { _user_email: string }
         Returns: boolean
       }
+      has_can_export_narp_identifiable: {
+        Args: { _practice_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_can_view_narp_identifiable: {
+        Args: { _practice_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_cso_governance_access: {
         Args: { _user_id?: string }
         Returns: boolean
@@ -14271,10 +14278,6 @@ export type Database = {
         Returns: boolean
       }
       has_narp_upload_access: {
-        Args: { p_practice: string; p_user: string }
-        Returns: boolean
-      }
-      has_narp_view_pii_access: {
         Args: { p_practice: string; p_user: string }
         Returns: boolean
       }
@@ -14414,6 +14417,14 @@ export type Database = {
           p_action?: string
           p_content_type: string
           p_meeting_id: string
+        }
+        Returns: undefined
+      }
+      log_narp_pii_page_access: {
+        Args: {
+          _patient_count_rendered: number
+          _practice_id: string
+          _route: string
         }
         Returns: undefined
       }
