@@ -493,10 +493,10 @@ const NRESPopulationRiskInner = () => {
             {/* OVERVIEW */}
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} />
-                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" />
-                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10%)" value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" />
-                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" />
+                <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} filterKey="all" onDrill={drill.open} />
+                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
+                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10%)" value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
+                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -504,29 +504,40 @@ const NRESPopulationRiskInner = () => {
                 <div className="bg-white border rounded-lg p-5">
                   <h3 className="font-semibold text-base mb-1">Population risk pyramid</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Tiered by Probability of Emergency Admission (PoA).
+                    Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.
                   </p>
                   <div className="space-y-2">
                     {riskPyramid.filter(r => r.tier !== "Unknown").map(r => {
                       const maxN = Math.max(...riskPyramid.filter(x => x.tier !== "Unknown").map(x => x.n), 1);
                       const w = (r.n / maxN) * 100;
+                      const tierKey = ({ "Very High": "tier_very_high", "High": "tier_high", "Moderate": "tier_moderate", "Rising": "tier_rising", "Low": "tier_low" } as const)[r.tier as Exclude<RiskTier, "Unknown">];
                       return (
-                        <div key={r.tier}>
+                        <button
+                          key={r.tier}
+                          type="button"
+                          disabled={!r.n}
+                          onClick={() => drill.open(tierKey)}
+                          className="w-full text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                           <div className="flex justify-between text-xs mb-1">
                             <span className="font-semibold">{r.tier} <span className="text-muted-foreground font-normal">· {r.band}</span></span>
-                            <span className="tabular-nums">{fmt(r.n)} <span className="text-muted-foreground">({r.pct.toFixed(1)}%)</span></span>
+                            <span className="tabular-nums group-hover:underline">{fmt(r.n)} <span className="text-muted-foreground">({r.pct.toFixed(1)}%)</span></span>
                           </div>
                           <div className="h-5 bg-slate-100 rounded-sm overflow-hidden">
-                            <div className="h-full transition-all" style={{ width: `${w}%`, background: r.colour }} />
+                            <div className="h-full transition-all group-hover:opacity-80" style={{ width: `${w}%`, background: r.colour }} />
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                   {riskPyramid[5].n > 0 && (
-                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-dashed">
+                    <button
+                      type="button"
+                      onClick={() => drill.open("tier_unknown")}
+                      className="text-xs text-muted-foreground mt-3 pt-3 border-t border-dashed w-full text-left hover:underline"
+                    >
                       {fmt(riskPyramid[5].n)} patients ({riskPyramid[5].pct.toFixed(1)}%) have no PoA.
-                    </p>
+                    </button>
                   )}
                 </div>
 
