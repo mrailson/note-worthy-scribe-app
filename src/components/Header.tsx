@@ -339,15 +339,25 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 <LayoutDashboard className="h-4 w-4 mr-2" />
                                 SDA Pilot Dashboard
                               </DropdownMenuItem>
-                              {(isSystemAdmin || isIcbMember) && (
-                                <DropdownMenuItem 
-                                  onClick={() => navigate('/nres/nhc-planning')}
-                                  className="cursor-pointer py-3"
-                                >
-                                  <Building2 className="h-4 w-4 mr-2" />
-                                  NHC Planning
-                                </DropdownMenuItem>
-                              )}
+                              {(() => {
+                                const NHC_PLANNING_ALLOWED_EMAILS = [
+                                  'malcolm.railson@nhs.net',
+                                  'lucy.hibberd@nhs.net',
+                                  'amanda.palin2@nhs.net',
+                                  'simon.ellis7@nhs.net',
+                                ];
+                                const userEmail = user?.email?.toLowerCase() || '';
+                                const isAllowedByEmail = NHC_PLANNING_ALLOWED_EMAILS.includes(userEmail);
+                                return (isSystemAdmin || isIcbMember || isAllowedByEmail) && (
+                                  <DropdownMenuItem 
+                                    onClick={() => navigate('/nres/nhc-planning')}
+                                    className="cursor-pointer py-3"
+                                  >
+                                    <Building2 className="h-4 w-4 mr-2" />
+                                    NHC Planning
+                                  </DropdownMenuItem>
+                                );
+                              })()}
                               {isSystemAdmin && (
                                 <>
                                   <DropdownMenuSeparator />
