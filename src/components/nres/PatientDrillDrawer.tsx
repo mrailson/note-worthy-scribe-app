@@ -90,9 +90,19 @@ export const PatientDrillDrawer = ({
   const [search, setSearch] = useState("");
   const [quickChips, setQuickChips] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [exportWithPII, setExportWithPII] = useState(false);
   const [activePatient, setActivePatient] = useState<DrillPatientRow | null>(null);
   const [renderLimit, setRenderLimit] = useState(200);
+
+  // Cross-practice exception path: identifiers are hidden by default but the
+  // user has identifiable rights for OTHER practices. They can opt in to a
+  // single audit-logged reveal for the current cohort with a reason.
+  const [exceptionRevealed, setExceptionRevealed] = useState(false);
+  const [exceptionReason, setExceptionReason] = useState("");
+  const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
+
+  // Effective inline-PII mode: either the user has direct view rights, OR
+  // they've completed the cross-practice exception reveal for this session.
+  const showInlinePII = canViewPII || (hasViewElsewhere && exceptionRevealed);
 
   // Resolve the current filters
   const filters = useMemo(
