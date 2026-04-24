@@ -222,6 +222,11 @@ const App = () => {
                     <ProactiveComplexCareDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/nres/population-risk" element={
+                  <ProtectedRoute requiredService="nres">
+                    <NRESPopulationRisk />
+                  </ProtectedRoute>
+                } />
                 <Route path="/nres/comms-strategy" element={
                   <ProtectedRoute requiredService="nres">
                     <CommsStrategyDashboard />
