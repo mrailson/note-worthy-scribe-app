@@ -14475,6 +14475,15 @@ export type Database = {
       narp_decrypt_pii: { Args: { p_value: string }; Returns: string }
       narp_encrypt_pii: { Args: { p_value: string }; Returns: string }
       narp_hash_nhs_number: { Args: { p_nhs: string }; Returns: string }
+      narp_insert_snapshots: {
+        Args: {
+          p_export_date: string
+          p_export_id: string
+          p_practice_id: string
+          p_rows: Json
+        }
+        Returns: number
+      }
       purge_expired_data: { Args: never; Returns: string }
       remove_user_from_practice: {
         Args: {
