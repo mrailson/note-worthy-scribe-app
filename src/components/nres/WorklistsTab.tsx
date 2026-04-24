@@ -19,6 +19,7 @@ import {
   CheckCircle2, Circle, Mic, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { patientFilterKey } from "@/lib/narp-filters";
 import {
   useNarpWorklists,
   useNarpWorklistItems,
@@ -38,9 +39,10 @@ import {
 interface WorklistsTabProps {
   practiceId: string | null | undefined;
   practiceName?: string;
+  onOpenPatient?: (filterKey: string) => void;
 }
 
-export const WorklistsTab = ({ practiceId, practiceName }: WorklistsTabProps) => {
+export const WorklistsTab = ({ practiceId, practiceName, onOpenPatient }: WorklistsTabProps) => {
   const [includeClosed, setIncludeClosed] = useState(false);
   const [openWorklistId, setOpenWorklistId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -63,6 +65,7 @@ export const WorklistsTab = ({ practiceId, practiceName }: WorklistsTabProps) =>
         worklistId={openWorklistId}
         worklist={worklists.find((w) => w.id === openWorklistId)}
         onBack={() => setOpenWorklistId(null)}
+        onOpenPatient={onOpenPatient}
       />
     );
   }
@@ -184,11 +187,12 @@ const WorklistCard = ({ worklist, onOpen }: { worklist: NarpWorklist; onOpen: ()
    Detail view — items + meeting links
    ──────────────────────────────────────────────────────────── */
 const WorklistDetail = ({
-  worklistId, worklist, onBack,
+  worklistId, worklist, onBack, onOpenPatient,
 }: {
   worklistId: string;
   worklist: NarpWorklist | undefined;
   onBack: () => void;
+  onOpenPatient?: (filterKey: string) => void;
 }) => {
   const { data: items = [], isLoading } = useNarpWorklistItems(worklistId);
   const { data: meetingLinks = [] } = useNarpWorklistMeetings(worklistId);
@@ -447,6 +451,7 @@ const WorklistDetail = ({
                           key={item.id}
                           item={item}
                           disabled={closed}
+                          onOpenPatient={onOpenPatient}
                           onToggleReviewed={() =>
                             updateItem.mutate({
                               id: item.id,
@@ -541,8 +546,8 @@ const WorklistDetail = ({
 };
 
 const ItemRow = ({
-  item, disabled, onToggleReviewed,
-}: { item: NarpWorklistItem; disabled: boolean; onToggleReviewed: () => void }) => {
+  item, disabled, onToggleReviewed, onOpenPatient,
+}: { item: NarpWorklistItem; disabled: boolean; onToggleReviewed: () => void; onOpenPatient?: (filterKey: string) => void }) => {
   return (
     <tr className="border-b hover:bg-muted/30">
       <td className="p-2">
@@ -559,7 +564,17 @@ const ItemRow = ({
           )}
         </button>
       </td>
-      <td className="p-2 font-mono">{item.fk_patient_link_id}</td>
+      <td className="p-2 font-mono">
+        {onOpenPatient ? (
+          <button
+            type="button"
+            className="text-primary hover:underline underline-offset-2"
+            onClick={() => onOpenPatient(patientFilterKey(item.fk_patient_link_id))}
+          >
+            {item.fk_patient_link_id}
+          </button>
+        ) : item.fk_patient_link_id}
+      </td>
       <td className="p-2 capitalize">{(item.added_risk_tier ?? "—").replace("_", " ")}</td>
       <td className="p-2 text-right tabular-nums">{item.added_poa !== null ? `${item.added_poa.toFixed(1)}%` : "—"}</td>
       <td className="p-2">
