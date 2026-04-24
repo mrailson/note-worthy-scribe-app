@@ -81,9 +81,6 @@ const SDADashboard = () => {
               <TabsContent value="hours" className="mt-0">
                 <NRESHoursTracker />
               </TabsContent>
-              <TabsContent value="nhc-planning" className="mt-0">
-                <NHCPlanningStudio />
-              </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
               </TabsContent>
