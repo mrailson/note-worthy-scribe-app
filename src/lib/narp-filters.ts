@@ -133,6 +133,17 @@ const STATIC_BY_KEY: Record<string, NarpFilter> =
 export const getFilter = (key: string): NarpFilter | null => {
   if (STATIC_BY_KEY[key]) return STATIC_BY_KEY[key];
 
+  if (key.startsWith("patient_")) {
+    const patientId = decodeURIComponent(key.replace("patient_", ""));
+    if (!patientId) return null;
+    return {
+      key,
+      label: `Patient ${patientId}`,
+      subtitle: "Opened from a clinical worklist",
+      predicate: (r) => r.fkPatientLinkId === patientId,
+    };
+  }
+
   // age_{band}_tier_{tier} — band has hyphens (e.g. "0-17") so split carefully
   if (key.startsWith("age_") && key.includes("_tier_")) {
     const [, rest] = key.split("age_");
@@ -153,6 +164,9 @@ export const getFilter = (key: string): NarpFilter | null => {
 
 export const ageRiskFilterKey = (band: AgeBandKey, tier: RiskTierKey): string =>
   `age_${band}_tier_${tier}`;
+
+export const patientFilterKey = (fkPatientLinkId: string): string =>
+  `patient_${encodeURIComponent(fkPatientLinkId)}`;
 
 /** Apply one or more filters as an intersection. */
 export const applyFilters = <T extends NarpFilterableRow>(rows: T[], keys: string[]): T[] => {
