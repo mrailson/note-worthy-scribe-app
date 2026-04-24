@@ -645,17 +645,17 @@ const NRESPopulationRiskInner = () => {
 
             {/* LTC */}
             <TabsContent value="ltc" className="space-y-4">
-              <LtcSection summary={summary} filtered={filtered} />
+              <LtcSection summary={summary} filtered={filtered} onDrill={drill.open} />
             </TabsContent>
 
             {/* COHORTS */}
             <TabsContent value="cohorts" className="space-y-4">
-              <CohortsSection cohorts={cohorts} totalPatients={summary.total} onExport={exportCohortCsv} />
+              <CohortsSection cohorts={cohorts} totalPatients={summary.total} onExport={exportCohortCsv} onDrill={drill.open} />
             </TabsContent>
 
             {/* TOP 25 */}
             <TabsContent value="toprisk" className="space-y-4">
-              <TopRiskSection rows={topRisk} canViewPII={canViewPII} />
+              <TopRiskSection rows={topRisk} canViewPII={canViewPII} onDrill={drill.open} />
             </TabsContent>
           </Tabs>
         )}
