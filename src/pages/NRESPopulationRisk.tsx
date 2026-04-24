@@ -176,7 +176,8 @@ const parseCsv = (text: string): Record<string, string>[] => {
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 
-const NRESPopulationRisk = () => {
+const NRESPopulationRiskInner = () => {
+  const drill = useDrillThrough();
   const isIPhone = useIsIPhone();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
