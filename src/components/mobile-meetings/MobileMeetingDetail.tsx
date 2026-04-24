@@ -219,26 +219,58 @@ export const MobileMeetingDetail: React.FC<MobileMeetingDetailProps> = ({
   const [loading, setLoading] = useState(true);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [actionItemsLoading, setActionItemsLoading] = useState(false);
+  const [transcriptsLoaded, setTranscriptsLoaded] = useState(false);
+  const [askAiMounted, setAskAiMounted] = useState(false);
 
+  // Stage 1: lightweight metadata + overview only — fast initial render
   useEffect(() => {
     if (!meetingId || !user || !open) return;
     setLoading(true);
     setTab('overview');
+    setTranscriptsLoaded(false);
+    setAskAiMounted(false);
 
     const fetchMeeting = async () => {
       const { data } = await supabase
         .from('meetings')
-        .select('id, title, status, start_time, created_at, duration_minutes, word_count, overview, best_of_all_transcript, whisper_transcript_text, assembly_transcript_text, whisper_confidence, assembly_confidence, meeting_attendees_json')
+        .select('id, title, status, start_time, created_at, duration_minutes, word_count, overview, whisper_confidence, assembly_confidence, meeting_attendees_json')
         .eq('id', meetingId)
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (data) setMeeting(data);
+      if (data) setMeeting(data as MeetingDetailData);
       setLoading(false);
     };
 
     fetchMeeting();
   }, [meetingId, user, open]);
+
+  // Stage 2: heavy transcripts — only fetched when user opens Transcript tab
+  useEffect(() => {
+    if (!meetingId || !user || !open) return;
+    if (tab !== 'transcript' || transcriptsLoaded) return;
+
+    const fetchTranscripts = async () => {
+      const { data } = await supabase
+        .from('meetings')
+        .select('best_of_all_transcript, whisper_transcript_text, assembly_transcript_text')
+        .eq('id', meetingId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (data) {
+        setMeeting((prev) => prev ? { ...prev, ...data } : prev);
+        setTranscriptsLoaded(true);
+      }
+    };
+
+    fetchTranscripts();
+  }, [tab, meetingId, user, open, transcriptsLoaded]);
+
+  // Mount Ask AI panel lazily on first tab open and keep it mounted afterwards
+  useEffect(() => {
+    if (tab === 'ask-ai' && !askAiMounted) setAskAiMounted(true);
+  }, [tab, askAiMounted]);
 
   // Fetch action items when actions tab is selected or on mount
   useEffect(() => {
