@@ -155,14 +155,16 @@ export const PatientDrillDrawer = ({
 
   const visibleRows = sortedRows.slice(0, renderLimit);
   const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
+  const visibleRefKey = visibleRows.map((r) => r.fkPatientLinkId).join("|");
 
   useEffect(() => {
     if (!canViewPII || !identifiersVisible || !practiceId || !visibleRows.length) return;
-    const missingRefs = visibleRows.map((r) => r.fkPatientLinkId).filter((id) => !identifierDetails[id]);
+    const refs = visibleRefKey.split("|").filter(Boolean);
+    const missingRefs = refs.filter((id) => !identifierDetails[id]);
     if (!missingRefs.length) return;
 
     let cancelled = false;
-    supabase.rpc("get_narp_identifiable_by_refs", {
+    (supabase as any).rpc("get_narp_identifiable_by_refs", {
       _practice_id: practiceId,
       _fk_patient_link_ids: missingRefs,
     }).then(({ data, error }) => {
@@ -186,7 +188,7 @@ export const PatientDrillDrawer = ({
     });
 
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, visibleRows]);
+  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, visibleRefKey]);
 
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
