@@ -98,6 +98,7 @@ const UsingAiNhs = lazy(() => import("./pages/UsingAiNhs"));
 const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
 const PublicPlanningStudio = lazy(() => import("./pages/PublicPlanningStudio"));
+const NRESPlanningStudio = lazy(() => import("./pages/NRESPlanningStudio"));
 
 const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
 const BPCalculator = lazy(() => import("./pages/BPCalculator"));
@@ -198,6 +199,11 @@ const App = () => {
                 <Route path="/NRESDashboard" element={
                   <ProtectedRoute requiredService="nres">
                     <SDADashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/nres/nhc-planning" element={
+                  <ProtectedRoute requiredService="nres">
+                    <NRESPlanningStudio />
                   </ProtectedRoute>
                 } />
                 <Route path="/enn" element={

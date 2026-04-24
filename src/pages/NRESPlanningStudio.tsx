@@ -6,7 +6,7 @@ const NRESPlanningStudio = () => {
   return (
     <NRESPeopleProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
-        <NRESHeader />
+        <NRESHeader activeTab="nhc-planning" />
         <div className="max-w-[1500px] w-full mx-auto px-4 pt-4 pb-8">
           <NHCPlanningStudio />
         </div>
