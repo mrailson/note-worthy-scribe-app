@@ -110,6 +110,12 @@ const parseAge = (raw: unknown): number | null => {
   return isNaN(n) ? null : n;
 };
 
+/** Normalise a practice name for matching (case- and whitespace-insensitive) */
+const normalisePracticeKey = (raw: unknown): string =>
+  String(raw ?? "").toUpperCase().replace(/\s+/g, " ").trim();
+
+const BUGBROOKE_KEY = normalisePracticeKey("Bugbrooke Medical Practice");
+
 /** Map a parsed row from the NARP export to our internal shape */
 const mapNarpRow = (r: Record<string, unknown>): NarpRow | null => {
   const fk = r["FK_Patient_Link_ID"] ?? r["FK Patient Link ID"];
