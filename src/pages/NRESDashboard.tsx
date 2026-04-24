@@ -15,7 +15,7 @@ import { NRESDigitalAndFinance } from "@/components/nres/NRESDigitalAndFinance";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock, Monitor } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock, Monitor, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
