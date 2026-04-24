@@ -98,8 +98,15 @@ const NRESDashboard = () => {
               </AlertDescription>
             </Alert>
 
-            {/* Presentation Link */}
-            <div className="flex justify-end">
+            {/* Sub-page links */}
+            <div className="flex justify-end gap-2 flex-wrap">
+              <Link to="/nres/population-risk">
+                <Button variant="outline" size="sm">
+                  <Activity className="w-4 h-4 mr-2" />
+                  Population Risk
+                  <span className="ml-2 text-[10px] font-semibold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">PoC</span>
+                </Button>
+              </Link>
               <Link to="/nres-presentation">
                 <Button variant="outline" size="sm">
                   <Presentation className="w-4 h-4 mr-2" />
