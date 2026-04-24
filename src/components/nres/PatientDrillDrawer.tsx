@@ -499,12 +499,31 @@ export const PatientDrillDrawer = ({
                 <Send className="h-4 w-4 mr-1.5" />
                 Send {selected.size || ""} to Buy-Back Claims
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!selected.size) {
+                    toast.info("Select at least one patient first");
+                    return;
+                  }
+                  if (!practiceId) {
+                    toast.error("Select a single practice before adding to a worklist");
+                    return;
+                  }
+                  setWorklistDialogOpen(true);
+                }}
+                disabled={!selected.size || !practiceId}
+              >
+                <ListChecks className="h-4 w-4 mr-1.5" />
+                Add {selected.size || ""} to worklist
+              </Button>
               <Button size="sm" variant="outline" onClick={exportCsvAnonymised}>
                 <FileDown className="h-4 w-4 mr-1.5" />
                 Export – anonymised
               </Button>
               {canExportPII && (
-                <Button size="sm" variant="outline" className="border-amber-400 text-amber-900 hover:bg-amber-50" onClick={exportCsvIdentifiable}>
+                <Button size="sm" variant="outline" onClick={exportCsvIdentifiable}>
                   <ShieldCheck className="h-4 w-4 mr-1.5" />
                   Export – with identifiers
                 </Button>
@@ -513,6 +532,28 @@ export const PatientDrillDrawer = ({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Add-to-worklist dialog — Phase C */}
+      <AddToWorklistDialog
+        open={worklistDialogOpen}
+        onOpenChange={setWorklistDialogOpen}
+        practiceId={practiceId}
+        practiceName={practiceName}
+        cohortLabel={filters.length > 0 ? filters.map((f) => f.label).join(" + ") : undefined}
+        patients={sortedRows
+          .filter((r) => selected.has(r.fkPatientLinkId))
+          .map((r) => ({
+            fk_patient_link_id: r.fkPatientLinkId,
+            added_risk_tier: typeof r.poA === "number"
+              ? (r.poA > 50 ? "very_high" : r.poA >= 20 ? "high" : r.poA >= 10 ? "moderate" : r.poA >= 5 ? "rising" : "low")
+              : null,
+            added_poa: r.poA,
+            added_polos: r.poLoS,
+            added_drug_count: r.drugCount,
+            added_frailty_category: r.frailty,
+          }))}
+        onAdded={() => clearSelection()}
+      />
 
       {/* Cross-practice exception reveal dialog */}
       <Dialog open={exceptionDialogOpen} onOpenChange={setExceptionDialogOpen}>
