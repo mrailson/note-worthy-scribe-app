@@ -158,8 +158,8 @@ export const PatientDrillDrawer = ({
   const visibleRefKey = visibleRows.map((r) => r.fkPatientLinkId).join("|");
 
   useEffect(() => {
-    if (!canViewPII || !identifiersVisible || !practiceId || !visibleRows.length) return;
     const refs = visibleRefKey.split("|").filter(Boolean);
+    if (!canViewPII || !identifiersVisible || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
     if (!missingRefs.length) return;
 
