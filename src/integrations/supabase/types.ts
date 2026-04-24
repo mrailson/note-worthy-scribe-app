@@ -8050,6 +8050,234 @@ export type Database = {
         }
         Relationships: []
       }
+      narp_cohort_membership: {
+        Row: {
+          cohort_key: string
+          export_id: string
+          patient_snapshot_id: number
+          practice_id: string
+        }
+        Insert: {
+          cohort_key: string
+          export_id: string
+          patient_snapshot_id: number
+          practice_id: string
+        }
+        Update: {
+          cohort_key?: string
+          export_id?: string
+          patient_snapshot_id?: number
+          practice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narp_cohort_membership_export_id_fkey"
+            columns: ["export_id"]
+            isOneToOne: false
+            referencedRelation: "narp_exports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_cohort_membership_patient_snapshot_id_fkey"
+            columns: ["patient_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "narp_patient_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_cohort_membership_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      narp_exports: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          export_date: string
+          file_checksum: string
+          file_name: string | null
+          id: string
+          patient_count: number
+          practice_id: string
+          status: string
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          export_date: string
+          file_checksum: string
+          file_name?: string | null
+          id?: string
+          patient_count?: number
+          practice_id: string
+          status?: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          export_date?: string
+          file_checksum?: string
+          file_name?: string | null
+          id?: string
+          patient_count?: number
+          practice_id?: string
+          status?: string
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narp_exports_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      narp_patient_snapshots: {
+        Row: {
+          ae_attendances: number | null
+          age: number | null
+          created_at: string
+          drug_count: number | null
+          export_date: string
+          export_id: string
+          fk_patient_link_id: string
+          forenames_enc: string | null
+          frailty_category: string | null
+          id: number
+          inpatient_elective: number | null
+          inpatient_total_admissions: number | null
+          nhs_number_enc: string | null
+          nhs_number_hash: string | null
+          outpatient_first: number | null
+          outpatient_followup: number | null
+          poa: number | null
+          polos: number | null
+          practice_id: string
+          risk_tier: string | null
+          rub: string | null
+          surname_enc: string | null
+        }
+        Insert: {
+          ae_attendances?: number | null
+          age?: number | null
+          created_at?: string
+          drug_count?: number | null
+          export_date: string
+          export_id: string
+          fk_patient_link_id: string
+          forenames_enc?: string | null
+          frailty_category?: string | null
+          id?: number
+          inpatient_elective?: number | null
+          inpatient_total_admissions?: number | null
+          nhs_number_enc?: string | null
+          nhs_number_hash?: string | null
+          outpatient_first?: number | null
+          outpatient_followup?: number | null
+          poa?: number | null
+          polos?: number | null
+          practice_id: string
+          risk_tier?: string | null
+          rub?: string | null
+          surname_enc?: string | null
+        }
+        Update: {
+          ae_attendances?: number | null
+          age?: number | null
+          created_at?: string
+          drug_count?: number | null
+          export_date?: string
+          export_id?: string
+          fk_patient_link_id?: string
+          forenames_enc?: string | null
+          frailty_category?: string | null
+          id?: number
+          inpatient_elective?: number | null
+          inpatient_total_admissions?: number | null
+          nhs_number_enc?: string | null
+          nhs_number_hash?: string | null
+          outpatient_first?: number | null
+          outpatient_followup?: number | null
+          poa?: number | null
+          polos?: number | null
+          practice_id?: string
+          risk_tier?: string | null
+          rub?: string | null
+          surname_enc?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narp_patient_snapshots_export_id_fkey"
+            columns: ["export_id"]
+            isOneToOne: false
+            referencedRelation: "narp_exports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_patient_snapshots_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      narp_pii_access_log: {
+        Row: {
+          accessed_at: string
+          context: string | null
+          id: number
+          patient_snapshot_id: number | null
+          practice_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          context?: string | null
+          id?: number
+          patient_snapshot_id?: number | null
+          practice_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          context?: string | null
+          id?: number
+          patient_snapshot_id?: number | null
+          practice_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narp_pii_access_log_patient_snapshot_id_fkey"
+            columns: ["patient_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "narp_patient_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_pii_access_log_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       neighbourhood_meetings: {
         Row: {
           created_at: string
@@ -12900,6 +13128,8 @@ export type Database = {
           lg_capture_access: boolean | null
           meeting_notes_access: boolean | null
           mic_test_service_access: boolean | null
+          narp_upload_access: boolean
+          narp_view_pii_access: boolean
           practice_id: string | null
           practice_role: Database["public"]["Enums"]["practice_role"] | null
           replywell_access: boolean | null
@@ -12929,6 +13159,8 @@ export type Database = {
           lg_capture_access?: boolean | null
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
+          narp_upload_access?: boolean
+          narp_view_pii_access?: boolean
           practice_id?: string | null
           practice_role?: Database["public"]["Enums"]["practice_role"] | null
           replywell_access?: boolean | null
@@ -12958,6 +13190,8 @@ export type Database = {
           lg_capture_access?: boolean | null
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
+          narp_upload_access?: boolean
+          narp_view_pii_access?: boolean
           practice_id?: string | null
           practice_role?: Database["public"]["Enums"]["practice_role"] | null
           replywell_access?: boolean | null
@@ -13284,6 +13518,7 @@ export type Database = {
       }
     }
     Functions: {
+      _narp_pepper: { Args: never; Returns: string }
       admin_list_user_generated_images: {
         Args: never
         Returns: {
@@ -13797,6 +14032,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_patient_identifiable: {
+        Args: { p_snapshot_id: number }
+        Returns: {
+          forenames: string
+          nhs_number: string
+          snapshot_id: number
+          surname: string
+        }[]
+      }
       get_pcn_manager_practice_ids: {
         Args: { _user_id?: string }
         Returns: string[]
@@ -14026,6 +14270,14 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: boolean
       }
+      has_narp_upload_access: {
+        Args: { p_practice: string; p_user: string }
+        Returns: boolean
+      }
+      has_narp_view_pii_access: {
+        Args: { p_practice: string; p_user: string }
+        Returns: boolean
+      }
       has_nres_access: { Args: { check_user_id?: string }; Returns: boolean }
       has_nres_buyback_access: {
         Args: { _practice_key: string; _roles?: string[]; _user_id: string }
@@ -14036,6 +14288,10 @@ export type Database = {
         Returns: boolean
       }
       has_nres_vault_access: { Args: { p_user_id: string }; Returns: boolean }
+      has_practice_access: {
+        Args: { p_practice: string; p_user: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -14215,6 +14471,18 @@ export type Database = {
       mark_session_inactive: {
         Args: { p_session_id?: string; p_user_id: string }
         Returns: undefined
+      }
+      narp_decrypt_pii: { Args: { p_value: string }; Returns: string }
+      narp_encrypt_pii: { Args: { p_value: string }; Returns: string }
+      narp_hash_nhs_number: { Args: { p_nhs: string }; Returns: string }
+      narp_insert_snapshots: {
+        Args: {
+          p_export_date: string
+          p_export_id: string
+          p_practice_id: string
+          p_rows: Json
+        }
+        Returns: number
       }
       purge_expired_data: { Args: never; Returns: string }
       remove_user_from_practice: {
