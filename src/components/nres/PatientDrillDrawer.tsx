@@ -411,6 +411,16 @@ export const PatientDrillDrawer = ({
                       />
                     </td>
                     <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
+                    {showInlinePII && (
+                      <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>
+                        {r.nhsNumber || "—"}
+                      </td>
+                    )}
+                    {showInlinePII && (
+                      <td className="p-2">
+                        {[r.forenames, r.surname].filter(Boolean).join(" ") || "—"}
+                      </td>
+                    )}
                     <td className="p-2 tabular-nums">{r.age ?? "—"}</td>
                     <td className="p-2">{r.frailty}</td>
                     <td className="p-2 text-right tabular-nums">{r.drugCount}</td>
@@ -422,7 +432,7 @@ export const PatientDrillDrawer = ({
                   </tr>
                 ))}
                 {!visibleRows.length && (
-                  <tr><td colSpan={10} className="p-8 text-center text-muted-foreground">No patients match these filters.</td></tr>
+                  <tr><td colSpan={showInlinePII ? 12 : 10} className="p-8 text-center text-muted-foreground">No patients match these filters.</td></tr>
                 )}
               </tbody>
             </table>
@@ -449,25 +459,80 @@ export const PatientDrillDrawer = ({
                 </>}
               </div>
             </div>
-            {canViewPII && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox checked={exportWithPII} onCheckedChange={(v) => setExportWithPII(!!v)} />
-                Include patient identifiers in CSV (audit-logged)
-              </label>
+            {/* Cross-practice exception path: user has identifiable rights for
+                another practice but not this one. Single audit-logged reveal
+                with a reason — no per-row prompt. */}
+            {hasViewElsewhere && !canViewPII && !exceptionRevealed && (
+              <div className="border border-amber-300 bg-amber-50 rounded-md p-2 text-xs text-amber-900">
+                <div className="font-semibold mb-1 flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  Identifiers hidden — viewing outside your assigned practice
+                </div>
+                <div className="mb-2">Reveal requires a reason. Audit-logged.</div>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setExceptionDialogOpen(true)}>
+                  Reveal identifiers (audit-logged)
+                </Button>
+              </div>
             )}
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1" onClick={sendToBuyBack} disabled={!selected.size}>
+            <div className="flex gap-2 flex-wrap">
+              <Button size="sm" className="flex-1 min-w-[180px]" onClick={sendToBuyBack} disabled={!selected.size}>
                 <Send className="h-4 w-4 mr-1.5" />
                 Send {selected.size || ""} to Buy-Back Claims
               </Button>
-              <Button size="sm" variant="outline" onClick={exportCsv}>
+              <Button size="sm" variant="outline" onClick={exportCsvAnonymised}>
                 <FileDown className="h-4 w-4 mr-1.5" />
-                Export CSV
+                Export – anonymised
               </Button>
+              {canExportPII && (
+                <Button size="sm" variant="outline" className="border-amber-400 text-amber-900 hover:bg-amber-50" onClick={exportCsvIdentifiable}>
+                  <ShieldCheck className="h-4 w-4 mr-1.5" />
+                  Export – with identifiers
+                </Button>
+              )}
             </div>
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Cross-practice exception reveal dialog */}
+      <Dialog open={exceptionDialogOpen} onOpenChange={setExceptionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reveal identifiers for this cohort</DialogTitle>
+            <DialogDescription>
+              You have identifiable access for another practice but not the one currently selected.
+              This reveal will be audit-logged against your account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              value={exceptionReason}
+              onChange={(e) => setExceptionReason(e.target.value)}
+              placeholder="Reason for access (min. 10 characters)"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setExceptionDialogOpen(false)}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={exceptionReason.trim().length < 10 || !practiceId}
+                onClick={() => {
+                  if (!practiceId) return;
+                  void supabase.rpc("log_narp_pii_page_access", {
+                    _practice_id: practiceId,
+                    _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
+                    _patient_count_rendered: visibleRows.length,
+                  });
+                  setExceptionRevealed(true);
+                  setExceptionDialogOpen(false);
+                  toast.success("Identifiers revealed for this session. Audit row written.");
+                }}
+              >
+                Reveal
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <PatientDetailModal
         patient={activePatient}
