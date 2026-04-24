@@ -550,6 +550,16 @@ export const PatientDrillDrawer = ({
         </DialogContent>
       </Dialog>
 
+      {/* Identifiable CSV export — reason + consent modal */}
+      <IdentifiableExportModal
+        open={identifiableExportOpen}
+        onOpenChange={setIdentifiableExportOpen}
+        practiceId={practiceId}
+        practiceName={practiceName}
+        cohortLabel={filters.length > 0 ? filters.map((f) => f.label).join(" + ") : undefined}
+        rowCountHint={sortedRows.length}
+      />
+
       <PatientDetailModal
         patient={activePatient}
         canViewPII={canViewPII}
