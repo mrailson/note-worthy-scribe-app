@@ -149,6 +149,7 @@ export const PatientDrillDrawer = ({
   }, [filteredRows, sortBy]);
 
   const visibleRows = sortedRows.slice(0, renderLimit);
+  const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
 
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
@@ -288,8 +289,13 @@ export const PatientDrillDrawer = ({
       <Sheet open={isOpen} onOpenChange={(o) => { if (!o) onCloseDrawer(); }}>
         <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 flex flex-col">
           <SheetHeader className="px-5 pt-5 pb-3 border-b">
-            <SheetTitle className="text-lg flex items-center gap-2 pr-8">
+            <SheetTitle className="text-lg flex items-center gap-2 pr-8 flex-wrap">
               {titleText}
+              {singlePatientRef && (
+                <Badge variant="outline" className="text-sm font-mono border-primary/40 text-primary bg-primary/5">
+                  Ref {singlePatientRef}
+                </Badge>
+              )}
             </SheetTitle>
             <SheetDescription className="text-xs">{subtitleText}</SheetDescription>
 
@@ -314,6 +320,12 @@ export const PatientDrillDrawer = ({
           </SheetHeader>
 
           {/* Summary strip */}
+          {singlePatientRef && (
+            <div className="px-5 py-2 border-b bg-primary/5 text-sm">
+              <span className="text-muted-foreground">Patient record reference: </span>
+              <span className="font-mono font-semibold text-primary">{singlePatientRef}</span>
+            </div>
+          )}
           <div className="grid grid-cols-4 gap-2 px-5 py-3 bg-muted/40 border-b text-center">
             <Stat label="In cohort" value={fmt(summary.n)} />
             <Stat label="Mean PoA" value={pct(summary.meanPoA)} />
