@@ -6,11 +6,12 @@ import {
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker,
+  Upload, FileDown, Beaker, ListChecks,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
 import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
+import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
@@ -508,6 +509,7 @@ const NRESPopulationRiskInner = () => {
               <TabsTrigger value="ltc" className="gap-2"><Heart className="w-4 h-4" />LTC Focus</TabsTrigger>
               <TabsTrigger value="cohorts" className="gap-2"><Target className="w-4 h-4" />NRES Cohorts</TabsTrigger>
               <TabsTrigger value="toprisk" className="gap-2"><AlertTriangle className="w-4 h-4" />Top 25 Risk</TabsTrigger>
+              <TabsTrigger value="worklists" className="gap-2"><ListChecks className="w-4 h-4" />Worklists</TabsTrigger>
             </TabsList>
 
             {/* OVERVIEW */}
@@ -676,6 +678,14 @@ const NRESPopulationRiskInner = () => {
             {/* TOP 25 */}
             <TabsContent value="toprisk" className="space-y-4">
               <TopRiskSection rows={topRisk} canViewPII={canViewPII} onDrill={drill.open} />
+            </TabsContent>
+
+            {/* WORKLISTS */}
+            <TabsContent value="worklists" className="space-y-4">
+              <WorklistsTab
+                practiceId={selectedPracticeId ?? null}
+                practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
+              />
             </TabsContent>
           </Tabs>
         )}

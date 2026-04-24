@@ -8331,6 +8331,211 @@ export type Database = {
           },
         ]
       }
+      narp_worklist_items: {
+        Row: {
+          added_at: string
+          added_by: string
+          added_drug_count: number | null
+          added_export_id: string | null
+          added_frailty_category: string | null
+          added_poa: number | null
+          added_polos: number | null
+          added_risk_tier: string | null
+          change_flag: string
+          change_flag_updated_at: string | null
+          created_at: string
+          fk_patient_link_id: string
+          id: string
+          latest_poa: number | null
+          latest_risk_tier: string | null
+          notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_email: string | null
+          reviewed_via_meeting_id: string | null
+          updated_at: string
+          worklist_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          added_drug_count?: number | null
+          added_export_id?: string | null
+          added_frailty_category?: string | null
+          added_poa?: number | null
+          added_polos?: number | null
+          added_risk_tier?: string | null
+          change_flag?: string
+          change_flag_updated_at?: string | null
+          created_at?: string
+          fk_patient_link_id: string
+          id?: string
+          latest_poa?: number | null
+          latest_risk_tier?: string | null
+          notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_email?: string | null
+          reviewed_via_meeting_id?: string | null
+          updated_at?: string
+          worklist_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          added_drug_count?: number | null
+          added_export_id?: string | null
+          added_frailty_category?: string | null
+          added_poa?: number | null
+          added_polos?: number | null
+          added_risk_tier?: string | null
+          change_flag?: string
+          change_flag_updated_at?: string | null
+          created_at?: string
+          fk_patient_link_id?: string
+          id?: string
+          latest_poa?: number | null
+          latest_risk_tier?: string | null
+          notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_email?: string | null
+          reviewed_via_meeting_id?: string | null
+          updated_at?: string
+          worklist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narp_worklist_items_added_export_id_fkey"
+            columns: ["added_export_id"]
+            isOneToOne: false
+            referencedRelation: "narp_exports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_worklist_items_reviewed_via_meeting_id_fkey"
+            columns: ["reviewed_via_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_worklist_items_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "narp_worklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      narp_worklist_meeting_links: {
+        Row: {
+          id: string
+          linked_at: string
+          linked_by: string
+          meeting_id: string
+          unlinked_at: string | null
+          worklist_id: string
+        }
+        Insert: {
+          id?: string
+          linked_at?: string
+          linked_by: string
+          meeting_id: string
+          unlinked_at?: string | null
+          worklist_id: string
+        }
+        Update: {
+          id?: string
+          linked_at?: string
+          linked_by?: string
+          meeting_id?: string
+          unlinked_at?: string | null
+          worklist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narp_worklist_meeting_links_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_worklist_meeting_links_worklist_id_fkey"
+            columns: ["worklist_id"]
+            isOneToOne: false
+            referencedRelation: "narp_worklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      narp_worklists: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          cohort_label: string | null
+          created_at: string
+          created_by: string
+          created_by_email: string | null
+          description: string | null
+          id: string
+          practice_id: string
+          source_export_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          cohort_label?: string | null
+          created_at?: string
+          created_by: string
+          created_by_email?: string | null
+          description?: string | null
+          id?: string
+          practice_id: string
+          source_export_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          cohort_label?: string | null
+          created_at?: string
+          created_by?: string
+          created_by_email?: string | null
+          description?: string | null
+          id?: string
+          practice_id?: string
+          source_export_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narp_worklists_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narp_worklists_source_export_id_fkey"
+            columns: ["source_export_id"]
+            isOneToOne: false
+            referencedRelation: "narp_exports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       neighbourhood_meetings: {
         Row: {
           created_at: string
@@ -14412,6 +14617,7 @@ export type Database = {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
       }
+      is_practice_member: { Args: { _practice_id: string }; Returns: boolean }
       is_session_valid: { Args: { p_session_id: string }; Returns: boolean }
       is_system_admin: { Args: { _user_id?: string }; Returns: boolean }
       log_complaint_action:
