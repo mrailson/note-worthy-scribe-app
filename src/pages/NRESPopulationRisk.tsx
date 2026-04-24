@@ -726,7 +726,7 @@ const NRESPopulationRiskInner = () => {
 
             {/* TOP 25 */}
             <TabsContent value="toprisk" className="space-y-4">
-              <TopRiskSection rows={topRisk} canViewPII={canViewPII} onDrill={drill.open} />
+              <TopRiskSection rows={topRisk} canViewPII={canViewPII} practiceId={selectedPracticeId ?? null} onDrill={drill.open} />
             </TabsContent>
 
             {/* WORKLISTS */}
