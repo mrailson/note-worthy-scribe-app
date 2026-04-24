@@ -682,7 +682,14 @@ const NRESPopulationRiskInner = () => {
       </div>
 
       {/* Drill-through drawer (single source of truth for every clickable count) */}
-      <PatientDrillDrawer rows={filtered} canViewPII={canViewPII} />
+      <PatientDrillDrawer
+        rows={filtered}
+        canViewPII={canViewPII}
+        canExportPII={canExportPII}
+        hasViewElsewhere={hasViewElsewhere}
+        practiceId={selectedPracticeId ?? null}
+        route="/nres/population-risk"
+      />
     </div>
   );
 };
