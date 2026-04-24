@@ -236,7 +236,14 @@ export function useUpdateWorklistItem() {
     mutationFn: async (input: UpdateItemInput) => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("Not signed in");
-      const patch: Record<string, unknown> = {};
+      const patch: {
+        review_status?: ItemReviewStatus;
+        reviewed_at?: string | null;
+        reviewed_by?: string | null;
+        reviewed_by_email?: string | null;
+        reviewed_via_meeting_id?: string | null;
+        notes?: string | null;
+      } = {};
       if (input.review_status !== undefined) {
         patch.review_status = input.review_status;
         if (input.review_status === "reviewed") {
