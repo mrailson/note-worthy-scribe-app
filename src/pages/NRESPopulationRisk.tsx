@@ -6,11 +6,12 @@ import {
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker,
+  Upload, FileDown, Beaker, ListChecks,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
 import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
+import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
