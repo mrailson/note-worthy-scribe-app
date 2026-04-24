@@ -698,7 +698,7 @@ const KpiCard = ({
   );
 };
 
-const LtcSection = ({ summary, filtered }: { summary: ReturnType<typeof Object>; filtered: NarpRow[] }) => {
+const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof Object>; filtered: NarpRow[]; onDrill?: (key: string) => void }) => {
   const ltcBreakdown = useMemo(() => {
     const set = filtered.filter(r => (r.age ?? 0) >= 65);
     const fit = set.filter(r => r.frailty === "Fit").length;
@@ -800,8 +800,8 @@ const PolyBar = ({ label, value, max, colour, detail }: { label: string; value: 
 };
 
 const CohortsSection = ({
-  cohorts, totalPatients, onExport,
-}: { cohorts: any[]; totalPatients: number; onExport: (id: string) => void }) => {
+  cohorts, totalPatients, onExport, onDrill,
+}: { cohorts: any[]; totalPatients: number; onExport: (id: string) => void; onDrill?: (key: string) => void }) => {
   const [selected, setSelected] = useState(cohorts[0]?.id ?? "vhhr");
   const c = cohorts.find(x => x.id === selected) ?? cohorts[0];
 
@@ -899,7 +899,7 @@ const CohortsSection = ({
   );
 };
 
-const TopRiskSection = ({ rows, canViewPII }: { rows: NarpRow[]; canViewPII: boolean }) => {
+const TopRiskSection = ({ rows, canViewPII, onDrill }: { rows: NarpRow[]; canViewPII: boolean; onDrill?: (key: string) => void }) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
