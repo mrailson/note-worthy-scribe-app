@@ -1396,6 +1396,7 @@ const TopRiskSection = ({
               <th className="text-left p-3"><ScoreHeader label="RUB" tip={scoreTooltips.rub} /></th>
               <th className="text-right p-3"><ScoreHeader label="PoA" tip={scoreTooltips.poa} align="right" /></th>
               <th className="text-right p-3"><ScoreHeader label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
+              <th className="text-right p-3">Details</th>
             </tr>
           </thead>
           <tbody>
@@ -1425,6 +1426,20 @@ const TopRiskSection = ({
                   </td>
                   <td className="p-3 text-right tabular-nums text-slate-600">
                     {p.poLoS !== null ? `${p.poLoS.toFixed(1)}%` : "—"}
+                  </td>
+                  <td className="p-3 text-right">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDrill?.(drillKey);
+                      }}
+                    >
+                      View details
+                    </Button>
                   </td>
                 </tr>
               );
