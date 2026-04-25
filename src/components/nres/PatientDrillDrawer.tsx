@@ -62,6 +62,10 @@ interface PatientDrillDrawerProps {
   practiceName?: string;
   /** Route key for the page-load audit log. */
   route?: string;
+  /** Persisted page-level preference for inline identifiable display. */
+  identifiersVisible?: boolean;
+  /** Updates the persisted page-level preference for inline identifiable display. */
+  onIdentifiersVisibleChange?: (visible: boolean) => void;
 }
 
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
@@ -80,6 +84,12 @@ const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 const pct = (n: number) => `${n.toFixed(1)}%`;
+const csvEscape = (value: unknown): string => {
+  const text = String(value ?? "");
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<DrillPatientRow, "forenames" | "surname">) =>
+  [details?.forenames ?? row?.forenames, details?.surname ?? row?.surname].filter(Boolean).join(" ");
 
 const QUICK_CHIPS: { label: string; key: string }[] = [
   { label: "Age 65+", key: "_quick_65plus" },
@@ -104,6 +114,8 @@ export const PatientDrillDrawer = ({
   practiceId = null,
   practiceName,
   route,
+  identifiersVisible: identifiersVisibleProp,
+  onIdentifiersVisibleChange,
 }: PatientDrillDrawerProps) => {
   const { isOpen, filterKeys, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
@@ -112,8 +124,10 @@ export const PatientDrillDrawer = ({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activePatient, setActivePatient] = useState<DrillPatientRow | null>(null);
   const [renderLimit, setRenderLimit] = useState(200);
-  const [identifiersVisible, setIdentifiersVisible] = useState(false);
+  const [internalIdentifiersVisible, setInternalIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
+  const identifiersVisible = identifiersVisibleProp ?? internalIdentifiersVisible;
+  const setIdentifiersVisible = onIdentifiersVisibleChange ?? setInternalIdentifiersVisible;
 
   // Cross-practice exception path: identifiers are hidden by default but the
   // user has identifiable rights for OTHER practices. They can opt in to a
