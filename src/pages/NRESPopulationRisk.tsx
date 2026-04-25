@@ -15,6 +15,7 @@ import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
+import { useAuth } from "@/contexts/AuthContext";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { safeSetItem } from "@/utils/localStorageManager";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -227,14 +229,42 @@ const parseCsv = (text: string): Record<string, string>[] => {
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 
+const csvEscape = (value: unknown): string => {
+  const text = String(value ?? "");
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<NarpRow, "forenames" | "surname">) =>
+  [details?.forenames ?? row?.forenames, details?.surname ?? row?.surname].filter(Boolean).join(" ");
+
 const NRESPopulationRiskInner = () => {
   const drill = useDrillThrough();
   const isIPhone = useIsIPhone();
+  const { user } = useAuth();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
   const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
+  const [showIdentifiersPreference, setShowIdentifiersPreferenceState] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const identifierPreferenceKey = user?.id
+    ? `nres:population-risk:show-identifiers:${user.id}`
+    : null;
+
+  useEffect(() => {
+    if (!identifierPreferenceKey) {
+      setShowIdentifiersPreferenceState(false);
+      return;
+    }
+    setShowIdentifiersPreferenceState(localStorage.getItem(identifierPreferenceKey) === "true");
+  }, [identifierPreferenceKey]);
+
+  const setShowIdentifiersPreference = useCallback((visible: boolean) => {
+    setShowIdentifiersPreferenceState(visible);
+    if (identifierPreferenceKey) {
+      safeSetItem(identifierPreferenceKey, visible ? "true" : "false");
+    }
+  }, [identifierPreferenceKey]);
 
   // Resolve the selected practice's UUID so we can scope the NMoC DSA
   // identifiable-data permission check correctly. "All Practices" deliberately
