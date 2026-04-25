@@ -67,7 +67,9 @@ export function useNarpIdentifiableAccess(
       }
       return (data ?? []) as RoleRow[];
     },
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
   });
 
   const access = useMemo<Omit<NarpIdentifiableAccess, "isLoading">>(() => {
