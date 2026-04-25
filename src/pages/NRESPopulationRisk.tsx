@@ -373,6 +373,13 @@ const NRESPopulationRiskInner = () => {
   useEffect(() => { loadNarpExports(); }, [loadNarpExports, uploadsRefreshSignal]);
 
   useEffect(() => {
+    const latestReadyExport = narpExports.find((item) => item.status === "ready");
+    if (!latestReadyExport || restoredExportIdRef.current === latestReadyExport.id || rows.length) return;
+    restoredExportIdRef.current = latestReadyExport.id;
+    void reloadPersistedExport(latestReadyExport.id);
+  }, [narpExports, reloadPersistedExport, rows.length]);
+
+  useEffect(() => {
     let cancelled = false;
     if (!user?.id || !narpExportPracticeId) {
       setCanUploadNarp(false);
