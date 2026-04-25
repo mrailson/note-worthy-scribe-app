@@ -794,12 +794,7 @@ const Stat = ({ label, value, sub }: { label: string; value: string; sub?: strin
     <div className="narp-display text-[22px] font-semibold leading-tight tabular-nums">
       {value}
       {sub && <span className="ml-1 font-sans text-[11px] font-normal text-muted-foreground">{sub}</span>}
-        </div>
-        {selectionCapped && (
-          <div className="sticky bottom-0 border-t bg-muted/30 px-6 py-2 text-xs text-muted-foreground">
-            Selection capped at {SELECTION_CAP}. Filter further to select more.
-          </div>
-        )}
+    </div>
   </div>
 );
 
