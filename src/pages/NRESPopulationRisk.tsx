@@ -460,7 +460,39 @@ const NRESPopulationRiskInner = () => {
       .slice(0, 25);
   }, [filtered]);
 
-  const exportCohortCsv = (cohortId: string) => {
+  const resolveIdentifiableDetails = useCallback(async (targetRows: NarpRow[]) => {
+    if (!selectedPracticeId) {
+      toast.error("Select a single practice before exporting identifiers");
+      return null;
+    }
+    const details: Record<string, IdentifiableDetails> = {};
+    const refs = Array.from(new Set(targetRows.map((r) => r.fkPatientLinkId).filter(Boolean)));
+    const rpcRefs: string[] = [];
+    for (const ref of refs) {
+      if (DEMO_IDENTIFIABLE_DETAILS[ref]) details[ref] = DEMO_IDENTIFIABLE_DETAILS[ref];
+      else rpcRefs.push(ref);
+    }
+    if (rpcRefs.length) {
+      const { data, error } = await (supabase as any).rpc("get_narp_identifiable_by_refs", {
+        _practice_id: selectedPracticeId,
+        _fk_patient_link_ids: rpcRefs,
+      });
+      if (error) {
+        toast.error("Could not load identifiable details");
+        return null;
+      }
+      for (const row of data ?? []) {
+        details[row.fk_patient_link_id] = {
+          nhs_number: row.nhs_number ?? null,
+          forenames: row.forenames ?? null,
+          surname: row.surname ?? null,
+        };
+      }
+    }
+    return details;
+  }, [selectedPracticeId]);
+
+  const exportCohortCsv = async (cohortId: string) => {
     const cohortMap: Record<string, NarpRow[]> = {
       vhhr:   filtered.filter(r => (r.poA ?? 0) >= 20),
       ltc:    filtered.filter(r => (r.age ?? 0) >= 65 && (r.frailty === "Moderate" || r.frailty === "Severe")),
@@ -472,11 +504,19 @@ const NRESPopulationRiskInner = () => {
     };
     const data = cohortMap[cohortId] ?? [];
     if (!data.length) { toast.info("No patients in cohort"); return; }
-    const headers = ["FK_Patient_Link_ID", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"];
-    const lines = [headers.join(",")].concat(data.map(r => [
-      r.fkPatientLinkId, r.age ?? "", r.frailty, r.drugCount, r.inpatientAdmissions,
-      `"${r.rub}"`, r.poA ?? "", r.poLoS ?? "",
-    ].join(",")));
+    const includeIdentifiers = canViewPII && showIdentifiersPreference;
+    const details = includeIdentifiers ? await resolveIdentifiableDetails(data) : null;
+    if (includeIdentifiers && !details) return;
+    const headers = includeIdentifiers
+      ? ["NHS_Number", "Name", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"]
+      : ["FK_Patient_Link_ID", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"];
+    const lines = [headers.join(",")].concat(data.map(r => {
+      const base = [r.age ?? "", r.frailty, r.drugCount, r.inpatientAdmissions, r.rub, r.poA ?? "", r.poLoS ?? ""];
+      const values = includeIdentifiers
+        ? [details?.[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details?.[r.fkPatientLinkId], r), ...base]
+        : [r.fkPatientLinkId, ...base];
+      return values.map(csvEscape).join(",");
+    }));
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
