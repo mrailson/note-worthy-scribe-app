@@ -1211,9 +1211,7 @@ const TopRiskSection = ({
   }, [identifiersVisible]);
 
   const showIdentifierLookupFailedToast = () => {
-    if (identifierLookupToastShownRef.current) return;
     identifierLookupToastShownRef.current = true;
-    toast.error("Could not load identifiable details", { id: "narp-identifiers-load-failed" });
   };
 
   useEffect(() => {
@@ -1245,6 +1243,7 @@ const TopRiskSection = ({
     }).then(({ data, error }) => {
       if (cancelled) return;
       if (error || (data ?? []).length === 0) {
+        if (error) console.warn("[TopRiskSection] Could not load identifiable details", error);
         setIdentifierLookupUnavailable(true);
         setIdentifierLookupStatus("unavailable");
         showIdentifierLookupFailedToast();
@@ -1289,6 +1288,7 @@ const TopRiskSection = ({
           _fk_patient_link_ids: rpcRefs,
         });
         if (error || (data ?? []).length === 0) {
+          if (error) console.warn("[TopRiskSection] Could not load identifiable details for export", error);
           setIdentifierLookupUnavailable(true);
           setIdentifierLookupStatus("unavailable");
           showIdentifierLookupFailedToast();
