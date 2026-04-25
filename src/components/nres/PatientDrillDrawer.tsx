@@ -161,9 +161,7 @@ export const PatientDrillDrawer = ({
   }, [identifiersVisible]);
 
   const showIdentifierLookupFailedToast = () => {
-    if (identifierLookupToastShownRef.current) return;
     identifierLookupToastShownRef.current = true;
-    toast.error("Could not load identifiable details", { id: "narp-identifiers-load-failed" });
   };
 
   // Resolve the current filters
@@ -232,6 +230,7 @@ export const PatientDrillDrawer = ({
     }).then(({ data, error }) => {
       if (cancelled) return;
       if (error || (data ?? []).length === 0) {
+        if (error) console.warn("[PatientDrillDrawer] Could not load identifiable details", error);
         setIdentifierLookupUnavailable(true);
         setIdentifierLookupStatus("unavailable");
         showIdentifierLookupFailedToast();
