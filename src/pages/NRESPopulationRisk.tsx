@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
+import { Link } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis,
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker, ListChecks, Loader2,
+  Upload, FileDown, Beaker, ListChecks, Loader2, CircleHelp,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
@@ -28,6 +29,9 @@ import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { ingestNarpExport } from "@/lib/narp-ingest";
+import { NarpGlossaryModal } from "@/components/nres/NarpGlossaryModal";
+import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
+import { cohortTooltips, METHODOLOGY_PATH, scoreTooltips } from "@/lib/narp-reference";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
