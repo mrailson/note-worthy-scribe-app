@@ -16,15 +16,17 @@ export const ScoreInfoTooltip = ({ text, anchor, label = "Read more", className 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          type="button"
+        <span
+          role="button"
+          tabIndex={0}
           aria-describedby={tooltipId}
           aria-label={`${label}: ${text}`}
           className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className}`}
           onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
         >
           <Info className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
+        </span>
       </TooltipTrigger>
       <TooltipContent id={tooltipId} className="max-w-[320px] text-xs">
         <div className="space-y-1.5">
