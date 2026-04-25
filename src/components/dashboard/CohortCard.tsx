@@ -62,7 +62,7 @@ export const CohortCard = ({
         </div>
       </button>
       {selected && (
-        <div className="flex items-center gap-2 border-t border-slate-200 bg-transparent px-3 py-2.5">
+        <div className={cn("flex items-center gap-2 border-t bg-transparent px-3 py-2.5", dashboardTokens.line)}>
           {permissions.can_create_worklist && onSendToWorklist && (
             <button
               type="button"
