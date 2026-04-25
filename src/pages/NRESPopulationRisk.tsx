@@ -1409,7 +1409,7 @@ const TopRiskSection = ({
                 "Low": "tier_low",
                 "Unknown": "tier_unknown",
               };
-              const drillKey = tierKey[tier];
+              const drillKey = patientFilterKey(p.fkPatientLinkId);
               const clickable = !!onDrill && !!drillKey;
               return (
                 <tr
