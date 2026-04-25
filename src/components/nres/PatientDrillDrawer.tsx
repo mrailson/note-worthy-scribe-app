@@ -16,6 +16,8 @@ import { useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportModal";
 import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
+import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
+import { scoreTooltips } from "@/lib/narp-reference";
 import {
   applyFilters,
   getFilter,
@@ -590,13 +592,13 @@ export const PatientDrillDrawer = ({
                   {showInlinePII && <th className="p-2">NHS no.</th>}
                   {showInlinePII && <th className="p-2">Name</th>}
                   <th className="p-2">Age</th>
-                  <th className="p-2">Frailty</th>
-                  <th className="p-2 text-right">Drugs</th>
+                  <th className="p-2"><HeaderTip label="Frailty" tip={scoreTooltips.frailty} /></th>
+                  <th className="p-2 text-right"><HeaderTip label="Drugs" tip={scoreTooltips.drugs} align="right" /></th>
                   <th className="p-2 text-right">Inpt</th>
                   <th className="p-2 text-right">A&E</th>
-                  <th className="p-2">RUB</th>
-                  <th className="p-2 text-right">PoA</th>
-                  <th className="p-2 text-right">PoLoS</th>
+                  <th className="p-2"><HeaderTip label="RUB" tip={scoreTooltips.rub} /></th>
+                  <th className="p-2 text-right"><HeaderTip label="PoA" tip={scoreTooltips.poa} align="right" /></th>
+                  <th className="p-2 text-right"><HeaderTip label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
                 </tr>
               </thead>
               <tbody>
