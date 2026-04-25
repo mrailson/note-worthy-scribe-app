@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -330,14 +329,15 @@ export const PatientDrillDrawer = ({
   // Summary strip
   const summary = useMemo(() => {
     const n = filteredRows.length;
-    const meanPoA = n ? filteredRows.reduce((s, r) => s + (r.poA ?? 0), 0) / n : 0;
+    if (n === 0) return { n: 0, meanPoA: null, meanDrugCount: null, pct65: null };
+    const meanPoA = filteredRows.reduce((s, r) => s + (r.poA ?? 0), 0) / n;
     const aged65 = filteredRows.filter((r) => (r.age ?? 0) >= 65).length;
-    const meanDrugCount = n ? Math.round(filteredRows.reduce((s, r) => s + (r.drugCount ?? 0), 0) / n) : 0;
+    const meanDrugCount = filteredRows.reduce((s, r) => s + (r.drugCount ?? 0), 0) / n;
     return {
       n,
       meanPoA,
       meanDrugCount,
-      pct65: n ? (aged65 / n) * 100 : 0,
+      pct65: (aged65 / n) * 100,
     };
   }, [filteredRows]);
 
@@ -369,10 +369,6 @@ export const PatientDrillDrawer = ({
 
   const selectAllVisible = () => {
     setSelected(new Set(visibleRows.slice(0, 100).map((r) => r.fkPatientLinkId)));
-  };
-
-  const selectAllInCohort = () => {
-    setSelected(new Set(sortedRows.map((r) => r.fkPatientLinkId)));
   };
 
   const clearSelection = () => setSelected(new Set());
@@ -541,11 +537,11 @@ export const PatientDrillDrawer = ({
         <SheetDescription className="text-xs">{subtitleText}</SheetDescription>
       </SheetHeader>
 
-      <div className="grid grid-cols-4 gap-2 border-b bg-muted/30 px-5 py-3">
-        <Stat label="n in cohort" value={cohortBaseRows.length !== summary.n ? `${fmt(summary.n)} of ${fmt(cohortBaseRows.length)}` : fmt(summary.n)} />
-        <Stat label="mean PoA" value={pct(summary.meanPoA)} />
-        <Stat label="mean drug count" value={String(summary.meanDrugCount)} />
-        <Stat label="aged 65+" value={pct(summary.pct65)} />
+      <div className="grid grid-cols-4 gap-0 border-b bg-muted/30 px-6 py-3">
+        <Stat label="In cohort" value={fmt(summary.n)} sub={cohortBaseRows.length !== summary.n ? `of ${fmt(cohortBaseRows.length)}` : undefined} />
+        <Stat label="Mean PoA" value={summary.meanPoA != null ? pct(summary.meanPoA) : "—"} />
+        <Stat label="Mean drugs" value={summary.meanDrugCount != null ? String(Math.round(summary.meanDrugCount)) : "—"} />
+        <Stat label="Aged 65+" value={summary.pct65 != null ? `${summary.pct65.toFixed(0)}%` : "—"} />
       </div>
 
       <div className="border-b bg-background px-5 py-2">
@@ -776,18 +772,14 @@ export const PatientDrillDrawer = ({
   );
 };
 
-const Stat = ({ label, value }: { label: string; value: string }) => (
+const Stat = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
   <div className="text-left">
     <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-    <div className="text-2xl font-bold leading-tight tabular-nums">{value}</div>
+    <div className="narp-display text-[22px] font-semibold leading-tight tabular-nums">
+      {value}
+      {sub && <span className="ml-1 font-sans text-[11px] font-normal text-muted-foreground">{sub}</span>}
+    </div>
   </div>
-);
-
-const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
-  <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
-    <span>{label}</span>
-    <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />
-  </span>
 );
 
 // ── Single-patient detail drawer mode ────────────────────────────────────
