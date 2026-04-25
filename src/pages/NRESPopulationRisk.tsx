@@ -22,7 +22,7 @@ import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { useAuth } from "@/contexts/AuthContext";
-import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
+import { ageRiskFilterKey, patientFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -440,7 +440,6 @@ const NRESPopulationRiskInner = () => {
         return;
       }
       setRows(mapped);
-      toast.success(`Loaded ${fmt(mapped.length)} patients from ${file.name}`);
       setIsHeaderUploading(true);
       const ingestToast = toast.loading(`Persisting ${file.name}…`);
       try {
@@ -452,7 +451,7 @@ const NRESPopulationRiskInner = () => {
         });
         toast.dismiss(ingestToast);
         if (body.duplicate) {
-          toast.warning("This file has already been uploaded — using the existing export.");
+          toast.success(`Loaded ${fmt(mapped.length)} patients from the existing ${file.name} export`);
         } else {
           toast.success(
             `Ingested ${body.patient_count?.toLocaleString("en-GB") ?? fmt(mapped.length)} patients from ${file.name}`,
@@ -632,7 +631,7 @@ const NRESPopulationRiskInner = () => {
         _fk_patient_link_ids: rpcRefs,
       });
       if (error) {
-        toast.error("Could not load identifiable details");
+        console.warn("[NRESPopulationRisk] Could not load identifiable details", error);
         return null;
       }
       for (const row of data ?? []) {
@@ -1212,9 +1211,7 @@ const TopRiskSection = ({
   }, [identifiersVisible]);
 
   const showIdentifierLookupFailedToast = () => {
-    if (identifierLookupToastShownRef.current) return;
     identifierLookupToastShownRef.current = true;
-    toast.error("Could not load identifiable details", { id: "narp-identifiers-load-failed" });
   };
 
   useEffect(() => {
@@ -1246,6 +1243,7 @@ const TopRiskSection = ({
     }).then(({ data, error }) => {
       if (cancelled) return;
       if (error || (data ?? []).length === 0) {
+        if (error) console.warn("[TopRiskSection] Could not load identifiable details", error);
         setIdentifierLookupUnavailable(true);
         setIdentifierLookupStatus("unavailable");
         showIdentifierLookupFailedToast();
@@ -1290,6 +1288,7 @@ const TopRiskSection = ({
           _fk_patient_link_ids: rpcRefs,
         });
         if (error || (data ?? []).length === 0) {
+          if (error) console.warn("[TopRiskSection] Could not load identifiable details for export", error);
           setIdentifierLookupUnavailable(true);
           setIdentifierLookupStatus("unavailable");
           showIdentifierLookupFailedToast();
@@ -1401,16 +1400,7 @@ const TopRiskSection = ({
           </thead>
           <tbody>
             {sorted.map((p, i) => {
-              const tier = tierFor(p.poA);
-              const tierKey: Record<RiskTier, string> = {
-                "Very High": "tier_very_high",
-                "High": "tier_high",
-                "Moderate": "tier_moderate",
-                "Rising": "tier_rising",
-                "Low": "tier_low",
-                "Unknown": "tier_unknown",
-              };
-              const drillKey = tierKey[tier];
+              const drillKey = patientFilterKey(p.fkPatientLinkId);
               const clickable = !!onDrill && !!drillKey;
               return (
                 <tr
