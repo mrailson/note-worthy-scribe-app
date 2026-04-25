@@ -1172,14 +1172,7 @@ const CohortsSection = ({
 
   return (
     <>
-      <div>
-        <div className="text-xs uppercase tracking-wider text-[#005EB8] font-bold">NRES action cohorts</div>
-        <h2 className="text-xl font-bold mt-1">Seven priority cohorts mapped to interventions</h2>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          Each cohort has a defined intervention and a weekly review target.
-          Click a cohort to see detail and export the patient list.
-        </p>
-      </div>
+      <SectionTitle eyebrow="NRES action cohorts" title="Seven priority cohorts mapped to interventions" lede="Each cohort has a defined intervention and a weekly review target. Click a cohort to see detail and export the patient list." />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {cohorts.map(co => {
@@ -1221,7 +1214,7 @@ const CohortsSection = ({
       </div>
 
       {c && (
-        <div className="bg-white border rounded-lg p-6" style={{ borderLeft: `4px solid ${c.colour}` }}>
+        <div className="border border-l-4 border-narp-line bg-card p-6" style={{ borderLeftColor: c.colour }}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: c.colour }}>Selected cohort</div>
@@ -1445,15 +1438,11 @@ const TopRiskSection = ({
 
   return (
     <>
-      <div>
-        <div className="text-xs uppercase tracking-wider text-[#005EB8] font-bold">Case-finding priority list</div>
-        <h2 className="text-xl font-bold mt-1">Top 25 highest-risk patients</h2>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          {canViewPII
-            ? "Full identifiable view enabled by your role permission."
-            : "Patients shown by FK_Patient_Link_ID — identifiable details (NHS number, name) are hidden by RBAC."}
-        </p>
-      </div>
+      <SectionTitle
+        eyebrow="Case-finding priority list"
+        title="Top 25 highest-risk patients"
+        lede={canViewPII ? "Full identifiable view enabled by your role permission." : "Patients shown by FK_Patient_Link_ID — identifiable details (NHS number, name) are hidden by RBAC."}
+      />
 
       <div className="flex items-center gap-2 flex-wrap text-xs">
         <span className="text-muted-foreground">Sort by:</span>
