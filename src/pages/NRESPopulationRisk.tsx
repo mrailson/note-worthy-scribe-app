@@ -70,6 +70,17 @@ type NarpRow = {
 type RiskTier = "Very High" | "High" | "Moderate" | "Rising" | "Low" | "Unknown";
 type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 
+const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
+  "DEMO-001": { nhs_number: "9990000001", forenames: "Demo Patient", surname: "One" },
+  "DEMO-002": { nhs_number: "9990000002", forenames: "Demo Patient", surname: "Two" },
+  "DEMO-003": { nhs_number: "9990000003", forenames: "Demo Patient", surname: "Three" },
+  "DEMO-004": { nhs_number: "9990000004", forenames: "Demo Patient", surname: "Four" },
+  "DEMO-005": { nhs_number: "9990000005", forenames: "Demo Patient", surname: "Five" },
+  "DEMO-006": { nhs_number: "9990000006", forenames: "Demo Patient", surname: "Six" },
+  "DEMO-007": { nhs_number: "9990000007", forenames: "Demo Patient", surname: "Seven" },
+  "DEMO-008": { nhs_number: "9990000008", forenames: "Demo Patient", surname: "Eight" },
+};
+
 const tierFor = (poA: number | null): RiskTier => {
   if (poA === null || isNaN(poA)) return "Unknown";
   if (poA > 50) return "Very High";
@@ -1032,10 +1043,20 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
     if (!canViewPII || !identifiersVisible || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
     if (!missingRefs.length) return;
+    const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
+    if (demoRefs.length) {
+      setIdentifierDetails((prev) => {
+        const next = { ...prev };
+        for (const id of demoRefs) next[id] = DEMO_IDENTIFIABLE_DETAILS[id];
+        return next;
+      });
+    }
+    const rpcRefs = missingRefs.filter((id) => !DEMO_IDENTIFIABLE_DETAILS[id]);
+    if (!rpcRefs.length) return;
     let cancelled = false;
     (supabase as any).rpc("get_narp_identifiable_by_refs", {
       _practice_id: practiceId,
-      _fk_patient_link_ids: missingRefs,
+      _fk_patient_link_ids: rpcRefs,
     }).then(({ data, error }) => {
       if (cancelled) return;
       if (error) {
