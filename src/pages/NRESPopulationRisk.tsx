@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { EditorialHeader } from "@/components/dashboard/EditorialHeader";
+import { Kpi } from "@/components/dashboard/Kpi";
+import { SectionTitle } from "@/components/dashboard/SectionTitle";
 import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
 import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
@@ -752,15 +754,15 @@ const NRESPopulationRiskInner = () => {
             {/* OVERVIEW */}
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} filterKey="all" onDrill={drill.open} />
-                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" tooltip={scoreTooltips.highRisk} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
-                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10% PoA)" tooltip={scoreTooltips.risingRisk} value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
-                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" tooltip={scoreTooltips.frailty} value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
+                <Kpi icon={Users} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} onClick={() => drill.open("all")} />
+                <Kpi icon={AlertTriangle} label={<span className="inline-flex items-center gap-1">High-risk (PoA ≥ 20%)<ScoreInfoTooltip text={scoreTooltips.highRisk.text} anchor={scoreTooltips.highRisk.anchor} /></span>} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" onClick={() => drill.open("high_risk")} />
+                <Kpi icon={TrendingUp} label={<span className="inline-flex items-center gap-1">Rising-risk (5–10% PoA)<ScoreInfoTooltip text={scoreTooltips.risingRisk.text} anchor={scoreTooltips.risingRisk.anchor} /></span>} value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" onClick={() => drill.open("rising_risk")} />
+                <Kpi icon={Heart} label={<span className="inline-flex items-center gap-1">Mod/Severe frailty<ScoreInfoTooltip text={scoreTooltips.frailty.text} anchor={scoreTooltips.frailty.anchor} /></span>} value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" onClick={() => drill.open("mod_sev_frailty")} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Risk pyramid */}
-                <div className="bg-white border rounded-lg p-5">
+                <div className="border border-narp-line bg-card p-5">
                   <SectionTitle eyebrow="Risk stratification" title="Population risk pyramid" lede="Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.">
                     <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                   </SectionTitle>
@@ -800,7 +802,7 @@ const NRESPopulationRiskInner = () => {
                 </div>
 
                 {/* Frailty bar chart */}
-                <div className="bg-white border rounded-lg p-5">
+                <div className="border border-narp-line bg-card p-5">
                   <SectionTitle eyebrow="Where to aim effort" title="Utilisation by frailty" lede="Click a frailty category to drill into its patients." />
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart
@@ -826,7 +828,7 @@ const NRESPopulationRiskInner = () => {
               </div>
 
               {/* Age x risk heatmap */}
-              <div className="bg-white border rounded-lg p-5">
+              <div className="border border-narp-line bg-card p-5">
                 <SectionTitle eyebrow="Risk by age" title="Age band × risk tier" lede="Where the risk sits — older bands carry the High and Very-High load; the 40–64 Rising-risk cell is the upstream prevention opportunity.">
                   <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                 </SectionTitle>
@@ -882,8 +884,8 @@ const NRESPopulationRiskInner = () => {
               </div>
 
               {/* Age band distribution */}
-              <div className="bg-white border rounded-lg p-5">
-                <h3 className="font-semibold text-base mb-3">Age band distribution</h3>
+              <div className="border border-narp-line bg-card p-5">
+                <SectionTitle eyebrow="Population shape" title="Age band distribution" />
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={ageBands}>
                     <CartesianGrid strokeDasharray="2 4" vertical={false} />
@@ -1036,40 +1038,6 @@ const NRESPopulationRisk = () => (
 
 /* ─── Sub-components ──────────────────────────────────────── */
 
-const KpiCard = ({
-  icon, label, tooltip, value, sub, tone = "default", filterKey, onDrill,
-}: { icon: React.ReactNode; label: string; tooltip?: { text: string; anchor: string }; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good"; filterKey?: string; onDrill?: (key: string) => void }) => {
-  const toneClass = tone === "critical" ? "border-l-narp-critical text-narp-critical" : tone === "warn" ? "border-l-narp-warn text-narp-warn" : tone === "good" ? "border-l-narp-good text-narp-good" : "border-l-narp-teal text-narp-teal";
-  const clickable = !!filterKey && !!onDrill;
-  const Tag = clickable ? "button" : "div";
-  return (
-    <Tag
-      type={clickable ? "button" : undefined}
-      onClick={clickable ? () => onDrill!(filterKey!) : undefined}
-      className={`group flex w-full items-start gap-3 border border-l-[3px] border-narp-line bg-card px-[18px] py-4 text-left ${toneClass} ${clickable ? "cursor-pointer transition-colors hover:bg-muted/30" : ""}`}
-    >
-      <span className="mt-0.5 [&>svg]:h-[18px] [&>svg]:w-[18px]">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-narp-slate">
-          <span>{label}</span>
-          {tooltip && <ScoreInfoTooltip text={tooltip.text} anchor={tooltip.anchor} />}
-        </div>
-        <div className={`narp-display mt-1 text-[28px] font-semibold leading-[1.1] text-narp-ink tabular-nums ${clickable ? "group-hover:underline" : ""}`}>{value}</div>
-        {sub && <div className="mt-1 text-xs text-narp-slate">{sub}</div>}
-      </div>
-    </Tag>
-  );
-};
-
-const SectionTitle = ({ eyebrow, title, lede, children }: { eyebrow: string; title: string; lede?: string; children?: React.ReactNode }) => (
-  <div className="mb-4">
-    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-narp-teal">{eyebrow}</div>
-    <h2 className="narp-display mt-1 text-2xl font-medium text-narp-ink">{title}</h2>
-    {lede && <p className="mt-1 max-w-[680px] text-[13px] leading-[1.55] text-narp-ink-2">{lede}</p>}
-    {children}
-  </div>
-);
-
 const ScoreHeader = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
   <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
     <span>{label}</span>
@@ -1107,9 +1075,8 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border rounded-lg p-5">
-          <h3 className="font-semibold text-base">65+ population by frailty</h3>
-          <p className="text-xs text-muted-foreground mb-3">{totalLTC.toLocaleString("en-GB")} patients</p>
+        <div className="border border-narp-line bg-card p-5">
+          <SectionTitle eyebrow="LTC focus" title="65+ population by frailty" lede={`${totalLTC.toLocaleString("en-GB")} patients`} />
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={ltcBreakdown} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2} stroke="#fff" strokeWidth={2}>
@@ -1143,9 +1110,8 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
           </div>
         </div>
 
-        <div className="bg-white border rounded-lg p-5">
-          <h3 className="font-semibold text-base">Polypharmacy — SMR opportunity</h3>
-          <p className="text-xs text-muted-foreground mb-3">Clinical Pharmacist structured medication review targets</p>
+        <div className="border border-narp-line bg-card p-5">
+          <SectionTitle eyebrow="Medicines optimisation" title="Polypharmacy — SMR opportunity" lede="Clinical Pharmacist structured medication review targets" />
           <PolyBar label="10+ repeat medications" value={summary.poly10} max={summary.poly10 || 1} colour={palette.mod} detail="Primary SMR cohort" filterKey="drugs_10_plus" onDrill={onDrill} />
           <PolyBar label="15+ repeat medications" value={summary.poly15} max={summary.poly10 || 1} colour={palette.high} detail="Complex polypharmacy" filterKey="drugs_15_plus" onDrill={onDrill} />
           <PolyBar label="20+ repeat medications" value={summary.poly20} max={summary.poly10 || 1} colour={palette.vhigh} detail="Very complex" filterKey="drugs_20_plus" onDrill={onDrill} />
@@ -1156,8 +1122,8 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
         </div>
       </div>
 
-      <div className="bg-white border rounded-lg p-5">
-        <h3 className="font-semibold text-base mb-3">Frailty burden — PoA × drug count</h3>
+      <div className="border border-narp-line bg-card p-5">
+        <SectionTitle eyebrow="LTC Focus — where to aim effort" title="The 65+ population is the backbone of LTC demand" lede="2,044 patients are 65+. Of those, 649 carry moderate or severe frailty — your highest-yield cohort for structured LTC reviews." />
         <ResponsiveContainer width="100%" height={280}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="2 4" />
@@ -1206,14 +1172,7 @@ const CohortsSection = ({
 
   return (
     <>
-      <div>
-        <div className="text-xs uppercase tracking-wider text-[#005EB8] font-bold">NRES action cohorts</div>
-        <h2 className="text-xl font-bold mt-1">Seven priority cohorts mapped to interventions</h2>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          Each cohort has a defined intervention and a weekly review target.
-          Click a cohort to see detail and export the patient list.
-        </p>
-      </div>
+      <SectionTitle eyebrow="NRES action cohorts" title="Seven priority cohorts mapped to interventions" lede="Each cohort has a defined intervention and a weekly review target. Click a cohort to see detail and export the patient list." />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {cohorts.map(co => {
@@ -1246,7 +1205,7 @@ const CohortsSection = ({
               </div>
               <div className="font-semibold mt-1">{co.label}</div>
               <div className="flex items-baseline justify-between mt-2">
-                <span className="text-2xl font-bold tabular-nums hover:underline">{fmt(co.n)}</span>
+                <span className="narp-display text-2xl font-semibold tabular-nums hover:underline">{fmt(co.n)}</span>
                 <span className={`text-xs ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>{co.weekly}/week</span>
               </div>
             </button>
@@ -1255,25 +1214,16 @@ const CohortsSection = ({
       </div>
 
       {c && (
-        <div className="bg-white border rounded-lg p-6" style={{ borderLeft: `4px solid ${c.colour}` }}>
+        <div className="border border-l-4 border-narp-line bg-card p-6" style={{ borderLeftColor: c.colour }}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: c.colour }}>Selected cohort</div>
               <h3 className="text-2xl font-bold mt-1">{c.label}</h3>
               <p className="text-sm text-muted-foreground">{c.detail}</p>
-              <div className="flex gap-6 mt-4">
-                <div>
-                  <div className="text-2xl font-bold tabular-nums">{fmt(c.n)}</div>
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1">Patients</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold tabular-nums">{c.weekly}</div>
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1">Reviews/week</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold tabular-nums">{((c.n / Math.max(totalPatients, 1)) * 100).toFixed(1)}%</div>
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1">of list</div>
-                </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Kpi icon={Users} label="Patients" value={fmt(c.n)} tone="default" />
+                <Kpi icon={Target} label="Reviews/week" value={c.weekly} tone="warn" />
+                <Kpi icon={Layers} label="of list" value={`${((c.n / Math.max(totalPatients, 1)) * 100).toFixed(1)}%`} tone="good" />
               </div>
               <div className="mt-4 pt-4 border-t">
                 <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Intervention</div>
@@ -1479,15 +1429,11 @@ const TopRiskSection = ({
 
   return (
     <>
-      <div>
-        <div className="text-xs uppercase tracking-wider text-[#005EB8] font-bold">Case-finding priority list</div>
-        <h2 className="text-xl font-bold mt-1">Top 25 highest-risk patients</h2>
-        <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-          {canViewPII
-            ? "Full identifiable view enabled by your role permission."
-            : "Patients shown by FK_Patient_Link_ID — identifiable details (NHS number, name) are hidden by RBAC."}
-        </p>
-      </div>
+      <SectionTitle
+        eyebrow="Case-finding priority list"
+        title="Top 25 highest-risk patients"
+        lede={canViewPII ? "Full identifiable view enabled by your role permission." : "Patients shown by FK_Patient_Link_ID — identifiable details (NHS number, name) are hidden by RBAC."}
+      />
 
       <div className="flex items-center gap-2 flex-wrap text-xs">
         <span className="text-muted-foreground">Sort by:</span>
@@ -1558,7 +1504,7 @@ const TopRiskSection = ({
                   onClick={clickable ? () => onDrill!(drillKey) : undefined}
                   className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
                 >
-                  <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
+                  <td className="p-3 font-semibold text-narp-teal tabular-nums">{p.fkPatientLinkId}</td>
                   {showIdentifiers && <td className="p-3 tabular-nums">{identifierDetails[p.fkPatientLinkId]?.nhs_number ?? p.nhsNumber ?? "—"}</td>}
                   {showIdentifiers && <td className="p-3">{[identifierDetails[p.fkPatientLinkId]?.forenames ?? p.forenames, identifierDetails[p.fkPatientLinkId]?.surname ?? p.surname].filter(Boolean).join(" ") || "—"}</td>}
                   <td className="p-3 tabular-nums">{p.age ?? "—"}</td>

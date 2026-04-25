@@ -53,6 +53,8 @@ export default {
 					mist: 'hsl(var(--narp-mist))',
 					line: 'hsl(var(--narp-line))',
 					teal: 'hsl(var(--narp-teal))',
+					rising: 'hsl(var(--narp-rising))',
+					high: 'hsl(var(--narp-high))',
 					critical: 'hsl(var(--narp-critical))',
 					warn: 'hsl(var(--narp-warn))',
 					good: 'hsl(var(--narp-good))',
