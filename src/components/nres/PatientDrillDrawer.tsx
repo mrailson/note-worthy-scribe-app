@@ -16,6 +16,8 @@ import { useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportModal";
 import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
+import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
+import { scoreTooltips } from "@/lib/narp-reference";
 import {
   applyFilters,
   getFilter,
@@ -590,13 +592,13 @@ export const PatientDrillDrawer = ({
                   {showInlinePII && <th className="p-2">NHS no.</th>}
                   {showInlinePII && <th className="p-2">Name</th>}
                   <th className="p-2">Age</th>
-                  <th className="p-2">Frailty</th>
-                  <th className="p-2 text-right">Drugs</th>
+                  <th className="p-2"><HeaderTip label="Frailty" tip={scoreTooltips.frailty} /></th>
+                  <th className="p-2 text-right"><HeaderTip label="Drugs" tip={scoreTooltips.drugs} align="right" /></th>
                   <th className="p-2 text-right">Inpt</th>
                   <th className="p-2 text-right">A&E</th>
-                  <th className="p-2">RUB</th>
-                  <th className="p-2 text-right">PoA</th>
-                  <th className="p-2 text-right">PoLoS</th>
+                  <th className="p-2"><HeaderTip label="RUB" tip={scoreTooltips.rub} /></th>
+                  <th className="p-2 text-right"><HeaderTip label="PoA" tip={scoreTooltips.poa} align="right" /></th>
+                  <th className="p-2 text-right"><HeaderTip label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
                 </tr>
               </thead>
               <tbody>
@@ -814,6 +816,13 @@ const Stat = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
+  <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
+    <span>{label}</span>
+    <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />
+  </span>
+);
+
 // ── Single-patient detail modal ──────────────────────────────────────────
 interface PatientDetailModalProps {
   patient: DrillPatientRow | null;
@@ -878,9 +887,9 @@ const PatientDetailModal = ({ patient, canViewPII, onClose, onSendToBuyBack }: P
         <div className="space-y-4 text-sm">
           <Section title="Clinical profile">
             <KV k="Age" v={patient.age ?? "—"} />
-            <KV k="Frailty (eFI)" v={patient.frailty} />
-            <KV k="Drug count" v={patient.drugCount} />
-            <KV k="RUB" v={patient.rub || "—"} />
+            <KV k="Frailty (eFI)" v={patient.frailty} tip={scoreTooltips.frailty} />
+            <KV k="Drug count" v={patient.drugCount} tip={scoreTooltips.drugs} />
+            <KV k="RUB" v={patient.rub || "—"} tip={scoreTooltips.rub} />
           </Section>
 
           <Section title="Utilisation">
@@ -889,8 +898,8 @@ const PatientDetailModal = ({ patient, canViewPII, onClose, onSendToBuyBack }: P
           </Section>
 
           <Section title="Risk">
-            <KV k="PoA" v={patient.poA !== null ? pct(patient.poA) : "—"} />
-            <KV k="PoLoS" v={patient.poLoS !== null ? pct(patient.poLoS) : "—"} />
+            <KV k="PoA" v={patient.poA !== null ? pct(patient.poA) : "—"} tip={scoreTooltips.poa} />
+            <KV k="PoLoS" v={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tip={scoreTooltips.polos} />
           </Section>
 
           {canViewPII && (
@@ -943,9 +952,12 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </div>
 );
 
-const KV = ({ k, v }: { k: string; v: React.ReactNode }) => (
+const KV = ({ k, v, tip }: { k: string; v: React.ReactNode; tip?: { text: string; anchor: string } }) => (
   <div className="flex justify-between text-sm">
-    <span className="text-muted-foreground">{k}</span>
+    <span className="inline-flex items-center gap-1 text-muted-foreground">
+      {k}
+      {tip && <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />}
+    </span>
     <span className="font-medium tabular-nums">{v}</span>
   </div>
 );

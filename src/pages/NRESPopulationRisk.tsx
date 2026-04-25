@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
+import { Link } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis,
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker, ListChecks, Loader2,
+  Upload, FileDown, Beaker, ListChecks, Loader2, CircleHelp,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
@@ -28,6 +29,9 @@ import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { ingestNarpExport } from "@/lib/narp-ingest";
+import { NarpGlossaryModal } from "@/components/nres/NarpGlossaryModal";
+import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
+import { cohortTooltips, METHODOLOGY_PATH, scoreTooltips } from "@/lib/narp-reference";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -251,6 +255,7 @@ const NRESPopulationRiskInner = () => {
   const [identifierPreferenceLoaded, setIdentifierPreferenceLoaded] = useState(false);
   const [uploadsRefreshSignal, setUploadsRefreshSignal] = useState(0);
   const [isHeaderUploading, setIsHeaderUploading] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
@@ -284,6 +289,19 @@ const NRESPopulationRiskInner = () => {
 
   const setShowIdentifiersPreference = useCallback((visible: boolean) => {
     setShowIdentifiersPreferenceState(visible);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (event.key === "?" && !isTyping) {
+        event.preventDefault();
+        setGlossaryOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   // Resolve the selected practice's UUID so we can scope the NMoC DSA
@@ -644,6 +662,21 @@ const NRESPopulationRiskInner = () => {
               </SelectContent>
             </Select>
 
+            <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-white underline underline-offset-4 hover:text-white/85">
+              About the data
+            </Link>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="bg-background text-foreground h-9 w-9"
+              onClick={() => setGlossaryOpen(true)}
+              aria-label="Open NARP glossary"
+            >
+              <CircleHelp className="h-4 w-4" />
+            </Button>
+
             <input
               ref={fileInputRef}
               type="file"
@@ -704,6 +737,11 @@ const NRESPopulationRiskInner = () => {
               <Upload className="w-4 h-4 mr-2" />
               Upload NARP file
             </Button>
+            <div className="mt-4">
+              <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-primary underline underline-offset-4">
+                About the data
+              </Link>
+            </div>
             <p className="text-xs text-muted-foreground mt-6">
               Required columns: NHS Number, Age, PracticeName, Drug Count, Frailty (eFI) Category,
               Inpatient - Total Admissions, A&E Attendances, RUB, Probability of Emergency Admission,
@@ -726,15 +764,18 @@ const NRESPopulationRiskInner = () => {
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} filterKey="all" onDrill={drill.open} />
-                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
-                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10%)" value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
-                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
+                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" tooltip={scoreTooltips.highRisk} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
+                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10% PoA)" tooltip={scoreTooltips.risingRisk} value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
+                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" tooltip={scoreTooltips.frailty} value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Risk pyramid */}
                 <div className="bg-white border rounded-lg p-5">
-                  <h3 className="font-semibold text-base mb-1">Population risk pyramid</h3>
+                  <h3 className="flex items-center gap-1 font-semibold text-base mb-1">
+                    <span>Population risk pyramid</span>
+                    <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
+                  </h3>
                   <p className="text-xs text-muted-foreground mb-4">
                     Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.
                   </p>
@@ -804,7 +845,10 @@ const NRESPopulationRiskInner = () => {
 
               {/* Age x risk heatmap */}
               <div className="bg-white border rounded-lg p-5">
-                <h3 className="font-semibold text-base mb-1">Age band × risk tier</h3>
+                <h3 className="flex items-center gap-1 font-semibold text-base mb-1">
+                  <span>Age band × risk tier</span>
+                  <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
+                </h3>
                 <p className="text-xs text-muted-foreground mb-4">
                   Where the risk sits — older bands carry the High and Very-High load; the
                   40–64 Rising-risk cell is the upstream prevention opportunity.
@@ -921,6 +965,7 @@ const NRESPopulationRiskInner = () => {
         practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
         route="/nres/population-risk"
       />
+      <NarpGlossaryModal open={glossaryOpen} onOpenChange={setGlossaryOpen} />
     </div>
   );
 };
@@ -934,8 +979,8 @@ const NRESPopulationRisk = () => (
 /* ─── Sub-components ──────────────────────────────────────── */
 
 const KpiCard = ({
-  icon, label, value, sub, tone = "default", filterKey, onDrill,
-}: { icon: React.ReactNode; label: string; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good"; filterKey?: string; onDrill?: (key: string) => void }) => {
+  icon, label, tooltip, value, sub, tone = "default", filterKey, onDrill,
+}: { icon: React.ReactNode; label: string; tooltip?: { text: string; anchor: string }; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good"; filterKey?: string; onDrill?: (key: string) => void }) => {
   const bar = tone === "critical" ? palette.vhigh : tone === "warn" ? palette.mod : tone === "good" ? palette.ok : palette.accent;
   const clickable = !!filterKey && !!onDrill;
   const Tag = clickable ? "button" : "div";
@@ -948,13 +993,23 @@ const KpiCard = ({
     >
       <span style={{ color: bar }}>{icon}</span>
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">{label}</div>
+        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+          <span>{label}</span>
+          {tooltip && <ScoreInfoTooltip text={tooltip.text} anchor={tooltip.anchor} />}
+        </div>
         <div className={`text-2xl font-bold tabular-nums leading-tight mt-0.5 ${clickable ? "group-hover:underline" : ""}`}>{value}</div>
         {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
       </div>
     </Tag>
   );
 };
+
+const ScoreHeader = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
+  <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
+    <span>{label}</span>
+    <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />
+  </span>
+);
 
 const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof Object>; filtered: NarpRow[]; onDrill?: (key: string) => void }) => {
   const ltcBreakdown = useMemo(() => {
@@ -1117,6 +1172,11 @@ const CohortsSection = ({
                 <span className={`text-[10px] uppercase tracking-wider font-semibold ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>
                   {co.detail}
                 </span>
+                <ScoreInfoTooltip
+                  text={cohortTooltips[co.id]?.text ?? co.detail}
+                  anchor={cohortTooltips[co.id]?.anchor ?? "risk-stratification-framework-used-here"}
+                  className={selected === co.id ? "text-slate-300 hover:text-white" : ""}
+                />
               </div>
               <div className="font-semibold mt-1">{co.label}</div>
               <div className="flex items-baseline justify-between mt-2">
@@ -1405,12 +1465,12 @@ const TopRiskSection = ({
               {showIdentifiers && <th className="text-left p-3">NHS Number</th>}
               {showIdentifiers && <th className="text-left p-3">Name</th>}
               <th className="text-left p-3">Age</th>
-              <th className="text-left p-3">Frailty</th>
-              <th className="text-left p-3">Drugs</th>
+              <th className="text-left p-3"><ScoreHeader label="Frailty" tip={scoreTooltips.frailty} /></th>
+              <th className="text-left p-3"><ScoreHeader label="Drugs" tip={scoreTooltips.drugs} /></th>
               <th className="text-left p-3">Inpt adm</th>
-              <th className="text-left p-3">RUB</th>
-              <th className="text-right p-3">PoA</th>
-              <th className="text-right p-3">PoLoS</th>
+              <th className="text-left p-3"><ScoreHeader label="RUB" tip={scoreTooltips.rub} /></th>
+              <th className="text-right p-3"><ScoreHeader label="PoA" tip={scoreTooltips.poa} align="right" /></th>
+              <th className="text-right p-3"><ScoreHeader label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
             </tr>
           </thead>
           <tbody>

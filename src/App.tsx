@@ -100,6 +100,7 @@ const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
 const PublicPlanningStudio = lazy(() => import("./pages/PublicPlanningStudio"));
 const NRESPlanningStudio = lazy(() => import("./pages/NRESPlanningStudio"));
 const NRESPopulationRisk = lazy(() => import("./pages/NRESPopulationRisk"));
+const NRESPopulationRiskMethodology = lazy(() => import("./pages/NRESPopulationRiskMethodology"));
 
 const NotewellVoiceHub = lazy(() => import("./components/AskAI/NotewellVoiceHub"));
 const BPCalculator = lazy(() => import("./pages/BPCalculator"));
@@ -225,6 +226,11 @@ const App = () => {
                 <Route path="/nres/population-risk" element={
                   <ProtectedRoute requiredService="nres">
                     <NRESPopulationRisk />
+                  </ProtectedRoute>
+                } />
+                <Route path="/nres/population-risk/methodology" element={
+                  <ProtectedRoute requiredService="nres">
+                    <NRESPopulationRiskMethodology />
                   </ProtectedRoute>
                 } />
                 <Route path="/nres/comms-strategy" element={
