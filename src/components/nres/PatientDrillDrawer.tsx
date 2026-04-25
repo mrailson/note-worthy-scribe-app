@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -370,10 +369,6 @@ export const PatientDrillDrawer = ({
 
   const selectAllVisible = () => {
     setSelected(new Set(visibleRows.slice(0, 100).map((r) => r.fkPatientLinkId)));
-  };
-
-  const selectAllInCohort = () => {
-    setSelected(new Set(sortedRows.map((r) => r.fkPatientLinkId)));
   };
 
   const clearSelection = () => setSelected(new Set());
