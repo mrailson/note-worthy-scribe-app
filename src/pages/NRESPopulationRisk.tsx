@@ -271,7 +271,12 @@ const NRESPopulationRiskInner = () => {
   const [uploadsRefreshSignal, setUploadsRefreshSignal] = useState(0);
   const [isHeaderUploading, setIsHeaderUploading] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadDrawerOpen, setUploadDrawerOpen] = useState(false);
+  const [narpExports, setNarpExports] = useState<NarpExportRow[]>([]);
+  const [exportsLoading, setExportsLoading] = useState(false);
+  const [exportDate, setExportDate] = useState(today());
+  const [pickedFile, setPickedFile] = useState<File | null>(null);
+  const [canUploadNarp, setCanUploadNarp] = useState(false);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
     : null;
@@ -340,6 +345,42 @@ const NRESPopulationRiskInner = () => {
   const canViewPII = narpAccess.canView;
   const canExportPII = narpAccess.canExport;
   const hasViewElsewhere = narpAccess.hasViewElsewhere;
+
+  const narpExportPracticeId = selectedPracticeId ?? BUGBROOKE_PRACTICE_ID;
+
+  const loadNarpExports = useCallback(async () => {
+    setExportsLoading(true);
+    const { data, error } = await supabase
+      .from("narp_exports")
+      .select("id, export_date, uploaded_at, uploaded_by, patient_count, status, error_message, file_name")
+      .eq("practice_id", narpExportPracticeId)
+      .order("export_date", { ascending: false })
+      .limit(5);
+    if (error) {
+      toast.error(`Could not load uploads: ${error.message}`);
+      setNarpExports([]);
+    } else {
+      setNarpExports((data ?? []) as NarpExportRow[]);
+    }
+    setExportsLoading(false);
+  }, [narpExportPracticeId]);
+
+  useEffect(() => { loadNarpExports(); }, [loadNarpExports, uploadsRefreshSignal]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id || !narpExportPracticeId) {
+      setCanUploadNarp(false);
+      return;
+    }
+    (supabase as any).rpc("has_narp_upload_access", {
+      p_user: user.id,
+      p_practice: narpExportPracticeId,
+    }).then(({ data, error }) => {
+      if (!cancelled) setCanUploadNarp(!error && data === true);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id, narpExportPracticeId]);
 
   const reloadPersistedExport = useCallback(async (exportId: string) => {
     const { data, error } = await supabase
