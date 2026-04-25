@@ -807,7 +807,14 @@ const NRESPopulationRiskInner = () => {
 
             {/* TOP 25 */}
             <TabsContent value="toprisk" className="space-y-4">
-              <TopRiskSection rows={topRisk} canViewPII={canViewPII} practiceId={selectedPracticeId ?? null} onDrill={drill.open} />
+              <TopRiskSection
+                rows={topRisk}
+                canViewPII={canViewPII}
+                identifiersVisible={showIdentifiersPreference}
+                onIdentifiersVisibleChange={setShowIdentifiersPreference}
+                practiceId={selectedPracticeId ?? null}
+                onDrill={drill.open}
+              />
             </TabsContent>
 
             {/* WORKLISTS */}
@@ -828,6 +835,8 @@ const NRESPopulationRiskInner = () => {
         canViewPII={canViewPII}
         canExportPII={canExportPII}
         hasViewElsewhere={hasViewElsewhere}
+        identifiersVisible={showIdentifiersPreference}
+        onIdentifiersVisibleChange={setShowIdentifiersPreference}
         practiceId={selectedPracticeId ?? null}
         practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
         route="/nres/population-risk"
