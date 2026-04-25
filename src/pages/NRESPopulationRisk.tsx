@@ -373,6 +373,7 @@ const NRESPopulationRiskInner = () => {
           file,
           practiceId: BUGBROOKE_PRACTICE_ID,
           exportDate: new Date().toISOString().slice(0, 10),
+          parsedRows: raw,
         });
         toast.dismiss(ingestToast);
         if (body.duplicate) {
