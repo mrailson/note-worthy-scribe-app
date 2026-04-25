@@ -255,6 +255,7 @@ const NRESPopulationRiskInner = () => {
   const [identifierPreferenceLoaded, setIdentifierPreferenceLoaded] = useState(false);
   const [uploadsRefreshSignal, setUploadsRefreshSignal] = useState(0);
   const [isHeaderUploading, setIsHeaderUploading] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
@@ -288,6 +289,19 @@ const NRESPopulationRiskInner = () => {
 
   const setShowIdentifiersPreference = useCallback((visible: boolean) => {
     setShowIdentifiersPreferenceState(visible);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable;
+      if (event.key === "?" && !isTyping) {
+        event.preventDefault();
+        setGlossaryOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   // Resolve the selected practice's UUID so we can scope the NMoC DSA
