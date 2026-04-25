@@ -769,39 +769,7 @@ const NRESPopulationRiskInner = () => {
                   <SectionTitle eyebrow="Risk stratification" title="Population risk pyramid" lede={`${fmt(riskPyramid[0].n + riskPyramid[1].n)} patients are high or very high risk by PoA. This is the core MDT caseload; click any row to drill in.`}>
                     <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                   </SectionTitle>
-                  <div className="space-y-2">
-                    {riskPyramid.filter(r => r.tier !== "Unknown").map(r => {
-                      const maxN = Math.max(...riskPyramid.filter(x => x.tier !== "Unknown").map(x => x.n), 1);
-                      const w = (r.n / maxN) * 100;
-                      const tierKey = ({ "Very High": "tier_very_high", "High": "tier_high", "Moderate": "tier_moderate", "Rising": "tier_rising", "Low": "tier_low" } as const)[r.tier as Exclude<RiskTier, "Unknown">];
-                      return (
-                        <button
-                          key={r.tier}
-                          type="button"
-                          disabled={!r.n}
-                          onClick={() => drill.open(tierKey)}
-                          className="w-full text-left group disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="font-semibold">{r.tier} <span className="text-muted-foreground font-normal">· {r.band}</span></span>
-                            <span className="tabular-nums group-hover:underline">{fmt(r.n)} <span className="text-muted-foreground">({r.pct.toFixed(1)}%)</span></span>
-                          </div>
-                          <div className="h-5 bg-slate-100 rounded-sm overflow-hidden">
-                            <div className="h-full transition-all group-hover:opacity-80" style={{ width: `${w}%`, background: r.colour }} />
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {riskPyramid[5].n > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => drill.open("tier_unknown")}
-                      className="text-xs text-muted-foreground mt-3 pt-3 border-t border-dashed w-full text-left hover:underline"
-                    >
-                      {fmt(riskPyramid[5].n)} patients ({riskPyramid[5].pct.toFixed(1)}%) have no PoA.
-                    </button>
-                  )}
+                  <RiskPyramid rows={riskPyramid} total={summary.total} onTierClick={drill.open} excludeUnknown />
                 </div>
 
                 {/* Frailty bar chart */}
@@ -835,55 +803,7 @@ const NRESPopulationRiskInner = () => {
                 <SectionTitle eyebrow="Risk by age" title="Age band × risk tier" lede={`${fmt(summary.aged65Plus)} patients are aged 65+. Older bands carry most High and Very-High risk, while younger Rising-risk cells show the upstream prevention opportunity.`}>
                   <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                 </SectionTitle>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr className="text-muted-foreground uppercase tracking-wide">
-                        <th className="text-left p-2 border-b">Age band</th>
-                        <th className="p-2 border-b">Very High</th>
-                        <th className="p-2 border-b">High</th>
-                        <th className="p-2 border-b">Moderate</th>
-                        <th className="p-2 border-b">Rising</th>
-                        <th className="p-2 border-b">Low</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ageRiskHeatmap.map(r => {
-                        const max = (k: keyof typeof r) => Math.max(...ageRiskHeatmap.map(x => x[k] as number), 1);
-                        const ageBandKey = r.age.replace("–", "-") as AgeBandKey;
-                        const cell = (v: number, m: number, c: string, tierKey: RiskTierKey, subtle = false) => {
-                          const i = Math.min(v / m, 1);
-                          const bg = subtle
-                            ? `rgba(21,128,61,${i * 0.12})`
-                            : hexToRgba(c, i * 0.85 + 0.05);
-                          return (
-                            <td className="p-0 border-b" style={{ background: bg }}>
-                              <button
-                                type="button"
-                                disabled={!v}
-                                onClick={() => drill.open(ageRiskFilterKey(ageBandKey, tierKey))}
-                                className="w-full h-full p-3 text-center tabular-nums hover:underline disabled:cursor-not-allowed disabled:no-underline"
-                                style={{ color: i > 0.5 && !subtle ? "#fff" : undefined, fontWeight: i > 0.4 ? 600 : 400 }}
-                              >
-                                {fmt(v)}
-                              </button>
-                            </td>
-                          );
-                        };
-                        return (
-                          <tr key={r.age}>
-                            <td className="p-3 font-semibold border-b">{r.age}</td>
-                            {cell(r.VeryHigh, max("VeryHigh"), palette.vhigh, "very_high")}
-                            {cell(r.High,     max("High"),     palette.high,  "high")}
-                            {cell(r.Moderate, max("Moderate"), palette.mod,   "moderate")}
-                            {cell(r.Rising,   max("Rising"),   palette.rising,"rising")}
-                            {cell(r.Low,      max("Low"),      palette.ok,    "low", true)}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <AgeRiskHeatmap data={ageRiskHeatmap} showLegend onCellClick={(ageBand, tierKey) => drill.open(ageRiskFilterKey(ageBand.replace("–", "-") as AgeBandKey, tierKey as RiskTierKey))} />
               </div>
 
               {/* Age band distribution */}
