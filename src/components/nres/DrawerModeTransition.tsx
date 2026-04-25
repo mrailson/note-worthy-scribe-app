@@ -12,6 +12,7 @@ interface DrawerModeTransitionProps {
   className?: string;
   ariaHidden?: boolean;
   transitionKey?: string;
+  onTransitionEnd?: () => void;
 }
 
 const standardEase = [0.4, 0, 0.2, 1] as const;
@@ -23,6 +24,7 @@ export const DrawerModeTransition = ({
   className,
   ariaHidden,
   transitionKey,
+  onTransitionEnd,
 }: DrawerModeTransitionProps) => {
   const reducedMotion = useReducedMotion();
   const active = activeMode === layer;
@@ -52,9 +54,14 @@ export const DrawerModeTransition = ({
       animate={active ? "active" : "inactive"}
       variants={variants}
       transition={{ duration, delay, ease: standardEase }}
+      onAnimationComplete={() => {
+        if (active) onTransitionEnd?.();
+      }}
       aria-hidden={ariaHidden}
+      role={layer === "patient" ? "region" : undefined}
+      aria-live={layer === "patient" ? "polite" : undefined}
       className={cn(
-        "absolute inset-0 flex min-h-0 flex-col bg-background will-change-transform",
+        "absolute inset-0 flex min-h-0 origin-top flex-col bg-background will-change-transform",
         active ? "pointer-events-auto" : "pointer-events-none",
         className,
       )}
