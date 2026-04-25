@@ -113,6 +113,8 @@ const QUICK_CHIPS: { label: string; key: string }[] = [
   { label: "PoA ≥ 50%", key: "_quick_poa50" },
 ];
 
+const SELECTION_CAP = 100;
+
 const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null => {
   switch (key) {
     case "_quick_65plus":  return (r) => (r.age ?? 0) >= 65;
@@ -363,13 +365,16 @@ export const PatientDrillDrawer = ({
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else {
+        if (next.size >= SELECTION_CAP) return next;
+        next.add(id);
+      }
       return next;
     });
   };
 
   const selectAllVisible = () => {
-    setSelected(new Set(visibleRows.slice(0, 100).map((r) => r.fkPatientLinkId)));
+    setSelected(new Set(visibleRows.slice(0, SELECTION_CAP).map((r) => r.fkPatientLinkId)));
   };
 
   const clearSelection = () => setSelected(new Set());
@@ -503,8 +508,9 @@ export const PatientDrillDrawer = ({
   const activeNamedFilters = filters.map((filter) => ({ key: filter.key, label: filter.label, type: "named" as const }));
   const activeFilterCount = activeNamedFilters.length + activeQuickFilters.length;
   const filterDescription = activeFilterCount ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"}` : "no filters applied";
-  const selectionCapped = visibleRows.length > 100 && selected.size === 100;
-  const allVisibleSelected = visibleRows.length > 0 && visibleRows.slice(0, 100).every((r) => selected.has(r.fkPatientLinkId));
+  const visibleSelectedCount = visibleRows.filter((r) => selected.has(r.fkPatientLinkId)).length;
+  const selectionCapped = visibleRows.length > SELECTION_CAP && visibleSelectedCount === SELECTION_CAP;
+  const allVisibleSelected = visibleRows.length > 0 && visibleRows.slice(0, SELECTION_CAP).every((r) => selected.has(r.fkPatientLinkId));
   const someSelected = selected.size > 0;
   const clearFilters = () => {
     for (const filter of filters) remove(filter.key);
@@ -612,7 +618,7 @@ export const PatientDrillDrawer = ({
       {selected.size > 0 && (
         <div className="flex items-center gap-2 border-b bg-primary/5 px-5 py-2 text-xs">
           <span className="font-semibold text-primary">{selected.size} selected</span>
-          {selectionCapped && <span className="text-muted-foreground">Showing 100 of {fmt(visibleRows.length)}. Filter further to select more.</span>}
+          {selectionCapped && <span className="text-muted-foreground">Showing {SELECTION_CAP} of {fmt(visibleRows.length)}. Filter further to select more.</span>}
           <div className="ml-auto flex gap-2">
             <Button size="sm" className="h-7 text-xs" onClick={sendToBuyBack}><Send className="mr-1.5 h-3.5 w-3.5" />Send to Buy-Back Claims</Button>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { if (!practiceId) return toast.error("Select a single practice before adding to a worklist"); setWorklistDialogOpen(true); }}><ListChecks className="mr-1.5 h-3.5 w-3.5" />Add to worklist</Button>
@@ -622,7 +628,7 @@ export const PatientDrillDrawer = ({
       )}
 
       <div ref={cohortScrollRef} className="min-h-0 flex-1 overflow-auto bg-background">
-        <div className="sticky top-0 z-20 grid h-9 grid-cols-[28px_72px_44px_78px_56px_52px_64px_64px_28px] items-center border-b bg-muted/70 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="sticky top-0 z-20 grid h-9 grid-cols-[24px_60px_40px_74px_52px_48px_62px_62px_24px] items-center border-b bg-background px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <div><Checkbox checked={allVisibleSelected || (someSelected ? "indeterminate" : false)} onCheckedChange={handleHeaderSelect} aria-label="Select visible patients" /></div>
           <div>Ref</div><div className="text-right">Age</div><div>Frailty</div><div className="text-right">Drugs</div><div className="text-right">Inpt</div><div className="text-right">PoA</div><div className="text-right">PoLoS</div><div />
         </div>
@@ -635,33 +641,36 @@ export const PatientDrillDrawer = ({
             {cohortBaseRows.length > 0 && <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>Clear filters</Button>}
           </div>
         ) : (
-          <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
-            {virtualRows.map((virtualRow) => {
-              const r = sortedRows[virtualRow.index];
-              const isSelected = selected.has(r.fkPatientLinkId);
-              return (
-                <div
-                  key={r.fkPatientLinkId}
-                  ref={rowVirtualizer.measureElement}
-                  data-index={virtualRow.index}
-                  tabIndex={0}
-                  className={`group absolute left-0 grid w-full cursor-pointer grid-cols-[28px_72px_44px_78px_56px_52px_64px_64px_28px] items-center border-b px-3 py-2 text-xs hover:bg-muted/40 focus:bg-muted/50 focus:outline-none ${isSelected ? "border-l-4 border-l-primary bg-primary/5" : "border-l-4 border-l-transparent"}`}
-                  style={{ transform: `translateY(${virtualRow.start}px)` }}
-                  onClick={(e) => openPatientFromCohort(r.fkPatientLinkId, e.currentTarget)}
-                >
-                  <div onClick={(e) => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(r.fkPatientLinkId)} aria-label={`Select patient ${r.fkPatientLinkId}`} /></div>
-                  <div className="truncate font-mono font-semibold tabular-nums text-primary">{r.fkPatientLinkId}</div>
-                  <div className="text-right tabular-nums">{r.age ?? "—"}</div>
-                  <div><span className={`inline-flex max-w-full items-center border px-1.5 py-0.5 text-[11px] ${frailtyClass(r.frailty)}`}>{r.frailty || "—"}</span></div>
-                  <div className="text-right tabular-nums">{r.drugCount}</div>
-                  <div className="text-right tabular-nums">{r.inpatientAdmissions}</div>
-                  <div className={`text-right tabular-nums ${(r.poA ?? 0) >= 20 ? "font-bold text-foreground" : "font-semibold"}`}>{r.poA !== null ? pct(r.poA) : "—"}</div>
-                  <div className="text-right tabular-nums text-muted-foreground">{r.poLoS !== null ? pct(r.poLoS) : "—"}</div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
-                </div>
-              );
-            })}
-          </div>
+          <>
+            <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+              {virtualRows.map((virtualRow) => {
+                const r = sortedRows[virtualRow.index];
+                const isSelected = selected.has(r.fkPatientLinkId);
+                return (
+                  <div
+                    key={r.fkPatientLinkId}
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    tabIndex={0}
+                    className={`group absolute left-0 grid w-full cursor-pointer grid-cols-[24px_60px_40px_74px_52px_48px_62px_62px_24px] items-center border-b border-border/60 px-3 py-2 text-xs transition-colors hover:bg-muted/30 focus:bg-muted/40 focus:outline-none ${isSelected ? "border-l-4 border-l-primary bg-primary/5" : "border-l-4 border-l-transparent bg-background"}`}
+                    style={{ transform: `translateY(${virtualRow.start}px)` }}
+                    onClick={(e) => openPatientFromCohort(r.fkPatientLinkId, e.currentTarget)}
+                  >
+                    <div onClick={(e) => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(r.fkPatientLinkId)} aria-label={`Select patient ${r.fkPatientLinkId}`} /></div>
+                    <div className="truncate font-mono font-semibold tabular-nums text-primary">{r.fkPatientLinkId}</div>
+                    <div className="text-right tabular-nums">{r.age ?? "—"}</div>
+                    <div><span className={`inline-flex max-w-full items-center border px-1.5 py-0.5 text-[11px] font-semibold ${frailtyClass(r.frailty)}`}>{r.frailty || "—"}</span></div>
+                    <div className="text-right tabular-nums">{r.drugCount}</div>
+                    <div className="text-right tabular-nums">{r.inpatientAdmissions}</div>
+                    <div className={`text-right tabular-nums ${(r.poA ?? 0) >= 20 ? "font-bold text-foreground" : "font-semibold"}`}>{r.poA !== null ? pct(r.poA) : "—"}</div>
+                    <div className="text-right tabular-nums text-muted-foreground">{r.poLoS !== null ? pct(r.poLoS) : "—"}</div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                  </div>
+                );
+              })}
+            </div>
+            {selectionCapped && <div className="sticky bottom-0 border-t bg-muted/30 px-6 py-2 text-xs text-muted-foreground">Selection capped at {SELECTION_CAP}. Filter further to select more.</div>}
+          </>
         )}
       </div>
 
