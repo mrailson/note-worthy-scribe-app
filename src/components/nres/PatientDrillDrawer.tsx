@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
@@ -814,23 +814,26 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
 
   return (
     <>
-      <SheetHeader className="px-5 pt-5 pb-3 border-b">
+      <SheetHeader className="border-b bg-muted/30 px-6 pb-4 pt-5">
         {cohortContext && onBack && (
           <button type="button" onClick={onBack} className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to {cohortContext.label}
           </button>
         )}
-        <SheetTitle ref={headerRef} tabIndex={-1} className="narp-display text-[22px] font-semibold pr-8 focus:outline-none">Patient {patient.fkPatientLinkId}</SheetTitle>
+        <SheetTitle ref={headerRef} tabIndex={-1} className="narp-display pr-8 text-[22px] font-medium tracking-normal focus:outline-none">Patient {patient.fkPatientLinkId}</SheetTitle>
         <SheetDescription className="text-xs">{practiceName || patient.practiceName || "Selected practice"} · 1 of {fmt(cohortContext?.count ?? allRowsCount)}</SheetDescription>
       </SheetHeader>
 
-      <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
-        <div className="grid grid-cols-2 gap-2">
-          <Kpi label={<span>PoA · Probability of admission <ScoreInfoTooltip text={scoreTooltips.poa.text} anchor={scoreTooltips.poa.anchor} /></span>} value={patient.poA !== null ? pct(patient.poA) : "—"} tone={poaTone} className="px-3 py-3" />
-          <Kpi label={<span>PoLoS · Length of stay risk <ScoreInfoTooltip text={scoreTooltips.polos.text} anchor={scoreTooltips.polos.anchor} /></span>} value={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tone={polosTone} className="px-3 py-3" />
-          <Kpi label={<span>RUB · Resource band <ScoreInfoTooltip text={scoreTooltips.rub.text} anchor={scoreTooltips.rub.anchor} /></span>} value={patient.rub || "—"} tone={rubTone} className="px-3 py-3" />
-          <Kpi label={<span>Frailty · eFI category <ScoreInfoTooltip text={scoreTooltips.frailty.text} anchor={scoreTooltips.frailty.anchor} /></span>} value={patient.frailty} tone={frailtyTone} className="px-3 py-3" />
-        </div>
+      <div className="flex-1 space-y-6 overflow-auto px-6 py-5">
+        <section>
+          <SectionLabel>Risk profile</SectionLabel>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <Kpi label={<span>PoA · Admission risk <ScoreInfoTooltip text={scoreTooltips.poa.text} anchor={scoreTooltips.poa.anchor} /></span>} value={patient.poA !== null ? pct(patient.poA) : "—"} tone={poaTone} className="px-3 py-3" />
+            <Kpi label={<span>PoLoS · Length of stay <ScoreInfoTooltip text={scoreTooltips.polos.text} anchor={scoreTooltips.polos.anchor} /></span>} value={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tone={polosTone} className="px-3 py-3" />
+            <Kpi label={<span>RUB · Resource band <ScoreInfoTooltip text={scoreTooltips.rub.text} anchor={scoreTooltips.rub.anchor} /></span>} value={patient.rub || "—"} tone={rubTone} className="px-3 py-3" />
+            <Kpi label={<span>Frailty · eFI <ScoreInfoTooltip text={scoreTooltips.frailty.text} anchor={scoreTooltips.frailty.anchor} /></span>} value={patient.frailty} tone={frailtyTone} className="px-3 py-3" />
+          </div>
+        </section>
 
         <Section title="Clinical profile">
           <KV k="Age" v={patient.age ?? "—"} />
@@ -846,15 +849,18 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
           <KV k="Outpatient follow-up" v={patient.outpatientFollowUp ?? "—"} />
         </Section>
 
-        <Section title="Cohort memberships">
-          <div className="flex flex-wrap gap-1.5">
-            {patientCohorts.map((cohort) => (
-              <button key={cohort.key} type="button" onClick={() => onOpenCohort(cohort.key)} className="text-xs px-2 py-1 border rounded-md hover:bg-muted text-left">
-                {cohort.label}
-              </button>
-            ))}
-          </div>
-        </Section>
+        {patientCohorts.length > 0 && (
+          <section>
+            <SectionLabel>This patient appears in</SectionLabel>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {patientCohorts.map((cohort) => (
+                <button key={cohort.key} type="button" onClick={() => onOpenCohort(cohort.key)} className="border bg-muted/30 px-2.5 py-1 text-left text-xs hover:bg-muted">
+                  {cohort.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {(canViewPII || hasExceptionPath || exceptionRevealed) && (
           <Section title="Identifiers">
@@ -864,37 +870,41 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
                 <KV k="Surname" v={identifierDetails?.surname ?? patient.surname ?? "—"} />
                 <KV k="Forename" v={identifierDetails?.forenames ?? patient.forenames ?? "—"} />
                 <KV k="DOB" v="—" />
-                {exceptionRevealed && <p className="text-[11px] text-muted-foreground pt-1">Revealed by you · Reason: “{exceptionReason.trim()}”</p>}
+                {exceptionRevealed && <p className="border-t border-dashed pt-2 text-[11px] leading-relaxed text-muted-foreground">Revealed by you · Reason: “{exceptionReason.trim()}”</p>}
               </>
             ) : hasExceptionPath ? (
-              <div className="space-y-2">
+              <div className="space-y-2 py-1">
                 <p className="text-xs text-muted-foreground">NHS Number, name and DOB hidden under DSA</p>
-                <Input value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} placeholder="Reason for access (≥10 chars)" className="text-xs" />
-                <Button variant="outline" size="sm" onClick={onReveal} disabled={exceptionReason.trim().length < 10}>Reveal identifiers</Button>
+                <textarea value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} placeholder="Reason for access (e.g. MDT review prep)" rows={2} className="w-full resize-y border bg-background px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                <Button variant="outline" size="sm" onClick={onReveal} disabled={exceptionReason.trim().length < 10}><Eye className="mr-1.5 h-4 w-4" />Reveal identifiers</Button>
               </div>
             ) : identifierLookupStatus === "loading" ? <p className="text-xs text-muted-foreground">Looking up identifiable details…</p> : null}
           </Section>
         )}
       </div>
 
-      <div className="sticky bottom-0 border-t bg-background px-5 py-3 flex gap-2">
+      <div className="sticky bottom-0 flex gap-2 border-t bg-background px-4 py-3">
         <Button size="sm" className="flex-1" onClick={onSendToBuyBack}><Send className="h-4 w-4 mr-1.5" />Send to Buy-Back Claims</Button>
-        <Button size="sm" variant="outline" className="flex-1" onClick={onAddToWorklist}><ListChecks className="h-4 w-4 mr-1.5" />Add to worklist</Button>
+        <Button size="sm" variant="outline" className="flex-1" onClick={onAddToWorklist}><Plus className="h-4 w-4 mr-1.5" />Add to worklist</Button>
         <Button size="sm" variant="ghost" onClick={copyRef} aria-label="Copy patient reference"><Copy className="h-4 w-4" /></Button>
       </div>
     </>
   );
 };
 
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{children}</div>
+);
+
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div>
-    <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">{title}</div>
-    <div className="space-y-1">{children}</div>
-  </div>
+  <section>
+    <SectionLabel>{title}</SectionLabel>
+    <div className="mt-2 space-y-1 border bg-muted/30 px-3 py-1">{children}</div>
+  </section>
 );
 
 const KV = ({ k, v, tip }: { k: string; v: React.ReactNode; tip?: { text: string; anchor: string } }) => (
-  <div className="flex justify-between text-sm">
+  <div className="flex items-baseline justify-between border-b border-border/60 py-2 text-sm last:border-b-0">
     <span className="inline-flex items-center gap-1 text-muted-foreground">
       {k}
       {tip && <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />}
