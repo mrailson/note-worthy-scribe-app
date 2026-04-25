@@ -1,3 +1,6 @@
+import { cn } from "@/lib/utils";
+import { dashboardTokens } from "./tokens";
+
 type AgeRiskRow = {
   age: string;
   VeryHigh: number;
@@ -8,20 +11,14 @@ type AgeRiskRow = {
 };
 
 const tiers = [
-  { key: "very_high", label: "Very High", field: "VeryHigh", colour: "#7f1d1d" },
-  { key: "high", label: "High", field: "High", colour: "#b91c1c" },
-  { key: "moderate", label: "Moderate", field: "Moderate", colour: "#d97706" },
-  { key: "rising", label: "Rising", field: "Rising", colour: "#ca8a04" },
-  { key: "low", label: "Low", field: "Low", colour: "#15803d", subtle: true },
+  { key: "very_high", label: "Very High", field: "VeryHigh", colour: "var(--narp-critical)" },
+  { key: "high", label: "High", field: "High", colour: "var(--narp-high)" },
+  { key: "moderate", label: "Moderate", field: "Moderate", colour: "var(--narp-warn)" },
+  { key: "rising", label: "Rising", field: "Rising", colour: "var(--narp-rising)" },
+  { key: "low", label: "Low", field: "Low", colour: "var(--narp-good)", subtle: true },
 ] as const;
 
-const hexToRgba = (hex: string, alpha: number) => {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-};
+const hsla = (token: string, alpha: number) => `hsl(${token} / ${alpha})`;
 
 export const AgeRiskHeatmap = ({
   data,
@@ -32,57 +29,69 @@ export const AgeRiskHeatmap = ({
   onCellClick?: (ageBand: string, tier: string) => void;
   showLegend?: boolean;
 }) => {
-  const maxByField = (field: keyof AgeRiskRow) => Math.max(...data.map((row) => row[field] as number), 1);
+  const columnMax = tiers.reduce<Record<string, number>>((acc, tier) => {
+    acc[tier.field] = Math.max(...data.map((row) => row[tier.field] as number), 1);
+    return acc;
+  }, {});
 
   return (
     <div className="font-narp-body">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-xs">
+        <table className="w-full border-collapse text-xs tabular-nums">
           <thead>
-            <tr className="uppercase tracking-wide text-narp-slate">
-              <th className="border-b p-2 text-left">Age band</th>
-              {tiers.map((tier) => <th key={tier.key} className="border-b p-2">{tier.label}</th>)}
+            <tr>
+              <th className={cn("border-b px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em]", dashboardTokens.line, dashboardTokens.paper, dashboardTokens.muted)}>Age band</th>
+              {tiers.map((tier) => <th key={tier.key} className={cn("border-b px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.08em]", dashboardTokens.line, dashboardTokens.paper, dashboardTokens.muted)}>{tier.label}</th>)}
+              <th className={cn("border-b px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.08em]", dashboardTokens.line, dashboardTokens.paper, dashboardTokens.muted)}>Total</th>
             </tr>
           </thead>
           <tbody>
-            {data.map((row) => (
-              <tr key={row.age}>
-                <td className="border-b p-3 font-semibold text-narp-ink">{row.age}</td>
-                {tiers.map((tier) => {
-                  const value = row[tier.field] as number;
-                  const intensity = Math.min(value / maxByField(tier.field), 1);
-                  const subtle = "subtle" in tier && tier.subtle;
-                  const background = subtle ? hexToRgba(tier.colour, intensity * 0.12) : hexToRgba(tier.colour, intensity * 0.85 + 0.05);
-                  const readableDark = subtle || intensity <= 0.5;
+            {data.map((row) => {
+              const total = tiers.reduce((sum, tier) => sum + (row[tier.field] as number), 0);
 
-                  return (
-                    <td key={tier.key} className="border-b p-0" style={{ backgroundColor: background }}>
+              return (
+                <tr key={row.age}>
+                  <td className={cn("border-b p-3 text-[13px] font-semibold", dashboardTokens.line, dashboardTokens.ink)}>{row.age}</td>
+                  {tiers.map((tier) => {
+                    const value = row[tier.field] as number;
+                    const intensity = Math.min(value / columnMax[tier.field], 1);
+                    const subtle = "subtle" in tier && tier.subtle;
+                    const background = subtle ? hsla(tier.colour, intensity * 0.12) : hsla(tier.colour, intensity * 0.85 + 0.05);
+                    const useLightText = !subtle && intensity > 0.55;
+
+                    return (
+                      <td key={tier.key} className={cn("border-b p-0 text-center text-[13px]", dashboardTokens.line)} style={{ backgroundColor: background }}>
                       <button
                         type="button"
                         disabled={!value || !onCellClick}
                         onClick={() => onCellClick?.(row.age, tier.key)}
-                        className="h-full w-full p-3 text-center tabular-nums disabled:cursor-not-allowed disabled:no-underline enabled:hover:underline"
-                        style={{ color: readableDark ? "#0f172a" : "#ffffff", fontWeight: intensity > 0.4 ? 600 : 400 }}
+                        aria-label={`${value.toLocaleString("en-GB")} patients`}
+                        className={cn(
+                          "block h-full w-full bg-transparent p-3 text-center tabular-nums disabled:cursor-default disabled:no-underline enabled:hover:brightness-90",
+                          useLightText ? "text-primary-foreground" : dashboardTokens.ink,
+                        )}
+                        style={{ fontWeight: intensity > 0.4 ? 600 : 400 }}
                       >
                         {value.toLocaleString("en-GB")}
                       </button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+                      </td>
+                    );
+                  })}
+                  <td className={cn("border-b p-3 text-right text-[13px] tabular-nums", dashboardTokens.line, dashboardTokens.muted)}>{total.toLocaleString("en-GB")}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
       {showLegend && (
-        <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-narp-slate">
-          {tiers.map((tier) => (
-            <span key={tier.key} className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5" style={{ backgroundColor: tier.colour }} /> {tier.label}
-            </span>
-          ))}
+        <div className={cn("mt-3 flex items-center gap-3 border-t border-dashed pt-2.5 text-[11px]", dashboardTokens.line, dashboardTokens.muted)}>
+          <span>Cell intensity scaled within each column</span>
+          <span className="ml-auto">Click a cell with patients to drill in</span>
         </div>
       )}
     </div>
   );
 };
+
+export default AgeRiskHeatmap;
