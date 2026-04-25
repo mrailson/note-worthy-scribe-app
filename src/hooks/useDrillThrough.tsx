@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 /**
  * Drill-through controller — single global state for the
@@ -65,6 +65,7 @@ export const DrillThroughProvider = ({ children }: { children: ReactNode }) => {
   const [mode, setMode] = useState<DrillDrawerMode>(() => readKeysFromUrl().length ? "cohort" : "cohort");
   const [cohortContext, setCohortContext] = useState<DrillCohortContext | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const escBackLockedRef = useRef(false);
 
   // Keep URL in sync with state
   useEffect(() => { writeKeysToUrl(filterKeys); }, [filterKeys]);
@@ -113,10 +114,21 @@ export const DrillThroughProvider = ({ children }: { children: ReactNode }) => {
   // Close drawer with ESC
   useEffect(() => {
     if (!filterKeys.length && !selectedPatient) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (mode === "patient" && cohortContext) {
+        e.preventDefault();
+        if (escBackLockedRef.current) return;
+        escBackLockedRef.current = true;
+        backToCohort();
+        window.setTimeout(() => { escBackLockedRef.current = false; }, 250);
+        return;
+      }
+      close();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [filterKeys.length, selectedPatient, close]);
+  }, [filterKeys.length, selectedPatient, mode, cohortContext, backToCohort, close]);
 
   const value = useMemo<DrillContextValue>(() => ({
     isOpen: filterKeys.length > 0 || !!selectedPatient,

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks, ArrowLeft } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
@@ -17,6 +18,7 @@ import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportMod
 import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
 import { Kpi } from "@/components/dashboard/Kpi";
+import { DrawerModeTransition } from "@/components/nres/DrawerModeTransition";
 import { scoreTooltips } from "@/lib/narp-reference";
 import {
   ALL_FILTERS,
@@ -77,6 +79,7 @@ interface PatientDrillDrawerProps {
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
 type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 type IdentifierLookupStatus = "idle" | "loading" | "ready" | "unavailable";
+type CohortSnapshot = { scrollTop: number; selectedIds: string[]; filterKeys: string[]; sortBy: SortKey; search: string; quickChips: string[] };
 
 const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-001": { nhs_number: "9990000001", forenames: "Demo Patient", surname: "One" },
@@ -88,8 +91,6 @@ const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-007": { nhs_number: "9990000007", forenames: "Demo Patient", surname: "Seven" },
   "DEMO-008": { nhs_number: "9990000008", forenames: "Demo Patient", surname: "Eight" },
 };
-
-const DEFAULT_EXCEPTION_REASON = "Legitimate LTC profile review";
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 const pct = (n: number) => `${n.toFixed(1)}%`;
@@ -157,11 +158,44 @@ export const PatientDrillDrawer = ({
 
   // Add-to-worklist dialog — Phase C
   const [worklistDialogOpen, setWorklistDialogOpen] = useState(false);
+  const cohortScrollRef = useRef<HTMLDivElement | null>(null);
+  const patientHeaderRef = useRef<HTMLHeadingElement | null>(null);
+  const lastPatientTriggerRef = useRef<HTMLElement | null>(null);
+  const transitionLockedRef = useRef(false);
+  const [, setCohortSnapshot] = useState<CohortSnapshot | null>(null);
+  const reducedMotion = useReducedMotion();
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
   const identifiersAllowed = mode === "patient" ? canViewPII : canViewPII && identifiersVisible;
   const showInlinePII = (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
+
+  const captureCohortState = () => {
+    setCohortSnapshot({
+      scrollTop: cohortScrollRef.current?.scrollTop ?? 0,
+      selectedIds: Array.from(selected),
+      filterKeys,
+      sortBy,
+      search,
+      quickChips,
+    });
+  };
+
+  const openPatientFromCohort = (patientId: string, trigger: HTMLElement | null = null) => {
+    captureCohortState();
+    lastPatientTriggerRef.current = trigger;
+    openPatient(patientId, currentCohortContext);
+  };
+
+  const handleBackToCohort = () => {
+    if (transitionLockedRef.current) return;
+    transitionLockedRef.current = true;
+    backToCohort();
+    window.setTimeout(() => {
+      transitionLockedRef.current = false;
+      lastPatientTriggerRef.current?.focus();
+    }, 250);
+  };
 
   useEffect(() => {
     if (!identifiersVisible) {
@@ -214,6 +248,11 @@ export const PatientDrillDrawer = ({
     [rows, selectedPatient],
   );
   const visibleRefKey = (mode === "patient" && patientRow ? [patientRow] : visibleRows).map((r) => r.fkPatientLinkId).join("|");
+
+  useEffect(() => {
+    if (mode !== "patient") return;
+    window.setTimeout(() => patientHeaderRef.current?.focus(), reducedMotion ? 100 : 280);
+  }, [mode, selectedPatient, reducedMotion]);
 
   const currentCohortContext = useMemo(() => ({
     filterKey: filterKeys[0] ?? "all",
@@ -317,6 +356,9 @@ export const PatientDrillDrawer = ({
     setSearch("");
     setQuickChips([]);
     setRenderLimit(200);
+    setCohortSnapshot(null);
+    lastPatientTriggerRef.current = null;
+    transitionLockedRef.current = false;
     close();
   };
 
@@ -561,7 +603,7 @@ export const PatientDrillDrawer = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div ref={cohortScrollRef} className="flex-1 overflow-auto">
         <table className="w-full text-xs">
           <thead className="bg-muted/60 sticky top-0 z-10">
             <tr className="text-left">
@@ -581,7 +623,7 @@ export const PatientDrillDrawer = ({
           </thead>
           <tbody>
             {visibleRows.map((r) => (
-              <tr key={r.fkPatientLinkId} className="border-b hover:bg-muted/40 cursor-pointer" onClick={() => openPatient(r.fkPatientLinkId, currentCohortContext)} style={{ contentVisibility: "auto", containIntrinsicSize: "32px" }}>
+              <tr key={r.fkPatientLinkId} tabIndex={0} className="border-b hover:bg-muted/40 cursor-pointer focus:outline-none focus:bg-muted/50" onClick={(e) => openPatientFromCohort(r.fkPatientLinkId, e.currentTarget)} style={{ contentVisibility: "auto", containIntrinsicSize: "32px" }}>
                 <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.fkPatientLinkId)} onCheckedChange={() => toggleSelect(r.fkPatientLinkId)} aria-label={`Select patient ${r.fkPatientLinkId}`} /></td>
                 <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
                 {showInlinePII && <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>{identifierDetails[r.fkPatientLinkId]?.nhs_number || r.nhsNumber || "—"}</td>}
@@ -629,44 +671,68 @@ export const PatientDrillDrawer = ({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(o) => { if (!o) onCloseDrawer(); }}>
-        <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 flex flex-col">
-          {mode === "patient" && patientRow ? (
-            <PatientDetail
-              patient={patientRow}
-              cohortContext={cohortContext}
-              allRowsCount={rows.length}
-              patientCohorts={patientCohorts}
-              identifierDetails={identifierDetails[patientRow.fkPatientLinkId]}
-              showIdentifiers={showInlinePII}
-              canViewPII={canViewPII}
-              hasExceptionPath={hasViewElsewhere && !canViewPII}
-              exceptionRevealed={exceptionRevealed}
-              exceptionReason={exceptionReason}
-              setExceptionReason={setExceptionReason}
-              identifierLookupStatus={identifierLookupStatus}
-              practiceName={practiceName ?? patientRow.practiceName}
-              onBack={cohortContext ? backToCohort : undefined}
-              onOpenCohort={(key) => open(key)}
-              onReveal={() => {
-                if (!practiceId || exceptionReason.trim().length < 10) return;
-                void supabase.rpc("log_narp_pii_page_access", {
-                  _practice_id: practiceId,
-                  _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
-                  _patient_count_rendered: 1,
-                });
-                setExceptionRevealed(true);
-                toast.success("Identifiers revealed for this session. Audit row written.");
-              }}
-              onSendToBuyBack={() => {
-                console.log("[NRES] Single patient → Buy-Back Claims", patientRow.fkPatientLinkId);
-                toast.success(`Patient ${patientRow.fkPatientLinkId} queued for Buy-Back Claims`);
-              }}
-              onAddToWorklist={() => {
-                setSelected(patientSelection);
-                setWorklistDialogOpen(true);
-              }}
-            />
-          ) : renderCohortMode()}
+        <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 flex flex-col overflow-hidden">
+          <div className="sr-only" aria-live="polite">
+            {mode === "patient" && cohortContext ? "Showing patient detail. Press Escape to return to cohort." : mode === "patient" ? "Showing patient detail." : "Showing cohort list."}
+          </div>
+          <div className="relative flex-1 overflow-hidden">
+            <DrawerModeTransition activeMode={mode} layer="cohort" ariaHidden={mode === "patient"}>
+              {renderCohortMode()}
+            </DrawerModeTransition>
+            <DrawerModeTransition activeMode={mode} layer="patient" ariaHidden={mode !== "patient"}>
+              <AnimatePresence initial={false} mode="popLayout">
+                {patientRow ? (
+                  <motion.div
+                    key={patientRow.fkPatientLinkId}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: reducedMotion ? 0.1 : 0.18, ease: [0.4, 0, 0.2, 1] }}
+                    className="absolute inset-0 flex min-h-0 flex-col bg-background"
+                  >
+                    <PatientDetail
+                      patient={patientRow}
+                      headerRef={patientHeaderRef}
+                      cohortContext={cohortContext}
+                      allRowsCount={rows.length}
+                      patientCohorts={patientCohorts}
+                      identifierDetails={identifierDetails[patientRow.fkPatientLinkId]}
+                      showIdentifiers={showInlinePII}
+                      canViewPII={canViewPII}
+                      hasExceptionPath={hasViewElsewhere && !canViewPII}
+                      exceptionRevealed={exceptionRevealed}
+                      exceptionReason={exceptionReason}
+                      setExceptionReason={setExceptionReason}
+                      identifierLookupStatus={identifierLookupStatus}
+                      practiceName={practiceName ?? patientRow.practiceName}
+                      onBack={cohortContext ? handleBackToCohort : undefined}
+                      onOpenCohort={(key) => open(key)}
+                      onReveal={() => {
+                        if (!practiceId || exceptionReason.trim().length < 10) return;
+                        void supabase.rpc("log_narp_pii_page_access", {
+                          _practice_id: practiceId,
+                          _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
+                          _patient_count_rendered: 1,
+                        });
+                        setExceptionRevealed(true);
+                        toast.success("Identifiers revealed for this session. Audit row written.");
+                      }}
+                      onSendToBuyBack={() => {
+                        console.log("[NRES] Single patient → Buy-Back Claims", patientRow.fkPatientLinkId);
+                        toast.success(`Patient ${patientRow.fkPatientLinkId} queued for Buy-Back Claims`);
+                      }}
+                      onAddToWorklist={() => {
+                        setSelected(patientSelection);
+                        setWorklistDialogOpen(true);
+                      }}
+                    />
+                  </motion.div>
+                ) : mode === "patient" ? (
+                  <motion.div key="patient-loading" className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">Loading patient details…</motion.div>
+                ) : null}
+              </AnimatePresence>
+            </DrawerModeTransition>
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -716,6 +782,7 @@ const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text:
 // ── Single-patient detail drawer mode ────────────────────────────────────
 interface PatientDetailProps {
   patient: DrillPatientRow;
+  headerRef: RefObject<HTMLHeadingElement>;
   cohortContext: { filterKey: string; label: string; count?: number } | null;
   allRowsCount: number;
   patientCohorts: Array<{ key: string; label: string }>;
@@ -735,7 +802,7 @@ interface PatientDetailProps {
   onAddToWorklist: () => void;
 }
 
-const PatientDetail = ({ patient, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
+const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
   const copyRef = () => {
     navigator.clipboard.writeText(patient.fkPatientLinkId);
     toast.success("Reference copied");
@@ -753,7 +820,7 @@ const PatientDetail = ({ patient, cohortContext, allRowsCount, patientCohorts, i
             <ArrowLeft className="h-3.5 w-3.5" /> Back to {cohortContext.label}
           </button>
         )}
-        <SheetTitle className="narp-display text-[22px] font-semibold pr-8">Patient {patient.fkPatientLinkId}</SheetTitle>
+        <SheetTitle ref={headerRef} tabIndex={-1} className="narp-display text-[22px] font-semibold pr-8 focus:outline-none">Patient {patient.fkPatientLinkId}</SheetTitle>
         <SheetDescription className="text-xs">{practiceName || patient.practiceName || "Selected practice"} · 1 of {fmt(cohortContext?.count ?? allRowsCount)}</SheetDescription>
       </SheetHeader>
 
