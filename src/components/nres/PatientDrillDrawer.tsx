@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks, ArrowLeft } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
@@ -91,8 +91,6 @@ const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-007": { nhs_number: "9990000007", forenames: "Demo Patient", surname: "Seven" },
   "DEMO-008": { nhs_number: "9990000008", forenames: "Demo Patient", surname: "Eight" },
 };
-
-const DEFAULT_EXCEPTION_REASON = "Legitimate LTC profile review";
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 const pct = (n: number) => `${n.toFixed(1)}%`;
