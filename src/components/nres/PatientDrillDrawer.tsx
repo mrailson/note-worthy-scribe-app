@@ -545,10 +545,10 @@ export const PatientDrillDrawer = ({
         <Stat label="Aged 65+" value={summary.pct65 != null ? `${summary.pct65.toFixed(0)}%` : "—"} />
       </div>
 
-      <div className="border-b bg-background px-5 py-2">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="border-b bg-background px-6 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-            <SelectTrigger className="h-8 w-[128px] shrink-0 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[132px] shrink-0 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="poA">Sort: PoA</SelectItem>
               <SelectItem value="poLoS">Sort: PoLoS</SelectItem>
@@ -560,7 +560,7 @@ export const PatientDrillDrawer = ({
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 shrink-0 text-xs"><SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />Filter</Button>
+              <Button variant="outline" size="sm" className="h-8 shrink-0 text-xs"><Filter className="mr-1.5 h-3.5 w-3.5" />Filter</Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-72 p-3">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Filter queue</div>
@@ -596,10 +596,16 @@ export const PatientDrillDrawer = ({
             {!activeFilterCount && <span className="truncate text-xs text-muted-foreground">no filters applied</span>}
           </div>
 
-          <div className="relative w-[150px] shrink-0">
-            <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={canViewPII ? "Ref / NHS / name" : "Patient ref"} className="h-8 pl-7 text-xs" />
-          </div>
+          {searchExpanded || search ? (
+            <div className="relative w-[200px] shrink-0">
+              <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} onBlur={() => !search && setSearchExpanded(false)} placeholder={canViewPII ? "Patient ref, NHS no, name" : "Patient ref"} className="h-8 pl-7 text-xs" />
+            </div>
+          ) : (
+            <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => setSearchExpanded(true)} aria-label="Search">
+              <Search className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
 
