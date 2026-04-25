@@ -249,14 +249,17 @@ Deno.serve(async (req) => {
     // Non-fatal: downstream helpers also validate configuration.
   }
 
-  // 5. Duplicate check
+  // 5. Duplicate check. Ready duplicates are safe to reuse; failed/empty
+  // duplicates must be reprocessed or the UI can never recover from an earlier
+  // persistence failure for the same file checksum.
   const { data: dup, error: dupErr } = await admin
     .from("narp_exports")
     .select("id, status, patient_count")
     .eq("file_checksum", checksum)
     .maybeSingle();
   if (dupErr) return json({ error: dupErr.message }, 500);
-  if (dup)
+  const shouldRetryDuplicate = dup && (dup.status !== "ready" || Number(dup.patient_count ?? 0) === 0);
+  if (dup && !shouldRetryDuplicate)
     return json(
       {
         duplicate: true,
@@ -296,21 +299,31 @@ Deno.serve(async (req) => {
     return json({ error: `Parse failed: ${msg}` }, 400);
   }
 
-  // 7. Insert export row (status = processing)
-  const { data: exportRow, error: insErr } = await admin
-    .from("narp_exports")
-    .insert({
-      practice_id: practiceId,
-      export_date: exportDate,
-      uploaded_by: userId,
-      patient_count: 0,
-      file_checksum: checksum,
-      file_name: file.name,
-      status: "processing",
-    })
-    .select("id")
-    .single();
-  if (insErr || !exportRow) {
+  // 7. Insert export row (status = processing), or reset a failed duplicate.
+  let exportId = dup?.id ?? "";
+  if (shouldRetryDuplicate && exportId) {
+    await admin.from("narp_cohort_membership").delete().eq("export_id", exportId);
+    await admin.from("narp_patient_snapshots").delete().eq("export_id", exportId);
+    const { error: retryErr } = await admin
+      .from("narp_exports")
+      .update({ status: "processing", error_message: null, patient_count: 0, uploaded_by: userId, export_date: exportDate, file_name: file.name })
+      .eq("id", exportId);
+    if (retryErr) return json({ error: retryErr.message }, 500);
+  } else {
+    const { data: exportRow, error: insErr } = await admin
+      .from("narp_exports")
+      .insert({
+        practice_id: practiceId,
+        export_date: exportDate,
+        uploaded_by: userId,
+        patient_count: 0,
+        file_checksum: checksum,
+        file_name: file.name,
+        status: "processing",
+      })
+      .select("id")
+      .single();
+    if (insErr || !exportRow) {
     if (insErr?.code === "23505") {
       return json(
         {
@@ -321,8 +334,9 @@ Deno.serve(async (req) => {
       );
     }
     return json({ error: insErr?.message ?? "Failed to create export" }, 500);
+    }
+    exportId = exportRow.id;
   }
-  const exportId = exportRow.id;
 
   // 8. Insert snapshots in batches
   try {
@@ -330,11 +344,12 @@ Deno.serve(async (req) => {
     let insertedTotal = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
       const slice = rows.slice(i, i + BATCH);
-      const { data: inserted, error: rpcErr } = await admin.rpc("narp_insert_snapshots", {
+      const { data: inserted, error: rpcErr } = await admin.rpc("narp_insert_snapshots_with_key", {
         p_export_id: exportId,
         p_practice_id: practiceId,
         p_export_date: exportDate,
         p_rows: slice,
+        p_pii_key: NARP_PII_KEY,
       });
       if (rpcErr) throw new Error(rpcErr.message);
       insertedTotal += Number(inserted ?? 0);

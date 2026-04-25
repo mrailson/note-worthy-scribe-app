@@ -398,7 +398,7 @@ const NRESPopulationRiskInner = () => {
         .range(from, from + NARP_SNAPSHOT_PAGE_SIZE - 1);
       if (error) {
         toast.error(`Could not refresh persisted NARP rows: ${error.message}`);
-        return;
+        return 0;
       }
       allRows.push(...(data ?? []));
       if ((data ?? []).length < NARP_SNAPSHOT_PAGE_SIZE) break;
@@ -424,6 +424,7 @@ const NRESPopulationRiskInner = () => {
     if (persistedRows.length) {
       setRows(persistedRows);
     }
+    return persistedRows.length;
   }, []);
 
   useEffect(() => {
@@ -449,11 +450,14 @@ const NRESPopulationRiskInner = () => {
         toast.error("Unsupported file type — upload .xlsx or .csv");
         return;
       }
-      const mappedCount = raw.map(mapNarpRow).filter((r): r is NarpRow => r !== null).length;
+      const mappedRows = raw.map(mapNarpRow).filter((r): r is NarpRow => r !== null);
+      const mappedCount = mappedRows.length;
       if (!mappedCount) {
         toast.error("No valid patient rows found in file");
         return;
       }
+      setRows(mappedRows);
+      setSelectedPractice(mappedRows[0]?.practiceKey || BUGBROOKE_KEY);
       setIsHeaderUploading(true);
       const ingestToast = toast.loading(`Persisting ${file.name}…`);
       try {
@@ -472,7 +476,11 @@ const NRESPopulationRiskInner = () => {
           );
         }
         setUploadsRefreshSignal((value) => value + 1);
-        await reloadPersistedExport(body.export_id);
+        const restoredCount = await reloadPersistedExport(body.export_id);
+        if (!restoredCount) {
+          setRows(mappedRows);
+          toast.info("Showing the loaded file now while the persisted snapshot catches up.");
+        }
       } catch (ingestError) {
         toast.dismiss(ingestToast);
         throw ingestError;
