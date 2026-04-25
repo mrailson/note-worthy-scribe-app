@@ -50,6 +50,7 @@ export default {
 					ink: 'hsl(var(--narp-ink))',
 					'ink-2': 'hsl(var(--narp-ink-2))',
 					slate: 'hsl(var(--narp-slate))',
+					paper: 'hsl(var(--narp-paper))',
 					mist: 'hsl(var(--narp-mist))',
 					line: 'hsl(var(--narp-line))',
 					teal: 'hsl(var(--narp-teal))',
