@@ -30,7 +30,7 @@ export const CohortCard = ({
   children?: React.ReactNode;
 }) => {
   const pctOfList = totalListSize ? ((cohort.n / totalListSize) * 100).toFixed(1) : null;
-  const accentTeal = "#0b4f6c";
+  const accentTeal = "hsl(var(--narp-teal))";
 
   return (
     <div
@@ -49,14 +49,14 @@ export const CohortCard = ({
       >
         <div className="flex min-w-0 items-center gap-2">
           <span className="h-1.5 w-1.5 shrink-0" style={{ backgroundColor: cohort.colour }} />
-          <span className={cn("min-w-0 truncate text-[11px] font-semibold uppercase leading-[1.3] tracking-[0.06em]", selected ? "text-[#0b4f6c]" : dashboardTokens.muted)}>{cohort.definition}</span>
+          <span className={cn("min-w-0 truncate text-[11px] font-semibold uppercase leading-[1.3] tracking-[0.06em]", selected ? dashboardTokens.accent : dashboardTokens.muted)}>{cohort.definition}</span>
           {children}
         </div>
         <div className="narp-display mt-0.5 text-lg font-medium leading-[1.25]">{cohort.label}</div>
-        <p className={cn("text-xs leading-[1.45]", selected ? "text-slate-600" : dashboardTokens.ink2)}>{cohort.intervention}</p>
+        <p className={cn("text-xs leading-[1.45]", selected ? dashboardTokens.ink2 : dashboardTokens.ink2)}>{cohort.intervention}</p>
         <div className="mt-auto flex items-baseline justify-between pt-2">
           <span className="narp-display text-[26px] font-semibold leading-none tabular-nums">{cohort.n.toLocaleString("en-GB")}</span>
-          <span className={cn("text-[11px] tabular-nums", selected ? "text-slate-600" : dashboardTokens.muted)}>
+          <span className={cn("text-[11px] tabular-nums", selected ? dashboardTokens.ink2 : dashboardTokens.muted)}>
             {cohort.weeklyTarget}/week{pctOfList && <> · {pctOfList}% of list</>}
           </span>
         </div>
@@ -75,7 +75,7 @@ export const CohortCard = ({
               <Send className="h-3 w-3" /> Send to worklist
             </button>
           )}
-          <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-[#0b4f6c]">
+          <span className={cn("ml-auto inline-flex items-center gap-1 text-xs font-semibold", dashboardTokens.accent)}>
             View details <ChevronRight className="h-3 w-3" />
           </span>
         </div>
