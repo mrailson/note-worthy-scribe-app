@@ -811,6 +811,7 @@ export const PatientDrillDrawer = ({
       <PatientDetailModal
         patient={activePatient}
         canViewPII={canViewPII}
+        identifierDetails={identifierDetails[activePatient?.fkPatientLinkId ?? ""]}
         onClose={() => setActivePatient(null)}
         onSendToBuyBack={(p) => {
           // TODO (Phase 1): persist single-patient handoff
@@ -841,11 +842,12 @@ const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text:
 interface PatientDetailModalProps {
   patient: DrillPatientRow | null;
   canViewPII: boolean;
+  identifierDetails?: IdentifiableDetails;
   onClose: () => void;
   onSendToBuyBack: (p: DrillPatientRow) => void;
 }
 
-const PatientDetailModal = ({ patient, canViewPII, onClose, onSendToBuyBack }: PatientDetailModalProps) => {
+const PatientDetailModal = ({ patient, canViewPII, identifierDetails, onClose, onSendToBuyBack }: PatientDetailModalProps) => {
   const [revealed, setRevealed] = useState<{ nhsNumber?: string; name?: string } | null>(null);
   const [reason, setReason] = useState("");
   const [revealing, setRevealing] = useState(false);
@@ -875,8 +877,8 @@ const PatientDetailModal = ({ patient, canViewPII, onClose, onSendToBuyBack }: P
       // and write a console-side audit breadcrumb.
       console.log("[NRES][audit] Identifier reveal", { fk: patient.fkPatientLinkId, reason });
       setRevealed({
-        nhsNumber: patient.nhsNumber,
-        name: [patient.forenames, patient.surname].filter(Boolean).join(" ") || undefined,
+        nhsNumber: identifierDetails?.nhs_number ?? patient.nhsNumber,
+        name: patientDisplayName(identifierDetails, patient) || undefined,
       });
     } finally {
       setRevealing(false);
@@ -890,7 +892,7 @@ const PatientDetailModal = ({ patient, canViewPII, onClose, onSendToBuyBack }: P
 
   return (
     <Dialog open={!!patient} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="z-[110] max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Patient {patient.fkPatientLinkId}
