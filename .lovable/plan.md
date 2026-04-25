@@ -1,87 +1,208 @@
-## Goal
+Plan only — no code changes made.
 
-When a signed-in user on the mobile recorder (`/new-recorder`) finishes a recording in **Online** mode, the experience should be:
+## Current findings
 
-- Pill stays green ("Online") throughout.
-- Upload + transcription happen silently in the background.
-- The just-finished recording appears in the local "Recordings (N)" list **immediately** (counter never displays a stale 0).
-- No "Sign in to sync" sheet, no extra login link, no "Syncing…" blue dot flicker that the user has to react to.
+### 1) Export/download code paths today
 
-## Root cause
+On `/nres/population-risk`, the relevant export paths are:
 
-The mobile recorder currently has **two parallel connectivity/sync systems running side by side**, and they disagree:
+1. `src/pages/NRESPopulationRisk.tsx`
+   - Function: `exportCohortCsv(cohortId)`
+   - Triggered by: `CohortsSection` button labelled `Export cohort (CSV)`
+   - Output filename: `nres-cohort-${cohortId}.csv`
+   - Builder: inline CSV string construction using `headers.join(",")` and `data.map(...).join(",")`
+   - Current behaviour: always pseudonymised; includes `FK_Patient_Link_ID`, never NHS number/name.
 
-| System | Owner | Data source | What it shows |
-|---|---|---|---|
-| `useRecordingMode` (current) | The Mode Pill ("Live Transcription" / "Offline mode") | `localStorage` preference + `navigator.onLine` | Drives `mode === "live"` everywhere downstream |
-| `ConnectionToggle` + `LoginModal` + `syncRecordings.ts` (legacy) | Imported in `NoteWellRecorderMobile.jsx` (line 20) and bundles its own state machine | A separate IndexedDB read via `countPendingRecordings()` and its own `supabase.auth.getSession()` check | Pops the "Sign in to sync" bottom sheet; flips its own pill to "Syncing…"; shows "Offline · N pending" |
+2. `src/components/nres/PatientDrillDrawer.tsx`
+   - Function: `exportCsvAnonymised()`
+   - Triggered by: drawer button labelled `Export – anonymised`
+   - Output filename: `narp-${slug}-anonymised.csv`
+   - Builder: inline CSV string construction using `csvRows` array.
+   - Current behaviour: always pseudonymised; includes `FK_Patient_Link_ID`, never NHS number/name.
 
-The chunked recorder writes recordings to IndexedDB as multi-chunk objects (`status: "local" | "syncing" | "synced"…`) and uploads them through its own `syncRecording(rec)` flow — it never calls `syncPendingRecordings()` from `utils/syncRecordings.ts`. The legacy `syncPendingRecordings()` only inserts a stub `meetings` row with no audio, so even when the toggle "succeeds" it produces nothing useful.
+3. `src/components/nres/PatientDrillDrawer.tsx`
+   - Function: `exportCsvIdentifiable()`
+   - Triggered by: drawer button labelled `Export – with identifiers`
+   - Calls: `IdentifiableExportModal`
+   - Then: `src/components/nres/IdentifiableExportModal.tsx` calls Supabase edge function `narp-export-identifiable`
+   - Output filename: returned by edge function, fallback `narp-identifiable.csv`
+   - Current behaviour: separate audited identifiable export path, gated by `canExportPII`, not the same as the visual `Show identifiable details` toggle.
 
-Symptoms map cleanly onto this:
+4. `src/components/nres/WorklistsTab.tsx`
+   - I found patient/worklist display paths, but no current CSV/XLSX export function in this file.
+   - Worklists currently show stored `fk_patient_link_id` only; no download button exists in the inspected code.
+   - If “any patient list/worklist” refers to drawer patient lists, that path is `PatientDrillDrawer.exportCsvAnonymised()`.
 
-- **"Says Online but says Syncing"** → both the Mode Pill (green Online from `useRecordingMode`) and the legacy `ConnectionToggle` pill (blue "Syncing…" from its own `syncState`) render at once. The legacy pill kicks itself into `syncing` on mount whenever `pendingCount > 0`.
-- **"Login link at the top of the recorder page"** → `ConnectionToggle.handleTap` (and any path that re-evaluates auth) calls `supabase.auth.getSession()`; on transient session-refresh edge cases or when the session restore is still in-flight it returns `null`, so it sets `showLogin = true` and `LoginModal` renders the "Sign in to sync" sheet over the recorder.
-- **"Recordings (0) hangs"** → `pendingCount` displayed in the legacy toggle is the wrong IndexedDB query path; the recorder card's own `recordings` list (built from `dbAll()`) does populate, but the toggle's "0 pending" sticks until a manual refresh, making the user think nothing was saved.
+No XLSX export builder appears to be used for these population-risk patient lists today. `xlsx` is imported in `NRESPopulationRisk.tsx` for upload parsing only.
 
-## Plan
+### 2) Where the toggle state currently lives
 
-### 1. Remove the legacy `ConnectionToggle` / `LoginModal` / `syncRecordings.ts` path from the mobile recorder
+There are two independent local React states:
 
-In `src/components/recorder/NoteWellRecorderMobile.jsx`:
+1. `src/pages/NRESPopulationRisk.tsx`
+   - `TopRiskSection`
+   - `const [identifiersVisible, setIdentifiersVisible] = useState(false);`
+   - Controls Top 25 inline `NHS Number` and `Name` columns.
 
-- Remove the imports of `ConnectionToggle`, `countPendingRecordings`.
-- Delete `pendingCount` state and `refreshPendingCount` (the recorder already has `recordings` from `dbAll()` which is the source of truth).
-- Verify `ConnectionToggle` is not rendered anywhere in the JSX — it isn't (confirmed), so removal is import-only.
+2. `src/components/nres/PatientDrillDrawer.tsx`
+   - `const [identifiersVisible, setIdentifiersVisible] = useState(false);`
+   - Controls drawer inline `NHS no.` and `Name` columns.
 
-`ConnectionToggle.tsx`, `LoginModal.tsx`, and `utils/syncRecordings.ts` are not used elsewhere by the recorder. Confirm no other consumers (search project) and either:
-- Leave the files in place but unimported (safe), or
-- Delete them as dead code (cleaner).
+Both reset to OFF on component remount/page reload. They are not shared, and exports do not currently read this state.
 
-Recommendation: delete them to prevent re-introduction.
+### 3) Safest persistence location
 
-### 2. Single source of truth for connectivity
+Use `localStorage`, keyed by authenticated user id, with defensive RBAC enforcement at read/use time.
 
-`useRecordingMode` already owns:
-- Persisted user preference (`online` | `offline` in localStorage).
-- Live `navigator.onLine`.
-- An `isAutoFallback` flag for "user wants online but the network dropped".
+Recommended key shape:
 
-The Mode Pill (`<ModePill>`) already renders the three correct visual states. No changes needed to the hook.
+```text
+nres:population-risk:show-identifiers:${user.id}
+```
 
-### 3. Make post-stop sync silent + immediate in Online mode
+Why localStorage is the smallest/safest patch here:
+- It is per-browser/per-user and suits a UI preference.
+- It avoids storing a sensitive preference in the database.
+- It avoids schema/RLS changes.
+- It avoids URL leakage; query params are inappropriate because they could be shared/bookmarked and accidentally request identifier display.
+- It must not be trusted for access. The effective value must always be `canViewPII && persistedPreference`.
 
-In the recorder's stop flow (`syncRecording(rec)` and the auto-sync path around line 1770):
+Rejected alternatives:
+- `user_settings` table: more durable across devices, but requires schema/RLS/API changes and is too large for this request.
+- Query param: not appropriate for an identifier-display preference and could leak into history/shared URLs.
 
-- Optimistically push the just-finished recording into the `recordings` array as soon as it's persisted to IndexedDB, so the **"Recordings (N)"** counter increments immediately (no 0 hang). This is largely already the case via `refresh()` after save — confirm `refresh()` is awaited *before* sync starts.
-- Keep the per-row status chip ("Uploading…" / "Synced" / "Transcribed") that already exists in the recordings list — that's the right place for sync feedback.
-- Do not flip any top-of-page pill to "Syncing…". The Mode Pill stays green.
-- Suppress the toast "Back online — resuming sync of N recording(s)" when we're already online and the recording the user just stopped is the only one in the queue (it's not a "rescue" event, just the normal happy path).
+## Proposed smallest patch
 
-### 4. Belt-and-braces: prevent any stray sign-in modal from rendering on the recorder
+### File 1: `src/pages/NRESPopulationRisk.tsx`
 
-- After the import removal in step 1, `LoginModal` can no longer mount from the recorder.
-- Add a guard so that if a future component tries to surface auth UI on `/new-recorder` while `useAuth().user` exists, it's a no-op. (Defensive, optional.)
+Exact changes:
 
-### 5. QA checklist
+1. Import the authenticated user:
+   - Add `useAuth` import from `@/contexts/AuthContext`.
+   - Inside `NRESPopulationRiskInner`, read `const { user } = useAuth();`.
 
-- Sign in, go to `/new-recorder`, ensure pill = green "Online", no "Sign in to sync" sheet ever appears.
-- Record 30 seconds → Stop → confirm:
-  - Pill stays green Online (no blue "Syncing…" flicker at the top).
-  - "Recordings (1)" appears immediately under the recorder card.
-  - The new row shows its own "Uploading…" → "Synced" → "Transcribed" lifecycle.
-- Toggle Airplane mode mid-recording → verify orange "Offline (no connection)" auto-fallback pill + mid-record `ConnectionBanner`. Restore connection → confirm auto-resume toast and silent upload.
-- Sign out → visit `/new-recorder` → confirm normal auth redirect (handled by `ProtectedRoute`/route guard, not by `LoginModal`).
+2. Add a shared persisted toggle state at page level, not inside `TopRiskSection`:
+   - Add state such as `const [showIdentifiersPreference, setShowIdentifiersPreference] = useState(false);`.
+   - Add a localStorage key derived from `user?.id`.
+   - On user id change, load the saved value from localStorage.
+   - On toggle change, write via existing `safeSetItem` from `src/utils/localStorageManager.ts` if available/imported; otherwise use guarded `localStorage.setItem`.
+   - If `canViewPII` becomes false, force the effective display OFF without necessarily deleting the saved preference.
 
-## Files to change
+3. Pass the persisted state and setter into `TopRiskSection`:
+   - Replace `TopRiskSection`’s internal `useState(false)` with props:
+     - `identifiersVisible`
+     - `onIdentifiersVisibleChange`
+   - Keep effective display as `const showIdentifiers = canViewPII && identifiersVisible;`.
 
-- `src/components/recorder/NoteWellRecorderMobile.jsx` — remove `ConnectionToggle` / `countPendingRecordings` imports, delete `pendingCount` state + `refreshPendingCount` + its `useEffect`, verify no JSX references remain. Tighten the post-stop refresh order so the recordings list updates before sync begins.
-- `src/components/ConnectionToggle.tsx` — delete (legacy, no remaining consumers after step 1).
-- `src/components/LoginModal.tsx` — delete (only consumed by `ConnectionToggle`).
-- `src/utils/syncRecordings.ts` — delete (only consumed by `ConnectionToggle`; the recorder's own `syncRecording` flow is the real path).
+4. Wire Top 25 export/download:
+   - Add a CSV export button to `TopRiskSection` if there is not one already.
+   - Add a local inline CSV builder for Top 25 sorted rows.
+   - When `canViewPII && identifiersVisible` is true, export columns:
+     - `NHS_Number`
+     - `Name`
+     - then the existing clinical/risk columns
+   - When false, export only:
+     - `FK_Patient_Link_ID`
+     - existing clinical/risk columns
+   - Never include identifiers unless `canViewPII && identifiersVisible` is true.
+   - Use the already-loaded `identifierDetails` first, then row-level fallback (`p.nhsNumber`, `p.forenames`, `p.surname`) only under the same RBAC+toggle condition.
 
-## Out of scope (to keep this surgical)
+5. Wire cohort CSV export:
+   - Update `exportCohortCsv(cohortId)` to use the same effective condition:
+     - `const includeIdentifiers = canViewPII && showIdentifiersPreference;`
+   - If true, headers become `NHS_Number, Name, Age, ...` or `FK_Patient_Link_ID, NHS_Number, Name, Age, ...` depending preferred output. Based on the request “instead of just REF”, I would include `NHS_Number` and `Name` and omit `FK_Patient_Link_ID` only for ON exports.
+   - If false, keep current pseudonymised headers exactly as today.
+   - Important: this path only has identifiers already present in uploaded/demo rows. For real encrypted NARP refs with no row-level identifiers, it would need the same RPC lookup before export. Smallest safe implementation: build a helper that resolves identifiers for a set of refs using the existing demo map + `get_narp_identifiable_by_refs` only when `includeIdentifiers` is true.
 
-- The `MeetingHistory` (`/meetings`) page is unchanged — the user confirmed the "0" issue was the **in-recorder** counter, not the cloud history.
-- No backend / edge function changes. The fix is entirely in the mobile recorder UI layer.
-- No change to the `useRecordingMode` hook itself — it already behaves correctly.
+6. Pass the same persisted state into the drawer:
+   - In the `PatientDrillDrawer` invocation, add props:
+     - `identifiersVisible={showIdentifiersPreference}`
+     - `onIdentifiersVisibleChange={setShowIdentifiersPreference}`
+
+### File 2: `src/components/nres/PatientDrillDrawer.tsx`
+
+Exact changes:
+
+1. Add optional controlled toggle props:
+
+```ts
+identifiersVisible?: boolean;
+onIdentifiersVisibleChange?: (visible: boolean) => void;
+```
+
+2. Replace local-only state with controlled/uncontrolled compatibility:
+   - Keep an internal fallback state for safety.
+   - Effective value:
+
+```ts
+const effectiveIdentifiersVisible = identifiersVisibleProp ?? internalIdentifiersVisible;
+```
+
+   - Setter updates either parent callback or internal fallback.
+
+3. Update all drawer references from `identifiersVisible` to `effectiveIdentifiersVisible`:
+   - `showInlinePII`
+   - identifier loading effect
+   - switch `checked`
+   - switch `onCheckedChange`
+
+4. Change `exportCsvAnonymised()` into a toggle-aware export while keeping the same button position:
+   - Rename internally to something like `exportCsvCurrentView()` or keep function name to minimise UI churn.
+   - Effective export rule:
+
+```ts
+const includeIdentifiers = canViewPII && effectiveIdentifiersVisible;
+```
+
+   - If `includeIdentifiers` is false, keep today’s headers and filename behaviour (`narp-${slug}-anonymised.csv`).
+   - If `includeIdentifiers` is true:
+     - Ensure identifiers are available for all `sortedRows` being exported, not just `visibleRows`. The current effect only loads `visibleRows` because of virtual/render limiting.
+     - Use a shared helper inside the component to load missing identifiers for `sortedRows` via demo map + existing RPC.
+     - Headers should include `NHS_Number` and `Name` instead of `FK_Patient_Link_ID` for ON exports.
+     - Filename should avoid saying anonymised, e.g. `narp-${slug}-identifiable.csv`.
+   - If identifier lookup fails, show the existing toast and do not produce a partial identifiable export.
+
+5. Keep the separate `Export – with identifiers` audited edge-function path unchanged.
+   - This request is about making the current patient-list export follow the visual toggle.
+   - Do not touch edge functions.
+   - Do not change `IdentifiableExportModal.tsx` unless you want to rename labels, which is not required.
+
+### File 3: optional small helper file, only if needed
+
+To avoid duplicating CSV escaping and identifier resolution between Top 25/cohort/drawer exports, the cleanest small helper would be:
+
+`src/utils/narpIdentifiableExport.ts`
+
+Potential contents:
+- `csvEscape(value)`
+- `formatPatientName(detailsOrRow)`
+- `buildPatientListCsv(rows, { includeIdentifiers, details })`
+
+However, to keep the patch smallest, I would probably avoid a new file and keep helpers local unless duplication becomes messy.
+
+## Security/RBAC rules preserved
+
+- Toggle UI remains shown only when `canViewPII` is true.
+- Persistence stores only a boolean preference, not identifiers.
+- Export inclusion condition is always `canViewPII && persistedToggleValue`.
+- If localStorage is manually changed to `true` by a user without permission, identifiers still will not render or export.
+- Real NARP references still use the existing `get_narp_identifiable_by_refs` RPC for identifier resolution.
+- Demo refs continue to use the synthetic `DEMO_IDENTIFIABLE_DETAILS` path.
+- No edge functions touched.
+- No typecheck “fixes”.
+
+## Files I would touch
+
+1. `src/pages/NRESPopulationRisk.tsx`
+   - Lift/persist toggle state per user.
+   - Pass controlled toggle state into Top 25 and drawer.
+   - Make `exportCohortCsv` toggle-aware.
+   - Add Top 25 CSV export if required.
+
+2. `src/components/nres/PatientDrillDrawer.tsx`
+   - Accept controlled toggle state props.
+   - Use shared persisted toggle state.
+   - Make drawer CSV export include identifiers only when `canViewPII && toggleOn`.
+   - Load identifiers for all exported rows before producing identifiable CSV.
+
+No database migrations, no edge-function edits, no typecheck warning work.
