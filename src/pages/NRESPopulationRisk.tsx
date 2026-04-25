@@ -760,13 +760,9 @@ const NRESPopulationRiskInner = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Risk pyramid */}
                 <div className="bg-white border rounded-lg p-5">
-                  <h3 className="flex items-center gap-1 font-semibold text-base mb-1">
-                    <span>Population risk pyramid</span>
+                  <SectionTitle eyebrow="Risk stratification" title="Population risk pyramid" lede="Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.">
                     <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
-                  </h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.
-                  </p>
+                  </SectionTitle>
                   <div className="space-y-2">
                     {riskPyramid.filter(r => r.tier !== "Unknown").map(r => {
                       const maxN = Math.max(...riskPyramid.filter(x => x.tier !== "Unknown").map(x => x.n), 1);
@@ -804,10 +800,7 @@ const NRESPopulationRiskInner = () => {
 
                 {/* Frailty bar chart */}
                 <div className="bg-white border rounded-lg p-5">
-                  <h3 className="font-semibold text-base mb-1">Utilisation by frailty</h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Click a frailty category to drill into its patients.
-                  </p>
+                  <SectionTitle eyebrow="Where to aim effort" title="Utilisation by frailty" lede="Click a frailty category to drill into its patients." />
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart
                       data={frailtyStats}
@@ -833,14 +826,9 @@ const NRESPopulationRiskInner = () => {
 
               {/* Age x risk heatmap */}
               <div className="bg-white border rounded-lg p-5">
-                <h3 className="flex items-center gap-1 font-semibold text-base mb-1">
-                  <span>Age band × risk tier</span>
+                <SectionTitle eyebrow="Risk by age" title="Age band × risk tier" lede="Where the risk sits — older bands carry the High and Very-High load; the 40–64 Rising-risk cell is the upstream prevention opportunity.">
                   <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
-                </h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Where the risk sits — older bands carry the High and Very-High load; the
-                  40–64 Rising-risk cell is the upstream prevention opportunity.
-                </p>
+                </SectionTitle>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs border-collapse">
                     <thead>
