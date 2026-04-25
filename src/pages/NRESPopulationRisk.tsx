@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { EditorialHeader } from "@/components/dashboard/EditorialHeader";
+import { Kpi } from "@/components/dashboard/Kpi";
+import { SectionTitle } from "@/components/dashboard/SectionTitle";
 import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
 import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
@@ -752,15 +754,15 @@ const NRESPopulationRiskInner = () => {
             {/* OVERVIEW */}
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} filterKey="all" onDrill={drill.open} />
-                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" tooltip={scoreTooltips.highRisk} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
-                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10% PoA)" tooltip={scoreTooltips.risingRisk} value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
-                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" tooltip={scoreTooltips.frailty} value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
+                <Kpi icon={Users} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} onClick={() => drill.open("all")} />
+                <Kpi icon={AlertTriangle} label={<span className="inline-flex items-center gap-1">High-risk (PoA ≥ 20%)<ScoreInfoTooltip text={scoreTooltips.highRisk.text} anchor={scoreTooltips.highRisk.anchor} /></span>} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" onClick={() => drill.open("high_risk")} />
+                <Kpi icon={TrendingUp} label={<span className="inline-flex items-center gap-1">Rising-risk (5–10% PoA)<ScoreInfoTooltip text={scoreTooltips.risingRisk.text} anchor={scoreTooltips.risingRisk.anchor} /></span>} value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" onClick={() => drill.open("rising_risk")} />
+                <Kpi icon={Heart} label={<span className="inline-flex items-center gap-1">Mod/Severe frailty<ScoreInfoTooltip text={scoreTooltips.frailty.text} anchor={scoreTooltips.frailty.anchor} /></span>} value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" onClick={() => drill.open("mod_sev_frailty")} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Risk pyramid */}
-                <div className="bg-white border rounded-lg p-5">
+                <div className="border border-narp-line bg-card p-5">
                   <SectionTitle eyebrow="Risk stratification" title="Population risk pyramid" lede="Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.">
                     <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                   </SectionTitle>
@@ -800,7 +802,7 @@ const NRESPopulationRiskInner = () => {
                 </div>
 
                 {/* Frailty bar chart */}
-                <div className="bg-white border rounded-lg p-5">
+                <div className="border border-narp-line bg-card p-5">
                   <SectionTitle eyebrow="Where to aim effort" title="Utilisation by frailty" lede="Click a frailty category to drill into its patients." />
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart
@@ -826,7 +828,7 @@ const NRESPopulationRiskInner = () => {
               </div>
 
               {/* Age x risk heatmap */}
-              <div className="bg-white border rounded-lg p-5">
+              <div className="border border-narp-line bg-card p-5">
                 <SectionTitle eyebrow="Risk by age" title="Age band × risk tier" lede="Where the risk sits — older bands carry the High and Very-High load; the 40–64 Rising-risk cell is the upstream prevention opportunity.">
                   <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                 </SectionTitle>
@@ -882,8 +884,8 @@ const NRESPopulationRiskInner = () => {
               </div>
 
               {/* Age band distribution */}
-              <div className="bg-white border rounded-lg p-5">
-                <h3 className="font-semibold text-base mb-3">Age band distribution</h3>
+              <div className="border border-narp-line bg-card p-5">
+                <SectionTitle eyebrow="Population shape" title="Age band distribution" />
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={ageBands}>
                     <CartesianGrid strokeDasharray="2 4" vertical={false} />
