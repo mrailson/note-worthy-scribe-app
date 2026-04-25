@@ -19,7 +19,6 @@ import {
   CheckCircle2, Circle, Mic, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { patientFilterKey } from "@/lib/narp-filters";
 import {
   useNarpWorklists,
   useNarpWorklistItems,
@@ -39,7 +38,7 @@ import {
 interface WorklistsTabProps {
   practiceId: string | null | undefined;
   practiceName?: string;
-  onOpenPatient?: (filterKey: string) => void;
+  onOpenPatient?: (patientId: string) => void;
 }
 
 export const WorklistsTab = ({ practiceId, practiceName, onOpenPatient }: WorklistsTabProps) => {
@@ -192,7 +191,7 @@ const WorklistDetail = ({
   worklistId: string;
   worklist: NarpWorklist | undefined;
   onBack: () => void;
-  onOpenPatient?: (filterKey: string) => void;
+  onOpenPatient?: (patientId: string) => void;
 }) => {
   const { data: items = [], isLoading } = useNarpWorklistItems(worklistId);
   const { data: meetingLinks = [] } = useNarpWorklistMeetings(worklistId);
@@ -547,7 +546,7 @@ const WorklistDetail = ({
 
 const ItemRow = ({
   item, disabled, onToggleReviewed, onOpenPatient,
-}: { item: NarpWorklistItem; disabled: boolean; onToggleReviewed: () => void; onOpenPatient?: (filterKey: string) => void }) => {
+}: { item: NarpWorklistItem; disabled: boolean; onToggleReviewed: () => void; onOpenPatient?: (patientId: string) => void }) => {
   return (
     <tr className="border-b hover:bg-muted/30">
       <td className="p-2">
@@ -569,7 +568,7 @@ const ItemRow = ({
           <button
             type="button"
             className="text-primary hover:underline underline-offset-2"
-            onClick={() => onOpenPatient(patientFilterKey(item.fk_patient_link_id))}
+            onClick={() => onOpenPatient(item.fk_patient_link_id)}
           >
             {item.fk_patient_link_id}
           </button>
