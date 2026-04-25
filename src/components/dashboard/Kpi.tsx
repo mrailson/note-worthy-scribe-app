@@ -25,7 +25,7 @@ export const Kpi = ({ icon: Icon, label, value, sub, tone = "default", onClick, 
       className={cn(
         "group flex w-full items-start gap-3 border border-l-[3px] border-narp-line bg-card px-[18px] py-4 text-left font-narp-body",
         kpiToneClasses[tone],
-        onClick ? `cursor-pointer transition-colors duration-150 hover:${dashboardTokens.paper}` : "cursor-default",
+        onClick ? `cursor-pointer transition-colors duration-150 ${dashboardTokens.paperHover}` : "cursor-default",
         className,
       )}
     >
