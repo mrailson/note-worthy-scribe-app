@@ -100,6 +100,12 @@ const csvEscape = (value: unknown): string => {
 const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<DrillPatientRow, "forenames" | "surname">) =>
   [details?.forenames ?? row?.forenames, details?.surname ?? row?.surname].filter(Boolean).join(" ");
 
+const titleTextFromFilters = (keys: string[]) => {
+  const labels = keys.map(getFilter).filter((f): f is NonNullable<ReturnType<typeof getFilter>> => f !== null).map((f) => f.label);
+  if (!labels.length) return "Patient list";
+  return labels.length === 1 ? labels[0] : `${labels[0]} + ${labels.length - 1} more`;
+};
+
 const QUICK_CHIPS: { label: string; key: string }[] = [
   { label: "Age 65+", key: "_quick_65plus" },
   { label: "Frailty Mod/Sev", key: "_quick_modsev" },
