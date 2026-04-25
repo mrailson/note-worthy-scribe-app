@@ -927,6 +927,9 @@ const NRESPopulationRiskInner = () => {
             </TabsContent>
           </Tabs>
         )}
+        <footer className="border-t border-narp-line pt-3 text-right text-[11px] text-muted-foreground">
+          Proof of Concept · v0.4 · {fmtDate(latestExport?.export_date)}
+        </footer>
       </div>
 
       {/* Drill-through drawer (single source of truth for every clickable count) */}
