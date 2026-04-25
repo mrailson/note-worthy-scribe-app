@@ -679,7 +679,15 @@ export const PatientDrillDrawer = ({
                   Identifiers hidden — viewing outside your assigned practice
                 </div>
                 <div className="mb-2">Reveal requires a reason. Audit-logged.</div>
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setExceptionDialogOpen(true)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    setExceptionReason((current) => current.trim() ? current : DEFAULT_EXCEPTION_REASON);
+                    setExceptionDialogOpen(true);
+                  }}
+                >
                   Reveal identifiers (audit-logged)
                 </Button>
               </div>
@@ -747,7 +755,7 @@ export const PatientDrillDrawer = ({
 
       {/* Cross-practice exception reveal dialog */}
       <Dialog open={exceptionDialogOpen} onOpenChange={setExceptionDialogOpen}>
-        <DialogContent>
+        <DialogContent className="z-[100] sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Reveal identifiers for this cohort</DialogTitle>
             <DialogDescription>
