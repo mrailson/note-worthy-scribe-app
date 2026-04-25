@@ -1107,9 +1107,22 @@ const CohortsSection = ({
   );
 };
 
-const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpRow[]; canViewPII: boolean; practiceId?: string | null; onDrill?: (key: string) => void }) => {
+const TopRiskSection = ({
+  rows,
+  canViewPII,
+  identifiersVisible,
+  onIdentifiersVisibleChange,
+  practiceId,
+  onDrill,
+}: {
+  rows: NarpRow[];
+  canViewPII: boolean;
+  identifiersVisible: boolean;
+  onIdentifiersVisibleChange: (visible: boolean) => void;
+  practiceId?: string | null;
+  onDrill?: (key: string) => void;
+}) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
-  const [identifiersVisible, setIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
@@ -1140,7 +1153,7 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
       if (cancelled) return;
       if (error) {
         toast.error("Could not load identifiable details");
-        setIdentifiersVisible(false);
+        onIdentifiersVisibleChange(false);
         return;
       }
       setIdentifierDetails((prev) => {
@@ -1156,7 +1169,61 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
       });
     });
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, refKey]);
+  }, [canViewPII, identifierDetails, identifiersVisible, onIdentifiersVisibleChange, practiceId, refKey]);
+
+  const exportTopRiskCsv = async () => {
+    if (!sorted.length) {
+      toast.info("Nothing to export");
+      return;
+    }
+    const includeIdentifiers = canViewPII && identifiersVisible;
+    let details = identifierDetails;
+    if (includeIdentifiers && practiceId) {
+      const missingRefs = sorted.map((r) => r.fkPatientLinkId).filter((id) => !details[id]);
+      const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
+      if (demoRefs.length) {
+        details = { ...details };
+        for (const id of demoRefs) details[id] = DEMO_IDENTIFIABLE_DETAILS[id];
+      }
+      const rpcRefs = missingRefs.filter((id) => !DEMO_IDENTIFIABLE_DETAILS[id]);
+      if (rpcRefs.length) {
+        const { data, error } = await (supabase as any).rpc("get_narp_identifiable_by_refs", {
+          _practice_id: practiceId,
+          _fk_patient_link_ids: rpcRefs,
+        });
+        if (error) {
+          toast.error("Could not load identifiable details");
+          return;
+        }
+        details = { ...details };
+        for (const row of data ?? []) {
+          details[row.fk_patient_link_id] = {
+            nhs_number: row.nhs_number ?? null,
+            forenames: row.forenames ?? null,
+            surname: row.surname ?? null,
+          };
+        }
+      }
+      setIdentifierDetails(details);
+    }
+    const headers = includeIdentifiers
+      ? ["NHS_Number", "Name", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"]
+      : ["FK_Patient_Link_ID", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"];
+    const lines = [headers.join(",")].concat(sorted.map((r) => {
+      const base = [r.age ?? "", r.frailty, r.drugCount, r.inpatientAdmissions, r.rub, r.poA ?? "", r.poLoS ?? ""];
+      const values = includeIdentifiers
+        ? [details[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details[r.fkPatientLinkId], r), ...base]
+        : [r.fkPatientLinkId, ...base];
+      return values.map(csvEscape).join(",");
+    }));
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = includeIdentifiers ? "nres-top-25-risk-identifiable.csv" : "nres-top-25-risk.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const rubColour = (rub: string) => {
     if (rub.startsWith("5")) return palette.vhigh;
