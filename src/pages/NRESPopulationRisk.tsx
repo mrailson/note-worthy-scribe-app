@@ -1220,7 +1220,7 @@ const TopRiskSection = ({
       toast.info("Nothing to export");
       return;
     }
-    const includeIdentifiers = showIdentifiers;
+    let includeIdentifiers = showIdentifiers;
     let details = identifierDetails;
     if (includeIdentifiers && practiceId) {
       const missingRefs = sorted.map((r) => r.fkPatientLinkId).filter((id) => !details[id]);
@@ -1237,18 +1237,22 @@ const TopRiskSection = ({
         });
         if (error || (data ?? []).length === 0) {
           setIdentifierLookupUnavailable(true);
+          setIdentifierLookupStatus("unavailable");
           showIdentifierLookupFailedToast();
-          return;
+          includeIdentifiers = false;
         }
-        setIdentifierLookupUnavailable(false);
-        identifierLookupToastShownRef.current = false;
-        details = { ...details };
-        for (const row of data ?? []) {
-          details[row.fk_patient_link_id] = {
-            nhs_number: row.nhs_number ?? null,
-            forenames: row.forenames ?? null,
-            surname: row.surname ?? null,
-          };
+        if (includeIdentifiers) {
+          setIdentifierLookupUnavailable(false);
+          setIdentifierLookupStatus("ready");
+          identifierLookupToastShownRef.current = false;
+          details = { ...details };
+          for (const row of data ?? []) {
+            details[row.fk_patient_link_id] = {
+              nhs_number: row.nhs_number ?? null,
+              forenames: row.forenames ?? null,
+              surname: row.surname ?? null,
+            };
+          }
         }
       }
       setIdentifierDetails(details);
@@ -1315,6 +1319,12 @@ const TopRiskSection = ({
               onCheckedChange={onIdentifiersVisibleChange}
               aria-label="Show identifiable details"
             />
+            {identifierLookupStatus === "loading" && (
+              <span className="text-xs text-muted-foreground">Looking up identifiable details…</span>
+            )}
+            {identifierLookupStatus === "unavailable" && (
+              <span className="text-xs text-muted-foreground">Identifiable lookup unavailable — showing REF only</span>
+            )}
           </div>
         )}
         <Button size="sm" variant="outline" onClick={exportTopRiskCsv}>
