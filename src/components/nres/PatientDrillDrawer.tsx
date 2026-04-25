@@ -2,14 +2,13 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
@@ -111,6 +110,8 @@ const QUICK_CHIPS: { label: string; key: string }[] = [
   { label: "Age 65+", key: "_quick_65plus" },
   { label: "Frailty Mod/Sev", key: "_quick_modsev" },
   { label: "Drugs 10+", key: "_quick_drugs10" },
+  { label: "Drugs 15+", key: "_quick_drugs15" },
+  { label: "PoA ≥ 50%", key: "_quick_poa50" },
 ];
 
 const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null => {
@@ -118,6 +119,8 @@ const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null =
     case "_quick_65plus":  return (r) => (r.age ?? 0) >= 65;
     case "_quick_modsev":  return (r) => r.frailty === "Moderate" || r.frailty === "Severe";
     case "_quick_drugs10": return (r) => r.drugCount >= 10;
+    case "_quick_drugs15": return (r) => r.drugCount >= 15;
+    case "_quick_poa50": return (r) => (r.poA ?? 0) >= 50;
     default: return null;
   }
 };
@@ -130,22 +133,16 @@ export const PatientDrillDrawer = ({
   practiceId = null,
   practiceName,
   route,
-  identifiersVisible: identifiersVisibleProp,
-  onIdentifiersVisibleChange,
 }: PatientDrillDrawerProps) => {
   const { isOpen, mode, filterKeys, cohortContext, selectedPatient, open, openPatient, backToCohort, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
   const [search, setSearch] = useState("");
   const [quickChips, setQuickChips] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [renderLimit, setRenderLimit] = useState(200);
-  const [internalIdentifiersVisible, setInternalIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const [identifierLookupUnavailable, setIdentifierLookupUnavailable] = useState(false);
   const [identifierLookupStatus, setIdentifierLookupStatus] = useState<IdentifierLookupStatus>("idle");
   const identifierLookupToastShownRef = useRef(false);
-  const identifiersVisible = identifiersVisibleProp ?? internalIdentifiersVisible;
-  const setIdentifiersVisible = onIdentifiersVisibleChange ?? setInternalIdentifiersVisible;
 
   // Cross-practice exception path: identifiers are hidden by default but the
   // user has identifiable rights for OTHER practices. They can opt in to an
@@ -167,8 +164,8 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const identifiersAllowed = mode === "patient" ? canViewPII : canViewPII && identifiersVisible;
-  const showInlinePII = (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
+  const identifiersAllowed = canViewPII;
+  const showInlinePII = mode === "patient" && (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
 
   const captureCohortState = () => {
     setCohortSnapshot({
@@ -197,14 +194,6 @@ export const PatientDrillDrawer = ({
     }, 250);
   };
 
-  useEffect(() => {
-    if (!identifiersVisible) {
-      setIdentifierLookupUnavailable(false);
-      setIdentifierLookupStatus("idle");
-      identifierLookupToastShownRef.current = false;
-    }
-  }, [identifiersVisible]);
-
   const showIdentifierLookupFailedToast = () => {
     identifierLookupToastShownRef.current = true;
   };
@@ -215,9 +204,11 @@ export const PatientDrillDrawer = ({
     [filterKeys],
   );
 
+  const cohortBaseRows = useMemo(() => applyFilters(rows, filterKeys), [rows, filterKeys]);
+
   // Apply named filters → quick chips → search
   const filteredRows = useMemo(() => {
-    let result = applyFilters(rows, filterKeys);
+    let result = cohortBaseRows;
     for (const chipKey of quickChips) {
       const pred = quickPredicate(chipKey);
       if (pred) result = result.filter(pred);
@@ -226,12 +217,12 @@ export const PatientDrillDrawer = ({
       const q = search.trim().toLowerCase();
       result = result.filter((r) =>
         r.fkPatientLinkId.toLowerCase().includes(q) ||
-        (showInlinePII && (r.nhsNumber ?? "").toLowerCase().includes(q)) ||
-        (showInlinePII && [r.forenames, r.surname].filter(Boolean).join(" ").toLowerCase().includes(q)),
+        (canViewPII && (r.nhsNumber ?? "").toLowerCase().includes(q)) ||
+        (canViewPII && [r.forenames, r.surname].filter(Boolean).join(" ").toLowerCase().includes(q)),
       );
     }
     return result;
-  }, [rows, filterKeys, quickChips, search, showInlinePII]);
+  }, [cohortBaseRows, quickChips, search, canViewPII]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
@@ -241,8 +232,14 @@ export const PatientDrillDrawer = ({
     });
   }, [filteredRows, sortBy]);
 
-  const visibleRows = sortedRows.slice(0, renderLimit);
-  const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
+  const visibleRows = sortedRows;
+  const rowVirtualizer = useVirtualizer({
+    count: sortedRows.length,
+    getScrollElement: () => cohortScrollRef.current,
+    estimateSize: () => 36,
+    overscan: 12,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
   const patientRow = useMemo(
     () => selectedPatient ? rows.find((r) => r.fkPatientLinkId === selectedPatient) ?? null : null,
     [rows, selectedPatient],
@@ -335,12 +332,12 @@ export const PatientDrillDrawer = ({
     const n = filteredRows.length;
     const meanPoA = n ? filteredRows.reduce((s, r) => s + (r.poA ?? 0), 0) / n : 0;
     const aged65 = filteredRows.filter((r) => (r.age ?? 0) >= 65).length;
-    const withAdm = filteredRows.filter((r) => r.inpatientAdmissions >= 1).length;
+    const meanDrugCount = n ? Math.round(filteredRows.reduce((s, r) => s + (r.drugCount ?? 0), 0) / n) : 0;
     return {
       n,
       meanPoA,
+      meanDrugCount,
       pct65: n ? (aged65 / n) * 100 : 0,
-      pctAdm: n ? (withAdm / n) * 100 : 0,
     };
   }, [filteredRows]);
 
@@ -355,7 +352,6 @@ export const PatientDrillDrawer = ({
     setSelected(new Set());
     setSearch("");
     setQuickChips([]);
-    setRenderLimit(200);
     setCohortSnapshot(null);
     lastPatientTriggerRef.current = null;
     transitionLockedRef.current = false;
@@ -372,7 +368,7 @@ export const PatientDrillDrawer = ({
   };
 
   const selectAllVisible = () => {
-    setSelected(new Set(visibleRows.map((r) => r.fkPatientLinkId)));
+    setSelected(new Set(visibleRows.slice(0, 100).map((r) => r.fkPatientLinkId)));
   };
 
   const selectAllInCohort = () => {
@@ -506,161 +502,176 @@ export const PatientDrillDrawer = ({
     ? `${filters.map((f) => f.subtitle).join(" · ")} · ${fmt(summary.n)} of ${fmt(rows.length)}`
     : `${fmt(summary.n)} patients`;
 
+  const activeQuickFilters = QUICK_CHIPS.filter((chip) => quickChips.includes(chip.key));
+  const activeNamedFilters = filters.map((filter) => ({ key: filter.key, label: filter.label, type: "named" as const }));
+  const activeFilterCount = activeNamedFilters.length + activeQuickFilters.length;
+  const filterDescription = activeFilterCount ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"}` : "no filters applied";
+  const selectionCapped = visibleRows.length > 100 && selected.size === 100;
+  const allVisibleSelected = visibleRows.length > 0 && visibleRows.slice(0, 100).every((r) => selected.has(r.fkPatientLinkId));
+  const someSelected = selected.size > 0;
+  const clearFilters = () => {
+    for (const filter of filters) remove(filter.key);
+    setQuickChips([]);
+    setSearch("");
+  };
+  const toggleQuickFilter = (key: string) => {
+    setQuickChips((prev) => prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]);
+  };
+  const handleHeaderSelect = () => {
+    if (someSelected || allVisibleSelected) {
+      clearSelection();
+      return;
+    }
+    selectAllVisible();
+  };
+  const frailtyClass = (frailty: string) => {
+    if (frailty === "Severe") return "border-destructive/30 bg-destructive/10 text-destructive";
+    if (frailty === "Moderate") return "border-primary/30 bg-primary/10 text-primary";
+    if (frailty === "Mild") return "border-accent/30 bg-accent/10 text-accent-foreground";
+    return "border-muted-foreground/20 bg-muted text-muted-foreground";
+  };
+  const exportVisibleCsv = () => void exportCsvAnonymised();
+
   const renderCohortMode = () => (
     <>
-      <SheetHeader className="px-5 pt-5 pb-3 border-b">
-        <SheetTitle className="text-lg flex items-center gap-2 pr-8 flex-wrap">
+      <SheetHeader className="border-b px-5 pb-3 pt-5">
+        <SheetTitle className="flex flex-wrap items-center gap-2 pr-8 text-lg">
           {titleText}
-          {singlePatientRef && (
-            <Badge variant="outline" className="text-sm font-mono border-primary/40 text-primary bg-primary/5">
-              Ref {singlePatientRef}
-            </Badge>
-          )}
         </SheetTitle>
         <SheetDescription className="text-xs">{subtitleText}</SheetDescription>
-        {filters.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {filters.map((ff) => (
-              <Badge key={ff.key} variant="secondary" className="gap-1 pr-1">
-                {ff.label}
-                <button type="button" onClick={() => remove(ff.key)} className="ml-1 rounded-sm hover:bg-background/50 p-0.5" aria-label={`Remove ${ff.label}`}>
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
       </SheetHeader>
 
-      {singlePatientRef && (
-        <div className="px-5 py-2 border-b bg-primary/5 text-sm">
-          <span className="text-muted-foreground">Patient record reference: </span>
-          <span className="font-mono font-semibold text-primary">{singlePatientRef}</span>
-        </div>
-      )}
-      <div className="grid grid-cols-4 gap-2 px-5 py-3 bg-muted/40 border-b text-center">
-        <Stat label="In cohort" value={fmt(summary.n)} />
-        <Stat label="Mean PoA" value={pct(summary.meanPoA)} />
-        <Stat label="Aged 65+" value={pct(summary.pct65)} />
-        <Stat label="≥1 admission" value={pct(summary.pctAdm)} />
+      <div className="grid grid-cols-4 gap-2 border-b bg-muted/30 px-5 py-3">
+        <Stat label="n in cohort" value={cohortBaseRows.length !== summary.n ? `${fmt(summary.n)} of ${fmt(cohortBaseRows.length)}` : fmt(summary.n)} />
+        <Stat label="mean PoA" value={pct(summary.meanPoA)} />
+        <Stat label="mean drug count" value={String(summary.meanDrugCount)} />
+        <Stat label="aged 65+" value={pct(summary.pct65)} />
       </div>
 
-      {overlap.length > 0 && (
-        <div className="px-5 py-2 border-b bg-background">
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-            Overlaps with
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild><Info className="h-3 w-3" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs">Click to narrow this list to patients who are ALSO in that cohort.</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {overlap.map(({ filter, overlap: n }) => (
-              <button key={filter.key} type="button" onClick={() => add(filter.key)} className="text-xs px-2 py-1 border rounded-md hover:bg-muted">
-                {filter.label} <span className="text-muted-foreground">({fmt(n)})</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="px-5 py-3 border-b space-y-2">
-        <div className="flex items-center gap-2">
+      <div className="border-b bg-background px-5 py-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-            <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[128px] shrink-0 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="poA">PoA (highest)</SelectItem>
-              <SelectItem value="poLoS">PoLoS</SelectItem>
-              <SelectItem value="drugCount">Drug count</SelectItem>
-              <SelectItem value="inpatientAdmissions">Admissions</SelectItem>
-              <SelectItem value="age">Age</SelectItem>
+              <SelectItem value="poA">Sort: PoA</SelectItem>
+              <SelectItem value="poLoS">Sort: PoLoS</SelectItem>
+              <SelectItem value="drugCount">Sort: Drugs</SelectItem>
+              <SelectItem value="inpatientAdmissions">Sort: Inpt</SelectItem>
+              <SelectItem value="age">Sort: Age</SelectItem>
             </SelectContent>
           </Select>
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={showInlinePII ? "Ref, NHS number or name" : "Patient ref"} className="pl-7 h-8 text-xs" />
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {QUICK_CHIPS.map((c) => {
-            const active = quickChips.includes(c.key);
-            return (
-              <button key={c.key} type="button" onClick={() => setQuickChips((prev) => active ? prev.filter((k) => k !== c.key) : [...prev, c.key])} className={`text-[11px] px-2 py-0.5 rounded-full border ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}>
-                {c.label}
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 shrink-0 text-xs"><SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />Filter</Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Filter queue</div>
+              <div className="space-y-2">
+                {QUICK_CHIPS.map((chip) => (
+                  <label key={chip.key} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <Checkbox checked={quickChips.includes(chip.key)} onCheckedChange={() => toggleQuickFilter(chip.key)} />
+                    <span>{chip.label}</span>
+                  </label>
+                ))}
+                {overlap.length > 0 && <div className="border-t pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Cohort overlaps</div>}
+                {overlap.map(({ filter, overlap: n }) => (
+                  <label key={filter.key} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <Checkbox checked={filterKeys.includes(filter.key)} onCheckedChange={(checked) => checked ? add(filter.key) : remove(filter.key)} />
+                    <span>{filter.label} <span className="text-muted-foreground">({fmt(n)})</span></span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+            {activeNamedFilters.map((filter) => (
+              <button key={filter.key} type="button" onClick={() => remove(filter.key)} className="inline-flex max-w-[130px] shrink-0 items-center gap-1 truncate border bg-muted/40 px-2 py-1 text-xs hover:bg-muted" title={filter.label}>
+                <span className="truncate">{filter.label}</span><X className="h-3 w-3" />
               </button>
-            );
-          })}
-          {canViewPII && (
-            <div className="ml-auto flex items-center gap-2 rounded-md border px-2 py-1 bg-background">
-              <Label htmlFor="drawer-show-identifiers" className="text-[11px] text-muted-foreground cursor-pointer">Show identifiable details</Label>
-              <Switch id="drawer-show-identifiers" checked={identifiersVisible} onCheckedChange={setIdentifiersVisible} aria-label="Show identifiable details" />
-              {identifierLookupStatus === "loading" && <span className="text-[11px] text-muted-foreground">Looking up identifiable details…</span>}
-              {identifierLookupStatus === "unavailable" && <span className="text-[11px] text-muted-foreground">Identifiable lookup unavailable — showing REF only</span>}
-            </div>
-          )}
+            ))}
+            {activeQuickFilters.map((filter) => (
+              <button key={filter.key} type="button" onClick={() => toggleQuickFilter(filter.key)} className="inline-flex shrink-0 items-center gap-1 border bg-muted/40 px-2 py-1 text-xs hover:bg-muted">
+                {filter.label}<X className="h-3 w-3" />
+              </button>
+            ))}
+            {!activeFilterCount && <span className="truncate text-xs text-muted-foreground">no filters applied</span>}
+          </div>
+
+          <div className="relative w-[150px] shrink-0">
+            <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={canViewPII ? "Ref / NHS / name" : "Patient ref"} className="h-8 pl-7 text-xs" />
+          </div>
         </div>
       </div>
 
-      <div ref={cohortScrollRef} className="flex-1 overflow-auto">
-        <table className="w-full text-xs">
-          <thead className="bg-muted/60 sticky top-0 z-10">
-            <tr className="text-left">
-              <th className="p-2 w-8"><Checkbox checked={visibleRows.length > 0 && visibleRows.every((r) => selected.has(r.fkPatientLinkId))} onCheckedChange={(v) => v ? selectAllVisible() : clearSelection()} aria-label="Select all visible" /></th>
-              <th className="p-2">Ref</th>
-              {showInlinePII && <th className="p-2">NHS no.</th>}
-              {showInlinePII && <th className="p-2">Name</th>}
-              <th className="p-2">Age</th>
-              <th className="p-2"><HeaderTip label="Frailty" tip={scoreTooltips.frailty} /></th>
-              <th className="p-2 text-right"><HeaderTip label="Drugs" tip={scoreTooltips.drugs} align="right" /></th>
-              <th className="p-2 text-right">Inpt</th>
-              <th className="p-2 text-right">A&E</th>
-              <th className="p-2"><HeaderTip label="RUB" tip={scoreTooltips.rub} /></th>
-              <th className="p-2 text-right"><HeaderTip label="PoA" tip={scoreTooltips.poa} align="right" /></th>
-              <th className="p-2 text-right"><HeaderTip label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleRows.map((r) => (
-              <tr key={r.fkPatientLinkId} tabIndex={0} className="border-b hover:bg-muted/40 cursor-pointer focus:outline-none focus:bg-muted/50" onClick={(e) => openPatientFromCohort(r.fkPatientLinkId, e.currentTarget)} style={{ contentVisibility: "auto", containIntrinsicSize: "32px" }}>
-                <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.fkPatientLinkId)} onCheckedChange={() => toggleSelect(r.fkPatientLinkId)} aria-label={`Select patient ${r.fkPatientLinkId}`} /></td>
-                <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
-                {showInlinePII && <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>{identifierDetails[r.fkPatientLinkId]?.nhs_number || r.nhsNumber || "—"}</td>}
-                {showInlinePII && <td className="p-2">{[identifierDetails[r.fkPatientLinkId]?.forenames ?? r.forenames, identifierDetails[r.fkPatientLinkId]?.surname ?? r.surname].filter(Boolean).join(" ") || "—"}</td>}
-                <td className="p-2 tabular-nums">{r.age ?? "—"}</td>
-                <td className="p-2">{r.frailty}</td>
-                <td className="p-2 text-right tabular-nums">{r.drugCount}</td>
-                <td className="p-2 text-right tabular-nums">{r.inpatientAdmissions}</td>
-                <td className="p-2 text-right tabular-nums">{r.aeAttendances}</td>
-                <td className="p-2">{r.rub || "—"}</td>
-                <td className="p-2 text-right font-semibold tabular-nums">{r.poA !== null ? pct(r.poA) : "—"}</td>
-                <td className="p-2 text-right tabular-nums text-muted-foreground">{r.poLoS !== null ? pct(r.poLoS) : "—"}</td>
-              </tr>
-            ))}
-            {!visibleRows.length && <tr><td colSpan={showInlinePII ? 12 : 10} className="p-8 text-center text-muted-foreground">No patients match these filters.</td></tr>}
-          </tbody>
-        </table>
-        {sortedRows.length > visibleRows.length && (
-          <div className="p-3 text-center border-t"><Button variant="outline" size="sm" onClick={() => setRenderLimit((n) => n + 500)}>Show more ({fmt(sortedRows.length - visibleRows.length)} remaining)</Button></div>
+      {selected.size > 0 && (
+        <div className="flex items-center gap-2 border-b bg-primary/5 px-5 py-2 text-xs">
+          <span className="font-semibold text-primary">{selected.size} selected</span>
+          {selectionCapped && <span className="text-muted-foreground">Showing 100 of {fmt(visibleRows.length)}. Filter further to select more.</span>}
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" className="h-7 text-xs" onClick={sendToBuyBack}><Send className="mr-1.5 h-3.5 w-3.5" />Send to Buy-Back Claims</Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { if (!practiceId) return toast.error("Select a single practice before adding to a worklist"); setWorklistDialogOpen(true); }}><ListChecks className="mr-1.5 h-3.5 w-3.5" />Add to worklist</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={clearSelection}>Clear</Button>
+          </div>
+        </div>
+      )}
+
+      <div ref={cohortScrollRef} className="min-h-0 flex-1 overflow-auto bg-background">
+        <div className="sticky top-0 z-20 grid h-9 grid-cols-[28px_72px_44px_78px_56px_52px_64px_64px_28px] items-center border-b bg-muted/70 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div><Checkbox checked={allVisibleSelected || (someSelected ? "indeterminate" : false)} onCheckedChange={handleHeaderSelect} aria-label="Select visible patients" /></div>
+          <div>Ref</div><div className="text-right">Age</div><div>Frailty</div><div className="text-right">Drugs</div><div className="text-right">Inpt</div><div className="text-right">PoA</div><div className="text-right">PoLoS</div><div />
+        </div>
+        {sortedRows.length === 0 ? (
+          <div className="flex h-full min-h-[280px] flex-col items-center justify-center px-8 text-center">
+            <div className="text-sm font-semibold text-foreground">{cohortBaseRows.length ? "No patients match these filters" : "No patients currently in this cohort"}</div>
+            <div className="mt-1 max-w-sm text-xs text-muted-foreground">
+              {cohortBaseRows.length ? `${fmt(cohortBaseRows.length)} patients in the ${titleText} cohort. Try removing a filter.` : "Cohorts refresh on each NARP upload. Last data refresh is shown on the dashboard."}
+            </div>
+            {cohortBaseRows.length > 0 && <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>Clear filters</Button>}
+          </div>
+        ) : (
+          <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+            {virtualRows.map((virtualRow) => {
+              const r = sortedRows[virtualRow.index];
+              const isSelected = selected.has(r.fkPatientLinkId);
+              return (
+                <div
+                  key={r.fkPatientLinkId}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  tabIndex={0}
+                  className={`group absolute left-0 grid w-full cursor-pointer grid-cols-[28px_72px_44px_78px_56px_52px_64px_64px_28px] items-center border-b px-3 py-2 text-xs hover:bg-muted/40 focus:bg-muted/50 focus:outline-none ${isSelected ? "border-l-4 border-l-primary bg-primary/5" : "border-l-4 border-l-transparent"}`}
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                  onClick={(e) => openPatientFromCohort(r.fkPatientLinkId, e.currentTarget)}
+                >
+                  <div onClick={(e) => e.stopPropagation()}><Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(r.fkPatientLinkId)} aria-label={`Select patient ${r.fkPatientLinkId}`} /></div>
+                  <div className="truncate font-mono font-semibold tabular-nums text-primary">{r.fkPatientLinkId}</div>
+                  <div className="text-right tabular-nums">{r.age ?? "—"}</div>
+                  <div><span className={`inline-flex max-w-full items-center border px-1.5 py-0.5 text-[11px] ${frailtyClass(r.frailty)}`}>{r.frailty || "—"}</span></div>
+                  <div className="text-right tabular-nums">{r.drugCount}</div>
+                  <div className="text-right tabular-nums">{r.inpatientAdmissions}</div>
+                  <div className={`text-right tabular-nums ${(r.poA ?? 0) >= 20 ? "font-bold text-foreground" : "font-semibold"}`}>{r.poA !== null ? pct(r.poA) : "—"}</div>
+                  <div className="text-right tabular-nums text-muted-foreground">{r.poLoS !== null ? pct(r.poLoS) : "—"}</div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      <div className="border-t bg-background px-5 py-3 space-y-2">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{selected.size > 0 ? `${selected.size} selected` : `Click rows to view details`}</span>
-          <div className="flex gap-2">
-            <button type="button" className="hover:underline" onClick={selectAllVisible}>Select visible</button><span>·</span>
-            <button type="button" className="hover:underline" onClick={selectAllInCohort}>Select all ({fmt(sortedRows.length)})</button>
-            {selected.size > 0 && <><span>·</span><button type="button" className="hover:underline" onClick={clearSelection}>Clear</button></>}
-          </div>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button size="sm" className="flex-1 min-w-[180px]" onClick={sendToBuyBack} disabled={!selected.size}><Send className="h-4 w-4 mr-1.5" />Send {selected.size || ""} to Buy-Back Claims</Button>
-          <Button size="sm" variant="outline" onClick={() => { if (!selected.size) return toast.info("Select at least one patient first"); if (!practiceId) return toast.error("Select a single practice before adding to a worklist"); setWorklistDialogOpen(true); }} disabled={!selected.size || !practiceId}><ListChecks className="h-4 w-4 mr-1.5" />Add {selected.size || ""} to worklist</Button>
-          <Button size="sm" variant="outline" onClick={exportCsvAnonymised}><FileDown className="h-4 w-4 mr-1.5" />Export – anonymised</Button>
-          {canExportPII && <Button size="sm" variant="outline" onClick={exportCsvIdentifiable}><ShieldCheck className="h-4 w-4 mr-1.5" />Export – with identifiers</Button>}
-        </div>
+      <div className="sticky bottom-0 flex items-center justify-between border-t bg-background px-5 py-2 text-xs">
+        <span className="text-muted-foreground">Showing {fmt(visibleRows.length)} of {fmt(cohortBaseRows.length)} · {filterDescription}</span>
+        <Popover>
+          <PopoverTrigger asChild><Button size="sm" variant="outline" className="h-8 text-xs"><FileDown className="mr-1.5 h-3.5 w-3.5" />Export</Button></PopoverTrigger>
+          <PopoverContent align="end" className="w-64 p-2">
+            <button type="button" onClick={exportVisibleCsv} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><FileDown className="h-4 w-4" />Export visible (anonymised)</button>
+            {canExportPII && <button type="button" onClick={exportCsvIdentifiable} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" />Export visible (with identifiers)</button>}
+            {selected.size > 0 && <button type="button" onClick={sendToBuyBack} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><Send className="h-4 w-4" />Send to Buy-Back Claims</button>}
+          </PopoverContent>
+        </Popover>
       </div>
     </>
   );
@@ -766,9 +777,9 @@ export const PatientDrillDrawer = ({
 };
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
-  <div>
-    <div className="text-base font-bold tabular-nums leading-tight">{value}</div>
-    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+  <div className="text-left">
+    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+    <div className="text-2xl font-bold leading-tight tabular-nums">{value}</div>
   </div>
 );
 
