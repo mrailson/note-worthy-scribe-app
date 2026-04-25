@@ -160,11 +160,44 @@ export const PatientDrillDrawer = ({
 
   // Add-to-worklist dialog — Phase C
   const [worklistDialogOpen, setWorklistDialogOpen] = useState(false);
+  const cohortScrollRef = useRef<HTMLDivElement | null>(null);
+  const patientHeaderRef = useRef<HTMLHeadingElement | null>(null);
+  const lastPatientTriggerRef = useRef<HTMLElement | null>(null);
+  const transitionLockedRef = useRef(false);
+  const [, setCohortSnapshot] = useState<CohortSnapshot | null>(null);
+  const reducedMotion = useReducedMotion();
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
   const identifiersAllowed = mode === "patient" ? canViewPII : canViewPII && identifiersVisible;
   const showInlinePII = (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
+
+  const captureCohortState = () => {
+    setCohortSnapshot({
+      scrollTop: cohortScrollRef.current?.scrollTop ?? 0,
+      selectedIds: Array.from(selected),
+      filterKeys,
+      sortBy,
+      search,
+      quickChips,
+    });
+  };
+
+  const openPatientFromCohort = (patientId: string, trigger: HTMLElement | null = null) => {
+    captureCohortState();
+    lastPatientTriggerRef.current = trigger;
+    openPatient(patientId, currentCohortContext);
+  };
+
+  const handleBackToCohort = () => {
+    if (transitionLockedRef.current) return;
+    transitionLockedRef.current = true;
+    backToCohort();
+    window.setTimeout(() => {
+      transitionLockedRef.current = false;
+      lastPatientTriggerRef.current?.focus();
+    }, 250);
+  };
 
   useEffect(() => {
     if (!identifiersVisible) {
