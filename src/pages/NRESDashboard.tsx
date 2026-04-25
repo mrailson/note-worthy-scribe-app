@@ -6,7 +6,6 @@ import { PriorityActionsPanel } from "@/components/nres/PriorityActionsPanel";
 import { ConsultationsTable } from "@/components/nres/ConsultationsTable";
 import { PerformanceChart } from "@/components/nres/PerformanceChart";
 import { EscalationsLog } from "@/components/nres/EscalationsLog";
-import { PatientDetailModal } from "@/components/nres/PatientDetailModal";
 import { WorkflowModal } from "@/components/nres/WorkflowModal";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +13,6 @@ import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTrack
 import { NRESDigitalAndFinance } from "@/components/nres/NRESDigitalAndFinance";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
-import { HubConsultation } from "@/types/nresTypes";
 import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock, FolderLock, Monitor, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -29,8 +27,6 @@ const NRESDashboard = () => {
   const [dateRange, setDateRange] = useState('today');
   const [consultations, setConsultations] = useState(mockConsultations);
   const [metrics, setMetrics] = useState(mockMetrics);
-  const [selectedConsultation, setSelectedConsultation] = useState<HubConsultation | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -45,10 +41,7 @@ const NRESDashboard = () => {
     });
   }, [toast]);
 
-  const handleConsultationClick = (consultation: HubConsultation) => {
-    setSelectedConsultation(consultation);
-    setModalOpen(true);
-  };
+  const handleConsultationClick = () => setWorkflowModalOpen(true);
 
   const filteredConsultations = selectedPractice === 'All Practices'
     ? consultations
@@ -242,13 +235,6 @@ const NRESDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Patient Detail Modal */}
-      <PatientDetailModal
-        consultation={selectedConsultation}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-      />
 
       {/* Workflow Modal */}
       <WorkflowModal

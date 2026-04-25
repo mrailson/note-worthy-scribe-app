@@ -22,7 +22,7 @@ import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { useAuth } from "@/contexts/AuthContext";
-import { ageRiskFilterKey, patientFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
+import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -860,7 +860,7 @@ const NRESPopulationRiskInner = () => {
                 identifiersVisible={showIdentifiersPreference}
                 onIdentifiersVisibleChange={setShowIdentifiersPreference}
                 practiceId={selectedPracticeId ?? null}
-                onDrill={drill.open}
+                onOpenPatient={drill.openPatient}
               />
             </TabsContent>
 
@@ -869,7 +869,7 @@ const NRESPopulationRiskInner = () => {
               <WorklistsTab
                 practiceId={selectedPracticeId ?? null}
                 practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
-                onOpenPatient={drill.open}
+                onOpenPatient={drill.openPatient}
               />
             </TabsContent>
           </Tabs>
@@ -1204,14 +1204,14 @@ const TopRiskSection = ({
   identifiersVisible,
   onIdentifiersVisibleChange,
   practiceId,
-  onDrill,
+  onOpenPatient,
 }: {
   rows: NarpRow[];
   canViewPII: boolean;
   identifiersVisible: boolean;
   onIdentifiersVisibleChange: (visible: boolean) => void;
   practiceId?: string | null;
-  onDrill?: (key: string) => void;
+  onOpenPatient?: (patientId: string) => void;
 }) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
@@ -1423,12 +1423,11 @@ const TopRiskSection = ({
           </thead>
           <tbody>
             {sorted.map((p, i) => {
-              const drillKey = patientFilterKey(p.fkPatientLinkId);
-              const clickable = !!onDrill && !!drillKey;
+              const clickable = !!onOpenPatient;
               return (
                 <tr
                   key={p.fkPatientLinkId}
-                  onClick={clickable ? () => onDrill!(drillKey) : undefined}
+                  onClick={clickable ? () => onOpenPatient!(p.fkPatientLinkId) : undefined}
                   className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
                 >
                   <td className="p-3 font-semibold text-narp-teal tabular-nums">{p.fkPatientLinkId}</td>
@@ -1457,7 +1456,7 @@ const TopRiskSection = ({
                       className="h-7 text-xs"
                       onClick={(event) => {
                         event.stopPropagation();
-                        onDrill?.(drillKey);
+                        onOpenPatient?.(p.fkPatientLinkId);
                       }}
                     >
                       View details

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -9,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks } from "lucide-react";
+import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
@@ -17,8 +16,10 @@ import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportModal";
 import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
+import { Kpi } from "@/components/dashboard/Kpi";
 import { scoreTooltips } from "@/lib/narp-reference";
 import {
+  ALL_FILTERS,
   applyFilters,
   getFilter,
   overlappingFilters,
@@ -36,6 +37,9 @@ export interface DrillPatientRow extends NarpFilterableRow {
   rub: string;
   poLoS: number | null;
   aeAttendances: number;
+  electiveAdmissions?: number;
+  outpatientFirst?: number;
+  outpatientFollowUp?: number;
   practiceName: string;
 }
 
@@ -96,6 +100,12 @@ const csvEscape = (value: unknown): string => {
 const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<DrillPatientRow, "forenames" | "surname">) =>
   [details?.forenames ?? row?.forenames, details?.surname ?? row?.surname].filter(Boolean).join(" ");
 
+const titleTextFromFilters = (keys: string[]) => {
+  const labels = keys.map(getFilter).filter((f): f is NonNullable<ReturnType<typeof getFilter>> => f !== null).map((f) => f.label);
+  if (!labels.length) return "Patient list";
+  return labels.length === 1 ? labels[0] : `${labels[0]} + ${labels.length - 1} more`;
+};
+
 const QUICK_CHIPS: { label: string; key: string }[] = [
   { label: "Age 65+", key: "_quick_65plus" },
   { label: "Frailty Mod/Sev", key: "_quick_modsev" },
@@ -122,12 +132,11 @@ export const PatientDrillDrawer = ({
   identifiersVisible: identifiersVisibleProp,
   onIdentifiersVisibleChange,
 }: PatientDrillDrawerProps) => {
-  const { isOpen, filterKeys, add, remove, close } = useDrillThrough();
+  const { isOpen, mode, filterKeys, cohortContext, selectedPatient, open, openPatient, backToCohort, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
   const [search, setSearch] = useState("");
   const [quickChips, setQuickChips] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [activePatient, setActivePatient] = useState<DrillPatientRow | null>(null);
   const [renderLimit, setRenderLimit] = useState(200);
   const [internalIdentifiersVisible, setInternalIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
@@ -138,11 +147,10 @@ export const PatientDrillDrawer = ({
   const setIdentifiersVisible = onIdentifiersVisibleChange ?? setInternalIdentifiersVisible;
 
   // Cross-practice exception path: identifiers are hidden by default but the
-  // user has identifiable rights for OTHER practices. They can opt in to a
-  // single audit-logged reveal for the current cohort with a reason.
+  // user has identifiable rights for OTHER practices. They can opt in to an
+  // audit-logged reveal for this session with a reason.
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
   const [exceptionReason, setExceptionReason] = useState("");
-  const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
 
   // Identifiable CSV export modal — Phase B
   const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
@@ -152,7 +160,8 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const showInlinePII = ((canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
+  const identifiersAllowed = mode === "patient" ? canViewPII : canViewPII && identifiersVisible;
+  const showInlinePII = (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
 
   useEffect(() => {
     if (!identifiersVisible) {
@@ -200,16 +209,26 @@ export const PatientDrillDrawer = ({
 
   const visibleRows = sortedRows.slice(0, renderLimit);
   const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
-  const visibleRefKey = visibleRows.map((r) => r.fkPatientLinkId).join("|");
+  const patientRow = useMemo(
+    () => selectedPatient ? rows.find((r) => r.fkPatientLinkId === selectedPatient) ?? null : null,
+    [rows, selectedPatient],
+  );
+  const visibleRefKey = (mode === "patient" && patientRow ? [patientRow] : visibleRows).map((r) => r.fkPatientLinkId).join("|");
 
-  useEffect(() => {
-    if (!isOpen || sortedRows.length !== 1) return;
-    setActivePatient((current) => current?.fkPatientLinkId === sortedRows[0].fkPatientLinkId ? current : sortedRows[0]);
-  }, [isOpen, sortedRows]);
+  const currentCohortContext = useMemo(() => ({
+    filterKey: filterKeys[0] ?? "all",
+    label: titleTextFromFilters(filterKeys),
+    count: sortedRows.length,
+  }), [filterKeys, sortedRows.length]);
+
+  const patientCohorts = useMemo(() => {
+    if (!patientRow) return [];
+    return ALL_FILTERS.filter((filter) => filter.group === "cohort" && filter.predicate(patientRow));
+  }, [patientRow]);
 
   useEffect(() => {
     const refs = visibleRefKey.split("|").filter(Boolean);
-    if (!canViewPII || !identifiersVisible || identifierLookupUnavailable || !practiceId || !refs.length) return;
+    if (!canViewPII || !identifiersAllowed || identifierLookupUnavailable || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
     if (!missingRefs.length) {
       setIdentifierLookupStatus("ready");
@@ -260,7 +279,7 @@ export const PatientDrillDrawer = ({
     });
 
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifierLookupUnavailable, identifiersVisible, practiceId, visibleRefKey]);
+  }, [canViewPII, identifierDetails, identifierLookupUnavailable, identifiersAllowed, practiceId, visibleRefKey]);
 
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
@@ -445,360 +464,229 @@ export const PatientDrillDrawer = ({
     ? `${filters.map((f) => f.subtitle).join(" · ")} · ${fmt(summary.n)} of ${fmt(rows.length)}`
     : `${fmt(summary.n)} patients`;
 
+  const renderCohortMode = () => (
+    <>
+      <SheetHeader className="px-5 pt-5 pb-3 border-b">
+        <SheetTitle className="text-lg flex items-center gap-2 pr-8 flex-wrap">
+          {titleText}
+          {singlePatientRef && (
+            <Badge variant="outline" className="text-sm font-mono border-primary/40 text-primary bg-primary/5">
+              Ref {singlePatientRef}
+            </Badge>
+          )}
+        </SheetTitle>
+        <SheetDescription className="text-xs">{subtitleText}</SheetDescription>
+        {filters.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {filters.map((ff) => (
+              <Badge key={ff.key} variant="secondary" className="gap-1 pr-1">
+                {ff.label}
+                <button type="button" onClick={() => remove(ff.key)} className="ml-1 rounded-sm hover:bg-background/50 p-0.5" aria-label={`Remove ${ff.label}`}>
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+      </SheetHeader>
+
+      {singlePatientRef && (
+        <div className="px-5 py-2 border-b bg-primary/5 text-sm">
+          <span className="text-muted-foreground">Patient record reference: </span>
+          <span className="font-mono font-semibold text-primary">{singlePatientRef}</span>
+        </div>
+      )}
+      <div className="grid grid-cols-4 gap-2 px-5 py-3 bg-muted/40 border-b text-center">
+        <Stat label="In cohort" value={fmt(summary.n)} />
+        <Stat label="Mean PoA" value={pct(summary.meanPoA)} />
+        <Stat label="Aged 65+" value={pct(summary.pct65)} />
+        <Stat label="≥1 admission" value={pct(summary.pctAdm)} />
+      </div>
+
+      {overlap.length > 0 && (
+        <div className="px-5 py-2 border-b bg-background">
+          <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+            Overlaps with
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild><Info className="h-3 w-3" /></TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">Click to narrow this list to patients who are ALSO in that cohort.</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {overlap.map(({ filter, overlap: n }) => (
+              <button key={filter.key} type="button" onClick={() => add(filter.key)} className="text-xs px-2 py-1 border rounded-md hover:bg-muted">
+                {filter.label} <span className="text-muted-foreground">({fmt(n)})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 py-3 border-b space-y-2">
+        <div className="flex items-center gap-2">
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+            <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="poA">PoA (highest)</SelectItem>
+              <SelectItem value="poLoS">PoLoS</SelectItem>
+              <SelectItem value="drugCount">Drug count</SelectItem>
+              <SelectItem value="inpatientAdmissions">Admissions</SelectItem>
+              <SelectItem value="age">Age</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={showInlinePII ? "Ref, NHS number or name" : "Patient ref"} className="pl-7 h-8 text-xs" />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_CHIPS.map((c) => {
+            const active = quickChips.includes(c.key);
+            return (
+              <button key={c.key} type="button" onClick={() => setQuickChips((prev) => active ? prev.filter((k) => k !== c.key) : [...prev, c.key])} className={`text-[11px] px-2 py-0.5 rounded-full border ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}>
+                {c.label}
+              </button>
+            );
+          })}
+          {canViewPII && (
+            <div className="ml-auto flex items-center gap-2 rounded-md border px-2 py-1 bg-background">
+              <Label htmlFor="drawer-show-identifiers" className="text-[11px] text-muted-foreground cursor-pointer">Show identifiable details</Label>
+              <Switch id="drawer-show-identifiers" checked={identifiersVisible} onCheckedChange={setIdentifiersVisible} aria-label="Show identifiable details" />
+              {identifierLookupStatus === "loading" && <span className="text-[11px] text-muted-foreground">Looking up identifiable details…</span>}
+              {identifierLookupStatus === "unavailable" && <span className="text-[11px] text-muted-foreground">Identifiable lookup unavailable — showing REF only</span>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-muted/60 sticky top-0 z-10">
+            <tr className="text-left">
+              <th className="p-2 w-8"><Checkbox checked={visibleRows.length > 0 && visibleRows.every((r) => selected.has(r.fkPatientLinkId))} onCheckedChange={(v) => v ? selectAllVisible() : clearSelection()} aria-label="Select all visible" /></th>
+              <th className="p-2">Ref</th>
+              {showInlinePII && <th className="p-2">NHS no.</th>}
+              {showInlinePII && <th className="p-2">Name</th>}
+              <th className="p-2">Age</th>
+              <th className="p-2"><HeaderTip label="Frailty" tip={scoreTooltips.frailty} /></th>
+              <th className="p-2 text-right"><HeaderTip label="Drugs" tip={scoreTooltips.drugs} align="right" /></th>
+              <th className="p-2 text-right">Inpt</th>
+              <th className="p-2 text-right">A&E</th>
+              <th className="p-2"><HeaderTip label="RUB" tip={scoreTooltips.rub} /></th>
+              <th className="p-2 text-right"><HeaderTip label="PoA" tip={scoreTooltips.poa} align="right" /></th>
+              <th className="p-2 text-right"><HeaderTip label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleRows.map((r) => (
+              <tr key={r.fkPatientLinkId} className="border-b hover:bg-muted/40 cursor-pointer" onClick={() => openPatient(r.fkPatientLinkId, currentCohortContext)} style={{ contentVisibility: "auto", containIntrinsicSize: "32px" }}>
+                <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.fkPatientLinkId)} onCheckedChange={() => toggleSelect(r.fkPatientLinkId)} aria-label={`Select patient ${r.fkPatientLinkId}`} /></td>
+                <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
+                {showInlinePII && <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>{identifierDetails[r.fkPatientLinkId]?.nhs_number || r.nhsNumber || "—"}</td>}
+                {showInlinePII && <td className="p-2">{[identifierDetails[r.fkPatientLinkId]?.forenames ?? r.forenames, identifierDetails[r.fkPatientLinkId]?.surname ?? r.surname].filter(Boolean).join(" ") || "—"}</td>}
+                <td className="p-2 tabular-nums">{r.age ?? "—"}</td>
+                <td className="p-2">{r.frailty}</td>
+                <td className="p-2 text-right tabular-nums">{r.drugCount}</td>
+                <td className="p-2 text-right tabular-nums">{r.inpatientAdmissions}</td>
+                <td className="p-2 text-right tabular-nums">{r.aeAttendances}</td>
+                <td className="p-2">{r.rub || "—"}</td>
+                <td className="p-2 text-right font-semibold tabular-nums">{r.poA !== null ? pct(r.poA) : "—"}</td>
+                <td className="p-2 text-right tabular-nums text-muted-foreground">{r.poLoS !== null ? pct(r.poLoS) : "—"}</td>
+              </tr>
+            ))}
+            {!visibleRows.length && <tr><td colSpan={showInlinePII ? 12 : 10} className="p-8 text-center text-muted-foreground">No patients match these filters.</td></tr>}
+          </tbody>
+        </table>
+        {sortedRows.length > visibleRows.length && (
+          <div className="p-3 text-center border-t"><Button variant="outline" size="sm" onClick={() => setRenderLimit((n) => n + 500)}>Show more ({fmt(sortedRows.length - visibleRows.length)} remaining)</Button></div>
+        )}
+      </div>
+
+      <div className="border-t bg-background px-5 py-3 space-y-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{selected.size > 0 ? `${selected.size} selected` : `Click rows to view details`}</span>
+          <div className="flex gap-2">
+            <button type="button" className="hover:underline" onClick={selectAllVisible}>Select visible</button><span>·</span>
+            <button type="button" className="hover:underline" onClick={selectAllInCohort}>Select all ({fmt(sortedRows.length)})</button>
+            {selected.size > 0 && <><span>·</span><button type="button" className="hover:underline" onClick={clearSelection}>Clear</button></>}
+          </div>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" className="flex-1 min-w-[180px]" onClick={sendToBuyBack} disabled={!selected.size}><Send className="h-4 w-4 mr-1.5" />Send {selected.size || ""} to Buy-Back Claims</Button>
+          <Button size="sm" variant="outline" onClick={() => { if (!selected.size) return toast.info("Select at least one patient first"); if (!practiceId) return toast.error("Select a single practice before adding to a worklist"); setWorklistDialogOpen(true); }} disabled={!selected.size || !practiceId}><ListChecks className="h-4 w-4 mr-1.5" />Add {selected.size || ""} to worklist</Button>
+          <Button size="sm" variant="outline" onClick={exportCsvAnonymised}><FileDown className="h-4 w-4 mr-1.5" />Export – anonymised</Button>
+          {canExportPII && <Button size="sm" variant="outline" onClick={exportCsvIdentifiable}><ShieldCheck className="h-4 w-4 mr-1.5" />Export – with identifiers</Button>}
+        </div>
+      </div>
+    </>
+  );
+
+  const patientSelection = patientRow ? new Set([patientRow.fkPatientLinkId]) : new Set<string>();
+  const selectedRowsForDialog = mode === "patient" && patientRow ? [patientRow] : sortedRows.filter((r) => selected.has(r.fkPatientLinkId));
+
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(o) => { if (!o) onCloseDrawer(); }}>
         <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 flex flex-col">
-          <SheetHeader className="px-5 pt-5 pb-3 border-b">
-            <SheetTitle className="text-lg flex items-center gap-2 pr-8 flex-wrap">
-              {titleText}
-              {singlePatientRef && (
-                <Badge variant="outline" className="text-sm font-mono border-primary/40 text-primary bg-primary/5">
-                  Ref {singlePatientRef}
-                </Badge>
-              )}
-            </SheetTitle>
-            <SheetDescription className="text-xs">{subtitleText}</SheetDescription>
-
-            {/* Breadcrumb of stacked filters */}
-            {filters.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {filters.map((ff) => (
-                  <Badge key={ff.key} variant="secondary" className="gap-1 pr-1">
-                    {ff.label}
-                    <button
-                      type="button"
-                      onClick={() => remove(ff.key)}
-                      className="ml-1 rounded-sm hover:bg-background/50 p-0.5"
-                      aria-label={`Remove ${ff.label}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </SheetHeader>
-
-          {/* Summary strip */}
-          {singlePatientRef && (
-            <div className="px-5 py-2 border-b bg-primary/5 text-sm">
-              <span className="text-muted-foreground">Patient record reference: </span>
-              <span className="font-mono font-semibold text-primary">{singlePatientRef}</span>
-            </div>
-          )}
-          <div className="grid grid-cols-4 gap-2 px-5 py-3 bg-muted/40 border-b text-center">
-            <Stat label="In cohort" value={fmt(summary.n)} />
-            <Stat label="Mean PoA" value={pct(summary.meanPoA)} />
-            <Stat label="Aged 65+" value={pct(summary.pct65)} />
-            <Stat label="≥1 admission" value={pct(summary.pctAdm)} />
-          </div>
-
-          {/* Cross-cohort overlap chips */}
-          {overlap.length > 0 && (
-            <div className="px-5 py-2 border-b bg-background">
-              <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                Overlaps with
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild><Info className="h-3 w-3" /></TooltipTrigger>
-                    <TooltipContent className="max-w-xs text-xs">
-                      Click to narrow this list to patients who are ALSO in that cohort.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {overlap.map(({ filter, overlap: n }) => (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    onClick={() => add(filter.key)}
-                    className="text-xs px-2 py-1 border rounded-md hover:bg-muted"
-                  >
-                    {filter.label} <span className="text-muted-foreground">({fmt(n)})</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Controls */}
-          <div className="px-5 py-3 border-b space-y-2">
-            <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-                <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="poA">PoA (highest)</SelectItem>
-                  <SelectItem value="poLoS">PoLoS</SelectItem>
-                  <SelectItem value="drugCount">Drug count</SelectItem>
-                  <SelectItem value="inpatientAdmissions">Admissions</SelectItem>
-                  <SelectItem value="age">Age</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={showInlinePII ? "Ref, NHS number or name" : "Patient ref"}
-                  className="pl-7 h-8 text-xs"
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_CHIPS.map((c) => {
-                const active = quickChips.includes(c.key);
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => setQuickChips((prev) => active ? prev.filter((k) => k !== c.key) : [...prev, c.key])}
-                    className={`text-[11px] px-2 py-0.5 rounded-full border ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
-                  >
-                    {c.label}
-                  </button>
-                );
-              })}
-              {canViewPII && (
-                <div className="ml-auto flex items-center gap-2 rounded-md border px-2 py-1 bg-background">
-                  <Label htmlFor="drawer-show-identifiers" className="text-[11px] text-muted-foreground cursor-pointer">
-                    Show identifiable details
-                  </Label>
-                  <Switch
-                    id="drawer-show-identifiers"
-                    checked={identifiersVisible}
-                    onCheckedChange={setIdentifiersVisible}
-                    aria-label="Show identifiable details"
-                  />
-                  {identifierLookupStatus === "loading" && (
-                    <span className="text-[11px] text-muted-foreground">Looking up identifiable details…</span>
-                  )}
-                  {identifierLookupStatus === "unavailable" && (
-                    <span className="text-[11px] text-muted-foreground">Identifiable lookup unavailable — showing REF only</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Patient table */}
-          <div className="flex-1 overflow-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-muted/60 sticky top-0 z-10">
-                <tr className="text-left">
-                  <th className="p-2 w-8">
-                    <Checkbox
-                      checked={visibleRows.length > 0 && visibleRows.every((r) => selected.has(r.fkPatientLinkId))}
-                      onCheckedChange={(v) => v ? selectAllVisible() : clearSelection()}
-                      aria-label="Select all visible"
-                    />
-                  </th>
-                  <th className="p-2">Ref</th>
-                  {showInlinePII && <th className="p-2">NHS no.</th>}
-                  {showInlinePII && <th className="p-2">Name</th>}
-                  <th className="p-2">Age</th>
-                  <th className="p-2"><HeaderTip label="Frailty" tip={scoreTooltips.frailty} /></th>
-                  <th className="p-2 text-right"><HeaderTip label="Drugs" tip={scoreTooltips.drugs} align="right" /></th>
-                  <th className="p-2 text-right">Inpt</th>
-                  <th className="p-2 text-right">A&E</th>
-                  <th className="p-2"><HeaderTip label="RUB" tip={scoreTooltips.rub} /></th>
-                  <th className="p-2 text-right"><HeaderTip label="PoA" tip={scoreTooltips.poa} align="right" /></th>
-                  <th className="p-2 text-right"><HeaderTip label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((r) => (
-                  <tr
-                    key={r.fkPatientLinkId}
-                    className="border-b hover:bg-muted/40 cursor-pointer"
-                    onClick={() => setActivePatient(r)}
-                    style={{ contentVisibility: "auto", containIntrinsicSize: "32px" }}
-                  >
-                    <td className="p-2" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selected.has(r.fkPatientLinkId)}
-                        onCheckedChange={() => toggleSelect(r.fkPatientLinkId)}
-                        aria-label={`Select patient ${r.fkPatientLinkId}`}
-                      />
-                    </td>
-                    <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
-                    {showInlinePII && (
-                      <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>
-                        {identifierDetails[r.fkPatientLinkId]?.nhs_number || r.nhsNumber || "—"}
-                      </td>
-                    )}
-                    {showInlinePII && (
-                      <td className="p-2">
-                        {[
-                          identifierDetails[r.fkPatientLinkId]?.forenames ?? r.forenames,
-                          identifierDetails[r.fkPatientLinkId]?.surname ?? r.surname,
-                        ].filter(Boolean).join(" ") || "—"}
-                      </td>
-                    )}
-                    <td className="p-2 tabular-nums">{r.age ?? "—"}</td>
-                    <td className="p-2">{r.frailty}</td>
-                    <td className="p-2 text-right tabular-nums">{r.drugCount}</td>
-                    <td className="p-2 text-right tabular-nums">{r.inpatientAdmissions}</td>
-                    <td className="p-2 text-right tabular-nums">{r.aeAttendances}</td>
-                    <td className="p-2">{r.rub || "—"}</td>
-                    <td className="p-2 text-right font-semibold tabular-nums">{r.poA !== null ? pct(r.poA) : "—"}</td>
-                    <td className="p-2 text-right tabular-nums text-muted-foreground">{r.poLoS !== null ? pct(r.poLoS) : "—"}</td>
-                  </tr>
-                ))}
-                {!visibleRows.length && (
-                  <tr><td colSpan={showInlinePII ? 12 : 10} className="p-8 text-center text-muted-foreground">No patients match these filters.</td></tr>
-                )}
-              </tbody>
-            </table>
-            {sortedRows.length > visibleRows.length && (
-              <div className="p-3 text-center border-t">
-                <Button variant="outline" size="sm" onClick={() => setRenderLimit((n) => n + 500)}>
-                  Show more ({fmt(sortedRows.length - visibleRows.length)} remaining)
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Sticky action bar */}
-          <div className="border-t bg-background px-5 py-3 space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{selected.size > 0 ? `${selected.size} selected` : `Click rows to select`}</span>
-              <div className="flex gap-2">
-                <button type="button" className="hover:underline" onClick={selectAllVisible}>Select visible</button>
-                <span>·</span>
-                <button type="button" className="hover:underline" onClick={selectAllInCohort}>Select all ({fmt(sortedRows.length)})</button>
-                {selected.size > 0 && <>
-                  <span>·</span>
-                  <button type="button" className="hover:underline" onClick={clearSelection}>Clear</button>
-                </>}
-              </div>
-            </div>
-            {/* Cross-practice exception path: user has identifiable rights for
-                another practice but not this one. Single audit-logged reveal
-                with a reason — no per-row prompt. */}
-            {hasViewElsewhere && !canViewPII && !exceptionRevealed && (
-              <div className="border border-amber-300 bg-amber-50 rounded-md p-2 text-xs text-amber-900">
-                <div className="font-semibold mb-1 flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5" />
-                  Identifiers hidden — viewing outside your assigned practice
-                </div>
-                <div className="mb-2">Reveal requires a reason. Audit-logged.</div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={() => {
-                    setExceptionReason((current) => current.trim() ? current : DEFAULT_EXCEPTION_REASON);
-                    setExceptionDialogOpen(true);
-                  }}
-                >
-                  Reveal identifiers (audit-logged)
-                </Button>
-              </div>
-            )}
-            <div className="flex gap-2 flex-wrap">
-              <Button size="sm" className="flex-1 min-w-[180px]" onClick={sendToBuyBack} disabled={!selected.size}>
-                <Send className="h-4 w-4 mr-1.5" />
-                Send {selected.size || ""} to Buy-Back Claims
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  if (!selected.size) {
-                    toast.info("Select at least one patient first");
-                    return;
-                  }
-                  if (!practiceId) {
-                    toast.error("Select a single practice before adding to a worklist");
-                    return;
-                  }
-                  setWorklistDialogOpen(true);
-                }}
-                disabled={!selected.size || !practiceId}
-              >
-                <ListChecks className="h-4 w-4 mr-1.5" />
-                Add {selected.size || ""} to worklist
-              </Button>
-              <Button size="sm" variant="outline" onClick={exportCsvAnonymised}>
-                <FileDown className="h-4 w-4 mr-1.5" />
-                Export – anonymised
-              </Button>
-              {canExportPII && (
-                <Button size="sm" variant="outline" onClick={exportCsvIdentifiable}>
-                  <ShieldCheck className="h-4 w-4 mr-1.5" />
-                  Export – with identifiers
-                </Button>
-              )}
-            </div>
-          </div>
+          {mode === "patient" && patientRow ? (
+            <PatientDetail
+              patient={patientRow}
+              cohortContext={cohortContext}
+              allRowsCount={rows.length}
+              patientCohorts={patientCohorts}
+              identifierDetails={identifierDetails[patientRow.fkPatientLinkId]}
+              showIdentifiers={showInlinePII}
+              canViewPII={canViewPII}
+              hasExceptionPath={hasViewElsewhere && !canViewPII}
+              exceptionRevealed={exceptionRevealed}
+              exceptionReason={exceptionReason}
+              setExceptionReason={setExceptionReason}
+              identifierLookupStatus={identifierLookupStatus}
+              practiceName={practiceName ?? patientRow.practiceName}
+              onBack={cohortContext ? backToCohort : undefined}
+              onOpenCohort={(key) => open(key)}
+              onReveal={() => {
+                if (!practiceId || exceptionReason.trim().length < 10) return;
+                void supabase.rpc("log_narp_pii_page_access", {
+                  _practice_id: practiceId,
+                  _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
+                  _patient_count_rendered: 1,
+                });
+                setExceptionRevealed(true);
+                toast.success("Identifiers revealed for this session. Audit row written.");
+              }}
+              onSendToBuyBack={() => {
+                console.log("[NRES] Single patient → Buy-Back Claims", patientRow.fkPatientLinkId);
+                toast.success(`Patient ${patientRow.fkPatientLinkId} queued for Buy-Back Claims`);
+              }}
+              onAddToWorklist={() => {
+                setSelected(patientSelection);
+                setWorklistDialogOpen(true);
+              }}
+            />
+          ) : renderCohortMode()}
         </SheetContent>
       </Sheet>
 
-      {/* Add-to-worklist dialog — Phase C */}
       <AddToWorklistDialog
         open={worklistDialogOpen}
         onOpenChange={setWorklistDialogOpen}
         practiceId={practiceId}
         practiceName={practiceName}
         cohortLabel={filters.length > 0 ? filters.map((f) => f.label).join(" + ") : undefined}
-        patients={sortedRows
-          .filter((r) => selected.has(r.fkPatientLinkId))
-          .map((r) => ({
-            fk_patient_link_id: r.fkPatientLinkId,
-            added_risk_tier: typeof r.poA === "number"
-              ? (r.poA > 50 ? "very_high" : r.poA >= 20 ? "high" : r.poA >= 10 ? "moderate" : r.poA >= 5 ? "rising" : "low")
-              : null,
-            added_poa: r.poA,
-            added_polos: r.poLoS,
-            added_drug_count: r.drugCount,
-            added_frailty_category: r.frailty,
-          }))}
+        patients={selectedRowsForDialog.map((r) => ({
+          fk_patient_link_id: r.fkPatientLinkId,
+          added_risk_tier: typeof r.poA === "number" ? (r.poA > 50 ? "very_high" : r.poA >= 20 ? "high" : r.poA >= 10 ? "moderate" : r.poA >= 5 ? "rising" : "low") : null,
+          added_poa: r.poA,
+          added_polos: r.poLoS,
+          added_drug_count: r.drugCount,
+          added_frailty_category: r.frailty,
+        }))}
         onAdded={() => clearSelection()}
       />
 
-      {/* Cross-practice exception reveal dialog */}
-      <Dialog open={exceptionDialogOpen} onOpenChange={setExceptionDialogOpen}>
-        <DialogContent className="z-[100] sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>Reveal identifiers for this cohort</DialogTitle>
-            <DialogDescription>
-              You have identifiable access for another practice but not the one currently selected.
-              This reveal will be audit-logged against your account.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Input
-              value={exceptionReason}
-              onChange={(e) => setExceptionReason(e.target.value)}
-              placeholder="Reason for access (min. 10 characters)"
-            />
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setExceptionDialogOpen(false)}>Cancel</Button>
-              <Button
-                size="sm"
-                disabled={exceptionReason.trim().length < 10 || !practiceId}
-                onClick={() => {
-                  if (!practiceId) return;
-                  void supabase.rpc("log_narp_pii_page_access", {
-                    _practice_id: practiceId,
-                    _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
-                    _patient_count_rendered: visibleRows.length,
-                  });
-                  setExceptionRevealed(true);
-                  setExceptionDialogOpen(false);
-                  toast.success("Identifiers revealed for this session. Audit row written.");
-                }}
-              >
-                Reveal
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Identifiable CSV export — reason + consent modal */}
       <IdentifiableExportModal
         open={identifiableExportOpen}
         onOpenChange={setIdentifiableExportOpen}
@@ -806,19 +694,6 @@ export const PatientDrillDrawer = ({
         practiceName={practiceName}
         cohortLabel={filters.length > 0 ? filters.map((f) => f.label).join(" + ") : undefined}
         rowCountHint={sortedRows.length}
-      />
-
-      <PatientDetailModal
-        patient={activePatient}
-        canViewPII={canViewPII}
-        identifierDetails={identifierDetails[activePatient?.fkPatientLinkId ?? ""]}
-        onClose={() => setActivePatient(null)}
-        onSendToBuyBack={(p) => {
-          // TODO (Phase 1): persist single-patient handoff
-          console.log("[NRES] Single patient → Buy-Back Claims", p.fkPatientLinkId);
-          toast.success(`Patient ${p.fkPatientLinkId} queued for Buy-Back Claims`);
-          setActivePatient(null);
-        }}
       />
     </>
   );
@@ -838,126 +713,109 @@ const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text:
   </span>
 );
 
-// ── Single-patient detail modal ──────────────────────────────────────────
-interface PatientDetailModalProps {
-  patient: DrillPatientRow | null;
-  canViewPII: boolean;
+// ── Single-patient detail drawer mode ────────────────────────────────────
+interface PatientDetailProps {
+  patient: DrillPatientRow;
+  cohortContext: { filterKey: string; label: string; count?: number } | null;
+  allRowsCount: number;
+  patientCohorts: Array<{ key: string; label: string }>;
   identifierDetails?: IdentifiableDetails;
-  onClose: () => void;
-  onSendToBuyBack: (p: DrillPatientRow) => void;
+  showIdentifiers: boolean;
+  canViewPII: boolean;
+  hasExceptionPath: boolean;
+  exceptionRevealed: boolean;
+  exceptionReason: string;
+  setExceptionReason: (reason: string) => void;
+  identifierLookupStatus: IdentifierLookupStatus;
+  practiceName?: string;
+  onBack?: () => void;
+  onOpenCohort: (key: string) => void;
+  onReveal: () => void;
+  onSendToBuyBack: () => void;
+  onAddToWorklist: () => void;
 }
 
-const PatientDetailModal = ({ patient, canViewPII, identifierDetails, onClose, onSendToBuyBack }: PatientDetailModalProps) => {
-  const [revealed, setRevealed] = useState<{ nhsNumber?: string; name?: string } | null>(null);
-  const [reason, setReason] = useState("");
-  const [revealing, setRevealing] = useState(false);
-
-  // Reset on patient change
-  useMemo(() => {
-    setRevealed(null);
-    setReason("");
-  }, [patient?.fkPatientLinkId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!patient) return null;
-
-  const handleReveal = async () => {
-    if (!canViewPII) {
-      toast.error("Your role does not permit identifier reveal");
-      return;
-    }
-    if (reason.trim().length < 4) {
-      toast.error("Please provide a reason for accessing identifiers");
-      return;
-    }
-    setRevealing(true);
-    try {
-      // TODO (Phase 1): call get_patient_identifiable RPC which logs to
-      // narp_pii_access_log with { user_id, snapshot_id, reason_text }.
-      // For PoC, the data is already in memory from the upload — show it
-      // and write a console-side audit breadcrumb.
-      console.log("[NRES][audit] Identifier reveal", { fk: patient.fkPatientLinkId, reason });
-      setRevealed({
-        nhsNumber: identifierDetails?.nhs_number ?? patient.nhsNumber,
-        name: patientDisplayName(identifierDetails, patient) || undefined,
-      });
-    } finally {
-      setRevealing(false);
-    }
-  };
-
+const PatientDetail = ({ patient, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
   const copyRef = () => {
     navigator.clipboard.writeText(patient.fkPatientLinkId);
     toast.success("Reference copied");
   };
+  const poaTone = (patient.poA ?? 0) >= 20 ? "critical" : (patient.poA ?? 0) >= 5 ? "warn" : "default";
+  const polosTone = (patient.poLoS ?? 0) >= 30 ? "critical" : (patient.poLoS ?? 0) >= 15 ? "warn" : "default";
+  const rubTone = String(patient.rub).startsWith("5") ? "critical" : String(patient.rub).startsWith("4") ? "warn" : "default";
+  const frailtyTone = patient.frailty === "Severe" ? "critical" : patient.frailty === "Moderate" ? "warn" : "default";
 
   return (
-    <Dialog open={!!patient} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="z-[110] max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Patient {patient.fkPatientLinkId}
-          </DialogTitle>
-          <DialogDescription>{patient.practiceName || "Anonymised view"}</DialogDescription>
-        </DialogHeader>
+    <>
+      <SheetHeader className="px-5 pt-5 pb-3 border-b">
+        {cohortContext && onBack && (
+          <button type="button" onClick={onBack} className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to {cohortContext.label}
+          </button>
+        )}
+        <SheetTitle className="narp-display text-[22px] font-semibold pr-8">Patient {patient.fkPatientLinkId}</SheetTitle>
+        <SheetDescription className="text-xs">{practiceName || patient.practiceName || "Selected practice"} · 1 of {fmt(cohortContext?.count ?? allRowsCount)}</SheetDescription>
+      </SheetHeader>
 
-        <div className="space-y-4 text-sm">
-          <Section title="Clinical profile">
-            <KV k="Age" v={patient.age ?? "—"} />
-            <KV k="Frailty (eFI)" v={patient.frailty} tip={scoreTooltips.frailty} />
-            <KV k="Drug count" v={patient.drugCount} tip={scoreTooltips.drugs} />
-            <KV k="RUB" v={patient.rub || "—"} tip={scoreTooltips.rub} />
-          </Section>
-
-          <Section title="Utilisation">
-            <KV k="Inpatient admissions" v={patient.inpatientAdmissions} />
-            <KV k="A&E attendances" v={patient.aeAttendances} />
-          </Section>
-
-          <Section title="Risk">
-            <KV k="PoA" v={patient.poA !== null ? pct(patient.poA) : "—"} tip={scoreTooltips.poa} />
-            <KV k="PoLoS" v={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tip={scoreTooltips.polos} />
-          </Section>
-
-          {canViewPII && (
-            <Section title="Identifiers">
-              {revealed ? (
-                <>
-                  <KV k="NHS Number" v={revealed.nhsNumber ?? "—"} />
-                  <KV k="Name" v={revealed.name ?? "—"} />
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <Input
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Reason for access (e.g. MDT review prep)"
-                    className="text-xs"
-                  />
-                  <Button variant="outline" size="sm" onClick={handleReveal} disabled={revealing}>
-                    <Eye className="h-3.5 w-3.5 mr-1.5" />
-                    Reveal identifiers
-                  </Button>
-                  <p className="text-[10px] text-muted-foreground">
-                    Reveals are recorded against your account.
-                  </p>
-                </div>
-              )}
-            </Section>
-          )}
+      <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
+        <div className="grid grid-cols-2 gap-2">
+          <Kpi label={<span>PoA · Probability of admission <ScoreInfoTooltip text={scoreTooltips.poa.text} anchor={scoreTooltips.poa.anchor} /></span>} value={patient.poA !== null ? pct(patient.poA) : "—"} tone={poaTone} className="px-3 py-3" />
+          <Kpi label={<span>PoLoS · Length of stay risk <ScoreInfoTooltip text={scoreTooltips.polos.text} anchor={scoreTooltips.polos.anchor} /></span>} value={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tone={polosTone} className="px-3 py-3" />
+          <Kpi label={<span>RUB · Resource band <ScoreInfoTooltip text={scoreTooltips.rub.text} anchor={scoreTooltips.rub.anchor} /></span>} value={patient.rub || "—"} tone={rubTone} className="px-3 py-3" />
+          <Kpi label={<span>Frailty · eFI category <ScoreInfoTooltip text={scoreTooltips.frailty.text} anchor={scoreTooltips.frailty.anchor} /></span>} value={patient.frailty} tone={frailtyTone} className="px-3 py-3" />
         </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button size="sm" className="flex-1" onClick={() => onSendToBuyBack(patient)}>
-            <Send className="h-4 w-4 mr-1.5" />
-            Send to Buy-Back Claims
-          </Button>
-          <Button size="sm" variant="outline" onClick={copyRef}>
-            <Copy className="h-4 w-4 mr-1.5" />
-            Copy ref
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        <Section title="Clinical profile">
+          <KV k="Age" v={patient.age ?? "—"} />
+          <KV k="Frailty category" v={patient.frailty} />
+          <KV k="Drug count" v={patient.drugCount} />
+          <KV k="Named GP" v="—" />
+        </Section>
+
+        <Section title="Utilisation">
+          <KV k="Inpatient admissions" v={patient.inpatientAdmissions} />
+          <KV k="A&E attendances" v={patient.aeAttendances} />
+          <KV k="Outpatient first" v={patient.outpatientFirst ?? "—"} />
+          <KV k="Outpatient follow-up" v={patient.outpatientFollowUp ?? "—"} />
+        </Section>
+
+        <Section title="Cohort memberships">
+          <div className="flex flex-wrap gap-1.5">
+            {patientCohorts.map((cohort) => (
+              <button key={cohort.key} type="button" onClick={() => onOpenCohort(cohort.key)} className="text-xs px-2 py-1 border rounded-md hover:bg-muted text-left">
+                {cohort.label}
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        {(canViewPII || hasExceptionPath || exceptionRevealed) && (
+          <Section title="Identifiers">
+            {showIdentifiers ? (
+              <>
+                <KV k="NHS Number" v={identifierDetails?.nhs_number ?? patient.nhsNumber ?? "—"} />
+                <KV k="Surname" v={identifierDetails?.surname ?? patient.surname ?? "—"} />
+                <KV k="Forename" v={identifierDetails?.forenames ?? patient.forenames ?? "—"} />
+                <KV k="DOB" v="—" />
+                {exceptionRevealed && <p className="text-[11px] text-muted-foreground pt-1">Revealed by you · Reason: “{exceptionReason.trim()}”</p>}
+              </>
+            ) : hasExceptionPath ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">NHS Number, name and DOB hidden under DSA</p>
+                <Input value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} placeholder="Reason for access (≥10 chars)" className="text-xs" />
+                <Button variant="outline" size="sm" onClick={onReveal} disabled={exceptionReason.trim().length < 10}>Reveal identifiers</Button>
+              </div>
+            ) : identifierLookupStatus === "loading" ? <p className="text-xs text-muted-foreground">Looking up identifiable details…</p> : null}
+          </Section>
+        )}
+      </div>
+
+      <div className="sticky bottom-0 border-t bg-background px-5 py-3 flex gap-2">
+        <Button size="sm" className="flex-1" onClick={onSendToBuyBack}><Send className="h-4 w-4 mr-1.5" />Send to Buy-Back Claims</Button>
+        <Button size="sm" variant="outline" className="flex-1" onClick={onAddToWorklist}><ListChecks className="h-4 w-4 mr-1.5" />Add to worklist</Button>
+        <Button size="sm" variant="ghost" onClick={copyRef} aria-label="Copy patient reference"><Copy className="h-4 w-4" /></Button>
+      </div>
+    </>
   );
 };
 
