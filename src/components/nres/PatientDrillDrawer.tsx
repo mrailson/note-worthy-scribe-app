@@ -351,7 +351,6 @@ export const PatientDrillDrawer = ({
     setSelected(new Set());
     setSearch("");
     setQuickChips([]);
-    setRenderLimit(200);
     setCohortSnapshot(null);
     lastPatientTriggerRef.current = null;
     transitionLockedRef.current = false;
@@ -368,7 +367,7 @@ export const PatientDrillDrawer = ({
   };
 
   const selectAllVisible = () => {
-    setSelected(new Set(visibleRows.map((r) => r.fkPatientLinkId)));
+    setSelected(new Set(visibleRows.slice(0, 100).map((r) => r.fkPatientLinkId)));
   };
 
   const selectAllInCohort = () => {
