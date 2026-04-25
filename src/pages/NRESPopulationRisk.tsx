@@ -1,16 +1,16 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
-import { Link } from "react-router-dom";
+import { format } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis,
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker, ListChecks, Loader2, CircleHelp,
+  Upload, FileDown, Beaker, ListChecks, Loader2, CalendarIcon, FileCheck2,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
-import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
+import { EditorialHeader } from "@/components/dashboard/EditorialHeader";
 import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
 import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
@@ -19,12 +19,13 @@ import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { useAuth } from "@/contexts/AuthContext";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
