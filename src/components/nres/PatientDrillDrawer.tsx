@@ -335,9 +335,17 @@ export const PatientDrillDrawer = ({
         _fk_patient_link_ids: rpcRefs,
       });
       if (error) {
-        toast.error("Could not load identifiable details");
+        setIdentifierLookupUnavailable(true);
+        showIdentifierLookupFailedToast();
         return null;
       }
+      if ((data ?? []).length === 0) {
+        setIdentifierLookupUnavailable(true);
+        showIdentifierLookupFailedToast();
+        return null;
+      }
+      setIdentifierLookupUnavailable(false);
+      identifierLookupToastShownRef.current = false;
       for (const row of data ?? []) {
         details[row.fk_patient_link_id] = {
           nhs_number: row.nhs_number ?? null,
@@ -355,7 +363,7 @@ export const PatientDrillDrawer = ({
       toast.info("Nothing to export");
       return;
     }
-    const includeIdentifiers = canViewPII && identifiersVisible;
+    const includeIdentifiers = showInlinePII;
     const details = includeIdentifiers ? await resolveDetailsForRows(sortedRows) : null;
     if (includeIdentifiers && !details) return;
     const headers = includeIdentifiers
