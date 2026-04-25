@@ -449,12 +449,11 @@ const NRESPopulationRiskInner = () => {
         toast.error("Unsupported file type — upload .xlsx or .csv");
         return;
       }
-      const mapped = raw.map(mapNarpRow).filter((r): r is NarpRow => r !== null);
-      if (!mapped.length) {
+      const mappedCount = raw.map(mapNarpRow).filter((r): r is NarpRow => r !== null).length;
+      if (!mappedCount) {
         toast.error("No valid patient rows found in file");
         return;
       }
-      setRows(mapped);
       setIsHeaderUploading(true);
       const ingestToast = toast.loading(`Persisting ${file.name}…`);
       try {
@@ -466,10 +465,10 @@ const NRESPopulationRiskInner = () => {
         });
         toast.dismiss(ingestToast);
         if (body.duplicate) {
-          toast.success(`Loaded ${fmt(mapped.length)} patients from the existing ${file.name} export`);
+          toast.success(`Loaded ${fmt(mappedCount)} patients from the existing ${file.name} export`);
         } else {
           toast.success(
-            `Ingested ${body.patient_count?.toLocaleString("en-GB") ?? fmt(mapped.length)} patients from ${file.name}`,
+            `Ingested ${body.patient_count?.toLocaleString("en-GB") ?? fmt(mappedCount)} patients from ${file.name}`,
           );
         }
         setUploadsRefreshSignal((value) => value + 1);
