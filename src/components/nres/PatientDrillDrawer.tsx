@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportMod
 import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
 import { Kpi } from "@/components/dashboard/Kpi";
+import { DrawerModeTransition } from "@/components/nres/DrawerModeTransition";
 import { scoreTooltips } from "@/lib/narp-reference";
 import {
   ALL_FILTERS,
@@ -77,6 +79,7 @@ interface PatientDrillDrawerProps {
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
 type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 type IdentifierLookupStatus = "idle" | "loading" | "ready" | "unavailable";
+type CohortSnapshot = { scrollTop: number; selectedIds: string[]; filterKeys: string[]; sortBy: SortKey; search: string; quickChips: string[] };
 
 const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-001": { nhs_number: "9990000001", forenames: "Demo Patient", surname: "One" },
