@@ -673,44 +673,68 @@ export const PatientDrillDrawer = ({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(o) => { if (!o) onCloseDrawer(); }}>
-        <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 flex flex-col">
-          {mode === "patient" && patientRow ? (
-            <PatientDetail
-              patient={patientRow}
-              cohortContext={cohortContext}
-              allRowsCount={rows.length}
-              patientCohorts={patientCohorts}
-              identifierDetails={identifierDetails[patientRow.fkPatientLinkId]}
-              showIdentifiers={showInlinePII}
-              canViewPII={canViewPII}
-              hasExceptionPath={hasViewElsewhere && !canViewPII}
-              exceptionRevealed={exceptionRevealed}
-              exceptionReason={exceptionReason}
-              setExceptionReason={setExceptionReason}
-              identifierLookupStatus={identifierLookupStatus}
-              practiceName={practiceName ?? patientRow.practiceName}
-              onBack={cohortContext ? backToCohort : undefined}
-              onOpenCohort={(key) => open(key)}
-              onReveal={() => {
-                if (!practiceId || exceptionReason.trim().length < 10) return;
-                void supabase.rpc("log_narp_pii_page_access", {
-                  _practice_id: practiceId,
-                  _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
-                  _patient_count_rendered: 1,
-                });
-                setExceptionRevealed(true);
-                toast.success("Identifiers revealed for this session. Audit row written.");
-              }}
-              onSendToBuyBack={() => {
-                console.log("[NRES] Single patient → Buy-Back Claims", patientRow.fkPatientLinkId);
-                toast.success(`Patient ${patientRow.fkPatientLinkId} queued for Buy-Back Claims`);
-              }}
-              onAddToWorklist={() => {
-                setSelected(patientSelection);
-                setWorklistDialogOpen(true);
-              }}
-            />
-          ) : renderCohortMode()}
+        <SheetContent side="right" className="w-full sm:max-w-[600px] p-0 flex flex-col overflow-hidden">
+          <div className="sr-only" aria-live="polite">
+            {mode === "patient" && cohortContext ? "Showing patient detail. Press Escape to return to cohort." : mode === "patient" ? "Showing patient detail." : "Showing cohort list."}
+          </div>
+          <div className="relative flex-1 overflow-hidden">
+            <DrawerModeTransition activeMode={mode} layer="cohort" ariaHidden={mode === "patient"}>
+              {renderCohortMode()}
+            </DrawerModeTransition>
+            <DrawerModeTransition activeMode={mode} layer="patient" ariaHidden={mode !== "patient"}>
+              <AnimatePresence initial={false} mode="popLayout">
+                {patientRow ? (
+                  <motion.div
+                    key={patientRow.fkPatientLinkId}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: reducedMotion ? 0.1 : 0.18, ease: [0.4, 0, 0.2, 1] }}
+                    className="absolute inset-0 flex min-h-0 flex-col bg-background"
+                  >
+                    <PatientDetail
+                      patient={patientRow}
+                      headerRef={patientHeaderRef}
+                      cohortContext={cohortContext}
+                      allRowsCount={rows.length}
+                      patientCohorts={patientCohorts}
+                      identifierDetails={identifierDetails[patientRow.fkPatientLinkId]}
+                      showIdentifiers={showInlinePII}
+                      canViewPII={canViewPII}
+                      hasExceptionPath={hasViewElsewhere && !canViewPII}
+                      exceptionRevealed={exceptionRevealed}
+                      exceptionReason={exceptionReason}
+                      setExceptionReason={setExceptionReason}
+                      identifierLookupStatus={identifierLookupStatus}
+                      practiceName={practiceName ?? patientRow.practiceName}
+                      onBack={cohortContext ? handleBackToCohort : undefined}
+                      onOpenCohort={(key) => open(key)}
+                      onReveal={() => {
+                        if (!practiceId || exceptionReason.trim().length < 10) return;
+                        void supabase.rpc("log_narp_pii_page_access", {
+                          _practice_id: practiceId,
+                          _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
+                          _patient_count_rendered: 1,
+                        });
+                        setExceptionRevealed(true);
+                        toast.success("Identifiers revealed for this session. Audit row written.");
+                      }}
+                      onSendToBuyBack={() => {
+                        console.log("[NRES] Single patient → Buy-Back Claims", patientRow.fkPatientLinkId);
+                        toast.success(`Patient ${patientRow.fkPatientLinkId} queued for Buy-Back Claims`);
+                      }}
+                      onAddToWorklist={() => {
+                        setSelected(patientSelection);
+                        setWorklistDialogOpen(true);
+                      }}
+                    />
+                  </motion.div>
+                ) : mode === "patient" ? (
+                  <motion.div key="patient-loading" className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">Loading patient details…</motion.div>
+                ) : null}
+              </AnimatePresence>
+            </DrawerModeTransition>
+          </div>
         </SheetContent>
       </Sheet>
 
