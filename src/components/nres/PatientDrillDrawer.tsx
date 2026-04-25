@@ -2,14 +2,13 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, Info, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
@@ -111,6 +110,8 @@ const QUICK_CHIPS: { label: string; key: string }[] = [
   { label: "Age 65+", key: "_quick_65plus" },
   { label: "Frailty Mod/Sev", key: "_quick_modsev" },
   { label: "Drugs 10+", key: "_quick_drugs10" },
+  { label: "Drugs 15+", key: "_quick_drugs15" },
+  { label: "PoA ≥ 50%", key: "_quick_poa50" },
 ];
 
 const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null => {
@@ -118,6 +119,8 @@ const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null =
     case "_quick_65plus":  return (r) => (r.age ?? 0) >= 65;
     case "_quick_modsev":  return (r) => r.frailty === "Moderate" || r.frailty === "Severe";
     case "_quick_drugs10": return (r) => r.drugCount >= 10;
+    case "_quick_drugs15": return (r) => r.drugCount >= 15;
+    case "_quick_poa50": return (r) => (r.poA ?? 0) >= 50;
     default: return null;
   }
 };
