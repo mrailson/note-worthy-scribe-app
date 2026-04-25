@@ -70,6 +70,7 @@ type NarpRow = {
 
 type RiskTier = "Very High" | "High" | "Moderate" | "Rising" | "Low" | "Unknown";
 type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
+type IdentifierLookupStatus = "idle" | "loading" | "ready" | "unavailable";
 
 const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-001": { nhs_number: "9990000001", forenames: "Demo Patient", surname: "One" },
@@ -1140,16 +1141,18 @@ const TopRiskSection = ({
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const [identifierLookupUnavailable, setIdentifierLookupUnavailable] = useState(false);
+  const [identifierLookupStatus, setIdentifierLookupStatus] = useState<IdentifierLookupStatus>("idle");
   const identifierLookupToastShownRef = useRef(false);
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
   [rows, sortBy]);
   const refKey = sorted.map((r) => r.fkPatientLinkId).join("|");
-  const showIdentifiers = canViewPII && identifiersVisible && !identifierLookupUnavailable;
+  const showIdentifiers = canViewPII && identifiersVisible && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
 
   useEffect(() => {
     if (!identifiersVisible) {
       setIdentifierLookupUnavailable(false);
+      setIdentifierLookupStatus("idle");
       identifierLookupToastShownRef.current = false;
     }
   }, [identifiersVisible]);
@@ -1164,7 +1167,11 @@ const TopRiskSection = ({
     const refs = refKey.split("|").filter(Boolean);
     if (!canViewPII || !identifiersVisible || identifierLookupUnavailable || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
-    if (!missingRefs.length) return;
+    if (!missingRefs.length) {
+      setIdentifierLookupStatus("ready");
+      return;
+    }
+    setIdentifierLookupStatus("loading");
     const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
     if (demoRefs.length) {
       setIdentifierDetails((prev) => {
@@ -1174,7 +1181,10 @@ const TopRiskSection = ({
       });
     }
     const rpcRefs = missingRefs.filter((id) => !DEMO_IDENTIFIABLE_DETAILS[id]);
-    if (!rpcRefs.length) return;
+    if (!rpcRefs.length) {
+      setIdentifierLookupStatus("ready");
+      return;
+    }
     let cancelled = false;
     (supabase as any).rpc("get_narp_identifiable_by_refs", {
       _practice_id: practiceId,
@@ -1183,10 +1193,12 @@ const TopRiskSection = ({
       if (cancelled) return;
       if (error || (data ?? []).length === 0) {
         setIdentifierLookupUnavailable(true);
+        setIdentifierLookupStatus("unavailable");
         showIdentifierLookupFailedToast();
         return;
       }
       setIdentifierLookupUnavailable(false);
+      setIdentifierLookupStatus("ready");
       identifierLookupToastShownRef.current = false;
       setIdentifierDetails((prev) => {
         const next = { ...prev };
@@ -1208,7 +1220,7 @@ const TopRiskSection = ({
       toast.info("Nothing to export");
       return;
     }
-    const includeIdentifiers = showIdentifiers;
+    let includeIdentifiers = showIdentifiers;
     let details = identifierDetails;
     if (includeIdentifiers && practiceId) {
       const missingRefs = sorted.map((r) => r.fkPatientLinkId).filter((id) => !details[id]);
@@ -1225,18 +1237,22 @@ const TopRiskSection = ({
         });
         if (error || (data ?? []).length === 0) {
           setIdentifierLookupUnavailable(true);
+          setIdentifierLookupStatus("unavailable");
           showIdentifierLookupFailedToast();
-          return;
+          includeIdentifiers = false;
         }
-        setIdentifierLookupUnavailable(false);
-        identifierLookupToastShownRef.current = false;
-        details = { ...details };
-        for (const row of data ?? []) {
-          details[row.fk_patient_link_id] = {
-            nhs_number: row.nhs_number ?? null,
-            forenames: row.forenames ?? null,
-            surname: row.surname ?? null,
-          };
+        if (includeIdentifiers) {
+          setIdentifierLookupUnavailable(false);
+          setIdentifierLookupStatus("ready");
+          identifierLookupToastShownRef.current = false;
+          details = { ...details };
+          for (const row of data ?? []) {
+            details[row.fk_patient_link_id] = {
+              nhs_number: row.nhs_number ?? null,
+              forenames: row.forenames ?? null,
+              surname: row.surname ?? null,
+            };
+          }
         }
       }
       setIdentifierDetails(details);
@@ -1303,6 +1319,12 @@ const TopRiskSection = ({
               onCheckedChange={onIdentifiersVisibleChange}
               aria-label="Show identifiable details"
             />
+            {identifierLookupStatus === "loading" && (
+              <span className="text-xs text-muted-foreground">Looking up identifiable details…</span>
+            )}
+            {identifierLookupStatus === "unavailable" && (
+              <span className="text-xs text-muted-foreground">Identifiable lookup unavailable — showing REF only</span>
+            )}
           </div>
         )}
         <Button size="sm" variant="outline" onClick={exportTopRiskCsv}>
