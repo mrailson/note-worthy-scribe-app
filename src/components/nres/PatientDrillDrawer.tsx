@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, FileDown, Send, Search, Copy, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { X, FileDown, Send, Search, Copy, ShieldCheck, ListChecks, ArrowLeft, Plus, Eye, ChevronRight, Filter } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,6 +136,7 @@ export const PatientDrillDrawer = ({
   const { isOpen, mode, filterKeys, cohortContext, selectedPatient, open, openPatient, backToCohort, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
   const [search, setSearch] = useState("");
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const [quickChips, setQuickChips] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
