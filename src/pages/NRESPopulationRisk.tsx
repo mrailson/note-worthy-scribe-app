@@ -22,7 +22,7 @@ import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { useAuth } from "@/contexts/AuthContext";
-import { ageRiskFilterKey, patientFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
+import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -860,7 +860,7 @@ const NRESPopulationRiskInner = () => {
                 identifiersVisible={showIdentifiersPreference}
                 onIdentifiersVisibleChange={setShowIdentifiersPreference}
                 practiceId={selectedPracticeId ?? null}
-                onDrill={drill.open}
+                onOpenPatient={drill.openPatient}
               />
             </TabsContent>
 
@@ -869,7 +869,7 @@ const NRESPopulationRiskInner = () => {
               <WorklistsTab
                 practiceId={selectedPracticeId ?? null}
                 practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
-                onOpenPatient={drill.open}
+                onOpenPatient={drill.openPatient}
               />
             </TabsContent>
           </Tabs>
