@@ -416,7 +416,7 @@ const NRESPopulationRiskInner = () => {
     }
   }, []);
 
-  const handleUpload = useCallback(async (file: File) => {
+  const handleUpload = useCallback(async (file: File, dataAsAt = today()) => {
     try {
       const ext = file.name.toLowerCase().split(".").pop();
       let raw: Record<string, unknown>[] = [];
@@ -446,7 +446,7 @@ const NRESPopulationRiskInner = () => {
         const body = await ingestNarpExport({
           file,
           practiceId: BUGBROOKE_PRACTICE_ID,
-          exportDate: new Date().toISOString().slice(0, 10),
+          exportDate: dataAsAt,
           parsedRows: raw,
         });
         toast.dismiss(ingestToast);
