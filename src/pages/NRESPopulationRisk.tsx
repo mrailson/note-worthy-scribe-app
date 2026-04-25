@@ -1038,40 +1038,6 @@ const NRESPopulationRisk = () => (
 
 /* ─── Sub-components ──────────────────────────────────────── */
 
-const KpiCard = ({
-  icon, label, tooltip, value, sub, tone = "default", filterKey, onDrill,
-}: { icon: React.ReactNode; label: string; tooltip?: { text: string; anchor: string }; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good"; filterKey?: string; onDrill?: (key: string) => void }) => {
-  const toneClass = tone === "critical" ? "border-l-narp-critical text-narp-critical" : tone === "warn" ? "border-l-narp-warn text-narp-warn" : tone === "good" ? "border-l-narp-good text-narp-good" : "border-l-narp-teal text-narp-teal";
-  const clickable = !!filterKey && !!onDrill;
-  const Tag = clickable ? "button" : "div";
-  return (
-    <Tag
-      type={clickable ? "button" : undefined}
-      onClick={clickable ? () => onDrill!(filterKey!) : undefined}
-      className={`group flex w-full items-start gap-3 border border-l-[3px] border-narp-line bg-card px-[18px] py-4 text-left ${toneClass} ${clickable ? "cursor-pointer transition-colors hover:bg-muted/30" : ""}`}
-    >
-      <span className="mt-0.5 [&>svg]:h-[18px] [&>svg]:w-[18px]">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-narp-slate">
-          <span>{label}</span>
-          {tooltip && <ScoreInfoTooltip text={tooltip.text} anchor={tooltip.anchor} />}
-        </div>
-        <div className={`narp-display mt-1 text-[28px] font-semibold leading-[1.1] text-narp-ink tabular-nums ${clickable ? "group-hover:underline" : ""}`}>{value}</div>
-        {sub && <div className="mt-1 text-xs text-narp-slate">{sub}</div>}
-      </div>
-    </Tag>
-  );
-};
-
-const SectionTitle = ({ eyebrow, title, lede, children }: { eyebrow: string; title: string; lede?: string; children?: React.ReactNode }) => (
-  <div className="mb-4">
-    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-narp-teal">{eyebrow}</div>
-    <h2 className="narp-display mt-1 text-2xl font-medium text-narp-ink">{title}</h2>
-    {lede && <p className="mt-1 max-w-[680px] text-[13px] leading-[1.55] text-narp-ink-2">{lede}</p>}
-    {children}
-  </div>
-);
-
 const ScoreHeader = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
   <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
     <span>{label}</span>
