@@ -323,15 +323,28 @@ Deno.serve(async (req) => {
   // 8. Insert snapshots in batches
   try {
     const BATCH = 500;
+    let insertedTotal = 0;
     for (let i = 0; i < rows.length; i += BATCH) {
       const slice = rows.slice(i, i + BATCH);
-      const { error: rpcErr } = await admin.rpc("narp_insert_snapshots", {
+      const { data: inserted, error: rpcErr } = await admin.rpc("narp_insert_snapshots", {
         p_export_id: exportId,
         p_practice_id: practiceId,
         p_export_date: exportDate,
         p_rows: slice,
       });
       if (rpcErr) throw new Error(rpcErr.message);
+      insertedTotal += Number(inserted ?? 0);
+    }
+
+    const { count: persistedCount, error: countErr } = await admin
+      .from("narp_patient_snapshots")
+      .select("id", { count: "exact", head: true })
+      .eq("export_id", exportId);
+    if (countErr) throw new Error(countErr.message);
+    if ((persistedCount ?? 0) !== rows.length || insertedTotal !== rows.length) {
+      throw new Error(
+        `Snapshot persistence mismatch: expected ${rows.length}, inserted ${insertedTotal}, persisted ${persistedCount ?? 0}`,
+      );
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Snapshot insert failed";
