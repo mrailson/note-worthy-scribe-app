@@ -159,6 +159,7 @@ const normalisePracticeKey = (raw: unknown): string =>
 
 const BUGBROOKE_PRACTICE_ID = "85cd140c-2980-40df-8e19-0ffc8a9346d5";
 const BUGBROOKE_KEY = normalisePracticeKey("Bugbrooke Medical Practice");
+const NARP_SNAPSHOT_PAGE_SIZE = 1000;
 
 const makeDemoNarpRows = (): NarpRow[] => {
   const names = [
@@ -280,6 +281,7 @@ const NRESPopulationRiskInner = () => {
   const [exportDate, setExportDate] = useState(today());
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [canUploadNarp, setCanUploadNarp] = useState(false);
+  const restoredExportIdRef = useRef<string | null>(null);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
     : null;
@@ -386,17 +388,23 @@ const NRESPopulationRiskInner = () => {
   }, [user?.id, narpExportPracticeId]);
 
   const reloadPersistedExport = useCallback(async (exportId: string) => {
-    const { data, error } = await supabase
-      .from("narp_patient_snapshots" as any)
-      .select("fk_patient_link_id, age, drug_count, frailty_category, inpatient_total_admissions, ae_attendances, inpatient_elective, outpatient_first, outpatient_followup, rub, poa, polos")
-      .eq("export_id", exportId)
-      .order("poa", { ascending: false, nullsFirst: false });
-    if (error) {
-      toast.error(`Could not refresh persisted NARP rows: ${error.message}`);
-      return;
+    const allRows: any[] = [];
+    for (let from = 0; ; from += NARP_SNAPSHOT_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("narp_patient_snapshots" as any)
+        .select("fk_patient_link_id, age, drug_count, frailty_category, inpatient_total_admissions, ae_attendances, inpatient_elective, outpatient_first, outpatient_followup, rub, poa, polos")
+        .eq("export_id", exportId)
+        .order("poa", { ascending: false, nullsFirst: false })
+        .range(from, from + NARP_SNAPSHOT_PAGE_SIZE - 1);
+      if (error) {
+        toast.error(`Could not refresh persisted NARP rows: ${error.message}`);
+        return;
+      }
+      allRows.push(...(data ?? []));
+      if ((data ?? []).length < NARP_SNAPSHOT_PAGE_SIZE) break;
     }
 
-    const persistedRows = ((data ?? []) as any[]).map((row): NarpRow => ({
+    const persistedRows = allRows.map((row): NarpRow => ({
       fkPatientLinkId: String(row.fk_patient_link_id ?? ""),
       age: typeof row.age === "number" ? row.age : null,
       practiceName: "Bugbrooke Medical Practice",
@@ -417,6 +425,13 @@ const NRESPopulationRiskInner = () => {
       setRows(persistedRows);
     }
   }, []);
+
+  useEffect(() => {
+    const latestReadyExport = narpExports.find((item) => item.status === "ready");
+    if (!latestReadyExport || restoredExportIdRef.current === latestReadyExport.id || rows.length) return;
+    restoredExportIdRef.current = latestReadyExport.id;
+    void reloadPersistedExport(latestReadyExport.id);
+  }, [narpExports, reloadPersistedExport, rows.length]);
 
   const handleUpload = useCallback(async (file: File, dataAsAt = today()) => {
     try {
