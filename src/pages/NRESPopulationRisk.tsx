@@ -1159,6 +1159,11 @@ const CohortsSection = ({
                 <span className={`text-[10px] uppercase tracking-wider font-semibold ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>
                   {co.detail}
                 </span>
+                <ScoreInfoTooltip
+                  text={cohortTooltips[co.id]?.text ?? co.detail}
+                  anchor={cohortTooltips[co.id]?.anchor ?? "risk-stratification-framework-used-here"}
+                  className={selected === co.id ? "text-slate-300 hover:text-white" : ""}
+                />
               </div>
               <div className="font-semibold mt-1">{co.label}</div>
               <div className="flex items-baseline justify-between mt-2">
