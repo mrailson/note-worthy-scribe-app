@@ -711,6 +711,7 @@ const NRESPopulationRiskInner = () => {
         practiceName={selectedPractice === "All Practices" ? "All Practices" : "Bugbrooke Medical Practice"}
         patientCount={fmt(summary.total)}
         dataAsAt={fmtDate(latestExport?.export_date)}
+        pcnName="Blue PCN"
         selectedPractice={selectedPractice}
         practices={practiceOptions}
         onPracticeChange={setSelectedPractice}

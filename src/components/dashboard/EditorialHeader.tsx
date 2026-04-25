@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, ClipboardList, FlaskConical, HelpCircle, Settings, Upload, Wrench } from "lucide-react";
+import { Beaker, BookOpen, Cog, FileText, Library, Settings, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -16,6 +16,7 @@ interface EditorialHeaderProps {
   practiceName: string;
   patientCount: string;
   dataAsAt: string;
+  pcnName?: string;
   selectedPractice: string;
   practices: PracticeOption[];
   onPracticeChange: (practice: string) => void;
@@ -31,6 +32,7 @@ export const EditorialHeader = ({
   practiceName,
   patientCount,
   dataAsAt,
+  pcnName,
   selectedPractice,
   practices,
   onPracticeChange,
@@ -45,13 +47,13 @@ export const EditorialHeader = ({
     <div className="mx-auto flex max-w-[1400px] flex-col gap-4 lg:h-12 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/55">
-          NRES NEW MODELS · RISK STRATIFICATION
+          NRES New Models · Risk Stratification
         </div>
         <h1 className="narp-display truncate text-[28px] font-medium leading-tight text-primary-foreground">
           {practiceName}
         </h1>
         <p className="truncate text-[13px] text-primary-foreground/75">
-          {patientCount} patients · Data as at {dataAsAt} · Bugbrooke · Blue PCN
+          {patientCount} patients · Data as at {dataAsAt}{pcnName ? ` · ${pcnName}` : ""}
         </p>
       </div>
 
@@ -86,7 +88,7 @@ export const EditorialHeader = ({
                   <Upload className="mr-2 h-4 w-4" /> Upload NARP export
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={onManageExports}>
-                  <ClipboardList className="mr-2 h-4 w-4" /> Manage exports
+                  <FileText className="mr-2 h-4 w-4" /> Manage exports
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
@@ -97,16 +99,16 @@ export const EditorialHeader = ({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={onGlossary}>
-              <HelpCircle className="mr-2 h-4 w-4" /> Glossary
+              <Library className="mr-2 h-4 w-4" /> Glossary
             </DropdownMenuItem>
             {showDemoAction && (
               <DropdownMenuItem onSelect={onLoadDemo}>
-                <FlaskConical className="mr-2 h-4 w-4" /> Load demo data
+                <Beaker className="mr-2 h-4 w-4" /> Load demo data
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>
-              <Wrench className="mr-2 h-4 w-4" /> Settings
+              <Cog className="mr-2 h-4 w-4" /> Settings
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
