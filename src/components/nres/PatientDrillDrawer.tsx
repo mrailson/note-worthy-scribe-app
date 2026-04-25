@@ -509,7 +509,6 @@ export const PatientDrillDrawer = ({
   const activeFilterCount = activeNamedFilters.length + activeQuickFilters.length;
   const filterDescription = activeFilterCount ? `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"}` : "no filters applied";
   const visibleSelectedCount = visibleRows.filter((r) => selected.has(r.fkPatientLinkId)).length;
-  const cappedVisibleCount = Math.min(visibleRows.length, SELECTION_CAP);
   const selectionCapped = visibleRows.length > SELECTION_CAP && visibleSelectedCount === SELECTION_CAP;
   const allVisibleSelected = visibleRows.length > 0 && visibleRows.slice(0, SELECTION_CAP).every((r) => selected.has(r.fkPatientLinkId));
   const someSelected = selected.size > 0;
