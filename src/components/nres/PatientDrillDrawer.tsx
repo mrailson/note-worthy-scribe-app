@@ -228,7 +228,7 @@ export const PatientDrillDrawer = ({
 
   useEffect(() => {
     const refs = visibleRefKey.split("|").filter(Boolean);
-    if (!canViewPII || !identifiersVisible || identifierLookupUnavailable || !practiceId || !refs.length) return;
+    if (!canViewPII || !identifiersAllowed || identifierLookupUnavailable || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
     if (!missingRefs.length) {
       setIdentifierLookupStatus("ready");
@@ -279,7 +279,7 @@ export const PatientDrillDrawer = ({
     });
 
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifierLookupUnavailable, identifiersVisible, practiceId, visibleRefKey]);
+  }, [canViewPII, identifierDetails, identifierLookupUnavailable, identifiersAllowed, practiceId, visibleRefKey]);
 
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
