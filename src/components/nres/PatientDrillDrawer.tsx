@@ -223,7 +223,7 @@ export const PatientDrillDrawer = ({
     });
 
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, visibleRefKey]);
+  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, setIdentifiersVisible, visibleRefKey]);
 
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
@@ -302,31 +302,70 @@ export const PatientDrillDrawer = ({
    * No identifiers; no modal; downloads immediately.
    * Logged via the export-log table once Phase B's edge function lands.
    */
-  const exportCsvAnonymised = () => {
+  const resolveDetailsForRows = async (targetRows: DrillPatientRow[]) => {
+    if (!practiceId) {
+      toast.error("Select a single practice before exporting identifiers");
+      return null;
+    }
+    let details = { ...identifierDetails };
+    const missingRefs = targetRows.map((r) => r.fkPatientLinkId).filter((id) => !details[id]);
+    const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
+    for (const id of demoRefs) details[id] = DEMO_IDENTIFIABLE_DETAILS[id];
+    const rpcRefs = missingRefs.filter((id) => !DEMO_IDENTIFIABLE_DETAILS[id]);
+    if (rpcRefs.length) {
+      const { data, error } = await (supabase as any).rpc("get_narp_identifiable_by_refs", {
+        _practice_id: practiceId,
+        _fk_patient_link_ids: rpcRefs,
+      });
+      if (error) {
+        toast.error("Could not load identifiable details");
+        return null;
+      }
+      for (const row of data ?? []) {
+        details[row.fk_patient_link_id] = {
+          nhs_number: row.nhs_number ?? null,
+          forenames: row.forenames ?? null,
+          surname: row.surname ?? null,
+        };
+      }
+    }
+    setIdentifierDetails(details);
+    return details;
+  };
+
+  const exportCsvAnonymised = async () => {
     if (!sortedRows.length) {
       toast.info("Nothing to export");
       return;
     }
-    const headers = ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
+    const includeIdentifiers = canViewPII && identifiersVisible;
+    const details = includeIdentifiers ? await resolveDetailsForRows(sortedRows) : null;
+    if (includeIdentifiers && !details) return;
+    const headers = includeIdentifiers
+      ? ["NHS_Number", "Name", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"]
+      : ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
     const csvRows: string[] = [headers.join(",")];
     for (const r of sortedRows) {
-      csvRows.push([
-        r.fkPatientLinkId,
+      const base = [
         r.age ?? "",
         r.frailty,
         r.drugCount,
         r.inpatientAdmissions,
         r.aeAttendances,
-        `"${(r.rub ?? "").replace(/"/g, '""')}"`,
+        r.rub ?? "",
         r.poA ?? "",
         r.poLoS ?? "",
-      ].join(","));
+      ];
+      const values = includeIdentifiers
+        ? [details?.[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details?.[r.fkPatientLinkId], r), ...base]
+        : [r.fkPatientLinkId, ...base];
+      csvRows.push(values.map(csvEscape).join(","));
     }
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const slug = filters.map((f) => f.key).join("+") || "all";
-    a.href = url; a.download = `narp-${slug}-anonymised.csv`; a.click();
+    a.href = url; a.download = includeIdentifiers ? `narp-${slug}-identifiable.csv` : `narp-${slug}-anonymised.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
