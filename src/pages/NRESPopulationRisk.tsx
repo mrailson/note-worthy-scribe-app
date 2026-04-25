@@ -998,6 +998,13 @@ const KpiCard = ({
   );
 };
 
+const ScoreHeader = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
+  <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
+    <span>{label}</span>
+    <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />
+  </span>
+);
+
 const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof Object>; filtered: NarpRow[]; onDrill?: (key: string) => void }) => {
   const ltcBreakdown = useMemo(() => {
     const set = filtered.filter(r => (r.age ?? 0) >= 65);
