@@ -348,15 +348,18 @@ export const PatientDrillDrawer = ({
       });
       if (error) {
         setIdentifierLookupUnavailable(true);
+        setIdentifierLookupStatus("unavailable");
         showIdentifierLookupFailedToast();
         return null;
       }
       if ((data ?? []).length === 0) {
         setIdentifierLookupUnavailable(true);
+        setIdentifierLookupStatus("unavailable");
         showIdentifierLookupFailedToast();
         return null;
       }
       setIdentifierLookupUnavailable(false);
+      setIdentifierLookupStatus("ready");
       identifierLookupToastShownRef.current = false;
       for (const row of data ?? []) {
         details[row.fk_patient_link_id] = {
@@ -560,6 +563,12 @@ export const PatientDrillDrawer = ({
                     onCheckedChange={setIdentifiersVisible}
                     aria-label="Show identifiable details"
                   />
+                  {identifierLookupStatus === "loading" && (
+                    <span className="text-[11px] text-muted-foreground">Looking up identifiable details…</span>
+                  )}
+                  {identifierLookupStatus === "unavailable" && (
+                    <span className="text-[11px] text-muted-foreground">Identifiable lookup unavailable — showing REF only</span>
+                  )}
                 </div>
               )}
             </div>
