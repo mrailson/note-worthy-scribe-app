@@ -166,7 +166,9 @@ function validateColumns(header: string[]): string[] {
 }
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", bytes);
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  const buf = await crypto.subtle.digest("SHA-256", copy.buffer as ArrayBuffer);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -236,11 +238,15 @@ Deno.serve(async (req) => {
   });
 
   // Set the pepper for this DB session so PII helpers can use it
-  await admin.rpc("set_config", {
-    name: "app.narp_pii_key",
-    value: NARP_PII_KEY,
-    is_local: true,
-  }).catch(() => {});
+  try {
+    await admin.rpc("set_config", {
+      name: "app.narp_pii_key",
+      value: NARP_PII_KEY,
+      is_local: true,
+    });
+  } catch {
+    // Non-fatal: downstream helpers also validate configuration.
+  }
 
   // 5. Duplicate check
   const { data: dup, error: dupErr } = await admin
