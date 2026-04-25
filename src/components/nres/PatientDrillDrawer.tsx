@@ -85,6 +85,8 @@ const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-008": { nhs_number: "9990000008", forenames: "Demo Patient", surname: "Eight" },
 };
 
+const DEFAULT_EXCEPTION_REASON = "Legitimate LTC profile review";
+
 const fmt = (n: number) => n.toLocaleString("en-GB");
 const pct = (n: number) => `${n.toFixed(1)}%`;
 const csvEscape = (value: unknown): string => {
