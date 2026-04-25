@@ -687,122 +687,44 @@ const NRESPopulationRiskInner = () => {
     toast.success(`Loaded ${fmt(demoRows.length)} demo patients`);
   };
 
+  const latestExport = narpExports[0];
+  const practiceOptions = [
+    { key: BUGBROOKE_KEY, label: "Bugbrooke Medical Practice" },
+    { key: "All Practices", label: "All Practices (in upload)" },
+    ...practices.filter(p => p.key !== BUGBROOKE_KEY),
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F0F4F5]">
+    <div className="narp-editorial min-h-screen bg-narp-mist">
       <NRESHeader activeTab="population-risk" />
+      <EditorialHeader
+        practiceName={selectedPractice === "All Practices" ? "All Practices" : "Bugbrooke Medical Practice"}
+        patientCount={fmt(summary.total)}
+        dataAsAt={fmtDate(latestExport?.export_date)}
+        selectedPractice={selectedPractice}
+        practices={practiceOptions}
+        onPracticeChange={setSelectedPractice}
+        canUploadNarp={canUploadNarp}
+        showDemoAction={!import.meta.env.PROD && empty}
+        onUpload={() => setUploadDrawerOpen(true)}
+        onManageExports={() => setUploadDrawerOpen(true)}
+        onGlossary={() => setGlossaryOpen(true)}
+        onLoadDemo={loadDemoData}
+      />
 
-      <div className={`container mx-auto py-6 ${isIPhone ? "px-2" : "px-4"} space-y-4`}>
-        {/* Page header with PoC badge */}
-        <div className="bg-[#005EB8] text-white rounded-lg p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl lg:text-3xl font-bold">Population Risk</h1>
-              <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400 border-0 font-semibold">PoC</Badge>
-            </div>
-            <p className="text-white/80 text-sm">
-              NARP / ACG-based risk stratification for NRES New Models programme
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedPractice} onValueChange={setSelectedPractice}>
-              <SelectTrigger className="bg-white text-[#003087] w-[240px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={BUGBROOKE_KEY}>Bugbrooke Medical Practice</SelectItem>
-                <SelectItem value="All Practices">All Practices (in upload)</SelectItem>
-                {practices
-                  .filter(p => p.key !== BUGBROOKE_KEY)
-                  .map(p => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-white underline underline-offset-4 hover:text-white/85">
-              About the data
-            </Link>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="bg-background text-foreground h-9 w-9"
-              onClick={() => setGlossaryOpen(true)}
-              aria-label="Open NARP glossary"
-            >
-              <CircleHelp className="h-4 w-4" />
-            </Button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUpload(f);
-                e.target.value = "";
-              }}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-background text-foreground"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isHeaderUploading}
-            >
-              {isHeaderUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-              {isHeaderUploading ? "Uploading…" : "Upload NARP data"}
-            </Button>
-            <Button variant="outline" size="sm" className="bg-background text-foreground" onClick={loadDemoData}>
-              <Beaker className="w-4 h-4 mr-2" />
-              Load demo data
-            </Button>
-          </div>
-        </div>
-
-        {/* Persisted NARP uploads (Phase 1 — Bugbrooke only) */}
-        <NarpUploadsPanel refreshSignal={uploadsRefreshSignal} onIngestComplete={reloadPersistedExport} />
-
-        {/* PoC explainer */}
-        <Alert className="bg-amber-50 border-amber-200">
-          <Beaker className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-900 text-sm">
-            <strong>Proof of Concept.</strong> Upload an NARP Patient Activity export (.xlsx / .csv).
-            Data is previewed in your browser, then persisted for identifiable lookup and refreshes.
-            {loadedFileName && (
-              <span className="ml-2">
-                Currently loaded: <strong>{loadedFileName}</strong> · {fmt(rows.length)} patients
-                {selectedPractice !== "All Practices" && (
-                  <> · showing <strong>{fmt(filtered.length)}</strong> for {selectedPractice}</>
-                )}
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
-
+      <div className={`container mx-auto py-4 ${isIPhone ? "px-2" : "px-4"} space-y-4`}>
         {empty && (
-          <div className="bg-white border rounded-lg p-12 text-center">
+          <div className="border border-narp-line bg-card p-12 text-center">
             <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">No data loaded</h2>
             <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
               Upload an NARP Patient Activity export to see risk stratification, frailty profile,
               action cohorts and the top-25 highest-risk patient list.
             </p>
-            <Button onClick={() => fileInputRef.current?.click()}>
+            <Button onClick={() => setUploadDrawerOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Upload NARP file
             </Button>
-            <div className="mt-4">
-              <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-primary underline underline-offset-4">
-                About the data
-              </Link>
-            </div>
-            <p className="text-xs text-muted-foreground mt-6">
-              Required columns: NHS Number, Age, PracticeName, Drug Count, Frailty (eFI) Category,
-              Inpatient - Total Admissions, A&E Attendances, RUB, Probability of Emergency Admission,
-              Probability of Extended LoS, FK_Patient_Link_ID
-            </p>
           </div>
         )}
 
