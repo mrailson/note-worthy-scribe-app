@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker, ListChecks, Loader2, CalendarIcon, FileCheck2,
+  Upload, FileDown, ListChecks, Loader2, CalendarIcon, FileCheck2,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { EditorialHeader } from "@/components/dashboard/EditorialHeader";
@@ -20,7 +20,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
