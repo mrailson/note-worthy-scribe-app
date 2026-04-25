@@ -308,6 +308,40 @@ const NRESPopulationRiskInner = () => {
   const canExportPII = narpAccess.canExport;
   const hasViewElsewhere = narpAccess.hasViewElsewhere;
 
+  const reloadPersistedExport = useCallback(async (exportId: string) => {
+    const { data, error } = await supabase
+      .from("narp_patient_snapshots" as any)
+      .select("fk_patient_link_id, age, drug_count, frailty_category, inpatient_total_admissions, ae_attendances, inpatient_elective, outpatient_first, outpatient_followup, rub, poa, polos")
+      .eq("export_id", exportId)
+      .order("poa", { ascending: false, nullsFirst: false });
+    if (error) {
+      toast.error(`Could not refresh persisted NARP rows: ${error.message}`);
+      return;
+    }
+
+    const persistedRows = ((data ?? []) as any[]).map((row): NarpRow => ({
+      fkPatientLinkId: String(row.fk_patient_link_id ?? ""),
+      age: typeof row.age === "number" ? row.age : null,
+      practiceName: "Bugbrooke Medical Practice",
+      practiceKey: BUGBROOKE_KEY,
+      drugCount: Number(row.drug_count ?? 0),
+      frailty: (row.frailty_category ?? "Unknown") as NarpRow["frailty"],
+      inpatientAdmissions: Number(row.inpatient_total_admissions ?? 0),
+      aeAttendances: Number(row.ae_attendances ?? 0),
+      electiveAdmissions: Number(row.inpatient_elective ?? 0),
+      outpatientFirst: Number(row.outpatient_first ?? 0),
+      outpatientFollowUp: Number(row.outpatient_followup ?? 0),
+      rub: String(row.rub ?? ""),
+      poA: typeof row.poa === "number" ? row.poa : null,
+      poLoS: typeof row.polos === "number" ? row.polos : null,
+    })).filter((row) => row.fkPatientLinkId);
+
+    if (persistedRows.length) {
+      setRows(persistedRows);
+      setLoadedFileName("Persisted NARP export");
+    }
+  }, []);
+
   const handleUpload = useCallback(async (file: File) => {
     try {
       const ext = file.name.toLowerCase().split(".").pop();
@@ -349,6 +383,10 @@ const NRESPopulationRiskInner = () => {
           );
         }
         setUploadsRefreshSignal((value) => value + 1);
+        await reloadPersistedExport(body.export_id);
+      } catch (ingestError) {
+        toast.dismiss(ingestToast);
+        throw ingestError;
       } finally {
         setIsHeaderUploading(false);
       }
@@ -356,7 +394,7 @@ const NRESPopulationRiskInner = () => {
       console.error(err);
       toast.error("Failed to upload file: " + (err instanceof Error ? err.message : "Unknown error"));
     }
-  }, []);
+  }, [reloadPersistedExport]);
 
   // Available practices in the loaded data — keyed by normalised name, label is first-seen casing
   const practices = useMemo(() => {
