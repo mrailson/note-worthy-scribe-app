@@ -13,17 +13,22 @@ interface IngestNarpExportArgs {
   file: File;
   practiceId: string;
   exportDate: string;
+  parsedRows?: Record<string, unknown>[];
 }
 
 export const ingestNarpExport = async ({
   file,
   practiceId,
   exportDate,
+  parsedRows,
 }: IngestNarpExportArgs): Promise<NarpIngestResult> => {
   const form = new FormData();
   form.append("file", file);
   form.append("practice_id", practiceId);
   form.append("export_date", exportDate);
+  if (parsedRows?.length) {
+    form.append("rows_json", JSON.stringify(parsedRows));
+  }
 
   const { data: sess } = await supabase.auth.getSession();
   const token = sess.session?.access_token;

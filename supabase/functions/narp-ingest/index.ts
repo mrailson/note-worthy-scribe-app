@@ -208,6 +208,7 @@ Deno.serve(async (req) => {
   const file = form.get("file");
   const practiceIdRaw = form.get("practice_id");
   const exportDateRaw = form.get("export_date");
+  const rowsJsonRaw = form.get("rows_json");
 
   if (!(file instanceof File))
     return json({ error: "Missing 'file'" }, 400);
@@ -267,16 +268,19 @@ Deno.serve(async (req) => {
       200,
     );
 
-  // 6. Parse workbook
+  // 6. Parse workbook or use client-side parsed rows to reduce edge CPU
   let rows: ParsedRow[] = [];
   let header: string[] = [];
   try {
-    const wb = XLSX.read(fileBytes, { type: "array" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    if (!sheet) throw new Error("Workbook contains no sheets");
-    const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-      defval: null,
-    });
+    const raw = typeof rowsJsonRaw === "string" && rowsJsonRaw.length > 0
+      ? JSON.parse(rowsJsonRaw) as Record<string, unknown>[]
+      : (() => {
+          const wb = XLSX.read(fileBytes, { type: "array" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          if (!sheet) throw new Error("Workbook contains no sheets");
+          return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
+        })();
+    if (!Array.isArray(raw)) throw new Error("Parsed rows payload is invalid");
     if (raw.length === 0) throw new Error("File contains no data rows");
     header = Object.keys(raw[0]);
     const missing = validateColumns(header);
