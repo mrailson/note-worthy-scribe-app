@@ -1104,34 +1104,25 @@ const CohortsSection = ({
             rising: "rising_prevention", adm: "admission_avoidance",
             falls: "falls_risk", frev: "frailty_review",
           };
+          const cohort: DashboardCohort = { id: co.id, label: co.label, definition: co.detail, n: co.n, weeklyTarget: co.weekly, intervention: co.intervention, colour: co.colour };
           return (
-            <button
+            <CohortCard
               key={co.id}
+              cohort={cohort}
+              selected={selected === co.id}
+              totalListSize={totalPatients}
+              permissions={{ can_create_worklist: false }}
               onClick={() => {
                 setSelected(co.id);
                 onDrill?.(cohortFilterKey[co.id]);
               }}
-              className={`text-left p-4 border rounded-lg transition-all ${
-                selected === co.id ? "bg-slate-900 text-white border-slate-900" : "bg-white hover:border-slate-400"
-              }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-1.5 h-1.5 inline-block" style={{ background: co.colour }} />
-                <span className={`text-[10px] uppercase tracking-wider font-semibold ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>
-                  {co.detail}
-                </span>
-                <ScoreInfoTooltip
-                  text={cohortTooltips[co.id]?.text ?? co.detail}
-                  anchor={cohortTooltips[co.id]?.anchor ?? "risk-stratification-framework-used-here"}
-                  className={selected === co.id ? "text-slate-300 hover:text-white" : ""}
-                />
-              </div>
-              <div className="font-semibold mt-1">{co.label}</div>
-              <div className="flex items-baseline justify-between mt-2">
-                <span className="narp-display text-2xl font-semibold tabular-nums hover:underline">{fmt(co.n)}</span>
-                <span className={`text-xs ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>{co.weekly}/week</span>
-              </div>
-            </button>
+              <ScoreInfoTooltip
+                text={cohortTooltips[co.id]?.text ?? co.detail}
+                anchor={cohortTooltips[co.id]?.anchor ?? "risk-stratification-framework-used-here"}
+                className={selected === co.id ? "text-primary-foreground/70 hover:text-primary-foreground" : ""}
+              />
+            </CohortCard>
           );
         })}
       </div>
