@@ -1400,15 +1400,6 @@ const TopRiskSection = ({
           </thead>
           <tbody>
             {sorted.map((p, i) => {
-              const tier = tierFor(p.poA);
-              const tierKey: Record<RiskTier, string> = {
-                "Very High": "tier_very_high",
-                "High": "tier_high",
-                "Moderate": "tier_moderate",
-                "Rising": "tier_rising",
-                "Low": "tier_low",
-                "Unknown": "tier_unknown",
-              };
               const drillKey = patientFilterKey(p.fkPatientLinkId);
               const clickable = !!onDrill && !!drillKey;
               return (
