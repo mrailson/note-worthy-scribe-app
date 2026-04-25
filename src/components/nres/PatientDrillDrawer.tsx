@@ -713,126 +713,109 @@ const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text:
   </span>
 );
 
-// ── Single-patient detail modal ──────────────────────────────────────────
-interface PatientDetailModalProps {
-  patient: DrillPatientRow | null;
-  canViewPII: boolean;
+// ── Single-patient detail drawer mode ────────────────────────────────────
+interface PatientDetailProps {
+  patient: DrillPatientRow;
+  cohortContext: { filterKey: string; label: string; count?: number } | null;
+  allRowsCount: number;
+  patientCohorts: Array<{ key: string; label: string }>;
   identifierDetails?: IdentifiableDetails;
-  onClose: () => void;
-  onSendToBuyBack: (p: DrillPatientRow) => void;
+  showIdentifiers: boolean;
+  canViewPII: boolean;
+  hasExceptionPath: boolean;
+  exceptionRevealed: boolean;
+  exceptionReason: string;
+  setExceptionReason: (reason: string) => void;
+  identifierLookupStatus: IdentifierLookupStatus;
+  practiceName?: string;
+  onBack?: () => void;
+  onOpenCohort: (key: string) => void;
+  onReveal: () => void;
+  onSendToBuyBack: () => void;
+  onAddToWorklist: () => void;
 }
 
-const PatientDetailModal = ({ patient, canViewPII, identifierDetails, onClose, onSendToBuyBack }: PatientDetailModalProps) => {
-  const [revealed, setRevealed] = useState<{ nhsNumber?: string; name?: string } | null>(null);
-  const [reason, setReason] = useState("");
-  const [revealing, setRevealing] = useState(false);
-
-  // Reset on patient change
-  useMemo(() => {
-    setRevealed(null);
-    setReason("");
-  }, [patient?.fkPatientLinkId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!patient) return null;
-
-  const handleReveal = async () => {
-    if (!canViewPII) {
-      toast.error("Your role does not permit identifier reveal");
-      return;
-    }
-    if (reason.trim().length < 4) {
-      toast.error("Please provide a reason for accessing identifiers");
-      return;
-    }
-    setRevealing(true);
-    try {
-      // TODO (Phase 1): call get_patient_identifiable RPC which logs to
-      // narp_pii_access_log with { user_id, snapshot_id, reason_text }.
-      // For PoC, the data is already in memory from the upload — show it
-      // and write a console-side audit breadcrumb.
-      console.log("[NRES][audit] Identifier reveal", { fk: patient.fkPatientLinkId, reason });
-      setRevealed({
-        nhsNumber: identifierDetails?.nhs_number ?? patient.nhsNumber,
-        name: patientDisplayName(identifierDetails, patient) || undefined,
-      });
-    } finally {
-      setRevealing(false);
-    }
-  };
-
+const PatientDetail = ({ patient, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
   const copyRef = () => {
     navigator.clipboard.writeText(patient.fkPatientLinkId);
     toast.success("Reference copied");
   };
+  const poaTone = (patient.poA ?? 0) >= 20 ? "critical" : (patient.poA ?? 0) >= 5 ? "warn" : "default";
+  const polosTone = (patient.poLoS ?? 0) >= 30 ? "critical" : (patient.poLoS ?? 0) >= 15 ? "warn" : "default";
+  const rubTone = String(patient.rub).startsWith("5") ? "critical" : String(patient.rub).startsWith("4") ? "warn" : "default";
+  const frailtyTone = patient.frailty === "Severe" ? "critical" : patient.frailty === "Moderate" ? "warn" : "default";
 
   return (
-    <Dialog open={!!patient} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="z-[110] max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Patient {patient.fkPatientLinkId}
-          </DialogTitle>
-          <DialogDescription>{patient.practiceName || "Anonymised view"}</DialogDescription>
-        </DialogHeader>
+    <>
+      <SheetHeader className="px-5 pt-5 pb-3 border-b">
+        {cohortContext && onBack && (
+          <button type="button" onClick={onBack} className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to {cohortContext.label}
+          </button>
+        )}
+        <SheetTitle className="narp-display text-[22px] font-semibold pr-8">Patient {patient.fkPatientLinkId}</SheetTitle>
+        <SheetDescription className="text-xs">{practiceName || patient.practiceName || "Selected practice"} · 1 of {fmt(cohortContext?.count ?? allRowsCount)}</SheetDescription>
+      </SheetHeader>
 
-        <div className="space-y-4 text-sm">
-          <Section title="Clinical profile">
-            <KV k="Age" v={patient.age ?? "—"} />
-            <KV k="Frailty (eFI)" v={patient.frailty} tip={scoreTooltips.frailty} />
-            <KV k="Drug count" v={patient.drugCount} tip={scoreTooltips.drugs} />
-            <KV k="RUB" v={patient.rub || "—"} tip={scoreTooltips.rub} />
-          </Section>
-
-          <Section title="Utilisation">
-            <KV k="Inpatient admissions" v={patient.inpatientAdmissions} />
-            <KV k="A&E attendances" v={patient.aeAttendances} />
-          </Section>
-
-          <Section title="Risk">
-            <KV k="PoA" v={patient.poA !== null ? pct(patient.poA) : "—"} tip={scoreTooltips.poa} />
-            <KV k="PoLoS" v={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tip={scoreTooltips.polos} />
-          </Section>
-
-          {canViewPII && (
-            <Section title="Identifiers">
-              {revealed ? (
-                <>
-                  <KV k="NHS Number" v={revealed.nhsNumber ?? "—"} />
-                  <KV k="Name" v={revealed.name ?? "—"} />
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <Input
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Reason for access (e.g. MDT review prep)"
-                    className="text-xs"
-                  />
-                  <Button variant="outline" size="sm" onClick={handleReveal} disabled={revealing}>
-                    <Eye className="h-3.5 w-3.5 mr-1.5" />
-                    Reveal identifiers
-                  </Button>
-                  <p className="text-[10px] text-muted-foreground">
-                    Reveals are recorded against your account.
-                  </p>
-                </div>
-              )}
-            </Section>
-          )}
+      <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
+        <div className="grid grid-cols-2 gap-2">
+          <Kpi label={<span>PoA · Probability of admission <ScoreInfoTooltip text={scoreTooltips.poa.text} anchor={scoreTooltips.poa.anchor} /></span>} value={patient.poA !== null ? pct(patient.poA) : "—"} tone={poaTone} className="px-3 py-3" />
+          <Kpi label={<span>PoLoS · Length of stay risk <ScoreInfoTooltip text={scoreTooltips.polos.text} anchor={scoreTooltips.polos.anchor} /></span>} value={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tone={polosTone} className="px-3 py-3" />
+          <Kpi label={<span>RUB · Resource band <ScoreInfoTooltip text={scoreTooltips.rub.text} anchor={scoreTooltips.rub.anchor} /></span>} value={patient.rub || "—"} tone={rubTone} className="px-3 py-3" />
+          <Kpi label={<span>Frailty · eFI category <ScoreInfoTooltip text={scoreTooltips.frailty.text} anchor={scoreTooltips.frailty.anchor} /></span>} value={patient.frailty} tone={frailtyTone} className="px-3 py-3" />
         </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button size="sm" className="flex-1" onClick={() => onSendToBuyBack(patient)}>
-            <Send className="h-4 w-4 mr-1.5" />
-            Send to Buy-Back Claims
-          </Button>
-          <Button size="sm" variant="outline" onClick={copyRef}>
-            <Copy className="h-4 w-4 mr-1.5" />
-            Copy ref
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        <Section title="Clinical profile">
+          <KV k="Age" v={patient.age ?? "—"} />
+          <KV k="Frailty category" v={patient.frailty} />
+          <KV k="Drug count" v={patient.drugCount} />
+          <KV k="Named GP" v="—" />
+        </Section>
+
+        <Section title="Utilisation">
+          <KV k="Inpatient admissions" v={patient.inpatientAdmissions} />
+          <KV k="A&E attendances" v={patient.aeAttendances} />
+          <KV k="Outpatient first" v={patient.outpatientFirst ?? "—"} />
+          <KV k="Outpatient follow-up" v={patient.outpatientFollowUp ?? "—"} />
+        </Section>
+
+        <Section title="Cohort memberships">
+          <div className="flex flex-wrap gap-1.5">
+            {patientCohorts.map((cohort) => (
+              <button key={cohort.key} type="button" onClick={() => onOpenCohort(cohort.key)} className="text-xs px-2 py-1 border rounded-md hover:bg-muted text-left">
+                {cohort.label}
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        {(canViewPII || hasExceptionPath || exceptionRevealed) && (
+          <Section title="Identifiers">
+            {showIdentifiers ? (
+              <>
+                <KV k="NHS Number" v={identifierDetails?.nhs_number ?? patient.nhsNumber ?? "—"} />
+                <KV k="Surname" v={identifierDetails?.surname ?? patient.surname ?? "—"} />
+                <KV k="Forename" v={identifierDetails?.forenames ?? patient.forenames ?? "—"} />
+                <KV k="DOB" v="—" />
+                {exceptionRevealed && <p className="text-[11px] text-muted-foreground pt-1">Revealed by you · Reason: “{exceptionReason.trim()}”</p>}
+              </>
+            ) : hasExceptionPath ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">NHS Number, name and DOB hidden under DSA</p>
+                <Input value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} placeholder="Reason for access (≥10 chars)" className="text-xs" />
+                <Button variant="outline" size="sm" onClick={onReveal} disabled={exceptionReason.trim().length < 10}>Reveal identifiers</Button>
+              </div>
+            ) : identifierLookupStatus === "loading" ? <p className="text-xs text-muted-foreground">Looking up identifiable details…</p> : null}
+          </Section>
+        )}
+      </div>
+
+      <div className="sticky bottom-0 border-t bg-background px-5 py-3 flex gap-2">
+        <Button size="sm" className="flex-1" onClick={onSendToBuyBack}><Send className="h-4 w-4 mr-1.5" />Send to Buy-Back Claims</Button>
+        <Button size="sm" variant="outline" className="flex-1" onClick={onAddToWorklist}><ListChecks className="h-4 w-4 mr-1.5" />Add to worklist</Button>
+        <Button size="sm" variant="ghost" onClick={copyRef} aria-label="Copy patient reference"><Copy className="h-4 w-4" /></Button>
+      </div>
+    </>
   );
 };
 
