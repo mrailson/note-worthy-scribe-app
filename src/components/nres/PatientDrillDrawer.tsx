@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -9,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks } from "lucide-react";
+import { X, FileDown, Send, Search, Eye, Copy, Info, ShieldCheck, ListChecks, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
@@ -19,6 +18,7 @@ import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
 import { scoreTooltips } from "@/lib/narp-reference";
 import {
+  ALL_FILTERS,
   applyFilters,
   getFilter,
   overlappingFilters,
@@ -36,6 +36,9 @@ export interface DrillPatientRow extends NarpFilterableRow {
   rub: string;
   poLoS: number | null;
   aeAttendances: number;
+  electiveAdmissions?: number;
+  outpatientFirst?: number;
+  outpatientFollowUp?: number;
   practiceName: string;
 }
 
