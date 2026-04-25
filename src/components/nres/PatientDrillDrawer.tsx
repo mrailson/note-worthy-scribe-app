@@ -133,22 +133,16 @@ export const PatientDrillDrawer = ({
   practiceId = null,
   practiceName,
   route,
-  identifiersVisible: identifiersVisibleProp,
-  onIdentifiersVisibleChange,
 }: PatientDrillDrawerProps) => {
   const { isOpen, mode, filterKeys, cohortContext, selectedPatient, open, openPatient, backToCohort, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
   const [search, setSearch] = useState("");
   const [quickChips, setQuickChips] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [renderLimit, setRenderLimit] = useState(200);
-  const [internalIdentifiersVisible, setInternalIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const [identifierLookupUnavailable, setIdentifierLookupUnavailable] = useState(false);
   const [identifierLookupStatus, setIdentifierLookupStatus] = useState<IdentifierLookupStatus>("idle");
   const identifierLookupToastShownRef = useRef(false);
-  const identifiersVisible = identifiersVisibleProp ?? internalIdentifiersVisible;
-  const setIdentifiersVisible = onIdentifiersVisibleChange ?? setInternalIdentifiersVisible;
 
   // Cross-practice exception path: identifiers are hidden by default but the
   // user has identifiable rights for OTHER practices. They can opt in to an
@@ -170,7 +164,7 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const identifiersAllowed = mode === "patient" ? canViewPII : canViewPII && identifiersVisible;
+  const identifiersAllowed = canViewPII;
   const showInlinePII = (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
 
   const captureCohortState = () => {
@@ -199,14 +193,6 @@ export const PatientDrillDrawer = ({
       lastPatientTriggerRef.current?.focus();
     }, 250);
   };
-
-  useEffect(() => {
-    if (!identifiersVisible) {
-      setIdentifierLookupUnavailable(false);
-      setIdentifierLookupStatus("idle");
-      identifierLookupToastShownRef.current = false;
-    }
-  }, [identifiersVisible]);
 
   const showIdentifierLookupFailedToast = () => {
     identifierLookupToastShownRef.current = true;
