@@ -1,16 +1,16 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
-import { Link } from "react-router-dom";
+import { format } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, ScatterChart, Scatter, ZAxis,
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker, ListChecks, Loader2, CircleHelp,
+  Upload, FileDown, ListChecks, Loader2, CalendarIcon, FileCheck2,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
-import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
+import { EditorialHeader } from "@/components/dashboard/EditorialHeader";
 import { PatientDrillDrawer } from "@/components/nres/PatientDrillDrawer";
 import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
@@ -19,19 +19,19 @@ import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { useAuth } from "@/contexts/AuthContext";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { ingestNarpExport } from "@/lib/narp-ingest";
 import { NarpGlossaryModal } from "@/components/nres/NarpGlossaryModal";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
-import { cohortTooltips, METHODOLOGY_PATH, scoreTooltips } from "@/lib/narp-reference";
+import { cohortTooltips, scoreTooltips } from "@/lib/narp-reference";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -76,6 +76,16 @@ type NarpRow = {
 type RiskTier = "Very High" | "High" | "Moderate" | "Rising" | "Low" | "Unknown";
 type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 type IdentifierLookupStatus = "idle" | "loading" | "ready" | "unavailable";
+type NarpExportRow = {
+  id: string;
+  export_date: string;
+  uploaded_at: string;
+  uploaded_by: string | null;
+  patient_count: number;
+  status: "processing" | "ready" | "failed";
+  error_message: string | null;
+  file_name: string | null;
+};
 
 const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-001": { nhs_number: "9990000001", forenames: "Demo Patient", surname: "One" },
@@ -234,6 +244,10 @@ const parseCsv = (text: string): Record<string, string>[] => {
 };
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
+const fmtDate = (iso?: string | null) => iso
+  ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+  : "not loaded";
+const today = () => new Date().toISOString().slice(0, 10);
 
 const csvEscape = (value: unknown): string => {
   const text = String(value ?? "");
@@ -248,7 +262,6 @@ const NRESPopulationRiskInner = () => {
   const isIPhone = useIsIPhone();
   const { user } = useAuth();
   const [rows, setRows] = useState<NarpRow[]>([]);
-  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
   const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
   const [showIdentifiersPreference, setShowIdentifiersPreferenceState] = useState(false);
@@ -256,7 +269,12 @@ const NRESPopulationRiskInner = () => {
   const [uploadsRefreshSignal, setUploadsRefreshSignal] = useState(0);
   const [isHeaderUploading, setIsHeaderUploading] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadDrawerOpen, setUploadDrawerOpen] = useState(false);
+  const [narpExports, setNarpExports] = useState<NarpExportRow[]>([]);
+  const [exportsLoading, setExportsLoading] = useState(false);
+  const [exportDate, setExportDate] = useState(today());
+  const [pickedFile, setPickedFile] = useState<File | null>(null);
+  const [canUploadNarp, setCanUploadNarp] = useState(false);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
     : null;
@@ -326,6 +344,42 @@ const NRESPopulationRiskInner = () => {
   const canExportPII = narpAccess.canExport;
   const hasViewElsewhere = narpAccess.hasViewElsewhere;
 
+  const narpExportPracticeId = selectedPracticeId ?? BUGBROOKE_PRACTICE_ID;
+
+  const loadNarpExports = useCallback(async () => {
+    setExportsLoading(true);
+    const { data, error } = await supabase
+      .from("narp_exports")
+      .select("id, export_date, uploaded_at, uploaded_by, patient_count, status, error_message, file_name")
+      .eq("practice_id", narpExportPracticeId)
+      .order("export_date", { ascending: false })
+      .limit(5);
+    if (error) {
+      toast.error(`Could not load uploads: ${error.message}`);
+      setNarpExports([]);
+    } else {
+      setNarpExports((data ?? []) as NarpExportRow[]);
+    }
+    setExportsLoading(false);
+  }, [narpExportPracticeId]);
+
+  useEffect(() => { loadNarpExports(); }, [loadNarpExports, uploadsRefreshSignal]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id || !narpExportPracticeId) {
+      setCanUploadNarp(false);
+      return;
+    }
+    (supabase as any).rpc("has_narp_upload_access", {
+      p_user: user.id,
+      p_practice: narpExportPracticeId,
+    }).then(({ data, error }) => {
+      if (!cancelled) setCanUploadNarp(!error && data === true);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id, narpExportPracticeId]);
+
   const reloadPersistedExport = useCallback(async (exportId: string) => {
     const { data, error } = await supabase
       .from("narp_patient_snapshots" as any)
@@ -356,11 +410,10 @@ const NRESPopulationRiskInner = () => {
 
     if (persistedRows.length) {
       setRows(persistedRows);
-      setLoadedFileName("Persisted NARP export");
     }
   }, []);
 
-  const handleUpload = useCallback(async (file: File) => {
+  const handleUpload = useCallback(async (file: File, dataAsAt = today()) => {
     try {
       const ext = file.name.toLowerCase().split(".").pop();
       let raw: Record<string, unknown>[] = [];
@@ -382,7 +435,6 @@ const NRESPopulationRiskInner = () => {
         return;
       }
       setRows(mapped);
-      setLoadedFileName(file.name);
       toast.success(`Loaded ${fmt(mapped.length)} patients from ${file.name}`);
       setIsHeaderUploading(true);
       const ingestToast = toast.loading(`Persisting ${file.name}…`);
@@ -390,7 +442,7 @@ const NRESPopulationRiskInner = () => {
         const body = await ingestNarpExport({
           file,
           practiceId: BUGBROOKE_PRACTICE_ID,
-          exportDate: new Date().toISOString().slice(0, 10),
+          exportDate: dataAsAt,
           parsedRows: raw,
         });
         toast.dismiss(ingestToast);
@@ -626,127 +678,63 @@ const NRESPopulationRiskInner = () => {
   const loadDemoData = () => {
     const demoRows = makeDemoNarpRows();
     setRows(demoRows);
-    setLoadedFileName("Demo NARP data");
     setSelectedPractice(BUGBROOKE_KEY);
     toast.success(`Loaded ${fmt(demoRows.length)} demo patients`);
   };
 
+  const submitDrawerUpload = async () => {
+    if (!pickedFile) {
+      toast.error("Choose a NARP file first");
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(exportDate)) {
+      toast.error("Choose a valid export date");
+      return;
+    }
+    await handleUpload(pickedFile, exportDate);
+    setPickedFile(null);
+    setUploadDrawerOpen(false);
+    await loadNarpExports();
+  };
+
+  const latestExport = narpExports[0];
+  const practiceOptions = [
+    { key: BUGBROOKE_KEY, label: "Bugbrooke Medical Practice" },
+    { key: "All Practices", label: "All Practices (in upload)" },
+    ...practices.filter(p => p.key !== BUGBROOKE_KEY),
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F0F4F5]">
+    <div className="narp-editorial min-h-screen bg-narp-mist">
       <NRESHeader activeTab="population-risk" />
+      <EditorialHeader
+        practiceName={selectedPractice === "All Practices" ? "All Practices" : "Bugbrooke Medical Practice"}
+        patientCount={fmt(summary.total)}
+        dataAsAt={fmtDate(latestExport?.export_date)}
+        selectedPractice={selectedPractice}
+        practices={practiceOptions}
+        onPracticeChange={setSelectedPractice}
+        canUploadNarp={canUploadNarp}
+        showDemoAction={!import.meta.env.PROD && empty}
+        onUpload={() => setUploadDrawerOpen(true)}
+        onManageExports={() => setUploadDrawerOpen(true)}
+        onGlossary={() => setGlossaryOpen(true)}
+        onLoadDemo={loadDemoData}
+      />
 
-      <div className={`container mx-auto py-6 ${isIPhone ? "px-2" : "px-4"} space-y-4`}>
-        {/* Page header with PoC badge */}
-        <div className="bg-[#005EB8] text-white rounded-lg p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl lg:text-3xl font-bold">Population Risk</h1>
-              <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400 border-0 font-semibold">PoC</Badge>
-            </div>
-            <p className="text-white/80 text-sm">
-              NARP / ACG-based risk stratification for NRES New Models programme
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={selectedPractice} onValueChange={setSelectedPractice}>
-              <SelectTrigger className="bg-white text-[#003087] w-[240px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={BUGBROOKE_KEY}>Bugbrooke Medical Practice</SelectItem>
-                <SelectItem value="All Practices">All Practices (in upload)</SelectItem>
-                {practices
-                  .filter(p => p.key !== BUGBROOKE_KEY)
-                  .map(p => <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-white underline underline-offset-4 hover:text-white/85">
-              About the data
-            </Link>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="bg-background text-foreground h-9 w-9"
-              onClick={() => setGlossaryOpen(true)}
-              aria-label="Open NARP glossary"
-            >
-              <CircleHelp className="h-4 w-4" />
-            </Button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUpload(f);
-                e.target.value = "";
-              }}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-background text-foreground"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isHeaderUploading}
-            >
-              {isHeaderUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-              {isHeaderUploading ? "Uploading…" : "Upload NARP data"}
-            </Button>
-            <Button variant="outline" size="sm" className="bg-background text-foreground" onClick={loadDemoData}>
-              <Beaker className="w-4 h-4 mr-2" />
-              Load demo data
-            </Button>
-          </div>
-        </div>
-
-        {/* Persisted NARP uploads (Phase 1 — Bugbrooke only) */}
-        <NarpUploadsPanel refreshSignal={uploadsRefreshSignal} onIngestComplete={reloadPersistedExport} />
-
-        {/* PoC explainer */}
-        <Alert className="bg-amber-50 border-amber-200">
-          <Beaker className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-900 text-sm">
-            <strong>Proof of Concept.</strong> Upload an NARP Patient Activity export (.xlsx / .csv).
-            Data is previewed in your browser, then persisted for identifiable lookup and refreshes.
-            {loadedFileName && (
-              <span className="ml-2">
-                Currently loaded: <strong>{loadedFileName}</strong> · {fmt(rows.length)} patients
-                {selectedPractice !== "All Practices" && (
-                  <> · showing <strong>{fmt(filtered.length)}</strong> for {selectedPractice}</>
-                )}
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
-
+      <div className={`container mx-auto py-4 ${isIPhone ? "px-2" : "px-4"} space-y-4`}>
         {empty && (
-          <div className="bg-white border rounded-lg p-12 text-center">
+          <div className="border border-narp-line bg-card p-12 text-center">
             <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">No data loaded</h2>
             <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
               Upload an NARP Patient Activity export to see risk stratification, frailty profile,
               action cohorts and the top-25 highest-risk patient list.
             </p>
-            <Button onClick={() => fileInputRef.current?.click()}>
+            <Button onClick={() => setUploadDrawerOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Upload NARP file
             </Button>
-            <div className="mt-4">
-              <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-primary underline underline-offset-4">
-                About the data
-              </Link>
-            </div>
-            <p className="text-xs text-muted-foreground mt-6">
-              Required columns: NHS Number, Age, PracticeName, Drug Count, Frailty (eFI) Category,
-              Inpatient - Total Admissions, A&E Attendances, RUB, Probability of Emergency Admission,
-              Probability of Extended LoS, FK_Patient_Link_ID
-            </p>
           </div>
         )}
 
@@ -772,13 +760,9 @@ const NRESPopulationRiskInner = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Risk pyramid */}
                 <div className="bg-white border rounded-lg p-5">
-                  <h3 className="flex items-center gap-1 font-semibold text-base mb-1">
-                    <span>Population risk pyramid</span>
+                  <SectionTitle eyebrow="Risk stratification" title="Population risk pyramid" lede="Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.">
                     <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
-                  </h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.
-                  </p>
+                  </SectionTitle>
                   <div className="space-y-2">
                     {riskPyramid.filter(r => r.tier !== "Unknown").map(r => {
                       const maxN = Math.max(...riskPyramid.filter(x => x.tier !== "Unknown").map(x => x.n), 1);
@@ -816,10 +800,7 @@ const NRESPopulationRiskInner = () => {
 
                 {/* Frailty bar chart */}
                 <div className="bg-white border rounded-lg p-5">
-                  <h3 className="font-semibold text-base mb-1">Utilisation by frailty</h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Click a frailty category to drill into its patients.
-                  </p>
+                  <SectionTitle eyebrow="Where to aim effort" title="Utilisation by frailty" lede="Click a frailty category to drill into its patients." />
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart
                       data={frailtyStats}
@@ -845,14 +826,9 @@ const NRESPopulationRiskInner = () => {
 
               {/* Age x risk heatmap */}
               <div className="bg-white border rounded-lg p-5">
-                <h3 className="flex items-center gap-1 font-semibold text-base mb-1">
-                  <span>Age band × risk tier</span>
+                <SectionTitle eyebrow="Risk by age" title="Age band × risk tier" lede="Where the risk sits — older bands carry the High and Very-High load; the 40–64 Rising-risk cell is the upstream prevention opportunity.">
                   <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
-                </h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Where the risk sits — older bands carry the High and Very-High load; the
-                  40–64 Rising-risk cell is the upstream prevention opportunity.
-                </p>
+                </SectionTitle>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs border-collapse">
                     <thead>
@@ -951,6 +927,9 @@ const NRESPopulationRiskInner = () => {
             </TabsContent>
           </Tabs>
         )}
+        <footer className="border-t border-narp-line pt-3 text-right text-[11px] text-muted-foreground">
+          Proof of Concept · v0.4 · {fmtDate(latestExport?.export_date)}
+        </footer>
       </div>
 
       {/* Drill-through drawer (single source of truth for every clickable count) */}
@@ -965,6 +944,84 @@ const NRESPopulationRiskInner = () => {
         practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
         route="/nres/population-risk"
       />
+      <Sheet open={uploadDrawerOpen} onOpenChange={setUploadDrawerOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[480px]">
+          <SheetHeader>
+            <SheetTitle className="narp-display text-2xl font-medium">Upload NARP export</SheetTitle>
+            <SheetDescription>Adds a monthly snapshot for Bugbrooke Medical Practice</SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-5">
+            <div className="space-y-2">
+              <Label>Export date (data as at)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(new Date(`${exportDate}T00:00:00`), "dd MMM yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={new Date(`${exportDate}T00:00:00`)}
+                    onSelect={(date) => date && setExportDate(date.toISOString().slice(0, 10))}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="narp-upload-file">NARP file (.xlsx or .csv)</Label>
+              <input
+                id="narp-upload-file"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(event) => setPickedFile(event.target.files?.[0] ?? null)}
+                className="h-10 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:text-xs"
+                disabled={isHeaderUploading}
+              />
+            </div>
+
+            <Button onClick={submitDrawerUpload} disabled={!pickedFile || isHeaderUploading} className="w-full">
+              {isHeaderUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {isHeaderUploading ? "Uploading…" : "Upload"}
+            </Button>
+
+            <div className="border-t border-narp-line pt-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-narp-slate">Recent uploads</h3>
+              {exportsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading…</div>
+              ) : narpExports.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No uploads yet. Choose an export date and NARP file to create the first monthly snapshot.</p>
+              ) : (
+                <div className="space-y-2">
+                  {narpExports.map((item) => (
+                    <div key={item.id} className="border border-narp-line bg-card p-3 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-narp-ink">{fmtDate(item.export_date)}</span>
+                        <span className="inline-flex items-center gap-1 border border-narp-line px-2 py-0.5 text-[11px] uppercase tracking-wide text-narp-slate">
+                          {item.status === "ready" ? <FileCheck2 className="h-3 w-3 text-narp-good" /> : item.status === "processing" ? <Loader2 className="h-3 w-3 animate-spin text-narp-warn" /> : <AlertTriangle className="h-3 w-3 text-narp-critical" />}
+                          {item.status}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-muted-foreground">
+                        {item.uploaded_by ?? "Unknown user"} · {fmt(item.patient_count ?? 0)} rows · {fmtDate(item.uploaded_at)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <SheetFooter className="mt-6 border-t border-narp-line pt-4 text-left text-xs text-muted-foreground sm:justify-start">
+            All uploads are logged. SHA-256 checksums prevent duplicate processing.
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       <NarpGlossaryModal open={glossaryOpen} onOpenChange={setGlossaryOpen} />
     </div>
   );
@@ -981,28 +1038,36 @@ const NRESPopulationRisk = () => (
 const KpiCard = ({
   icon, label, tooltip, value, sub, tone = "default", filterKey, onDrill,
 }: { icon: React.ReactNode; label: string; tooltip?: { text: string; anchor: string }; value: string; sub?: string; tone?: "default" | "critical" | "warn" | "good"; filterKey?: string; onDrill?: (key: string) => void }) => {
-  const bar = tone === "critical" ? palette.vhigh : tone === "warn" ? palette.mod : tone === "good" ? palette.ok : palette.accent;
+  const toneClass = tone === "critical" ? "border-l-narp-critical text-narp-critical" : tone === "warn" ? "border-l-narp-warn text-narp-warn" : tone === "good" ? "border-l-narp-good text-narp-good" : "border-l-narp-teal text-narp-teal";
   const clickable = !!filterKey && !!onDrill;
   const Tag = clickable ? "button" : "div";
   return (
     <Tag
       type={clickable ? "button" : undefined}
       onClick={clickable ? () => onDrill!(filterKey!) : undefined}
-      className={`bg-white border rounded-lg p-4 flex gap-3 items-start text-left w-full ${clickable ? "hover:shadow-sm transition-shadow cursor-pointer" : ""}`}
-      style={{ borderLeft: `3px solid ${bar}` }}
+      className={`group flex w-full items-start gap-3 border border-l-[3px] border-narp-line bg-card px-[18px] py-4 text-left ${toneClass} ${clickable ? "cursor-pointer transition-colors hover:bg-muted/30" : ""}`}
     >
-      <span style={{ color: bar }}>{icon}</span>
+      <span className="mt-0.5 [&>svg]:h-[18px] [&>svg]:w-[18px]">{icon}</span>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+        <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-narp-slate">
           <span>{label}</span>
           {tooltip && <ScoreInfoTooltip text={tooltip.text} anchor={tooltip.anchor} />}
         </div>
-        <div className={`text-2xl font-bold tabular-nums leading-tight mt-0.5 ${clickable ? "group-hover:underline" : ""}`}>{value}</div>
-        {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+        <div className={`narp-display mt-1 text-[28px] font-semibold leading-[1.1] text-narp-ink tabular-nums ${clickable ? "group-hover:underline" : ""}`}>{value}</div>
+        {sub && <div className="mt-1 text-xs text-narp-slate">{sub}</div>}
       </div>
     </Tag>
   );
 };
+
+const SectionTitle = ({ eyebrow, title, lede, children }: { eyebrow: string; title: string; lede?: string; children?: React.ReactNode }) => (
+  <div className="mb-4">
+    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-narp-teal">{eyebrow}</div>
+    <h2 className="narp-display mt-1 text-2xl font-medium text-narp-ink">{title}</h2>
+    {lede && <p className="mt-1 max-w-[680px] text-[13px] leading-[1.55] text-narp-ink-2">{lede}</p>}
+    {children}
+  </div>
+);
 
 const ScoreHeader = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
   <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
