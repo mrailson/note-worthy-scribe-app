@@ -31,7 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ingestNarpExport } from "@/lib/narp-ingest";
 import { NarpGlossaryModal } from "@/components/nres/NarpGlossaryModal";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
-import { cohortTooltips, METHODOLOGY_PATH, scoreTooltips } from "@/lib/narp-reference";
+import { cohortTooltips, scoreTooltips } from "@/lib/narp-reference";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -262,7 +262,6 @@ const NRESPopulationRiskInner = () => {
   const isIPhone = useIsIPhone();
   const { user } = useAuth();
   const [rows, setRows] = useState<NarpRow[]>([]);
-  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
   const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
   const [showIdentifiersPreference, setShowIdentifiersPreferenceState] = useState(false);
@@ -411,7 +410,6 @@ const NRESPopulationRiskInner = () => {
 
     if (persistedRows.length) {
       setRows(persistedRows);
-      setLoadedFileName("Persisted NARP export");
     }
   }, []);
 
@@ -437,7 +435,6 @@ const NRESPopulationRiskInner = () => {
         return;
       }
       setRows(mapped);
-      setLoadedFileName(file.name);
       toast.success(`Loaded ${fmt(mapped.length)} patients from ${file.name}`);
       setIsHeaderUploading(true);
       const ingestToast = toast.loading(`Persisting ${file.name}…`);
@@ -681,9 +678,23 @@ const NRESPopulationRiskInner = () => {
   const loadDemoData = () => {
     const demoRows = makeDemoNarpRows();
     setRows(demoRows);
-    setLoadedFileName("Demo NARP data");
     setSelectedPractice(BUGBROOKE_KEY);
     toast.success(`Loaded ${fmt(demoRows.length)} demo patients`);
+  };
+
+  const submitDrawerUpload = async () => {
+    if (!pickedFile) {
+      toast.error("Choose a NARP file first");
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(exportDate)) {
+      toast.error("Choose a valid export date");
+      return;
+    }
+    await handleUpload(pickedFile, exportDate);
+    setPickedFile(null);
+    setUploadDrawerOpen(false);
+    await loadNarpExports();
   };
 
   const latestExport = narpExports[0];
