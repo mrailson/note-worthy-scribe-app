@@ -456,6 +456,8 @@ const NRESPopulationRiskInner = () => {
         toast.error("No valid patient rows found in file");
         return;
       }
+      setRows(mappedRows);
+      setSelectedPractice(mappedRows[0]?.practiceKey || BUGBROOKE_KEY);
       setIsHeaderUploading(true);
       const ingestToast = toast.loading(`Persisting ${file.name}…`);
       try {
