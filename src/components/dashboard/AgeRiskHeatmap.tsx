@@ -51,8 +51,9 @@ export const AgeRiskHeatmap = ({
                 {tiers.map((tier) => {
                   const value = row[tier.field] as number;
                   const intensity = Math.min(value / maxByField(tier.field), 1);
-                  const background = tier.subtle ? hexToRgba(tier.colour, intensity * 0.12) : hexToRgba(tier.colour, intensity * 0.85 + 0.05);
-                  const readableDark = tier.subtle || intensity <= 0.5;
+                  const subtle = "subtle" in tier && tier.subtle;
+                  const background = subtle ? hexToRgba(tier.colour, intensity * 0.12) : hexToRgba(tier.colour, intensity * 0.85 + 0.05);
+                  const readableDark = subtle || intensity <= 0.5;
 
                   return (
                     <td key={tier.key} className="border-b p-0" style={{ backgroundColor: background }}>
