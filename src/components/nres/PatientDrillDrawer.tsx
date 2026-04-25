@@ -70,6 +70,7 @@ interface PatientDrillDrawerProps {
 
 type SortKey = "poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age";
 type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
+type IdentifierLookupStatus = "idle" | "loading" | "ready" | "unavailable";
 
 const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-001": { nhs_number: "9990000001", forenames: "Demo Patient", surname: "One" },
@@ -127,6 +128,7 @@ export const PatientDrillDrawer = ({
   const [internalIdentifiersVisible, setInternalIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const [identifierLookupUnavailable, setIdentifierLookupUnavailable] = useState(false);
+  const [identifierLookupStatus, setIdentifierLookupStatus] = useState<IdentifierLookupStatus>("idle");
   const identifierLookupToastShownRef = useRef(false);
   const identifiersVisible = identifiersVisibleProp ?? internalIdentifiersVisible;
   const setIdentifiersVisible = onIdentifiersVisibleChange ?? setInternalIdentifiersVisible;
@@ -146,11 +148,12 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const showInlinePII = ((canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed)) && !identifierLookupUnavailable;
+  const showInlinePII = ((canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
 
   useEffect(() => {
     if (!identifiersVisible) {
       setIdentifierLookupUnavailable(false);
+      setIdentifierLookupStatus("idle");
       identifierLookupToastShownRef.current = false;
     }
   }, [identifiersVisible]);
@@ -201,7 +204,11 @@ export const PatientDrillDrawer = ({
     const refs = visibleRefKey.split("|").filter(Boolean);
     if (!canViewPII || !identifiersVisible || identifierLookupUnavailable || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
-    if (!missingRefs.length) return;
+    if (!missingRefs.length) {
+      setIdentifierLookupStatus("ready");
+      return;
+    }
+    setIdentifierLookupStatus("loading");
     const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
     if (demoRefs.length) {
       setIdentifierDetails((prev) => {
@@ -211,7 +218,10 @@ export const PatientDrillDrawer = ({
       });
     }
     const rpcRefs = missingRefs.filter((id) => !DEMO_IDENTIFIABLE_DETAILS[id]);
-    if (!rpcRefs.length) return;
+    if (!rpcRefs.length) {
+      setIdentifierLookupStatus("ready");
+      return;
+    }
 
     let cancelled = false;
     (supabase as any).rpc("get_narp_identifiable_by_refs", {
@@ -221,10 +231,12 @@ export const PatientDrillDrawer = ({
       if (cancelled) return;
       if (error || (data ?? []).length === 0) {
         setIdentifierLookupUnavailable(true);
+        setIdentifierLookupStatus("unavailable");
         showIdentifierLookupFailedToast();
         return;
       }
       setIdentifierLookupUnavailable(false);
+      setIdentifierLookupStatus("ready");
       identifierLookupToastShownRef.current = false;
       setIdentifierDetails((prev) => {
         const next = { ...prev };
