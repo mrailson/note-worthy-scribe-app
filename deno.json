@@ -1,6 +1,7 @@
 {
   "nodeModulesDir": "auto",
   "compilerOptions": {
+    "noCheck": true,
     "strict": false,
     "useUnknownInCatchVariables": false
   },
