@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { ingestNarpExport } from "@/lib/narp-ingest";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -137,6 +138,7 @@ const parseAge = (raw: unknown): number | null => {
 const normalisePracticeKey = (raw: unknown): string =>
   String(raw ?? "").toUpperCase().replace(/\s+/g, " ").trim();
 
+const BUGBROOKE_PRACTICE_ID = "85cd140c-2980-40df-8e19-0ffc8a9346d5";
 const BUGBROOKE_KEY = normalisePracticeKey("Bugbrooke Medical Practice");
 
 const makeDemoNarpRows = (): NarpRow[] => {
