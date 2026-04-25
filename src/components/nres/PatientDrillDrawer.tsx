@@ -203,6 +203,11 @@ export const PatientDrillDrawer = ({
   const visibleRefKey = visibleRows.map((r) => r.fkPatientLinkId).join("|");
 
   useEffect(() => {
+    if (!isOpen || sortedRows.length !== 1) return;
+    setActivePatient((current) => current?.fkPatientLinkId === sortedRows[0].fkPatientLinkId ? current : sortedRows[0]);
+  }, [isOpen, sortedRows]);
+
+  useEffect(() => {
     const refs = visibleRefKey.split("|").filter(Boolean);
     if (!canViewPII || !identifiersVisible || identifierLookupUnavailable || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
