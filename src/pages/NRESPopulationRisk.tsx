@@ -953,6 +953,84 @@ const NRESPopulationRiskInner = () => {
         practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
         route="/nres/population-risk"
       />
+      <Sheet open={uploadDrawerOpen} onOpenChange={setUploadDrawerOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[480px]">
+          <SheetHeader>
+            <SheetTitle className="narp-display text-2xl font-medium">Upload NARP export</SheetTitle>
+            <SheetDescription>Adds a monthly snapshot for Bugbrooke Medical Practice</SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-5">
+            <div className="space-y-2">
+              <Label>Export date (data as at)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(new Date(`${exportDate}T00:00:00`), "dd MMM yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={new Date(`${exportDate}T00:00:00`)}
+                    onSelect={(date) => date && setExportDate(date.toISOString().slice(0, 10))}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="narp-upload-file">NARP file (.xlsx or .csv)</Label>
+              <input
+                id="narp-upload-file"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(event) => setPickedFile(event.target.files?.[0] ?? null)}
+                className="h-10 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:text-xs"
+                disabled={isHeaderUploading}
+              />
+            </div>
+
+            <Button onClick={submitDrawerUpload} disabled={!pickedFile || isHeaderUploading} className="w-full">
+              {isHeaderUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {isHeaderUploading ? "Uploading…" : "Upload"}
+            </Button>
+
+            <div className="border-t border-narp-line pt-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-narp-slate">Recent uploads</h3>
+              {exportsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading…</div>
+              ) : narpExports.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No uploads yet. Choose an export date and NARP file to create the first monthly snapshot.</p>
+              ) : (
+                <div className="space-y-2">
+                  {narpExports.map((item) => (
+                    <div key={item.id} className="border border-narp-line bg-card p-3 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-narp-ink">{fmtDate(item.export_date)}</span>
+                        <span className="inline-flex items-center gap-1 border border-narp-line px-2 py-0.5 text-[11px] uppercase tracking-wide text-narp-slate">
+                          {item.status === "ready" ? <FileCheck2 className="h-3 w-3 text-narp-good" /> : item.status === "processing" ? <Loader2 className="h-3 w-3 animate-spin text-narp-warn" /> : <AlertTriangle className="h-3 w-3 text-narp-critical" />}
+                          {item.status}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-muted-foreground">
+                        {item.uploaded_by ?? "Unknown user"} · {fmt(item.patient_count ?? 0)} rows · {fmtDate(item.uploaded_at)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <SheetFooter className="mt-6 border-t border-narp-line pt-4 text-left text-xs text-muted-foreground sm:justify-start">
+            All uploads are logged. SHA-256 checksums prevent duplicate processing.
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       <NarpGlossaryModal open={glossaryOpen} onOpenChange={setGlossaryOpen} />
     </div>
   );
