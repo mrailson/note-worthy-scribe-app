@@ -1265,11 +1265,15 @@ const TopRiskSection = ({
             <Switch
               id="top-risk-show-identifiers"
               checked={identifiersVisible}
-              onCheckedChange={setIdentifiersVisible}
+              onCheckedChange={onIdentifiersVisibleChange}
               aria-label="Show identifiable details"
             />
           </div>
         )}
+        <Button size="sm" variant="outline" onClick={exportTopRiskCsv}>
+          <FileDown className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="bg-white border rounded-lg overflow-x-auto">
