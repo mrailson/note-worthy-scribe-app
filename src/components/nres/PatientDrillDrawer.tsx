@@ -330,14 +330,15 @@ export const PatientDrillDrawer = ({
   // Summary strip
   const summary = useMemo(() => {
     const n = filteredRows.length;
-    const meanPoA = n ? filteredRows.reduce((s, r) => s + (r.poA ?? 0), 0) / n : 0;
+    if (n === 0) return { n: 0, meanPoA: null, meanDrugCount: null, pct65: null };
+    const meanPoA = filteredRows.reduce((s, r) => s + (r.poA ?? 0), 0) / n;
     const aged65 = filteredRows.filter((r) => (r.age ?? 0) >= 65).length;
-    const meanDrugCount = n ? Math.round(filteredRows.reduce((s, r) => s + (r.drugCount ?? 0), 0) / n) : 0;
+    const meanDrugCount = filteredRows.reduce((s, r) => s + (r.drugCount ?? 0), 0) / n;
     return {
       n,
       meanPoA,
       meanDrugCount,
-      pct65: n ? (aged65 / n) * 100 : 0,
+      pct65: (aged65 / n) * 100,
     };
   }, [filteredRows]);
 
@@ -541,11 +542,11 @@ export const PatientDrillDrawer = ({
         <SheetDescription className="text-xs">{subtitleText}</SheetDescription>
       </SheetHeader>
 
-      <div className="grid grid-cols-4 gap-2 border-b bg-muted/30 px-5 py-3">
-        <Stat label="n in cohort" value={cohortBaseRows.length !== summary.n ? `${fmt(summary.n)} of ${fmt(cohortBaseRows.length)}` : fmt(summary.n)} />
-        <Stat label="mean PoA" value={pct(summary.meanPoA)} />
-        <Stat label="mean drug count" value={String(summary.meanDrugCount)} />
-        <Stat label="aged 65+" value={pct(summary.pct65)} />
+      <div className="grid grid-cols-4 gap-0 border-b bg-muted/30 px-6 py-3">
+        <Stat label="In cohort" value={fmt(summary.n)} sub={cohortBaseRows.length !== summary.n ? `of ${fmt(cohortBaseRows.length)}` : undefined} />
+        <Stat label="Mean PoA" value={summary.meanPoA != null ? pct(summary.meanPoA) : "—"} />
+        <Stat label="Mean drugs" value={summary.meanDrugCount != null ? String(Math.round(summary.meanDrugCount)) : "—"} />
+        <Stat label="Aged 65+" value={summary.pct65 != null ? `${summary.pct65.toFixed(0)}%` : "—"} />
       </div>
 
       <div className="border-b bg-background px-5 py-2">
