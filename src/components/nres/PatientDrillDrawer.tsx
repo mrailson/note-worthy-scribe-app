@@ -782,6 +782,7 @@ const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text:
 // ── Single-patient detail drawer mode ────────────────────────────────────
 interface PatientDetailProps {
   patient: DrillPatientRow;
+  headerRef: RefObject<HTMLHeadingElement>;
   cohortContext: { filterKey: string; label: string; count?: number } | null;
   allRowsCount: number;
   patientCohorts: Array<{ key: string; label: string }>;
@@ -801,7 +802,7 @@ interface PatientDetailProps {
   onAddToWorklist: () => void;
 }
 
-const PatientDetail = ({ patient, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
+const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
   const copyRef = () => {
     navigator.clipboard.writeText(patient.fkPatientLinkId);
     toast.success("Reference copied");
@@ -819,7 +820,7 @@ const PatientDetail = ({ patient, cohortContext, allRowsCount, patientCohorts, i
             <ArrowLeft className="h-3.5 w-3.5" /> Back to {cohortContext.label}
           </button>
         )}
-        <SheetTitle className="narp-display text-[22px] font-semibold pr-8">Patient {patient.fkPatientLinkId}</SheetTitle>
+        <SheetTitle ref={headerRef} tabIndex={-1} className="narp-display text-[22px] font-semibold pr-8 focus:outline-none">Patient {patient.fkPatientLinkId}</SheetTitle>
         <SheetDescription className="text-xs">{practiceName || patient.practiceName || "Selected practice"} · 1 of {fmt(cohortContext?.count ?? allRowsCount)}</SheetDescription>
       </SheetHeader>
 
