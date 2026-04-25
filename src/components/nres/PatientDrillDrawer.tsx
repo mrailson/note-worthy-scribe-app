@@ -605,7 +605,7 @@ export const PatientDrillDrawer = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div ref={cohortScrollRef} className="flex-1 overflow-auto">
         <table className="w-full text-xs">
           <thead className="bg-muted/60 sticky top-0 z-10">
             <tr className="text-left">
@@ -625,7 +625,7 @@ export const PatientDrillDrawer = ({
           </thead>
           <tbody>
             {visibleRows.map((r) => (
-              <tr key={r.fkPatientLinkId} className="border-b hover:bg-muted/40 cursor-pointer" onClick={() => openPatient(r.fkPatientLinkId, currentCohortContext)} style={{ contentVisibility: "auto", containIntrinsicSize: "32px" }}>
+              <tr key={r.fkPatientLinkId} tabIndex={0} className="border-b hover:bg-muted/40 cursor-pointer focus:outline-none focus:bg-muted/50" onClick={(e) => openPatientFromCohort(r.fkPatientLinkId, e.currentTarget)} style={{ contentVisibility: "auto", containIntrinsicSize: "32px" }}>
                 <td className="p-2" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(r.fkPatientLinkId)} onCheckedChange={() => toggleSelect(r.fkPatientLinkId)} aria-label={`Select patient ${r.fkPatientLinkId}`} /></td>
                 <td className="p-2 font-semibold text-primary tabular-nums">{r.fkPatientLinkId}</td>
                 {showInlinePII && <td className="p-2 tabular-nums" style={{ msoNumberFormat: "@" } as React.CSSProperties}>{identifierDetails[r.fkPatientLinkId]?.nhs_number || r.nhsNumber || "—"}</td>}
