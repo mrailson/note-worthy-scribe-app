@@ -3,6 +3,7 @@ export const dashboardTokens = {
   ink2: "text-narp-ink-2",
   muted: "text-narp-slate",
   paper: "bg-narp-paper",
+  paperHover: "hover:bg-narp-paper",
   card: "bg-card",
   line: "border-narp-line",
   accent: "text-narp-teal",
