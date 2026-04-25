@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { dashboardTokens } from "./tokens";
 
 type PracticeOption = { key: string; label: string };
 
@@ -43,7 +44,7 @@ export const EditorialHeader = ({
   onGlossary,
   onLoadDemo,
 }: EditorialHeaderProps) => (
-  <header className="border-b-4 border-narp-teal bg-narp-ink px-4 py-5 text-primary-foreground sm:px-9">
+  <header className={`border-b-4 ${dashboardTokens.accentBorder} bg-narp-ink px-4 py-5 text-primary-foreground sm:px-9`}>
     <div className="mx-auto flex max-w-[1400px] flex-col gap-4 lg:h-12 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
         <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/55">

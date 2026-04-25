@@ -755,15 +755,15 @@ const NRESPopulationRiskInner = () => {
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <Kpi icon={Users} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} onClick={() => drill.open("all")} />
-                <Kpi icon={AlertTriangle} label={<span className="inline-flex items-center gap-1">High-risk (PoA ≥ 20%)<ScoreInfoTooltip text={scoreTooltips.highRisk.text} anchor={scoreTooltips.highRisk.anchor} /></span>} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" onClick={() => drill.open("high_risk")} />
-                <Kpi icon={TrendingUp} label={<span className="inline-flex items-center gap-1">Rising-risk (5–10% PoA)<ScoreInfoTooltip text={scoreTooltips.risingRisk.text} anchor={scoreTooltips.risingRisk.anchor} /></span>} value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" onClick={() => drill.open("rising_risk")} />
+                <Kpi icon={AlertTriangle} label={<span className="inline-flex items-center gap-1">High-risk (PoA ≥ 20%)<ScoreInfoTooltip text={scoreTooltips.highRisk.text} anchor={scoreTooltips.highRisk.anchor} /></span>} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub={`${(((riskPyramid[0].n + riskPyramid[1].n) / Math.max(summary.total, 1)) * 100).toFixed(1)}% of list · MDT caseload`} tone="critical" onClick={() => drill.open("high_risk")} />
+                <Kpi icon={TrendingUp} label={<span className="inline-flex items-center gap-1">Rising-risk (5–10% PoA)<ScoreInfoTooltip text={scoreTooltips.risingRisk.text} anchor={scoreTooltips.risingRisk.anchor} /></span>} value={fmt(riskPyramid[3].n)} sub="Prevention target — proactive NRES" tone="warn" onClick={() => drill.open("rising_risk")} />
                 <Kpi icon={Heart} label={<span className="inline-flex items-center gap-1">Mod/Severe frailty<ScoreInfoTooltip text={scoreTooltips.frailty.text} anchor={scoreTooltips.frailty.anchor} /></span>} value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" onClick={() => drill.open("mod_sev_frailty")} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Risk pyramid */}
                 <div className="border border-narp-line bg-card p-5">
-                  <SectionTitle eyebrow="Risk stratification" title="Population risk pyramid" lede="Tiered by Probability of Emergency Admission (PoA). Click any row to drill in.">
+                  <SectionTitle eyebrow="Risk stratification" title="Population risk pyramid" lede={`${fmt(riskPyramid[0].n + riskPyramid[1].n)} patients are high or very high risk by PoA. This is the core MDT caseload; click any row to drill in.`}>
                     <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                   </SectionTitle>
                   <div className="space-y-2">
@@ -803,7 +803,7 @@ const NRESPopulationRiskInner = () => {
 
                 {/* Frailty bar chart */}
                 <div className="border border-narp-line bg-card p-5">
-                  <SectionTitle eyebrow="Where to aim effort" title="Utilisation by frailty" lede="Click a frailty category to drill into its patients." />
+                  <SectionTitle eyebrow="Where to aim effort" title="Utilisation by frailty" lede={`${fmt(summary.moderate + summary.severe)} patients have moderate or severe frailty. These groups carry the clearest signal for structured LTC review, SMR and anticipatory care planning.`} />
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart
                       data={frailtyStats}
@@ -829,7 +829,7 @@ const NRESPopulationRiskInner = () => {
 
               {/* Age x risk heatmap */}
               <div className="border border-narp-line bg-card p-5">
-                <SectionTitle eyebrow="Risk by age" title="Age band × risk tier" lede="Where the risk sits — older bands carry the High and Very-High load; the 40–64 Rising-risk cell is the upstream prevention opportunity.">
+                <SectionTitle eyebrow="Risk by age" title="Age band × risk tier" lede={`${fmt(summary.aged65Plus)} patients are aged 65+. Older bands carry most High and Very-High risk, while younger Rising-risk cells show the upstream prevention opportunity.`}>
                   <ScoreInfoTooltip text={scoreTooltips.riskTier.text} anchor={scoreTooltips.riskTier.anchor} />
                 </SectionTitle>
                 <div className="overflow-x-auto">
@@ -885,7 +885,7 @@ const NRESPopulationRiskInner = () => {
 
               {/* Age band distribution */}
               <div className="border border-narp-line bg-card p-5">
-                <SectionTitle eyebrow="Population shape" title="Age band distribution" />
+                <SectionTitle eyebrow="Population shape" title="Age band distribution" lede={`${summary.pct65Plus.toFixed(1)}% of the registered list is aged 65+. This frames the underlying demand for LTC reviews, frailty work and admission avoidance.`} />
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={ageBands}>
                     <CartesianGrid strokeDasharray="2 4" vertical={false} />
@@ -1076,7 +1076,7 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="border border-narp-line bg-card p-5">
-          <SectionTitle eyebrow="LTC focus" title="65+ population by frailty" lede={`${totalLTC.toLocaleString("en-GB")} patients`} />
+          <SectionTitle eyebrow="LTC focus" title="65+ population by frailty" lede={`${totalLTC.toLocaleString("en-GB")} patients are aged 65+. The moderate and severe frailty slices identify the highest-yield group for structured LTC reviews.`} />
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={ltcBreakdown} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2} stroke="#fff" strokeWidth={2}>
@@ -1111,7 +1111,7 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
         </div>
 
         <div className="border border-narp-line bg-card p-5">
-          <SectionTitle eyebrow="Medicines optimisation" title="Polypharmacy — SMR opportunity" lede="Clinical Pharmacist structured medication review targets" />
+          <SectionTitle eyebrow="Medicines optimisation" title="Polypharmacy — SMR opportunity" lede={`${summary.poly10.toLocaleString("en-GB")} patients are on 10 or more repeat medications. This is the primary Clinical Pharmacist SMR cohort and equates to around ${Math.round((summary.poly10 * 20) / 60)} CP hours/year.`} />
           <PolyBar label="10+ repeat medications" value={summary.poly10} max={summary.poly10 || 1} colour={palette.mod} detail="Primary SMR cohort" filterKey="drugs_10_plus" onDrill={onDrill} />
           <PolyBar label="15+ repeat medications" value={summary.poly15} max={summary.poly10 || 1} colour={palette.high} detail="Complex polypharmacy" filterKey="drugs_15_plus" onDrill={onDrill} />
           <PolyBar label="20+ repeat medications" value={summary.poly20} max={summary.poly10 || 1} colour={palette.vhigh} detail="Very complex" filterKey="drugs_20_plus" onDrill={onDrill} />
@@ -1123,7 +1123,7 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
       </div>
 
       <div className="border border-narp-line bg-card p-5">
-        <SectionTitle eyebrow="LTC Focus — where to aim effort" title="The 65+ population is the backbone of LTC demand" lede="2,044 patients are 65+. Of those, 649 carry moderate or severe frailty — your highest-yield cohort for structured LTC reviews." />
+        <SectionTitle eyebrow="LTC Focus — where to aim effort" title="The 65+ population is the backbone of LTC demand" lede={`${summary.aged65Plus.toLocaleString("en-GB")} patients are 65+. Of those, ${(summary.moderate + summary.severe).toLocaleString("en-GB")} carry moderate or severe frailty — your highest-yield cohort for structured LTC reviews.`} />
         <ResponsiveContainer width="100%" height={280}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="2 4" />
