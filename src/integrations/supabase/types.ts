@@ -14785,6 +14785,16 @@ export type Database = {
         }
         Returns: number
       }
+      narp_insert_snapshots_with_key: {
+        Args: {
+          p_export_date: string
+          p_export_id: string
+          p_pii_key: string
+          p_practice_id: string
+          p_rows: Json
+        }
+        Returns: number
+      }
       purge_expired_data: { Args: never; Returns: string }
       remove_user_from_practice: {
         Args: {
