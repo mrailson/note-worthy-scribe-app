@@ -27,7 +27,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
-import { safeSetItem } from "@/utils/localStorageManager";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -246,25 +245,41 @@ const NRESPopulationRiskInner = () => {
   const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
   const [showIdentifiersPreference, setShowIdentifiersPreferenceState] = useState(false);
+  const [identifierPreferenceLoaded, setIdentifierPreferenceLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
     : null;
 
   useEffect(() => {
+    setIdentifierPreferenceLoaded(false);
     if (!identifierPreferenceKey) {
       setShowIdentifiersPreferenceState(false);
+      setIdentifierPreferenceLoaded(true);
       return;
     }
-    setShowIdentifiersPreferenceState(localStorage.getItem(identifierPreferenceKey) === "true");
+    try {
+      setShowIdentifiersPreferenceState(localStorage.getItem(identifierPreferenceKey) === "true");
+    } catch (error) {
+      console.warn("[NRESPopulationRisk] Could not read identifier preference", error);
+      setShowIdentifiersPreferenceState(false);
+    } finally {
+      setIdentifierPreferenceLoaded(true);
+    }
   }, [identifierPreferenceKey]);
+
+  useEffect(() => {
+    if (!identifierPreferenceKey || !identifierPreferenceLoaded) return;
+    try {
+      localStorage.setItem(identifierPreferenceKey, showIdentifiersPreference ? "true" : "false");
+    } catch (error) {
+      console.warn("[NRESPopulationRisk] Could not save identifier preference", error);
+    }
+  }, [identifierPreferenceKey, identifierPreferenceLoaded, showIdentifiersPreference]);
 
   const setShowIdentifiersPreference = useCallback((visible: boolean) => {
     setShowIdentifiersPreferenceState(visible);
-    if (identifierPreferenceKey) {
-      safeSetItem(identifierPreferenceKey, visible ? "true" : "false");
-    }
-  }, [identifierPreferenceKey]);
+  }, []);
 
   // Resolve the selected practice's UUID so we can scope the NMoC DSA
   // identifiable-data permission check correctly. "All Practices" deliberately
