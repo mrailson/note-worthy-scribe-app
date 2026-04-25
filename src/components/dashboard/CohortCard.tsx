@@ -1,5 +1,6 @@
-import { Send } from "lucide-react";
+import { ChevronRight, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { dashboardTokens } from "./tokens";
 
 export type DashboardCohort = {
   id: string;
@@ -13,56 +14,73 @@ export type DashboardCohort = {
 
 export const CohortCard = ({
   cohort,
-  selected,
+  selected = false,
   onClick,
   onSendToWorklist,
   totalListSize,
-  permissions,
+  permissions = {},
   children,
 }: {
   cohort: DashboardCohort;
-  selected: boolean;
+  selected?: boolean;
   onClick: () => void;
   onSendToWorklist?: () => void;
   totalListSize: number;
-  permissions: { can_create_worklist?: boolean };
+  permissions?: { can_create_worklist?: boolean };
   children?: React.ReactNode;
 }) => {
-  const pct = totalListSize ? (cohort.n / totalListSize) * 100 : 0;
+  const pctOfList = totalListSize ? ((cohort.n / totalListSize) * 100).toFixed(1) : null;
 
   return (
     <div
       className={cn(
-        "border border-l-[3px] bg-card p-4 text-left font-narp-body",
-        selected ? "border-narp-ink bg-narp-ink text-primary-foreground" : "border-narp-line hover:border-narp-slate",
+        "flex min-h-[180px] flex-col border border-l-[3px] p-0 text-left font-narp-body transition-colors duration-150",
+        selected ? "border-narp-ink bg-narp-ink text-primary-foreground" : cn("bg-card", dashboardTokens.line, dashboardTokens.ink),
       )}
       style={{ borderLeftColor: cohort.colour }}
     >
-      <button type="button" onClick={onClick} className="w-full text-left">
-        <div className="mb-1 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`Select cohort: ${cohort.label}`}
+        aria-pressed={selected}
+        className="flex flex-1 flex-col gap-1.5 bg-transparent px-4 pb-3 pt-3.5 text-left text-inherit"
+      >
+        <div className="flex min-w-0 items-center gap-2">
           <span className="h-1.5 w-1.5 shrink-0" style={{ backgroundColor: cohort.colour }} />
-          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.16em]", selected ? "text-primary-foreground/70" : "text-narp-slate")}>{cohort.definition}</span>
+          <span className={cn("min-w-0 truncate text-[11px] font-semibold uppercase leading-[1.3] tracking-[0.06em]", selected ? "text-primary-foreground/70" : dashboardTokens.muted)}>{cohort.definition}</span>
           {children}
         </div>
-        <div className="mt-1 font-semibold">{cohort.label}</div>
-        <div className="mt-2 flex items-baseline justify-between">
-          <span className="narp-display text-2xl font-semibold tabular-nums hover:underline">{cohort.n.toLocaleString("en-GB")}</span>
-          <span className={cn("text-xs tabular-nums", selected ? "text-primary-foreground/70" : "text-narp-slate")}>{cohort.weeklyTarget}/week · {pct.toFixed(1)}%</span>
+        <div className="narp-display mt-0.5 text-lg font-medium leading-[1.25]">{cohort.label}</div>
+        <p className={cn("text-xs leading-[1.45]", selected ? "text-primary-foreground/75" : dashboardTokens.ink2)}>{cohort.intervention}</p>
+        <div className="mt-auto flex items-baseline justify-between pt-2">
+          <span className="narp-display text-[26px] font-semibold leading-none tabular-nums">{cohort.n.toLocaleString("en-GB")}</span>
+          <span className={cn("text-[11px] tabular-nums", selected ? "text-primary-foreground/70" : dashboardTokens.muted)}>
+            {cohort.weeklyTarget}/week{pctOfList && <> · {pctOfList}% of list</>}
+          </span>
         </div>
-        <p className={cn("mt-2 text-xs leading-[1.45]", selected ? "text-primary-foreground/75" : "text-narp-ink-2")}>{cohort.intervention}</p>
       </button>
-      {permissions.can_create_worklist && onSendToWorklist && (
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onSendToWorklist();
-          }}
-          className={cn("mt-3 inline-flex items-center gap-1.5 border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]", selected ? "border-primary-foreground/25 text-primary-foreground hover:bg-primary-foreground/10" : "border-narp-line text-narp-teal hover:bg-narp-paper")}
-        >
-          <Send className="h-3 w-3" /> Send to worklist
-        </button>
+      {selected && (
+        <div className="flex items-center gap-2 border-t border-primary-foreground/10 px-3 py-2.5">
+          {permissions.can_create_worklist && onSendToWorklist && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onSendToWorklist();
+              }}
+              className={cn("inline-flex items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium", dashboardTokens.ink, dashboardTokens.line, "bg-card hover:bg-narp-paper")}
+            >
+              <Send className="h-3 w-3" /> Send to worklist
+            </button>
+          )}
+          <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-primary-foreground/70">
+            View details <ChevronRight className="h-3 w-3" />
+          </span>
+        </div>
       )}
     </div>
   );
 };
+
+export default CohortCard;
