@@ -16,6 +16,7 @@ import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportModal";
 import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
+import { Kpi } from "@/components/dashboard/Kpi";
 import { scoreTooltips } from "@/lib/narp-reference";
 import {
   ALL_FILTERS,
@@ -125,12 +126,11 @@ export const PatientDrillDrawer = ({
   identifiersVisible: identifiersVisibleProp,
   onIdentifiersVisibleChange,
 }: PatientDrillDrawerProps) => {
-  const { isOpen, filterKeys, add, remove, close } = useDrillThrough();
+  const { isOpen, mode, filterKeys, cohortContext, selectedPatient, open, openPatient, backToCohort, add, remove, close } = useDrillThrough();
   const [sortBy, setSortBy] = useState<SortKey>("poA");
   const [search, setSearch] = useState("");
   const [quickChips, setQuickChips] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [activePatient, setActivePatient] = useState<DrillPatientRow | null>(null);
   const [renderLimit, setRenderLimit] = useState(200);
   const [internalIdentifiersVisible, setInternalIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
@@ -155,7 +155,8 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const showInlinePII = ((canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
+  const identifiersAllowed = mode === "patient" ? canViewPII : canViewPII && identifiersVisible;
+  const showInlinePII = (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
 
   useEffect(() => {
     if (!identifiersVisible) {
