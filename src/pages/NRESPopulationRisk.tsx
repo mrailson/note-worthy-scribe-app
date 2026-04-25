@@ -249,6 +249,8 @@ const NRESPopulationRiskInner = () => {
   const [tab, setTab] = useState("overview");
   const [showIdentifiersPreference, setShowIdentifiersPreferenceState] = useState(false);
   const [identifierPreferenceLoaded, setIdentifierPreferenceLoaded] = useState(false);
+  const [uploadsRefreshSignal, setUploadsRefreshSignal] = useState(0);
+  const [isHeaderUploading, setIsHeaderUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
@@ -330,9 +332,29 @@ const NRESPopulationRiskInner = () => {
       setRows(mapped);
       setLoadedFileName(file.name);
       toast.success(`Loaded ${fmt(mapped.length)} patients from ${file.name}`);
+      setIsHeaderUploading(true);
+      const ingestToast = toast.loading(`Persisting ${file.name}…`);
+      try {
+        const body = await ingestNarpExport({
+          file,
+          practiceId: BUGBROOKE_PRACTICE_ID,
+          exportDate: new Date().toISOString().slice(0, 10),
+        });
+        toast.dismiss(ingestToast);
+        if (body.duplicate) {
+          toast.warning("This file has already been uploaded — using the existing export.");
+        } else {
+          toast.success(
+            `Ingested ${body.patient_count?.toLocaleString("en-GB") ?? fmt(mapped.length)} patients from ${file.name}`,
+          );
+        }
+        setUploadsRefreshSignal((value) => value + 1);
+      } finally {
+        setIsHeaderUploading(false);
+      }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to parse file: " + (err instanceof Error ? err.message : "Unknown error"));
+      toast.error("Failed to upload file: " + (err instanceof Error ? err.message : "Unknown error"));
     }
   }, []);
 
