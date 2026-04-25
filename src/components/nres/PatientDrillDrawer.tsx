@@ -251,6 +251,11 @@ export const PatientDrillDrawer = ({
   );
   const visibleRefKey = (mode === "patient" && patientRow ? [patientRow] : visibleRows).map((r) => r.fkPatientLinkId).join("|");
 
+  useEffect(() => {
+    if (mode !== "patient") return;
+    window.setTimeout(() => patientHeaderRef.current?.focus(), reducedMotion ? 100 : 280);
+  }, [mode, selectedPatient, reducedMotion]);
+
   const currentCohortContext = useMemo(() => ({
     filterKey: filterKeys[0] ?? "all",
     label: titleTextFromFilters(filterKeys),
@@ -353,6 +358,9 @@ export const PatientDrillDrawer = ({
     setSearch("");
     setQuickChips([]);
     setRenderLimit(200);
+    setCohortSnapshot(null);
+    lastPatientTriggerRef.current = null;
+    transitionLockedRef.current = false;
     close();
   };
 
