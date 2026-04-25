@@ -113,10 +113,18 @@ export const DrillThroughProvider = ({ children }: { children: ReactNode }) => {
   // Close drawer with ESC
   useEffect(() => {
     if (!filterKeys.length && !selectedPatient) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (mode === "patient" && cohortContext) {
+        e.preventDefault();
+        backToCohort();
+        return;
+      }
+      close();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [filterKeys.length, selectedPatient, close]);
+  }, [filterKeys.length, selectedPatient, mode, cohortContext, backToCohort, close]);
 
   const value = useMemo<DrillContextValue>(() => ({
     isOpen: filterKeys.length > 0 || !!selectedPatient,
