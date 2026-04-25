@@ -75,8 +75,8 @@ export function useNarpIdentifiableAccess(
   const access = useMemo<Omit<NarpIdentifiableAccess, "isLoading">>(() => {
     const grants = roles ?? [];
     const grantsForThisPractice = practiceId
-      ? grants.filter((r) => r.practice_id === practiceId)
-      : [];
+      ? grants.filter((r) => r.practice_id === practiceId || r.practice_id === null)
+      : grants.filter((r) => r.practice_id === null);
     const canView = grantsForThisPractice.some((r) => r.can_view_narp_identifiable === true);
     const canExport = grantsForThisPractice.some((r) => r.can_export_narp_identifiable === true);
     const hasViewElsewhere =
