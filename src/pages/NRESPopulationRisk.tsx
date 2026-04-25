@@ -1452,12 +1452,12 @@ const TopRiskSection = ({
               {showIdentifiers && <th className="text-left p-3">NHS Number</th>}
               {showIdentifiers && <th className="text-left p-3">Name</th>}
               <th className="text-left p-3">Age</th>
-              <th className="text-left p-3">Frailty</th>
-              <th className="text-left p-3">Drugs</th>
+              <th className="text-left p-3"><ScoreHeader label="Frailty" tip={scoreTooltips.frailty} /></th>
+              <th className="text-left p-3"><ScoreHeader label="Drugs" tip={scoreTooltips.drugs} /></th>
               <th className="text-left p-3">Inpt adm</th>
-              <th className="text-left p-3">RUB</th>
-              <th className="text-right p-3">PoA</th>
-              <th className="text-right p-3">PoLoS</th>
+              <th className="text-left p-3"><ScoreHeader label="RUB" tip={scoreTooltips.rub} /></th>
+              <th className="text-right p-3"><ScoreHeader label="PoA" tip={scoreTooltips.poa} align="right" /></th>
+              <th className="text-right p-3"><ScoreHeader label="PoLoS" tip={scoreTooltips.polos} align="right" /></th>
             </tr>
           </thead>
           <tbody>
