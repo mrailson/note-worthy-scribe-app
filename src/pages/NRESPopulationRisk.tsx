@@ -662,6 +662,21 @@ const NRESPopulationRiskInner = () => {
               </SelectContent>
             </Select>
 
+            <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-white underline underline-offset-4 hover:text-white/85">
+              About the data
+            </Link>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="bg-background text-foreground h-9 w-9"
+              onClick={() => setGlossaryOpen(true)}
+              aria-label="Open NARP glossary"
+            >
+              <CircleHelp className="h-4 w-4" />
+            </Button>
+
             <input
               ref={fileInputRef}
               type="file"
@@ -722,6 +737,11 @@ const NRESPopulationRiskInner = () => {
               <Upload className="w-4 h-4 mr-2" />
               Upload NARP file
             </Button>
+            <div className="mt-4">
+              <Link to={METHODOLOGY_PATH} className="text-sm font-medium text-primary underline underline-offset-4">
+                About the data
+              </Link>
+            </div>
             <p className="text-xs text-muted-foreground mt-6">
               Required columns: NHS Number, Age, PracticeName, Drug Count, Frailty (eFI) Category,
               Inpatient - Total Admissions, A&E Attendances, RUB, Probability of Emergency Admission,
@@ -939,6 +959,7 @@ const NRESPopulationRiskInner = () => {
         practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
         route="/nres/population-risk"
       />
+      <NarpGlossaryModal open={glossaryOpen} onOpenChange={setGlossaryOpen} />
     </div>
   );
 };
