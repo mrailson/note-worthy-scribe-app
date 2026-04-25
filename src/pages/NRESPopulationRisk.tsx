@@ -77,6 +77,16 @@ type NarpRow = {
 type RiskTier = "Very High" | "High" | "Moderate" | "Rising" | "Low" | "Unknown";
 type IdentifiableDetails = { nhs_number: string | null; forenames: string | null; surname: string | null };
 type IdentifierLookupStatus = "idle" | "loading" | "ready" | "unavailable";
+type NarpExportRow = {
+  id: string;
+  export_date: string;
+  uploaded_at: string;
+  uploaded_by: string | null;
+  patient_count: number;
+  status: "processing" | "ready" | "failed";
+  error_message: string | null;
+  file_name: string | null;
+};
 
 const DEMO_IDENTIFIABLE_DETAILS: Record<string, IdentifiableDetails> = {
   "DEMO-001": { nhs_number: "9990000001", forenames: "Demo Patient", surname: "One" },
@@ -235,6 +245,10 @@ const parseCsv = (text: string): Record<string, string>[] => {
 };
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
+const fmtDate = (iso?: string | null) => iso
+  ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+  : "not loaded";
+const today = () => new Date().toISOString().slice(0, 10);
 
 const csvEscape = (value: unknown): string => {
   const text = String(value ?? "");
