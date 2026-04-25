@@ -204,9 +204,11 @@ export const PatientDrillDrawer = ({
     [filterKeys],
   );
 
+  const cohortBaseRows = useMemo(() => applyFilters(rows, filterKeys), [rows, filterKeys]);
+
   // Apply named filters → quick chips → search
   const filteredRows = useMemo(() => {
-    let result = applyFilters(rows, filterKeys);
+    let result = cohortBaseRows;
     for (const chipKey of quickChips) {
       const pred = quickPredicate(chipKey);
       if (pred) result = result.filter(pred);
@@ -220,7 +222,7 @@ export const PatientDrillDrawer = ({
       );
     }
     return result;
-  }, [rows, filterKeys, quickChips, search, canViewPII]);
+  }, [cohortBaseRows, quickChips, search, canViewPII]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
@@ -231,7 +233,6 @@ export const PatientDrillDrawer = ({
   }, [filteredRows, sortBy]);
 
   const visibleRows = sortedRows;
-  const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
   const rowVirtualizer = useVirtualizer({
     count: sortedRows.length,
     getScrollElement: () => cohortScrollRef.current,
@@ -331,12 +332,12 @@ export const PatientDrillDrawer = ({
     const n = filteredRows.length;
     const meanPoA = n ? filteredRows.reduce((s, r) => s + (r.poA ?? 0), 0) / n : 0;
     const aged65 = filteredRows.filter((r) => (r.age ?? 0) >= 65).length;
-    const withAdm = filteredRows.filter((r) => r.inpatientAdmissions >= 1).length;
+    const meanDrugCount = n ? Math.round(filteredRows.reduce((s, r) => s + (r.drugCount ?? 0), 0) / n) : 0;
     return {
       n,
       meanPoA,
+      meanDrugCount,
       pct65: n ? (aged65 / n) * 100 : 0,
-      pctAdm: n ? (withAdm / n) * 100 : 0,
     };
   }, [filteredRows]);
 
