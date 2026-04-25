@@ -816,6 +816,13 @@ const Stat = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
+  <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
+    <span>{label}</span>
+    <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />
+  </span>
+);
+
 // ── Single-patient detail modal ──────────────────────────────────────────
 interface PatientDetailModalProps {
   patient: DrillPatientRow | null;
