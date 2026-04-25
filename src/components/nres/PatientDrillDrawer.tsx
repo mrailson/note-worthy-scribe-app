@@ -887,9 +887,9 @@ const PatientDetailModal = ({ patient, canViewPII, onClose, onSendToBuyBack }: P
         <div className="space-y-4 text-sm">
           <Section title="Clinical profile">
             <KV k="Age" v={patient.age ?? "—"} />
-            <KV k="Frailty (eFI)" v={patient.frailty} />
-            <KV k="Drug count" v={patient.drugCount} />
-            <KV k="RUB" v={patient.rub || "—"} />
+            <KV k="Frailty (eFI)" v={patient.frailty} tip={scoreTooltips.frailty} />
+            <KV k="Drug count" v={patient.drugCount} tip={scoreTooltips.drugs} />
+            <KV k="RUB" v={patient.rub || "—"} tip={scoreTooltips.rub} />
           </Section>
 
           <Section title="Utilisation">
@@ -898,8 +898,8 @@ const PatientDetailModal = ({ patient, canViewPII, onClose, onSendToBuyBack }: P
           </Section>
 
           <Section title="Risk">
-            <KV k="PoA" v={patient.poA !== null ? pct(patient.poA) : "—"} />
-            <KV k="PoLoS" v={patient.poLoS !== null ? pct(patient.poLoS) : "—"} />
+            <KV k="PoA" v={patient.poA !== null ? pct(patient.poA) : "—"} tip={scoreTooltips.poa} />
+            <KV k="PoLoS" v={patient.poLoS !== null ? pct(patient.poLoS) : "—"} tip={scoreTooltips.polos} />
           </Section>
 
           {canViewPII && (
@@ -952,9 +952,12 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </div>
 );
 
-const KV = ({ k, v }: { k: string; v: React.ReactNode }) => (
+const KV = ({ k, v, tip }: { k: string; v: React.ReactNode; tip?: { text: string; anchor: string } }) => (
   <div className="flex justify-between text-sm">
-    <span className="text-muted-foreground">{k}</span>
+    <span className="inline-flex items-center gap-1 text-muted-foreground">
+      {k}
+      {tip && <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />}
+    </span>
     <span className="font-medium tabular-nums">{v}</span>
   </div>
 );
