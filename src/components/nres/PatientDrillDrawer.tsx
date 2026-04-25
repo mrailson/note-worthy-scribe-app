@@ -165,7 +165,7 @@ export const PatientDrillDrawer = ({
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
   const identifiersAllowed = canViewPII;
-  const showInlinePII = (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
+  const showInlinePII = mode === "patient" && (identifiersAllowed || (hasViewElsewhere && exceptionRevealed)) && identifierLookupStatus === "ready" && !identifierLookupUnavailable;
 
   const captureCohortState = () => {
     setCohortSnapshot({
@@ -215,12 +215,12 @@ export const PatientDrillDrawer = ({
       const q = search.trim().toLowerCase();
       result = result.filter((r) =>
         r.fkPatientLinkId.toLowerCase().includes(q) ||
-        (showInlinePII && (r.nhsNumber ?? "").toLowerCase().includes(q)) ||
-        (showInlinePII && [r.forenames, r.surname].filter(Boolean).join(" ").toLowerCase().includes(q)),
+        (canViewPII && (r.nhsNumber ?? "").toLowerCase().includes(q)) ||
+        (canViewPII && [r.forenames, r.surname].filter(Boolean).join(" ").toLowerCase().includes(q)),
       );
     }
     return result;
-  }, [rows, filterKeys, quickChips, search, showInlinePII]);
+  }, [rows, filterKeys, quickChips, search, canViewPII]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
