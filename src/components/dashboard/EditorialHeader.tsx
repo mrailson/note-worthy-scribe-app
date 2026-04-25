@@ -44,23 +44,23 @@ export const EditorialHeader = ({
   onGlossary,
   onLoadDemo,
 }: EditorialHeaderProps) => (
-  <header className={`border-b-4 ${dashboardTokens.accentBorder} bg-narp-ink px-4 py-5 text-primary-foreground sm:px-9`}>
-    <div className="mx-auto flex max-w-[1400px] flex-col gap-4 lg:h-12 lg:flex-row lg:items-center lg:justify-between">
+  <header className={`border-b-2 ${dashboardTokens.accentBorder} bg-narp-paper px-4 py-[22px] sm:px-9`}>
+    <div className="mx-auto flex max-w-[1400px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-foreground/55">
-          NRES New Models · Risk Stratification
+        <div className={`text-[11px] font-bold uppercase tracking-[0.2em] ${dashboardTokens.accent}`}>
+          NRES NEW MODELS · RISK STRATIFICATION
         </div>
-        <h1 className="narp-display truncate text-[28px] font-medium leading-tight text-primary-foreground">
+        <h1 className={`narp-display truncate text-[30px] font-medium leading-tight ${dashboardTokens.ink}`}>
           {practiceName}
         </h1>
-        <p className="truncate text-[13px] text-primary-foreground/75">
+        <p className="truncate text-[13px] text-narp-ink-2">
           {patientCount} patients · Data as at {dataAsAt}{pcnName ? ` · ${pcnName}` : ""}
         </p>
       </div>
 
       <div className="flex items-center gap-2">
         <Select value={selectedPractice} onValueChange={onPracticeChange}>
-          <SelectTrigger className="h-9 w-[240px] border-primary-foreground/15 bg-primary-foreground/10 text-primary-foreground shadow-none focus:ring-primary-foreground/30">
+          <SelectTrigger className={`h-9 w-[240px] ${dashboardTokens.line} bg-card ${dashboardTokens.ink} shadow-none focus:ring-narp-teal/30`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -76,7 +76,7 @@ export const EditorialHeader = ({
               type="button"
               variant="outline"
               size="icon"
-              className="h-9 w-9 border-primary-foreground/15 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
+              className={`h-9 w-9 ${dashboardTokens.line} bg-card ${dashboardTokens.ink} hover:bg-muted hover:text-narp-ink`}
               aria-label="Open Population Risk settings"
             >
               <Settings className="h-[18px] w-[18px]" />
