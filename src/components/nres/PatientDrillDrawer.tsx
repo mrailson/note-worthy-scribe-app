@@ -782,13 +782,6 @@ const Stat = ({ label, value, sub }: { label: string; value: string; sub?: strin
   </div>
 );
 
-const HeaderTip = ({ label, tip, align = "left" }: { label: string; tip: { text: string; anchor: string }; align?: "left" | "right" }) => (
-  <span className={`inline-flex items-center gap-1 ${align === "right" ? "justify-end" : "justify-start"}`}>
-    <span>{label}</span>
-    <ScoreInfoTooltip text={tip.text} anchor={tip.anchor} />
-  </span>
-);
-
 // ── Single-patient detail drawer mode ────────────────────────────────────
 interface PatientDetailProps {
   patient: DrillPatientRow;
