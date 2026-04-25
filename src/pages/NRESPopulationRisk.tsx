@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker, ListChecks,
+  Upload, FileDown, Beaker, ListChecks, Loader2,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
@@ -659,9 +659,10 @@ const NRESPopulationRiskInner = () => {
               size="sm"
               className="bg-background text-foreground"
               onClick={() => fileInputRef.current?.click()}
+              disabled={isHeaderUploading}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload NARP data
+              {isHeaderUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              {isHeaderUploading ? "Uploading…" : "Upload NARP data"}
             </Button>
             <Button variant="outline" size="sm" className="bg-background text-foreground" onClick={loadDemoData}>
               <Beaker className="w-4 h-4 mr-2" />
@@ -671,14 +672,14 @@ const NRESPopulationRiskInner = () => {
         </div>
 
         {/* Persisted NARP uploads (Phase 1 — Bugbrooke only) */}
-        <NarpUploadsPanel />
+        <NarpUploadsPanel refreshSignal={uploadsRefreshSignal} onIngestComplete={reloadPersistedExport} />
 
         {/* PoC explainer */}
         <Alert className="bg-amber-50 border-amber-200">
           <Beaker className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-900 text-sm">
             <strong>Proof of Concept.</strong> Upload an NARP Patient Activity export (.xlsx / .csv).
-            Data is parsed in your browser and held in memory only — nothing is stored.
+            Data is previewed in your browser, then persisted for identifiable lookup and refreshes.
             {loadedFileName && (
               <span className="ml-2">
                 Currently loaded: <strong>{loadedFileName}</strong> · {fmt(rows.length)} patients
