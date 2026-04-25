@@ -1075,9 +1075,8 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border rounded-lg p-5">
-          <h3 className="font-semibold text-base">65+ population by frailty</h3>
-          <p className="text-xs text-muted-foreground mb-3">{totalLTC.toLocaleString("en-GB")} patients</p>
+        <div className="border border-narp-line bg-card p-5">
+          <SectionTitle eyebrow="LTC focus" title="65+ population by frailty" lede={`${totalLTC.toLocaleString("en-GB")} patients`} />
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={ltcBreakdown} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2} stroke="#fff" strokeWidth={2}>
@@ -1111,9 +1110,8 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
           </div>
         </div>
 
-        <div className="bg-white border rounded-lg p-5">
-          <h3 className="font-semibold text-base">Polypharmacy — SMR opportunity</h3>
-          <p className="text-xs text-muted-foreground mb-3">Clinical Pharmacist structured medication review targets</p>
+        <div className="border border-narp-line bg-card p-5">
+          <SectionTitle eyebrow="Medicines optimisation" title="Polypharmacy — SMR opportunity" lede="Clinical Pharmacist structured medication review targets" />
           <PolyBar label="10+ repeat medications" value={summary.poly10} max={summary.poly10 || 1} colour={palette.mod} detail="Primary SMR cohort" filterKey="drugs_10_plus" onDrill={onDrill} />
           <PolyBar label="15+ repeat medications" value={summary.poly15} max={summary.poly10 || 1} colour={palette.high} detail="Complex polypharmacy" filterKey="drugs_15_plus" onDrill={onDrill} />
           <PolyBar label="20+ repeat medications" value={summary.poly20} max={summary.poly10 || 1} colour={palette.vhigh} detail="Very complex" filterKey="drugs_20_plus" onDrill={onDrill} />
@@ -1124,8 +1122,8 @@ const LtcSection = ({ summary, filtered, onDrill }: { summary: ReturnType<typeof
         </div>
       </div>
 
-      <div className="bg-white border rounded-lg p-5">
-        <h3 className="font-semibold text-base mb-3">Frailty burden — PoA × drug count</h3>
+      <div className="border border-narp-line bg-card p-5">
+        <SectionTitle eyebrow="LTC Focus — where to aim effort" title="The 65+ population is the backbone of LTC demand" lede="2,044 patients are 65+. Of those, 649 carry moderate or severe frailty — your highest-yield cohort for structured LTC reviews." />
         <ResponsiveContainer width="100%" height={280}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="2 4" />
