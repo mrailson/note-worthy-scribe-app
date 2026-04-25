@@ -777,9 +777,9 @@ export const PatientDrillDrawer = ({
 };
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
-  <div>
-    <div className="text-base font-bold tabular-nums leading-tight">{value}</div>
-    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+  <div className="text-left">
+    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+    <div className="text-2xl font-bold leading-tight tabular-nums">{value}</div>
   </div>
 );
 
