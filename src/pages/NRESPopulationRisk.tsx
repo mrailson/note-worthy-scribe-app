@@ -764,9 +764,9 @@ const NRESPopulationRiskInner = () => {
             <TabsContent value="overview" className="space-y-6">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <KpiCard icon={<Users className="w-5 h-5" />} label="Registered patients" value={fmt(summary.total)} sub={`${summary.pct65Plus.toFixed(1)}% aged 65+`} filterKey="all" onDrill={drill.open} />
-                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
-                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10%)" value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
-                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
+                <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="High-risk (PoA ≥ 20%)" tooltip={scoreTooltips.highRisk} value={fmt(riskPyramid[0].n + riskPyramid[1].n)} sub="MDT caseload" tone="critical" filterKey="high_risk" onDrill={drill.open} />
+                <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Rising-risk (5–10% PoA)" tooltip={scoreTooltips.risingRisk} value={fmt(riskPyramid[3].n)} sub="Prevention target" tone="warn" filterKey="rising_risk" onDrill={drill.open} />
+                <KpiCard icon={<Heart className="w-5 h-5" />} label="Mod/Severe frailty" tooltip={scoreTooltips.frailty} value={fmt(summary.severe + summary.moderate)} sub={`${summary.severe} severe · ${summary.moderate} moderate`} tone="warn" filterKey="mod_sev_frailty" onDrill={drill.open} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
