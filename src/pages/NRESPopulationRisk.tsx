@@ -1205,7 +1205,7 @@ const CohortsSection = ({
               </div>
               <div className="font-semibold mt-1">{co.label}</div>
               <div className="flex items-baseline justify-between mt-2">
-                <span className="text-2xl font-bold tabular-nums hover:underline">{fmt(co.n)}</span>
+                <span className="narp-display text-2xl font-semibold tabular-nums hover:underline">{fmt(co.n)}</span>
                 <span className={`text-xs ${selected === co.id ? "text-slate-300" : "text-muted-foreground"}`}>{co.weekly}/week</span>
               </div>
             </button>
@@ -1504,7 +1504,7 @@ const TopRiskSection = ({
                   onClick={clickable ? () => onDrill!(drillKey) : undefined}
                   className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
                 >
-                  <td className="p-3 font-semibold text-[#005EB8] tabular-nums">{p.fkPatientLinkId}</td>
+                  <td className="p-3 font-semibold text-narp-teal tabular-nums">{p.fkPatientLinkId}</td>
                   {showIdentifiers && <td className="p-3 tabular-nums">{identifierDetails[p.fkPatientLinkId]?.nhs_number ?? p.nhsNumber ?? "—"}</td>}
                   {showIdentifiers && <td className="p-3">{[identifierDetails[p.fkPatientLinkId]?.forenames ?? p.forenames, identifierDetails[p.fkPatientLinkId]?.surname ?? p.surname].filter(Boolean).join(" ") || "—"}</td>}
                   <td className="p-3 tabular-nums">{p.age ?? "—"}</td>
