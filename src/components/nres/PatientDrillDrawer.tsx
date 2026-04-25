@@ -702,7 +702,7 @@ export const PatientDrillDrawer = ({
             <DrawerModeTransition activeMode={mode} layer="cohort" ariaHidden={mode === "patient"}>
               {renderCohortMode()}
             </DrawerModeTransition>
-            <DrawerModeTransition activeMode={mode} layer="patient" ariaHidden={mode !== "patient"}>
+            <DrawerModeTransition activeMode={mode} layer="patient" ariaHidden={mode !== "patient"} transitionKey={patientRow?.fkPatientLinkId ?? "patient-loading"}>
               <AnimatePresence initial={false} mode="popLayout">
                 {patientRow ? (
                   <motion.div
@@ -710,7 +710,7 @@ export const PatientDrillDrawer = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: reducedMotion ? 0.1 : 0.18, ease: [0.4, 0, 0.2, 1] }}
+                    transition={{ duration: reducedMotion ? 0.1 : 0.2, ease: [0.4, 0, 0.2, 1] }}
                     className="absolute inset-0 flex min-h-0 flex-col bg-background"
                   >
                     <PatientDetail
