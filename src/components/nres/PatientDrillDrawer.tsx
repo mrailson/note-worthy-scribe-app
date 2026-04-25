@@ -141,11 +141,10 @@ export const PatientDrillDrawer = ({
   const setIdentifiersVisible = onIdentifiersVisibleChange ?? setInternalIdentifiersVisible;
 
   // Cross-practice exception path: identifiers are hidden by default but the
-  // user has identifiable rights for OTHER practices. They can opt in to a
-  // single audit-logged reveal for the current cohort with a reason.
+  // user has identifiable rights for OTHER practices. They can opt in to an
+  // audit-logged reveal for this session with a reason.
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
   const [exceptionReason, setExceptionReason] = useState("");
-  const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
 
   // Identifiable CSV export modal — Phase B
   const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
@@ -204,12 +203,22 @@ export const PatientDrillDrawer = ({
 
   const visibleRows = sortedRows.slice(0, renderLimit);
   const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
-  const visibleRefKey = visibleRows.map((r) => r.fkPatientLinkId).join("|");
+  const patientRow = useMemo(
+    () => selectedPatient ? rows.find((r) => r.fkPatientLinkId === selectedPatient) ?? null : null,
+    [rows, selectedPatient],
+  );
+  const visibleRefKey = (mode === "patient" && patientRow ? [patientRow] : visibleRows).map((r) => r.fkPatientLinkId).join("|");
 
-  useEffect(() => {
-    if (!isOpen || sortedRows.length !== 1) return;
-    setActivePatient((current) => current?.fkPatientLinkId === sortedRows[0].fkPatientLinkId ? current : sortedRows[0]);
-  }, [isOpen, sortedRows]);
+  const currentCohortContext = useMemo(() => ({
+    filterKey: filterKeys[0] ?? "all",
+    label: titleTextFromFilters(filterKeys),
+    count: sortedRows.length,
+  }), [filterKeys, sortedRows.length]);
+
+  const patientCohorts = useMemo(() => {
+    if (!patientRow) return [];
+    return ALL_FILTERS.filter((filter) => filter.group === "cohort" && filter.predicate(patientRow));
+  }, [patientRow]);
 
   useEffect(() => {
     const refs = visibleRefKey.split("|").filter(Boolean);
