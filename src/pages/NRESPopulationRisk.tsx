@@ -15,6 +15,7 @@ import { WorklistsTab } from "@/components/nres/WorklistsTab";
 import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
+import { useAuth } from "@/contexts/AuthContext";
 import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { safeSetItem } from "@/utils/localStorageManager";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -227,14 +229,42 @@ const parseCsv = (text: string): Record<string, string>[] => {
 
 const fmt = (n: number) => n.toLocaleString("en-GB");
 
+const csvEscape = (value: unknown): string => {
+  const text = String(value ?? "");
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<NarpRow, "forenames" | "surname">) =>
+  [details?.forenames ?? row?.forenames, details?.surname ?? row?.surname].filter(Boolean).join(" ");
+
 const NRESPopulationRiskInner = () => {
   const drill = useDrillThrough();
   const isIPhone = useIsIPhone();
+  const { user } = useAuth();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
   const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
+  const [showIdentifiersPreference, setShowIdentifiersPreferenceState] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const identifierPreferenceKey = user?.id
+    ? `nres:population-risk:show-identifiers:${user.id}`
+    : null;
+
+  useEffect(() => {
+    if (!identifierPreferenceKey) {
+      setShowIdentifiersPreferenceState(false);
+      return;
+    }
+    setShowIdentifiersPreferenceState(localStorage.getItem(identifierPreferenceKey) === "true");
+  }, [identifierPreferenceKey]);
+
+  const setShowIdentifiersPreference = useCallback((visible: boolean) => {
+    setShowIdentifiersPreferenceState(visible);
+    if (identifierPreferenceKey) {
+      safeSetItem(identifierPreferenceKey, visible ? "true" : "false");
+    }
+  }, [identifierPreferenceKey]);
 
   // Resolve the selected practice's UUID so we can scope the NMoC DSA
   // identifiable-data permission check correctly. "All Practices" deliberately
@@ -430,7 +460,39 @@ const NRESPopulationRiskInner = () => {
       .slice(0, 25);
   }, [filtered]);
 
-  const exportCohortCsv = (cohortId: string) => {
+  const resolveIdentifiableDetails = useCallback(async (targetRows: NarpRow[]) => {
+    if (!selectedPracticeId) {
+      toast.error("Select a single practice before exporting identifiers");
+      return null;
+    }
+    const details: Record<string, IdentifiableDetails> = {};
+    const refs = Array.from(new Set(targetRows.map((r) => r.fkPatientLinkId).filter(Boolean)));
+    const rpcRefs: string[] = [];
+    for (const ref of refs) {
+      if (DEMO_IDENTIFIABLE_DETAILS[ref]) details[ref] = DEMO_IDENTIFIABLE_DETAILS[ref];
+      else rpcRefs.push(ref);
+    }
+    if (rpcRefs.length) {
+      const { data, error } = await (supabase as any).rpc("get_narp_identifiable_by_refs", {
+        _practice_id: selectedPracticeId,
+        _fk_patient_link_ids: rpcRefs,
+      });
+      if (error) {
+        toast.error("Could not load identifiable details");
+        return null;
+      }
+      for (const row of data ?? []) {
+        details[row.fk_patient_link_id] = {
+          nhs_number: row.nhs_number ?? null,
+          forenames: row.forenames ?? null,
+          surname: row.surname ?? null,
+        };
+      }
+    }
+    return details;
+  }, [selectedPracticeId]);
+
+  const exportCohortCsv = async (cohortId: string) => {
     const cohortMap: Record<string, NarpRow[]> = {
       vhhr:   filtered.filter(r => (r.poA ?? 0) >= 20),
       ltc:    filtered.filter(r => (r.age ?? 0) >= 65 && (r.frailty === "Moderate" || r.frailty === "Severe")),
@@ -442,11 +504,19 @@ const NRESPopulationRiskInner = () => {
     };
     const data = cohortMap[cohortId] ?? [];
     if (!data.length) { toast.info("No patients in cohort"); return; }
-    const headers = ["FK_Patient_Link_ID", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"];
-    const lines = [headers.join(",")].concat(data.map(r => [
-      r.fkPatientLinkId, r.age ?? "", r.frailty, r.drugCount, r.inpatientAdmissions,
-      `"${r.rub}"`, r.poA ?? "", r.poLoS ?? "",
-    ].join(",")));
+    const includeIdentifiers = canViewPII && showIdentifiersPreference;
+    const details = includeIdentifiers ? await resolveIdentifiableDetails(data) : null;
+    if (includeIdentifiers && !details) return;
+    const headers = includeIdentifiers
+      ? ["NHS_Number", "Name", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"]
+      : ["FK_Patient_Link_ID", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"];
+    const lines = [headers.join(",")].concat(data.map(r => {
+      const base = [r.age ?? "", r.frailty, r.drugCount, r.inpatientAdmissions, r.rub, r.poA ?? "", r.poLoS ?? ""];
+      const values = includeIdentifiers
+        ? [details?.[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details?.[r.fkPatientLinkId], r), ...base]
+        : [r.fkPatientLinkId, ...base];
+      return values.map(csvEscape).join(",");
+    }));
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -737,7 +807,14 @@ const NRESPopulationRiskInner = () => {
 
             {/* TOP 25 */}
             <TabsContent value="toprisk" className="space-y-4">
-              <TopRiskSection rows={topRisk} canViewPII={canViewPII} practiceId={selectedPracticeId ?? null} onDrill={drill.open} />
+              <TopRiskSection
+                rows={topRisk}
+                canViewPII={canViewPII}
+                identifiersVisible={showIdentifiersPreference}
+                onIdentifiersVisibleChange={setShowIdentifiersPreference}
+                practiceId={selectedPracticeId ?? null}
+                onDrill={drill.open}
+              />
             </TabsContent>
 
             {/* WORKLISTS */}
@@ -758,6 +835,8 @@ const NRESPopulationRiskInner = () => {
         canViewPII={canViewPII}
         canExportPII={canExportPII}
         hasViewElsewhere={hasViewElsewhere}
+        identifiersVisible={showIdentifiersPreference}
+        onIdentifiersVisibleChange={setShowIdentifiersPreference}
         practiceId={selectedPracticeId ?? null}
         practiceName={selectedPractice === "All Practices" ? undefined : selectedPractice}
         route="/nres/population-risk"
@@ -1028,9 +1107,22 @@ const CohortsSection = ({
   );
 };
 
-const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpRow[]; canViewPII: boolean; practiceId?: string | null; onDrill?: (key: string) => void }) => {
+const TopRiskSection = ({
+  rows,
+  canViewPII,
+  identifiersVisible,
+  onIdentifiersVisibleChange,
+  practiceId,
+  onDrill,
+}: {
+  rows: NarpRow[];
+  canViewPII: boolean;
+  identifiersVisible: boolean;
+  onIdentifiersVisibleChange: (visible: boolean) => void;
+  practiceId?: string | null;
+  onDrill?: (key: string) => void;
+}) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
-  const [identifiersVisible, setIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
@@ -1061,7 +1153,7 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
       if (cancelled) return;
       if (error) {
         toast.error("Could not load identifiable details");
-        setIdentifiersVisible(false);
+        onIdentifiersVisibleChange(false);
         return;
       }
       setIdentifierDetails((prev) => {
@@ -1077,7 +1169,61 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
       });
     });
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, refKey]);
+  }, [canViewPII, identifierDetails, identifiersVisible, onIdentifiersVisibleChange, practiceId, refKey]);
+
+  const exportTopRiskCsv = async () => {
+    if (!sorted.length) {
+      toast.info("Nothing to export");
+      return;
+    }
+    const includeIdentifiers = canViewPII && identifiersVisible;
+    let details = identifierDetails;
+    if (includeIdentifiers && practiceId) {
+      const missingRefs = sorted.map((r) => r.fkPatientLinkId).filter((id) => !details[id]);
+      const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
+      if (demoRefs.length) {
+        details = { ...details };
+        for (const id of demoRefs) details[id] = DEMO_IDENTIFIABLE_DETAILS[id];
+      }
+      const rpcRefs = missingRefs.filter((id) => !DEMO_IDENTIFIABLE_DETAILS[id]);
+      if (rpcRefs.length) {
+        const { data, error } = await (supabase as any).rpc("get_narp_identifiable_by_refs", {
+          _practice_id: practiceId,
+          _fk_patient_link_ids: rpcRefs,
+        });
+        if (error) {
+          toast.error("Could not load identifiable details");
+          return;
+        }
+        details = { ...details };
+        for (const row of data ?? []) {
+          details[row.fk_patient_link_id] = {
+            nhs_number: row.nhs_number ?? null,
+            forenames: row.forenames ?? null,
+            surname: row.surname ?? null,
+          };
+        }
+      }
+      setIdentifierDetails(details);
+    }
+    const headers = includeIdentifiers
+      ? ["NHS_Number", "Name", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"]
+      : ["FK_Patient_Link_ID", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"];
+    const lines = [headers.join(",")].concat(sorted.map((r) => {
+      const base = [r.age ?? "", r.frailty, r.drugCount, r.inpatientAdmissions, r.rub, r.poA ?? "", r.poLoS ?? ""];
+      const values = includeIdentifiers
+        ? [details[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details[r.fkPatientLinkId], r), ...base]
+        : [r.fkPatientLinkId, ...base];
+      return values.map(csvEscape).join(",");
+    }));
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = includeIdentifiers ? "nres-top-25-risk-identifiable.csv" : "nres-top-25-risk.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const rubColour = (rub: string) => {
     if (rub.startsWith("5")) return palette.vhigh;
@@ -1119,11 +1265,15 @@ const TopRiskSection = ({ rows, canViewPII, practiceId, onDrill }: { rows: NarpR
             <Switch
               id="top-risk-show-identifiers"
               checked={identifiersVisible}
-              onCheckedChange={setIdentifiersVisible}
+              onCheckedChange={onIdentifiersVisibleChange}
               aria-label="Show identifiable details"
             />
           </div>
         )}
+        <Button size="sm" variant="outline" onClick={exportTopRiskCsv}>
+          <FileDown className="w-4 h-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="bg-white border rounded-lg overflow-x-auto">
