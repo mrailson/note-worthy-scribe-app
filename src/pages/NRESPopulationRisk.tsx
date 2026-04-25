@@ -1220,19 +1220,10 @@ const CohortsSection = ({
               <div className="text-[10px] uppercase tracking-wider font-bold" style={{ color: c.colour }}>Selected cohort</div>
               <h3 className="text-2xl font-bold mt-1">{c.label}</h3>
               <p className="text-sm text-muted-foreground">{c.detail}</p>
-              <div className="flex gap-6 mt-4">
-                <div>
-                  <div className="text-2xl font-bold tabular-nums">{fmt(c.n)}</div>
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1">Patients</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold tabular-nums">{c.weekly}</div>
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1">Reviews/week</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold tabular-nums">{((c.n / Math.max(totalPatients, 1)) * 100).toFixed(1)}%</div>
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1">of list</div>
-                </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <Kpi icon={Users} label="Patients" value={fmt(c.n)} tone="default" />
+                <Kpi icon={Target} label="Reviews/week" value={c.weekly} tone="warn" />
+                <Kpi icon={Layers} label="of list" value={`${((c.n / Math.max(totalPatients, 1)) * 100).toFixed(1)}%`} tone="good" />
               </div>
               <div className="mt-4 pt-4 border-t">
                 <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Intervention</div>
