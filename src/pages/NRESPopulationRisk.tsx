@@ -1139,15 +1139,30 @@ const TopRiskSection = ({
 }) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
+  const [identifierLookupUnavailable, setIdentifierLookupUnavailable] = useState(false);
+  const identifierLookupToastShownRef = useRef(false);
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
   [rows, sortBy]);
   const refKey = sorted.map((r) => r.fkPatientLinkId).join("|");
-  const showIdentifiers = canViewPII && identifiersVisible;
+  const showIdentifiers = canViewPII && identifiersVisible && !identifierLookupUnavailable;
+
+  useEffect(() => {
+    if (!identifiersVisible) {
+      setIdentifierLookupUnavailable(false);
+      identifierLookupToastShownRef.current = false;
+    }
+  }, [identifiersVisible]);
+
+  const showIdentifierLookupFailedToast = () => {
+    if (identifierLookupToastShownRef.current) return;
+    identifierLookupToastShownRef.current = true;
+    toast.error("Could not load identifiable details", { id: "narp-identifiers-load-failed" });
+  };
 
   useEffect(() => {
     const refs = refKey.split("|").filter(Boolean);
-    if (!canViewPII || !identifiersVisible || !practiceId || !refs.length) return;
+    if (!canViewPII || !identifiersVisible || identifierLookupUnavailable || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
     if (!missingRefs.length) return;
     const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
@@ -1166,11 +1181,13 @@ const TopRiskSection = ({
       _fk_patient_link_ids: rpcRefs,
     }).then(({ data, error }) => {
       if (cancelled) return;
-      if (error) {
-        toast.error("Could not load identifiable details");
-        onIdentifiersVisibleChange(false);
+      if (error || (data ?? []).length === 0) {
+        setIdentifierLookupUnavailable(true);
+        showIdentifierLookupFailedToast();
         return;
       }
+      setIdentifierLookupUnavailable(false);
+      identifierLookupToastShownRef.current = false;
       setIdentifierDetails((prev) => {
         const next = { ...prev };
         for (const row of data ?? []) {
@@ -1184,14 +1201,14 @@ const TopRiskSection = ({
       });
     });
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifiersVisible, onIdentifiersVisibleChange, practiceId, refKey]);
+  }, [canViewPII, identifierDetails, identifierLookupUnavailable, identifiersVisible, practiceId, refKey]);
 
   const exportTopRiskCsv = async () => {
     if (!sorted.length) {
       toast.info("Nothing to export");
       return;
     }
-    const includeIdentifiers = canViewPII && identifiersVisible;
+    const includeIdentifiers = showIdentifiers;
     let details = identifierDetails;
     if (includeIdentifiers && practiceId) {
       const missingRefs = sorted.map((r) => r.fkPatientLinkId).filter((id) => !details[id]);
@@ -1206,10 +1223,13 @@ const TopRiskSection = ({
           _practice_id: practiceId,
           _fk_patient_link_ids: rpcRefs,
         });
-        if (error) {
-          toast.error("Could not load identifiable details");
+        if (error || (data ?? []).length === 0) {
+          setIdentifierLookupUnavailable(true);
+          showIdentifierLookupFailedToast();
           return;
         }
+        setIdentifierLookupUnavailable(false);
+        identifierLookupToastShownRef.current = false;
         details = { ...details };
         for (const row of data ?? []) {
           details[row.fk_patient_link_id] = {

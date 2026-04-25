@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -126,6 +126,8 @@ export const PatientDrillDrawer = ({
   const [renderLimit, setRenderLimit] = useState(200);
   const [internalIdentifiersVisible, setInternalIdentifiersVisible] = useState(false);
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
+  const [identifierLookupUnavailable, setIdentifierLookupUnavailable] = useState(false);
+  const identifierLookupToastShownRef = useRef(false);
   const identifiersVisible = identifiersVisibleProp ?? internalIdentifiersVisible;
   const setIdentifiersVisible = onIdentifiersVisibleChange ?? setInternalIdentifiersVisible;
 
@@ -144,7 +146,20 @@ export const PatientDrillDrawer = ({
 
   // Effective inline-PII mode: either the user has direct view rights, OR
   // they've completed the cross-practice exception reveal for this session.
-  const showInlinePII = (canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed);
+  const showInlinePII = ((canViewPII && identifiersVisible) || (hasViewElsewhere && exceptionRevealed)) && !identifierLookupUnavailable;
+
+  useEffect(() => {
+    if (!identifiersVisible) {
+      setIdentifierLookupUnavailable(false);
+      identifierLookupToastShownRef.current = false;
+    }
+  }, [identifiersVisible]);
+
+  const showIdentifierLookupFailedToast = () => {
+    if (identifierLookupToastShownRef.current) return;
+    identifierLookupToastShownRef.current = true;
+    toast.error("Could not load identifiable details", { id: "narp-identifiers-load-failed" });
+  };
 
   // Resolve the current filters
   const filters = useMemo(
@@ -184,7 +199,7 @@ export const PatientDrillDrawer = ({
 
   useEffect(() => {
     const refs = visibleRefKey.split("|").filter(Boolean);
-    if (!canViewPII || !identifiersVisible || !practiceId || !refs.length) return;
+    if (!canViewPII || !identifiersVisible || identifierLookupUnavailable || !practiceId || !refs.length) return;
     const missingRefs = refs.filter((id) => !identifierDetails[id]);
     if (!missingRefs.length) return;
     const demoRefs = missingRefs.filter((id) => DEMO_IDENTIFIABLE_DETAILS[id]);
@@ -204,11 +219,13 @@ export const PatientDrillDrawer = ({
       _fk_patient_link_ids: rpcRefs,
     }).then(({ data, error }) => {
       if (cancelled) return;
-      if (error) {
-        toast.error("Could not load identifiable details");
-        setIdentifiersVisible(false);
+      if (error || (data ?? []).length === 0) {
+        setIdentifierLookupUnavailable(true);
+        showIdentifierLookupFailedToast();
         return;
       }
+      setIdentifierLookupUnavailable(false);
+      identifierLookupToastShownRef.current = false;
       setIdentifierDetails((prev) => {
         const next = { ...prev };
         for (const row of data ?? []) {
@@ -223,7 +240,7 @@ export const PatientDrillDrawer = ({
     });
 
     return () => { cancelled = true; };
-  }, [canViewPII, identifierDetails, identifiersVisible, practiceId, setIdentifiersVisible, visibleRefKey]);
+  }, [canViewPII, identifierDetails, identifierLookupUnavailable, identifiersVisible, practiceId, visibleRefKey]);
 
   // Per-page-load audit: writes ONE row per (practice, route, count) bucket
   // when identifiers are actually rendered. Suppressed when no patients are
@@ -318,9 +335,17 @@ export const PatientDrillDrawer = ({
         _fk_patient_link_ids: rpcRefs,
       });
       if (error) {
-        toast.error("Could not load identifiable details");
+        setIdentifierLookupUnavailable(true);
+        showIdentifierLookupFailedToast();
         return null;
       }
+      if ((data ?? []).length === 0) {
+        setIdentifierLookupUnavailable(true);
+        showIdentifierLookupFailedToast();
+        return null;
+      }
+      setIdentifierLookupUnavailable(false);
+      identifierLookupToastShownRef.current = false;
       for (const row of data ?? []) {
         details[row.fk_patient_link_id] = {
           nhs_number: row.nhs_number ?? null,
@@ -338,7 +363,7 @@ export const PatientDrillDrawer = ({
       toast.info("Nothing to export");
       return;
     }
-    const includeIdentifiers = canViewPII && identifiersVisible;
+    const includeIdentifiers = showInlinePII;
     const details = includeIdentifiers ? await resolveDetailsForRows(sortedRows) : null;
     if (includeIdentifiers && !details) return;
     const headers = includeIdentifiers
