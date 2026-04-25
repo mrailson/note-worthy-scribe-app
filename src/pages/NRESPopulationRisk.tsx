@@ -22,7 +22,7 @@ import { DrillThroughProvider, useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
 import { useGpPracticeIdByName } from "@/hooks/useGpPracticeIdByName";
 import { useAuth } from "@/contexts/AuthContext";
-import { ageRiskFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
+import { ageRiskFilterKey, patientFilterKey, type AgeBandKey, type RiskTierKey } from "@/lib/narp-filters";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -440,7 +440,6 @@ const NRESPopulationRiskInner = () => {
         return;
       }
       setRows(mapped);
-      toast.success(`Loaded ${fmt(mapped.length)} patients from ${file.name}`);
       setIsHeaderUploading(true);
       const ingestToast = toast.loading(`Persisting ${file.name}…`);
       try {
@@ -452,7 +451,7 @@ const NRESPopulationRiskInner = () => {
         });
         toast.dismiss(ingestToast);
         if (body.duplicate) {
-          toast.warning("This file has already been uploaded — using the existing export.");
+          toast.success(`Loaded ${fmt(mapped.length)} patients from the existing ${file.name} export`);
         } else {
           toast.success(
             `Ingested ${body.patient_count?.toLocaleString("en-GB") ?? fmt(mapped.length)} patients from ${file.name}`,
@@ -632,7 +631,7 @@ const NRESPopulationRiskInner = () => {
         _fk_patient_link_ids: rpcRefs,
       });
       if (error) {
-        toast.error("Could not load identifiable details");
+        console.warn("[NRESPopulationRisk] Could not load identifiable details", error);
         return null;
       }
       for (const row of data ?? []) {
