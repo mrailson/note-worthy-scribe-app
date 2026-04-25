@@ -186,13 +186,20 @@ export const PatientDrillDrawer = ({
     openPatient(patientId, currentCohortContext);
   };
 
+  useEffect(() => {
+    if (mode !== "cohort" || !lastPatientTriggerRef.current) return;
+    const timer = window.setTimeout(() => {
+      lastPatientTriggerRef.current?.focus();
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [mode]);
+
   const handleBackToCohort = () => {
     if (transitionLockedRef.current) return;
     transitionLockedRef.current = true;
     backToCohort();
     window.setTimeout(() => {
       transitionLockedRef.current = false;
-      lastPatientTriggerRef.current?.focus();
     }, 250);
   };
 
