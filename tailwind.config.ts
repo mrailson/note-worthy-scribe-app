@@ -18,6 +18,14 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'narp-display': ['Fraunces', 'Georgia', 'serif'],
+				'narp-body': ['Inter Tight', 'system-ui', 'sans-serif'],
+				'nhs': ['Fira Sans', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
+				'limerick': ['EB Garamond', 'Georgia', 'serif'],
+				'playfair': ['Playfair Display', 'serif'],
+				'inter': ['Inter', 'sans-serif'],
+			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-background': 'var(--gradient-background)',
@@ -38,6 +46,17 @@ export default {
 				'safe-top': 'env(safe-area-inset-top)',
 			},
 			colors: {
+				narp: {
+					ink: 'hsl(var(--narp-ink))',
+					'ink-2': 'hsl(var(--narp-ink-2))',
+					slate: 'hsl(var(--narp-slate))',
+					mist: 'hsl(var(--narp-mist))',
+					line: 'hsl(var(--narp-line))',
+					teal: 'hsl(var(--narp-teal))',
+					critical: 'hsl(var(--narp-critical))',
+					warn: 'hsl(var(--narp-warn))',
+					good: 'hsl(var(--narp-good))',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -164,12 +183,6 @@ export default {
 				'200': '200ms',
 				'400': '400ms'
 			},
-			fontFamily: {
-				'nhs': ['Fira Sans', 'Segoe UI', 'Helvetica Neue', 'Arial', 'sans-serif'],
-				'limerick': ['EB Garamond', 'Georgia', 'serif'],
-				'playfair': ['Playfair Display', 'serif'],
-				'inter': ['Inter', 'sans-serif'],
-			}
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
