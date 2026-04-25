@@ -113,6 +113,8 @@ const QUICK_CHIPS: { label: string; key: string }[] = [
   { label: "PoA ≥ 50%", key: "_quick_poa50" },
 ];
 
+const SELECTION_CAP = 100;
+
 const quickPredicate = (key: string): ((r: DrillPatientRow) => boolean) | null => {
   switch (key) {
     case "_quick_65plus":  return (r) => (r.age ?? 0) >= 65;
@@ -363,13 +365,16 @@ export const PatientDrillDrawer = ({
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else {
+        if (next.size >= SELECTION_CAP) return next;
+        next.add(id);
+      }
       return next;
     });
   };
 
   const selectAllVisible = () => {
-    setSelected(new Set(visibleRows.slice(0, 100).map((r) => r.fkPatientLinkId)));
+    setSelected(new Set(visibleRows.slice(0, SELECTION_CAP).map((r) => r.fkPatientLinkId)));
   };
 
   const clearSelection = () => setSelected(new Set());
