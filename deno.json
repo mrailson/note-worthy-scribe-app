@@ -1,5 +1,9 @@
 {
   "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "strict": false,
+    "useUnknownInCatchVariables": false
+  },
   "imports": {
     "https://deno.land/x/xhr@0.1.0/mod.ts": "./supabase/functions/_shared/xhr-noop.ts"
   }
