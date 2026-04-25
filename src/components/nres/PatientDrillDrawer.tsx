@@ -230,8 +230,15 @@ export const PatientDrillDrawer = ({
     });
   }, [filteredRows, sortBy]);
 
-  const visibleRows = sortedRows.slice(0, renderLimit);
+  const visibleRows = sortedRows;
   const singlePatientRef = sortedRows.length === 1 ? sortedRows[0].fkPatientLinkId : null;
+  const rowVirtualizer = useVirtualizer({
+    count: sortedRows.length,
+    getScrollElement: () => cohortScrollRef.current,
+    estimateSize: () => 36,
+    overscan: 12,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
   const patientRow = useMemo(
     () => selectedPatient ? rows.find((r) => r.fkPatientLinkId === selectedPatient) ?? null : null,
     [rows, selectedPatient],
