@@ -777,10 +777,13 @@ export const PatientDrillDrawer = ({
   );
 };
 
-const Stat = ({ label, value }: { label: string; value: string }) => (
+const Stat = ({ label, value, sub }: { label: string; value: string; sub?: string }) => (
   <div className="text-left">
     <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-    <div className="text-2xl font-bold leading-tight tabular-nums">{value}</div>
+    <div className="narp-display text-[22px] font-semibold leading-tight tabular-nums">
+      {value}
+      {sub && <span className="ml-1 font-sans text-[11px] font-normal text-muted-foreground">{sub}</span>}
+    </div>
   </div>
 );
 
