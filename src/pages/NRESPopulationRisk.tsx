@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, Beaker, ListChecks,
+  Upload, FileDown, Beaker, ListChecks, Loader2,
 } from "lucide-react";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { NarpUploadsPanel } from "@/components/nres/NarpUploadsPanel";
@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useIsIPhone } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { ingestNarpExport } from "@/lib/narp-ingest";
 
 /* ────────────────────────────────────────────────────────────
    NRES Population Risk (PoC)
@@ -137,6 +138,7 @@ const parseAge = (raw: unknown): number | null => {
 const normalisePracticeKey = (raw: unknown): string =>
   String(raw ?? "").toUpperCase().replace(/\s+/g, " ").trim();
 
+const BUGBROOKE_PRACTICE_ID = "85cd140c-2980-40df-8e19-0ffc8a9346d5";
 const BUGBROOKE_KEY = normalisePracticeKey("Bugbrooke Medical Practice");
 
 const makeDemoNarpRows = (): NarpRow[] => {
@@ -247,6 +249,8 @@ const NRESPopulationRiskInner = () => {
   const [tab, setTab] = useState("overview");
   const [showIdentifiersPreference, setShowIdentifiersPreferenceState] = useState(false);
   const [identifierPreferenceLoaded, setIdentifierPreferenceLoaded] = useState(false);
+  const [uploadsRefreshSignal, setUploadsRefreshSignal] = useState(0);
+  const [isHeaderUploading, setIsHeaderUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const identifierPreferenceKey = user?.id
     ? `nres:population-risk:show-identifiers:${user.id}`
@@ -304,6 +308,40 @@ const NRESPopulationRiskInner = () => {
   const canExportPII = narpAccess.canExport;
   const hasViewElsewhere = narpAccess.hasViewElsewhere;
 
+  const reloadPersistedExport = useCallback(async (exportId: string) => {
+    const { data, error } = await supabase
+      .from("narp_patient_snapshots" as any)
+      .select("fk_patient_link_id, age, drug_count, frailty_category, inpatient_total_admissions, ae_attendances, inpatient_elective, outpatient_first, outpatient_followup, rub, poa, polos")
+      .eq("export_id", exportId)
+      .order("poa", { ascending: false, nullsFirst: false });
+    if (error) {
+      toast.error(`Could not refresh persisted NARP rows: ${error.message}`);
+      return;
+    }
+
+    const persistedRows = ((data ?? []) as any[]).map((row): NarpRow => ({
+      fkPatientLinkId: String(row.fk_patient_link_id ?? ""),
+      age: typeof row.age === "number" ? row.age : null,
+      practiceName: "Bugbrooke Medical Practice",
+      practiceKey: BUGBROOKE_KEY,
+      drugCount: Number(row.drug_count ?? 0),
+      frailty: (row.frailty_category ?? "Unknown") as NarpRow["frailty"],
+      inpatientAdmissions: Number(row.inpatient_total_admissions ?? 0),
+      aeAttendances: Number(row.ae_attendances ?? 0),
+      electiveAdmissions: Number(row.inpatient_elective ?? 0),
+      outpatientFirst: Number(row.outpatient_first ?? 0),
+      outpatientFollowUp: Number(row.outpatient_followup ?? 0),
+      rub: String(row.rub ?? ""),
+      poA: typeof row.poa === "number" ? row.poa : null,
+      poLoS: typeof row.polos === "number" ? row.polos : null,
+    })).filter((row) => row.fkPatientLinkId);
+
+    if (persistedRows.length) {
+      setRows(persistedRows);
+      setLoadedFileName("Persisted NARP export");
+    }
+  }, []);
+
   const handleUpload = useCallback(async (file: File) => {
     try {
       const ext = file.name.toLowerCase().split(".").pop();
@@ -328,11 +366,35 @@ const NRESPopulationRiskInner = () => {
       setRows(mapped);
       setLoadedFileName(file.name);
       toast.success(`Loaded ${fmt(mapped.length)} patients from ${file.name}`);
+      setIsHeaderUploading(true);
+      const ingestToast = toast.loading(`Persisting ${file.name}…`);
+      try {
+        const body = await ingestNarpExport({
+          file,
+          practiceId: BUGBROOKE_PRACTICE_ID,
+          exportDate: new Date().toISOString().slice(0, 10),
+        });
+        toast.dismiss(ingestToast);
+        if (body.duplicate) {
+          toast.warning("This file has already been uploaded — using the existing export.");
+        } else {
+          toast.success(
+            `Ingested ${body.patient_count?.toLocaleString("en-GB") ?? fmt(mapped.length)} patients from ${file.name}`,
+          );
+        }
+        setUploadsRefreshSignal((value) => value + 1);
+        await reloadPersistedExport(body.export_id);
+      } catch (ingestError) {
+        toast.dismiss(ingestToast);
+        throw ingestError;
+      } finally {
+        setIsHeaderUploading(false);
+      }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to parse file: " + (err instanceof Error ? err.message : "Unknown error"));
+      toast.error("Failed to upload file: " + (err instanceof Error ? err.message : "Unknown error"));
     }
-  }, []);
+  }, [reloadPersistedExport]);
 
   // Available practices in the loaded data — keyed by normalised name, label is first-seen casing
   const practices = useMemo(() => {
@@ -597,9 +659,10 @@ const NRESPopulationRiskInner = () => {
               size="sm"
               className="bg-background text-foreground"
               onClick={() => fileInputRef.current?.click()}
+              disabled={isHeaderUploading}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload NARP data
+              {isHeaderUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              {isHeaderUploading ? "Uploading…" : "Upload NARP data"}
             </Button>
             <Button variant="outline" size="sm" className="bg-background text-foreground" onClick={loadDemoData}>
               <Beaker className="w-4 h-4 mr-2" />
@@ -609,14 +672,14 @@ const NRESPopulationRiskInner = () => {
         </div>
 
         {/* Persisted NARP uploads (Phase 1 — Bugbrooke only) */}
-        <NarpUploadsPanel />
+        <NarpUploadsPanel refreshSignal={uploadsRefreshSignal} onIngestComplete={reloadPersistedExport} />
 
         {/* PoC explainer */}
         <Alert className="bg-amber-50 border-amber-200">
           <Beaker className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-900 text-sm">
             <strong>Proof of Concept.</strong> Upload an NARP Patient Activity export (.xlsx / .csv).
-            Data is parsed in your browser and held in memory only — nothing is stored.
+            Data is previewed in your browser, then persisted for identifiable lookup and refreshes.
             {loadedFileName && (
               <span className="ml-2">
                 Currently loaded: <strong>{loadedFileName}</strong> · {fmt(rows.length)} patients

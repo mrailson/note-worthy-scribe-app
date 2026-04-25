@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Upload, Loader2, AlertTriangle, Database, FileCheck2 } from "lucide-react";
+import { ingestNarpExport } from "@/lib/narp-ingest";
 
 const BUGBROOKE_PRACTICE_ID = "85cd140c-2980-40df-8e19-0ffc8a9346d5";
 const BUGBROOKE_NAME = "Bugbrooke Medical Practice";
@@ -26,6 +27,7 @@ interface Props {
   practiceName?: string;
   /** Called when an upload completes successfully (so the dashboard can re-load). */
   onIngestComplete?: (exportId: string) => void;
+  refreshSignal?: number;
 }
 
 const fmtDate = (iso: string) => {
@@ -46,6 +48,7 @@ export const NarpUploadsPanel = ({
   practiceId = BUGBROOKE_PRACTICE_ID,
   practiceName = BUGBROOKE_NAME,
   onIngestComplete,
+  refreshSignal = 0,
 }: Props) => {
   const [exports, setExports] = useState<NarpExportRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +73,7 @@ export const NarpUploadsPanel = ({
     setLoading(false);
   }, [practiceId]);
 
-  useEffect(() => { loadExports(); }, [loadExports]);
+  useEffect(() => { loadExports(); }, [loadExports, refreshSignal]);
 
   const onUpload = useCallback(async () => {
     if (!pickedFile) {
@@ -85,28 +88,7 @@ export const NarpUploadsPanel = ({
     setUploading(true);
     const t = toast.loading(`Uploading ${pickedFile.name}…`);
     try {
-      const form = new FormData();
-      form.append("file", pickedFile);
-      form.append("practice_id", practiceId);
-      form.append("export_date", exportDate);
-
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) throw new Error("You are not signed in");
-
-      const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/narp-ingest`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
-      const body = await res.json();
-
-      if (!res.ok) {
-        toast.dismiss(t);
-        toast.error(body?.error ?? `Upload failed (${res.status})`);
-        return;
-      }
+      const body = await ingestNarpExport({ file: pickedFile, practiceId, exportDate });
 
       toast.dismiss(t);
       if (body.duplicate) {
