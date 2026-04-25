@@ -27,6 +27,7 @@ interface Props {
   practiceName?: string;
   /** Called when an upload completes successfully (so the dashboard can re-load). */
   onIngestComplete?: (exportId: string) => void;
+  refreshSignal?: number;
 }
 
 const fmtDate = (iso: string) => {
@@ -47,6 +48,7 @@ export const NarpUploadsPanel = ({
   practiceId = BUGBROOKE_PRACTICE_ID,
   practiceName = BUGBROOKE_NAME,
   onIngestComplete,
+  refreshSignal = 0,
 }: Props) => {
   const [exports, setExports] = useState<NarpExportRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export const NarpUploadsPanel = ({
     setLoading(false);
   }, [practiceId]);
 
-  useEffect(() => { loadExports(); }, [loadExports]);
+  useEffect(() => { loadExports(); }, [loadExports, refreshSignal]);
 
   const onUpload = useCallback(async () => {
     if (!pickedFile) {
