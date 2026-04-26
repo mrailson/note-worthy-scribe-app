@@ -1217,6 +1217,7 @@ const TopRiskSection = ({
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
   const [identifierLookupUnavailable, setIdentifierLookupUnavailable] = useState(false);
   const [identifierLookupStatus, setIdentifierLookupStatus] = useState<IdentifierLookupStatus>("idle");
+  const [includePatientIdInExport, setIncludePatientIdInExport] = useState(true);
   const identifierLookupToastShownRef = useRef(false);
   const sorted = useMemo(() =>
     [...rows].sort((a, b) => ((b[sortBy] as number) ?? 0) - ((a[sortBy] as number) ?? 0)),
@@ -1289,7 +1290,7 @@ const TopRiskSection = ({
     return () => { cancelled = true; };
   }, [canViewPII, identifierDetails, identifierLookupUnavailable, identifiersVisible, practiceId, refKey]);
 
-  const exportTopRiskCsv = async () => {
+  const exportTopRiskExcel = async () => {
     if (!sorted.length) {
       toast.info("Nothing to export");
       return;
@@ -1332,23 +1333,24 @@ const TopRiskSection = ({
       }
       setIdentifierDetails(details);
     }
-    const headers = includeIdentifiers
-      ? ["NHS_Number", "Name", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"]
-      : ["FK_Patient_Link_ID", "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %"];
-    const lines = [headers.join(",")].concat(sorted.map((r) => {
+    const headers = [
+      ...(includePatientIdInExport ? ["FK_Patient_Link_ID"] : []),
+      ...(includeIdentifiers ? ["NHS_Number", "Name"] : []),
+      "Age", "Frailty", "Drug Count", "Inpatient Admissions", "RUB", "PoA %", "PoLoS %",
+    ];
+    const dataRows = sorted.map((r) => {
       const base = [r.age ?? "", r.frailty, r.drugCount, r.inpatientAdmissions, r.rub, r.poA ?? "", r.poLoS ?? ""];
-      const values = includeIdentifiers
-        ? [details[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details[r.fkPatientLinkId], r), ...base]
-        : [r.fkPatientLinkId, ...base];
-      return values.map(csvEscape).join(",");
-    }));
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = includeIdentifiers ? "nres-top-25-risk-identifiable.csv" : "nres-top-25-risk.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+      return [
+        ...(includePatientIdInExport ? [r.fkPatientLinkId] : []),
+        ...(includeIdentifiers ? [details[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details[r.fkPatientLinkId], r)] : []),
+        ...base,
+      ];
+    });
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+    ws["!cols"] = headers.map((header) => ({ wch: header.includes("Name") ? 28 : header.includes("Patient") ? 22 : 14 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Top 25 Risk");
+    XLSX.writeFile(wb, includeIdentifiers ? "nres-top-25-risk-identifiable.xlsx" : "nres-top-25-risk.xlsx");
   };
 
   const rubColour = (rub: string) => {
@@ -1398,9 +1400,20 @@ const TopRiskSection = ({
             )}
           </div>
         )}
-        <Button size="sm" variant="outline" onClick={exportTopRiskCsv}>
+        <div className={`${canViewPII ? "" : "ml-auto"} flex items-center gap-2 rounded-md border bg-background px-2 py-1.5`}>
+          <Label htmlFor="top-risk-export-patient-id" className="text-xs text-muted-foreground cursor-pointer">
+            Excel includes patient ID
+          </Label>
+          <Switch
+            id="top-risk-export-patient-id"
+            checked={includePatientIdInExport}
+            onCheckedChange={setIncludePatientIdInExport}
+            aria-label="Include patient ID in Excel download"
+          />
+        </div>
+        <Button size="sm" variant="outline" onClick={exportTopRiskExcel}>
           <FileDown className="w-4 h-4 mr-2" />
-          Export CSV
+          Export Excel
         </Button>
       </div>
 
