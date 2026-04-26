@@ -8297,6 +8297,7 @@ export type Database = {
         Row: {
           accessed_at: string
           context: string | null
+          fk_patient_link_id: string | null
           id: number
           patient_count_rendered: number
           practice_id: string | null
@@ -8306,6 +8307,7 @@ export type Database = {
         Insert: {
           accessed_at?: string
           context?: string | null
+          fk_patient_link_id?: string | null
           id?: number
           patient_count_rendered?: number
           practice_id?: string | null
@@ -8315,6 +8317,7 @@ export type Database = {
         Update: {
           accessed_at?: string
           context?: string | null
+          fk_patient_link_id?: string | null
           id?: number
           patient_count_rendered?: number
           practice_id?: string | null
@@ -14707,6 +14710,15 @@ export type Database = {
           p_action?: string
           p_content_type: string
           p_meeting_id: string
+        }
+        Returns: undefined
+      }
+      log_narp_patient_reveal: {
+        Args: {
+          _context?: string
+          _fk_patient_link_id: string
+          _practice_id: string
+          _route: string
         }
         Returns: undefined
       }

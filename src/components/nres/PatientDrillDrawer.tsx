@@ -147,10 +147,9 @@ export const PatientDrillDrawer = ({
   const identifierLookupToastShownRef = useRef(false);
 
   // Cross-practice exception path: identifiers are hidden by default but the
-  // user has identifiable rights for OTHER practices. They can opt in to an
-  // audit-logged reveal for this session with a reason.
+  // user has identifiable rights for OTHER practices. Reveal is audit-logged
+  // without collecting a separate reason because the DSA/DPO approval covers access.
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
-  const [exceptionReason, setExceptionReason] = useState("");
 
   // Identifiable CSV export modal — Phase B
   const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
@@ -161,6 +160,7 @@ export const PatientDrillDrawer = ({
   const patientHeaderRef = useRef<HTMLHeadingElement | null>(null);
   const lastPatientTriggerRef = useRef<HTMLElement | null>(null);
   const transitionLockedRef = useRef(false);
+  const patientRevealAuditLoggedRef = useRef<Set<string>>(new Set());
   const [, setCohortSnapshot] = useState<CohortSnapshot | null>(null);
   const reducedMotion = useReducedMotion();
 
@@ -335,6 +335,25 @@ export const PatientDrillDrawer = ({
     route: route ?? "/nres/population-risk#drawer",
     enableAudit: true,
   });
+
+  useEffect(() => {
+    if (mode !== "patient" || !patientRow || !practiceId || !canViewPII) return;
+    const context = cohortContext?.filterKey === "top25" ? "top25_patient_side_view" : "patient_detail_open";
+    const key = `${practiceId}|${patientRow.fkPatientLinkId}|${context}`;
+    if (patientRevealAuditLoggedRef.current.has(key)) return;
+    patientRevealAuditLoggedRef.current.add(key);
+    void (supabase as any).rpc("log_narp_patient_reveal", {
+      _practice_id: practiceId,
+      _fk_patient_link_id: patientRow.fkPatientLinkId,
+      _route: route ?? "/nres/population-risk#drawer",
+      _context: context,
+    }).then(({ error }) => {
+      if (error) {
+        patientRevealAuditLoggedRef.current.delete(key);
+        console.warn("[PatientDrillDrawer] patient reveal audit failed", error);
+      }
+    });
+  }, [canViewPII, cohortContext?.filterKey, mode, patientRow, practiceId, route]);
 
   // Summary strip
   const summary = useMemo(() => {
@@ -731,21 +750,25 @@ export const PatientDrillDrawer = ({
                       canViewPII={canViewPII}
                       hasExceptionPath={hasViewElsewhere && !canViewPII}
                       exceptionRevealed={exceptionRevealed}
-                      exceptionReason={exceptionReason}
-                      setExceptionReason={setExceptionReason}
                       identifierLookupStatus={identifierLookupStatus}
                       practiceName={practiceName ?? patientRow.practiceName}
                       onBack={cohortContext ? handleBackToCohort : undefined}
                       onOpenCohort={(key) => open(key)}
-                      onReveal={() => {
-                        if (!practiceId || exceptionReason.trim().length < 10) return;
-                        void supabase.rpc("log_narp_pii_page_access", {
+                      onReveal={async () => {
+                        if (!practiceId) return toast.error("Select a single practice before revealing identifiers");
+                        const { error } = await (supabase as any).rpc("log_narp_patient_reveal", {
                           _practice_id: practiceId,
-                          _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
-                          _patient_count_rendered: 1,
+                          _fk_patient_link_id: patientRow.fkPatientLinkId,
+                          _route: route ?? "/nres/population-risk#drawer",
+                          _context: "patient_identifier_reveal",
                         });
+                        if (error) {
+                          console.warn("[PatientDrillDrawer] patient reveal audit failed", error);
+                          toast.error("Identifiers could not be revealed for this practice");
+                          return;
+                        }
                         setExceptionRevealed(true);
-                        toast.success("Identifiers revealed for this session. Audit row written.");
+                        toast.success("Identifiers revealed. Audit row written.");
                       }}
                       onSendToBuyBack={() => {
                         console.log("[NRES] Single patient → Buy-Back Claims", patientRow.fkPatientLinkId);
@@ -817,8 +840,6 @@ interface PatientDetailProps {
   canViewPII: boolean;
   hasExceptionPath: boolean;
   exceptionRevealed: boolean;
-  exceptionReason: string;
-  setExceptionReason: (reason: string) => void;
   identifierLookupStatus: IdentifierLookupStatus;
   practiceName?: string;
   onBack?: () => void;
@@ -828,7 +849,7 @@ interface PatientDetailProps {
   onAddToWorklist: () => void;
 }
 
-const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
+const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
   const copyRef = () => {
     navigator.clipboard.writeText(patient.fkPatientLinkId);
     toast.success("Reference copied");
@@ -896,13 +917,12 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
                 <KV k="Surname" v={identifierDetails?.surname ?? patient.surname ?? "—"} />
                 <KV k="Forename" v={identifierDetails?.forenames ?? patient.forenames ?? "—"} />
                 <KV k="DOB" v="—" />
-                {exceptionRevealed && <p className="border-t border-dashed pt-2 text-[11px] leading-relaxed text-muted-foreground">Revealed by you · Reason: “{exceptionReason.trim()}”</p>}
+                {exceptionRevealed && <p className="border-t border-dashed pt-2 text-[11px] leading-relaxed text-muted-foreground">Revealed by you · DSA/DPO-approved access logged.</p>}
               </>
             ) : hasExceptionPath ? (
               <div className="space-y-2 py-1">
-                <p className="text-xs text-muted-foreground">NHS Number, name and DOB hidden under DSA</p>
-                <textarea value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} placeholder="Reason for access (e.g. MDT review prep)" rows={2} className="w-full resize-y border bg-background px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-                <Button variant="outline" size="sm" onClick={onReveal} disabled={exceptionReason.trim().length < 10}><Eye className="mr-1.5 h-4 w-4" />Reveal identifiers</Button>
+                <p className="text-xs text-muted-foreground">NHS Number, name and DOB are covered by the agreed DSA/DPO access model. Reveals are audit logged.</p>
+                <Button variant="outline" size="sm" onClick={onReveal}><Eye className="mr-1.5 h-4 w-4" />Reveal identifiers</Button>
               </div>
             ) : identifierLookupStatus === "loading" ? <p className="text-xs text-muted-foreground">Looking up identifiable details…</p> : null}
           </Section>

@@ -860,7 +860,7 @@ const NRESPopulationRiskInner = () => {
                 identifiersVisible={showIdentifiersPreference}
                 onIdentifiersVisibleChange={setShowIdentifiersPreference}
                 practiceId={selectedPracticeId ?? null}
-                onOpenPatient={drill.openPatient}
+                onOpenPatient={(patientId, context) => drill.openPatient(patientId, context)}
               />
             </TabsContent>
 
@@ -1211,7 +1211,7 @@ const TopRiskSection = ({
   identifiersVisible: boolean;
   onIdentifiersVisibleChange: (visible: boolean) => void;
   practiceId?: string | null;
-  onOpenPatient?: (patientId: string) => void;
+  onOpenPatient?: (patientId: string, context?: { filterKey: string; label: string; count?: number }) => void;
 }) => {
   const [sortBy, setSortBy] = useState<"poA" | "poLoS" | "drugCount" | "inpatientAdmissions" | "age">("poA");
   const [identifierDetails, setIdentifierDetails] = useState<Record<string, IdentifiableDetails>>({});
@@ -1427,7 +1427,7 @@ const TopRiskSection = ({
               return (
                 <tr
                   key={p.fkPatientLinkId}
-                  onClick={clickable ? () => onOpenPatient!(p.fkPatientLinkId) : undefined}
+                  onClick={clickable ? () => onOpenPatient!(p.fkPatientLinkId, { filterKey: "top25", label: "Top 25 highest-risk patients", count: sorted.length }) : undefined}
                   className={`${i % 2 ? "bg-slate-50/50" : ""} ${clickable ? "cursor-pointer hover:bg-slate-100" : ""}`}
                 >
                   <td className="p-3 font-semibold text-narp-teal tabular-nums">{p.fkPatientLinkId}</td>
@@ -1456,7 +1456,7 @@ const TopRiskSection = ({
                       className="h-7 text-xs"
                       onClick={(event) => {
                         event.stopPropagation();
-                        onOpenPatient?.(p.fkPatientLinkId);
+                         onOpenPatient?.(p.fkPatientLinkId, { filterKey: "top25", label: "Top 25 highest-risk patients", count: sorted.length });
                       }}
                     >
                       View details
