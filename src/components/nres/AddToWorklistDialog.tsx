@@ -110,7 +110,7 @@ export const AddToWorklistDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[min(720px,calc(100vh-2rem))]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ListChecks className="h-5 w-5" />
@@ -123,14 +123,15 @@ export const AddToWorklistDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        {!practiceId && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md p-2">
-            Select a single practice (not "All Practices") to use worklists.
-          </div>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4 sm:px-8">
+          {!practiceId && (
+            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-md p-2">
+              Select a single practice (not "All Practices") to use worklists.
+            </div>
+          )}
 
-        {practiceId && (
-          <div className="space-y-4">
+          {practiceId && (
+            <div className="space-y-4">
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -158,7 +159,7 @@ export const AddToWorklistDialog = ({
                   </div>
                 )}
                 {!isLoading && worklists.length > 0 && (
-                  <ScrollArea className="h-56 border rounded-md">
+                  <ScrollArea className="h-40 sm:h-56 border rounded-md">
                     <ul className="divide-y">
                       {worklists.map((w) => (
                         <li key={w.id}>
@@ -217,10 +218,11 @@ export const AddToWorklistDialog = ({
                 </div>
               </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex shrink-0 justify-end gap-2 border-t bg-muted/30 px-6 py-3 sm:px-8">
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
