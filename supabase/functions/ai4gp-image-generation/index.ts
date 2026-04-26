@@ -17,7 +17,14 @@ interface ImageGenerationRequest {
   conversationContext?: string;
   documentContent?: string;  // Content from attached files for visual generation
   imageAttachments?: ImageAttachment[];  // Image files for reference-based generation
-  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1' | 'ideogram/v3' | 'recraft/v4-svg';
+  promptPrefix?: string;
+  negativePrompt?: string;
+  routingDecision?: {
+    model: string;
+    reason: string;
+    autoSelected: boolean;
+  };
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
@@ -472,6 +479,9 @@ serve(async (req) => {
       practiceContext, 
       requestType,
       imageModel,
+      promptPrefix,
+      negativePrompt,
+      routingDecision,
       // Studio-specific fields
       isStudioRequest,
       supportingContent,
@@ -513,8 +523,13 @@ serve(async (req) => {
       'google/gemini-2.5-flash-image-preview': 'google/gemini-2.5-flash-image',
       'google/gemini-2.5-flash-image': 'google/gemini-2.5-flash-image',
       'openai/gpt-image-1': 'google/gemini-2.5-flash-image', // Not supported by gateway, remap
+      'ideogram/v3': 'ideogram/v3',
+      'recraft/v4-svg': 'recraft/v4-svg',
     };
     const selectedImageModel = validImageModels[imageModel] || imageModel || 'google/gemini-2.5-flash-image';
+    if (routingDecision) {
+      console.log('🧭 Image Studio routing decision:', routingDecision);
+    }
 
     // Determine effective request type (studio uses 'purpose', regular uses 'requestType')
     const effectiveRequestType = isStudioRequest ? (purpose || 'general') : (requestType || 'general');
