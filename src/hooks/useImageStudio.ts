@@ -307,7 +307,11 @@ export function useImageStudio() {
     // Determine if this is an edit request (has reference images)
     const isEditMode = settings.referenceImages.length > 0;
     const routingDecision = getImageStudioRouting(settings);
-    const selectedModel = (imageModel as ImageStudioRequest['imageModel']) || routingDecision?.model || settings.imageModel || 'google/gemini-3-pro-image-preview';
+    const selectedModel = settings.isModelManuallyOverridden && settings.imageModel
+      ? settings.imageModel
+      : settings.selectedPreset && settings.imageModel
+        ? settings.imageModel
+        : routingDecision?.model || (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-3-pro-image-preview';
     
     // Fallback model for retry
     const fallbackModel = 'google/gemini-2.5-flash-image-preview';
