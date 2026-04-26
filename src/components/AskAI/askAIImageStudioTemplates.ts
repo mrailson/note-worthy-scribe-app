@@ -157,7 +157,7 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
 
 export function assembleAskAIImageStudioPrompt(template: AskAIImageStudioTemplate, values: Record<string, string>, additionalRequirements: string) {
   const filledPrompt = template.variables.reduce((prompt, variable) => {
-    return prompt.replaceAll(`{${variable.key}}`, values[variable.key] || '');
+    return prompt.split(`{${variable.key}}`).join(values[variable.key] || '');
   }, `${template.prefix} ${template.suffix}`);
 
   return `${filledPrompt}${additionalRequirements.trim() ? ` Additional requirements: ${additionalRequirements.trim()}` : ''}`.replace(/\s+/g, ' ').trim();
