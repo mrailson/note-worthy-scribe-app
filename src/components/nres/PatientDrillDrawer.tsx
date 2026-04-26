@@ -147,10 +147,9 @@ export const PatientDrillDrawer = ({
   const identifierLookupToastShownRef = useRef(false);
 
   // Cross-practice exception path: identifiers are hidden by default but the
-  // user has identifiable rights for OTHER practices. They can opt in to an
-  // audit-logged reveal for this session with a reason.
+  // user has identifiable rights for OTHER practices. Reveal is audit-logged
+  // without collecting a separate reason because the DSA/DPO approval covers access.
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
-  const [exceptionReason, setExceptionReason] = useState("");
 
   // Identifiable CSV export modal — Phase B
   const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
@@ -161,6 +160,7 @@ export const PatientDrillDrawer = ({
   const patientHeaderRef = useRef<HTMLHeadingElement | null>(null);
   const lastPatientTriggerRef = useRef<HTMLElement | null>(null);
   const transitionLockedRef = useRef(false);
+  const patientRevealAuditLoggedRef = useRef<Set<string>>(new Set());
   const [, setCohortSnapshot] = useState<CohortSnapshot | null>(null);
   const reducedMotion = useReducedMotion();
 
@@ -335,6 +335,25 @@ export const PatientDrillDrawer = ({
     route: route ?? "/nres/population-risk#drawer",
     enableAudit: true,
   });
+
+  useEffect(() => {
+    if (mode !== "patient" || !patientRow || !practiceId || !canViewPII) return;
+    const context = cohortContext?.filterKey === "top25" ? "top25_patient_side_view" : "patient_detail_open";
+    const key = `${practiceId}|${patientRow.fkPatientLinkId}|${context}`;
+    if (patientRevealAuditLoggedRef.current.has(key)) return;
+    patientRevealAuditLoggedRef.current.add(key);
+    void (supabase as any).rpc("log_narp_patient_reveal", {
+      _practice_id: practiceId,
+      _fk_patient_link_id: patientRow.fkPatientLinkId,
+      _route: route ?? "/nres/population-risk#drawer",
+      _context: context,
+    }).then(({ error }) => {
+      if (error) {
+        patientRevealAuditLoggedRef.current.delete(key);
+        console.warn("[PatientDrillDrawer] patient reveal audit failed", error);
+      }
+    });
+  }, [canViewPII, cohortContext?.filterKey, mode, patientRow, practiceId, route]);
 
   // Summary strip
   const summary = useMemo(() => {
