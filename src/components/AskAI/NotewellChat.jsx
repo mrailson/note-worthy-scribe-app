@@ -2071,6 +2071,8 @@ export default function NotewellChat({ user, onNavigateHome }) {
         </div>
       </div>}
 
+      <AskAIImageStudio open={showAskAIImageStudio} onClose={()=>setShowAskAIImageStudio(false)} />
+
     </div>
   );
 }
