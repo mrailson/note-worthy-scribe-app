@@ -50,6 +50,16 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
     document.body.removeChild(link);
   };
 
+  const handleDownloadSvg = () => {
+    if (!currentResult?.svgUrl) return;
+    const link = document.createElement('a');
+    link.href = currentResult.svgUrl;
+    link.download = `image-studio-${Date.now()}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleOpenFullSize = () => {
     if (!currentResult?.url) return;
     
@@ -156,8 +166,14 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
             <div className="p-4 flex flex-wrap gap-2">
               <Button onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                Download PNG
               </Button>
+              {currentResult.supportsSvgDownload && currentResult.svgUrl && (
+                <Button variant="outline" onClick={handleDownloadSvg}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download SVG
+                </Button>
+              )}
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Check className="h-4 w-4 text-green-600" />
                 <span>Auto-saved to Gallery</span>
