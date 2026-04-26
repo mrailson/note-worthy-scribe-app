@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
-import { Download, Pencil, RefreshCw, Loader2, Sparkles, AlertCircle, Star, Check } from 'lucide-react';
+import { Download, Pencil, RefreshCw, Loader2, Sparkles, AlertCircle, Check } from 'lucide-react';
 import type { GeneratedImage } from '@/types/ai4gp';
 import type { GenerationHistoryItem } from '@/types/imageStudio';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 interface GenerateTabProps {
   isGenerating: boolean;
@@ -34,17 +33,23 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
   onEditResult,
   onSelectHistoryItem,
   descriptionProvided,
-  onSaveToGallery,
-  onGallerySaved,
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
-  const [savedImageId, setSavedImageId] = useState<string | null>(null);
   const handleDownload = () => {
     if (!currentResult?.url) return;
     
     const link = document.createElement('a');
     link.href = currentResult.url;
     link.download = `image-studio-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadSvg = () => {
+    if (!currentResult?.svgUrl) return;
+    const link = document.createElement('a');
+    link.href = currentResult.svgUrl;
+    link.download = `image-studio-${Date.now()}.svg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -74,28 +79,6 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
       newWindow.document.close();
     }
   };
-
-  const handleSaveToGallery = async () => {
-    if (!currentResult || !onSaveToGallery) return;
-    
-    setIsSaving(true);
-    try {
-      const imageId = await onSaveToGallery(currentResult);
-      if (imageId) {
-        setSavedImageId(imageId);
-        toast.success('Image saved to gallery');
-        // Trigger gallery refresh
-        onGallerySaved?.();
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Reset saved state when currentResult changes
-  React.useEffect(() => {
-    setSavedImageId(null);
-  }, [currentResult?.url]);
 
   return (
     <div className="space-y-6">
@@ -156,10 +139,16 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
             <div className="p-4 flex flex-wrap gap-2">
               <Button onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                Download PNG
               </Button>
+              {currentResult.supportsSvgDownload && currentResult.svgUrl && (
+                <Button variant="outline" onClick={handleDownloadSvg}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download SVG
+                </Button>
+              )}
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Check className="h-4 w-4 text-green-600" />
+                <Check className="h-4 w-4 text-primary" />
                 <span>Auto-saved to Gallery</span>
               </div>
               <Button variant="outline" onClick={handleOpenFullSize}>

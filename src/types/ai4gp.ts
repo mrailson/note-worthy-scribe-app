@@ -1,5 +1,8 @@
 export interface GeneratedImage {
   url: string;
+  svgUrl?: string;
+  model?: string;
+  supportsSvgDownload?: boolean;
   alt: string;
   prompt: string;
   requestType?: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';

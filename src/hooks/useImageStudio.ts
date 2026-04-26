@@ -19,6 +19,7 @@ import type { GeneratedImage } from '@/types/ai4gp';
 import { optimiseImageForUpload, getBase64SizeKB } from '@/utils/imageOptimiser';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
 import { sanitizeGeneratedContent } from '@/utils/sanitizeGeneratedContent';
+import { getImageStudioRouting } from '@/utils/imageStudioRouting';
 
 // --- Memory management helpers ---
 
@@ -134,6 +135,11 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
   stylePreset: 'nhs-professional',
   colourPalette: NHS_PALETTES[0], // NHS Classic
   layoutPreference: 'landscape', // Default to landscape
+  imageModel: undefined,
+  isModelManuallyOverridden: false,
+  promptPrefix: undefined,
+  negativePrompt: undefined,
+  selectedPreset: undefined,
   
   // Branding & Logo
   brandingLevel: 'none', // Default to no practice details
@@ -300,7 +306,12 @@ export function useImageStudio() {
 
     // Determine if this is an edit request (has reference images)
     const isEditMode = settings.referenceImages.length > 0;
-    const selectedModel = (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-3-pro-image-preview';
+    const routingDecision = getImageStudioRouting(settings);
+    const selectedModel = settings.isModelManuallyOverridden && settings.imageModel
+      ? settings.imageModel
+      : settings.selectedPreset && settings.imageModel
+        ? settings.imageModel
+        : routingDecision?.model || (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-3-pro-image-preview';
     
     // Fallback model for retry
     const fallbackModel = 'google/gemini-2.5-flash-image-preview';
@@ -418,6 +429,8 @@ export function useImageStudio() {
         // Build the request
         const request: ImageStudioRequest = {
           prompt: sanitisedDescription,
+          promptPrefix: settings.promptPrefix,
+          negativePrompt: settings.negativePrompt,
           supportingContent: sanitisedSupporting || undefined,
           summariseSupportingContent: settings.summariseSupportingContent || undefined,
           keyMessages: sanitisedKeyMessages.length > 0 ? sanitisedKeyMessages : undefined,
@@ -441,6 +454,7 @@ export function useImageStudio() {
           logoImage: logoImageData,
           referenceImages: optimisedReferences,
           imageModel: model as ImageStudioRequest['imageModel'],
+          routingDecision: routingDecision ? { model: routingDecision.model, reason: routingDecision.reason, autoSelected: true } : undefined,
           isStudioRequest: true,
         };
 
@@ -466,6 +480,7 @@ export function useImageStudio() {
           purpose: settings.purpose,
           style: settings.stylePreset,
           model,
+          routingDecision,
           isRetry,
           isEditMode,
           referenceCount: settings.referenceImages.length,
@@ -508,6 +523,9 @@ export function useImageStudio() {
 
         const result: GeneratedImage = {
           url: blobUrl,
+          svgUrl: data.image.svgUrl,
+          model: data.image.model,
+          supportsSvgDownload: data.image.supportsSvgDownload,
           alt: data.image.alt || settings.description.substring(0, 100),
           prompt: settings.description,
           requestType: data.image.requestType || (settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType']),

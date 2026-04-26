@@ -15,6 +15,8 @@ import { useDropzone } from 'react-dropzone';
 import { CompactMicButton } from './CompactMicButton';
 import { toast } from 'sonner';
 import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getImageStudioRouting, hasLongQuotedText, PATIENT_AREA_POSTER_NEGATIVE_PROMPT, PATIENT_AREA_POSTER_PREFIX, RECRAFT_V4_SVG_MODEL } from '@/utils/imageStudioRouting';
 
 interface ContextTabProps {
   settings: ImageStudioSettings;
@@ -57,6 +59,22 @@ const USE_CASE_PILLS = [
     focusUpload: false,
   },
   {
+    id: 'patient-area-poster',
+    label: '🏥 Patient Area Poster',
+    description: 'Text-safe waiting room poster',
+    prompt: '',
+    defaults: {
+      purpose: 'poster' as const,
+      layoutPreference: 'portrait' as const,
+      imageModel: RECRAFT_V4_SVG_MODEL,
+      isModelManuallyOverridden: false,
+      promptPrefix: PATIENT_AREA_POSTER_PREFIX,
+      negativePrompt: PATIENT_AREA_POSTER_NEGATIVE_PROMPT,
+      selectedPreset: 'patient-area-poster' as const,
+    },
+    focusUpload: false,
+  },
+  {
     id: 'social-media',
     label: '📱 Social Media',
     description: 'Post or story graphic',
@@ -80,6 +98,8 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeUseCase, setActiveUseCase] = useState<string | null>(null);
+  const routing = getImageStudioRouting(settings);
+  const showLongTextHint = hasLongQuotedText(settings.description);
 
   // Notify parent when files change
   React.useEffect(() => {
@@ -344,7 +364,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
       {/* 2. USE-CASE PILLS */}
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground uppercase tracking-wide">What would you like to do?</Label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {USE_CASE_PILLS.map((uc) => (
             <button
               key={uc.id}
@@ -383,6 +403,35 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
             onTranscriptUpdate={(text) => onUpdate({ description: text })}
             className="self-start"
           />
+        </div>
+        {settings.selectedPreset === 'patient-area-poster' && (
+          <p className="text-xs text-muted-foreground">Describe the message and audience, e.g. 'Handwashing reminder for waiting room, friendly, includes 5 steps'</p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {routing && (
+            <Badge variant="secondary" className="gap-1">
+              Auto-selected {routing.label} for text rendering
+              <button
+                type="button"
+                className="ml-1 underline underline-offset-2"
+                onClick={() => onUpdate({ imageModel: 'google/gemini-3-pro-image-preview', isModelManuallyOverridden: true })}
+              >
+                Override
+              </button>
+            </Badge>
+          )}
+          {showLongTextHint && (
+            <TooltipProvider>
+              <Tooltip defaultOpen>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline">Text length hint</Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  Long text on images can render imperfectly. Keep on-image text under 6 words for best results, or split across multiple posters.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
 

@@ -17,7 +17,14 @@ interface ImageGenerationRequest {
   conversationContext?: string;
   documentContent?: string;  // Content from attached files for visual generation
   imageAttachments?: ImageAttachment[];  // Image files for reference-based generation
-  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1' | 'ideogram/v3' | 'recraft/v4-svg';
+  promptPrefix?: string;
+  negativePrompt?: string;
+  routingDecision?: {
+    model: string;
+    reason: string;
+    autoSelected: boolean;
+  };
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
@@ -472,6 +479,9 @@ serve(async (req) => {
       practiceContext, 
       requestType,
       imageModel,
+      promptPrefix,
+      negativePrompt,
+      routingDecision,
       // Studio-specific fields
       isStudioRequest,
       supportingContent,
@@ -513,8 +523,13 @@ serve(async (req) => {
       'google/gemini-2.5-flash-image-preview': 'google/gemini-2.5-flash-image',
       'google/gemini-2.5-flash-image': 'google/gemini-2.5-flash-image',
       'openai/gpt-image-1': 'google/gemini-2.5-flash-image', // Not supported by gateway, remap
+      'ideogram/v3': 'ideogram/v3',
+      'recraft/v4-svg': 'recraft/v4-svg',
     };
     const selectedImageModel = validImageModels[imageModel] || imageModel || 'google/gemini-2.5-flash-image';
+    if (routingDecision) {
+      console.log('🧭 Image Studio routing decision:', routingDecision);
+    }
 
     // Determine effective request type (studio uses 'purpose', regular uses 'requestType')
     const effectiveRequestType = isStudioRequest ? (purpose || 'general') : (requestType || 'general');
@@ -1092,6 +1107,10 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     }
 
+    if (promptPrefix || negativePrompt) {
+      imagePrompt = `${promptPrefix ? `${promptPrefix}\n${imagePrompt}` : imagePrompt}${negativePrompt ? `\n\nNEGATIVE PROMPT — avoid all of the following: ${negativePrompt}` : ''}`;
+    }
+
     // --- AI proofreading pass on prompt text ---
     imagePrompt = await proofreadPromptText(imagePrompt, lovableApiKey);
 
@@ -1338,9 +1357,10 @@ Content guidelines:
         // Build fallback chain - try remaining models in order
         // Valid image models: google/gemini-3-pro-image-preview, google/gemini-2.5-flash-image
         const fallbackChain = [
+          selectedImageModel === 'recraft/v4-svg' ? 'ideogram/v3' : null,
           'google/gemini-2.5-flash-image',
           'google/gemini-3-pro-image-preview',
-        ].filter(m => m !== selectedImageModel);
+        ].filter((m): m is string => !!m && m !== selectedImageModel);
 
         let fallbackSucceeded = false;
         for (const fallbackModel of fallbackChain) {
@@ -1407,7 +1427,7 @@ Content guidelines:
       let data;
       try {
         data = JSON.parse(responseText);
-      } catch (parseError) {
+      } catch {
         console.error('Failed to parse AI Gateway response:', responseText.substring(0, 500));
         throw new Error('Image generation returned an invalid response. Please try again.');
       }
@@ -1483,9 +1503,10 @@ Content guidelines:
 
         // Model returned OK but no image — retry with fallback models
         const noImageFallbackChain = [
+          selectedImageModel === 'recraft/v4-svg' ? 'ideogram/v3' : null,
           'google/gemini-2.5-flash-image',
           'google/gemini-3-pro-image-preview',
-        ].filter(m => m !== selectedImageModel);
+        ].filter((m): m is string => !!m && m !== selectedImageModel);
 
         for (const fallbackModel of noImageFallbackChain) {
           console.log(`⚠️ No image from primary model, retrying with: ${fallbackModel}`);
@@ -1575,6 +1596,9 @@ Content guidelines:
       success: true,
       image: {
         url: imageUrl,
+        svgUrl: imageUrl?.startsWith('data:image/svg') ? imageUrl : undefined,
+        model: selectedImageModel,
+        supportsSvgDownload: selectedImageModel === 'recraft/v4-svg' && imageUrl?.startsWith('data:image/svg'),
         alt: description,
         prompt: imagePrompt.substring(0, 300),
         requestType
