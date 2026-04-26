@@ -840,8 +840,6 @@ interface PatientDetailProps {
   canViewPII: boolean;
   hasExceptionPath: boolean;
   exceptionRevealed: boolean;
-  exceptionReason: string;
-  setExceptionReason: (reason: string) => void;
   identifierLookupStatus: IdentifierLookupStatus;
   practiceName?: string;
   onBack?: () => void;
@@ -851,7 +849,7 @@ interface PatientDetailProps {
   onAddToWorklist: () => void;
 }
 
-const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, exceptionReason, setExceptionReason, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
+const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patientCohorts, identifierDetails, showIdentifiers, canViewPII, hasExceptionPath, exceptionRevealed, identifierLookupStatus, practiceName, onBack, onOpenCohort, onReveal, onSendToBuyBack, onAddToWorklist }: PatientDetailProps) => {
   const copyRef = () => {
     navigator.clipboard.writeText(patient.fkPatientLinkId);
     toast.success("Reference copied");
