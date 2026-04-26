@@ -252,6 +252,10 @@ export const PatientDrillDrawer = ({
     overscan: 12,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
+  const renderedVirtualRows = virtualRows.length > 0
+    ? virtualRows
+    : sortedRows.slice(0, Math.min(sortedRows.length, 30)).map((_, index) => ({ index, start: index * 36 }));
+  const virtualTotalSize = Math.max(rowVirtualizer.getTotalSize(), sortedRows.length * 36);
   const patientRow = useMemo(
     () => selectedPatient ? rows.find((r) => r.fkPatientLinkId === selectedPatient) ?? null : null,
     [rows, selectedPatient],
@@ -262,6 +266,12 @@ export const PatientDrillDrawer = ({
     if (mode !== "patient") return;
     window.setTimeout(() => patientHeaderRef.current?.focus(), reducedMotion ? 100 : 280);
   }, [mode, selectedPatient, reducedMotion]);
+
+  useEffect(() => {
+    if (!isOpen || mode !== "cohort") return;
+    const frame = window.requestAnimationFrame(() => rowVirtualizer.measure());
+    return () => window.cancelAnimationFrame(frame);
+  }, [isOpen, mode, rowVirtualizer, sortedRows.length]);
 
   const currentCohortContext = useMemo(() => ({
     filterKey: filterKeys[0] ?? "all",
@@ -671,8 +681,8 @@ export const PatientDrillDrawer = ({
           </div>
         ) : (
           <>
-            <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
-              {virtualRows.map((virtualRow) => {
+            <div className="relative" style={{ height: `${virtualTotalSize}px` }}>
+              {renderedVirtualRows.map((virtualRow) => {
                 const r = sortedRows[virtualRow.index];
                 const isSelected = selected.has(r.fkPatientLinkId);
                 return (
