@@ -1596,6 +1596,9 @@ Content guidelines:
       success: true,
       image: {
         url: imageUrl,
+        svgUrl: imageUrl?.startsWith('data:image/svg') ? imageUrl : undefined,
+        model: selectedImageModel,
+        supportsSvgDownload: selectedImageModel === 'recraft/v4-svg' && imageUrl?.startsWith('data:image/svg'),
         alt: description,
         prompt: imagePrompt.substring(0, 300),
         requestType
