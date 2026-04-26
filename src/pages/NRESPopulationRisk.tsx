@@ -1400,9 +1400,20 @@ const TopRiskSection = ({
             )}
           </div>
         )}
-        <Button size="sm" variant="outline" onClick={exportTopRiskCsv}>
+        <div className={`${canViewPII ? "" : "ml-auto"} flex items-center gap-2 rounded-md border bg-background px-2 py-1.5`}>
+          <Label htmlFor="top-risk-export-patient-id" className="text-xs text-muted-foreground cursor-pointer">
+            Excel includes patient ID
+          </Label>
+          <Switch
+            id="top-risk-export-patient-id"
+            checked={includePatientIdInExport}
+            onCheckedChange={setIncludePatientIdInExport}
+            aria-label="Include patient ID in Excel download"
+          />
+        </div>
+        <Button size="sm" variant="outline" onClick={exportTopRiskExcel}>
           <FileDown className="w-4 h-4 mr-2" />
-          Export CSV
+          Export Excel
         </Button>
       </div>
 
