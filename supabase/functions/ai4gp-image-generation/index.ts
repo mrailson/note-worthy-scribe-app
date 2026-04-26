@@ -17,7 +17,7 @@ interface ImageGenerationRequest {
   conversationContext?: string;
   documentContent?: string;  // Content from attached files for visual generation
   imageAttachments?: ImageAttachment[];  // Image files for reference-based generation
-  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1' | 'ideogram/v3' | 'recraft/v4-svg';
+  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1' | 'ideogram/v3' | 'recraft/v4-svg' | 'recraft/v4' | 'google/imagen-4-pro' | 'google/imagen-4-ultra';
   promptPrefix?: string;
   negativePrompt?: string;
   routingDecision?: {
@@ -525,6 +525,9 @@ serve(async (req) => {
       'openai/gpt-image-1': 'google/gemini-2.5-flash-image', // Not supported by gateway, remap
       'ideogram/v3': 'ideogram/v3',
       'recraft/v4-svg': 'recraft/v4-svg',
+      'recraft/v4': 'ideogram/v3',
+      'google/imagen-4-pro': 'google/gemini-3-pro-image-preview',
+      'google/imagen-4-ultra': 'google/gemini-3-pro-image-preview',
     };
     const selectedImageModel = validImageModels[imageModel] || imageModel || 'google/gemini-2.5-flash-image';
     if (routingDecision) {

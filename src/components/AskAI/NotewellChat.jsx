@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
 import { lazy, Suspense } from "react";
+import AskAIImageStudio from "@/components/AskAI/AskAIImageStudio";
+import { ASK_AI_IMAGE_STUDIO_ENABLED } from "@/components/AskAI/askAIImageStudioTemplates";
 
 const AIVoiceStudio = lazy(() => import("@/components/ai4gp/AIVoiceStudio"));
 
@@ -1162,7 +1164,7 @@ const ROLE_SUGGESTIONS = {
   ]
 };
 
-function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,settings}){
+function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,onOpenImageStudio,settings}){
   const h=new Date().getHours();
   const g=h<12?"morning":h<17?"afternoon":"evening";
   const isMobile=vp==="mobile";
@@ -1243,6 +1245,16 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,se
           Set up my profile →
         </button>
       </p>
+      {ASK_AI_IMAGE_STUDIO_ENABLED&&(
+        <button onClick={onOpenImageStudio} style={{width:"100%",maxWidth:360,margin:"0 0 14px",background:"#fff",border:`1.5px solid ${NHS.lightBlue}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,114,206,.10)",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+          <span style={{width:42,height:42,borderRadius:10,background:NHS.blue+"14",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.35rem",flexShrink:0}}>🎨</span>
+          <span style={{flex:1}}>
+            <span style={{display:"block",fontWeight:800,color:NHS.darkBlue,fontSize:"0.9rem"}}>Create an image</span>
+            <span style={{display:"block",color:NHS.midGrey,fontSize:"0.75rem",lineHeight:1.4}}>Use NHS-ready poster, social and website templates</span>
+          </span>
+          <span style={{color:NHS.blue,fontWeight:800}}>›</span>
+        </button>
+      )}
       {/* Role pills */}
       <div style={{display:"flex",gap:6,marginBottom:12,
         flexWrap:"wrap",justifyContent:"center",
@@ -1611,6 +1623,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
   const [fileError,setFileError]=useState(null);
   const [dragOver,setDragOver]=useState(false);
   const [activeArtifact,setActiveArtifact]=useState(null);
+  const [showAskAIImageStudio,setShowAskAIImageStudio]=useState(false);
 
   // Panel width state with persistence
   const PANEL_WIDTH_KEY='nw_panel_width';
@@ -1963,7 +1976,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         {/* Messages */}
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{margin:"0 auto",padding:ig}}>
-            {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onPopulateInput={t=>setInput(prev=>{const next=prev.trim()?`${prev}\n${t}`:t;requestAnimationFrame(()=>{const ta=textareaRef.current;if(ta){ta.focus();ta.setSelectionRange(next.length,next.length);ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,150)+"px";}});return next;})} settings={settings}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)} onOpenArtifact={a=>setActiveArtifact(activeArtifact?.title===a.title?null:a)}/></div>)}
+            {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onOpenImageStudio={()=>setShowAskAIImageStudio(true)} onPopulateInput={t=>setInput(prev=>{const next=prev.trim()?`${prev}\n${t}`:t;requestAnimationFrame(()=>{const ta=textareaRef.current;if(ta){ta.focus();ta.setSelectionRange(next.length,next.length);ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,150)+"px";}});return next;})} settings={settings}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)} onOpenArtifact={a=>setActiveArtifact(activeArtifact?.title===a.title?null:a)}/></div>)}
             {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/favicon-option1.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
@@ -2057,6 +2070,8 @@ export default function NotewellChat({ user, onNavigateHome }) {
           </div>
         </div>
       </div>}
+
+      <AskAIImageStudio open={showAskAIImageStudio} onClose={()=>setShowAskAIImageStudio(false)} />
 
     </div>
   );
