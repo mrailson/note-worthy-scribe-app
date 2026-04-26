@@ -750,21 +750,25 @@ export const PatientDrillDrawer = ({
                       canViewPII={canViewPII}
                       hasExceptionPath={hasViewElsewhere && !canViewPII}
                       exceptionRevealed={exceptionRevealed}
-                      exceptionReason={exceptionReason}
-                      setExceptionReason={setExceptionReason}
                       identifierLookupStatus={identifierLookupStatus}
                       practiceName={practiceName ?? patientRow.practiceName}
                       onBack={cohortContext ? handleBackToCohort : undefined}
                       onOpenCohort={(key) => open(key)}
-                      onReveal={() => {
-                        if (!practiceId || exceptionReason.trim().length < 10) return;
-                        void supabase.rpc("log_narp_pii_page_access", {
+                      onReveal={async () => {
+                        if (!practiceId) return toast.error("Select a single practice before revealing identifiers");
+                        const { error } = await (supabase as any).rpc("log_narp_patient_reveal", {
                           _practice_id: practiceId,
-                          _route: (route ?? "/nres/population-risk#drawer") + "?exception_reveal=" + encodeURIComponent(exceptionReason.trim().slice(0, 200)),
-                          _patient_count_rendered: 1,
+                          _fk_patient_link_id: patientRow.fkPatientLinkId,
+                          _route: route ?? "/nres/population-risk#drawer",
+                          _context: "patient_identifier_reveal",
                         });
+                        if (error) {
+                          console.warn("[PatientDrillDrawer] patient reveal audit failed", error);
+                          toast.error("Identifiers could not be revealed for this practice");
+                          return;
+                        }
                         setExceptionRevealed(true);
-                        toast.success("Identifiers revealed for this session. Audit row written.");
+                        toast.success("Identifiers revealed. Audit row written.");
                       }}
                       onSendToBuyBack={() => {
                         console.log("[NRES] Single patient → Buy-Back Claims", patientRow.fkPatientLinkId);
