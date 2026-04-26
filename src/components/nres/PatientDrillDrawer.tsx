@@ -97,7 +97,10 @@ const csvEscape = (value: unknown): string => {
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<DrillPatientRow, "forenames" | "surname">) =>
-  [details?.forenames ?? row?.forenames, details?.surname ?? row?.surname].filter(Boolean).join(" ");
+  [details?.forenames || row?.forenames, details?.surname || row?.surname]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
 
 const titleTextFromFilters = (keys: string[]) => {
   const labels = keys.map(getFilter).filter((f): f is NonNullable<ReturnType<typeof getFilter>> => f !== null).map((f) => f.label);
@@ -858,7 +861,7 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
   const polosTone = (patient.poLoS ?? 0) >= 30 ? "critical" : (patient.poLoS ?? 0) >= 15 ? "warn" : "default";
   const rubTone = String(patient.rub).startsWith("5") ? "critical" : String(patient.rub).startsWith("4") ? "warn" : "default";
   const frailtyTone = patient.frailty === "Severe" ? "critical" : patient.frailty === "Moderate" ? "warn" : "default";
-  const displayName = showIdentifiers ? patientDisplayName(identifierDetails, patient) : "";
+  const displayName = canViewPII || exceptionRevealed ? patientDisplayName(identifierDetails, patient) : "";
   const headerTitle = displayName || `Patient ${patient.fkPatientLinkId}`;
   const headerMeta = [
     displayName ? `Ref ${patient.fkPatientLinkId}` : null,
@@ -921,8 +924,8 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
             {showIdentifiers ? (
               <>
                 <KV k="NHS Number" v={identifierDetails?.nhs_number ?? patient.nhsNumber ?? "—"} />
-                <KV k="Surname" v={identifierDetails?.surname ?? patient.surname ?? "—"} />
-                <KV k="Forename" v={identifierDetails?.forenames ?? patient.forenames ?? "—"} />
+                <KV k="Surname" v={identifierDetails?.surname || patient.surname || "—"} />
+                <KV k="Forename" v={identifierDetails?.forenames || patient.forenames || "—"} />
                 <KV k="DOB" v="—" />
                 {exceptionRevealed && <p className="border-t border-dashed pt-2 text-[11px] leading-relaxed text-muted-foreground">Revealed by you · DSA/DPO-approved access logged.</p>}
               </>
