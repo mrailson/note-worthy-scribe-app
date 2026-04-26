@@ -15,6 +15,8 @@ import { useDropzone } from 'react-dropzone';
 import { CompactMicButton } from './CompactMicButton';
 import { toast } from 'sonner';
 import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getImageStudioRouting, hasLongQuotedText, PATIENT_AREA_POSTER_NEGATIVE_PROMPT, PATIENT_AREA_POSTER_PREFIX, RECRAFT_V4_SVG_MODEL } from '@/utils/imageStudioRouting';
 
 interface ContextTabProps {
   settings: ImageStudioSettings;
@@ -54,6 +56,22 @@ const USE_CASE_PILLS = [
     description: 'Waiting room or reception display',
     prompt: '',
     defaults: { targetAudience: 'patients' as const, purpose: 'waiting-room' as const },
+    focusUpload: false,
+  },
+  {
+    id: 'patient-area-poster',
+    label: '🏥 Patient Area Poster',
+    description: 'Text-safe waiting room poster',
+    prompt: '',
+    defaults: {
+      purpose: 'poster' as const,
+      layoutPreference: 'portrait' as const,
+      imageModel: RECRAFT_V4_SVG_MODEL,
+      isModelManuallyOverridden: false,
+      promptPrefix: PATIENT_AREA_POSTER_PREFIX,
+      negativePrompt: PATIENT_AREA_POSTER_NEGATIVE_PROMPT,
+      selectedPreset: 'patient-area-poster' as const,
+    },
     focusUpload: false,
   },
   {
