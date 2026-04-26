@@ -19,6 +19,7 @@ import type { GeneratedImage } from '@/types/ai4gp';
 import { optimiseImageForUpload, getBase64SizeKB } from '@/utils/imageOptimiser';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
 import { sanitizeGeneratedContent } from '@/utils/sanitizeGeneratedContent';
+import { getImageStudioRouting } from '@/utils/imageStudioRouting';
 
 // --- Memory management helpers ---
 
@@ -134,6 +135,11 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
   stylePreset: 'nhs-professional',
   colourPalette: NHS_PALETTES[0], // NHS Classic
   layoutPreference: 'landscape', // Default to landscape
+  imageModel: undefined,
+  isModelManuallyOverridden: false,
+  promptPrefix: undefined,
+  negativePrompt: undefined,
+  selectedPreset: undefined,
   
   // Branding & Logo
   brandingLevel: 'none', // Default to no practice details
@@ -300,7 +306,8 @@ export function useImageStudio() {
 
     // Determine if this is an edit request (has reference images)
     const isEditMode = settings.referenceImages.length > 0;
-    const selectedModel = (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-3-pro-image-preview';
+    const routingDecision = getImageStudioRouting(settings);
+    const selectedModel = (imageModel as ImageStudioRequest['imageModel']) || routingDecision?.model || settings.imageModel || 'google/gemini-3-pro-image-preview';
     
     // Fallback model for retry
     const fallbackModel = 'google/gemini-2.5-flash-image-preview';
