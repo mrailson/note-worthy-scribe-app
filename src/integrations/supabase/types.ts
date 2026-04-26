@@ -5371,6 +5371,56 @@ export type Database = {
         }
         Relationships: []
       }
+      image_generations: {
+        Row: {
+          additional_requirements: string | null
+          advanced_opened: boolean
+          aspect_ratio: string
+          created_at: string
+          id: string
+          image_url: string
+          model: string
+          prompt_final: string
+          regeneration_of_id: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          additional_requirements?: string | null
+          advanced_opened?: boolean
+          aspect_ratio: string
+          created_at?: string
+          id?: string
+          image_url: string
+          model: string
+          prompt_final: string
+          regeneration_of_id?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          additional_requirements?: string | null
+          advanced_opened?: boolean
+          aspect_ratio?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          model?: string
+          prompt_final?: string
+          regeneration_of_id?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_generations_regeneration_of_id_fkey"
+            columns: ["regeneration_of_id"]
+            isOneToOne: false
+            referencedRelation: "image_generations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       image_processing_requests: {
         Row: {
           created_at: string | null
@@ -13984,6 +14034,19 @@ export type Database = {
           updated_at: string
           user_id: string
           words_last_5_mins: number
+        }[]
+      }
+      get_ask_ai_image_studio_usage_report: {
+        Args: never
+        Returns: {
+          advanced_opened_count: number
+          advanced_opened_rate: number
+          last_generated: string
+          regeneration_count: number
+          regeneration_rate: number
+          template_id: string
+          total_generations: number
+          unique_users: number
         }[]
       }
       get_combined_transcript: {
