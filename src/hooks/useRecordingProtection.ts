@@ -53,7 +53,7 @@ export const useRecordingProtection = ({
       // Restore original favicon
       const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
       if (link) {
-        link.href = '/favicon.ico';
+        link.href = '/favicon-option1.png';
       }
     }
 

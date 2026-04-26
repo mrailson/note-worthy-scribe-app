@@ -160,7 +160,7 @@ export function useVisibilityProtection(config: VisibilityProtectionConfig) {
     if (Notification.permission === 'granted' && document.visibilityState === 'hidden') {
       new Notification(title, {
         body,
-        icon: '/favicon.ico',
+        icon: '/favicon-option1.png',
         tag: 'recording-alert',
         requireInteraction: true
       });
