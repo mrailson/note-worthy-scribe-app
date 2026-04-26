@@ -1427,7 +1427,7 @@ Content guidelines:
       let data;
       try {
         data = JSON.parse(responseText);
-      } catch (_parseError) {
+      } catch {
         console.error('Failed to parse AI Gateway response:', responseText.substring(0, 500));
         throw new Error('Image generation returned an invalid response. Please try again.');
       }
