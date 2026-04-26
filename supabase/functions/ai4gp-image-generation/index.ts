@@ -1107,6 +1107,10 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     }
 
+    if (promptPrefix || negativePrompt) {
+      imagePrompt = `${promptPrefix ? `${promptPrefix}\n${imagePrompt}` : imagePrompt}${negativePrompt ? `\n\nNEGATIVE PROMPT — avoid all of the following: ${negativePrompt}` : ''}`;
+    }
+
     // --- AI proofreading pass on prompt text ---
     imagePrompt = await proofreadPromptText(imagePrompt, lovableApiKey);
 
