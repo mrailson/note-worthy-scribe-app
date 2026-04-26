@@ -917,13 +917,12 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
                 <KV k="Surname" v={identifierDetails?.surname ?? patient.surname ?? "—"} />
                 <KV k="Forename" v={identifierDetails?.forenames ?? patient.forenames ?? "—"} />
                 <KV k="DOB" v="—" />
-                {exceptionRevealed && <p className="border-t border-dashed pt-2 text-[11px] leading-relaxed text-muted-foreground">Revealed by you · Reason: “{exceptionReason.trim()}”</p>}
+                {exceptionRevealed && <p className="border-t border-dashed pt-2 text-[11px] leading-relaxed text-muted-foreground">Revealed by you · DSA/DPO-approved access logged.</p>}
               </>
             ) : hasExceptionPath ? (
               <div className="space-y-2 py-1">
-                <p className="text-xs text-muted-foreground">NHS Number, name and DOB hidden under DSA</p>
-                <textarea value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} placeholder="Reason for access (e.g. MDT review prep)" rows={2} className="w-full resize-y border bg-background px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-                <Button variant="outline" size="sm" onClick={onReveal} disabled={exceptionReason.trim().length < 10}><Eye className="mr-1.5 h-4 w-4" />Reveal identifiers</Button>
+                <p className="text-xs text-muted-foreground">NHS Number, name and DOB are covered by the agreed DSA/DPO access model. Reveals are audit logged.</p>
+                <Button variant="outline" size="sm" onClick={onReveal}><Eye className="mr-1.5 h-4 w-4" />Reveal identifiers</Button>
               </div>
             ) : identifierLookupStatus === "loading" ? <p className="text-xs text-muted-foreground">Looking up identifiable details…</p> : null}
           </Section>
