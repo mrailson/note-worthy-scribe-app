@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import * as XLSX from 'xlsx-js-style';
 import pptxgen from 'pptxgenjs';
 import { lazy, Suspense } from "react";
+import AskAIImageStudio from "@/components/AskAI/AskAIImageStudio";
+import { ASK_AI_IMAGE_STUDIO_ENABLED } from "@/components/AskAI/askAIImageStudioTemplates";
 
 const AIVoiceStudio = lazy(() => import("@/components/ai4gp/AIVoiceStudio"));
 
@@ -1162,7 +1164,7 @@ const ROLE_SUGGESTIONS = {
   ]
 };
 
-function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,settings}){
+function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,onOpenImageStudio,settings}){
   const h=new Date().getHours();
   const g=h<12?"morning":h<17?"afternoon":"evening";
   const isMobile=vp==="mobile";
@@ -1243,6 +1245,16 @@ function WelcomeScreen({user,vp,onSuggestion,onHelp,onProfile,onPopulateInput,se
           Set up my profile →
         </button>
       </p>
+      {ASK_AI_IMAGE_STUDIO_ENABLED&&(
+        <button onClick={onOpenImageStudio} style={{width:"100%",maxWidth:360,margin:"0 0 14px",background:"#fff",border:`1.5px solid ${NHS.lightBlue}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,114,206,.10)",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+          <span style={{width:42,height:42,borderRadius:10,background:NHS.blue+"14",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.35rem",flexShrink:0}}>🎨</span>
+          <span style={{flex:1}}>
+            <span style={{display:"block",fontWeight:800,color:NHS.darkBlue,fontSize:"0.9rem"}}>Create an image</span>
+            <span style={{display:"block",color:NHS.midGrey,fontSize:"0.75rem",lineHeight:1.4}}>Use NHS-ready poster, social and website templates</span>
+          </span>
+          <span style={{color:NHS.blue,fontWeight:800}}>›</span>
+        </button>
+      )}
       {/* Role pills */}
       <div style={{display:"flex",gap:6,marginBottom:12,
         flexWrap:"wrap",justifyContent:"center",
