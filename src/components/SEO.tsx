@@ -23,9 +23,9 @@ export const SEO = ({
       <link rel="canonical" href={canonical} />
       
       {/* Favicon - ensure consistent robot icon across all pages */}
-      <link rel="icon" type="image/png" href="/favicon-robot-white.png?v=6" />
-      <link rel="shortcut icon" type="image/png" href="/favicon-robot-white.png?v=6" />
-      <link rel="apple-touch-icon" sizes="180x180" href="/favicon-robot-white.png?v=6" />
+      <link rel="icon" type="image/png" href="/favicon-option1.png?v=6" />
+      <link rel="shortcut icon" type="image/png" href="/favicon-option1.png?v=6" />
+      <link rel="apple-touch-icon" sizes="180x180" href="/favicon-option1.png?v=6" />
       
       {/* Open Graph */}
       <meta property="og:title" content={title} />
