@@ -6,7 +6,6 @@ import { Download, Pencil, RefreshCw, Loader2, Sparkles, AlertCircle, Check } fr
 import type { GeneratedImage } from '@/types/ai4gp';
 import type { GenerationHistoryItem } from '@/types/imageStudio';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 interface GenerateTabProps {
   isGenerating: boolean;
