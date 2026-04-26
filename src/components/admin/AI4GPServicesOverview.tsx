@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bot, Image, Presentation, FileText, Activity, Mic, Languages } from 'lucide-react';
+import { Bot, Image, Presentation, FileText, Activity, Mic, Languages, Sparkles } from 'lucide-react';
 import { GenieUsageReport } from './GenieUsageReport';
 import { ImageUsageReport } from './ImageUsageReport';
 import { PresentationUsageReport } from './PresentationUsageReport';
@@ -12,6 +12,7 @@ import { TranslationUsageReport } from './TranslationUsageReport';
 import { DocumentStudioUsageReport } from './DocumentStudioUsageReport';
 import { DevelopmentCosts } from './DevelopmentCosts';
 import { TrendingUp, PenTool } from 'lucide-react';
+import { AskAIImageStudioUsageReport } from './AskAIImageStudioUsageReport';
 
 export const AI4GPServicesOverview = () => {
   const [activeTab, setActiveTab] = useState('genie');
@@ -30,7 +31,7 @@ export const AI4GPServicesOverview = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-10">
               <TabsTrigger value="genie" className="flex items-center gap-2">
                 <Bot className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
@@ -40,6 +41,11 @@ export const AI4GPServicesOverview = () => {
                 <Image className="h-4 w-4" />
                 <span className="hidden sm:inline">Image Studio</span>
                 <span className="sm:hidden">Images</span>
+              </TabsTrigger>
+              <TabsTrigger value="ask-ai-images" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Ask AI Images</span>
+                <span className="sm:hidden">AI Img</span>
               </TabsTrigger>
               <TabsTrigger value="presentations" className="flex items-center gap-2">
                 <Presentation className="h-4 w-4" />
@@ -84,6 +90,10 @@ export const AI4GPServicesOverview = () => {
 
             <TabsContent value="images" className="mt-6">
               <ImageUsageReport />
+            </TabsContent>
+
+            <TabsContent value="ask-ai-images" className="mt-6">
+              <AskAIImageStudioUsageReport />
             </TabsContent>
 
             <TabsContent value="presentations" className="mt-6">
