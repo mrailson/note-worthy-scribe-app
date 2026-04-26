@@ -523,6 +523,9 @@ export function useImageStudio() {
 
         const result: GeneratedImage = {
           url: blobUrl,
+          svgUrl: data.image.svgUrl,
+          model: data.image.model,
+          supportsSvgDownload: data.image.supportsSvgDownload,
           alt: data.image.alt || settings.description.substring(0, 100),
           prompt: settings.description,
           requestType: data.image.requestType || (settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType']),
