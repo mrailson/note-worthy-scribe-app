@@ -1842,9 +1842,10 @@ export default function NotewellChat({ user, onNavigateHome }) {
     const newMsgs=[...messages,userMsg];setMessages(newMsgs);setInput("");setFiles([]);setIsLoading(true);
     if(messages.length===0){const title=text.length>44?text.slice(0,44)+"…":text;setConversations(p=>p.map(c=>c.id===activeConvId?{...c,title,updatedAt:new Date()}:c));}
 
-    // FIX 6: Check for Runware image request
-    if (isRunwareImageRequest(text) && files.length === 0) {
-      await handleRunwareImage(text, userMsg);
+    // Route image requests into the Ask AI Image Studio templates instead of the retired generator.
+    if (ASK_AI_IMAGE_STUDIO_ENABLED && isRunwareImageRequest(text) && files.length === 0) {
+      setShowAskAIImageStudio(true);
+      setMessages(p => [...p, { id: uid(), role: "assistant", content: "Opening Image Studio — choose a template to create your image.", timestamp: new Date() }]);
       setIsLoading(false);
       setConversations(p=>p.map(c=>c.id===activeConvId?{...c,updatedAt:new Date()}:c));
       return;
