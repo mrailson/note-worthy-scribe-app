@@ -1,6 +1,12 @@
 export const ASK_AI_IMAGE_STUDIO_ENABLED =
   import.meta.env.VITE_ASK_AI_IMAGE_STUDIO === 'true' ||
-  (import.meta.env.DEV && import.meta.env.VITE_ASK_AI_IMAGE_STUDIO !== 'false');
+  (import.meta.env.VITE_ASK_AI_IMAGE_STUDIO !== 'false' &&
+    typeof window !== 'undefined' &&
+    (window.location.hostname.includes('lovable.app') ||
+      window.location.hostname.includes('lovableproject.com') ||
+      window.location.hostname.includes('localhost') ||
+      window.location.hostname.includes('preview')) &&
+    !['meetingmagic.lovable.app', 'notewell.dialai.co.uk', 'gpnotewell.co.uk', 'www.gpnotewell.co.uk'].includes(window.location.hostname));
 
 export const ASK_AI_IMAGE_STUDIO_NEGATIVE_POSTER =
   'photograph of poster, mockup, wall, room, hands holding, perspective, blurry text, gibberish text, lorem ipsum, watermark';
