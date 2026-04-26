@@ -858,6 +858,13 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
   const polosTone = (patient.poLoS ?? 0) >= 30 ? "critical" : (patient.poLoS ?? 0) >= 15 ? "warn" : "default";
   const rubTone = String(patient.rub).startsWith("5") ? "critical" : String(patient.rub).startsWith("4") ? "warn" : "default";
   const frailtyTone = patient.frailty === "Severe" ? "critical" : patient.frailty === "Moderate" ? "warn" : "default";
+  const displayName = showIdentifiers ? patientDisplayName(identifierDetails, patient) : "";
+  const headerTitle = displayName || `Patient ${patient.fkPatientLinkId}`;
+  const headerMeta = [
+    displayName ? `Ref ${patient.fkPatientLinkId}` : null,
+    practiceName || patient.practiceName || "Selected practice",
+    `1 of ${fmt(cohortContext?.count ?? allRowsCount)}`,
+  ].filter(Boolean).join(" · ");
 
   return (
     <>
@@ -867,8 +874,8 @@ const PatientDetail = ({ patient, headerRef, cohortContext, allRowsCount, patien
             <ArrowLeft className="h-3.5 w-3.5" /> Back to {cohortContext.label}
           </button>
         )}
-        <SheetTitle ref={headerRef} tabIndex={-1} className="narp-display pr-8 text-[22px] font-medium tracking-normal focus:outline-none">Patient {patient.fkPatientLinkId}</SheetTitle>
-        <SheetDescription className="text-xs">{practiceName || patient.practiceName || "Selected practice"} · 1 of {fmt(cohortContext?.count ?? allRowsCount)}</SheetDescription>
+        <SheetTitle ref={headerRef} tabIndex={-1} className="narp-display pr-8 text-[22px] font-medium tracking-normal focus:outline-none">{headerTitle}</SheetTitle>
+        <SheetDescription className="text-xs">{headerMeta}</SheetDescription>
       </SheetHeader>
 
       <div className="flex-1 space-y-6 overflow-auto px-6 py-5">
