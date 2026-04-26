@@ -74,12 +74,6 @@ verify_jwt = true
 [functions.ingest-transcript-chunk]
 verify_jwt = true
 
-[functions.api-testing-service]
-verify_jwt = true
-
-[functions.ai-api-test]
-verify_jwt = true
-
 [functions.runware-image-generation]
 verify_jwt = true
 
@@ -266,37 +260,13 @@ verify_jwt = true
 [functions.send-audio-email-resend]
 verify_jwt = false
 
-[functions.lg-process-patient]
-verify_jwt = true
-
-[functions.lg-ocr-batch]
-verify_jwt = true
-
-[functions.lg-generate-pdf]
-verify_jwt = true
-
 [functions.send-email-resend]
 verify_jwt = false
-
-[functions.lg-snomed-quality-gate]
-verify_jwt = true
-
-[functions.lg-bulk-download]
-verify_jwt = true
-
-[functions.lg-validate-upload]
-verify_jwt = true
 
 [functions.plaud-webhook]
 verify_jwt = false
 
 [functions.lg-compress-pdf]
-verify_jwt = true
-
-[functions.lg-batch-report]
-verify_jwt = true
-
-[functions.lg-ask-ai]
 verify_jwt = true
 
 [functions.parse-bp-readings]
@@ -307,9 +277,6 @@ verify_jwt = false
 
 [functions.validate-quick-record-token]
 verify_jwt = false
-
-[functions.lg-verify-service]
-verify_jwt = true
 
 [functions.bulk-create-nres-users]
 verify_jwt = true
@@ -381,9 +348,6 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.generate-ageing-well-cga]
-verify_jwt = true
-
-[functions.generate-consolidated-meeting-notes]
 verify_jwt = true
 
 [functions.consolidate-single-meeting-transcript]
