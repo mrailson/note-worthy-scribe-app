@@ -1,5 +1,8 @@
 {
   "nodeModulesDir": "auto",
+  "exclude": [
+    "supabase/functions/_deprecated/**"
+  ],
   "compilerOptions": {
     "strict": false,
     "useUnknownInCatchVariables": false
