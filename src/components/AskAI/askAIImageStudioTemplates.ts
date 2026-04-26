@@ -46,8 +46,8 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'recraft/v4-svg',
     aspectRatio: '3:4',
-    prefix: 'Flat graphic design poster artwork for an NHS GP practice.',
-    suffix: 'Clean modern NHS-appropriate style, bold legible typography, accessible high colour contrast, simple flat iconography, vector illustration, no perspective, no mockup, full bleed, A4 portrait.',
+    prefix: 'Flat graphic design poster artwork for an NHS GP practice. Topic: {TOPIC}. Key message: {KEY_MESSAGE}. Audience: {AUDIENCE}. Clean modern NHS-appropriate style, bold legible typography, accessible high colour contrast, simple flat iconography, vector illustration, no perspective, no mockup, full bleed, A4 portrait.',
+    suffix: '',
     negativePrompt: ASK_AI_IMAGE_STUDIO_NEGATIVE_POSTER,
   },
   {
@@ -62,8 +62,8 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'ideogram/v3',
     aspectRatio: '3:4',
-    prefix: 'Modern NHS health campaign poster.',
-    suffix: 'Friendly, inclusive, professional. NHS blue and white palette with one accent colour, simple flat illustration, high contrast accessible typography, no perspective, no mockup, full bleed.',
+    prefix: "Modern NHS health campaign poster. Large headline reading exactly: '{CAMPAIGN_NAME}'. Details: {DATE_OR_DETAILS}. Call to action reading exactly: '{CALL_TO_ACTION}'. Friendly, inclusive, professional. NHS blue and white palette with one accent colour, simple flat illustration, high contrast accessible typography, no perspective, no mockup, full bleed.",
+    suffix: '',
     negativePrompt: ASK_AI_IMAGE_STUDIO_NEGATIVE_POSTER,
   },
   {
@@ -77,8 +77,8 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'ideogram/v3',
     aspectRatio: '3:4',
-    prefix: 'Simple internal staff notice.',
-    suffix: 'Minimal flat design, plain background, single accent colour, professional, no decoration, no perspective, full bleed.',
+    prefix: "Simple internal staff notice. Large bold headline reading exactly: '{NOTICE_HEADLINE}'. Sub-detail reading exactly: '{DETAIL}'. Minimal flat design, plain background, single accent colour, professional, no decoration, no perspective, full bleed.",
+    suffix: '',
     negativePrompt: ASK_AI_IMAGE_STUDIO_NEGATIVE_POSTER,
   },
   {
@@ -92,8 +92,8 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'recraft/v4',
     aspectRatio: '1:1',
-    prefix: 'Square social media graphic for an NHS GP practice.',
-    suffix: 'Modern, friendly, on-brand for NHS primary care, bold legible typography, balanced composition, accessible colour contrast, flat design, no perspective.',
+    prefix: "Square social media graphic for an NHS GP practice. On-image text reading exactly: '{MESSAGE}'. Visual style: {VISUAL_STYLE}. Modern, friendly, on-brand for NHS primary care, bold legible typography, balanced composition, accessible colour contrast, flat design, no perspective.",
+    suffix: '',
     negativePrompt: ASK_AI_IMAGE_STUDIO_NEGATIVE_POSTER,
   },
   {
@@ -106,8 +106,8 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'google/imagen-4-pro',
     aspectRatio: '16:9',
-    prefix: 'Editorial photograph for an NHS GP practice newsletter.',
-    suffix: 'Warm natural lighting, candid, diverse and inclusive, modern UK primary care setting, soft depth of field, professional editorial photography. No text on image.',
+    prefix: 'Editorial photograph for an NHS GP practice newsletter. Scene: {SCENE_DESCRIPTION}. Warm natural lighting, candid, diverse and inclusive, modern UK primary care setting, soft depth of field, professional editorial photography. No text on image.',
+    suffix: '',
     negativePrompt: 'text, watermark, logo, distorted faces, deformed hands, extra fingers, low quality, cartoon, illustration',
   },
   {
@@ -121,8 +121,8 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'recraft/v4-svg',
     aspectRatio: '3:4',
-    prefix: 'Clean medical infographic explaining',
-    suffix: 'Flat vector illustration with labelled sections, clear concise typography, NHS-appropriate clinical accuracy, accessible colour contrast, simple iconography, white background, no perspective, no photograph.',
+    prefix: 'Clean medical infographic explaining {SUBJECT}. Key points to convey: {KEY_POINTS}. Flat vector illustration with labelled sections, clear concise typography, NHS-appropriate clinical accuracy, accessible colour contrast, simple iconography, white background, no perspective, no photograph.',
+    suffix: '',
     negativePrompt: 'photograph, photoreal, perspective, 3D render, gibberish text, anatomical inaccuracy',
   },
   {
@@ -135,8 +135,8 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'recraft/v4',
     aspectRatio: '16:9',
-    prefix: 'Friendly modern flat vector illustration of a UK GP practice team.',
-    suffix: 'Diverse, inclusive, warm, approachable, NHS-appropriate, clean line work, soft modern palette. No text on image.',
+    prefix: 'Friendly modern flat vector illustration of a UK GP practice team. Scene: {SCENE}. Diverse, inclusive, warm, approachable, NHS-appropriate, clean line work, soft modern palette. No text on image.',
+    suffix: '',
     negativePrompt: 'photograph, photoreal, text, watermark, distorted features, extra limbs',
   },
   {
@@ -149,13 +149,16 @@ export const ASK_AI_IMAGE_STUDIO_TEMPLATES: AskAIImageStudioTemplate[] = [
     ],
     model: 'google/imagen-4-ultra',
     aspectRatio: '16:9',
-    prefix: 'Welcoming photograph for an NHS GP practice.',
-    suffix: 'Warm, calm, professional, modern UK primary care environment, diverse inclusive patients and staff, natural lighting, candid, soft depth of field, editorial photography. No on-image text.',
+    prefix: 'Welcoming photograph for an NHS GP practice. Scene and mood: {SCENE_OR_MOOD}. Warm, calm, professional, modern UK primary care environment, diverse inclusive patients and staff, natural lighting, candid, soft depth of field, editorial photography. No on-image text.',
+    suffix: '',
     negativePrompt: 'text, watermark, logo, distorted faces, deformed hands, extra fingers, low quality, cartoon, illustration',
   },
 ];
 
 export function assembleAskAIImageStudioPrompt(template: AskAIImageStudioTemplate, values: Record<string, string>, additionalRequirements: string) {
-  const variableText = template.variables.map(variable => `${variable.label}: ${values[variable.key] || ''}.`).join(' ');
-  return `${template.prefix} ${variableText} ${template.suffix}${additionalRequirements.trim() ? ` Additional requirements: ${additionalRequirements.trim()}` : ''}`.replace(/\s+/g, ' ').trim();
+  const filledPrompt = template.variables.reduce((prompt, variable) => {
+    return prompt.replaceAll(`{${variable.key}}`, values[variable.key] || '');
+  }, `${template.prefix} ${template.suffix}`);
+
+  return `${filledPrompt}${additionalRequirements.trim() ? ` Additional requirements: ${additionalRequirements.trim()}` : ''}`.replace(/\s+/g, ' ').trim();
 }
