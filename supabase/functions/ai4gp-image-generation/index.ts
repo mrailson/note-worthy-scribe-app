@@ -1357,9 +1357,10 @@ Content guidelines:
         // Build fallback chain - try remaining models in order
         // Valid image models: google/gemini-3-pro-image-preview, google/gemini-2.5-flash-image
         const fallbackChain = [
+          selectedImageModel === 'recraft/v4-svg' ? 'ideogram/v3' : null,
           'google/gemini-2.5-flash-image',
           'google/gemini-3-pro-image-preview',
-        ].filter(m => m !== selectedImageModel);
+        ].filter((m): m is string => !!m && m !== selectedImageModel);
 
         let fallbackSucceeded = false;
         for (const fallbackModel of fallbackChain) {
@@ -1502,9 +1503,10 @@ Content guidelines:
 
         // Model returned OK but no image — retry with fallback models
         const noImageFallbackChain = [
+          selectedImageModel === 'recraft/v4-svg' ? 'ideogram/v3' : null,
           'google/gemini-2.5-flash-image',
           'google/gemini-3-pro-image-preview',
-        ].filter(m => m !== selectedImageModel);
+        ].filter((m): m is string => !!m && m !== selectedImageModel);
 
         for (const fallbackModel of noImageFallbackChain) {
           console.log(`⚠️ No image from primary model, retrying with: ${fallbackModel}`);
