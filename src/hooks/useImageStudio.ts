@@ -425,6 +425,8 @@ export function useImageStudio() {
         // Build the request
         const request: ImageStudioRequest = {
           prompt: sanitisedDescription,
+          promptPrefix: settings.promptPrefix,
+          negativePrompt: settings.negativePrompt,
           supportingContent: sanitisedSupporting || undefined,
           summariseSupportingContent: settings.summariseSupportingContent || undefined,
           keyMessages: sanitisedKeyMessages.length > 0 ? sanitisedKeyMessages : undefined,
@@ -448,6 +450,7 @@ export function useImageStudio() {
           logoImage: logoImageData,
           referenceImages: optimisedReferences,
           imageModel: model as ImageStudioRequest['imageModel'],
+          routingDecision: routingDecision ? { model: routingDecision.model, reason: routingDecision.reason, autoSelected: true } : undefined,
           isStudioRequest: true,
         };
 
@@ -473,6 +476,7 @@ export function useImageStudio() {
           purpose: settings.purpose,
           style: settings.stylePreset,
           model,
+          routingDecision,
           isRetry,
           isEditMode,
           referenceCount: settings.referenceImages.length,
