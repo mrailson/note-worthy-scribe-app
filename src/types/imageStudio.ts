@@ -23,6 +23,11 @@ export interface ImageStudioSettings {
   stylePreset: StylePresetId;
   colourPalette: ColourPalette;
   layoutPreference: LayoutOptionId;
+  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1' | 'ideogram/v3' | 'recraft/v4-svg';
+  isModelManuallyOverridden?: boolean;
+  promptPrefix?: string;
+  negativePrompt?: string;
+  selectedPreset?: 'patient-area-poster';
   
   // Branding & Logo
   brandingLevel: BrandingLevel;
@@ -108,7 +113,14 @@ export interface ImageStudioRequest {
   }[];
   
   // Model selection
-  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1' | 'ideogram/v3' | 'recraft/v4-svg';
+  promptPrefix?: string;
+  negativePrompt?: string;
+  routingDecision?: {
+    model: string;
+    reason: string;
+    autoSelected: boolean;
+  };
   
   // Studio mode flag
   isStudioRequest: true;
