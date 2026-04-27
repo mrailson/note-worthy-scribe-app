@@ -14,7 +14,7 @@ const PublicPlanningStudio = () => {
         {/* Minimal top bar */}
         <header className="flex items-center justify-between px-4 sm:px-6 py-3 border-b" style={{ borderColor: '#E8E4DD', backgroundColor: '#F7F4EE' }}>
           <Link to="/" className="flex items-center gap-2">
-            <img src="/favicon-option1.png" alt="Notewell AI" className="w-7 h-7" />
+            <img src="/notewell-favicon-192x192.png" alt="Notewell AI" className="w-7 h-7" />
             <span className="text-base font-semibold" style={{ color: '#1a1a1a' }}>Notewell AI</span>
           </Link>
           <Link
