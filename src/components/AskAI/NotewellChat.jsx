@@ -993,7 +993,7 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp,
   if(!isUser && msg.generatedImage) {
     return(
       <div style={{display:"flex",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
-        <img src="/notewell-favicon-192x192.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>
+        <img src="/android-chrome-192x192.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>
         <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
           <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3}}>Notewell AI · {fmt(msg.timestamp)}</div>
           <div style={{background:"#fff",borderRadius:"15px 15px 15px 4px",padding:compact?"8px 12px":"11px 15px",boxShadow:"0 2px 10px rgba(0,0,0,.07)",border:`1px solid ${NHS.paleGrey}`,lineHeight:1.65,fontSize:`${fs}rem`}}>
@@ -1023,7 +1023,7 @@ function MessageBubble({msg,user,settings,compact,hasPanel,vp,isLast,onFollowUp,
   }
   
   return(<div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:compact?8:11,marginBottom:compact?13:18,alignItems:"flex-start"}}>
-    {isUser?<UserAvatar user={user} size={compact?27:33}/>:<img src="/notewell-favicon-192x192.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>}
+    {isUser?<UserAvatar user={user} size={compact?27:33}/>:<img src="/android-chrome-192x192.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",boxShadow:"0 2px 8px rgba(0,0,0,.1)",background:"#fff"}}/>}
     <div style={{maxWidth:hasPanel?"84%":"74%",minWidth:60}}>
       <div style={{fontSize:"0.64rem",color:NHS.midGrey,marginBottom:3,textAlign:isUser?"right":"left"}}>{isUser?user.name:"Notewell AI"} · {fmt(msg.timestamp)}</div>
       {msg.files?.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:5,justifyContent:isUser?"flex-end":"flex-start"}}>{msg.files.map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:3,background:"#EDF4FF",border:`1px solid ${NHS.lightBlue}`,borderRadius:6,padding:"2px 6px",fontSize:"0.71rem",color:NHS.darkBlue}}>📎 {f.name}{f.size&&<span style={{color:NHS.midGrey}}> {fmtSize(f.size)}</span>}</div>)}</div>}
@@ -1915,7 +1915,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
               title="Back to Notewell"
               aria-label="Back to Notewell"
             >
-              <img src="/notewell-favicon-192x192.png" alt="Notewell AI" style={{width:24,height:24,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
+              <img src="/android-chrome-192x192.png" alt="Notewell AI" style={{width:24,height:24,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}} onError={e=>{e.currentTarget.style.display="none";}}/>
               {vp !== "mobile" && <span style={{fontWeight:800,letterSpacing:"-.01em"}}>Notewell AI</span>}
             </button>
 
@@ -1978,7 +1978,7 @@ export default function NotewellChat({ user, onNavigateHome }) {
         <div style={{flex:1,overflowY:"auto",padding:vp==="compact"?"12px 11px":"16px 16px"}}>
           <div style={{margin:"0 auto",padding:ig}}>
             {messages.length===0&&!isLoading?<WelcomeScreen user={user} vp={vp} onSuggestion={t=>send(t)} onHelp={()=>setShowGuide(true)} onProfile={()=>{setProfileInitialTab("profile");setShowProfile(true);}} onOpenImageStudio={()=>setShowAskAIImageStudio(true)} onPopulateInput={t=>setInput(prev=>{const next=prev.trim()?`${prev}\n${t}`:t;requestAnimationFrame(()=>{const ta=textareaRef.current;if(ta){ta.focus();ta.setSelectionRange(next.length,next.length);ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,150)+"px";}});return next;})} settings={settings}/>:messages.map((m,idx)=>m.role==="search-indicator"?<div key={m.id} style={{animation:"nwFadeIn .18s ease",padding:"0 "+ig,marginBottom:6}}><div style={{fontSize:"0.73rem",color:"#005EB8",fontStyle:"italic",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:14,height:14,border:"2px solid #005EB8",borderTopColor:"transparent",borderRadius:"50%",animation:"nwSpin .8s linear infinite"}}/>Searching NHS sources…</div></div>:<div key={m.id} style={{animation:"nwFadeIn .18s ease"}}><MessageBubble msg={m} user={user} settings={settings} compact={compact} hasPanel={!!activeArtifact&&vp!=="compact"} vp={vp} isLast={idx===messages.length-1} onFollowUp={t=>send(t)} onOpenArtifact={a=>setActiveArtifact(activeArtifact?.title===a.title?null:a)}/></div>)}
-            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/notewell-favicon-192x192.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
+            {isLoading&&messages[messages.length-1]?.role!=="assistant"&&(<div style={{display:"flex",gap:compact?8:11,marginBottom:14,alignItems:"flex-start"}}><img src="/android-chrome-192x192.png" alt="Notewell AI" style={{width:compact?27:33,height:compact?27:33,borderRadius:"50%",flexShrink:0,objectFit:"cover",background:"#fff"}}/><div style={{background:"#fff",border:`1px solid ${NHS.paleGrey}`,borderRadius:"15px 15px 15px 4px",padding:"10px 14px",boxShadow:"0 2px 10px rgba(0,0,0,.06)",display:"flex",gap:5,alignItems:"center"}}>{[0,1,2].map(i=><span key={i} style={{width:6,height:6,borderRadius:"50%",background:NHS.lightBlue,display:"inline-block",animation:`nwBounce 1.2s ease-in-out ${i*.2}s infinite`}}/>)}</div></div>)}
             <div ref={bottomRef}/>
           </div>
         </div>
