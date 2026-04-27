@@ -26,6 +26,25 @@ export function LiveAndRecentMeetings() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
+  const getMinutesSince = (dateString?: string) => {
+    if (!dateString) return null;
+    return Math.max(0, Math.round((Date.now() - new Date(dateString).getTime()) / 60000));
+  };
+
+  const getMeetingWarning = (meeting: MeetingInfo) => {
+    const silenceMinutes = getMinutesSince(meeting.last_chunk_at);
+    if (meeting.status === 'recording' && meeting.total_word_count > 0 && silenceMinutes !== null && silenceMinutes > 15) {
+      return `Stuck — no transcript chunks for ${silenceMinutes} min`;
+    }
+    if (meeting.status === 'recording' && meeting.words_last_5_mins === 0 && meeting.total_word_count > 0) {
+      return 'No new words in the last 5 min';
+    }
+    if (['processing', 'transcribing', 'pending_transcription'].includes(meeting.status)) {
+      return `Needs finalising — ${meeting.status.replace('_', ' ')}`;
+    }
+    return null;
+  };
+
   const fetchMeetings = async () => {
     setLoading(true);
     try {
@@ -126,7 +145,8 @@ export function LiveAndRecentMeetings() {
           ) : (
             <div className="space-y-3">
               {liveMeetings.map((meeting) => {
-                const isStalled = meeting.words_last_5_mins === 0 && meeting.total_word_count > 0;
+                const warning = getMeetingWarning(meeting);
+                const isStalled = Boolean(warning);
                 return (
                   <div 
                     key={meeting.id} 
@@ -146,6 +166,11 @@ export function LiveAndRecentMeetings() {
                         <Clock className="h-3 w-3" />
                         Started {formatTime(meeting.created_at)}
                       </div>
+                      {warning && (
+                        <p className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                          {warning}
+                        </p>
+                      )}
                     </div>
                     
                     {/* Word count stats */}
@@ -176,7 +201,7 @@ export function LiveAndRecentMeetings() {
                       )}
                     >
                       <Radio className="h-3 w-3 mr-1" />
-                      {isStalled ? "Stalled?" : "Recording"}
+                      {isStalled ? "Stuck" : "Recording"}
                     </Badge>
                   </div>
                 );
