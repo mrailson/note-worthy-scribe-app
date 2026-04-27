@@ -155,6 +155,23 @@ interface Neighbourhood {
   description?: string;
 }
 
+interface StuckMeetingSummary {
+  id: string;
+  title: string;
+  status: string;
+  user_id: string;
+  user_email?: string;
+  user_name?: string;
+  created_at: string;
+  updated_at: string;
+  last_chunk_at?: string | null;
+  chunk_count: number;
+  word_count: number;
+  reason: string;
+  age_minutes: number;
+  silence_minutes: number | null;
+}
+
 const SystemAdmin = () => {
   const { user, refreshUserModules } = useAuth();
   const { maintenanceMode, updateMaintenanceMode } = useMaintenanceMode();
@@ -205,6 +222,9 @@ const SystemAdmin = () => {
     totalPractices: 0,
     totalPCNs: 0
   });
+  const [stuckMeetings, setStuckMeetings] = useState<StuckMeetingSummary[]>([]);
+  const [loadingStuckMeetings, setLoadingStuckMeetings] = useState(false);
+  const [recoveringMeetingId, setRecoveringMeetingId] = useState<string | null>(null);
 
   // Database monitoring state
   const [databaseSizes, setDatabaseSizes] = useState<Array<{
@@ -389,6 +409,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       fetchPCNs();
       fetchNeighbourhoods();
       fetchDashboardStats();
+      fetchStuckMeetings();
       fetchDatabaseSizes();
       fetchLargeFiles();
       fetchFileStats();
