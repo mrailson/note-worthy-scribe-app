@@ -613,6 +613,121 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     }
   };
 
+  const fetchStuckMeetings = async () => {
+    setLoadingStuckMeetings(true);
+    try {
+      const now = Date.now();
+      const { data: meetings, error: meetingsError } = await supabase
+        .from('meetings')
+        .select('id, title, status, user_id, created_at, updated_at, notes_generation_status, word_count, whisper_transcript_text')
+        .or('status.eq.recording,status.eq.processing,status.eq.transcribing,status.eq.pending_transcription,notes_generation_status.eq.queued,notes_generation_status.eq.generating')
+        .order('updated_at', { ascending: true })
+        .limit(75);
+
+      if (meetingsError) throw meetingsError;
+
+      const meetingIds = (meetings || []).map((meeting: any) => meeting.id);
+      if (meetingIds.length === 0) {
+        setStuckMeetings([]);
+        return;
+      }
+
+      const [{ data: chunks }, { data: summaries }] = await Promise.all([
+        supabase
+          .from('meeting_transcription_chunks')
+          .select('meeting_id, created_at, word_count')
+          .in('meeting_id', meetingIds),
+        supabase
+          .from('meeting_summaries')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds)
+      ]);
+
+      const userIds = [...new Set((meetings || []).map((meeting: any) => meeting.user_id).filter(Boolean))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from('profiles').select('user_id, email, full_name').in('user_id', userIds)
+        : { data: [] as any[] };
+
+      const chunkMap = new Map<string, { count: number; words: number; last: string | null }>();
+      (chunks || []).forEach((chunk: any) => {
+        const current = chunkMap.get(chunk.meeting_id) || { count: 0, words: 0, last: null };
+        const chunkTime = chunk.created_at || null;
+        chunkMap.set(chunk.meeting_id, {
+          count: current.count + 1,
+          words: current.words + (chunk.word_count || 0),
+          last: !current.last || (chunkTime && new Date(chunkTime) > new Date(current.last)) ? chunkTime : current.last,
+        });
+      });
+
+      const summaryIds = new Set((summaries || []).map((summary: any) => summary.meeting_id));
+      const profileMap = new Map((profiles || []).map((profile: any) => [profile.user_id, profile]));
+
+      const stuck = (meetings || []).map((meeting: any) => {
+        const chunkInfo = chunkMap.get(meeting.id) || { count: 0, words: 0, last: null };
+        const ageMinutes = Math.round((now - new Date(meeting.created_at).getTime()) / 60000);
+        const updatedMinutes = Math.round((now - new Date(meeting.updated_at).getTime()) / 60000);
+        const silenceMinutes = chunkInfo.last ? Math.round((now - new Date(chunkInfo.last).getTime()) / 60000) : null;
+        const hasTranscript = Boolean(meeting.whisper_transcript_text?.trim());
+        const hasSummary = summaryIds.has(meeting.id);
+        let reason = '';
+
+        if (meeting.status === 'recording' && chunkInfo.count > 0 && silenceMinutes !== null && silenceMinutes > 15 && ageMinutes > 20) {
+          reason = `Recording orphaned — no transcript chunks for ${silenceMinutes} minutes`;
+        } else if (['processing', 'transcribing', 'pending_transcription'].includes(meeting.status) && updatedMinutes > 15) {
+          reason = `${meeting.status.replace('_', ' ')} for ${updatedMinutes} minutes`;
+        } else if (chunkInfo.count > 0 && !hasTranscript && updatedMinutes > 15) {
+          reason = 'Transcript chunks saved but not consolidated';
+        } else if (hasTranscript && !hasSummary && ['queued', 'generating'].includes(meeting.notes_generation_status) && updatedMinutes > 20) {
+          reason = 'Transcript ready but notes have not finished';
+        }
+
+        if (!reason) return null;
+        const profile: any = profileMap.get(meeting.user_id);
+        return {
+          id: meeting.id,
+          title: meeting.title || 'Untitled meeting',
+          status: meeting.status,
+          user_id: meeting.user_id,
+          user_email: profile?.email,
+          user_name: profile?.full_name,
+          created_at: meeting.created_at,
+          updated_at: meeting.updated_at,
+          last_chunk_at: chunkInfo.last,
+          chunk_count: chunkInfo.count,
+          word_count: chunkInfo.words || meeting.word_count || 0,
+          reason,
+          age_minutes: ageMinutes,
+          silence_minutes: silenceMinutes,
+        } as StuckMeetingSummary;
+      }).filter(Boolean) as StuckMeetingSummary[];
+
+      setStuckMeetings(stuck.slice(0, 10));
+    } catch (error) {
+      console.error('Error fetching stuck meetings:', error);
+      toast.error('Failed to check stuck meetings');
+    } finally {
+      setLoadingStuckMeetings(false);
+    }
+  };
+
+  const recoverStuckMeeting = async (meeting: StuckMeetingSummary) => {
+    setRecoveringMeetingId(meeting.id);
+    try {
+      const { error } = await supabase.functions.invoke('complete-stuck-meeting', {
+        body: { meetingId: meeting.id },
+      });
+      if (error) throw error;
+      toast.success('Recovery started for stuck meeting');
+      await fetchStuckMeetings();
+      await fetchDashboardStats();
+    } catch (error) {
+      console.error('Meeting recovery failed:', error);
+      toast.error('Could not start meeting recovery');
+    } finally {
+      setRecoveringMeetingId(null);
+    }
+  };
+
   const fetchDatabaseSizes = async () => {
     try {
       const { data, error } = await supabase.rpc('get_database_table_sizes');
