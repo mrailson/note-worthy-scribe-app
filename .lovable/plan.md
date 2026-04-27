@@ -1,50 +1,46 @@
-Plan to update the Top 25 patient side view so patient reveal works without asking for a separate reason, while still writing an audit log of the patient ID and user who opened it.
+Plan to update the favicons with the attached robot assets
 
-1. Remove the reason requirement from patient reveal
-- In `PatientDrillDrawer.tsx`, remove the cross-practice exception reason text area and its minimum-length gate.
-- Replace it with a simple “Reveal identifiers” action and short DSA/DPO reassurance text.
-- Remove the “Reason: …” text shown after reveal.
+1. Add the new favicon files
+- Copy the uploaded favicon assets into `public/`:
+  - `favicon.ico`
+  - `notewell-favicon-16x16.png`
+  - `notewell-favicon-32x32.png`
+  - `notewell-favicon-48x48.png`
+  - `notewell-favicon-64x64.png`
+  - `notewell-favicon-180x180.png`
+  - `notewell-favicon-192x192.png`
+  - `notewell-favicon-256x256.png`
+  - `notewell-favicon-512x512.png`
+- This restores `/favicon.ico`, which browsers request by default, but with the correct new robot icon.
 
-2. Log individual patient opens/reveals
-- Add a dedicated audit path that records:
-  - current authenticated user via `auth.uid()` server-side,
-  - practice ID,
-  - patient FK/link ID,
-  - context such as `top25_patient_side_view` or `patient_detail_reveal`,
-  - route/source,
-  - timestamp.
-- Use the existing `narp_pii_access_log` pattern where possible, but add a per-patient RPC so the browser cannot spoof another user ID.
-- Keep this as an audit-only action; it should not request or store a free-text reason.
+2. Update the main app favicon tags
+- Replace the current `/favicon-option1.png?v=6` favicon block in `index.html` with the attached snippet:
+  - `/favicon.ico` for standard browser favicon
+  - `/notewell-favicon-32x32.png`
+  - `/notewell-favicon-192x192.png`
+  - `/notewell-favicon-180x180.png` for Apple touch icon
+- Apply the same metadata in `src/components/SEO.tsx` so React Helmet pages do not reintroduce the old icon.
 
-3. Make Top 25 open the patient drawer with a cohort context
-- Update the Top 25 `onOpenPatient` call in `NRESPopulationRisk.tsx` so it passes a cohort context like:
-  - label: `Top 25 highest-risk patients`,
-  - count: 25 or the current visible top-risk count,
-  - source/context key for audit.
-- This keeps the patient side view in the drill drawer and preserves the Back-to-cohort behaviour rather than feeling like a separate route.
+3. Update static HTML pages
+- Replace favicon references in the static public HTML pages currently pointing to `/favicon-option1.png?v=6` so they use the new favicon set as well.
+- This includes documents, reports, and demo pages under `public/`.
 
-4. Reveal identifiers after the audit succeeds
-- When a user clicks Reveal in patient mode, call the new audit RPC first.
-- If the audit succeeds, set the reveal state and show identifiers.
-- If the audit fails because the user lacks permission or is unauthenticated, keep identifiers hidden and show a clear error toast.
+4. Update in-app robot icon usages where appropriate
+- Replace UI image references currently using `/favicon-option1.png` as the Notewell robot/avatar/toast icon with the new robot asset, preferably `/notewell-favicon-192x192.png` or `/notewell-favicon-512x512.png` depending on display size.
+- Update the recording/visibility notification favicon restoration paths so browser tabs and notifications use the new icon.
+- Also fix the remaining `/favicon-robot.png` reference in the mobile recorder if it is intended to show the same robot.
 
-5. Preserve existing safeguards
-- Do not weaken the existing identifiable permissions (`can_view_narp_identifiable` / export permissions).
-- Keep DSA-based permission checks server-side.
-- Keep existing export behaviour and identifiable CSV modal unchanged.
-- Keep existing drill-through animation, Back handling, selection, routing and worklist actions unchanged.
+5. Keep retired white robot out
+- Confirm there are no remaining references to `favicon-robot-white.png`.
+- Do not re-add the retired white robot favicon.
+
+6. Verify
+- Run a global search for old favicon references:
+  - `favicon-option1.png`
+  - `favicon-robot-white.png`
+  - `favicon-robot.png`
+- Run the production build to confirm the changes compile successfully.
 
 Technical details
-- Likely database migration: add a nullable `patient_ref` / `fk_patient_link_id` text column to `public.narp_pii_access_log`, or create a small dedicated `public.narp_patient_reveal_log` table if the existing log shape should remain page-level only.
-- Preferred RPC shape:
-  - `public.log_narp_patient_reveal(_practice_id uuid, _fk_patient_link_id text, _route text, _context text default 'patient_detail_reveal')`
-  - `SECURITY DEFINER`, `auth.uid()` required, validates `has_can_view_narp_identifiable(auth.uid(), _practice_id)` before inserting.
-- Frontend code will call the RPC from `PatientDrillDrawer` on reveal/open, not from local storage or client-side-only logging.
-
-Acceptance checks after implementation
-- Clicking a Top 25 patient opens the patient side view.
-- Reveal identifiers does not ask for a reason.
-- Audit row includes patient ID and authenticated user.
-- Users without identifiable permission cannot reveal identifiers.
-- Back from patient view still returns to the Top 25/cohort context.
-- No regression to export, worklist, routing or permission checks.
+- Files expected to change include `index.html`, `src/components/SEO.tsx`, favicon-related hooks/components, and static `.html` files under `public/`.
+- The previous `public/favicon.ico` deletion will be reversed by copying in the uploaded replacement `favicon.ico`, so browser default favicon requests resolve to the correct robot.
