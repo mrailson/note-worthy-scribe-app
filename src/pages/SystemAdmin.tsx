@@ -155,6 +155,23 @@ interface Neighbourhood {
   description?: string;
 }
 
+interface StuckMeetingSummary {
+  id: string;
+  title: string;
+  status: string;
+  user_id: string;
+  user_email?: string;
+  user_name?: string;
+  created_at: string;
+  updated_at: string;
+  last_chunk_at?: string | null;
+  chunk_count: number;
+  word_count: number;
+  reason: string;
+  age_minutes: number;
+  silence_minutes: number | null;
+}
+
 const SystemAdmin = () => {
   const { user, refreshUserModules } = useAuth();
   const { maintenanceMode, updateMaintenanceMode } = useMaintenanceMode();
@@ -205,6 +222,9 @@ const SystemAdmin = () => {
     totalPractices: 0,
     totalPCNs: 0
   });
+  const [stuckMeetings, setStuckMeetings] = useState<StuckMeetingSummary[]>([]);
+  const [loadingStuckMeetings, setLoadingStuckMeetings] = useState(false);
+  const [recoveringMeetingId, setRecoveringMeetingId] = useState<string | null>(null);
 
   // Database monitoring state
   const [databaseSizes, setDatabaseSizes] = useState<Array<{
@@ -389,6 +409,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       fetchPCNs();
       fetchNeighbourhoods();
       fetchDashboardStats();
+      fetchStuckMeetings();
       fetchDatabaseSizes();
       fetchLargeFiles();
       fetchFileStats();
@@ -589,6 +610,121 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+    }
+  };
+
+  const fetchStuckMeetings = async () => {
+    setLoadingStuckMeetings(true);
+    try {
+      const now = Date.now();
+      const { data: meetings, error: meetingsError } = await supabase
+        .from('meetings')
+        .select('id, title, status, user_id, created_at, updated_at, notes_generation_status, word_count, whisper_transcript_text')
+        .or('status.eq.recording,status.eq.processing,status.eq.transcribing,status.eq.pending_transcription,notes_generation_status.eq.queued,notes_generation_status.eq.generating')
+        .order('updated_at', { ascending: true })
+        .limit(75);
+
+      if (meetingsError) throw meetingsError;
+
+      const meetingIds = (meetings || []).map((meeting: any) => meeting.id);
+      if (meetingIds.length === 0) {
+        setStuckMeetings([]);
+        return;
+      }
+
+      const [{ data: chunks }, { data: summaries }] = await Promise.all([
+        supabase
+          .from('meeting_transcription_chunks')
+          .select('meeting_id, created_at, word_count')
+          .in('meeting_id', meetingIds),
+        supabase
+          .from('meeting_summaries')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds)
+      ]);
+
+      const userIds = [...new Set((meetings || []).map((meeting: any) => meeting.user_id).filter(Boolean))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from('profiles').select('user_id, email, full_name').in('user_id', userIds)
+        : { data: [] as any[] };
+
+      const chunkMap = new Map<string, { count: number; words: number; last: string | null }>();
+      (chunks || []).forEach((chunk: any) => {
+        const current = chunkMap.get(chunk.meeting_id) || { count: 0, words: 0, last: null };
+        const chunkTime = chunk.created_at || null;
+        chunkMap.set(chunk.meeting_id, {
+          count: current.count + 1,
+          words: current.words + (chunk.word_count || 0),
+          last: !current.last || (chunkTime && new Date(chunkTime) > new Date(current.last)) ? chunkTime : current.last,
+        });
+      });
+
+      const summaryIds = new Set((summaries || []).map((summary: any) => summary.meeting_id));
+      const profileMap = new Map((profiles || []).map((profile: any) => [profile.user_id, profile]));
+
+      const stuck = (meetings || []).map((meeting: any) => {
+        const chunkInfo = chunkMap.get(meeting.id) || { count: 0, words: 0, last: null };
+        const ageMinutes = Math.round((now - new Date(meeting.created_at).getTime()) / 60000);
+        const updatedMinutes = Math.round((now - new Date(meeting.updated_at).getTime()) / 60000);
+        const silenceMinutes = chunkInfo.last ? Math.round((now - new Date(chunkInfo.last).getTime()) / 60000) : null;
+        const hasTranscript = Boolean(meeting.whisper_transcript_text?.trim());
+        const hasSummary = summaryIds.has(meeting.id);
+        let reason = '';
+
+        if (meeting.status === 'recording' && chunkInfo.count > 0 && silenceMinutes !== null && silenceMinutes > 15 && ageMinutes > 20) {
+          reason = `Recording orphaned — no transcript chunks for ${silenceMinutes} minutes`;
+        } else if (['processing', 'transcribing', 'pending_transcription'].includes(meeting.status) && updatedMinutes > 15) {
+          reason = `${meeting.status.replace('_', ' ')} for ${updatedMinutes} minutes`;
+        } else if (chunkInfo.count > 0 && !hasTranscript && updatedMinutes > 15) {
+          reason = 'Transcript chunks saved but not consolidated';
+        } else if (hasTranscript && !hasSummary && ['queued', 'generating'].includes(meeting.notes_generation_status) && updatedMinutes > 20) {
+          reason = 'Transcript ready but notes have not finished';
+        }
+
+        if (!reason) return null;
+        const profile: any = profileMap.get(meeting.user_id);
+        return {
+          id: meeting.id,
+          title: meeting.title || 'Untitled meeting',
+          status: meeting.status,
+          user_id: meeting.user_id,
+          user_email: profile?.email,
+          user_name: profile?.full_name,
+          created_at: meeting.created_at,
+          updated_at: meeting.updated_at,
+          last_chunk_at: chunkInfo.last,
+          chunk_count: chunkInfo.count,
+          word_count: chunkInfo.words || meeting.word_count || 0,
+          reason,
+          age_minutes: ageMinutes,
+          silence_minutes: silenceMinutes,
+        } as StuckMeetingSummary;
+      }).filter(Boolean) as StuckMeetingSummary[];
+
+      setStuckMeetings(stuck.slice(0, 10));
+    } catch (error) {
+      console.error('Error fetching stuck meetings:', error);
+      toast.error('Failed to check stuck meetings');
+    } finally {
+      setLoadingStuckMeetings(false);
+    }
+  };
+
+  const recoverStuckMeeting = async (meeting: StuckMeetingSummary) => {
+    setRecoveringMeetingId(meeting.id);
+    try {
+      const { error } = await supabase.functions.invoke('complete-stuck-meeting', {
+        body: { meetingId: meeting.id },
+      });
+      if (error) throw error;
+      toast.success('Recovery started for stuck meeting');
+      await fetchStuckMeetings();
+      await fetchDashboardStats();
+    } catch (error) {
+      console.error('Meeting recovery failed:', error);
+      toast.error('Could not start meeting recovery');
+    } finally {
+      setRecoveringMeetingId(null);
     }
   };
 
@@ -2064,7 +2200,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -2101,7 +2237,86 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   <div className="text-2xl font-bold">{dashboardStats.totalPCNs}</div>
                 </CardContent>
               </Card>
+              <Card className={stuckMeetings.length > 0 ? 'border-destructive' : ''}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Stuck Meetings</CardTitle>
+                  <AlertTriangle className={stuckMeetings.length > 0 ? 'h-4 w-4 text-destructive' : 'h-4 w-4 text-muted-foreground'} />
+                </CardHeader>
+                <CardContent>
+                  <div className={stuckMeetings.length > 0 ? 'text-2xl font-bold text-destructive' : 'text-2xl font-bold'}>
+                    {loadingStuckMeetings ? '…' : stuckMeetings.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {stuckMeetings.length > 0 ? 'Need admin review' : 'None detected'}
+                  </p>
+                </CardContent>
+              </Card>
             </div>
+
+            <Card className={stuckMeetings.length > 0 ? 'border-destructive/60' : ''}>
+              <CardHeader>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      Stuck Meeting Check
+                    </CardTitle>
+                    <CardDescription>
+                      Finds recordings with saved chunks that have not finalised, plus old transcription jobs.
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchStuckMeetings} disabled={loadingStuckMeetings}>
+                      <RefreshCw className={`h-4 w-4 mr-2 ${loadingStuckMeetings ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setActiveTab('monitoring');
+                        setMonitoringSubTab('meeting-service');
+                      }}
+                    >
+                      View details
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {stuckMeetings.length === 0 ? (
+                  <div className="flex items-center gap-2 rounded-md border border-border p-3 text-sm text-muted-foreground">
+                    <CheckCircle className="h-4 w-4" />
+                    No stuck meetings detected.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {stuckMeetings.slice(0, 5).map((meeting) => (
+                      <div key={meeting.id} className="flex flex-col gap-3 rounded-md border border-destructive/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-medium">{meeting.title}</p>
+                            <Badge variant="outline">{meeting.status}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {meeting.user_email || meeting.user_name || 'Unknown user'} · Started {new Date(meeting.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            {meeting.last_chunk_at ? ` · Last chunk ${new Date(meeting.last_chunk_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
+                          </p>
+                          <p className="text-xs text-destructive">{meeting.reason}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge variant="secondary">{meeting.chunk_count} chunks</Badge>
+                          <Badge variant="secondary">{meeting.word_count.toLocaleString()} words</Badge>
+                          <Button size="sm" onClick={() => recoverStuckMeeting(meeting)} disabled={recoveringMeetingId === meeting.id}>
+                            {recoveringMeetingId === meeting.id ? 'Recovering…' : 'Recover'}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Security Status Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

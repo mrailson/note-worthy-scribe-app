@@ -1,46 +1,41 @@
-Plan to update the favicons with the attached robot assets
+Plan to add stuck meeting visibility to System Overview
 
-1. Add the new favicon files
-- Copy the uploaded favicon assets into `public/`:
-  - `favicon.ico`
-  - `notewell-favicon-16x16.png`
-  - `notewell-favicon-32x32.png`
-  - `notewell-favicon-48x48.png`
-  - `notewell-favicon-64x64.png`
-  - `notewell-favicon-180x180.png`
-  - `notewell-favicon-192x192.png`
-  - `notewell-favicon-256x256.png`
-  - `notewell-favicon-512x512.png`
-- This restores `/favicon.ico`, which browsers request by default, but with the correct new robot icon.
+1. Add a “Stuck Meetings” status card to System Administration > Overview
+- Show a count of meetings that look stuck or orphaned.
+- Use a warning style when any exist, and a healthy/neutral style when none exist.
+- Include a “Refresh” action so you can re-check immediately.
+- Include a “View details” link/action that takes you to the existing Meeting Service monitoring area.
 
-2. Update the main app favicon tags
-- Replace the current `/favicon-option1.png?v=6` favicon block in `index.html` with the attached snippet:
-  - `/favicon.ico` for standard browser favicon
-  - `/notewell-favicon-32x32.png`
-  - `/notewell-favicon-192x192.png`
-  - `/notewell-favicon-180x180.png` for Apple touch icon
-- Apply the same metadata in `src/components/SEO.tsx` so React Helmet pages do not reintroduce the old icon.
+2. Detect the same failure mode as today’s lost iPhone meeting
+The check will look for meetings such as:
+- `status = recording` where chunks exist, but no new transcript chunk has arrived for more than 15 minutes and the meeting is older than 20 minutes.
+- `status = recording` where transcript chunks exist but notes/transcript finalisation has not happened.
+- `status in ('processing', 'transcribing', 'pending_transcription')` and `updated_at` is older than 15 minutes.
+- meetings with chunks but no generated notes after a reasonable delay.
 
-3. Update static HTML pages
-- Replace favicon references in the static public HTML pages currently pointing to `/favicon-option1.png?v=6` so they use the new favicon set as well.
-- This includes documents, reports, and demo pages under `public/`.
+3. Add a compact stuck-meetings panel below the overview cards
+- Show the latest stuck meetings with title, user, status, start time, last chunk time, word count, and likely reason.
+- Keep it short in Overview, e.g. top 5 issues, so the page does not become cluttered.
+- Add a button to jump to the fuller Meeting Service tab.
 
-4. Update in-app robot icon usages where appropriate
-- Replace UI image references currently using `/favicon-option1.png` as the Notewell robot/avatar/toast icon with the new robot asset, preferably `/notewell-favicon-192x192.png` or `/notewell-favicon-512x512.png` depending on display size.
-- Update the recording/visibility notification favicon restoration paths so browser tabs and notifications use the new icon.
-- Also fix the remaining `/favicon-robot.png` reference in the mobile recorder if it is intended to show the same robot.
+4. Improve the existing Meeting Service monitoring list
+- The current `LiveAndRecentMeetings` component already shows active/stalled recordings, but only inside System Monitoring > Meeting Service.
+- Extend it so it clearly labels orphaned/stuck meetings, not just “Stalled?”.
+- Add clearer wording: “No transcript chunks for X minutes”, “Needs finalising”, or “Notes not generated”.
 
-5. Keep retired white robot out
-- Confirm there are no remaining references to `favicon-robot-white.png`.
-- Do not re-add the retired white robot favicon.
+5. Recovery actions for admins
+- Add safe action buttons where appropriate:
+  - “Auto-close inactive meetings” using the existing `auto-close-inactive-meetings` function.
+  - “Complete / recover” for a selected stuck meeting using the existing `complete-stuck-meeting` or `force-complete-meeting` flow.
+- Keep actions admin-only and guarded by existing system admin checks.
 
-6. Verify
-- Run a global search for old favicon references:
-  - `favicon-option1.png`
-  - `favicon-robot-white.png`
-  - `favicon-robot.png`
-- Run the production build to confirm the changes compile successfully.
-
-Technical details
-- Files expected to change include `index.html`, `src/components/SEO.tsx`, favicon-related hooks/components, and static `.html` files under `public/`.
-- The previous `public/favicon.ico` deletion will be reversed by copying in the uploaded replacement `favicon.ico`, so browser default favicon requests resolve to the correct robot.
+Technical notes
+- Main UI file: `src/pages/SystemAdmin.tsx`.
+- Existing meeting monitoring component: `src/components/admin/LiveAndRecentMeetings.tsx`.
+- Existing admin controls: `src/components/AdminMeetingControls.tsx`.
+- Existing backend helpers already present:
+  - `get_all_live_recordings` RPC
+  - `auto-close-inactive-meetings`
+  - `complete-stuck-meeting`
+  - `force-complete-meeting`
+- No new database tables should be needed. If a more reusable query is required, add a small read-only security-definer RPC that returns stuck meeting summaries for system admins only.
