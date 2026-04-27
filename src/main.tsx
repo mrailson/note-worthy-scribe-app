@@ -54,10 +54,10 @@ createRoot(document.getElementById("root")!).render(
                   style: window.innerWidth < 768 ? { marginBottom: 'env(safe-area-inset-bottom, 8px)' } : {},
                 }}
                 icons={{
-                  success: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-                  error: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-                  warning: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-                  info: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+                  success: <img src="/notewell-favicon-192x192.png" alt="" className="w-5 h-5" />,
+                  error: <img src="/notewell-favicon-192x192.png" alt="" className="w-5 h-5" />,
+                  warning: <img src="/notewell-favicon-192x192.png" alt="" className="w-5 h-5" />,
+                  info: <img src="/notewell-favicon-192x192.png" alt="" className="w-5 h-5" />,
                 }}
               />
               <App />
