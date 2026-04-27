@@ -2253,71 +2253,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </Card>
             </div>
 
-            <Card className={stuckMeetings.length > 0 ? 'border-destructive/60' : ''}>
-              <CardHeader>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5" />
-                      Stuck Meeting Check
-                    </CardTitle>
-                    <CardDescription>
-                      Finds recordings with saved chunks that have not finalised, plus old transcription jobs.
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={fetchStuckMeetings} disabled={loadingStuckMeetings}>
-                      <RefreshCw className={`h-4 w-4 mr-2 ${loadingStuckMeetings ? 'animate-spin' : ''}`} />
-                      Refresh
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setActiveTab('monitoring');
-                        setMonitoringSubTab('meeting-service');
-                      }}
-                    >
-                      View details
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {stuckMeetings.length === 0 ? (
-                  <div className="flex items-center gap-2 rounded-md border border-border p-3 text-sm text-muted-foreground">
-                    <CheckCircle className="h-4 w-4" />
-                    No stuck meetings detected.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {stuckMeetings.slice(0, 5).map((meeting) => (
-                      <div key={meeting.id} className="flex flex-col gap-3 rounded-md border border-destructive/30 p-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0 space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-medium">{meeting.title}</p>
-                            <Badge variant="outline">{meeting.status}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {meeting.user_email || meeting.user_name || 'Unknown user'} · Started {new Date(meeting.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                            {meeting.last_chunk_at ? ` · Last chunk ${new Date(meeting.last_chunk_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
-                          </p>
-                          <p className="text-xs text-destructive">{meeting.reason}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Badge variant="secondary">{meeting.chunk_count} chunks</Badge>
-                          <Badge variant="secondary">{meeting.word_count.toLocaleString()} words</Badge>
-                          <Button size="sm" onClick={() => recoverStuckMeeting(meeting)} disabled={recoveringMeetingId === meeting.id}>
-                            {recoveringMeetingId === meeting.id ? 'Recovering…' : 'Recover'}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Security Status Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
@@ -4648,6 +4583,68 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     </CardContent>
                   </Card>
                 </div>
+
+                <Card className={stuckMeetings.length > 0 ? 'border-destructive/60' : ''}>
+                  <CardHeader>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5" />
+                          Stuck Meeting Check
+                        </CardTitle>
+                        <CardDescription>
+                          Finds recordings with saved chunks that have not finalised, plus old transcription jobs.
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={fetchStuckMeetings} disabled={loadingStuckMeetings}>
+                          <RefreshCw className={`h-4 w-4 mr-2 ${loadingStuckMeetings ? 'animate-spin' : ''}`} />
+                          Refresh
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setMonitoringSubTab('meeting-service')}
+                        >
+                          View details
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {stuckMeetings.length === 0 ? (
+                      <div className="flex items-center gap-2 rounded-md border border-border p-3 text-sm text-muted-foreground">
+                        <CheckCircle className="h-4 w-4" />
+                        No stuck meetings detected.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {stuckMeetings.slice(0, 5).map((meeting) => (
+                          <div key={meeting.id} className="flex flex-col gap-3 rounded-md border border-destructive/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-medium">{meeting.title}</p>
+                                <Badge variant="outline">{meeting.status}</Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {meeting.user_email || meeting.user_name || 'Unknown user'} · Started {new Date(meeting.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                {meeting.last_chunk_at ? ` · Last chunk ${new Date(meeting.last_chunk_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}
+                              </p>
+                              <p className="text-xs text-destructive">{meeting.reason}</p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <Badge variant="secondary">{meeting.chunk_count} chunks</Badge>
+                              <Badge variant="secondary">{meeting.word_count.toLocaleString()} words</Badge>
+                              <Button size="sm" onClick={() => recoverStuckMeeting(meeting)} disabled={recoveringMeetingId === meeting.id}>
+                                {recoveringMeetingId === meeting.id ? 'Recovering…' : 'Recover'}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Audio Backup Management */}
                 <Card>
