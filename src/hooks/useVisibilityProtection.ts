@@ -160,7 +160,7 @@ export function useVisibilityProtection(config: VisibilityProtectionConfig) {
     if (Notification.permission === 'granted' && document.visibilityState === 'hidden') {
       new Notification(title, {
         body,
-        icon: '/notewell-favicon-192x192.png',
+        icon: '/android-chrome-192x192.png',
         tag: 'recording-alert',
         requireInteraction: true
       });
