@@ -80,8 +80,7 @@ export function OrphanedWhisperMonitor() {
       }
 
       // Filter for orphaned meetings:
-      // - Recording for > 20 mins with no words in last 5 mins, OR
-      // - Recording for > 60 mins (potentially stuck)
+      // - Recording for > 2 hours with fewer than 150 words in the last 5 mins
       const now = new Date();
       const orphaned = (live || [])
         .map((m: any) => {
@@ -101,10 +100,7 @@ export function OrphanedWhisperMonitor() {
           };
         })
         .filter((m: OrphanedMeeting) => {
-          // Orphaned = stalled for > 20 mins OR running for > 60 mins
-          const isStalled = m.words_last_5_mins === 0 && m.total_word_count > 0 && m.duration_minutes > 20;
-          const isLongRunning = m.duration_minutes > 60;
-          return isStalled || isLongRunning;
+          return m.duration_minutes > 120 && m.words_last_5_mins < 150;
         });
 
       setOrphanedMeetings(orphaned);
@@ -229,7 +225,7 @@ export function OrphanedWhisperMonitor() {
             </Button>
           </div>
           <CardDescription>
-            Meetings recording for &gt;60 mins or stalled for &gt;20 mins with no activity
+            Meetings recording for &gt;2 hours with fewer than 150 words in the last 5 minutes
           </CardDescription>
           <p className="text-xs text-muted-foreground">
             Last updated: {formatDateTime(lastRefresh.toISOString())}
@@ -255,7 +251,7 @@ export function OrphanedWhisperMonitor() {
 
               {/* Meeting list */}
               {orphanedMeetings.map((meeting) => {
-                const isStalled = meeting.words_last_5_mins === 0 && meeting.total_word_count > 0;
+                const isStalled = meeting.words_last_5_mins < 150;
                 const isPaused = meeting.is_paused;
                 const isBeingEnded = gracefulEndingId === meeting.id;
                 const isBeingKilled = forceStoppingId === meeting.id;
