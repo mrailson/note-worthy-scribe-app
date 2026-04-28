@@ -828,6 +828,15 @@ serve(async (req) => {
         } else {
           console.log('💾 Notes mirrored to meetings.notes_style_3 + status=completed');
         }
+
+        await sb.from('meeting_notes_queue')
+          .update({
+            status: 'completed',
+            error_message: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('meeting_id', meetingId)
+          .in('status', ['pending', 'processing']);
       } catch (metaErr) {
         console.warn('⚠️ Could not save baseline metadata:', metaErr);
       }
