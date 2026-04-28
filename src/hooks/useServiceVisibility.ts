@@ -38,7 +38,7 @@ const defaultVisibility: ServiceVisibility = {
   fridge_monitoring: true,
   lg_capture: true,
   bp_service: true,
-  survey_manager: true,
+  survey_manager: false,
   policy_service: true,
   mock_cqc_inspection: true,
   enn: true,
@@ -78,6 +78,7 @@ export const useServiceVisibility = () => {
   });
 
   const isServiceVisible = (serviceKey: keyof ServiceVisibility): boolean => {
+    if (serviceKey === 'survey_manager') return false;
     return visibility?.[serviceKey] ?? true;
   };
 
