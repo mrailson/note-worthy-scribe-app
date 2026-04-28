@@ -403,13 +403,17 @@ function sanitiseActionOwners(notes: string, transcript: string): string {
 // ─── Chunking for very large transcripts ──────────────────────────────────
 
 function shouldChunk(transcript: string): boolean {
-  return transcript.length > 500000;
+  // Very long meetings (roughly >90 minutes / >10k words) are too slow and
+  // unreliable as a single model call. Route them through map/reduce earlier
+  // so notes save before the edge function reaches its wall-clock limit.
+  const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+  return transcript.length > 50000 || wordCount > 10000;
 }
 
 function chunkTranscript(transcript: string): string[] {
-  const words = transcript.split(' ');
-  const chunkSize = 100000;
-  const overlap = 5000;
+  const words = transcript.split(/\s+/).filter(Boolean);
+  const chunkSize = 4500;
+  const overlap = 300;
   const chunks: string[] = [];
   for (let i = 0; i < words.length; i += chunkSize - overlap) {
     chunks.push(words.slice(i, i + chunkSize).join(' '));
@@ -747,8 +751,8 @@ serve(async (req) => {
           const chunkPrompt = buildUserPrompt({ ...promptParams, transcript: chunks[i] });
 
           const result = isClaudeModel
-            ? await callClaude(effectiveModelOverride, effectiveSystemPrompt, chunkPrompt)
-            : await callGemini(effectiveSystemPrompt, chunkPrompt);
+            ? await callClaude(effectiveModelOverride, effectiveSystemPrompt, chunkPrompt, 2500)
+            : await callGemini(effectiveSystemPrompt, chunkPrompt, 2500);
           chunkResults.push(result);
         }
 
@@ -756,8 +760,8 @@ serve(async (req) => {
         const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document following the same output format. Merge duplicate topics, unify the action log, and deduplicate decisions. In the DECISIONS REGISTER, label every entry as **[RESOLVED]**, **[AGREED]**, or **[NOTED]**. Maintain ALL specific details, names, dates, figures. Use British English throughout.\n\nCHUNK RESULTS:\n${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
         
         meetingMinutes = isClaudeModel
-          ? await callClaude(effectiveModelOverride, effectiveSystemPrompt, consolidationPrompt)
-          : await callGemini(effectiveSystemPrompt, consolidationPrompt);
+          ? await callClaude(effectiveModelOverride, effectiveSystemPrompt, consolidationPrompt, 8000)
+          : await callGemini(effectiveSystemPrompt, consolidationPrompt, 8000);
       } else {
         const userPrompt = buildUserPrompt(promptParams);
         const apiStart = Date.now();
@@ -824,6 +828,15 @@ serve(async (req) => {
         } else {
           console.log('💾 Notes mirrored to meetings.notes_style_3 + status=completed');
         }
+
+        await sb.from('meeting_notes_queue')
+          .update({
+            status: 'completed',
+            error_message: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('meeting_id', meetingId)
+          .in('status', ['pending', 'processing']);
       } catch (metaErr) {
         console.warn('⚠️ Could not save baseline metadata:', metaErr);
       }

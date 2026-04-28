@@ -178,6 +178,18 @@ serve(async (req) => {
       }
     }
 
+    const { error: queueUpdateError } = await supabase
+      .from("meeting_notes_queue")
+      .update({ status: "completed", error_message: null, updated_at: new Date().toISOString() })
+      .eq("meeting_id", meetingId)
+      .in("status", ["pending", "processing"]);
+
+    if (queueUpdateError) {
+      console.warn("⚠️ Could not mark queue entries completed:", queueUpdateError);
+    } else {
+      steps.push("queue_marked_completed");
+    }
+
     return new Response(JSON.stringify({ success: true, meetingId, steps }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
