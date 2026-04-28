@@ -29,7 +29,7 @@ serve(async (req) => {
     // Fetch meeting state
     const { data: meeting, error: fetchErr } = await supabase
       .from("meetings")
-      .select("id, title, notes_generation_status, notes_email_sent_at, word_count, user_id")
+      .select("id, title, notes_generation_status, notes_email_sent_at, word_count, user_id, start_time, duration_minutes, best_of_all_transcript, live_transcript_text, assembly_transcript_text, whisper_transcript_text")
       .eq("id", meetingId)
       .single();
 
@@ -43,25 +43,58 @@ serve(async (req) => {
 
     const steps: string[] = [];
 
-    // Step 1: Generate title + notes if missing
+    const { data: existingSummary } = await supabase
+      .from("meeting_summaries")
+      .select("summary")
+      .eq("meeting_id", meetingId)
+      .maybeSingle();
+
+    // Step 1: Generate title + notes if missing or stuck mid-generation
     const needsNotes =
-      !meeting.notes_generation_status ||
-      meeting.notes_generation_status === "not_started" ||
-      meeting.notes_generation_status === "failed";
+      !existingSummary?.summary ||
+      meeting.notes_generation_status !== "completed";
 
     const hasDefaultTitle = /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i.test(meeting.title || "");
     const needsTitle = !meeting.title || hasDefaultTitle;
 
     if (needsNotes || needsTitle) {
       console.log(`📝 Generating notes/title for ${meetingId} (needsNotes=${needsNotes}, needsTitle=${needsTitle})`);
-      const notesResp = await fetch(`${supabaseUrl}/functions/v1/auto-generate-meeting-notes`, {
+      const transcript =
+        meeting.best_of_all_transcript ||
+        meeting.live_transcript_text ||
+        meeting.assembly_transcript_text ||
+        meeting.whisper_transcript_text ||
+        "";
+
+      if (!transcript.trim()) {
+        return new Response(JSON.stringify({ error: "No transcript available for notes generation" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await supabase
+        .from("meetings")
+        .update({ notes_generation_status: "generating", updated_at: new Date().toISOString() })
+        .eq("id", meetingId);
+
+      const notesResp = await fetch(`${supabaseUrl}/functions/v1/generate-meeting-notes-claude`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${serviceKey}`,
           "Content-Type": "application/json",
           apikey: serviceKey,
         },
-        body: JSON.stringify({ meetingId }),
+        body: JSON.stringify({
+          meetingId,
+          transcript,
+          meetingTitle: meeting.title,
+          meetingDate: meeting.start_time ? new Date(meeting.start_time).toLocaleDateString("en-GB") : undefined,
+          meetingTime: meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : undefined,
+          meetingDuration: meeting.duration_minutes,
+          modelOverride: "claude-sonnet-4-6",
+          skipQc: true,
+        }),
       });
 
       const notesText = await notesResp.text();
