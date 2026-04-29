@@ -1157,7 +1157,7 @@ function InlineClaimPanel({
                   }}
                 />
                 <button
-                  onClick={async () => { await onUpdateClaimNotes?.(claim.id, invoiceDescription); onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
+                  onClick={() => { onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
                   disabled={saving}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 16px',
