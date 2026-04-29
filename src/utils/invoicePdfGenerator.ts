@@ -4,7 +4,7 @@ import { getPracticeName, getOdsCode } from '@/data/nresPractices';
 import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
-import { getGLCode, getGLInvoiceLabel } from '@/utils/glCodes';
+import { getSDAClaimGLCode, getGLInvoiceLabel } from '@/utils/glCodes';
 
 interface InvoiceData {
   claim: BuyBackClaim;
@@ -41,12 +41,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const staffDetails = (claim.staff_details as any[]) || [];
   const claimDate = new Date(claim.claim_month);
   const claimMonthLabel = claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-  const resolveGLCode = (line: any) => {
-    const storedCode = line.gl_code || line.gl_category;
-    return /^\d{4}$/.test(String(storedCode || ''))
-      ? storedCode
-      : getGLCode(claim.claim_type || 'buyback', line.staff_role || '');
-  };
+  const resolveGLCode = (line: any) => getSDAClaimGLCode(line, claim.claim_type || 'buyback');
 
   const practiceKey = claim.practice_key as NRESPracticeKey;
   const practiceAddress = NRES_PRACTICE_ADDRESSES[practiceKey] || '';
