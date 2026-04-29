@@ -13,6 +13,7 @@ import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
+import { getSDAClaimGLCode } from '@/utils/glCodes';
 
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
@@ -2234,7 +2235,7 @@ export function StaffRosterSection({
                               max_hours_per_week: 0,
                               billing_entity: getPracticeName(practiceKey || ''),
                               billing_org_code: NRES_ODS_CODES[practiceKey || ''] || '',
-                              gl_code: 'PML',
+                              gl_code: getSDAClaimGLCode({ staff_category: 'meeting', staff_role: member.staff_role }) || '',
                               is_active: true,
                               role_type: 'attending_meeting' as const,
                               member_practice: practiceKey,
