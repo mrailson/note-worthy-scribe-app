@@ -2698,6 +2698,7 @@ export function ClaimsViewSwitcher({
               onToggle={() => onToggleCard(c.id)}
               onSubmit={onSubmit}
               onResubmit={onResubmit}
+              onUpdateClaimNotes={onUpdateClaimNotes}
               saving={saving}
             />
           ))}
@@ -3346,7 +3347,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
 // --- Main Dashboard ---
 export function BuyBackPracticeDashboard({
   claims, practiceKey, staff, staffRoles, rateParams, managementRoles,
-  onSubmit, onResubmit, onCreateClaim, onCreateLocumClaim, onDeleteClaim,
+  onSubmit, onResubmit, onUpdateClaimNotes, onCreateClaim, onCreateLocumClaim, onDeleteClaim,
   onAddStaff, onRemoveStaff, onUpdateStaff, confirmDeclaration,
   savingClaim, savingStaff, onGuideOpen, onSettingsOpen, showSettings,
   meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries, canAddOnBehalf,
