@@ -82,25 +82,31 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
 export function EvidenceSlot({
   config,
   uploadedFile,
+  uploadedFiles,
   canEdit,
   uploading,
   onUpload,
+  onUploadFiles,
   onDelete,
   onDownload,
+  allowMultiple = false,
 }: {
   config: EvidenceConfigRow;
   uploadedFile?: { id: string; file_name: string; file_path: string; file_size: number | null };
+  uploadedFiles?: ClaimEvidenceFile[];
   canEdit: boolean;
   uploading: boolean;
   onUpload: (file: File) => void;
+  onUploadFiles?: (files: File[]) => void;
   onDelete: (id: string) => void;
   onDownload: (path: string) => Promise<string | null>;
+  allowMultiple?: boolean;
 }) {
-  const hasFile = !!uploadedFile;
+  const filesToShow = allowMultiple ? (uploadedFiles || []) : (uploadedFile ? [uploadedFile] : []);
+  const hasFile = filesToShow.length > 0;
 
-  const handleDownload = async () => {
-    if (!uploadedFile) return;
-    const url = await onDownload(uploadedFile.file_path);
+  const handleDownload = async (filePath: string) => {
+    const url = await onDownload(filePath);
     if (url) window.open(url, '_blank');
   };
 
@@ -123,30 +129,32 @@ export function EvidenceSlot({
           <p className="text-muted-foreground text-[10px] truncate">{config.description}</p>
         )}
         {hasFile && (
-          <p className="text-muted-foreground text-[10px] mt-0.5">
-            {uploadedFile!.file_name}
-            {uploadedFile!.file_size && ` (${(uploadedFile!.file_size / 1024).toFixed(0)} KB)`}
-          </p>
+          <div className="mt-1 space-y-1">
+            {filesToShow.map(file => (
+              <div key={file.id} className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
+                <span className="truncate">{file.file_name}</span>
+                {file.file_size && <span className="shrink-0">({(file.file_size / 1024).toFixed(0)} KB)</span>}
+                <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={() => handleDownload(file.file_path)}>
+                  <Download className="w-3 h-3 mr-1" /> View
+                </Button>
+                {canEdit && (
+                  <Button size="sm" variant="ghost" className="h-5 px-1 text-destructive" onClick={() => onDelete(file.id)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
-        {hasFile && (
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={handleDownload}>
-            <Download className="w-3 h-3 mr-1" /> View
-          </Button>
-        )}
-        {hasFile && canEdit && (
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => onDelete(uploadedFile!.id)}>
-            <Trash2 className="w-3 h-3" />
-          </Button>
-        )}
-        {!hasFile && canEdit && (
+        {canEdit && (!hasFile || allowMultiple) && (
           <SmartUploadZone
             compact
-            onFilesSelected={(files) => { if (files[0]) onUpload(files[0]); }}
+            onFilesSelected={(files) => allowMultiple && onUploadFiles ? onUploadFiles(files) : files[0] && onUpload(files[0])}
             uploading={uploading}
-            multiple={false}
+            multiple={allowMultiple}
             accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif"
           />
         )}
