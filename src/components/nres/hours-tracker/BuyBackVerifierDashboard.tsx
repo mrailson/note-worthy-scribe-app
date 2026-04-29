@@ -363,7 +363,8 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   profileNames?: Record<string, string>;
 }) => {
   const [notes, setNotes] = useState('');
-  const [invoiceDescription, setInvoiceDescription] = useState((claim as any).practice_notes || '');
+  const savedInvoiceDescription = (claim as any).practice_notes || '';
+  const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -377,11 +378,11 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const financeNotes = (claim as any).finance_notes || (claim as any).payment_notes || '';
 
   useEffect(() => {
-    setInvoiceDescription((claim as any).practice_notes || '');
-  }, [claim.id, (claim as any).practice_notes]);
+    setInvoiceDescription(savedInvoiceDescription);
+  }, [claim.id, savedInvoiceDescription]);
 
   const handleVerify = async () => {
-    if (onUpdateClaimNotes && invoiceDescription !== ((claim as any).practice_notes || '')) {
+    if (onUpdateClaimNotes && invoiceDescription !== savedInvoiceDescription) {
       await onUpdateClaimNotes(claim.id, invoiceDescription);
     }
     await onVerify(claim.id, notes || undefined);
