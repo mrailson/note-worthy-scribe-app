@@ -571,6 +571,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     workingDaysInMonth: calcWorkingDays(claimMonthDate),
     bankHolidaysInMonth: bankHolidaysForMonth,
     bankHolidayDetails: bankHolidayDetailsForMonth,
+    meetingGpRate: rateSettings.meeting_gp_rate,
+    meetingPmRate: rateSettings.meeting_pm_rate,
   };
 
   const { roles, loading: loadingRoles, isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
