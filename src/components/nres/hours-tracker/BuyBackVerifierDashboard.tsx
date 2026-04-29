@@ -17,6 +17,7 @@ interface VerifierDashboardProps {
   claims: BuyBackClaim[];
   onVerify: (claimId: string, notes?: string) => Promise<any>;
   onReturnToPractice: (claimId: string, notes?: string) => Promise<any>;
+  onUpdateClaimNotes?: (claimId: string, notes: string) => Promise<void>;
   savingClaim: boolean;
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
@@ -353,14 +354,16 @@ const PracticeQueueTable = ({ claims }: { claims: BuyBackClaim[] }) => {
 };
 
 // ─── Claim Card ───────────────────────────────────────────────────────────────
-const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, saving, profileNames }: {
+const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUpdateClaimNotes, saving, profileNames }: {
   claim: BuyBackClaim; expanded: boolean; onToggle: () => void;
   onVerify: (id: string, notes?: string) => Promise<any>;
   onReturn: (id: string, notes?: string) => Promise<any>;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   saving: boolean;
   profileNames?: Record<string, string>;
 }) => {
   const [notes, setNotes] = useState('');
+  const [invoiceDescription, setInvoiceDescription] = useState((claim as any).practice_notes || '');
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -372,6 +375,17 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
   const bankDetails = (claim as any).bank_details;
   const directorNotes = ((claim as any).director_notes || (claim as any).query_notes || '').replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '');
   const financeNotes = (claim as any).finance_notes || (claim as any).payment_notes || '';
+
+  useEffect(() => {
+    setInvoiceDescription((claim as any).practice_notes || '');
+  }, [claim.id, (claim as any).practice_notes]);
+
+  const handleVerify = async () => {
+    if (onUpdateClaimNotes && invoiceDescription !== ((claim as any).practice_notes || '')) {
+      await onUpdateClaimNotes(claim.id, invoiceDescription);
+    }
+    await onVerify(claim.id, notes || undefined);
+  };
 
   return (
     <div style={{
