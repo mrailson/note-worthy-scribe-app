@@ -1162,6 +1162,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
   const [filterRoute, setFilterRoute] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const hasAutoOpenedFirstEditableClaim = useRef(false);
 
   // Resolve profile names for submitter emails
   const [profileNames, setProfileNames] = useState<Record<string, string>>({});
@@ -1248,6 +1249,14 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
       return true;
     });
   }, [visibleMeetingGroups, queueTab, filterStatus, search]);
+
+  useEffect(() => {
+    if (hasAutoOpenedFirstEditableClaim.current || listView !== 'individual' || expandedId) return;
+    const firstEditableClaim = dropdownFilteredClaims.find(c => ['submitted', 'verified', 'awaiting_review', 'approved'].includes(String(c.status)));
+    if (!firstEditableClaim) return;
+    setExpandedId(firstEditableClaim.id);
+    hasAutoOpenedFirstEditableClaim.current = true;
+  }, [dropdownFilteredClaims, expandedId, listView]);
 
   const submittedMeetingCount = visibleMeetingGroups.filter(g => g[0]?.status === 'submitted').length;
   const submittedClaims = visibleClaims.filter(c => c.status === 'submitted');
