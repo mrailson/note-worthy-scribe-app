@@ -1008,7 +1008,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           isPMLFinance={isPMLFinance}
           rateParams={rateParams}
           onVerify={verifyClaim}
-          onQuery={(id: string, notes: string) => queryClaim(id, notes, 'PML Director')}
+          onQuery={(id: string, notes: string) => queryClaim(id, notes, 'SNO Approver')}
           onApprove={approveClaim}
           onReject={rejectClaim}
           onMarkPaid={(id: string, notes?: string) => updatePaymentStatus(id, {
@@ -1760,7 +1760,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                     onApprove={approveClaim}
                     onReject={rejectClaim}
                     onVerify={verifyClaim}
-                    onQuery={(id: string, notes: string) => queryClaim(id, notes, isPMLDirector ? 'PML Director' : 'NRES Management')}
+                    onQuery={(id: string, notes: string) => queryClaim(id, notes, isPMLDirector ? 'SNO Approver' : 'NRES Management')}
                     onUpdatePayment={updatePaymentStatus}
                     savingPayment={savingClaim}
                     testActive={testActive}
@@ -3029,7 +3029,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* Payment workflow panel for approved/invoiced/paid claims — visible to admin (not PML Director) */}
+      {/* Payment workflow panel for approved/invoiced/paid claims — visible to admin (not SNO Approver) */}
       {isAdmin && !isPMLDirector && (claim.status === 'approved' || claim.status === 'invoiced' || claim.status === 'paid') && onUpdatePayment && (
         <PaymentWorkflowPanel
           claim={claim}
@@ -3038,7 +3038,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         />
       )}
 
-      {/* Read-only payment info for non-admin or PML Director */}
+      {/* Read-only payment info for non-admin or SNO Approver */}
       {(!isAdmin || isPMLDirector) && claim.paid_at && (
         <div className="px-3 py-2 border-t bg-green-50/50 dark:bg-green-950/20 text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
           <span>Paid by: <strong className="text-foreground">{claim.paid_by || '—'}</strong></span>
@@ -3118,7 +3118,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* Admin Approval Actions — with Query option (no Reject for PML Director) */}
+      {/* Admin Approval Actions — with Query option (no Reject for SNO Approver) */}
       {canApprove && (
         <div className="px-3 py-3 border-t bg-indigo-50/50 dark:bg-indigo-950/20 space-y-2">
           <p className="text-xs font-medium text-indigo-800 dark:text-indigo-200">PML Finance Review</p>
@@ -3137,7 +3137,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
             <Button size="sm" variant="outline" className="border-orange-400 text-orange-700 hover:bg-orange-50" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onQuery?.(claim.id, reviewNotes); setReviewNotes(''); }}>
               <MessageSquarePlus className="w-3.5 h-3.5 mr-1" /> Query
             </Button>
-            {/* Only show Reject for super_admin, hide for PML Director */}
+            {/* Only show Reject for super_admin, hide for SNO Approver */}
             {(!isPMLDirector || isSuperAdmin) && (
               <Button size="sm" variant="destructive" onClick={() => { if (!reviewNotes.trim()) { setShowRejectInput(true); return; } onReject(claim.id, reviewNotes); setReviewNotes(''); }}>
                 <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
@@ -3151,7 +3151,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
         </div>
       )}
 
-      {/* PML Director Approval Confirmation Panel */}
+      {/* SNO Approver Approval Confirmation Panel */}
       {isPMLDirector && !isSuperAdmin && (claim.status === 'approved' || claim.status === 'paid') && (
         <div className="px-4 py-4 border-t bg-green-50 dark:bg-green-950/30 space-y-3">
           <div className="flex items-center gap-2">
