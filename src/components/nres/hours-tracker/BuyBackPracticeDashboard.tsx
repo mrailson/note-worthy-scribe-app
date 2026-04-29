@@ -24,6 +24,7 @@ interface BuyBackPracticeDashboardProps {
   managementRoles?: ManagementRoleConfig[];
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onRemoveStaff?: (id: string) => Promise<void>;
@@ -2444,6 +2445,7 @@ export function ClaimsViewSwitcher({
   expandedClaimId: string | null;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   saving?: boolean;
   directorMode?: boolean;
   practiceFilter?: string;
@@ -2926,15 +2928,17 @@ export function ClaimsViewSwitcher({
 }
 
 // --- Claim Card (preserved) ---
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   saving?: boolean;
 }) {
   const [queryResponse, setQueryResponse] = useState('');
+  const [invoiceDescription, setInvoiceDescription] = useState((claim as any).practice_notes || '');
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const staffCount = claimStaffCount(claim);
@@ -2944,6 +2948,10 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   const monthLabel = getClaimMonthLabel(claim);
 
   const staffDets = (claim.staff_details || []) as any[];
+
+  useEffect(() => {
+    setInvoiceDescription((claim as any).practice_notes || '');
+  }, [claim.id, (claim as any).practice_notes]);
 
   // Staff names for collapsed summary — show up to 2 names
   const staffNames = staffDets.map((s: any) => s.staff_name).filter(Boolean);
