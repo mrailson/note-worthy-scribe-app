@@ -1385,7 +1385,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   }
   
   // Main content (without action items)
-  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
   // Action Items section as professional table
@@ -1722,7 +1722,7 @@ export const generateProfessionalWordBlob = async (
   }
   
   // Main content (without action items)
-  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
   // Action Items section as professional table (ACTION LOG)
@@ -1838,7 +1838,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   // Executive summary box removed per user request
   
   // Main content (without action items)
-  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
   // Action Items section as professional table (ACTION LOG)
