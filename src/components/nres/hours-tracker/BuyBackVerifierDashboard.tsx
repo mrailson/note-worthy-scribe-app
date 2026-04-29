@@ -479,6 +479,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [voiceError, setVoiceError] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const claimDateBounds = claimMonthBounds(claim.claim_month);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -504,17 +505,18 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     setInvoiceDescription(serialiseInvoiceTableRows(rows));
   };
 
-  const handleQuickDate = () => setQuickLine(prev => ({ ...prev, date: todayStr() }));
-  const handleQuickStart = () => setQuickLine(prev => ({ ...prev, start: nowTimeStr() }));
+  const handleQuickDateSelect = (date?: Date) => {
+    if (!date) return;
+    setQuickLine(prev => ({ ...prev, date: format(date, 'dd/MM/yyyy') }));
+  };
   const handleQuickStop = () => {
-    const stop = nowTimeStr();
-    const completed = { ...quickLine, stop };
+    const completed = { ...quickLine, stop: quickLine.stop || nowTimeStr() };
     if (invoiceMode === 'table') {
       syncRows([...invoiceRows, newInvoiceTableRow(completed.date || todayStr(), completed.start, completed.stop, completed.details)]);
     } else {
       setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
     }
-    setQuickLine({ date: todayStr(), start: '', stop: '', details: '' });
+    setQuickLine(prev => ({ date: prev.date, start: '', stop: '', details: '' }));
   };
 
   const stopVoiceRecording = async () => {
