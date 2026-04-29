@@ -22,12 +22,12 @@ export const stripDuplicateBlocks = (text: string): string => {
   let cleaned = text;
   cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*NOTES\s*$/gim, '');
   cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*DETAILS\s*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Date:\*?\*?.*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Time:\*?\*?.*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Location:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Date:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Time:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Location:\*?\*?.*$/gim, '');
   cleaned = cleaned.replace(/(?:^|\n)\s*#{0,6}\s*ATTENDEES\s*\n+\s*(?:[-•*]\s*)?(?:TBC|To be confirmed)\s*(?=\n|$)/gim, '\n');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Attendees?:\*?\*?\s*(?:TBC|To be confirmed)\s*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Attendees?:\*?\*?\s*(?:TBC|To be confirmed)\s*$/gim, '');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   return cleaned;
 };
@@ -69,7 +69,7 @@ export const convertToStyledHTML = (text: string): string => {
       let inTable = true;
       while (i < lines.length && inTable) {
         const currentLine = lines[i].trim();
-        if (/^[\|\-:\s]+$/.test(currentLine)) { i++; continue; }
+        if (/^[|:\s-]+$/.test(currentLine)) { i++; continue; }
         if (currentLine.startsWith('|')) {
           const cells = currentLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
           if (cells.length > 0) tableRows.push(cells);
@@ -134,12 +134,12 @@ export const convertToStyledHTML = (text: string): string => {
     }
 
     // Bullet points
-    if (line.match(/^[•\-]\s/) || (line.match(/^\*\s/) && !line.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
+    if (line.match(/^[•-]\s/) || (line.match(/^\*\s/) && !line.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
       let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
       while (i < lines.length) {
         const curLine = lines[i].trim();
-        if (curLine.match(/^[•\-]\s/) || (curLine.match(/^\*\s/) && !curLine.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
-          const itemText = stripInlineMarkdown(curLine.replace(/^[•\-\*]\s/, ''));
+        if (curLine.match(/^[•-]\s/) || (curLine.match(/^\*\s/) && !curLine.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
+          const itemText = stripInlineMarkdown(curLine.replace(/^[•*-]\s/, ''));
           listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
           i++;
         } else {
