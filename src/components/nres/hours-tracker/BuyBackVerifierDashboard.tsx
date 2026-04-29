@@ -9,7 +9,6 @@ import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpC
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
@@ -478,6 +477,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [invoiceRows, setInvoiceRows] = useState<InvoiceTableRow[]>(() => parseInvoiceTableDescription(savedInvoiceDescription));
   const [quickLine, setQuickLine] = useState({ date: todayStr(), start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement | null>(null);
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [voiceError, setVoiceError] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -502,6 +502,15 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     setInvoiceRows(parsedRows);
     setInvoiceMode(parsedRows.length ? 'table' : 'text');
   }, [claim.id, savedInvoiceDescription]);
+
+  useEffect(() => {
+    if (!datePickerOpen) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!datePickerRef.current?.contains(event.target as Node)) setDatePickerOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [datePickerOpen]);
 
   const syncRows = (rows: InvoiceTableRow[]) => {
     setInvoiceRows(rows);
@@ -632,27 +641,19 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
-                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <button style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}><CalendarIcon className="w-3.5 h-3.5" /> Date {quickLine.date}</button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0"
-                    side="bottom"
-                    align="start"
-                    sideOffset={4}
-                    avoidCollisions={false}
-                    onOpenAutoFocus={(event) => event.preventDefault()}
-                    onCloseAutoFocus={(event) => event.preventDefault()}
-                  >
-                    <div className="flex items-center justify-end border-b px-2 py-1">
-                      <button type="button" onClick={() => setDatePickerOpen(false)} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close calendar">
-                        <X className="h-4 w-4" />
-                      </button>
+                <div ref={datePickerRef} style={{ position: 'relative', display: 'inline-flex' }}>
+                  <button type="button" onClick={() => setDatePickerOpen(open => !open)} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}><CalendarIcon className="w-3.5 h-3.5" /> Date {quickLine.date}</button>
+                  {datePickerOpen && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 80, width: 294, borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', boxShadow: '0 12px 28px rgba(15,23,42,0.18)' }}>
+                      <div className="flex items-center justify-end border-b px-2 py-1">
+                        <button type="button" onClick={() => setDatePickerOpen(false)} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close calendar">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} className="p-3 pointer-events-auto" />
                     </div>
-                    <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
+                  )}
+                </div>
                 <Select value={quickLine.start || undefined} onValueChange={value => setQuickLine(prev => ({ ...prev, start: value }))}>
                   <SelectTrigger className="h-8 w-[112px] border-amber-300 bg-background text-amber-800 text-xs font-semibold"><SelectValue placeholder="Start" /></SelectTrigger>
                   <SelectContent className="max-h-72">{TIME_OPTIONS_15_MIN.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
