@@ -743,7 +743,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     let createdCount = 0;
     for (const staff of staffForClaim) {
       const staffAmount = calculateStaffMonthlyAmount(staff, monthDate, staff.start_date, rateParams);
-      const result = await createClaim(monthDate, [staff], staffAmount, staffAmount, practiceForClaim, rateParams);
+      const claimType = staff.staff_category === 'new_sda' || staff.staff_category === 'gp_locum' ? 'additional' : 'buyback';
+      const result = await createClaim(monthDate, [staff], staffAmount, staffAmount, practiceForClaim, rateParams, claimType);
       if (result) createdCount++;
     }
 
