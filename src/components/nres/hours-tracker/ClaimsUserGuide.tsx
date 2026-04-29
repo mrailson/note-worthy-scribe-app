@@ -96,7 +96,6 @@ function OverviewTab({ neighbourhoodName }: { neighbourhoodName: string }) {
       <CalloutBox type="sky">
         <p className="font-semibold mb-1">🗣️ Meeting Attendance</p>
         <p>GPs and Practice Managers paid per attended SDA governance meeting (e.g. clinical leads, neighbourhood board). Rates: <strong>£100/hr</strong> for Practice Partner (GP), <strong>£50/hr</strong> for Practice Managers.</p>
-        <p className="mt-1 text-xs">Hours are pulled <strong>automatically</strong> from the Meeting Schedule attendance log — no manual entry.</p>
       </CalloutBox>
 
       <CalloutBox type="slate">
