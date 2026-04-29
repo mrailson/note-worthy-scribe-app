@@ -30,10 +30,12 @@ export const useMeetingImporter = () => {
 
     try {
       // Step 1: Create meeting record
+      const importSource = data.source === 'audio_import' ? 'audio_import' : 'transcript_import';
       const meetingData = {
         user_id: user.id,
         title: data.isDemo ? `🎭 ${data.title}` : data.title,
         start_time: new Date().toISOString(),
+        import_source: importSource,
       };
 
       setProgress(30);
