@@ -231,6 +231,8 @@ export function StaffLineEvidence({
   const uploadedCount = allFilesForStaff?.length || Object.keys(uploadedTypesForStaff).length;
   const mandatoryTypes = allTypes.filter(t => t.is_mandatory);
   const mandatoryUploaded = mandatoryTypes.filter(t => !!uploadedTypesForStaff[t.evidence_type]).length;
+  const staffClaimTypeLabel = ({ buyback: 'Buy-Back', new_sda: 'New SDA', management: 'NRES Management', gp_locum: 'GP Locum' } as Record<typeof staffCategory, string>)[staffCategory];
+  const tooltipRows = visibleTypes.length > 0 ? visibleTypes : allTypes;
 
   // Generate fallback AI summary
   const aiSummary = useMemo(() => {
@@ -263,6 +265,33 @@ export function StaffLineEvidence({
       <div className="px-4 py-1.5 flex items-center gap-2">
         <FileText className="w-3.5 h-3.5 text-primary" />
         <span className="text-[11px] font-semibold text-primary">Evidence</span>
+        <TooltipProvider>
+          <Tooltip delayDuration={150}>
+            <TooltipTrigger asChild>
+              <button type="button" className="inline-flex h-5 w-5 items-center justify-center rounded-full text-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40" aria-label={`${staffClaimTypeLabel} supporting evidence requirements`}>
+                <Info className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" align="start" className="max-w-sm p-3 text-xs">
+              <div className="space-y-2">
+                <p className="font-semibold text-sm">{staffClaimTypeLabel} evidence required</p>
+                {tooltipRows.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {tooltipRows.map(row => (
+                      <li key={row.id}>
+                        <span className="font-medium">{row.evidence_type === 'other_supporting' ? 'Supporting Evidence' : row.label}</span>
+                        {row.is_mandatory && <span className="ml-1 text-destructive">Required</span>}
+                        {row.description && <span className="block text-muted-foreground">{row.description}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">Evidence requirements are loading. Add any relevant supporting documents requested for this claim.</p>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Badge variant="outline" className="text-[10px] ml-auto">
           {uploadedCount} uploaded
           {mandatoryUploaded < mandatoryTypes.length && (
