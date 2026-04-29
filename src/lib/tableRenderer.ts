@@ -108,11 +108,21 @@ export function parseMarkdownTable(tableMarkdown: string): TableData | null {
   const separatorIndex = lines.findIndex((line, index) => index > headerIndex && isMarkdownSeparatorRow(line));
   if (separatorIndex === -1) return null;
 
-  const headers = makeHeadersUnique(splitMarkdownTableRow(lines[headerIndex]));
+  let headers = makeHeadersUnique(splitMarkdownTableRow(lines[headerIndex]));
   if (headers.length < 2) return null;
 
-  const rows = lines
-    .slice(separatorIndex + 1)
+  const dataLines = lines.slice(separatorIndex + 1);
+  const firstDataCells = dataLines.find(line => looksLikeMarkdownTableRow(line) && !isMarkdownSeparatorRow(line));
+  const firstCellCount = firstDataCells ? splitMarkdownTableRow(firstDataCells).length : headers.length;
+
+  // Some generated notes accidentally prepend the section title to the header row,
+  // e.g. `| Action | Owner | Action | Due Date |` while data rows have 3 cells.
+  // Drop that synthetic first header so the table aligns again.
+  if (headers.length === firstCellCount + 1 && /^action items?$|^actions?$/i.test(headers[0])) {
+    headers = makeHeadersUnique(headers.slice(1));
+  }
+
+  const rows = dataLines
     .filter(line => looksLikeMarkdownTableRow(line) && !isMarkdownSeparatorRow(line))
     .map(row => {
       const cells = splitMarkdownTableRow(row);
