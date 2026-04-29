@@ -138,6 +138,8 @@ type InvoiceTableRow = { id: string; date: string; start: string; stop: string; 
 const INVOICE_TABLE_START = '[[INVOICE_TABLE]]';
 const INVOICE_TABLE_END = '[[/INVOICE_TABLE]]';
 const DESCRIPTION_LIMIT = 1500;
+const DEFAULT_START_TIME = '08:00';
+const DEFAULT_STOP_TIME = '17:00';
 
 const todayStr = () => format(new Date(), 'dd/MM/yyyy');
 const nowTimeStr = () => format(new Date(), 'HH:mm');
@@ -474,7 +476,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoiceMode, setInvoiceMode] = useState<'text' | 'table'>(parseInvoiceTableDescription(savedInvoiceDescription).length ? 'table' : 'text');
   const [invoiceRows, setInvoiceRows] = useState<InvoiceTableRow[]>(() => parseInvoiceTableDescription(savedInvoiceDescription));
-  const [quickLine, setQuickLine] = useState({ date: todayStr(), start: '', stop: '', details: '' });
+  const [quickLine, setQuickLine] = useState({ date: todayStr(), start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' });
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [voiceError, setVoiceError] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -510,13 +512,13 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     setQuickLine(prev => ({ ...prev, date: format(date, 'dd/MM/yyyy') }));
   };
   const handleQuickStop = () => {
-    const completed = { ...quickLine, stop: quickLine.stop || nowTimeStr() };
+    const completed = { ...quickLine, start: quickLine.start || DEFAULT_START_TIME, stop: quickLine.stop || DEFAULT_STOP_TIME };
     if (invoiceMode === 'table') {
       syncRows([...invoiceRows, newInvoiceTableRow(completed.date || todayStr(), completed.start, completed.stop, completed.details)]);
     } else {
       setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
     }
-    setQuickLine(prev => ({ date: prev.date, start: '', stop: '', details: '' }));
+    setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' }));
   };
 
   const stopVoiceRecording = async () => {
