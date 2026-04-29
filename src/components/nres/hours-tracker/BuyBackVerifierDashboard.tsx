@@ -638,7 +638,10 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
             </div>
           ) : (claim as any).practice_notes && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <strong>Invoice description:</strong> {(claim as any).practice_notes}
+              <strong>Invoice description:</strong>
+              {parseInvoiceTableDescription((claim as any).practice_notes).length ? (
+                <div style={{ marginTop: 6, overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: 12 }}><thead><tr>{['Date', 'Start', 'Stop', 'Details'].map(h => <th key={h} style={{ textAlign: 'left', padding: '5px 7px', border: '1px solid #fde68a', color: '#78350f' }}>{h}</th>)}</tr></thead><tbody>{parseInvoiceTableDescription((claim as any).practice_notes).map(row => <tr key={row.id}><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.date}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.start}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.stop}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.details}</td></tr>)}</tbody></table></div>
+              ) : ` ${(claim as any).practice_notes}`}
               <button
                 onClick={() => setInvoicePreviewOpen(true)}
                 style={{ marginLeft: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
