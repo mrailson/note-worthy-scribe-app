@@ -1685,10 +1685,10 @@ export const generateProfessionalWordBlob = async (
   
   // Convert provided action items to internal format
   const actionItems: ParsedActionItem[] = (parsedActionItems || []).map(item => ({
-    action: item.action,
-    owner: item.owner.replace(/^@/, ''),
-    deadline: item.deadline,
-    priority: item.priority,
+    action: item.action || 'Action not specified',
+    owner: (item.owner || 'Unassigned').replace(/^@/, ''),
+    deadline: item.deadline || 'TBC',
+    priority: item.priority || 'Medium',
     status: item.status === 'Completed' ? 'Done' : item.status === 'In Progress' ? 'In Progress' : 'Open',
     isCompleted: item.isCompleted,
   }));
@@ -1795,10 +1795,10 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   
   // Convert provided action items to internal format
   const actionItems: ParsedActionItem[] = options.actionItems.map(item => ({
-    action: item.action,
-    owner: item.owner.replace(/^@/, ''), // Remove leading @ if present
-    deadline: item.deadline,
-    priority: item.priority,
+    action: item.action || 'Action not specified',
+    owner: (item.owner || 'Unassigned').replace(/^@/, ''), // Remove leading @ if present
+    deadline: item.deadline || 'TBC',
+    priority: item.priority || 'Medium',
     status: item.status === 'Completed' ? 'Done' : item.status === 'In Progress' ? 'In Progress' : 'Open',
     isCompleted: item.isCompleted,
   }));

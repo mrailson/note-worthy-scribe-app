@@ -1163,9 +1163,9 @@ export const MeetingHistoryList = ({
               : 'Open';
 
         return {
-          action: item.action_text,
+          action: item.action_text || 'Action not specified',
           owner: item.assignee_name || 'Unassigned',
-          deadline: item.due_date || undefined,
+          deadline: item.due_date || 'TBC',
           priority: item.priority || 'medium',
           status: statusLabel,
           isCompleted: statusLabel === 'Completed',
@@ -1174,9 +1174,10 @@ export const MeetingHistoryList = ({
 
       await generateProfessionalWordFromContent(notes, meeting.title, parsedDetails, parsedActionItems);
       toast.success('Word document downloaded successfully');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error downloading Word document:', error);
-      toast.error('Failed to download Word document');
+      const message = error instanceof Error ? error.message : '';
+      toast.error(message ? `Failed to download Word document: ${message}` : 'Failed to download Word document');
     }
   };
 
