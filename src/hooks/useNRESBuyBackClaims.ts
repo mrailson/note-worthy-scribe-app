@@ -91,6 +91,9 @@ export interface RateParams {
   bankHolidaysInMonth?: number;
   /** Detailed bank holiday info for display */
   bankHolidayDetails?: { name: string; formatted: string }[];
+  /** Fixed meeting attendance rates used when creating attendance claimants */
+  meetingGpRate?: number;
+  meetingPmRate?: number;
 }
 
 /** GP Locum constants */

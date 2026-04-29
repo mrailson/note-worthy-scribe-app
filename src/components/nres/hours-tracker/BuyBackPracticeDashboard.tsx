@@ -1937,20 +1937,27 @@ export function StaffRosterSection({
   const [addAllocType, setAddAllocType] = useState<'sessions'|'wte'|'hours'|'daily'>('sessions');
   const [addAllocValue, setAddAllocValue] = useState('');
   const [addHourlyRate, setAddHourlyRate] = useState('');
+  const [addCategory, setAddCategory] = useState(category);
   const [addSaving, setAddSaving] = useState(false);
+  const meetingAttendanceRoles = useMemo(() => [
+    { label: 'Practice Manager', rate: rateParams?.meetingPmRate ?? 50 },
+    { label: 'GP Partner', rate: rateParams?.meetingGpRate ?? 100 },
+  ], [rateParams?.meetingGpRate, rateParams?.meetingPmRate]);
+  const selectedMeetingRole = meetingAttendanceRoles.find(r => r.label === addRole) ?? meetingAttendanceRoles[0];
+  const isAddingMeeting = addCategory === 'meeting';
 
   const handleAddStaff = async () => {
-    if (!addName.trim() || !addRole || !addAllocValue) return;
+    if (!addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)) return;
     setAddSaving(true);
     try {
       await onAddStaff?.({
         staff_name: addName.trim(),
         staff_role: addRole,
-        allocation_type: addAllocType,
-        allocation_value: Number(addAllocValue),
-        hourly_rate: Number(addHourlyRate) || 0,
+        allocation_type: isAddingMeeting ? 'hours' : addAllocType,
+        allocation_value: isAddingMeeting ? 0 : Number(addAllocValue),
+        hourly_rate: isAddingMeeting ? selectedMeetingRole.rate : Number(addHourlyRate) || 0,
         is_active: true,
-        staff_category: category as any,
+        staff_category: addCategory as any,
         practice_key: practiceKey || null,
         start_date: null,
       });
@@ -1996,7 +2003,7 @@ export function StaffRosterSection({
           )}
         </div>
         {showAddButton && onAddStaff && (
-          <button onClick={(e) => { e.stopPropagation(); setShowAddForm(prev => !prev); }} style={{
+          <button onClick={(e) => { e.stopPropagation(); setAddCategory(category); setShowAddForm(prev => !prev); }} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px',
             borderRadius: 6, border: `1px solid ${accent}40`, background: showAddForm ? `${accent}15` : '#fff',
             color: accent, fontSize: 11, fontWeight: 600, cursor: 'pointer',
@@ -2010,6 +2017,19 @@ export function StaffRosterSection({
       {showAddForm && onAddStaff && (
         <div style={{ padding: '12px 14px', background: '#fafbfc', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 10 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
+            {category === 'management' && (
+              <div style={{ flex: '0 1 150px', minWidth: 130 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Claim type</div>
+                <select
+                  value={addCategory}
+                  onChange={(e) => { setAddCategory(e.target.value); setAddRole(''); setAddAllocValue(e.target.value === 'meeting' ? '0' : ''); }}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="management">NRES Management</option>
+                  <option value="meeting">Meeting Attendance</option>
+                </select>
+              </div>
+            )}
             <div style={{ flex: '1 1 140px', minWidth: 120 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Name</div>
               <input
@@ -2021,7 +2041,16 @@ export function StaffRosterSection({
             </div>
             <div style={{ flex: '1 1 120px', minWidth: 100 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Role</div>
-              {staffRoles && staffRoles.length > 0 ? (
+              {isAddingMeeting ? (
+                <select
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="">Select role</option>
+                  {meetingAttendanceRoles.map(r => <option key={r.label} value={r.label}>{r.label} — {fmtGBP(r.rate)}/hr</option>)}
+                </select>
+              ) : staffRoles && staffRoles.length > 0 ? (
                 <select
                   value={addRole}
                   onChange={(e) => setAddRole(e.target.value)}
@@ -2039,7 +2068,7 @@ export function StaffRosterSection({
                 />
               )}
             </div>
-            <div style={{ flex: '0 1 100px', minWidth: 80 }}>
+            {!isAddingMeeting && <div style={{ flex: '0 1 100px', minWidth: 80 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Allocation type</div>
               <select
                 value={addAllocType}
@@ -2051,8 +2080,8 @@ export function StaffRosterSection({
                 <option value="hours">Hours/wk</option>
                 <option value="daily">Days/mo</option>
               </select>
-            </div>
-            <div style={{ flex: '0 1 70px', minWidth: 60 }}>
+            </div>}
+            {!isAddingMeeting && <div style={{ flex: '0 1 70px', minWidth: 60 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Value</div>
               <input
                 type="number"
@@ -2061,7 +2090,7 @@ export function StaffRosterSection({
                 placeholder="e.g. 4"
                 style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
               />
-            </div>
+            </div>}
             {category === 'gp_locum' && (
               <div style={{ flex: '0 1 80px', minWidth: 70 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Session rate £</div>
@@ -2074,10 +2103,10 @@ export function StaffRosterSection({
                 />
               </div>
             )}
-            <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addAllocValue} style={{
+            <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)} style={{
               padding: '7px 16px', borderRadius: 7, border: 'none', background: accent,
               color: '#fff', fontSize: 12, fontWeight: 600, cursor: addSaving ? 'not-allowed' : 'pointer',
-              opacity: (addSaving || !addName.trim() || !addAllocValue) ? 0.5 : 1,
+              opacity: (addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)) ? 0.5 : 1,
             }}>
               {addSaving ? 'Saving…' : 'Add'}
             </button>
@@ -2194,8 +2223,21 @@ export function StaffRosterSection({
                           practiceKey={practiceKey || ''}
                           entries={meetingLogEntries || []}
                           onAdd={async (name, date, hours) => {
-                            const cfg = managementRoles?.find(r => r.key === member.id);
-                            if (cfg && onAddMeetingEntry) await onAddMeetingEntry(practiceKey || '', cfg, name, date, hours);
+                            const cfg = managementRoles?.find(r => r.key === member.id) ?? {
+                              key: member.id,
+                              label: member.staff_role,
+                              person_name: member.staff_name,
+                              person_email: '',
+                              hourly_rate: member.hourly_rate || 0,
+                              max_hours_per_week: 0,
+                              billing_entity: getPracticeName(practiceKey || ''),
+                              billing_org_code: NRES_ODS_CODES[practiceKey || ''] || '',
+                              gl_code: 'PML',
+                              is_active: true,
+                              role_type: 'attending_meeting' as const,
+                              member_practice: practiceKey,
+                            };
+                            if (onAddMeetingEntry) await onAddMeetingEntry(practiceKey || '', cfg, name, date, hours);
                           }}
                           onDelete={async (id) => { if (onDeleteMeetingEntry) await onDeleteMeetingEntry(id); }}
                           onSubmit={async () => { if (onSubmitMeetingEntries) await onSubmitMeetingEntries(practiceKey || '', activeMonth.monthDate.slice(0, 7)); }}

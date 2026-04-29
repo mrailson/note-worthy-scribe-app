@@ -88,7 +88,8 @@ export function MeetingScheduleSection({
   };
 
   const getStaffRate = (staff: BuyBackStaffMember) => {
-    return staff.staff_role === 'GP' ? meetingGpRate : meetingPmRate;
+    if ((staff.hourly_rate || 0) > 0) return staff.hourly_rate;
+    return /gp/i.test(staff.staff_role) ? meetingGpRate : meetingPmRate;
   };
 
   const totalMeetingHours = staffForPractice.reduce((sum, s) => sum + getStaffTotalHours(s.id), 0);

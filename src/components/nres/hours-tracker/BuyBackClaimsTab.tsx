@@ -128,6 +128,13 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [selectedMgmtKey, setSelectedMgmtKey] = useState('');
 
+  const meetingAttendanceRoles = useMemo(() => [
+    { label: 'Practice Manager', rate: rateParams?.meetingPmRate ?? 50 },
+    { label: 'GP Partner', rate: rateParams?.meetingGpRate ?? 100 },
+  ], [rateParams?.meetingGpRate, rateParams?.meetingPmRate]);
+
+  const selectedMeetingRole = meetingAttendanceRoles.find(r => r.label === role) ?? meetingAttendanceRoles[0];
+
   // Management category only available for bugbrooke and bt_pcn
   const managementPractices = ['bugbrooke', 'bt_pcn'];
   const canShowManagement = managementPractices.includes(practice);
@@ -184,7 +191,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       setName('');
       setSelectedMgmtKey('');
     } else if (newCat === 'meeting') {
-      setRole('GP');
+      setRole(meetingAttendanceRoles[0].label);
       setAllocType('hours');
       setAllocValue('0');
       setName('');
@@ -241,7 +248,7 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
       staff_role: role,
       allocation_type: allocType,
       allocation_value: numVal,
-      hourly_rate: selectedMgmtRole?.hourly_rate ?? 0,
+      hourly_rate: isMeeting ? selectedMeetingRole.rate : selectedMgmtRole?.hourly_rate ?? 0,
       is_active: true,
       staff_category: category,
       practice_key: practice,
@@ -305,8 +312,9 @@ function AddStaffForm({ saving, onAdd, staffRoles, rateParams, practiceKeys, pra
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="GP">GP</SelectItem>
-                <SelectItem value="PM">PM</SelectItem>
+                {meetingAttendanceRoles.map(r => (
+                  <SelectItem key={r.label} value={r.label}>{r.label} — {fmtGBP(r.rate)}/hr</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           ) : (
@@ -563,6 +571,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     workingDaysInMonth: calcWorkingDays(claimMonthDate),
     bankHolidaysInMonth: bankHolidaysForMonth,
     bankHolidayDetails: bankHolidayDetailsForMonth,
+    meetingGpRate: rateSettings.meeting_gp_rate,
+    meetingPmRate: rateSettings.meeting_pm_rate,
   };
 
   const { roles, loading: loadingRoles, isPMLFinance, isPMLDirector, isAnyPML, isManagementLead, isSuperAdmin } = useNRESSystemRoles();
