@@ -38,8 +38,17 @@ const CLAIM_TYPE_CONFIG = {
  * Returns null for NRES Management (no PML GL code).
  */
 export function getGLCode(claimType: ClaimType, role: string): string | null {
-  // Normalise role — GP Locum, GP Standard, GP Partner all map to GP
-  const normalisedRole = role.startsWith('GP') ? 'GP' : role;
+  const roleText = (role || '').trim().toUpperCase();
+  // Normalise common role labels — GP Locum, GP Standard, GP Partner, etc. all map to GP.
+  const normalisedRole = roleText.includes('NRES MANAGEMENT')
+    ? 'NRES Management'
+    : roleText.includes('ANP')
+      ? 'ANP'
+      : roleText.includes('ACP')
+        ? 'ACP'
+        : roleText.includes('GP') || roleText.includes('GENERAL PRACTITIONER')
+          ? 'GP'
+          : role;
   if (normalisedRole === 'NRES Management') return null;
   return GL_CODES[claimType]?.[normalisedRole] ?? null;
 }
