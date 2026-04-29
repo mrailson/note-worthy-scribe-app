@@ -4,7 +4,7 @@ import { getPracticeName, getOdsCode } from '@/data/nresPractices';
 import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
-import { getGLCode } from '@/utils/glCodes';
+import { getGLCode, getGLInvoiceLabel } from '@/utils/glCodes';
 
 interface InvoiceData {
   claim: BuyBackClaim;
@@ -157,7 +157,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     i + 1,
     s.staff_name || '—',
     s.staff_role || '—',
-    resolveGLCode(s) || 'N/A',
+    getGLInvoiceLabel(resolveGLCode(s)),
     s.staff_category === 'gp_locum'
       ? (s.allocation_type === 'daily'
         ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''} @ £750/day`
@@ -207,7 +207,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
 
   let lineY = finalY;
   glEntries.forEach(([code, amount]) => {
-    doc.text(`GL ${code}:`, 124, lineY);
+    doc.text(`GL ${getGLInvoiceLabel(code)}:`, 124, lineY);
     doc.text(fmt(amount), 192, lineY, { align: 'right' });
     lineY += 6;
   });
