@@ -15,6 +15,8 @@ export interface MeetingEmailMeta {
   attendees?: string[];
 }
 
+import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
+
 /** Strip duplicate/redundant heading blocks from notes content */
 export const stripDuplicateBlocks = (text: string): string => {
   let cleaned = text;
@@ -32,7 +34,7 @@ export const stripDuplicateBlocks = (text: string): string => {
 
 /** Convert markdown notes content to styled HTML for email body */
 export const convertToStyledHTML = (text: string): string => {
-  const cleanedText = stripDuplicateBlocks(text);
+  const cleanedText = normaliseMeetingNotesFormatting(stripDuplicateBlocks(text));
   let processedText = cleanedText
     .replace(/\\\*/g, '')
     .replace(/\*{3,}/g, '**')
@@ -61,14 +63,14 @@ export const convertToStyledHTML = (text: string): string => {
   while (i < lines.length) {
     const line = lines[i].trim();
 
-    // Handle tables
-    if (line.includes('|')) {
+    // Handle well-formed markdown tables only; loose pipe rows are normalised earlier.
+    if (line.startsWith('|')) {
       const tableRows: string[][] = [];
       let inTable = true;
       while (i < lines.length && inTable) {
         const currentLine = lines[i].trim();
-        if (/^[\|\-\s]+$/.test(currentLine)) { i++; continue; }
-        if (currentLine.includes('|')) {
+        if (/^[\|\-:\s]+$/.test(currentLine)) { i++; continue; }
+        if (currentLine.startsWith('|')) {
           const cells = currentLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
           if (cells.length > 0) tableRows.push(cells);
           i++;
@@ -165,6 +167,13 @@ export const convertToStyledHTML = (text: string): string => {
       } else {
         html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
       }
+      i++; continue;
+    }
+
+    // Governance decision labels must remain visually clear in Outlook.
+    const governanceMatch = line.match(/^[-•*]?\s*\*{0,2}(RESOLVED|AGREED|NOTED)\*{0,2}\s*[—:-]?\s*(.*)$/i);
+    if (governanceMatch) {
+      html += `<p style="margin: 8px 0 8px 20px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a;"><strong style="color: #000000;">${governanceMatch[1].toUpperCase()}</strong>${governanceMatch[2] ? ` — ${stripInlineMarkdown(governanceMatch[2])}` : ''}</p>\n`;
       i++; continue;
     }
 
