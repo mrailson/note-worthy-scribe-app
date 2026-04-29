@@ -949,7 +949,7 @@ const VerificationLogView = ({ claims, userEmail }: { claims: BuyBackClaim[]; us
 type QueueTab = 'queue' | 'verified_by_me' | 'returned' | 'all';
 type ListView = 'by_practice' | 'individual' | 'verification_log' | 'spreadsheet';
 
-export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim, onGuideOpen, onSettingsOpen, showSettings, meetingEntries, onVerifyMeetingEntries, onReturnMeetingEntries, userEmail, userName }: VerifierDashboardProps) {
+export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, onUpdateClaimNotes, savingClaim, onGuideOpen, onSettingsOpen, showSettings, meetingEntries, onVerifyMeetingEntries, onReturnMeetingEntries, userEmail, userName }: VerifierDashboardProps) {
   const [queueTab, setQueueTab] = useState<QueueTab>('queue');
   const [listView, setListView] = useState<ListView>('individual');
   const [period, setPeriod] = useState('all');
@@ -1341,6 +1341,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
                     onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
                     onVerify={onVerify}
                     onReturn={onReturnToPractice}
+                    onUpdateClaimNotes={onUpdateClaimNotes}
                     saving={savingClaim}
                     profileNames={profileNames}
                   />
