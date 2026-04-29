@@ -140,6 +140,7 @@ import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal"
 import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
 import { NotesViewSettingsPopover } from "@/components/meeting-details/NotesViewSettingsPopover";
 import { CorrectionManager } from "@/components/CorrectionManager";
+import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
 
 interface Meeting {
   id: string;
@@ -218,7 +219,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       fetchDocumentCount();
     }
   }, [isOpen, meeting?.id]);
-  const [notesContent, setNotesContent] = useState(notes);
+  const [notesContent, setNotesContent] = useState(() => normaliseMeetingNotesFormatting(notes));
   const [generationMetadata, setGenerationMetadata] = useState<any>(null);
   const [consolidationTiming, setConsolidationTiming] = useState<any>(null);
   const [transcript, setTranscript] = useState('');
