@@ -564,12 +564,6 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               <InfoBlock label="BACS ref" value={(claim as any).bacs_reference} />
             )}
             {claim.paid_at && <InfoBlock label="Paid" value={new Date(claim.paid_at).toLocaleDateString('en-GB')} highlight="#166534" />}
-            {!isManagement && (
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                <EvidencePill label="Part A" met={!!hasPartA} />
-                <EvidencePill label="Part B" met={hasPartB} />
-              </div>
-            )}
           </div>
 
           {/* Practice notes */}
@@ -1242,16 +1236,20 @@ export function BuyBackPMLDashboard({
   useEffect(() => {
     if (hideDirectorTab) {
       setView('finance');
+      setStatusFilterRaw('invoiced');
+      try { sessionStorage.setItem('nres-pml-statusFilter-finance', 'invoiced'); } catch {}
       return;
     }
 
     if (hideFinanceTab) {
       setView('director');
+      setStatusFilterRaw('awaiting_review');
       return;
     }
 
     if (defaultView) {
       setView(defaultView);
+      setStatusFilterRaw(defaultView === 'finance' ? 'invoiced' : 'awaiting_review');
     }
   }, [defaultView, hideDirectorTab, hideFinanceTab]);
 
