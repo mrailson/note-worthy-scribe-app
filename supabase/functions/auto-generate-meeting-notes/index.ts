@@ -1533,11 +1533,14 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
       console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
     }
 
-    // Format start time in GMT 24-hour format
+    // Format start time in UK local time (BST/GMT) so the label tracks the actual timezone
     const startTime = meeting.start_time ? new Date(meeting.start_time) : new Date(meeting.created_at);
-    const hours = String(startTime.getUTCHours()).padStart(2, '0');
-    const minutes = String(startTime.getUTCMinutes()).padStart(2, '0');
-    const formattedStartTime = `${hours}:${minutes} GMT`;
+    const formattedStartTime = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    }).format(startTime);
 
     const userPrompt = `Meeting Title: ${generatedTitle}
 Meeting Date: ${formattedDate}
