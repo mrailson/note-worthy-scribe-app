@@ -818,7 +818,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               : ccList;
 
             // Build approved-items rows + GL subtotals
-            const totalAmount = Object.values(glSummary).reduce((sum, amount) => sum + amount, 0);
+            const glSummaryEntries = Object.entries(glSummary as Record<string, number>);
+            const totalAmount = glSummaryEntries.reduce((sum, [, amount]) => sum + amount, 0);
             const totalLabel = `£${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const fmtAmt = (n: number) => `£${(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const itemsRows = (staffDetails || []).map((s: any) => {
@@ -841,8 +842,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                 <td style="padding:8px 6px;font-size:13px;color:#111;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(s.claimed_amount || 0)}</td>
               </tr>`;
             }).join('');
-            const glSubtotalRows = Object.entries(glSummary).length > 1
-              ? Object.entries(glSummary).sort(([a], [b]) => a.localeCompare(b)).map(([gl, amount]) => `
+            const glSubtotalRows = glSummaryEntries.length > 1
+              ? glSummaryEntries.sort(([a], [b]) => a.localeCompare(b)).map(([gl, amount]) => `
               <tr style="background:#f8fafc;">
                 <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GL ${gl}</td>
                 <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(amount)}</td>
