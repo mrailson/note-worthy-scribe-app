@@ -1158,7 +1158,7 @@ function InlineClaimPanel({
                   }}
                 />
                 <button
-                  onClick={async () => { await onUpdateClaimNotes?.(claim.id, invoiceDescription); onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
+                  onClick={() => { onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
                   disabled={saving}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 16px',
@@ -3351,7 +3351,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                   style={{ flex: 1, minWidth: 250, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
                 <button
-                  onClick={() => { onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
+                  onClick={async () => { await onUpdateClaimNotes?.(claim.id, invoiceDescription); onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
                   disabled={saving}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 18px',
