@@ -2426,6 +2426,7 @@ export function ClaimsViewSwitcher({
   expandedClaimId,
   onSubmit,
   onResubmit,
+  onUpdateClaimNotes,
   saving,
   // Director-mode extensions (all optional, off by default)
   directorMode = false,
