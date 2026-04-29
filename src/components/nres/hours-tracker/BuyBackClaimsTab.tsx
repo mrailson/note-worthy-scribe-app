@@ -918,7 +918,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams, claimType, holidayWeeksDeducted ?? 0);
           } : undefined}
           onAddStaff={canSubmitForPractice ? addStaff : undefined}
-          onRemoveStaff={isAdmin ? undefined : (canSubmitForPractice ? removeStaff : undefined)}
+          onRemoveStaff={canSubmitForPractice ? removeStaff : undefined}
           onUpdateStaff={canSubmitForPractice ? updateStaff : undefined}
           staffRoles={staffRoles}
           rateParams={rateParams}
