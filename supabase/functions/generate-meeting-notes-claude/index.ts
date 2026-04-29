@@ -306,11 +306,13 @@ Format each entry as:
 
 **ACTION ITEMS**
 
-| Action | Owner | Deadline |
-|--------|-------|----------|
-| [Specific action] | [Named person or TBC] | [Date or TBC] |
+| Action | Owner | Deadline | Priority |
+|--------|-------|----------|----------|
+| [Specific action] | [Named person or TBC] | [Date or TBC] | High/Medium/Low |
 
-Extract EVERY action committed to in the transcript, including informal ones ("I'll do that by Tuesday", "Amanda, can you check..."). If no owner was named, write "TBC". If no deadline was stated, write "TBC".
+Extract EVERY action committed to in the transcript, including informal ones ("I'll do that by Tuesday", "Amanda, can you check..."). If no owner was named, write "TBC". If no deadline was stated, write "TBC". Use Priority "High" for urgent or time-critical items, "Medium" by default, "Low" for nice-to-have items.
+
+Always emit the columns in this exact order: Action, Owner, Deadline, Priority. Never reorder them. Never rename "Owner" to "Responsible Party" or any other label.
 
 ---
 ${params.lengthInstruction || ''}
