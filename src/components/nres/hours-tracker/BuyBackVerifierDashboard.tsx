@@ -520,7 +520,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     } else {
       setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
     }
-    setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' }));
+    setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: prev.details }));
   };
 
   const stopVoiceRecording = async () => {
