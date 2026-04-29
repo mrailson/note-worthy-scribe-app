@@ -4,6 +4,8 @@
  * to produce consistent, professional NHS-branded email output.
  */
 
+import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
+
 export interface MeetingEmailMeta {
   date?: string;
   time?: string;
@@ -14,8 +16,6 @@ export interface MeetingEmailMeta {
   wordCount?: number;
   attendees?: string[];
 }
-
-import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
 
 /** Strip duplicate/redundant heading blocks from notes content */
 export const stripDuplicateBlocks = (text: string): string => {
