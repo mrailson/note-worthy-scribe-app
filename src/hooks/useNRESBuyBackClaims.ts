@@ -772,7 +772,6 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       const freshClaim = (data as BuyBackClaim) || claim;
       const staffDetails = (freshClaim?.staff_details as any[]) || [];
       const glSummary = staffDetails.reduce((summary: Record<string, number>, s) => {
-        const storedCode = s.gl_code || s.gl_category;
         const glCode = getSDAClaimGLCode(s, freshClaim?.claim_type || 'buyback') || 'N/A';
         summary[glCode] = (summary[glCode] || 0) + (s.claimed_amount || 0);
         return summary;
@@ -879,7 +878,6 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             const totalLabel = `£${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const fmtAmt = (n: number) => `£${(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const itemsRows = (staffDetails || []).map((s: any) => {
-              const storedCode = s.gl_code || s.gl_category;
               const gl = getSDAClaimGLCode(s, freshClaim?.claim_type || 'buyback') || 'N/A';
               const sessions = s.allocation_type === 'sessions'
                 ? `${s.allocation_value ?? 0}`
