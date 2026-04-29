@@ -1937,20 +1937,27 @@ export function StaffRosterSection({
   const [addAllocType, setAddAllocType] = useState<'sessions'|'wte'|'hours'|'daily'>('sessions');
   const [addAllocValue, setAddAllocValue] = useState('');
   const [addHourlyRate, setAddHourlyRate] = useState('');
+  const [addCategory, setAddCategory] = useState(category);
   const [addSaving, setAddSaving] = useState(false);
+  const meetingAttendanceRoles = useMemo(() => [
+    { label: 'Practice Manager', rate: rateParams?.meetingPmRate ?? 50 },
+    { label: 'GP Partner', rate: rateParams?.meetingGpRate ?? 100 },
+  ], [rateParams?.meetingGpRate, rateParams?.meetingPmRate]);
+  const selectedMeetingRole = meetingAttendanceRoles.find(r => r.label === addRole) ?? meetingAttendanceRoles[0];
+  const isAddingMeeting = addCategory === 'meeting';
 
   const handleAddStaff = async () => {
-    if (!addName.trim() || !addRole || !addAllocValue) return;
+    if (!addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)) return;
     setAddSaving(true);
     try {
       await onAddStaff?.({
         staff_name: addName.trim(),
         staff_role: addRole,
-        allocation_type: addAllocType,
-        allocation_value: Number(addAllocValue),
-        hourly_rate: Number(addHourlyRate) || 0,
+        allocation_type: isAddingMeeting ? 'hours' : addAllocType,
+        allocation_value: isAddingMeeting ? 0 : Number(addAllocValue),
+        hourly_rate: isAddingMeeting ? selectedMeetingRole.rate : Number(addHourlyRate) || 0,
         is_active: true,
-        staff_category: category as any,
+        staff_category: addCategory as any,
         practice_key: practiceKey || null,
         start_date: null,
       });
