@@ -75,6 +75,12 @@ function isAdmin(email: string | null | undefined): boolean {
 const DEFAULT_GP_SESSION_ANNUAL = 11000 * 1.2938;
 const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
 
+function resolveClaimTypeFromStaff(staffMember: Pick<BuyBackStaffMember, 'staff_category'>, fallback: ClaimType = 'buyback'): ClaimType {
+  if (staffMember.staff_category === 'new_sda' || staffMember.staff_category === 'gp_locum') return 'additional';
+  if (staffMember.staff_category === 'buyback') return 'buyback';
+  return fallback;
+}
+
 export interface RateParams {
   onCostMultiplier: number;
   getRoleAnnualRate?: (roleLabel: string) => number | undefined;
@@ -332,9 +338,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       // This keeps Practice/Management dashboards (which sum staff_details.claimed_amount)
       // in sync with PML view & invoices (which read top-level claimed_amount).
       const isSingleLineClaim = staffMembers.length === 1;
+      const effectiveClaimType = staffMembers.length === 1
+        ? resolveClaimTypeFromStaff(staffMembers[0], claimType)
+        : claimType;
       const staffSnapshot = staffMembers.map(s => {
         const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date, rateParams);
-        const glCode = getGLCode(claimType, s.staff_role);
+        const lineClaimType = resolveClaimTypeFromStaff(s, effectiveClaimType);
+        const glCode = getGLCode(lineClaimType, s.staff_role);
         const lineClaimedAmount = isSingleLineClaim && claimedAmount > 0 && claimedAmount !== maxAmount
           ? claimedAmount
           : maxAmount;
@@ -359,7 +369,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .insert({
           user_id: user.id,
           claim_month: claimMonth,
-          claim_type: claimType,
+          claim_type: effectiveClaimType,
           staff_details: staffSnapshot,
           calculated_amount: calculatedAmount,
           claimed_amount: claimedAmount,
@@ -709,12 +719,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       // Use fresh DB data (not stale local state) for invoice generation
       const freshClaim = (data as BuyBackClaim) || claim;
       const staffDetails = (freshClaim?.staff_details as any[]) || [];
-      const gpTotal = staffDetails
-        .filter(s => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP')
-        .reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
-      const otherTotal = staffDetails
-        .filter(s => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) !== 'GP')
-        .reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
+      const glSummary = staffDetails.reduce((summary: Record<string, number>, s) => {
+        const storedCode = s.gl_code || s.gl_category;
+        const glCode = /^\d{4}$/.test(String(storedCode || ''))
+          ? storedCode
+          : getGLCode(freshClaim?.claim_type || 'buyback', s.staff_role || '') || 'N/A';
+        summary[glCode] = (summary[glCode] || 0) + (s.claimed_amount || 0);
+        return summary;
+      }, {});
 
       // Generate invoice number and PDF
       try {
@@ -745,7 +757,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             invoice_number: invoiceNum,
             invoice_pdf_path: pdfPath,
             invoice_generated_at: new Date().toISOString(),
-            gl_summary: { gp_total: gpTotal, other_clinical_total: otherTotal },
+            gl_summary: glSummary,
             payment_status: 'received',
             payment_audit_trail: [{ status: 'received', user_email: user.email || '', timestamp: new Date().toISOString(), notes: 'Auto-set on Director approval' }],
           })
@@ -806,11 +818,15 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               : ccList;
 
             // Build approved-items rows + GL subtotals
-            const totalAmount = (gpTotal || 0) + (otherTotal || 0);
+            const glSummaryEntries = Object.entries(glSummary as Record<string, number>);
+            const totalAmount = glSummaryEntries.reduce((sum, [, amount]) => sum + amount, 0);
             const totalLabel = `£${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const fmtAmt = (n: number) => `£${(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const itemsRows = (staffDetails || []).map((s: any) => {
-              const gl = s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical');
+              const storedCode = s.gl_code || s.gl_category;
+              const gl = /^\d{4}$/.test(String(storedCode || ''))
+                ? storedCode
+                : getGLCode(freshClaim?.claim_type || 'buyback', s.staff_role || '') || 'N/A';
               const sessions = s.allocation_type === 'sessions'
                 ? `${s.allocation_value ?? 0}`
                 : s.allocation_type === 'hours'
@@ -826,16 +842,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                 <td style="padding:8px 6px;font-size:13px;color:#111;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(s.claimed_amount || 0)}</td>
               </tr>`;
             }).join('');
-            const showGlSubtotals = (gpTotal > 0) && (otherTotal > 0);
-            const glSubtotalRows = showGlSubtotals ? `
+            const glSubtotalRows = glSummaryEntries.length > 1
+              ? glSummaryEntries.sort(([a], [b]) => a.localeCompare(b)).map(([gl, amount]) => `
               <tr style="background:#f8fafc;">
-                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GP</td>
-                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(gpTotal)}</td>
-              </tr>
-              <tr style="background:#f8fafc;">
-                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — Other Clinical</td>
-                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(otherTotal)}</td>
-              </tr>` : '';
+                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GL ${gl}</td>
+                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(amount)}</td>
+              </tr>`).join('')
+              : '';
 
             // Payment due = invoice date + 30 days
             const paymentDueDate = new Date();

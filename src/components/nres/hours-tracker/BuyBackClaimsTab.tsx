@@ -743,7 +743,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     let createdCount = 0;
     for (const staff of staffForClaim) {
       const staffAmount = calculateStaffMonthlyAmount(staff, monthDate, staff.start_date, rateParams);
-      const result = await createClaim(monthDate, [staff], staffAmount, staffAmount, practiceForClaim, rateParams);
+      const claimType = staff.staff_category === 'new_sda' || staff.staff_category === 'gp_locum' ? 'additional' : 'buyback';
+      const result = await createClaim(monthDate, [staff], staffAmount, staffAmount, practiceForClaim, rateParams, claimType);
       if (result) createdCount++;
     }
 
@@ -913,7 +914,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
             const actualClaimed = (claimedAmount && claimedAmount > 0 && claimedAmount <= maxAmt)
               ? claimedAmount
               : maxAmt;
-            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams, 'buyback', holidayWeeksDeducted ?? 0);
+            const claimType = staffMember.staff_category === 'new_sda' || staffMember.staff_category === 'gp_locum' ? 'additional' : 'buyback';
+            return createClaim(monthDate, [staffMember], actualClaimed, maxAmt, practiceDashboardKey, rateParams, claimType, holidayWeeksDeducted ?? 0);
           } : undefined}
           onAddStaff={canSubmitForPractice ? addStaff : undefined}
           onRemoveStaff={isAdmin ? undefined : (canSubmitForPractice ? removeStaff : undefined)}
@@ -934,7 +936,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
               claimedAmount,
               maxAmount,
               practiceDashboardKey,
-              rateParams
+              rateParams,
+              'additional'
             );
           } : undefined}
           onGuideOpen={onGuideOpen}
