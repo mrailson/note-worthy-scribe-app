@@ -258,6 +258,7 @@ export const removeExecutiveSummarySection = (content: string): string => {
 const normaliseLoosePipeRows = (content: string): string => {
   const lines = content.split('\n');
   const result: string[] = [];
+  let inMarkdownTable = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -270,12 +271,24 @@ const normaliseLoosePipeRows = (content: string): string => {
     const isSeparator = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(nextTrimmed);
     const isSeparatorLine = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(trimmed);
 
-    if (isSeparatorLine) {
+    if (!trimmed.startsWith('|')) {
+      inMarkdownTable = false;
       result.push(line);
       continue;
     }
 
-    if (cells.length >= 3 && !isSeparator) {
+    if (isSeparatorLine) {
+      inMarkdownTable = true;
+      result.push(line);
+      continue;
+    }
+
+    if (isSeparator || inMarkdownTable) {
+      result.push(line);
+      continue;
+    }
+
+    if (cells.length >= 3) {
       const readable = cells
         .map(cell => cell.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim())
         .filter(Boolean)
