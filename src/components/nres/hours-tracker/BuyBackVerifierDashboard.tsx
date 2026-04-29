@@ -5,10 +5,12 @@ import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, Eye, Mic, Square, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
@@ -140,6 +142,27 @@ const DESCRIPTION_LIMIT = 1500;
 const todayStr = () => format(new Date(), 'dd/MM/yyyy');
 const nowTimeStr = () => format(new Date(), 'HH:mm');
 const newInvoiceTableRow = (date = todayStr(), start = '', stop = '', details = ''): InvoiceTableRow => ({ id: crypto.randomUUID(), date, start, stop, details });
+
+const TIME_OPTIONS_15_MIN = Array.from({ length: 96 }, (_, index) => {
+  const minutes = index * 15;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+});
+
+const parseDisplayDate = (value: string): Date | undefined => {
+  const [day, month, year] = value.split('/').map(Number);
+  if (!day || !month || !year) return undefined;
+  const date = new Date(year, month - 1, day, 12, 0, 0);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+const claimMonthBounds = (claimMonth?: string | null) => {
+  const base = claimMonth ? new Date(`${claimMonth.slice(0, 7)}-01T12:00:00`) : new Date();
+  if (Number.isNaN(base.getTime())) return null;
+  return {
+    from: new Date(base.getFullYear(), base.getMonth(), 1, 12, 0, 0),
+    to: new Date(base.getFullYear(), base.getMonth() + 1, 0, 12, 0, 0),
+  };
+};
 
 const parseInvoiceTableDescription = (description: string): InvoiceTableRow[] => {
   const start = description.indexOf(INVOICE_TABLE_START);
@@ -456,6 +479,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [voiceError, setVoiceError] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const claimDateBounds = claimMonthBounds(claim.claim_month);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -481,17 +505,18 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     setInvoiceDescription(serialiseInvoiceTableRows(rows));
   };
 
-  const handleQuickDate = () => setQuickLine(prev => ({ ...prev, date: todayStr() }));
-  const handleQuickStart = () => setQuickLine(prev => ({ ...prev, start: nowTimeStr() }));
+  const handleQuickDateSelect = (date?: Date) => {
+    if (!date) return;
+    setQuickLine(prev => ({ ...prev, date: format(date, 'dd/MM/yyyy') }));
+  };
   const handleQuickStop = () => {
-    const stop = nowTimeStr();
-    const completed = { ...quickLine, stop };
+    const completed = { ...quickLine, stop: quickLine.stop || nowTimeStr() };
     if (invoiceMode === 'table') {
       syncRows([...invoiceRows, newInvoiceTableRow(completed.date || todayStr(), completed.start, completed.stop, completed.details)]);
     } else {
       setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
     }
-    setQuickLine({ date: todayStr(), start: '', stop: '', details: '' });
+    setQuickLine(prev => ({ date: prev.date, start: '', stop: '', details: '' }));
   };
 
   const stopVoiceRecording = async () => {
@@ -603,8 +628,22 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
-                <button onClick={handleQuickDate} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Date {quickLine.date}</button>
-                <button onClick={handleQuickStart} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Start {quickLine.start || 'now'}</button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}><CalendarIcon className="w-3.5 h-3.5" /> Date {quickLine.date}</button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <Select value={quickLine.start || undefined} onValueChange={value => setQuickLine(prev => ({ ...prev, start: value }))}>
+                  <SelectTrigger className="h-8 w-[112px] border-amber-300 bg-background text-amber-800 text-xs font-semibold"><SelectValue placeholder="Start" /></SelectTrigger>
+                  <SelectContent className="max-h-72">{TIME_OPTIONS_15_MIN.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={quickLine.stop || undefined} onValueChange={value => setQuickLine(prev => ({ ...prev, stop: value }))}>
+                  <SelectTrigger className="h-8 w-[112px] border-amber-300 bg-background text-amber-800 text-xs font-semibold"><SelectValue placeholder="Stop" /></SelectTrigger>
+                  <SelectContent className="max-h-72">{TIME_OPTIONS_15_MIN.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
+                </Select>
                 <button onClick={handleQuickStop} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: '#fef3c7', color: '#78350f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Stop + add line</button>
                 <input value={quickLine.details} onChange={e => setQuickLine(prev => ({ ...prev, details: e.target.value }))} placeholder="Line details" style={{ flex: '1 1 220px', minWidth: 180, padding: '5px 8px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12 }} />
               </div>
