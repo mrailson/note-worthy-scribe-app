@@ -855,7 +855,7 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
 };
 
 // Parse content and convert to docx elements
-const parseContentToDocxElements = async (content: string) => {
+const parseContentToDocxElements = async (content: string, cleanTitle?: string) => {
   const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, BorderStyle } = await import("docx");
   
   const elements: any[] = [];
@@ -1071,8 +1071,14 @@ const parseContentToDocxElements = async (content: string) => {
       const level = headingMatch[1].length;
       const headingText = decodeHtmlEntities(headingMatch[2]).toUpperCase();
       
-      // Skip if this is Meeting Details or Executive Summary (handled separately)
-      if (headingText.includes('MEETING DETAILS') || headingText.includes('EXECUTIVE SUMMARY')) {
+      // Skip Meeting Details, Executive Summary, and the meeting title itself —
+      // all three are rendered separately (createHeaderBlock / details table)
+      const cleanTitleUpper = (cleanTitle || '').toUpperCase().trim();
+      if (
+        headingText.includes('MEETING DETAILS') ||
+        headingText.includes('EXECUTIVE SUMMARY') ||
+        (cleanTitleUpper && headingText === cleanTitleUpper)
+      ) {
         i++;
         continue;
       }
@@ -1379,7 +1385,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   }
   
   // Main content (without action items)
-  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
   // Action Items section as professional table
@@ -1716,7 +1722,7 @@ export const generateProfessionalWordBlob = async (
   }
   
   // Main content (without action items)
-  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
   // Action Items section as professional table (ACTION LOG)
@@ -1832,7 +1838,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   // Executive summary box removed per user request
   
   // Main content (without action items)
-  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
   // Action Items section as professional table (ACTION LOG)
