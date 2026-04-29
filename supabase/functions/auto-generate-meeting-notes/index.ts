@@ -978,9 +978,16 @@ NOTE TYPE: STANDARD PROFESSIONAL
 IMPORTANT: Do NOT use Context/Discussion/Agreed/Implication sub-headings.
 Instead, use traditional numbered key points as concise paragraphs:
 
-KEY POINTS format:
-1. **[Topic Heading]**
-[One or two concise paragraphs covering what was discussed and what was decided. Keep it tight — no more than 4-5 sentences per point.]
+KEY POINTS format — produce numbered topic sections in EXACTLY this layout:
+1. **[Topic Heading on its own line]**
+
+   [Body paragraph starts here AFTER A BLANK LINE. Body text MUST NEVER appear on the same line as the heading. One or two concise paragraphs covering what was discussed and what was decided. Keep it tight — no more than 4-5 sentences per point.]
+
+2. **[Next Topic Heading on its own line]**
+
+   [Body paragraph after a blank line.]
+
+CRITICAL: Every numbered topic heading must be on a line by itself, with a completely blank line between the heading and the body paragraph. Do NOT put any body content on the same line as the heading.
 
 Additional rules:
 - Balanced professional language — formal but accessible
