@@ -439,8 +439,8 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                 <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/1500 characters — printed on the invoice if completed</span>
                 <button
                   onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
-                  disabled={saving || invoiceDescription === ((claim as any).practice_notes || '')}
-                  style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || invoiceDescription === ((claim as any).practice_notes || '') ? 0.55 : 1 }}
+                  disabled={saving || invoiceDescription === savedInvoiceDescription}
+                  style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || invoiceDescription === savedInvoiceDescription ? 0.55 : 1 }}
                 >
                   Save description
                 </button>
