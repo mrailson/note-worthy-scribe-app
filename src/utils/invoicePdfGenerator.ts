@@ -185,6 +185,24 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     alternateRowStyles: { fillColor: [240, 244, 245] },
   });
 
+  // --- Optional invoice-facing claim description ---
+  const invoiceDescription = String((claim as any).practice_notes || '').trim();
+  const descriptionLines = invoiceDescription ? doc.splitTextToSize(invoiceDescription, 176) : [];
+  let finalY = (doc as any).lastAutoTable.finalY + 10;
+  if (descriptionLines.length > 0) {
+    const descHeight = Math.min(42, 10 + descriptionLines.length * 4.2);
+    doc.setFillColor(239, 246, 255);
+    doc.roundedRect(14, finalY - 4, 182, descHeight, 2, 2, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...NHS_DARK_BLUE);
+    doc.text('Claim details', 18, finalY + 2);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(GREY_60);
+    doc.text(descriptionLines.slice(0, 8), 18, finalY + 8);
+    finalY += descHeight + 8;
+  }
+
   // --- GL Subtotals (grouped by GL code) ---
   const glGroups: Record<string, number> = {};
   staffDetails.forEach((s: any) => {
@@ -193,7 +211,6 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   });
   const grandTotal = Object.values(glGroups).reduce((a, b) => a + b, 0);
 
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
   const glEntries = Object.entries(glGroups).sort((a, b) => a[0].localeCompare(b[0]));
   const boxHeight = Math.max(30, 10 + glEntries.length * 6 + 12);
 

@@ -24,6 +24,7 @@ interface BuyBackPracticeDashboardProps {
   managementRoles?: ManagementRoleConfig[];
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onRemoveStaff?: (id: string) => Promise<void>;
@@ -375,6 +376,7 @@ function InlineClaimPanel({
   const [localClaim, setLocalClaim] = useState<BuyBackClaim | null>(existingClaim);
 
   useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
+  useEffect(() => { setPracticeNotes((localClaim as any)?.practice_notes || ''); }, [localClaim?.id, (localClaim as any)?.practice_notes]);
 
   const isLocum = staffMember.staff_category === 'gp_locum';
   const isManagement = staffMember.staff_category === 'management';
@@ -1042,17 +1044,17 @@ function InlineClaimPanel({
                 ))}
               </div>
 
-              {/* Practice notes (optional) */}
+              {/* Invoice description / claim details */}
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  Practice Note <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — visible to verifiers and finance)</span>
+                  Invoice description / claim details <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — printed on the invoice)</span>
                 </label>
                 <textarea
                   value={practiceNotes}
                   onChange={(e) => setPracticeNotes(e.target.value)}
-                  placeholder="Add any notes for the verifier or finance team…"
-                  maxLength={500}
-                  rows={2}
+                  placeholder="Add dates, times or notes to print on the invoice, e.g. 03/04/2026 10:00–12:00 Programme planning meeting."
+                  maxLength={1500}
+                  rows={3}
                   style={{
                     width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1',
                     fontSize: 13, color: '#374151', resize: 'vertical', fontFamily: 'inherit',
@@ -1060,7 +1062,7 @@ function InlineClaimPanel({
                   }}
                 />
                 {practiceNotes.length > 0 && (
-                  <div style={{ fontSize: 10, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{practiceNotes.length}/500</div>
+                  <div style={{ fontSize: 10, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{practiceNotes.length}/1500</div>
                 )}
               </div>
 
@@ -2425,6 +2427,7 @@ export function ClaimsViewSwitcher({
   expandedClaimId,
   onSubmit,
   onResubmit,
+  onUpdateClaimNotes,
   saving,
   // Director-mode extensions (all optional, off by default)
   directorMode = false,
@@ -2444,6 +2447,7 @@ export function ClaimsViewSwitcher({
   expandedClaimId: string | null;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   saving?: boolean;
   directorMode?: boolean;
   practiceFilter?: string;
@@ -2696,6 +2700,7 @@ export function ClaimsViewSwitcher({
               onToggle={() => onToggleCard(c.id)}
               onSubmit={onSubmit}
               onResubmit={onResubmit}
+              onUpdateClaimNotes={onUpdateClaimNotes}
               saving={saving}
             />
           ))}
@@ -2926,15 +2931,17 @@ export function ClaimsViewSwitcher({
 }
 
 // --- Claim Card (preserved) ---
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   saving?: boolean;
 }) {
   const [queryResponse, setQueryResponse] = useState('');
+  const [invoiceDescription, setInvoiceDescription] = useState((claim as any).practice_notes || '');
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const staffCount = claimStaffCount(claim);
@@ -2944,6 +2951,10 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
   const monthLabel = getClaimMonthLabel(claim);
 
   const staffDets = (claim.staff_details || []) as any[];
+
+  useEffect(() => {
+    setInvoiceDescription((claim as any).practice_notes || '');
+  }, [claim.id, (claim as any).practice_notes]);
 
   // Staff names for collapsed summary — show up to 2 names
   const staffNames = staffDets.map((s: any) => s.staff_name).filter(Boolean);
@@ -3226,6 +3237,40 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
           })()}
 
           {(isDraft || isQueried) && (
+            <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 8, border: '1px solid #dbeafe', background: '#eff6ff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1e3a8a' }}>Invoice description / claim details</div>
+                <span style={{ fontSize: 11, color: invoiceDescription.length > 1400 ? '#b45309' : '#64748b' }}>{invoiceDescription.length}/1500</span>
+              </div>
+              <textarea
+                value={invoiceDescription}
+                maxLength={1500}
+                onChange={(e) => setInvoiceDescription(e.target.value)}
+                placeholder="Add dates, times or notes to print on the invoice, e.g. 03/04/2026 10:00–12:00 Programme planning meeting."
+                style={{ width: '100%', minHeight: 78, resize: 'vertical', padding: '9px 10px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#fff', fontSize: 13, lineHeight: 1.45, outline: 'none', color: '#0f172a' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' as const }}>
+                <p style={{ margin: 0, fontSize: 11, color: '#475569' }}>This text will appear on the generated invoice.</p>
+                {onUpdateClaimNotes && (
+                  <button
+                    onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
+                    disabled={saving}
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #93c5fd', background: '#fff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
+                  >
+                    Save description
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!isDraft && !isQueried && (claim as any).practice_notes && (
+            <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', fontSize: 12, color: '#1e3a8a', whiteSpace: 'pre-wrap' as const }}>
+              <strong>Invoice description:</strong> {(claim as any).practice_notes}
+            </div>
+          )}
+
+          {(isDraft || isQueried) && (
             <div style={{ marginTop: 12 }}>
               {staffDets.map((s: any, idx: number) => (
                 <StaffLineEvidence
@@ -3277,7 +3322,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                 </span>
               )}
               <button
-                onClick={() => onSubmit?.(claim.id)}
+                onClick={() => onSubmit?.(claim.id, invoiceDescription)}
                 disabled={saving || !evidenceComplete}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 18px',
@@ -3306,7 +3351,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
                   style={{ flex: 1, minWidth: 250, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
                 <button
-                  onClick={() => { onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
+                  onClick={async () => { await onUpdateClaimNotes?.(claim.id, invoiceDescription); onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
                   disabled={saving}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 18px',
@@ -3338,7 +3383,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, sa
 // --- Main Dashboard ---
 export function BuyBackPracticeDashboard({
   claims, practiceKey, staff, staffRoles, rateParams, managementRoles,
-  onSubmit, onResubmit, onCreateClaim, onCreateLocumClaim, onDeleteClaim,
+  onSubmit, onResubmit, onUpdateClaimNotes, onCreateClaim, onCreateLocumClaim, onDeleteClaim,
   onAddStaff, onRemoveStaff, onUpdateStaff, confirmDeclaration,
   savingClaim, savingStaff, onGuideOpen, onSettingsOpen, showSettings,
   meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries, canAddOnBehalf,
@@ -3573,6 +3618,7 @@ export function BuyBackPracticeDashboard({
           expandedClaimId={expandedClaimId}
           onSubmit={onSubmit}
           onResubmit={onResubmit}
+          onUpdateClaimNotes={onUpdateClaimNotes}
           saving={savingClaim}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
