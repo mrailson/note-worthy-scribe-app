@@ -4,6 +4,7 @@ import { getPracticeName, getOdsCode } from '@/data/nresPractices';
 import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
+import { getGLCode } from '@/utils/glCodes';
 
 interface InvoiceData {
   claim: BuyBackClaim;
@@ -27,6 +28,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const staffDetails = (claim.staff_details as any[]) || [];
   const claimDate = new Date(claim.claim_month);
   const claimMonthLabel = claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const resolveGLCode = (line: any) => line.gl_code || line.gl_category || getGLCode(claim.claim_type || 'buyback', line.staff_role || '');
 
   const practiceKey = claim.practice_key as NRESPracticeKey;
   const practiceAddress = NRES_PRACTICE_ADDRESSES[practiceKey] || '';
@@ -150,7 +152,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     i + 1,
     s.staff_name || '—',
     s.staff_role || '—',
-    s.gl_code || s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical'),
+    resolveGLCode(s) || 'N/A',
     s.staff_category === 'gp_locum'
       ? (s.allocation_type === 'daily'
         ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''} @ £750/day`
@@ -181,7 +183,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   // --- GL Subtotals (grouped by GL code) ---
   const glGroups: Record<string, number> = {};
   staffDetails.forEach((s: any) => {
-    const glCode = s.gl_code || s.gl_category || (s.staff_role === 'GP' ? '5421' : 'Other');
+    const glCode = resolveGLCode(s) || 'N/A';
     glGroups[glCode] = (glGroups[glCode] || 0) + (s.claimed_amount || 0);
   });
   const grandTotal = Object.values(glGroups).reduce((a, b) => a + b, 0);
