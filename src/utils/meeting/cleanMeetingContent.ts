@@ -355,7 +355,7 @@ export const normaliseMeetingNotesFormatting = (content: string): string => {
   cleaned = cleaned.replace(/([^\n])\s+(\d{1,2})\.\s+(?=[A-Z])/g, '$1\n\n$2. ');
 
   // Split governance labels when they have been appended to previous prose.
-  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+[—-]/g, '$1\n- **$3** —');
+  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+[—–-]/g, '$1\n- **$3** —');
   cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+/g, '$1\n- **$3** ');
 
   cleaned = normaliseLoosePipeRows(cleaned);
