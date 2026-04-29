@@ -639,8 +639,10 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                   {(['text', 'table'] as const).map(mode => <button key={mode} onClick={() => { setInvoiceMode(mode); if (mode === 'table' && !invoiceRows.length) setInvoiceRows([newInvoiceTableRow()]); }} style={{ padding: '4px 10px', border: 'none', background: invoiceMode === mode ? '#fef3c7' : '#fff', color: '#78350f', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{mode === 'text' ? 'Text' : 'Table'}</button>)}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
                 <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <div ref={datePickerRef} style={{ position: 'relative', display: 'inline-flex' }}>
                   <button type="button" onClick={() => setDatePickerOpen(open => !open)} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}><CalendarIcon className="w-3.5 h-3.5" /> Date {quickLine.date}</button>
                   {datePickerOpen && (
