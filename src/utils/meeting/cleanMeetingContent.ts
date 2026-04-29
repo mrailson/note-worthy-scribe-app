@@ -255,12 +255,81 @@ export const removeExecutiveSummarySection = (content: string): string => {
   return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
+const normaliseLoosePipeRows = (content: string): string => {
+  const lines = content.split('\n');
+  const result: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const cells = trimmed.startsWith('|')
+      ? trimmed.split('|').map(cell => cell.trim()).filter(Boolean)
+      : [];
+
+    const nextTrimmed = lines[i + 1]?.trim() || '';
+    const isSeparator = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(nextTrimmed);
+    const isSeparatorLine = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(trimmed);
+
+    if (isSeparatorLine) {
+      result.push(line);
+      continue;
+    }
+
+    if (cells.length >= 3 && !isSeparator) {
+      const readable = cells
+        .map(cell => cell.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .join(' — ');
+      result.push(`- ${readable}`);
+      continue;
+    }
+
+    result.push(line);
+  }
+
+  return result.join('\n');
+};
+
+export const normaliseMeetingNotesFormatting = (content: string): string => {
+  if (!content) return '';
+
+  let cleaned = content
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\\\*/g, '')
+    .replace(/\*{3,}/g, '**')
+    .replace(/\n\s*[═]{3,}\s*\n/g, '\n\n')
+    .replace(/\n\s*-{3,}\s*\n/g, '\n\n');
+
+  // Repair collapsed markdown headings such as "--- ### Key Points" or inline "### 2. Topic".
+  cleaned = cleaned.replace(/\s+---\s*(#{1,6})\s*/g, '\n\n$1 ');
+  cleaned = cleaned.replace(/([^\n])\s+(#{1,6})\s+(?=[A-Z0-9])/g, '$1\n\n$2 ');
+  cleaned = cleaned.replace(/#{2,6}\s*(\d{1,2})\.\s*/g, '\n\n$1. ');
+
+  // Split numbered agenda items that have been collapsed into one paragraph.
+  cleaned = cleaned.replace(/([^\n])\s+(\d{1,2})\.\s+(?=[A-Z])/g, '$1\n\n$2. ');
+
+  // Split governance labels when they have been appended to previous prose.
+  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+[—-]/g, '$1\n- **$3** —');
+  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+/g, '$1\n- **$3** ');
+
+  cleaned = normaliseLoosePipeRows(cleaned);
+
+  return cleaned
+    .split('\n')
+    .map(line => line.replace(/[ \t]{2,}/g, ' ').trimEnd())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
 // Comprehensive content cleaning - combines all cleaning operations
 export const cleanMeetingContent = (content: string, options?: {
   removeActionItems?: boolean;
   removeExecutiveSummary?: boolean;
 }): string => {
-  let cleaned = stripTranscriptAndDetails(content);
+  let cleaned = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(content));
   cleaned = deduplicateActionItems(cleaned);
   
   if (options?.removeActionItems) {
