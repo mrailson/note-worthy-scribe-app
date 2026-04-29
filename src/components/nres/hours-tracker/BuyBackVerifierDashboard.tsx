@@ -42,7 +42,7 @@ const claimHours = (c: BuyBackClaim) =>
 
 const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff_details ?? [];
 
-/** Read-only evidence section for verifier view */
+/** Evidence section for management/verifier view */
 const VerifierEvidenceSection = ({ claimId, staffLines, canEdit }: { claimId: string; staffLines: any[]; canEdit: boolean }) => {
   const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl, uploadEvidence, deleteEvidence, uploading } = useNRESClaimEvidence(claimId);
   const hasAnyFiles = staffLines.some((_: any, idx: number) => getFilesForStaff(idx).length > 0 || Object.keys(getUploadedTypesForStaff(idx)).length > 0);
@@ -574,7 +574,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             );
           })()}
 
-          {/* Supporting Evidence (read-only) */}
+          {/* Supporting Evidence */}
           {lines.length > 0 && <VerifierEvidenceSection claimId={claim.id} staffLines={lines} canEdit={isSubmitted} />}
 
           {/* Notes */}
