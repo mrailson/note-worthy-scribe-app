@@ -75,6 +75,12 @@ function isAdmin(email: string | null | undefined): boolean {
 const DEFAULT_GP_SESSION_ANNUAL = 11000 * 1.2938;
 const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
 
+function resolveClaimTypeFromStaff(staffMember: Pick<BuyBackStaffMember, 'staff_category'>, fallback: ClaimType = 'buyback'): ClaimType {
+  if (staffMember.staff_category === 'new_sda' || staffMember.staff_category === 'gp_locum') return 'additional';
+  if (staffMember.staff_category === 'buyback') return 'buyback';
+  return fallback;
+}
+
 export interface RateParams {
   onCostMultiplier: number;
   getRoleAnnualRate?: (roleLabel: string) => number | undefined;
@@ -332,9 +338,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       // This keeps Practice/Management dashboards (which sum staff_details.claimed_amount)
       // in sync with PML view & invoices (which read top-level claimed_amount).
       const isSingleLineClaim = staffMembers.length === 1;
+      const effectiveClaimType = staffMembers.length === 1
+        ? resolveClaimTypeFromStaff(staffMembers[0], claimType)
+        : claimType;
       const staffSnapshot = staffMembers.map(s => {
         const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date, rateParams);
-        const glCode = getGLCode(claimType, s.staff_role);
+        const lineClaimType = resolveClaimTypeFromStaff(s, effectiveClaimType);
+        const glCode = getGLCode(lineClaimType, s.staff_role);
         const lineClaimedAmount = isSingleLineClaim && claimedAmount > 0 && claimedAmount !== maxAmount
           ? claimedAmount
           : maxAmount;
@@ -359,7 +369,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         .insert({
           user_id: user.id,
           claim_month: claimMonth,
-          claim_type: claimType,
+          claim_type: effectiveClaimType,
           staff_details: staffSnapshot,
           calculated_amount: calculatedAmount,
           claimed_amount: claimedAmount,
