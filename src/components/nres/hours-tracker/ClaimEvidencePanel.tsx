@@ -22,7 +22,15 @@ interface ClaimEvidencePanelProps {
 
 export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvidence }: ClaimEvidencePanelProps) {
   const internalEvidence = useNRESClaimEvidence(claimId);
-  const { uploadedTypes, uploading, uploadEvidence, deleteEvidence, getDownloadUrl } = sharedEvidence || internalEvidence;
+  const evidenceState = sharedEvidence || internalEvidence;
+  const { uploadedTypes, uploading, uploadEvidence, deleteEvidence, getDownloadUrl } = evidenceState;
+  const filesByType = useMemo(() => {
+    const files = 'files' in evidenceState ? evidenceState.files as ClaimEvidenceFile[] : [];
+    return files.reduce<Record<string, ClaimEvidenceFile[]>>((acc, file) => {
+      acc[file.evidence_type] = [...(acc[file.evidence_type] || []), file];
+      return acc;
+    }, {});
+  }, [evidenceState]);
   const { getConfigForCategory, loading: configLoading } = useNRESEvidenceConfig();
 
   const applicableConfig = getConfigForCategory(claimCategory);
@@ -55,11 +63,14 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
             key={cfg.id}
             config={cfg}
             uploadedFile={uploadedTypes[cfg.evidence_type]}
+            uploadedFiles={filesByType[cfg.evidence_type]}
             canEdit={canEdit}
             uploading={uploading}
             onUpload={(file) => uploadEvidence(cfg.evidence_type, file)}
+            onUploadFiles={(files) => files.forEach(file => uploadEvidence(cfg.evidence_type, file))}
             onDelete={(id) => deleteEvidence(id)}
             onDownload={getDownloadUrl}
+            allowMultiple={cfg.evidence_type === 'other_supporting'}
           />
         ))}
       </div>

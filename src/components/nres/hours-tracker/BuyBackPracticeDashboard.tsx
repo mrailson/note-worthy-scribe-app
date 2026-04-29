@@ -1054,9 +1054,9 @@ function InlineClaimPanel({
                   maxLength={500}
                   rows={2}
                   style={{
-                    width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb',
+                    width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1',
                     fontSize: 13, color: '#374151', resize: 'vertical', fontFamily: 'inherit',
-                    background: '#fafafa',
+                    background: '#ffffff',
                   }}
                 />
                 {practiceNotes.length > 0 && (
