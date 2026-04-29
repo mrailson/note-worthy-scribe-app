@@ -348,7 +348,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       const updated = await generateNotesWithLength(payload);
       if (updated?.notes) {
         skipNextActionItemsAutoSyncRef.current = true;
-        setNotesContent(sanitiseMeetingNotes(updated.notes));
+        setNotesContent(cleanNotesForDisplay(updated.notes));
         toast.success(`Notes regenerated (${newLength})`);
         // Auto-trigger DOCX download for comprehensive/full tier
         if (updated.generateDocx) {
@@ -529,7 +529,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Update notes content
       const generatedContent = data?.meetingMinutes || data?.generatedNotes || data?.content;
       if (generatedContent) {
-        setNotesContent(generatedContent);
+        setNotesContent(cleanNotesForDisplay(generatedContent));
         toast.success(`Notes regenerated from ${sourceLabel}`);
       } else {
         // Fetch from database
@@ -540,7 +540,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           .single();
         
         if (updated?.notes_style_3) {
-          setNotesContent(sanitiseMeetingNotes(updated.notes_style_3));
+          setNotesContent(cleanNotesForDisplay(updated.notes_style_3));
           toast.success(`Notes regenerated from ${sourceLabel}`);
         }
       }
@@ -640,7 +640,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Update local notes content with regenerated notes
       const generatedContent = data?.meetingMinutes || data?.generatedNotes || data?.content;
       if (generatedContent) {
-        setNotesContent(generatedContent);
+        setNotesContent(cleanNotesForDisplay(generatedContent));
         toast.success(`${typeConfig?.label || 'Standard'} notes regenerated`);
       } else {
         // Fetch the updated notes from the database
@@ -651,7 +651,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           .single();
           
         if (updatedMeeting?.notes_style_3) {
-          setNotesContent(sanitiseMeetingNotes(updatedMeeting.notes_style_3));
+          setNotesContent(cleanNotesForDisplay(updatedMeeting.notes_style_3));
           toast.success(`${typeConfig?.label || 'Standard'} notes regenerated`);
         } else {
           toast.success('Notes regenerated - refresh to see updates');
@@ -1068,7 +1068,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     if (isOpen && meeting) {
       // Seed notes immediately from props (temporary until database fetch completes)
       const initialNotes = notes || meeting.meeting_summary || '';
-      setNotesContent(initialNotes);
+      setNotesContent(cleanNotesForDisplay(initialNotes));
       setActiveTab('notes');
       setTranscript('');
       setTranscriptError(null);
@@ -1154,13 +1154,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         }
 
         if (meetingData?.notes_style_3) {
-          setNotesContent(sanitiseMeetingNotes(meetingData.notes_style_3));
+          setNotesContent(cleanNotesForDisplay(meetingData.notes_style_3));
           setIsLoadingNotes(false);
           return;
         }
 
         if (summaryData?.summary) {
-          setNotesContent(sanitiseMeetingNotes(summaryData.summary));
+          setNotesContent(cleanNotesForDisplay(summaryData.summary));
         }
       } catch (error) {
         console.error('SafeMode: Error fetching notes:', error);
@@ -1281,7 +1281,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         
         // Update notes content with synced action items
         if (data?.updatedSummary) {
-          setNotesContent(sanitiseMeetingNotes(data.updatedSummary));
+          setNotesContent(cleanNotesForDisplay(data.updatedSummary));
           console.log('[SafeMode] Action items synced to notes successfully');
         }
       } catch (error) {
