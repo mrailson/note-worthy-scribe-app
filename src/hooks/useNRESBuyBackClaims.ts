@@ -897,7 +897,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             const glSubtotalRows = glSummaryEntries.length > 1
               ? glSummaryEntries.sort(([a], [b]) => a.localeCompare(b)).map(([gl, amount]) => `
               <tr style="background:#f8fafc;">
-                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GL ${gl}</td>
+                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GL ${escapeHtml(getGLInvoiceLabel(gl))}</td>
                 <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(amount)}</td>
               </tr>`).join('')
               : '';
