@@ -68,6 +68,37 @@ function isAdmin(email: string | null | undefined): boolean {
   return NRES_ADMIN_EMAILS.includes(email.toLowerCase());
 }
 
+const escapeHtml = (value: unknown) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
+const blobToBase64 = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onloadend = () => resolve((reader.result as string).split(',')[1] || '');
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+});
+
+const friendlyNameFromEmail = (email?: string | null) => {
+  if (!email) return '';
+  const local = email.split('@')[0] || '';
+  return local.split(/[._-]/).filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ');
+};
+
+const formatApprovedDateTime = (iso?: string | null) => {
+  const d = iso ? new Date(iso) : new Date();
+  return d.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 /**
  * ICB-approved annual cost basis (including on-costs).
  * Defaults used when no rate settings are provided.
