@@ -384,7 +384,7 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
         const [{ data: meetingRow, error: meetingError }, { data: summaryRow, error: summaryError }] = await Promise.all([
           supabase
             .from('meetings')
-            .select('notes_style_3, meeting_summary')
+            .select('notes_style_3, overview')
             .eq('id', meetingId)
             .maybeSingle(),
           supabase
@@ -399,7 +399,7 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
 
         const candidates = [
           meetingRow?.notes_style_3,
-          meetingRow?.meeting_summary,
+          meetingRow?.overview,
           summaryRow?.summary,
         ].filter((value): value is string => Boolean(value && value.trim()));
 
