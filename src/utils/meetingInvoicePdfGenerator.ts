@@ -181,11 +181,18 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
   // --- Total ---
   const grandTotal = entries.reduce((sum, e) => sum + e.total_amount, 0);
   const totalHours = entries.reduce((sum, e) => sum + e.hours, 0);
+  const glGroups = entries.reduce((summary: Record<string, number>, e) => {
+    const gl = getMeetingAttendanceGLCode(e.management_role_key);
+    summary[gl] = (summary[gl] || 0) + e.total_amount;
+    return summary;
+  }, {});
+  const glEntries = Object.entries(glGroups).sort(([a], [b]) => a.localeCompare(b));
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const totalBoxHeight = Math.max(30, 18 + glEntries.length * 5.5);
 
   doc.setFillColor(240, 244, 248);
-  doc.roundedRect(120, finalY - 5, 76, 30, 2, 2, 'F');
+  doc.roundedRect(120, finalY - 5, 76, totalBoxHeight, 2, 2, 'F');
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -193,18 +200,25 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
   doc.text(`${entries.length} meeting${entries.length !== 1 ? 's' : ''}:`, 124, finalY);
   doc.text(`${totalHours} hrs`, 192, finalY, { align: 'right' });
 
+  let subtotalY = finalY + 6;
+  glEntries.forEach(([gl, amount]) => {
+    doc.text(`GL ${getGLInvoiceLabel(gl)}:`, 124, subtotalY);
+    doc.text(fmt(amount), 192, subtotalY, { align: 'right' });
+    subtotalY += 5.5;
+  });
+
   doc.setDrawColor(...NHS_BLUE);
   doc.setLineWidth(0.4);
-  doc.line(124, finalY + 6, 192, finalY + 6);
+  doc.line(124, subtotalY, 192, subtotalY);
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...NHS_DARK_BLUE);
-  doc.text('TOTAL:', 124, finalY + 14);
-  doc.text(fmt(grandTotal), 192, finalY + 14, { align: 'right' });
+  doc.text('TOTAL:', 124, subtotalY + 8);
+  doc.text(fmt(grandTotal), 192, subtotalY + 8, { align: 'right' });
 
   // --- Bank Details ---
-  let bankY = finalY + 24;
+  let bankY = finalY + totalBoxHeight + 4;
   if (bankDetails) {
     doc.setFillColor(245, 248, 252);
     doc.roundedRect(14, bankY - 4, 100, 30, 2, 2, 'F');
