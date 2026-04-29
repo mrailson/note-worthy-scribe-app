@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, Eye } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, Eye, Mic, Square, Plus, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -130,6 +130,41 @@ const dateStr = (iso: string | null | undefined) => {
   if (!iso) return '—';
   const d = new Date(iso);
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} at ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+};
+
+type InvoiceTableRow = { id: string; date: string; start: string; stop: string; details: string };
+const INVOICE_TABLE_START = '[[INVOICE_TABLE]]';
+const INVOICE_TABLE_END = '[[/INVOICE_TABLE]]';
+const DESCRIPTION_LIMIT = 1500;
+
+const todayStr = () => format(new Date(), 'dd/MM/yyyy');
+const nowTimeStr = () => format(new Date(), 'HH:mm');
+const newInvoiceTableRow = (date = todayStr(), start = '', stop = '', details = ''): InvoiceTableRow => ({ id: crypto.randomUUID(), date, start, stop, details });
+
+const parseInvoiceTableDescription = (description: string): InvoiceTableRow[] => {
+  const start = description.indexOf(INVOICE_TABLE_START);
+  const end = description.indexOf(INVOICE_TABLE_END);
+  if (start === -1 || end === -1 || end <= start) return [];
+  return description.slice(start + INVOICE_TABLE_START.length, end).trim().split('\n').map((line) => {
+    const [date = '', startTime = '', stop = '', ...rest] = line.split('|').map(part => part.trim());
+    if (!date && !startTime && !stop && rest.length === 0) return null;
+    return newInvoiceTableRow(date, startTime, stop, rest.join(' | '));
+  }).filter(Boolean) as InvoiceTableRow[];
+};
+
+const serialiseInvoiceTableRows = (rows: InvoiceTableRow[]) => {
+  const validRows = rows.filter(row => row.date || row.start || row.stop || row.details.trim());
+  if (!validRows.length) return '';
+  return [
+    INVOICE_TABLE_START,
+    ...validRows.map(row => `${row.date || '—'} | ${row.start || '—'} | ${row.stop || '—'} | ${row.details.trim() || '—'}`),
+    INVOICE_TABLE_END,
+  ].join('\n').slice(0, DESCRIPTION_LIMIT);
+};
+
+const appendInvoiceText = (current: string, addition: string) => {
+  const next = [current.trim(), addition.trim()].filter(Boolean).join(current.trim() ? '\n' : '');
+  return next.slice(0, DESCRIPTION_LIMIT);
 };
 
 /** Resolve a display name — if stored value looks like an email, derive a readable name from it */
@@ -414,6 +449,13 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const savedInvoiceDescription = (claim as any).practice_notes || '';
   const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+  const [invoiceMode, setInvoiceMode] = useState<'text' | 'table'>(parseInvoiceTableDescription(savedInvoiceDescription).length ? 'table' : 'text');
+  const [invoiceRows, setInvoiceRows] = useState<InvoiceTableRow[]>(() => parseInvoiceTableDescription(savedInvoiceDescription));
+  const [quickLine, setQuickLine] = useState({ date: todayStr(), start: '', stop: '', details: '' });
+  const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const [voiceError, setVoiceError] = useState('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -428,7 +470,82 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
 
   useEffect(() => {
     setInvoiceDescription(savedInvoiceDescription);
+    const parsedRows = parseInvoiceTableDescription(savedInvoiceDescription);
+    setInvoiceRows(parsedRows);
+    setInvoiceMode(parsedRows.length ? 'table' : 'text');
   }, [claim.id, savedInvoiceDescription]);
+
+  const syncRows = (rows: InvoiceTableRow[]) => {
+    setInvoiceRows(rows);
+    setInvoiceDescription(serialiseInvoiceTableRows(rows));
+  };
+
+  const handleQuickDate = () => setQuickLine(prev => ({ ...prev, date: todayStr() }));
+  const handleQuickStart = () => setQuickLine(prev => ({ ...prev, start: nowTimeStr() }));
+  const handleQuickStop = () => {
+    const stop = nowTimeStr();
+    const completed = { ...quickLine, stop };
+    if (invoiceMode === 'table') {
+      syncRows([...invoiceRows, newInvoiceTableRow(completed.date || todayStr(), completed.start, completed.stop, completed.details)]);
+    } else {
+      setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
+    }
+    setQuickLine({ date: todayStr(), start: '', stop: '', details: '' });
+  };
+
+  const stopVoiceRecording = async () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+    setVoiceState('processing');
+    recorder.stop();
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      setVoiceError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : undefined });
+      audioChunksRef.current = [];
+      recorder.ondataavailable = event => { if (event.data.size > 0) audioChunksRef.current.push(event.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        try {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          if (!blob.size) throw new Error('No audio captured');
+          const base64Audio = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const { data, error } = await supabase.functions.invoke('speech-to-text', { body: { audio: base64Audio } });
+          if (error) throw error;
+          const text = String(data?.text || '').trim();
+          if (text) {
+            if (invoiceMode === 'table') setQuickLine(prev => ({ ...prev, details: appendInvoiceText(prev.details, text).replace(/\n/g, ' ') }));
+            else setInvoiceDescription(prev => appendInvoiceText(prev, text));
+          }
+        } catch (error) {
+          console.error('Invoice dictation failed:', error);
+          setVoiceError('Could not transcribe the recording.');
+        } finally {
+          setVoiceState('idle');
+          mediaRecorderRef.current = null;
+        }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setVoiceState('recording');
+    } catch (error) {
+      console.error('Invoice dictation start failed:', error);
+      setVoiceError('Could not access the microphone.');
+      setVoiceState('idle');
+    }
+  };
+
+  const updateInvoiceRow = (id: string, patch: Partial<InvoiceTableRow>) => syncRows(invoiceRows.map(row => row.id === id ? { ...row, ...patch } : row));
+  const removeInvoiceRow = (id: string) => syncRows(invoiceRows.filter(row => row.id !== id));
+  const addBlankInvoiceRow = () => syncRows([...invoiceRows, newInvoiceTableRow()]);
 
   const handleVerify = async () => {
     if (onUpdateClaimNotes && invoiceDescription !== savedInvoiceDescription) {
@@ -477,16 +594,31 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
           {/* Invoice description / claim details */}
           {isSubmitted && onUpdateClaimNotes ? (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <div style={{ fontWeight: 700, color: '#78350f', marginBottom: 6 }}>Invoice description / claim details</div>
-              <textarea
-                value={invoiceDescription}
-                onChange={e => setInvoiceDescription(e.target.value.slice(0, 1500))}
-                placeholder="Add multiple dates, times or invoice wording to print on the invoice…"
-                rows={3}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }}
-              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                <div style={{ fontWeight: 700, color: '#78350f' }}>Invoice description / claim details</div>
+                <div style={{ display: 'inline-flex', border: '1px solid #fcd34d', borderRadius: 6, overflow: 'hidden', background: '#fff' }}>
+                  {(['text', 'table'] as const).map(mode => <button key={mode} onClick={() => { setInvoiceMode(mode); if (mode === 'table' && !invoiceRows.length) setInvoiceRows([newInvoiceTableRow()]); }} style={{ padding: '4px 10px', border: 'none', background: invoiceMode === mode ? '#fef3c7' : '#fff', color: '#78350f', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{mode === 'text' ? 'Text' : 'Table'}</button>)}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
+                <button onClick={handleQuickDate} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Date {quickLine.date}</button>
+                <button onClick={handleQuickStart} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Start {quickLine.start || 'now'}</button>
+                <button onClick={handleQuickStop} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: '#fef3c7', color: '#78350f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Stop + add line</button>
+                <input value={quickLine.details} onChange={e => setQuickLine(prev => ({ ...prev, details: e.target.value }))} placeholder="Line details" style={{ flex: '1 1 220px', minWidth: 180, padding: '5px 8px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12 }} />
+              </div>
+              {voiceError && <div style={{ marginBottom: 6, color: '#b91c1c', fontSize: 11 }}>{voiceError}</div>}
+              {invoiceMode === 'table' ? (
+                <div style={{ overflowX: 'auto', border: '1px solid #fcd34d', borderRadius: 6, background: '#fff' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead><tr>{['Date', 'Start', 'Stop', 'Details', ''].map(h => <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #fde68a', color: '#78350f', fontSize: 11 }}>{h}</th>)}</tr></thead>
+                    <tbody>{invoiceRows.map(row => <tr key={row.id}><td style={{ padding: 4 }}><input value={row.date} onChange={e => updateInvoiceRow(row.id, { date: e.target.value })} style={{ width: 92, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.start} onChange={e => updateInvoiceRow(row.id, { start: e.target.value })} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.stop} onChange={e => updateInvoiceRow(row.id, { stop: e.target.value })} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.details} onChange={e => updateInvoiceRow(row.id, { details: e.target.value })} style={{ width: '100%', minWidth: 220, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4, width: 34 }}><button onClick={() => removeInvoiceRow(row.id)} style={{ border: 'none', background: 'transparent', color: '#b91c1c', cursor: 'pointer' }} title="Remove row"><Trash2 className="w-3.5 h-3.5" /></button></td></tr>)}</tbody>
+                  </table>
+                  <button onClick={addBlankInvoiceRow} style={{ margin: 6, padding: '4px 8px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 4, alignItems: 'center' }}><Plus className="w-3 h-3" /> Add row</button>
+                </div>
+              ) : <textarea value={invoiceDescription} onChange={e => setInvoiceDescription(e.target.value.slice(0, DESCRIPTION_LIMIT))} placeholder="Add multiple dates, times or invoice wording to print on the invoice…" rows={3} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }} />}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/1500 characters — printed on the invoice if completed</span>
+                <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/{DESCRIPTION_LIMIT} characters — printed on the invoice if completed</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setInvoicePreviewOpen(true)}
@@ -506,7 +638,10 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
             </div>
           ) : (claim as any).practice_notes && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <strong>Invoice description:</strong> {(claim as any).practice_notes}
+              <strong>Invoice description:</strong>
+              {parseInvoiceTableDescription((claim as any).practice_notes).length ? (
+                <div style={{ marginTop: 6, overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: 12 }}><thead><tr>{['Date', 'Start', 'Stop', 'Details'].map(h => <th key={h} style={{ textAlign: 'left', padding: '5px 7px', border: '1px solid #fde68a', color: '#78350f' }}>{h}</th>)}</tr></thead><tbody>{parseInvoiceTableDescription((claim as any).practice_notes).map(row => <tr key={row.id}><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.date}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.start}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.stop}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.details}</td></tr>)}</tbody></table></div>
+              ) : ` ${(claim as any).practice_notes}`}
               <button
                 onClick={() => setInvoicePreviewOpen(true)}
                 style={{ marginLeft: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}

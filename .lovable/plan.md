@@ -1,32 +1,77 @@
-Plan to add an invoice preview facility in the Management / Verifier view
+Revised plan for the Management invoice description tools
 
-What will change
-1. Add a “Preview invoice” button beside the invoice description editor
-   - It will appear in the management/verifier claim card where the extra invoice wording is entered.
-   - It will work before saving, using the current text in the box.
-   - It will also work after saving, using the saved description.
+I will design this so Management can build invoice wording in two ways: normal narrative text, or a neat table that prints cleanly on the invoice PDF.
 
-2. Show the actual PDF layout in a modal
-   - Opening the preview will generate the same PDF layout currently used for invoice downloads.
-   - The PDF will be displayed inside a large in-page modal, so the verifier can check wording, spacing, wrapping, and overall appearance before forwarding the claim.
-   - The modal will include a close control and a download/open option if useful.
+What will be added
 
-3. Ensure unsaved wording is included in the preview
-   - The preview will create a temporary claim object with `practice_notes` replaced by the text currently typed in the editor.
-   - This means users can type, preview, adjust, preview again, and only save when happy.
+1. Voice-to-description input
+- Add a “Speak description” button in the Management invoice description section.
+- The user can dictate the description, then stop recording.
+- The transcription will be inserted into the invoice description box without replacing existing wording unless the user clears it first.
+- The text will be appended neatly, with sensible spacing/new lines.
+- The existing 1500 character limit will still be enforced.
 
-4. Improve preview availability before invoice number exists
-   - If the claim does not yet have an invoice number, the preview will use a clear draft number such as `DRAFT-INVOICE-PREVIEW` or `Preview invoice` in the generated PDF metadata.
-   - This avoids blocking preview in the management stage, before the final invoice number is assigned.
+2. Quick date/start/stop line builder
+- Add a compact “Quick line” tool beside the description box.
+- One click can set:
+  - Date
+  - Start time
+  - Stop time
+- When the stop time is clicked, the completed line is inserted and the controls reset ready for the next entry.
+- Dates will use British format, for example `29/04/2026`.
+- Times will show hours and minutes only, for example `09:15`, never seconds.
 
-5. Keep the existing save behaviour
-   - “Save description” will continue to store the invoice wording.
-   - “Verify & Forward to SNO Approver” will still save changed wording before forwarding, as it does now.
+3. Optional table mode
+- Add a format toggle with two options:
+  - “Text” for normal invoice wording.
+  - “Table” for structured date/time entries.
+- In Table mode, the quick line builder will add entries into a small editable table with columns such as:
+
+```text
+Date         Start   Stop    Details
+29/04/2026   09:15   10:45   Management meeting support
+30/04/2026   13:00   14:30   Invoice review and follow-up
+```
+
+- The user will be able to edit the “Details” field for each row.
+- Add simple row actions: remove row, add another row, and optionally move rows if needed.
+- The table will also be inserted/represented in the invoice description area in a readable plain-text fallback, so the current save field remains compatible.
+
+4. Invoice PDF table rendering
+- Update the invoice PDF generator so it recognises structured invoice table data and prints it as a proper table rather than a long paragraph.
+- The PDF preview will show the table exactly as it will print before saving and after saving.
+- If the user uses normal text mode, the existing “Claim details” box will continue to print as it does now.
+- If the user uses table mode, the PDF will print a neat “Claim details” table with date, start, stop and details columns.
+
+5. Save and preview behaviour
+- “Preview invoice” will continue to work with unsaved text/table entries.
+- “Save description” will save the latest description/table content.
+- If a claim already has saved wording, opening it will load the saved content and allow further editing.
+- No database schema change is required unless we decide a fully structured table must persist as JSON separately. The default implementation will keep compatibility by storing a formatted representation in the existing `practice_notes` field.
 
 Technical details
-- Update `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx`.
-- Reuse `generateInvoicePdf` from `src/utils/invoicePdfGenerator.ts` so the preview matches the downloaded invoice PDF.
-- Add a small PDF preview modal component, likely using the existing shadcn `Dialog` pattern.
-- Generate a browser object URL from `jsPDF.output('blob')` and display it in an iframe/object/embed.
-- Clean up object URLs when the modal closes or the preview regenerates to prevent memory leaks.
-- No database migration is needed because the feature uses the existing `practice_notes` invoice wording field.
+
+- Main UI file: `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx`.
+- PDF file: `src/utils/invoicePdfGenerator.ts`.
+- Reuse the existing speech-to-text function/path already present in the project rather than introducing a new provider.
+- Use compact styling suitable for 1366x768 NHS laptop screens.
+- Keep British English labels and date formatting throughout.
+- Add defensive handling for microphone permissions, empty recordings, failed transcription and character-limit overflow.
+
+Expected user workflow
+
+```text
+Open Management claim
+↓
+Choose Text or Table
+↓
+Speak description OR click Date → Start → Stop for each row
+↓
+Add/edit details if needed
+↓
+Preview invoice PDF
+↓
+Save description when happy
+```
+
+This gives Management a quick way to create 10+ dated time entries either by voice or by repeated one-click date/time capture, while still letting them preview the final invoice layout before saving.
