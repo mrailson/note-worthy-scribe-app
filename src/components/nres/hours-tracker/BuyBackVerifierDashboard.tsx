@@ -449,6 +449,13 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const savedInvoiceDescription = (claim as any).practice_notes || '';
   const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
+  const [invoiceMode, setInvoiceMode] = useState<'text' | 'table'>(parseInvoiceTableDescription(savedInvoiceDescription).length ? 'table' : 'text');
+  const [invoiceRows, setInvoiceRows] = useState<InvoiceTableRow[]>(() => parseInvoiceTableDescription(savedInvoiceDescription));
+  const [quickLine, setQuickLine] = useState({ date: todayStr(), start: '', stop: '', details: '' });
+  const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'processing'>('idle');
+  const [voiceError, setVoiceError] = useState('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -463,7 +470,79 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
 
   useEffect(() => {
     setInvoiceDescription(savedInvoiceDescription);
+    const parsedRows = parseInvoiceTableDescription(savedInvoiceDescription);
+    setInvoiceRows(parsedRows);
+    setInvoiceMode(parsedRows.length ? 'table' : 'text');
   }, [claim.id, savedInvoiceDescription]);
+
+  const syncRows = (rows: InvoiceTableRow[]) => {
+    setInvoiceRows(rows);
+    setInvoiceDescription(serialiseInvoiceTableRows(rows));
+  };
+
+  const handleQuickDate = () => setQuickLine(prev => ({ ...prev, date: todayStr() }));
+  const handleQuickStart = () => setQuickLine(prev => ({ ...prev, start: nowTimeStr() }));
+  const handleQuickStop = () => {
+    const stop = nowTimeStr();
+    const completed = { ...quickLine, stop };
+    if (invoiceMode === 'table') {
+      syncRows([...invoiceRows, newInvoiceTableRow(completed.date || todayStr(), completed.start, completed.stop, completed.details)]);
+    } else {
+      setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
+    }
+    setQuickLine({ date: todayStr(), start: '', stop: '', details: '' });
+  };
+
+  const stopVoiceRecording = async () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+    setVoiceState('processing');
+    recorder.stop();
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      setVoiceError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : undefined });
+      audioChunksRef.current = [];
+      recorder.ondataavailable = event => { if (event.data.size > 0) audioChunksRef.current.push(event.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        try {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          if (!blob.size) throw new Error('No audio captured');
+          const base64Audio = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const { data, error } = await supabase.functions.invoke('speech-to-text', { body: { audio: base64Audio } });
+          if (error) throw error;
+          const text = String(data?.text || '').trim();
+          if (text) setInvoiceDescription(prev => appendInvoiceText(prev, text));
+        } catch (error) {
+          console.error('Invoice dictation failed:', error);
+          setVoiceError('Could not transcribe the recording.');
+        } finally {
+          setVoiceState('idle');
+          mediaRecorderRef.current = null;
+        }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setVoiceState('recording');
+    } catch (error) {
+      console.error('Invoice dictation start failed:', error);
+      setVoiceError('Could not access the microphone.');
+      setVoiceState('idle');
+    }
+  };
+
+  const updateInvoiceRow = (id: string, patch: Partial<InvoiceTableRow>) => syncRows(invoiceRows.map(row => row.id === id ? { ...row, ...patch } : row));
+  const removeInvoiceRow = (id: string) => syncRows(invoiceRows.filter(row => row.id !== id));
+  const addBlankInvoiceRow = () => syncRows([...invoiceRows, newInvoiceTableRow()]);
 
   const handleVerify = async () => {
     if (onUpdateClaimNotes && invoiceDescription !== savedInvoiceDescription) {
