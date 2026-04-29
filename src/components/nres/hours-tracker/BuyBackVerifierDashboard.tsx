@@ -402,12 +402,6 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             {(() => { const name = resolveSubmitterName(claim, profileNames || {}); return name ? <InfoBlock label="Submitted by" value={name} sub={claim.submitted_by_email || undefined} /> : claim.submitted_by_email ? <InfoBlock label="Submitted by" value={claim.submitted_by_email} /> : null; })()}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
-            {!isManagement && (
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                <EvidencePill label="Part A" met={hasPartA} />
-                <EvidencePill label="Part B" met={hasPartB} />
-              </div>
-            )}
           </div>
 
           {/* Practice notes */}
