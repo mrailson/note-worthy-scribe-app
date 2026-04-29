@@ -17,6 +17,7 @@ interface VerifierDashboardProps {
   claims: BuyBackClaim[];
   onVerify: (claimId: string, notes?: string) => Promise<any>;
   onReturnToPractice: (claimId: string, notes?: string) => Promise<any>;
+  onUpdateClaimNotes?: (claimId: string, notes: string) => Promise<void>;
   savingClaim: boolean;
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
@@ -353,14 +354,17 @@ const PracticeQueueTable = ({ claims }: { claims: BuyBackClaim[] }) => {
 };
 
 // ─── Claim Card ───────────────────────────────────────────────────────────────
-const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, saving, profileNames }: {
+const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUpdateClaimNotes, saving, profileNames }: {
   claim: BuyBackClaim; expanded: boolean; onToggle: () => void;
   onVerify: (id: string, notes?: string) => Promise<any>;
   onReturn: (id: string, notes?: string) => Promise<any>;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   saving: boolean;
   profileNames?: Record<string, string>;
 }) => {
   const [notes, setNotes] = useState('');
+  const savedInvoiceDescription = (claim as any).practice_notes || '';
+  const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -372,6 +376,17 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
   const bankDetails = (claim as any).bank_details;
   const directorNotes = ((claim as any).director_notes || (claim as any).query_notes || '').replace(/\n?\n?\[FLAGGED_LINES:\[[\d,]*\]\]/, '');
   const financeNotes = (claim as any).finance_notes || (claim as any).payment_notes || '';
+
+  useEffect(() => {
+    setInvoiceDescription(savedInvoiceDescription);
+  }, [claim.id, savedInvoiceDescription]);
+
+  const handleVerify = async () => {
+    if (onUpdateClaimNotes && invoiceDescription !== savedInvoiceDescription) {
+      await onUpdateClaimNotes(claim.id, invoiceDescription);
+    }
+    await onVerify(claim.id, notes || undefined);
+  };
 
   return (
     <div style={{
@@ -409,10 +424,31 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
           </div>
 
-          {/* Practice notes */}
-          {(claim as any).practice_notes && (
+          {/* Invoice description / claim details */}
+          {isSubmitted && onUpdateClaimNotes ? (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <strong>Practice Note:</strong> {(claim as any).practice_notes}
+              <div style={{ fontWeight: 700, color: '#78350f', marginBottom: 6 }}>Invoice description / claim details</div>
+              <textarea
+                value={invoiceDescription}
+                onChange={e => setInvoiceDescription(e.target.value.slice(0, 1500))}
+                placeholder="Add multiple dates, times or invoice wording to print on the invoice…"
+                rows={3}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/1500 characters — printed on the invoice if completed</span>
+                <button
+                  onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
+                  disabled={saving || invoiceDescription === savedInvoiceDescription}
+                  style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || invoiceDescription === savedInvoiceDescription ? 0.55 : 1 }}
+                >
+                  Save description
+                </button>
+              </div>
+            </div>
+          ) : (claim as any).practice_notes && (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+              <strong>Invoice description:</strong> {(claim as any).practice_notes}
             </div>
           )}
 
@@ -597,7 +633,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => onVerify(claim.id, notes || undefined)}
+                  onClick={handleVerify}
                   disabled={saving}
                   style={{
                     padding: '7px 18px', borderRadius: 8, border: '1.5px solid #059669',
@@ -914,7 +950,7 @@ const VerificationLogView = ({ claims, userEmail }: { claims: BuyBackClaim[]; us
 type QueueTab = 'queue' | 'verified_by_me' | 'returned' | 'all';
 type ListView = 'by_practice' | 'individual' | 'verification_log' | 'spreadsheet';
 
-export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, savingClaim, onGuideOpen, onSettingsOpen, showSettings, meetingEntries, onVerifyMeetingEntries, onReturnMeetingEntries, userEmail, userName }: VerifierDashboardProps) {
+export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice, onUpdateClaimNotes, savingClaim, onGuideOpen, onSettingsOpen, showSettings, meetingEntries, onVerifyMeetingEntries, onReturnMeetingEntries, userEmail, userName }: VerifierDashboardProps) {
   const [queueTab, setQueueTab] = useState<QueueTab>('queue');
   const [listView, setListView] = useState<ListView>('individual');
   const [period, setPeriod] = useState('all');
@@ -1306,6 +1342,7 @@ export function BuyBackVerifierDashboard({ claims, onVerify, onReturnToPractice,
                     onToggle={() => setExpandedId(expandedId === c.id ? null : c.id)}
                     onVerify={onVerify}
                     onReturn={onReturnToPractice}
+                    onUpdateClaimNotes={onUpdateClaimNotes}
                     saving={savingClaim}
                     profileNames={profileNames}
                   />
