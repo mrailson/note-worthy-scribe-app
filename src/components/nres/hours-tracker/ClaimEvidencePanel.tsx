@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNRESClaimEvidence, type ClaimEvidenceFile } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig, type EvidenceConfigRow } from '@/hooks/useNRESEvidenceConfig';
 import { SmartUploadZone } from './SmartUploadZone';
@@ -37,6 +38,8 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
 
   // Only show mandatory types + 'other_supporting' to keep the UI clean
   const visibleConfig = applicableConfig.filter(cfg => cfg.is_mandatory || cfg.evidence_type === 'other_supporting');
+  const claimTypeLabel = ({ buyback: 'Buy-Back', new_sda: 'New SDA', management: 'NRES Management', gp_locum: 'GP Locum', mixed: 'Mixed' } as Record<typeof claimCategory, string>)[claimCategory];
+  const tooltipRows = visibleConfig.length > 0 ? visibleConfig : applicableConfig;
 
   if (configLoading) {
     return (
@@ -53,6 +56,33 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
       <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 flex items-center gap-2">
         <FileText className="w-4 h-4 text-primary" />
         <span className="text-xs font-semibold text-primary">Supporting Evidence</span>
+        <TooltipProvider>
+          <Tooltip delayDuration={150}>
+            <TooltipTrigger asChild>
+              <button type="button" className="inline-flex h-5 w-5 items-center justify-center rounded-full text-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40" aria-label={`${claimTypeLabel} supporting evidence requirements`}>
+                <Info className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" align="start" className="max-w-sm p-3 text-xs">
+              <div className="space-y-2">
+                <p className="font-semibold text-sm">{claimTypeLabel} evidence required</p>
+                {tooltipRows.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {tooltipRows.map(row => (
+                      <li key={row.id}>
+                        <span className="font-medium">{row.label}</span>
+                        {row.is_mandatory && <span className="ml-1 text-destructive">Required</span>}
+                        {row.description && <span className="block text-muted-foreground">{row.description}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">Evidence requirements are loading. Add any relevant supporting documents requested for this claim.</p>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Badge variant="outline" className="text-[10px] ml-auto">
           {Object.values(filesByType).reduce((total, files) => total + files.length, 0) || Object.keys(uploadedTypes).length} uploaded
         </Badge>
