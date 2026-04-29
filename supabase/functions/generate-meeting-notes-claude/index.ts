@@ -686,11 +686,11 @@ serve(async (req) => {
       let lengthInstruction = '';
       const notesLength = notesConfig?.length || 'standard';
       if (notesLength === 'concise') {
-        lengthInstruction = '\n\n## OUTPUT LENGTH\nGenerate concise notes of approximately 800 words. Include only decisions, key actions, and critical outcomes. Omit detailed discussion context.\n';
+        lengthInstruction = '\n\n[INTERNAL — do not include this header in the output] Length target: Generate concise notes of approximately 800 words. Include only decisions, key actions, and critical outcomes. Omit detailed discussion context.\n';
       } else if (notesLength === 'detailed') {
-        lengthInstruction = '\n\n## OUTPUT LENGTH\nGenerate detailed meeting notes of approximately 2,500 words. Include full discussion context, speaker attribution where identifiable, and nuanced positions taken by participants.\n';
+        lengthInstruction = '\n\n[INTERNAL — do not include this header in the output] Length target: Generate detailed meeting notes of approximately 2,500 words. Include full discussion context, speaker attribution where identifiable, and nuanced positions taken by participants.\n';
       } else {
-        lengthInstruction = '\n\n## OUTPUT LENGTH\nGenerate standard meeting notes of approximately 1,500 words. Include discussion context for each agenda item with balanced detail.\n';
+        lengthInstruction = '\n\n[INTERNAL — do not include this header in the output] Length target: Generate standard meeting notes of approximately 1,500 words. Include discussion context for each agenda item with balanced detail.\n';
       }
 
       // Build section filter instruction
