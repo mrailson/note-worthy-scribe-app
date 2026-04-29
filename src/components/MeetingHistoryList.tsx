@@ -1174,9 +1174,10 @@ export const MeetingHistoryList = ({
 
       await generateProfessionalWordFromContent(notes, meeting.title, parsedDetails, parsedActionItems);
       toast.success('Word document downloaded successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error downloading Word document:', error);
-      toast.error(error?.message ? `Failed to download Word document: ${error.message}` : 'Failed to download Word document');
+      const message = error instanceof Error ? error.message : '';
+      toast.error(message ? `Failed to download Word document: ${message}` : 'Failed to download Word document');
     }
   };
 
