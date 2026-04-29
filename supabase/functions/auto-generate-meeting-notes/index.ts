@@ -2049,37 +2049,59 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         );
         
         if (tableMatch && tableMatch[1]) {
-          const tableRows = tableMatch[1].split('\n').filter((line: string) => line.trim().startsWith('|'));
+          const parseCells = (row: string): string[] => row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell);
+          const isSeparatorRow = (row: string): boolean => /\|[-:\s|]+\|/.test(row);
+          const tableLines = tableMatch[0].split('\n').filter((line: string) => line.trim().startsWith('|'));
+          const headerRow = tableLines.find((line: string) => !isSeparatorRow(line));
+          const headers = headerRow ? parseCells(headerRow) : [];
+          const findColumnIndex = (headers: string[], ...patterns: RegExp[]): number =>
+            headers.findIndex(h => patterns.some(p => p.test(h.toLowerCase().replace(/\*+/g, '').trim())));
+
+          const actionIdx = findColumnIndex(headers, /\baction\b/, /task/, /next step/, /agreed action/);
+          const ownerIdx = findColumnIndex(headers, /owner/, /assignee/, /lead/, /responsible/, /who/);
+          const deadlineIdx = findColumnIndex(headers, /due/, /deadline/, /date/, /when/, /timescale/);
+          const priorityIdx = findColumnIndex(headers, /priority/);
+
+          // Fallback to the standard positional layout only if a column header was not recognised
+          const safeActionIdx = actionIdx >= 0 ? actionIdx : 0;
+          const safeOwnerIdx = ownerIdx >= 0 ? ownerIdx : 1;
+          const safeDeadlineIdx = deadlineIdx >= 0 ? deadlineIdx : 2;
+          const safePriorityIdx = priorityIdx >= 0 ? priorityIdx : 3;
+          const tableRows = tableLines.filter((line: string) => line !== headerRow && !isSeparatorRow(line));
           
           for (const row of tableRows) {
-            const cells = row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell);
-            if (cells.length >= 4) {
-              const [actionText, assignee, deadline, priority] = cells;
+            const cells = parseCells(row);
+            if (cells.length < 2) continue;  // not enough cells to be an action row
+
+            const actionText = cells[safeActionIdx] || '';
+            const assignee = cells[safeOwnerIdx] || 'TBC';
+            const deadline = cells[safeDeadlineIdx] || 'TBC';
+            const priority = cells[safePriorityIdx] || 'Medium';
+            if (!actionText || actionText.toLowerCase() === 'tbc') continue;  // skip empty action rows
               
-              // Skip if action text is too short or is a header
-              if (actionText.length < 25 || actionText.match(/^Action$/i)) continue;
+            // Skip if action text is too short or is a header
+            if (actionText.length < 25 || actionText.match(/^Action$/i)) continue;
               
-              // Normalise and dedupe
-              const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
-              if (seenTexts.has(normalizedText)) continue;
-              seenTexts.add(normalizedText);
+            // Normalise and dedupe
+            const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
+            if (seenTexts.has(normalizedText)) continue;
+            seenTexts.add(normalizedText);
               
-              const dueDate = deadline || 'TBC';
-              const priorityValue = (priority?.match(/High|Medium|Low/i)?.[0] as 'High' | 'Medium' | 'Low') || 'Medium';
+            const dueDate = deadline || 'TBC';
+            const priorityValue = (priority?.match(/High|Medium|Low/i)?.[0] as 'High' | 'Medium' | 'Low') || 'Medium';
               
-              actionItemsToInsert.push({
-                meeting_id: meetingId,
-                user_id: meeting.user_id,
-                action_text: actionText,
-                assignee_name: assignee || 'TBC',
-                assignee_type: (assignee && assignee !== 'TBC') ? 'custom' : 'tbc',
-                due_date: dueDate,
-                due_date_actual: calculateActualDueDate(dueDate),
-                priority: priorityValue,
-                status: 'Open',
-                sort_order: actionItemsToInsert.length,
-              });
-            }
+            actionItemsToInsert.push({
+              meeting_id: meetingId,
+              user_id: meeting.user_id,
+              action_text: actionText,
+              assignee_name: assignee || 'TBC',
+              assignee_type: (assignee && assignee !== 'TBC') ? 'custom' : 'tbc',
+              due_date: dueDate,
+              due_date_actual: calculateActualDueDate(dueDate),
+              priority: priorityValue,
+              status: 'Open',
+              sort_order: actionItemsToInsert.length,
+            });
           }
         }
         
