@@ -41,7 +41,7 @@ function StepFlow() {
     { num: '2', label: 'Claim & Upload', who: 'Practice' },
     { num: '3', label: 'Submit', who: 'Practice' },
     { num: '4', label: 'Verify', who: 'Mgmt Lead' },
-    { num: '5', label: 'PML Review', who: 'Andrew Moore' },
+    { num: '5', label: 'SNO Approval', who: 'SNO Approver' },
     { num: '6', label: 'Paid', who: 'PML Finance' },
   ];
   return (
@@ -95,7 +95,7 @@ function OverviewTab({ neighbourhoodName }: { neighbourhoodName: string }) {
 
       <CalloutBox type="sky">
         <p className="font-semibold mb-1">🗣️ Meeting Attendance</p>
-        <p>GPs and Practice Managers paid per attended SDA governance meeting (e.g. clinical leads, neighbourhood board). Rates: <strong>£85/hr</strong> for GPs, <strong>£45/hr</strong> for PMs.</p>
+        <p>GPs and Practice Managers paid per attended SDA governance meeting (e.g. clinical leads, neighbourhood board). Rates: <strong>£100/hr</strong> for Practice Partner (GP), <strong>£50/hr</strong> for Practice Managers.</p>
         <p className="mt-1 text-xs">Hours are pulled <strong>automatically</strong> from the Meeting Schedule attendance log — no manual entry.</p>
       </CalloutBox>
 
@@ -115,7 +115,7 @@ function OverviewTab({ neighbourhoodName }: { neighbourhoodName: string }) {
         <ul className="text-muted-foreground space-y-0.5 list-disc list-inside">
           <li><strong>Practice Manager / Admin</strong> — creates claims, uploads evidence, submits</li>
           <li><strong>Management Leads</strong> (Malcolm, Amanda, Lucy) — validates claims, assists practices</li>
-          <li><strong>PML Finance Director</strong> (Andrew Moore) — approves, queries, or rejects claims</li>
+          <li><strong>SNO Approver</strong> — approves, queries, or rejects claims before invoicing</li>
           <li><strong>PML Finance</strong> — processes payments, marks as paid</li>
         </ul>
       </div>
@@ -171,16 +171,16 @@ function HowToClaimTab() {
         <ul className="text-muted-foreground list-disc list-inside space-y-0.5 mt-1">
           <li>Reviews the claim against clinical rotas</li>
           <li>Checks Part B evidence (for buy-back staff)</li>
-          <li>If OK → clicks "Verify" (moves to PML)</li>
+          <li>If OK → can add further supporting documents if needed, then clicks "Verify & Forward to SNO Approver"</li>
           <li>If issues → clicks "Return" with notes (claim comes back to practice)</li>
         </ul>
       </div>
 
       <div>
-        <h4 className="font-semibold text-[#003087] mb-1">Step 5: PML Review</h4>
-        <Badge variant="outline" className="mb-1 text-[10px]">Andrew Moore</Badge>
+        <h4 className="font-semibold text-[#003087] mb-1">Step 5: SNO Approver Review</h4>
+        <Badge variant="outline" className="mb-1 text-[10px]">SNO Approver</Badge>
         <div className="space-y-1 mt-1">
-          <CalloutBox type="green">✅ <strong>Approve</strong> — Invoice is automatically generated. Claim moves to "Invoiced" status.</CalloutBox>
+          <CalloutBox type="green">✅ <strong>Approve</strong> — invoice is automatically generated. Claim moves to "Invoiced" status.</CalloutBox>
           <CalloutBox type="amber">❓ <strong>Query</strong> — Claim returns to editable status. This is <strong>not</strong> a rejection — it's a request for clarification.</CalloutBox>
           <CalloutBox type="red">❌ <strong>Reject</strong> — Claim is permanently closed. A new claim must be created from scratch.</CalloutBox>
         </div>
@@ -208,8 +208,8 @@ function HowToClaimTab() {
             <p className="font-semibold mb-1">🗣️ Meeting Attendance claims</p>
             <ul className="list-disc list-inside space-y-0.5 text-xs">
               <li>Hours come <strong>automatically</strong> from the Meeting Schedule attendance log — you do not enter them manually.</li>
-              <li>The system applies £85/hr (GP) or £45/hr (PM) per attended hour.</li>
-              <li>Review the auto-populated lines, then submit.</li>
+              <li>The system applies £100/hr for Practice Partner (GP) or £50/hr for Practice Manager per attended hour.</li>
+              <li>Review the auto-populated lines, excluding travel time, then submit.</li>
             </ul>
           </CalloutBox>
           <CalloutBox type="slate">
@@ -287,6 +287,7 @@ function EvidenceTab() {
         <ul className="list-disc list-inside space-y-0.5 text-xs">
           <li>Meeting agenda (uploaded with the meeting record).</li>
           <li>Attendance log — <strong>auto-captured</strong> from the Meeting Schedule.</li>
+          <li>Travel time does not count towards claimable attended hours.</li>
           <li>No Part B evidence required.</li>
         </ul>
       </CalloutBox>
@@ -446,7 +447,7 @@ function RatesTab({ rateSettings, onCostMultiplier }: { rateSettings: RateSettin
             </thead>
             <tbody>
               <tr className="border-t">
-                <td className="p-2 font-medium">GP</td>
+                <td className="p-2 font-medium">Practice Partner (GP)</td>
                 <td className="p-2 text-right font-semibold text-primary">{fmtGBP(rateSettings.meeting_gp_rate)}/hr</td>
                 <td className="p-2 text-right text-muted-foreground">Auto from Meeting Schedule</td>
               </tr>
@@ -458,7 +459,7 @@ function RatesTab({ rateSettings, onCostMultiplier }: { rateSettings: RateSettin
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1">Hours are pulled automatically from the Meeting Schedule attendance log.</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Hours are pulled automatically from the Meeting Schedule attendance log. Travel time does not count.</p>
       </div>
 
       {/* NRES Management rates */}
@@ -549,7 +550,7 @@ function ClaimRulesTab() {
         <ul className="list-disc list-inside space-y-0.5 text-xs">
           <li><strong>No Part B evidence required</strong> — these are additional/sessional, not buy-back.</li>
           <li>The locum daily/session rate (£750/day or £375/session — half-day, 4 hrs 10 mins) is a <strong>cap</strong> — claim less if the invoice is lower.</li>
-          <li>Meeting hours are auto-captured — they cannot be edited manually on the claim.</li>
+          <li>Meeting hours are auto-captured — they cannot be edited manually on the claim, and travel time does not count.</li>
         </ul>
       </CalloutBox>
 
@@ -570,9 +571,9 @@ function StatusGuideTab() {
   const statuses = [
     { icon: '⚪', label: 'Draft', colour: 'bg-slate-100 text-slate-700', desc: 'Claim created, not yet submitted. You can edit everything.', who: 'Practice' },
     { icon: '🔵', label: 'Submitted', colour: 'bg-blue-100 text-blue-700', desc: 'Submitted for verification. Waiting for your Management Lead to review.', who: 'Management Lead' },
-    { icon: '🟡', label: 'Verified', colour: 'bg-yellow-100 text-yellow-700', desc: 'Management Lead has verified. Waiting for PML Finance Director review.', who: 'PML Finance Director' },
-    { icon: '🟢', label: 'Approved', colour: 'bg-emerald-100 text-emerald-700', desc: 'Approved by PML. Invoice generated automatically.', who: 'PML Finance (payment)' },
-    { icon: '🟠', label: 'Queried', colour: 'bg-orange-100 text-orange-700', desc: 'PML has a question. Read the query notes, amend and resubmit. This is NOT a rejection.', who: 'Practice / Mgmt Lead' },
+    { icon: '🟡', label: 'Verified', colour: 'bg-yellow-100 text-yellow-700', desc: 'Management Lead has verified. Waiting for SNO Approver review.', who: 'SNO Approver' },
+    { icon: '🟢', label: 'Approved', colour: 'bg-emerald-100 text-emerald-700', desc: 'Approved by the SNO Approver. Invoice generated automatically.', who: 'PML Finance (payment)' },
+    { icon: '🟠', label: 'Queried', colour: 'bg-orange-100 text-orange-700', desc: 'The SNO Approver has a question. Read the query notes, amend and resubmit. This is NOT a rejection.', who: 'Practice / Mgmt Lead' },
     { icon: '🔷', label: 'Invoiced', colour: 'bg-indigo-100 text-indigo-700', desc: 'Invoice generated and sent to PML. Awaiting payment processing.', who: 'PML Finance' },
     { icon: '✅', label: 'Paid', colour: 'bg-green-100 text-green-700', desc: 'Payment processed. Complete.', who: 'Nobody — done!' },
     { icon: '🔴', label: 'Rejected', colour: 'bg-red-100 text-red-700', desc: 'Permanently rejected. Cannot be reopened. Create a new claim.', who: 'Practice (new claim)' },
@@ -606,7 +607,7 @@ function StatusGuideTab() {
 
       <CalloutBox type="blue">
         <p className="text-xs">
-          <strong>Normal flow:</strong> Draft → Submitted → Verified → Approved → Invoiced → Paid<br />
+          <strong>Normal flow:</strong> Draft → Submitted → Verified by Management → Approved by SNO Approver → Invoiced → Paid<br />
           <strong>Query flow:</strong> … → Verified → Queried → (edit) → Submitted → Verified → …<br />
           <strong>Reject flow:</strong> … → Rejected (CLOSED — start new claim)
         </p>
@@ -630,7 +631,7 @@ function FAQTab() {
     { q: 'Who do I contact if I need help?', a: 'Your NRES Management Lead: Malcolm Railson (malcolm.railson@nhs.net), Amanda Palin (amanda.palin2@nhs.net), or Lucy Hibberd.' },
     { q: 'What is the 30-day claim window?', a: 'You have 30 calendar days from the end of the claim month to submit. For example, an April claim must be submitted by 30th May. If you miss the deadline, contact your Management Lead.' },
     { q: 'How do GP Locum claims differ from Buy-Back?', a: 'GP Locum is external sessional cover billed at fixed rates — £750/day or £375/session (1 session = a half-day, 4 hrs 10 mins) — with no on-costs added. The session/day rate is a cap; claim less if the invoice is lower. Buy-Back is for existing practice staff released from their normal duties — that requires Part B (LTC) evidence; locum claims do not.' },
-    { q: 'How is Meeting Attendance calculated?', a: 'Hours are pulled automatically from the Meeting Schedule attendance log. Each attended hour is multiplied by £85 (GP) or £45 (PM). You do not enter hours manually — the system creates the lines for you.' },
+    { q: 'How is Meeting Attendance calculated?', a: 'Hours are pulled automatically from the Meeting Schedule attendance log. Each attended hour is multiplied by £100 for Practice Partner (GP) or £50 for Practice Manager. Travel time does not count. You do not enter hours manually — the system creates the lines for you.' },
     { q: "Why don't Meeting/Locum claims need Part B evidence?", a: 'Both are additional/sessional time, not buy-back of existing staff. Nothing is being released from normal LTC work, so there is no Part B backfill to evidence.' },
     { q: 'How are NRES Management working weeks calculated?', a: 'The system counts weekdays (Mon–Fri) in the claim month and subtracts any bank holidays that fall on a weekday. Working weeks = working days ÷ 5. Your monthly value = hourly rate × hours/week × working weeks.' },
     { q: 'Can one staff member appear in multiple categories?', a: 'Yes — for example, a GP can be Buy-Back staff (for SDA sessions) AND claim Meeting Attendance for governance meetings they attend. Each category is recorded as a separate line with its own evidence and rate.' },
