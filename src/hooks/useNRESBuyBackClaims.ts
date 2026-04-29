@@ -719,12 +719,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       // Use fresh DB data (not stale local state) for invoice generation
       const freshClaim = (data as BuyBackClaim) || claim;
       const staffDetails = (freshClaim?.staff_details as any[]) || [];
-      const gpTotal = staffDetails
-        .filter(s => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) === 'GP')
-        .reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
-      const otherTotal = staffDetails
-        .filter(s => (s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical')) !== 'GP')
-        .reduce((sum, s) => sum + (s.claimed_amount || 0), 0);
+      const glSummary = staffDetails.reduce((summary: Record<string, number>, s) => {
+        const storedCode = s.gl_code || s.gl_category;
+        const glCode = /^\d{4}$/.test(String(storedCode || ''))
+          ? storedCode
+          : getGLCode(freshClaim?.claim_type || 'buyback', s.staff_role || '') || 'N/A';
+        summary[glCode] = (summary[glCode] || 0) + (s.claimed_amount || 0);
+        return summary;
+      }, {});
 
       // Generate invoice number and PDF
       try {
@@ -755,7 +757,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             invoice_number: invoiceNum,
             invoice_pdf_path: pdfPath,
             invoice_generated_at: new Date().toISOString(),
-            gl_summary: { gp_total: gpTotal, other_clinical_total: otherTotal },
+            gl_summary: glSummary,
             payment_status: 'received',
             payment_audit_trail: [{ status: 'received', user_email: user.email || '', timestamp: new Date().toISOString(), notes: 'Auto-set on Director approval' }],
           })
