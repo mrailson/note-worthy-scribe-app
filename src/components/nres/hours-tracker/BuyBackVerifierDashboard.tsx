@@ -5,7 +5,7 @@ import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -637,6 +637,11 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                     <button style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}><CalendarIcon className="w-3.5 h-3.5" /> Date {quickLine.date}</button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
+                    <div className="flex items-center justify-end border-b px-2 py-1">
+                      <button type="button" onClick={() => setDatePickerOpen(false)} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close calendar">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                     <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} initialFocus className="p-3 pointer-events-auto" />
                   </PopoverContent>
                 </Popover>
