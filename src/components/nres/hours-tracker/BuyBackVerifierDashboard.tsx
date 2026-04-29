@@ -3,10 +3,12 @@ import { format } from 'date-fns';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
+import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, Eye } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
@@ -42,6 +44,52 @@ const claimHours = (c: BuyBackClaim) =>
   ((c as any).staff_lines ?? c.staff_details ?? []).reduce((a: number, l: any) => a + (l.total_hours ?? l.totalHrs ?? 0), 0);
 
 const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff_details ?? [];
+
+const DRAFT_INVOICE_NUMBER = 'DRAFT-INVOICE-PREVIEW';
+
+function InvoicePreviewDialog({ open, onOpenChange, claim, invoiceDescription }: { open: boolean; onOpenChange: (open: boolean) => void; claim: BuyBackClaim; invoiceDescription: string }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewInvoiceNumber = claim.invoice_number || DRAFT_INVOICE_NUMBER;
+
+  useEffect(() => {
+    if (!open) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      return;
+    }
+
+    const previewClaim = { ...claim, practice_notes: invoiceDescription } as BuyBackClaim;
+    const pdfDoc = generateInvoicePdf({
+      claim: previewClaim,
+      invoiceNumber: previewInvoiceNumber,
+      neighbourhoodName: 'NRES',
+    });
+    const nextUrl = URL.createObjectURL(pdfDoc.output('blob'));
+    setPreviewUrl(previousUrl => {
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      return nextUrl;
+    });
+
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [claim, invoiceDescription, open, previewInvoiceNumber]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[96vw] w-[96vw] h-[92vh] max-h-[92vh] p-0 overflow-hidden flex flex-col bg-background">
+        <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
+          <DialogTitle className="text-left text-base font-semibold">Invoice preview</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 min-h-0 bg-muted/30">
+          {previewUrl ? (
+            <iframe title="Invoice PDF preview" src={previewUrl} className="w-full h-full border-0" />
+          ) : (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Generating invoice preview…</div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 /** Evidence section for management/verifier view */
 const VerifierEvidenceSection = ({ claimId, staffLines, canEdit }: { claimId: string; staffLines: any[]; canEdit: boolean }) => {
@@ -365,6 +413,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [notes, setNotes] = useState('');
   const savedInvoiceDescription = (claim as any).practice_notes || '';
   const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -438,20 +487,36 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 6 }}>
                 <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/1500 characters — printed on the invoice if completed</span>
-                <button
-                  onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
-                  disabled={saving || invoiceDescription === savedInvoiceDescription}
-                  style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || invoiceDescription === savedInvoiceDescription ? 0.55 : 1 }}
-                >
-                  Save description
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setInvoicePreviewOpen(true)}
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Preview invoice
+                  </button>
+                  <button
+                    onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
+                    disabled={saving || invoiceDescription === savedInvoiceDescription}
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || invoiceDescription === savedInvoiceDescription ? 0.55 : 1 }}
+                  >
+                    Save description
+                  </button>
+                </div>
               </div>
             </div>
           ) : (claim as any).practice_notes && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
               <strong>Invoice description:</strong> {(claim as any).practice_notes}
+              <button
+                onClick={() => setInvoicePreviewOpen(true)}
+                style={{ marginLeft: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+              >
+                <Eye className="w-3.5 h-3.5" /> Preview invoice
+              </button>
             </div>
           )}
+
+          <InvoicePreviewDialog open={invoicePreviewOpen} onOpenChange={setInvoicePreviewOpen} claim={claim} invoiceDescription={invoiceDescription} />
 
           {bankDetails && (
             <div style={{ display: 'flex', gap: 20, padding: '10px 0', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6', alignItems: 'center', flexWrap: 'wrap' }}>
