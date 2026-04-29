@@ -521,7 +521,10 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
           const { data, error } = await supabase.functions.invoke('speech-to-text', { body: { audio: base64Audio } });
           if (error) throw error;
           const text = String(data?.text || '').trim();
-          if (text) setInvoiceDescription(prev => appendInvoiceText(prev, text));
+          if (text) {
+            if (invoiceMode === 'table') setQuickLine(prev => ({ ...prev, details: appendInvoiceText(prev.details, text).replace(/\n/g, ' ') }));
+            else setInvoiceDescription(prev => appendInvoiceText(prev, text));
+          }
         } catch (error) {
           console.error('Invoice dictation failed:', error);
           setVoiceError('Could not transcribe the recording.');
