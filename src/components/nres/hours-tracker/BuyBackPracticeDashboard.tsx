@@ -2003,7 +2003,7 @@ export function StaffRosterSection({
           )}
         </div>
         {showAddButton && onAddStaff && (
-          <button onClick={(e) => { e.stopPropagation(); setShowAddForm(prev => !prev); }} style={{
+          <button onClick={(e) => { e.stopPropagation(); setAddCategory(category); setShowAddForm(prev => !prev); }} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px',
             borderRadius: 6, border: `1px solid ${accent}40`, background: showAddForm ? `${accent}15` : '#fff',
             color: accent, fontSize: 11, fontWeight: 600, cursor: 'pointer',
@@ -2017,6 +2017,19 @@ export function StaffRosterSection({
       {showAddForm && onAddStaff && (
         <div style={{ padding: '12px 14px', background: '#fafbfc', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 10 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'flex-end' }}>
+            {category === 'management' && (
+              <div style={{ flex: '0 1 150px', minWidth: 130 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Claim type</div>
+                <select
+                  value={addCategory}
+                  onChange={(e) => { setAddCategory(e.target.value); setAddRole(''); setAddAllocValue(e.target.value === 'meeting' ? '0' : ''); }}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="management">NRES Management</option>
+                  <option value="meeting">Meeting Attendance</option>
+                </select>
+              </div>
+            )}
             <div style={{ flex: '1 1 140px', minWidth: 120 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Name</div>
               <input
