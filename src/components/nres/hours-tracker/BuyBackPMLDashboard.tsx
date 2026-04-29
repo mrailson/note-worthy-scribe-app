@@ -1394,12 +1394,12 @@ export function BuyBackPMLDashboard({
     }
   };
 
-  // Status filter chips — Finance gets the virtual "To process" chip first
+  // Status filter chips — Finance only shows finance-relevant stages
   const statusFilters = view === 'finance'
     ? [
-        { key: 'to_process', label: 'To process', color: '#0369a1' },
         { key: 'all', label: 'All' },
-        ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label, color: v.color })),
+        { key: 'invoiced', label: STATUS_CONFIG.invoiced.label, color: STATUS_CONFIG.invoiced.color },
+        { key: 'paid', label: STATUS_CONFIG.paid.label, color: STATUS_CONFIG.paid.color },
       ]
     : [
         { key: 'all', label: 'All' },
