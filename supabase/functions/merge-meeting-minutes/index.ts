@@ -27,7 +27,12 @@ Decision taxonomy (mandatory):
   - NOTED — informational acknowledgement
 
 Merging instructions:
-- Single H1 per document. Sections: Title, Date/Time, Attendees, Agenda, Key Points, Decisions, Actions, Risks/Issues, Next Steps.
+- Mirror the single-shot meeting notes structure exactly. Start immediately with "# MEETING DETAILS" — no title, preamble, or text before it.
+- Under "# MEETING DETAILS", write separate label-only lines: "Date: <human date>" and "Time: <human time>". Use the supplied meeting date/time from the request; if either value is unavailable, keep the label and leave the value blank. Add "Location:" only when the source summaries contain an explicit location.
+- Then emit "# EXECUTIVE SUMMARY" as one concise paragraph, followed by "# ATTENDEES" when attendee details are available, then "# DISCUSSION SUMMARY". The first line under discussion summary must be "**Meeting Purpose:** ..." before the key points content.
+- Put key points, decisions, and actions under appropriate sub-headings within this structure. Use "# DECISIONS REGISTER" for decisions and "# ACTION ITEMS" for actions. Action items must remain a markdown table with columns Action, Owner, Deadline, Priority.
+- Emit "# OPEN ITEMS & RISKS" as a bullet list only, using this form: "- **Risk title:** detail — Status: Open/Closed". Do NOT use markdown pipe tables for risks or issues. If any input summaries contain table-shaped risks/issues, convert them into bullets.
+- Finish with "# NEXT MEETING".
 - Deduplicate, resolve contradictions, preserve unique details.
 - Action items: "[Owner] – Action – Due date (if mentioned)".
 - If a chunk arrived as an "[unsummarised excerpt …]" placeholder, integrate its substantive content where possible and silently drop the placeholder marker from the final output (do NOT mention it).
