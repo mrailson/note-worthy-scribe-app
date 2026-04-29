@@ -1485,13 +1485,15 @@ export function BuyBackPMLDashboard({
       {/* Finance role banner */}
       {view === 'finance' && (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 16px', marginBottom: 16, borderRadius: 10,
-          background: '#f8fafc', border: '1px solid #e2e8f0',
-          fontSize: 13, color: '#64748b',
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          padding: '12px 16px', marginBottom: 16, borderRadius: 10,
+          background: '#eff6ff', border: '1px solid #bfdbfe',
+          fontSize: 13, color: '#1e3a8a',
         }}>
-          <Lock className="w-3.5 h-3.5 text-slate-400" />
-          <span><strong>Payment processing only</strong> — Claim approval is handled by the SNO Approver. You can process payment on approved claims.</span>
+          <Lock className="w-4 h-4" style={{ color: '#2563eb', marginTop: 1, flexShrink: 0 }} />
+          <span>
+            <strong>Automatic invoice generation</strong> — all approved claims are automatically invoiced. A generated invoice PDF and supporting information are sent to <strong>pml.finance@nhs.net</strong>; this view is for payment processing and tracking.
+          </span>
         </div>
       )}
 
