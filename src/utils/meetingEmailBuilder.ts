@@ -4,6 +4,8 @@
  * to produce consistent, professional NHS-branded email output.
  */
 
+import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
+
 export interface MeetingEmailMeta {
   date?: string;
   time?: string;
@@ -20,19 +22,19 @@ export const stripDuplicateBlocks = (text: string): string => {
   let cleaned = text;
   cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*NOTES\s*$/gim, '');
   cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*DETAILS\s*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Date:\*?\*?.*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Time:\*?\*?.*$/gim, '');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Location:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Date:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Time:\*?\*?.*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Location:\*?\*?.*$/gim, '');
   cleaned = cleaned.replace(/(?:^|\n)\s*#{0,6}\s*ATTENDEES\s*\n+\s*(?:[-•*]\s*)?(?:TBC|To be confirmed)\s*(?=\n|$)/gim, '\n');
-  cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Attendees?:\*?\*?\s*(?:TBC|To be confirmed)\s*$/gim, '');
+  cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Attendees?:\*?\*?\s*(?:TBC|To be confirmed)\s*$/gim, '');
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   return cleaned;
 };
 
 /** Convert markdown notes content to styled HTML for email body */
 export const convertToStyledHTML = (text: string): string => {
-  const cleanedText = stripDuplicateBlocks(text);
+  const cleanedText = normaliseMeetingNotesFormatting(stripDuplicateBlocks(text));
   let processedText = cleanedText
     .replace(/\\\*/g, '')
     .replace(/\*{3,}/g, '**')
@@ -61,14 +63,14 @@ export const convertToStyledHTML = (text: string): string => {
   while (i < lines.length) {
     const line = lines[i].trim();
 
-    // Handle tables
-    if (line.includes('|')) {
+    // Handle well-formed markdown tables only; loose pipe rows are normalised earlier.
+    if (line.startsWith('|')) {
       const tableRows: string[][] = [];
       let inTable = true;
       while (i < lines.length && inTable) {
         const currentLine = lines[i].trim();
-        if (/^[\|\-\s]+$/.test(currentLine)) { i++; continue; }
-        if (currentLine.includes('|')) {
+        if (/^[|:\s-]+$/.test(currentLine)) { i++; continue; }
+        if (currentLine.startsWith('|')) {
           const cells = currentLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
           if (cells.length > 0) tableRows.push(cells);
           i++;
@@ -132,12 +134,12 @@ export const convertToStyledHTML = (text: string): string => {
     }
 
     // Bullet points
-    if (line.match(/^[•\-]\s/) || (line.match(/^\*\s/) && !line.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
+    if (line.match(/^[•-]\s/) || (line.match(/^\*\s/) && !line.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
       let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
       while (i < lines.length) {
         const curLine = lines[i].trim();
-        if (curLine.match(/^[•\-]\s/) || (curLine.match(/^\*\s/) && !curLine.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
-          const itemText = stripInlineMarkdown(curLine.replace(/^[•\-\*]\s/, ''));
+        if (curLine.match(/^[•-]\s/) || (curLine.match(/^\*\s/) && !curLine.match(/^\*{1,2}(Context|Discussion|Agreed|Implication|Meeting)/i))) {
+          const itemText = stripInlineMarkdown(curLine.replace(/^[•*-]\s/, ''));
           listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
           i++;
         } else {
@@ -165,6 +167,13 @@ export const convertToStyledHTML = (text: string): string => {
       } else {
         html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
       }
+      i++; continue;
+    }
+
+    // Governance decision labels must remain visually clear in Outlook.
+    const governanceMatch = line.match(/^[-•*]?\s*\*{0,2}(RESOLVED|AGREED|NOTED)\*{0,2}\s*[—:-]?\s*(.*)$/i);
+    if (governanceMatch) {
+      html += `<p style="margin: 8px 0 8px 20px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a;"><strong style="color: #000000;">${governanceMatch[1].toUpperCase()}</strong>${governanceMatch[2] ? ` — ${stripInlineMarkdown(governanceMatch[2])}` : ''}</p>\n`;
       i++; continue;
     }
 

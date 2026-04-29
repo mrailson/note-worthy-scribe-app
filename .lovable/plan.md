@@ -1,54 +1,44 @@
-Plan to add the requested SDA Claims invoice GL mappings
+The formatting is off because the notes content being rendered contains raw markdown/table syntax that is no longer being reliably converted before display/email. In your screenshots I can see two related symptoms:
 
-I will update the SDA Claims finance mapping so the relevant claim lines and invoices show the new GL code plus the finance description:
+1. In the notes modal, a whole numbered section is being shown as one long paragraph, with raw markers like `--- ### Key Points ###` left in the text.
+2. In the emailed body, Outlook is receiving the same unnormalised content, so headings, numbered sections, and markdown tables collapse into dense blue/black text instead of proper sections, paragraphs, bullets, and tables.
 
-```text
-GP Partner Meeting Attend        -> 6100 - Locum GP
-Practice Manager Meeting Attend  -> 6104 - Local Non-Clinical
-NRES Management Hours            -> 6104 - Local Non-Clinical
-```
+This is not a Word-only problem; it is a formatting pipeline problem. The Word attachment may now generate, but the source content needs normalising before it is displayed, emailed, and exported.
 
-What I will change
+Plan to fix it:
 
-1. Centralise the new mappings
-- Extend the GL-code utility so it can resolve codes by claim category and role, not just by the older buy-back/additional clinical mappings.
-- Add invoice-facing labels for:
-  - `6100 - Locum GP`
-  - `6104 - Local Non-Clinical`
+1. Add a meeting-notes normalisation helper
+   - Clean obvious markdown artefacts such as inline `---`, repeated `###`, escaped asterisks, and divider lines.
+   - Split collapsed numbered agenda items back onto separate lines.
+   - Convert malformed table-like lines using `|` into proper markdown table blocks where possible.
+   - Preserve important governance prefixes such as **RESOLVED**, **AGREED**, and **NOTED** and keep them visually distinct.
+   - Keep British English/date/time conventions unchanged.
 
-2. Fix invoice PDF generation for standard SDA claim invoices
-- Update `src/utils/invoicePdfGenerator.ts` so these claim line types resolve correctly:
-  - staff category `meeting` + role `GP Partner` -> `6100 - Locum GP`
-  - staff category `meeting` + role `Practice Manager` -> `6104 - Local Non-Clinical`
-  - staff category `management` or role `NRES Management` -> `6104 - Local Non-Clinical`
-  - staff category `gp_locum` / role `GP Locum` -> `6100 - Locum GP`, if those are the locum lines being invoiced
-- Ensure both the invoice table and GL subtotal box show the description, not just the number.
+2. Apply the normaliser to the notes modal display
+   - Use the cleaned content before rendering the notes tab in `SafeModeNotesModal` / related modal render path.
+   - Ensure numbered points appear as separate paragraphs rather than one wall of text.
+   - Ensure action/risk table sections show as tables or readable rows, not raw pipes.
 
-3. Fix meeting-attendance invoice PDFs
-- Update `src/utils/meetingInvoicePdfGenerator.ts` so meeting attendance invoices include a GL category column.
-- Use the meeting role/person config to map:
-  - GP attendance -> `6100 - Locum GP`
-  - Practice Manager attendance -> `6104 - Local Non-Clinical`
-- Add GL subtotals to meeting attendance invoices so Finance can see the split where an invoice contains more than one type.
+3. Apply the same normalisation before email HTML generation
+   - Update `src/utils/meetingEmailBuilder.ts` so `convertToStyledHTML()` handles collapsed numbered sections and imperfect markdown tables.
+   - Make the Outlook HTML more robust by using simple email-safe tables/paragraphs rather than relying on markdown-looking plain text.
+   - Remove the duplicate full-notes body from the email if required, or keep it but properly formatted; the email currently says “summary below” but then includes the full raw notes, which is why the message becomes huge.
 
-4. Preserve correct stored GL codes for newly created claims
-- Update the claim creation path in `src/hooks/useNRESBuyBackClaims.ts` so new staff snapshots store `gl_code` / `gl_category` as `6100` or `6104` for these categories.
-- This prevents newly generated emails, PDFs and dashboards from falling back to older values like `5411`, `5421`, `N/A`, or `PML`.
+4. Apply the same cleanup before Word generation
+   - Feed cleaned content into `generateProfessionalWordFromContent()` / `generateProfessionalWordBlob()`.
+   - Keep the earlier safety fallback for blank action deadlines (`TBC`) so DOCX generation does not fail.
+   - Ensure action tables use safe default values for action, owner, deadline, and priority.
 
-5. Fix the meeting attendance fallback currently using `PML`
-- In the meeting attendance log flow, replace the fallback `gl_code: 'PML'` with the correct role-based GL code.
-- This covers the case where a meeting staff member was created directly on the claim rather than from a configured management role.
+5. Improve error visibility
+   - Keep clearer toast errors for failed Word downloads.
+   - Add console warnings around malformed table conversion so we can diagnose future bad AI output without exposing this to users.
 
-6. Align the visible dashboards/emails where they show GL codes
-- Update the PML/practice/verifier claim-line displays so these categories show the same mapped codes.
-- Update invoice email rows/subtotals so the email content matches the PDF invoice.
+Technical notes:
 
-Verification after implementation
-
-- Check TypeScript/build verification output from the harness.
-- Generate or inspect representative invoice paths for:
-  - GP Partner meeting attendance
-  - Practice Manager meeting attendance
-  - NRES Management hours
-  - GP Locum, if present in the same GL family
-- Confirm the PDF table and subtotal labels read exactly as requested, using British English date/number formatting already present in the app.
+- Likely files to update:
+  - `src/utils/meetingEmailBuilder.ts`
+  - `src/utils/generateProfessionalMeetingDocx.ts`
+  - `src/components/SafeModeNotesModal.tsx` or the shared renderer it uses
+  - possibly `src/components/MeetingHistoryList.tsx` for the quick Word button path
+- I will not change the meeting generation model itself first, because existing stored notes already contain malformed markdown. The immediate fix should clean both existing and future notes at render/export time.
+- After implementation, I will verify the same meeting path visually in the modal and check that the email/Word source conversion no longer leaves raw `###`, `---`, or broken pipe-table output.
