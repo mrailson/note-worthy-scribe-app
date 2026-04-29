@@ -2103,10 +2103,10 @@ export function StaffRosterSection({
                 />
               </div>
             )}
-            <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addAllocValue} style={{
+            <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)} style={{
               padding: '7px 16px', borderRadius: 7, border: 'none', background: accent,
               color: '#fff', fontSize: 12, fontWeight: 600, cursor: addSaving ? 'not-allowed' : 'pointer',
-              opacity: (addSaving || !addName.trim() || !addAllocValue) ? 0.5 : 1,
+              opacity: (addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)) ? 0.5 : 1,
             }}>
               {addSaving ? 'Saving…' : 'Add'}
             </button>
