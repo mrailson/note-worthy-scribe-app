@@ -14,6 +14,7 @@ import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracti
 import { supabase } from '@/integrations/supabase/client';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { StaffLineEvidence } from './ClaimEvidencePanel';
+import { getSDAClaimGLCode } from '@/utils/glCodes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
@@ -808,7 +809,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                       <td style={{ padding: '10px', color: '#374151' }}>{l.staff_role || l.role || '—'}</td>
                       <td style={{ padding: '10px' }}>
                         <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
-                          {l.gl_code || l.gl || l.staff_category || '—'}
+                          {getSDAClaimGLCode(l, claim.claim_type || 'buyback') || '—'}
                         </code>
                       </td>
                       {hasLocum && (

@@ -23,6 +23,7 @@ import { NRES_PRACTICES, NRES_PRACTICE_KEYS, NRES_ODS_CODES, getPracticeName, ty
 import { ENN_PRACTICES, ENN_PRACTICE_KEYS, type ENNPracticeKey } from '@/data/ennPractices';
 import { PaymentWorkflowPanel } from './PaymentWorkflowPanel';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
+import { getSDAClaimGLCode } from '@/utils/glCodes';
 
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
 import { useNRESBuyBackRateSettings } from '@/hooks/useNRESBuyBackRateSettings';
@@ -2576,7 +2577,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
                   <td className="p-2">{s.staff_role}</td>
                   <td className="p-2">
                     <code className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground">
-                      {s.gl_code || s.gl_category || '—'}
+                      {getSDAClaimGLCode(s, claim.claim_type || 'buyback') || '—'}
                     </code>
                   </td>
                   {/* Allocation — editable in draft/queried, read-only for meeting staff */}

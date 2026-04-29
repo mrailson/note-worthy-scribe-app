@@ -4,6 +4,7 @@ import { getPracticeName, getOdsCode } from '@/data/nresPractices';
 import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
+import { getGLInvoiceLabel, getMeetingAttendanceGLCode } from '@/utils/glCodes';
 
 interface MeetingInvoiceData {
   entries: MeetingLogEntry[];
@@ -155,6 +156,7 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
     i + 1,
     e.person_name || '—',
     e.management_role_key?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Meeting Attendance',
+    getGLInvoiceLabel(getMeetingAttendanceGLCode(e.management_role_key, e.hourly_rate)),
     new Date(e.work_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     `${e.hours} hrs @ ${fmt(e.hourly_rate)}/hr`,
     e.description || '—',
@@ -163,14 +165,15 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['#', 'Attendee', 'Role', 'Date', 'Hours & Rate', 'Description', 'Amount']],
+    head: [['#', 'Attendee', 'Role', 'GL Category', 'Date', 'Hours & Rate', 'Description', 'Amount']],
     body: tableData,
-    styles: { fontSize: 8, cellPadding: 3 },
+    styles: { fontSize: 7.5, cellPadding: 2.5 },
     headStyles: { fillColor: [0, 94, 184], textColor: 255, fontStyle: 'bold' },
     columnStyles: {
       0: { cellWidth: 8 },
-      3: { cellWidth: 22 },
-      6: { halign: 'right', cellWidth: 20 },
+      3: { cellWidth: 28 },
+      4: { cellWidth: 20 },
+      7: { halign: 'right', cellWidth: 18 },
     },
     alternateRowStyles: { fillColor: [240, 244, 245] },
   });
@@ -178,11 +181,18 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
   // --- Total ---
   const grandTotal = entries.reduce((sum, e) => sum + e.total_amount, 0);
   const totalHours = entries.reduce((sum, e) => sum + e.hours, 0);
+  const glGroups = entries.reduce((summary: Record<string, number>, e) => {
+    const gl = getMeetingAttendanceGLCode(e.management_role_key, e.hourly_rate);
+    summary[gl] = (summary[gl] || 0) + e.total_amount;
+    return summary;
+  }, {});
+  const glEntries = Object.entries(glGroups).sort(([a], [b]) => a.localeCompare(b));
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const totalBoxHeight = Math.max(30, 18 + glEntries.length * 5.5);
 
   doc.setFillColor(240, 244, 248);
-  doc.roundedRect(120, finalY - 5, 76, 30, 2, 2, 'F');
+  doc.roundedRect(120, finalY - 5, 76, totalBoxHeight, 2, 2, 'F');
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -190,18 +200,25 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
   doc.text(`${entries.length} meeting${entries.length !== 1 ? 's' : ''}:`, 124, finalY);
   doc.text(`${totalHours} hrs`, 192, finalY, { align: 'right' });
 
+  let subtotalY = finalY + 6;
+  glEntries.forEach(([gl, amount]) => {
+    doc.text(`GL ${getGLInvoiceLabel(gl)}:`, 124, subtotalY);
+    doc.text(fmt(amount), 192, subtotalY, { align: 'right' });
+    subtotalY += 5.5;
+  });
+
   doc.setDrawColor(...NHS_BLUE);
   doc.setLineWidth(0.4);
-  doc.line(124, finalY + 6, 192, finalY + 6);
+  doc.line(124, subtotalY, 192, subtotalY);
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...NHS_DARK_BLUE);
-  doc.text('TOTAL:', 124, finalY + 14);
-  doc.text(fmt(grandTotal), 192, finalY + 14, { align: 'right' });
+  doc.text('TOTAL:', 124, subtotalY + 8);
+  doc.text(fmt(grandTotal), 192, subtotalY + 8, { align: 'right' });
 
   // --- Bank Details ---
-  let bankY = finalY + 24;
+  let bankY = finalY + totalBoxHeight + 4;
   if (bankDetails) {
     doc.setFillColor(245, 248, 252);
     doc.roundedRect(14, bankY - 4, 100, 30, 2, 2, 'F');

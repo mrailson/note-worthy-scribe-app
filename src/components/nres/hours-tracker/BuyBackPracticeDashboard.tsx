@@ -13,6 +13,7 @@ import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
+import { getSDAClaimGLCode } from '@/utils/glCodes';
 
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
@@ -2234,7 +2235,7 @@ export function StaffRosterSection({
                               max_hours_per_week: 0,
                               billing_entity: getPracticeName(practiceKey || ''),
                               billing_org_code: NRES_ODS_CODES[practiceKey || ''] || '',
-                              gl_code: 'PML',
+                              gl_code: getSDAClaimGLCode({ staff_category: 'meeting', staff_role: member.staff_role }) || '',
                               is_active: true,
                               role_type: 'attending_meeting' as const,
                               member_practice: practiceKey,
@@ -3172,7 +3173,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                           <td style={{ padding: '10px', color: '#374151' }}>{s.staff_role || '—'}</td>
                           <td style={{ padding: '10px' }}>
                             <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
-                              {s.gl_code || (s.staff_category === 'management' ? 'N/A' : '—')}
+                              {getSDAClaimGLCode(s, claim.claim_type || 'buyback') || '—'}
                             </code>
                           </td>
                           {hasLocum ? (
