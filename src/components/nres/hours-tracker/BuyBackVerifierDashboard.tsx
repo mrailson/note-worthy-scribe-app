@@ -45,6 +45,52 @@ const claimHours = (c: BuyBackClaim) =>
 
 const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff_details ?? [];
 
+const DRAFT_INVOICE_NUMBER = 'DRAFT-INVOICE-PREVIEW';
+
+function InvoicePreviewDialog({ open, onOpenChange, claim, invoiceDescription }: { open: boolean; onOpenChange: (open: boolean) => void; claim: BuyBackClaim; invoiceDescription: string }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewInvoiceNumber = claim.invoice_number || DRAFT_INVOICE_NUMBER;
+
+  useEffect(() => {
+    if (!open) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      return;
+    }
+
+    const previewClaim = { ...claim, practice_notes: invoiceDescription } as BuyBackClaim;
+    const pdfDoc = generateInvoicePdf({
+      claim: previewClaim,
+      invoiceNumber: previewInvoiceNumber,
+      neighbourhoodName: 'NRES',
+    });
+    const nextUrl = URL.createObjectURL(pdfDoc.output('blob'));
+    setPreviewUrl(previousUrl => {
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      return nextUrl;
+    });
+
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [claim, invoiceDescription, open, previewInvoiceNumber]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[96vw] w-[96vw] h-[92vh] max-h-[92vh] p-0 overflow-hidden flex flex-col bg-background">
+        <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
+          <DialogTitle className="text-left text-base font-semibold">Invoice preview</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 min-h-0 bg-muted/30">
+          {previewUrl ? (
+            <iframe title="Invoice PDF preview" src={previewUrl} className="w-full h-full border-0" />
+          ) : (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Generating invoice preview…</div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** Evidence section for management/verifier view */
 const VerifierEvidenceSection = ({ claimId, staffLines, canEdit }: { claimId: string; staffLines: any[]; canEdit: boolean }) => {
   const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl, uploadEvidence, deleteEvidence, uploading } = useNRESClaimEvidence(claimId);
