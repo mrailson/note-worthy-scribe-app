@@ -222,9 +222,17 @@ Use the following structure. Every section is mandatory. If a section has no con
 
 > **Meeting Purpose:** [One sentence summarising the overall purpose]
 
-Then produce numbered sections for EVERY distinct topic cluster discussed. Aim for 8–15 sections in a typical meeting. Each section should:
-- Have a clear descriptive heading
-- Open with what was discussed
+Then produce numbered sections for EVERY distinct topic cluster discussed. Aim for 8–15 sections in a typical meeting.
+
+FORMAT EACH SECTION EXACTLY AS:
+
+### N. Topic heading on its own line
+
+Body paragraph starts here after a blank line. Body text MUST NEVER appear on the same line as the heading. Use a markdown ### heading.
+
+Each section should:
+- Have a clear descriptive heading on its own line, with no body text on that line
+- Start the body paragraph on a new line after a blank line
 - Include ALL specific figures, names, dates, session counts, and rates mentioned
 - Include the reasoning behind decisions where stated
 - Note who raised points where identifiable
