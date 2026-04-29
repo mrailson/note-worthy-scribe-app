@@ -591,16 +591,31 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
           {/* Invoice description / claim details */}
           {isSubmitted && onUpdateClaimNotes ? (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <div style={{ fontWeight: 700, color: '#78350f', marginBottom: 6 }}>Invoice description / claim details</div>
-              <textarea
-                value={invoiceDescription}
-                onChange={e => setInvoiceDescription(e.target.value.slice(0, 1500))}
-                placeholder="Add multiple dates, times or invoice wording to print on the invoice…"
-                rows={3}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }}
-              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                <div style={{ fontWeight: 700, color: '#78350f' }}>Invoice description / claim details</div>
+                <div style={{ display: 'inline-flex', border: '1px solid #fcd34d', borderRadius: 6, overflow: 'hidden', background: '#fff' }}>
+                  {(['text', 'table'] as const).map(mode => <button key={mode} onClick={() => { setInvoiceMode(mode); if (mode === 'table' && !invoiceRows.length) syncRows([newInvoiceTableRow()]); }} style={{ padding: '4px 10px', border: 'none', background: invoiceMode === mode ? '#fef3c7' : '#fff', color: '#78350f', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{mode === 'text' ? 'Text' : 'Table'}</button>)}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+                <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
+                <button onClick={handleQuickDate} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Date {quickLine.date}</button>
+                <button onClick={handleQuickStart} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Start {quickLine.start || 'now'}</button>
+                <button onClick={handleQuickStop} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: '#fef3c7', color: '#78350f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Stop + add line</button>
+                <input value={quickLine.details} onChange={e => setQuickLine(prev => ({ ...prev, details: e.target.value }))} placeholder="Line details" style={{ flex: '1 1 220px', minWidth: 180, padding: '5px 8px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12 }} />
+              </div>
+              {voiceError && <div style={{ marginBottom: 6, color: '#b91c1c', fontSize: 11 }}>{voiceError}</div>}
+              {invoiceMode === 'table' ? (
+                <div style={{ overflowX: 'auto', border: '1px solid #fcd34d', borderRadius: 6, background: '#fff' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead><tr>{['Date', 'Start', 'Stop', 'Details', ''].map(h => <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #fde68a', color: '#78350f', fontSize: 11 }}>{h}</th>)}</tr></thead>
+                    <tbody>{invoiceRows.map(row => <tr key={row.id}><td style={{ padding: 4 }}><input value={row.date} onChange={e => updateInvoiceRow(row.id, { date: e.target.value })} style={{ width: 92, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.start} onChange={e => updateInvoiceRow(row.id, { start: e.target.value })} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.stop} onChange={e => updateInvoiceRow(row.id, { stop: e.target.value })} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.details} onChange={e => updateInvoiceRow(row.id, { details: e.target.value })} style={{ width: '100%', minWidth: 220, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4, width: 34 }}><button onClick={() => removeInvoiceRow(row.id)} style={{ border: 'none', background: 'transparent', color: '#b91c1c', cursor: 'pointer' }} title="Remove row"><Trash2 className="w-3.5 h-3.5" /></button></td></tr>)}</tbody>
+                  </table>
+                  <button onClick={addBlankInvoiceRow} style={{ margin: 6, padding: '4px 8px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 4, alignItems: 'center' }}><Plus className="w-3 h-3" /> Add row</button>
+                </div>
+              ) : <textarea value={invoiceDescription} onChange={e => setInvoiceDescription(e.target.value.slice(0, DESCRIPTION_LIMIT))} placeholder="Add multiple dates, times or invoice wording to print on the invoice…" rows={3} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }} />}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/1500 characters — printed on the invoice if completed</span>
+                <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/{DESCRIPTION_LIMIT} characters — printed on the invoice if completed</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setInvoicePreviewOpen(true)}
