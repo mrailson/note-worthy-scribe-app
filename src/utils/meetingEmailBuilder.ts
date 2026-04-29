@@ -40,6 +40,8 @@ export const convertToStyledHTML = (text: string): string => {
     .replace(/\*{3,}/g, '**')
     .replace(/═+/g, '')
     .replace(/---+/g, '');
+  // Strip bare-punctuation placeholder lines that the AI sometimes emits as empty decision/action slots
+  processedText = processedText.replace(/^[\s]*[-*•][\s]*$/gm, '');
 
   const transcriptIndex = processedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
   if (transcriptIndex !== -1) {
@@ -112,8 +114,8 @@ export const convertToStyledHTML = (text: string): string => {
       i++; continue;
     }
 
-    // ALL CAPS section headers
-    if (line.length > 0 && line === line.toUpperCase() && line.length < 100 && !line.match(/^\d/)) {
+    // ALL CAPS section headers — require at least one A–Z letter so bare punctuation lines like "-" are not misclassified
+    if (line.length > 0 && line === line.toUpperCase() && line.length < 100 && !line.match(/^\d/) && /[A-Z]/.test(line)) {
       html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${stripInlineMarkdown(line)}</h2>\n`;
       i++; continue;
     }
