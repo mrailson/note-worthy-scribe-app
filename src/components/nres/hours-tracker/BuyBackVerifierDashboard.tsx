@@ -421,6 +421,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
             {(() => { const name = resolveSubmitterName(claim, profileNames || {}); return name ? <InfoBlock label="Submitted by" value={name} sub={claim.submitted_by_email || undefined} /> : claim.submitted_by_email ? <InfoBlock label="Submitted by" value={claim.submitted_by_email} /> : null; })()}
             {claim.verified_by && <InfoBlock label="Verified by" value={claim.verified_by} sub={dateStr(claim.verified_at)} />}
+            {claim.approved_by_email && <InfoBlock label="Approved by" value={claim.approved_by_email.split('@')[0].split(/[._-]/).filter(Boolean).map((part: string) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ')} sub={dateStr(claim.reviewed_at || (claim as any).approved_at)} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
           </div>
 
