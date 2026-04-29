@@ -1,6 +1,7 @@
 import { saveAs } from "file-saver";
 import { NHS_COLORS, FONTS, buildNHSStyles, buildNumbering } from "./wordTheme";
 import { generateMeetingFilename } from "./meetingFilename";
+import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
 
 // Decode HTML entities to plain characters for Word output
 const decodeHtmlEntities = (text: string): string => {
@@ -1330,7 +1331,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const { Document, Packer, Paragraph, TextRun } = await import("docx");
   
   // Clean and deduplicate content
-  let cleanedContent = stripTranscriptAndDetails(options.content);
+  let cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(options.content));
   cleanedContent = deduplicateActionItems(cleanedContent);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
   
@@ -1679,7 +1680,7 @@ export const generateProfessionalWordBlob = async (
   };
   
   // Clean content
-  let cleanedContent = stripTranscriptAndDetails(content);
+  let cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(content));
   cleanedContent = deduplicateActionItems(cleanedContent);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, metadata.loggedUserName);
   
@@ -1784,7 +1785,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const { Document, Packer, Paragraph, TextRun } = await import("docx");
   
   // Clean content
-  let cleanedContent = stripTranscriptAndDetails(options.content);
+  let cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(options.content));
   cleanedContent = deduplicateActionItems(cleanedContent);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
   
