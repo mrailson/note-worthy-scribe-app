@@ -134,6 +134,7 @@ export function EvidenceSlot({
 }) {
   const filesToShow = allowMultiple ? (uploadedFiles || []) : (uploadedFile ? [uploadedFile] : []);
   const hasFile = filesToShow.length > 0;
+  const displayLabel = config.evidence_type === 'other_supporting' ? 'Supporting Evidence' : config.label;
 
   const handleDownload = async (filePath: string) => {
     const url = await onDownload(filePath);
@@ -152,7 +153,7 @@ export function EvidenceSlot({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="font-medium">{config.label}</span>
+          <span className="font-medium">{displayLabel}</span>
           {config.is_mandatory && <span className="text-red-500 text-[10px]">Required</span>}
         </div>
         {config.description && (
@@ -279,7 +280,7 @@ export function StaffLineEvidence({
               <div key={`${staffIndex}-${cfg.evidence_type}`} className="px-3 py-2 flex items-center gap-3 text-xs">
                 <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium">{cfg.label}</span>
+                  <span className="font-medium">Supporting Evidence</span>
                   {cfg.description && (
                     <p className="text-muted-foreground text-[10px] truncate">{cfg.description}</p>
                   )}
