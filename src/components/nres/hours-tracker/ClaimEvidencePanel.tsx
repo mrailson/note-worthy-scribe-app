@@ -54,7 +54,7 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
         <FileText className="w-4 h-4 text-primary" />
         <span className="text-xs font-semibold text-primary">Supporting Evidence</span>
         <Badge variant="outline" className="text-[10px] ml-auto">
-          {Object.keys(uploadedTypes).length} uploaded
+          {Object.values(filesByType).reduce((total, files) => total + files.length, 0) || Object.keys(uploadedTypes).length} uploaded
         </Badge>
       </div>
       <div className="divide-y">
@@ -197,7 +197,7 @@ export function StaffLineEvidence({
   // Only show mandatory evidence types + 'other_supporting' to reduce clutter
   const visibleTypes = allTypes.filter(t => t.is_mandatory || t.evidence_type === 'other_supporting');
 
-  const uploadedCount = Object.keys(uploadedTypesForStaff).length;
+  const uploadedCount = allFilesForStaff?.length || Object.keys(uploadedTypesForStaff).length;
   const mandatoryTypes = allTypes.filter(t => t.is_mandatory);
   const mandatoryUploaded = mandatoryTypes.filter(t => !!uploadedTypesForStaff[t.evidence_type]).length;
 
