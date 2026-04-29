@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { extractMarkdownTableBlocks, isActionItemsTableData, parseMarkdownTable } from '@/lib/tableRenderer';
 
 export interface ActionItem {
   id: string;
@@ -169,35 +170,38 @@ export const useActionItems = (meetingId: string) => {
     const seenTexts = new Set<string>();
     const extractedItems: Array<{ text: string; assignee: string; dueDate: string; priority: 'High' | 'Medium' | 'Low' }> = [];
 
-    // Method 1: Parse markdown TABLE format under an "Action Items" heading
-    // Supports headings like "# ACTION ITEMS", "## Action Items", etc.
-    const tableMatch = notes.match(
-      /#{1,3}\s*(?:ACTION\s+ITEMS|Action\s+Items)\s*\n\|[^\n]+\|\s*\n\|[-|\s:]+\|\s*\n([\s\S]*?)(?=\n#{1,3}\s+|\n\n#{1,3}\s+|$)/i
-    );
-    if (tableMatch && tableMatch[1]) {
-      const tableRows = tableMatch[1].split('\n').filter(line => line.trim().startsWith('|'));
-      
-      for (const row of tableRows) {
-        // Parse table row: | Action Text | Assignee | Deadline | Priority |
-        const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
-        if (cells.length >= 4) {
-          const [actionText, assignee, deadline, priority] = cells;
-          
-          // Skip if action text is too short or is a header
-          if (actionText.length < 10 || actionText.match(/^Action$/i)) continue;
-          
-          // Normalise and dedupe
-          const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
-          if (seenTexts.has(normalizedText)) continue;
-          seenTexts.add(normalizedText);
-          
-          extractedItems.push({
-            text: actionText,
-            assignee: assignee || 'TBC',
-            dueDate: deadline || 'TBC',
-            priority: (priority?.match(/High|Medium|Low/i)?.[0] as 'High' | 'Medium' | 'Low') || 'Medium',
-          });
-        }
+    // Method 1: Parse markdown TABLE format, including slightly malformed AI output.
+    const tableBlocks = extractMarkdownTableBlocks(notes);
+    for (const block of tableBlocks) {
+      const parsedTable = parseMarkdownTable(block);
+      if (!parsedTable || !isActionItemsTableData(parsedTable)) continue;
+
+      const findHeader = (...patterns: RegExp[]) =>
+        parsedTable.headers.find(header => patterns.some(pattern => pattern.test(header.toLowerCase())));
+
+      const actionHeader = findHeader(/\baction\b/, /task/, /next step/, /agreed action/) || parsedTable.headers[0];
+      const ownerHeader = findHeader(/owner/, /assignee/, /lead/, /responsible/, /who/) || parsedTable.headers[1];
+      const deadlineHeader = findHeader(/due/, /deadline/, /date/, /when/, /timescale/) || parsedTable.headers[2];
+      const priorityHeader = findHeader(/priority/) || parsedTable.headers.find(h => /high|medium|low/i.test(parsedTable.rows[0]?.[h] || ''));
+
+      for (const row of parsedTable.rows) {
+        const actionText = (row[actionHeader] || '').trim();
+        const assignee = (ownerHeader ? row[ownerHeader] : '').trim();
+        const deadline = (deadlineHeader ? row[deadlineHeader] : '').trim();
+        const priority = priorityHeader ? row[priorityHeader] : '';
+
+        if (actionText.length < 10 || /^action$/i.test(actionText)) continue;
+
+        const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        if (seenTexts.has(normalizedText)) continue;
+        seenTexts.add(normalizedText);
+
+        extractedItems.push({
+          text: actionText,
+          assignee: assignee || 'TBC',
+          dueDate: deadline || 'TBC',
+          priority: (priority?.match(/High|Medium|Low/i)?.[0] as 'High' | 'Medium' | 'Low') || 'Medium',
+        });
       }
     }
 

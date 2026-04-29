@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { useActionItems, ActionItem } from '@/hooks/useActionItems';
-import { parseMarkdownTable } from '@/lib/tableRenderer';
+import { extractMarkdownTableBlocks, isActionItemsTableData, parseMarkdownTable } from '@/lib/tableRenderer';
 
 interface InlineActionItemsTableProps {
   meetingId: string;
@@ -363,42 +363,15 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
   useEffect(() => {
     let cancelled = false;
 
-    const extractActionItemsTableMarkdown = (summary: string): string | null => {
-      // Find the Action Items heading and capture until the next heading.
-      const headingMatch = summary.match(/^#{1,4}\s*action\s+items?\s*$/im);
-      if (!headingMatch?.index && headingMatch?.index !== 0) return null;
+    const extractActionItemsTable = (summary: string) => {
+      const blocks = extractMarkdownTableBlocks(summary);
 
-      const start = headingMatch.index + headingMatch[0].length;
-      const afterHeading = summary.slice(start);
-
-      const nextHeadingMatch = afterHeading.match(/^#{1,4}\s+/m);
-      const sectionBody = nextHeadingMatch?.index != null
-        ? afterHeading.slice(0, nextHeadingMatch.index)
-        : afterHeading;
-
-      // Find the first markdown table block inside the section.
-      const lines = sectionBody.split('\n');
-      const tableLines: string[] = [];
-      let inTable = false;
-
-      for (const rawLine of lines) {
-        const line = rawLine.trimEnd();
-        const looksLikeTableRow = /^\s*\|.*\|\s*$/.test(line);
-
-        if (looksLikeTableRow) {
-          inTable = true;
-          tableLines.push(line);
-          continue;
-        }
-
-        if (inTable) {
-          // Stop at the first non-table line after we've started capturing.
-          break;
-        }
+      for (const block of blocks) {
+        const parsed = parseMarkdownTable(block);
+        if (parsed && isActionItemsTableData(parsed)) return parsed;
       }
 
-      if (tableLines.length < 2) return null;
-      return tableLines.join('\n');
+      return null;
     };
 
     const loadFallback = async () => {
@@ -408,24 +381,34 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
 
       setIsFallbackLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('meeting_summaries')
-          .select('summary')
-          .eq('meeting_id', meetingId)
-          .maybeSingle();
+        const [{ data: meetingRow, error: meetingError }, { data: summaryRow, error: summaryError }] = await Promise.all([
+          supabase
+            .from('meetings')
+            .select('notes_style_3, overview')
+            .eq('id', meetingId)
+            .maybeSingle(),
+          supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', meetingId)
+            .maybeSingle(),
+        ]);
 
-        if (error) throw error;
-        const summary = data?.summary || '';
-        if (!summary) return;
+        if (meetingError) throw meetingError;
+        if (summaryError) throw summaryError;
 
-        const tableMarkdown = extractActionItemsTableMarkdown(summary);
-        if (!tableMarkdown) return;
+        const candidates = [
+          meetingRow?.notes_style_3,
+          meetingRow?.overview,
+          summaryRow?.summary,
+        ].filter((value): value is string => Boolean(value && value.trim()));
 
-        const parsed = parseMarkdownTable(tableMarkdown);
-        if (!parsed) return;
-
-        if (!cancelled) {
-          setFallbackTable(parsed);
+        for (const candidate of candidates) {
+          const parsed = extractActionItemsTable(candidate);
+          if (parsed && !cancelled) {
+            setFallbackTable(parsed);
+            return;
+          }
         }
       } catch {
         // Silent fallback: if we can't parse, just render nothing (keeps UI clean).
@@ -485,6 +468,9 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
     ? actionItems.filter(item => item.status === 'Completed')
     : actionItems.filter(item => item.status !== 'Completed');
 
+  const displayItems = filteredItems.length > 0 ? filteredItems : actionItems;
+  const showingAllBecauseFilterEmpty = filteredItems.length === 0 && actionItems.length > 0;
+
   return (
     <div className="rounded-lg border overflow-hidden">
       <div className="bg-primary px-4 py-2 flex items-center justify-between">
@@ -517,6 +503,11 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
           </button>
         </div>
       </div>
+      {showingAllBecauseFilterEmpty && (
+        <div className="bg-amber-50 px-4 py-2 text-xs text-amber-800 border-b border-amber-200">
+          No {viewMode.toLowerCase()} actions found, showing all action items so the table does not disappear.
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
@@ -527,7 +518,7 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredItems.map((item) => (
+          {displayItems.map((item) => (
             <TableRow 
               key={item.id} 
               className={item.status === 'Completed' ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
