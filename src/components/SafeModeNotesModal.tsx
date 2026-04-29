@@ -159,6 +159,8 @@ interface SafeModeNotesModalProps {
   notes: string;
 }
 
+const cleanNotesForDisplay = (value: string) => normaliseMeetingNotesFormatting(sanitiseMeetingNotes(value || ''));
+
 export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   isOpen,
   onClose,
@@ -218,7 +220,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       fetchDocumentCount();
     }
   }, [isOpen, meeting?.id]);
-  const [notesContent, setNotesContent] = useState(() => normaliseMeetingNotesFormatting(notes));
+  const [notesContent, setNotesContent] = useState(() => cleanNotesForDisplay(notes));
   const [generationMetadata, setGenerationMetadata] = useState<any>(null);
   const [consolidationTiming, setConsolidationTiming] = useState<any>(null);
   const [transcript, setTranscript] = useState('');
