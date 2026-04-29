@@ -1262,18 +1262,16 @@ CRITICAL: Start your response immediately with "# MEETING DETAILS" - do NOT incl
 
 # MEETING DETAILS
 
-**Meeting Title: [exact title from metadata - use larger bold font]**
 Date: [full British format with day of week]
-Time: [24-hour GMT format from recording start time if not otherwise specified]
+Time: [24-hour UK local time — use BST or GMT label as appropriate to the date]
 Location: [from authoritative context - DO NOT CHANGE THIS]
 
 CRITICAL FORMAT: 
-- Meeting Title MUST be bold and larger (use **Meeting Title:** format)
 - Write each field on its own line starting with the label directly (no bullets, no dashes, no symbols)
+- Do NOT include the meeting title as a separate field — it is rendered separately by the email and Word templates
 Example:
-**Meeting Title: Strategic Planning Review**
 Date: Wednesday 15th October 2025
-Time: 14:30 GMT
+Time: 17:45 BST
 Location: Oak Lane Medical Practice
 
 # EXECUTIVE SUMMARY
