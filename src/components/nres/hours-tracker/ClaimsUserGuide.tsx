@@ -571,7 +571,7 @@ function StatusGuideTab() {
   const statuses = [
     { icon: '⚪', label: 'Draft', colour: 'bg-slate-100 text-slate-700', desc: 'Claim created, not yet submitted. You can edit everything.', who: 'Practice' },
     { icon: '🔵', label: 'Submitted', colour: 'bg-blue-100 text-blue-700', desc: 'Submitted for verification. Waiting for your Management Lead to review.', who: 'Management Lead' },
-    { icon: '🟡', label: 'Verified', colour: 'bg-yellow-100 text-yellow-700', desc: 'Management Lead has verified. Waiting for SNO Approver review.', who: 'PML Finance Director' },
+    { icon: '🟡', label: 'Verified', colour: 'bg-yellow-100 text-yellow-700', desc: 'Management Lead has verified. Waiting for SNO Approver review.', who: 'SNO Approver' },
     { icon: '🟢', label: 'Approved', colour: 'bg-emerald-100 text-emerald-700', desc: 'Approved by the SNO Approver. Invoice generated automatically.', who: 'PML Finance (payment)' },
     { icon: '🟠', label: 'Queried', colour: 'bg-orange-100 text-orange-700', desc: 'The SNO Approver has a question. Read the query notes, amend and resubmit. This is NOT a rejection.', who: 'Practice / Mgmt Lead' },
     { icon: '🔷', label: 'Invoiced', colour: 'bg-indigo-100 text-indigo-700', desc: 'Invoice generated and sent to PML. Awaiting payment processing.', who: 'PML Finance' },
