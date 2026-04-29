@@ -192,8 +192,7 @@ export function CostBreakdownSection({ roles, niPctNum, pensionPctNum, onCostsPc
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="border-l-[3px] border-primary pl-3 text-sm font-semibold">Cost Breakdown</h3>
+      <div className="flex items-center justify-end mb-2">
         <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handleDownloadWord}>
           <FileDown className="w-3.5 h-3.5" />
           Download Word
