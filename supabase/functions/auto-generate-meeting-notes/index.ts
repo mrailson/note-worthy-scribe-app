@@ -1321,9 +1321,11 @@ Format each entry as:
 (If no decisions were made: "No formal decisions were recorded in this meeting")
 
 # ACTION ITEMS
-| Action | Responsible Party | Deadline | Priority |
-|--------|-------------------|----------|----------|
+| Action | Owner | Deadline | Priority |
+|--------|-------|----------|----------|
 | [Specific task with a clear deliverable] | [Person's name OR "TBC"] | [Date/timeframe OR "TBC"] | High/Medium/Low |
+
+Always emit the columns in this exact order: Action, Owner, Deadline, Priority. Never reorder them. Never use "Responsible Party" or any other synonym in place of "Owner".
 
 STRICT RULES FOR ACTION ITEMS — quality over quantity:
 - ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
@@ -1332,7 +1334,7 @@ STRICT RULES FOR ACTION ITEMS — quality over quantity:
 - NEVER include ongoing responsibilities, standing tasks, or watching briefs (e.g., "Continue to monitor...", "Keep reviewing...", "Maintain oversight of...")
 - NEVER include vague actions like "Consider options", "Review situation", "Assess position", "Explore possibilities"
 - If an action doesn't answer "What specific thing will be DONE and FINISHED?", it's not an action — it belongs in OPEN ITEMS & RISKS instead
-- ONLY include a person's name in "Responsible Party" if they were EXPLICITLY mentioned in the transcript as being responsible
+- ONLY include a person's name in "Owner" if they were EXPLICITLY mentioned in the transcript as being responsible
 - If the responsible party is not explicitly stated, write "TBC" (To Be Confirmed)
 - If a deadline is not explicitly mentioned, write "TBC"
 - Do NOT assign actions to people based on their role or position unless explicitly stated
