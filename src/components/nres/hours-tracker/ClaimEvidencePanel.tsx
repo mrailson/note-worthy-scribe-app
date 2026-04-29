@@ -244,6 +244,7 @@ export function StaffLineEvidence({
         {visibleTypes.map(cfg => {
           // For 'other_supporting', render inline SmartUploadZone instead of separate section
           if (cfg.evidence_type === 'other_supporting' && canEdit) {
+            const otherSupportingFiles = (allFilesForStaff || []).filter(file => file.evidence_type === 'other_supporting');
             return (
               <div key={`${staffIndex}-${cfg.evidence_type}`} className="px-3 py-2 flex items-center gap-3 text-xs">
                 <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
@@ -251,6 +252,22 @@ export function StaffLineEvidence({
                   <span className="font-medium">{cfg.label}</span>
                   {cfg.description && (
                     <p className="text-muted-foreground text-[10px] truncate">{cfg.description}</p>
+                  )}
+                  {otherSupportingFiles.length > 0 && (
+                    <div className="mt-1 space-y-1">
+                      {otherSupportingFiles.map(file => (
+                        <div key={file.id} className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
+                          <span className="truncate">{file.file_name}</span>
+                          {file.file_size && <span className="shrink-0">({(file.file_size / 1024).toFixed(0)} KB)</span>}
+                          <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={async () => { const url = await onDownload(file.file_path); if (url) window.open(url, '_blank'); }}>
+                            <Download className="w-3 h-3 mr-1" /> View
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-5 px-1 text-destructive" onClick={() => onDelete(file.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
                 <div className="shrink-0">
