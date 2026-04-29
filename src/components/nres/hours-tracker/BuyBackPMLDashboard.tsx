@@ -554,9 +554,14 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
             {(() => { const name = resolveSubmitterName(claim, profileNames || {}); return name ? <InfoBlock label="Submitted by" value={name} sub={claim.submitted_by_email || undefined} /> : claim.submitted_by_email ? <InfoBlock label="Submitted by" value={claim.submitted_by_email} /> : null; })()}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
-            {(claim as any).approved_by_email && (
-              <InfoBlock label="Approved by" value={(claim as any).approved_by_email.split('@')[0].replace(/\./g,' ').replace(/\w/g, (c: string) => c.toUpperCase())} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />
-            )}
+            {((claim as any).approved_by_email || claim.reviewed_at || (claim as any).approved_at) && (() => {
+              const approverEmail = (claim as any).approved_by_email || '';
+              const approverName = approverEmail
+                ? approverEmail.split('@')[0].split(/[._-]/).filter(Boolean).map((part: string) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ')
+                : 'SNO Approver';
+              const approvalTime = claim.reviewed_at || (claim as any).approved_at || null;
+              return <InfoBlock label="Approved by" value={approverName} sub={dateStr(approvalTime)} highlight="#7c3aed" />;
+            })()}
             {(claim as any).expected_payment_date && !claim.paid_at && (
               <InfoBlock label="Scheduled payment" value={new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB')} highlight="#d97706" />
             )}
