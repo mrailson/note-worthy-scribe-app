@@ -11,7 +11,7 @@ const ROLE_DISPLAY = [
   { key: 'super_admin', label: 'Super Admin', icon: '🛡️' },
   { key: 'practice', label: 'Practice', icon: '🏥' },
   { key: 'verifier', label: 'Mgmt Lead', icon: '📋' },
-  { key: 'approver', label: 'PML Director', icon: '✅' },
+  { key: 'approver', label: 'SNO Approver', icon: '✅' },
   { key: 'finance', label: 'PML Finance', icon: '💰' },
 ] as const;
 
@@ -19,7 +19,7 @@ const TEST_ROLES: { value: ClaimsRole; label: string }[] = [
   { value: 'super_admin', label: 'Admin' },
   { value: 'practice', label: 'Practice' },
   { value: 'verifier', label: 'Mgmt Lead' },
-  { value: 'approver', label: 'PML Director' },
+  { value: 'approver', label: 'SNO Approver' },
   { value: 'finance', label: 'PML Finance' },
 ];
 

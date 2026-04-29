@@ -63,9 +63,9 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 
 const ROLE_CONFIG = {
   director: {
-    label: 'PML Director',
+    label: 'SNO Approver',
     subtitle: 'SNO Finance Director — Review, approve or query claims (Once approved, passed to SNO Finance Team for processing)',
-    userLabel: 'PML Director',
+    userLabel: 'SNO Approver',
   },
   finance: {
     label: 'PML Finance',
@@ -889,7 +889,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                 {!isReceived && !isPaidFull && (
                   <div style={{ textAlign: 'center', padding: '8px 0' }}>
                     <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>
-                      Claim approved by PML Director. Acknowledge receipt to begin payment processing.
+                      Claim approved by SNO Approver. Acknowledge receipt to begin payment processing.
                     </div>
                     <button
                       onClick={() => onMarkPaid && onMarkPaid(claim.id, 'received')}
@@ -1042,7 +1042,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               fontSize: 12, color: '#9ca3af',
             }}>
               <Lock className="w-3.5 h-3.5 text-gray-300" />
-              <span>Awaiting PML Director decision before payment can be processed</span>
+              <span>Awaiting SNO Approver decision before payment can be processed</span>
             </div>
           )}
         </div>
@@ -1051,7 +1051,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
   );
 }
 
-// ─── Meeting Claim Card (for PML Director) ──────────────────────────────────
+// ─── Meeting Claim Card (for SNO Approver) ──────────────────────────────────
 function MeetingClaimCard({ group, view, expanded, onToggle, onApprove, onQuery, onReject, saving }: {
   group: { key: string; person_name: string; practice_name: string; claim_month: string; month_label: string; entries: MeetingLogEntry[]; total_hours: number; total_amount: number; status: string };
   view: PMLView;
@@ -1166,7 +1166,7 @@ function MeetingClaimCard({ group, view, expanded, onToggle, onApprove, onQuery,
           {view === 'finance' && (displayStatus === 'awaiting_review' || displayStatus === 'queried') && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9ca3af' }}>
               <Lock className="w-3.5 h-3.5 text-gray-300" />
-              <span>Awaiting PML Director decision before payment can be processed</span>
+              <span>Awaiting SNO Approver decision before payment can be processed</span>
             </div>
           )}
         </div>
@@ -1484,7 +1484,7 @@ export function BuyBackPMLDashboard({
           fontSize: 13, color: '#64748b',
         }}>
           <Lock className="w-3.5 h-3.5 text-slate-400" />
-          <span><strong>Payment processing only</strong> — Claim approval is handled by the PML Director. You can process payment on approved claims.</span>
+          <span><strong>Payment processing only</strong> — Claim approval is handled by the SNO Approver. You can process payment on approved claims.</span>
         </div>
       )}
 
