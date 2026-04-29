@@ -28,7 +28,12 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const staffDetails = (claim.staff_details as any[]) || [];
   const claimDate = new Date(claim.claim_month);
   const claimMonthLabel = claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-  const resolveGLCode = (line: any) => line.gl_code || line.gl_category || getGLCode(claim.claim_type || 'buyback', line.staff_role || '');
+  const resolveGLCode = (line: any) => {
+    const storedCode = line.gl_code || line.gl_category;
+    return /^\d{4}$/.test(String(storedCode || ''))
+      ? storedCode
+      : getGLCode(claim.claim_type || 'buyback', line.staff_role || '');
+  };
 
   const practiceKey = claim.practice_key as NRESPracticeKey;
   const practiceAddress = NRES_PRACTICE_ADDRESSES[practiceKey] || '';
