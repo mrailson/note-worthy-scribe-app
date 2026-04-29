@@ -2041,7 +2041,16 @@ export function StaffRosterSection({
             </div>
             <div style={{ flex: '1 1 120px', minWidth: 100 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Role</div>
-              {staffRoles && staffRoles.length > 0 ? (
+              {isAddingMeeting ? (
+                <select
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', background: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="">Select role</option>
+                  {meetingAttendanceRoles.map(r => <option key={r.label} value={r.label}>{r.label} — {fmtGBP(r.rate)}/hr</option>)}
+                </select>
+              ) : staffRoles && staffRoles.length > 0 ? (
                 <select
                   value={addRole}
                   onChange={(e) => setAddRole(e.target.value)}
@@ -2059,7 +2068,7 @@ export function StaffRosterSection({
                 />
               )}
             </div>
-            <div style={{ flex: '0 1 100px', minWidth: 80 }}>
+            {!isAddingMeeting && <div style={{ flex: '0 1 100px', minWidth: 80 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Allocation type</div>
               <select
                 value={addAllocType}
@@ -2071,8 +2080,8 @@ export function StaffRosterSection({
                 <option value="hours">Hours/wk</option>
                 <option value="daily">Days/mo</option>
               </select>
-            </div>
-            <div style={{ flex: '0 1 70px', minWidth: 60 }}>
+            </div>}
+            {!isAddingMeeting && <div style={{ flex: '0 1 70px', minWidth: 60 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Value</div>
               <input
                 type="number"
@@ -2081,7 +2090,7 @@ export function StaffRosterSection({
                 placeholder="e.g. 4"
                 style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
               />
-            </div>
+            </div>}
             {category === 'gp_locum' && (
               <div style={{ flex: '0 1 80px', minWidth: 70 }}>
                 <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Session rate £</div>
