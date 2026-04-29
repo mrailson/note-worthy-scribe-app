@@ -100,7 +100,7 @@ function OverviewTab({ neighbourhoodName }: { neighbourhoodName: string }) {
 
       <CalloutBox type="slate">
         <p className="font-semibold mb-1">🧭 NRES Management</p>
-        <p>Time worked by named programme leads (Neighbourhood Manager, Programme Lead, Management Leads). Calculated as <strong>agreed hourly rate × hours per week × working weeks in the month</strong>. Working weeks automatically exclude bank holidays.</p>
+        <p>Time worked by named programme leads (Neighbourhood Manager, Programme Lead, Management Leads). Calculated as <strong>agreed hourly rate × hours per week × working weeks in the month</strong>.</p>
         <p className="mt-1 text-xs">Each role has a person, hourly rate and max hours/week configured in settings.</p>
       </CalloutBox>
 
