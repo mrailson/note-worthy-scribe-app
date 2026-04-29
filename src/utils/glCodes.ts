@@ -67,9 +67,6 @@ export function getGLCode(claimType: ClaimType, role: string): string | null {
 }
 
 export function getSDAClaimGLCode(line: { staff_category?: string | null; staff_role?: string | null; role?: string | null; gl_code?: string | null; gl_category?: string | null }, claimType: ClaimType = 'buyback'): string | null {
-  const storedCode = line.gl_code || line.gl_category;
-  if (/^\d{4}$/.test(String(storedCode || ''))) return storedCode as string;
-
   const category = String(line.staff_category || '').trim().toLowerCase();
   const role = String(line.staff_role || line.role || '').trim().toLowerCase();
 
@@ -77,6 +74,9 @@ export function getSDAClaimGLCode(line: { staff_category?: string | null; staff_
   if (category === 'meeting' && (role.includes('gp') || role.includes('partner'))) return '6100';
   if (category === 'meeting' && (role.includes('practice manager') || role === 'pm')) return '6104';
   if (category === 'management' || role.includes('nres management')) return '6104';
+
+  const storedCode = line.gl_code || line.gl_category;
+  if (/^\d{4}$/.test(String(storedCode || ''))) return storedCode as string;
 
   return getGLCode(claimType, line.staff_role || line.role || '');
 }
