@@ -2223,8 +2223,21 @@ export function StaffRosterSection({
                           practiceKey={practiceKey || ''}
                           entries={meetingLogEntries || []}
                           onAdd={async (name, date, hours) => {
-                            const cfg = managementRoles?.find(r => r.key === member.id);
-                            if (cfg && onAddMeetingEntry) await onAddMeetingEntry(practiceKey || '', cfg, name, date, hours);
+                            const cfg = managementRoles?.find(r => r.key === member.id) ?? {
+                              key: member.id,
+                              label: member.staff_role,
+                              person_name: member.staff_name,
+                              person_email: '',
+                              hourly_rate: member.hourly_rate || 0,
+                              max_hours_per_week: 0,
+                              billing_entity: getPracticeName(practiceKey || ''),
+                              billing_org_code: NRES_ODS_CODES[practiceKey || ''] || '',
+                              gl_code: 'PML',
+                              is_active: true,
+                              role_type: 'attending_meeting' as const,
+                              member_practice: practiceKey,
+                            };
+                            if (onAddMeetingEntry) await onAddMeetingEntry(practiceKey || '', cfg, name, date, hours);
                           }}
                           onDelete={async (id) => { if (onDeleteMeetingEntry) await onDeleteMeetingEntry(id); }}
                           onSubmit={async () => { if (onSubmitMeetingEntries) await onSubmitMeetingEntries(practiceKey || '', activeMonth.monthDate.slice(0, 7)); }}
