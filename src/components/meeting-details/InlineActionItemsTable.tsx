@@ -503,6 +503,11 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
           </button>
         </div>
       </div>
+      {showingAllBecauseFilterEmpty && (
+        <div className="bg-amber-50 px-4 py-2 text-xs text-amber-800 border-b border-amber-200">
+          No {viewMode.toLowerCase()} actions found, showing all action items so the table does not disappear.
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
