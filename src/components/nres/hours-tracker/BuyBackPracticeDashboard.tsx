@@ -3236,6 +3236,40 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
           })()}
 
           {(isDraft || isQueried) && (
+            <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 8, border: '1px solid #dbeafe', background: '#eff6ff' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1e3a8a' }}>Invoice description / claim details</div>
+                <span style={{ fontSize: 11, color: invoiceDescription.length > 1400 ? '#b45309' : '#64748b' }}>{invoiceDescription.length}/1500</span>
+              </div>
+              <textarea
+                value={invoiceDescription}
+                maxLength={1500}
+                onChange={(e) => setInvoiceDescription(e.target.value)}
+                placeholder="Add dates, times or notes to print on the invoice, e.g. 03/04/2026 10:00–12:00 Programme planning meeting."
+                style={{ width: '100%', minHeight: 78, resize: 'vertical', padding: '9px 10px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#fff', fontSize: 13, lineHeight: 1.45, outline: 'none', color: '#0f172a' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' as const }}>
+                <p style={{ margin: 0, fontSize: 11, color: '#475569' }}>This text will appear on the generated invoice.</p>
+                {onUpdateClaimNotes && (
+                  <button
+                    onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
+                    disabled={saving}
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #93c5fd', background: '#fff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
+                  >
+                    Save description
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!isDraft && !isQueried && (claim as any).practice_notes && (
+            <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', fontSize: 12, color: '#1e3a8a', whiteSpace: 'pre-wrap' as const }}>
+              <strong>Invoice description:</strong> {(claim as any).practice_notes}
+            </div>
+          )}
+
+          {(isDraft || isQueried) && (
             <div style={{ marginTop: 12 }}>
               {staffDets.map((s: any, idx: number) => (
                 <StaffLineEvidence
@@ -3287,7 +3321,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                 </span>
               )}
               <button
-                onClick={() => onSubmit?.(claim.id)}
+                onClick={() => onSubmit?.(claim.id, invoiceDescription)}
                 disabled={saving || !evidenceComplete}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 18px',
