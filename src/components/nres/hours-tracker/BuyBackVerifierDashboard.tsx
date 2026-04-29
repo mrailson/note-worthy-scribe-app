@@ -597,7 +597,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                 <div style={{ fontWeight: 700, color: '#78350f' }}>Invoice description / claim details</div>
                 <div style={{ display: 'inline-flex', border: '1px solid #fcd34d', borderRadius: 6, overflow: 'hidden', background: '#fff' }}>
-                  {(['text', 'table'] as const).map(mode => <button key={mode} onClick={() => { setInvoiceMode(mode); if (mode === 'table' && !invoiceRows.length) syncRows([newInvoiceTableRow()]); }} style={{ padding: '4px 10px', border: 'none', background: invoiceMode === mode ? '#fef3c7' : '#fff', color: '#78350f', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{mode === 'text' ? 'Text' : 'Table'}</button>)}
+                  {(['text', 'table'] as const).map(mode => <button key={mode} onClick={() => { setInvoiceMode(mode); if (mode === 'table' && !invoiceRows.length) setInvoiceRows([newInvoiceTableRow()]); }} style={{ padding: '4px 10px', border: 'none', background: invoiceMode === mode ? '#fef3c7' : '#fff', color: '#78350f', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{mode === 'text' ? 'Text' : 'Table'}</button>)}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
