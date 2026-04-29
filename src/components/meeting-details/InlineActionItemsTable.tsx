@@ -468,6 +468,9 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
     ? actionItems.filter(item => item.status === 'Completed')
     : actionItems.filter(item => item.status !== 'Completed');
 
+  const displayItems = filteredItems.length > 0 ? filteredItems : actionItems;
+  const showingAllBecauseFilterEmpty = filteredItems.length === 0 && actionItems.length > 0;
+
   return (
     <div className="rounded-lg border overflow-hidden">
       <div className="bg-primary px-4 py-2 flex items-center justify-between">
@@ -510,7 +513,7 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredItems.map((item) => (
+          {displayItems.map((item) => (
             <TableRow 
               key={item.id} 
               className={item.status === 'Completed' ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
