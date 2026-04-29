@@ -12,6 +12,7 @@ const corsHeaders = {
 interface MeetingEmailRequest {
   to_email: string;
   cc_emails?: string[];
+  bcc_emails?: string[];
   subject: string;
   html_content: string;
   from_name?: string;
@@ -44,6 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("📧 Received meeting email request:", {
       to: emailData.to_email,
       cc: emailData.cc_emails?.length || 0,
+      bcc: emailData.bcc_emails?.length || 0,
       subject: emailData.subject,
       hasWordAttachment: !!emailData.word_attachment,
       hasAudioAttachment: !!emailData.audio_attachment,
@@ -78,6 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Build CC list if provided
     const ccRecipients = emailData.cc_emails?.filter(email => email && email.trim()) || [];
+    const bccRecipients = emailData.bcc_emails?.filter(email => email && email.trim()) || [];
 
     // Build attachments array if Word document is provided
     const attachments = [];
@@ -116,6 +119,7 @@ const handler = async (req: Request): Promise<Response> => {
       from: `Notewell AI <noreply@bluepcn.co.uk>`,
       to: toRecipients,
       cc: ccRecipients.length > 0 ? ccRecipients : undefined,
+      bcc: bccRecipients.length > 0 ? bccRecipients : undefined,
       subject: emailData.subject,
       html: emailData.html_content,
       attachments: attachments.length > 0 ? attachments : undefined,
@@ -128,7 +132,8 @@ const handler = async (req: Request): Promise<Response> => {
       messageId: emailResponse.id,
       recipients: {
         to: toRecipients,
-        cc: ccRecipients
+        cc: ccRecipients,
+        bcc: bccRecipients
       }
     }), {
       status: 200,
