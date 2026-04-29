@@ -413,6 +413,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [notes, setNotes] = useState('');
   const savedInvoiceDescription = (claim as any).practice_notes || '';
   const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
   const lines = claimLines(claim);
@@ -486,20 +487,36 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 6 }}>
                 <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.length}/1500 characters — printed on the invoice if completed</span>
-                <button
-                  onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
-                  disabled={saving || invoiceDescription === savedInvoiceDescription}
-                  style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || invoiceDescription === savedInvoiceDescription ? 0.55 : 1 }}
-                >
-                  Save description
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setInvoicePreviewOpen(true)}
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Preview invoice
+                  </button>
+                  <button
+                    onClick={() => onUpdateClaimNotes(claim.id, invoiceDescription)}
+                    disabled={saving || invoiceDescription === savedInvoiceDescription}
+                    style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #d97706', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving || invoiceDescription === savedInvoiceDescription ? 0.55 : 1 }}
+                  >
+                    Save description
+                  </button>
+                </div>
               </div>
             </div>
           ) : (claim as any).practice_notes && (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
               <strong>Invoice description:</strong> {(claim as any).practice_notes}
+              <button
+                onClick={() => setInvoicePreviewOpen(true)}
+                style={{ marginLeft: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+              >
+                <Eye className="w-3.5 h-3.5" /> Preview invoice
+              </button>
             </div>
           )}
+
+          <InvoicePreviewDialog open={invoicePreviewOpen} onOpenChange={setInvoicePreviewOpen} claim={claim} invoiceDescription={invoiceDescription} />
 
           {bankDetails && (
             <div style={{ display: 'flex', gap: 20, padding: '10px 0', fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6', alignItems: 'center', flexWrap: 'wrap' }}>
