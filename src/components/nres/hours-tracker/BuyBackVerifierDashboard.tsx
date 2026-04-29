@@ -5,7 +5,7 @@ import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, Eye } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, Eye, Mic, Square, Plus, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -130,6 +130,41 @@ const dateStr = (iso: string | null | undefined) => {
   if (!iso) return '—';
   const d = new Date(iso);
   return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()} at ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+};
+
+type InvoiceTableRow = { id: string; date: string; start: string; stop: string; details: string };
+const INVOICE_TABLE_START = '[[INVOICE_TABLE]]';
+const INVOICE_TABLE_END = '[[/INVOICE_TABLE]]';
+const DESCRIPTION_LIMIT = 1500;
+
+const todayStr = () => format(new Date(), 'dd/MM/yyyy');
+const nowTimeStr = () => format(new Date(), 'HH:mm');
+const newInvoiceTableRow = (date = todayStr(), start = '', stop = '', details = ''): InvoiceTableRow => ({ id: crypto.randomUUID(), date, start, stop, details });
+
+const parseInvoiceTableDescription = (description: string): InvoiceTableRow[] => {
+  const start = description.indexOf(INVOICE_TABLE_START);
+  const end = description.indexOf(INVOICE_TABLE_END);
+  if (start === -1 || end === -1 || end <= start) return [];
+  return description.slice(start + INVOICE_TABLE_START.length, end).trim().split('\n').map((line) => {
+    const [date = '', startTime = '', stop = '', ...rest] = line.split('|').map(part => part.trim());
+    if (!date && !startTime && !stop && rest.length === 0) return null;
+    return newInvoiceTableRow(date, startTime, stop, rest.join(' | '));
+  }).filter(Boolean) as InvoiceTableRow[];
+};
+
+const serialiseInvoiceTableRows = (rows: InvoiceTableRow[]) => {
+  const validRows = rows.filter(row => row.date || row.start || row.stop || row.details.trim());
+  if (!validRows.length) return '';
+  return [
+    INVOICE_TABLE_START,
+    ...validRows.map(row => `${row.date || '—'} | ${row.start || '—'} | ${row.stop || '—'} | ${row.details.trim() || '—'}`),
+    INVOICE_TABLE_END,
+  ].join('\n').slice(0, DESCRIPTION_LIMIT);
+};
+
+const appendInvoiceText = (current: string, addition: string) => {
+  const next = [current.trim(), addition.trim()].filter(Boolean).join(current.trim() ? '\n' : '');
+  return next.slice(0, DESCRIPTION_LIMIT);
 };
 
 /** Resolve a display name — if stored value looks like an email, derive a readable name from it */
