@@ -818,11 +818,14 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               : ccList;
 
             // Build approved-items rows + GL subtotals
-            const totalAmount = (gpTotal || 0) + (otherTotal || 0);
+            const totalAmount = Object.values(glSummary).reduce((sum, amount) => sum + amount, 0);
             const totalLabel = `£${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const fmtAmt = (n: number) => `£${(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const itemsRows = (staffDetails || []).map((s: any) => {
-              const gl = s.gl_category || (s.staff_role === 'GP' ? 'GP' : 'Other Clinical');
+              const storedCode = s.gl_code || s.gl_category;
+              const gl = /^\d{4}$/.test(String(storedCode || ''))
+                ? storedCode
+                : getGLCode(freshClaim?.claim_type || 'buyback', s.staff_role || '') || 'N/A';
               const sessions = s.allocation_type === 'sessions'
                 ? `${s.allocation_value ?? 0}`
                 : s.allocation_type === 'hours'
@@ -838,16 +841,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                 <td style="padding:8px 6px;font-size:13px;color:#111;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(s.claimed_amount || 0)}</td>
               </tr>`;
             }).join('');
-            const showGlSubtotals = (gpTotal > 0) && (otherTotal > 0);
-            const glSubtotalRows = showGlSubtotals ? `
+            const glSubtotalRows = Object.entries(glSummary).length > 1
+              ? Object.entries(glSummary).sort(([a], [b]) => a.localeCompare(b)).map(([gl, amount]) => `
               <tr style="background:#f8fafc;">
-                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GP</td>
-                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(gpTotal)}</td>
-              </tr>
-              <tr style="background:#f8fafc;">
-                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — Other Clinical</td>
-                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(otherTotal)}</td>
-              </tr>` : '';
+                <td colspan="4" style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;">Subtotal — GL ${gl}</td>
+                <td style="padding:6px 6px;font-size:12px;color:#475569;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(amount)}</td>
+              </tr>`).join('')
+              : '';
 
             // Payment due = invoice date + 30 days
             const paymentDueDate = new Date();
