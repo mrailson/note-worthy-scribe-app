@@ -4,6 +4,7 @@ import { getPracticeName, getOdsCode } from '@/data/nresPractices';
 import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DETAILS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
+import { getGLInvoiceLabel, getMeetingAttendanceGLCode } from '@/utils/glCodes';
 
 interface MeetingInvoiceData {
   entries: MeetingLogEntry[];
@@ -155,6 +156,7 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
     i + 1,
     e.person_name || '—',
     e.management_role_key?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Meeting Attendance',
+    getGLInvoiceLabel(getMeetingAttendanceGLCode(e.management_role_key)),
     new Date(e.work_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     `${e.hours} hrs @ ${fmt(e.hourly_rate)}/hr`,
     e.description || '—',
@@ -163,14 +165,15 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['#', 'Attendee', 'Role', 'Date', 'Hours & Rate', 'Description', 'Amount']],
+    head: [['#', 'Attendee', 'Role', 'GL Category', 'Date', 'Hours & Rate', 'Description', 'Amount']],
     body: tableData,
-    styles: { fontSize: 8, cellPadding: 3 },
+    styles: { fontSize: 7.5, cellPadding: 2.5 },
     headStyles: { fillColor: [0, 94, 184], textColor: 255, fontStyle: 'bold' },
     columnStyles: {
       0: { cellWidth: 8 },
-      3: { cellWidth: 22 },
-      6: { halign: 'right', cellWidth: 20 },
+      3: { cellWidth: 28 },
+      4: { cellWidth: 20 },
+      7: { halign: 'right', cellWidth: 18 },
     },
     alternateRowStyles: { fillColor: [240, 244, 245] },
   });
