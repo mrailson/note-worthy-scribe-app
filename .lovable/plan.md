@@ -1,77 +1,54 @@
-Revised plan for the Management invoice description tools
+Plan to add the requested SDA Claims invoice GL mappings
 
-I will design this so Management can build invoice wording in two ways: normal narrative text, or a neat table that prints cleanly on the invoice PDF.
-
-What will be added
-
-1. Voice-to-description input
-- Add a “Speak description” button in the Management invoice description section.
-- The user can dictate the description, then stop recording.
-- The transcription will be inserted into the invoice description box without replacing existing wording unless the user clears it first.
-- The text will be appended neatly, with sensible spacing/new lines.
-- The existing 1500 character limit will still be enforced.
-
-2. Quick date/start/stop line builder
-- Add a compact “Quick line” tool beside the description box.
-- One click can set:
-  - Date
-  - Start time
-  - Stop time
-- When the stop time is clicked, the completed line is inserted and the controls reset ready for the next entry.
-- Dates will use British format, for example `29/04/2026`.
-- Times will show hours and minutes only, for example `09:15`, never seconds.
-
-3. Optional table mode
-- Add a format toggle with two options:
-  - “Text” for normal invoice wording.
-  - “Table” for structured date/time entries.
-- In Table mode, the quick line builder will add entries into a small editable table with columns such as:
+I will update the SDA Claims finance mapping so the relevant claim lines and invoices show the new GL code plus the finance description:
 
 ```text
-Date         Start   Stop    Details
-29/04/2026   09:15   10:45   Management meeting support
-30/04/2026   13:00   14:30   Invoice review and follow-up
+GP Partner Meeting Attend        -> 6100 - Locum GP
+Practice Manager Meeting Attend  -> 6104 - Local Non-Clinical
+NRES Management Hours            -> 6104 - Local Non-Clinical
 ```
 
-- The user will be able to edit the “Details” field for each row.
-- Add simple row actions: remove row, add another row, and optionally move rows if needed.
-- The table will also be inserted/represented in the invoice description area in a readable plain-text fallback, so the current save field remains compatible.
+What I will change
 
-4. Invoice PDF table rendering
-- Update the invoice PDF generator so it recognises structured invoice table data and prints it as a proper table rather than a long paragraph.
-- The PDF preview will show the table exactly as it will print before saving and after saving.
-- If the user uses normal text mode, the existing “Claim details” box will continue to print as it does now.
-- If the user uses table mode, the PDF will print a neat “Claim details” table with date, start, stop and details columns.
+1. Centralise the new mappings
+- Extend the GL-code utility so it can resolve codes by claim category and role, not just by the older buy-back/additional clinical mappings.
+- Add invoice-facing labels for:
+  - `6100 - Locum GP`
+  - `6104 - Local Non-Clinical`
 
-5. Save and preview behaviour
-- “Preview invoice” will continue to work with unsaved text/table entries.
-- “Save description” will save the latest description/table content.
-- If a claim already has saved wording, opening it will load the saved content and allow further editing.
-- No database schema change is required unless we decide a fully structured table must persist as JSON separately. The default implementation will keep compatibility by storing a formatted representation in the existing `practice_notes` field.
+2. Fix invoice PDF generation for standard SDA claim invoices
+- Update `src/utils/invoicePdfGenerator.ts` so these claim line types resolve correctly:
+  - staff category `meeting` + role `GP Partner` -> `6100 - Locum GP`
+  - staff category `meeting` + role `Practice Manager` -> `6104 - Local Non-Clinical`
+  - staff category `management` or role `NRES Management` -> `6104 - Local Non-Clinical`
+  - staff category `gp_locum` / role `GP Locum` -> `6100 - Locum GP`, if those are the locum lines being invoiced
+- Ensure both the invoice table and GL subtotal box show the description, not just the number.
 
-Technical details
+3. Fix meeting-attendance invoice PDFs
+- Update `src/utils/meetingInvoicePdfGenerator.ts` so meeting attendance invoices include a GL category column.
+- Use the meeting role/person config to map:
+  - GP attendance -> `6100 - Locum GP`
+  - Practice Manager attendance -> `6104 - Local Non-Clinical`
+- Add GL subtotals to meeting attendance invoices so Finance can see the split where an invoice contains more than one type.
 
-- Main UI file: `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx`.
-- PDF file: `src/utils/invoicePdfGenerator.ts`.
-- Reuse the existing speech-to-text function/path already present in the project rather than introducing a new provider.
-- Use compact styling suitable for 1366x768 NHS laptop screens.
-- Keep British English labels and date formatting throughout.
-- Add defensive handling for microphone permissions, empty recordings, failed transcription and character-limit overflow.
+4. Preserve correct stored GL codes for newly created claims
+- Update the claim creation path in `src/hooks/useNRESBuyBackClaims.ts` so new staff snapshots store `gl_code` / `gl_category` as `6100` or `6104` for these categories.
+- This prevents newly generated emails, PDFs and dashboards from falling back to older values like `5411`, `5421`, `N/A`, or `PML`.
 
-Expected user workflow
+5. Fix the meeting attendance fallback currently using `PML`
+- In the meeting attendance log flow, replace the fallback `gl_code: 'PML'` with the correct role-based GL code.
+- This covers the case where a meeting staff member was created directly on the claim rather than from a configured management role.
 
-```text
-Open Management claim
-↓
-Choose Text or Table
-↓
-Speak description OR click Date → Start → Stop for each row
-↓
-Add/edit details if needed
-↓
-Preview invoice PDF
-↓
-Save description when happy
-```
+6. Align the visible dashboards/emails where they show GL codes
+- Update the PML/practice/verifier claim-line displays so these categories show the same mapped codes.
+- Update invoice email rows/subtotals so the email content matches the PDF invoice.
 
-This gives Management a quick way to create 10+ dated time entries either by voice or by repeated one-click date/time capture, while still letting them preview the final invoice layout before saving.
+Verification after implementation
+
+- Check TypeScript/build verification output from the harness.
+- Generate or inspect representative invoice paths for:
+  - GP Partner meeting attendance
+  - Practice Manager meeting attendance
+  - NRES Management hours
+  - GP Locum, if present in the same GL family
+- Confirm the PDF table and subtotal labels read exactly as requested, using British English date/number formatting already present in the app.
