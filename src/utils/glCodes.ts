@@ -83,7 +83,7 @@ export function getSDAClaimGLCode(line: { staff_category?: string | null; staff_
 
 export function getMeetingAttendanceGLCode(roleText: string | null | undefined, hourlyRate?: number | null): string {
   const role = String(roleText || '').toLowerCase();
-  return role.includes('gp') || role.includes('partner') ? '6100' : '6104';
+  return role.includes('gp') || role.includes('partner') || Number(hourlyRate || 0) >= 75 ? '6100' : '6104';
 }
 
 /**
