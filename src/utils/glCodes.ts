@@ -12,7 +12,7 @@
  */
 
 export type ClaimType = 'buyback' | 'additional';
-export type GLRole = 'GP' | 'ANP' | 'ACP' | 'NRES Management';
+export type GLRole = 'GP' | 'ANP' | 'ACP' | 'NRES Management' | 'GP Locum' | 'GP Partner' | 'Practice Manager';
 
 const GL_CODES: Record<ClaimType, Record<string, string>> = {
   additional: { GP: '5411', ANP: '5412', ACP: '5413' },
@@ -20,6 +20,8 @@ const GL_CODES: Record<ClaimType, Record<string, string>> = {
 };
 
 const GL_LABELS: Record<string, string> = {
+  '6100': 'Locum GP',
+  '6104': 'Local Non-Clinical',
   '5411': 'GP Additional',
   '5412': 'ANP Additional',
   '5413': 'ACP Additional',
@@ -29,6 +31,8 @@ const GL_LABELS: Record<string, string> = {
 };
 
 const GL_INVOICE_LABELS: Record<string, string> = {
+  '6100': '6100 - Locum GP',
+  '6104': '6104 - Local Non-Clinical',
   '5411': '5411 - GP Additional SDA',
   '5412': '5412 - ANP Additional SDA',
   '5413': '5413 - ACP Additional SDA',
@@ -60,6 +64,26 @@ export function getGLCode(claimType: ClaimType, role: string): string | null {
           : role;
   if (normalisedRole === 'NRES Management') return null;
   return GL_CODES[claimType]?.[normalisedRole] ?? null;
+}
+
+export function getSDAClaimGLCode(line: { staff_category?: string | null; staff_role?: string | null; role?: string | null; gl_code?: string | null; gl_category?: string | null }, claimType: ClaimType = 'buyback'): string | null {
+  const storedCode = line.gl_code || line.gl_category;
+  if (/^\d{4}$/.test(String(storedCode || ''))) return storedCode as string;
+
+  const category = String(line.staff_category || '').trim().toLowerCase();
+  const role = String(line.staff_role || line.role || '').trim().toLowerCase();
+
+  if (category === 'gp_locum' || role.includes('gp locum') || role.includes('locum gp')) return '6100';
+  if (category === 'meeting' && (role.includes('gp') || role.includes('partner'))) return '6100';
+  if (category === 'meeting' && (role.includes('practice manager') || role === 'pm')) return '6104';
+  if (category === 'management' || role.includes('nres management')) return '6104';
+
+  return getGLCode(claimType, line.staff_role || line.role || '');
+}
+
+export function getMeetingAttendanceGLCode(roleText: string | null | undefined): string {
+  const role = String(roleText || '').toLowerCase();
+  return role.includes('gp') || role.includes('partner') ? '6100' : '6104';
 }
 
 /**
