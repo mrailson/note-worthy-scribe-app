@@ -487,7 +487,7 @@ function RatesAndRolesPanel() {
   };
 
   const handleSave = async () => {
-    await updateSettings(niPctNum, pensionPctNum, roles, parseFloat(meetingGpRate) || 85, parseFloat(meetingPmRate) || 45);
+    await updateSettings(niPctNum, pensionPctNum, roles, parseFloat(meetingGpRate) || 100, parseFloat(meetingPmRate) || 50);
     await updateManagementRoles(mgmtRoles);
   };
 
