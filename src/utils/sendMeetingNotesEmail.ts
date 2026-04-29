@@ -165,7 +165,12 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
     ? new Date(meeting.start_time).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const meetingTime = meeting?.start_time
-    ? new Date(meeting.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + " GMT"
+    ? new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+      }).format(new Date(meeting.start_time))
     : undefined;
 
   const subject = `Notewell AI | ${meetingTitle} — ${meetingDate}`;
