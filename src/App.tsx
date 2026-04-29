@@ -1,3 +1,4 @@
+// Verifying GitHub sync after main re-point on 29 Apr 2026
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
