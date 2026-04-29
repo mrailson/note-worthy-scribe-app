@@ -3,6 +3,8 @@
  * Used by both Word document generation and email body formatting
  */
 
+import { extractMarkdownTableBlocks, isActionItemsTableData, parseMarkdownTable } from '@/lib/tableRenderer';
+
 // Strip transcript sections and duplicate meeting details
 export const stripTranscriptAndDetails = (content: string): string => {
   let cleaned = content;
@@ -207,6 +209,7 @@ export const removeActionItemsSection = (content: string): string => {
     '\n'
   );
   
+  cleaned = removeActionItemMarkdownTables(cleaned);
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
   return cleaned;
@@ -301,6 +304,34 @@ const normaliseLoosePipeRows = (content: string): string => {
   }
 
   return result.join('\n');
+};
+
+export const removeActionItemMarkdownTables = (content: string): string => {
+  if (!content) return content;
+
+  let cleaned = content;
+  const blocks = extractMarkdownTableBlocks(cleaned);
+
+  for (const block of blocks) {
+    const parsed = parseMarkdownTable(block);
+    if (!parsed || !isActionItemsTableData(parsed)) continue;
+
+    cleaned = cleaned.replace(block, '\n');
+  }
+
+  // Remove orphan markdown separator lines and pipe rows that are clearly action-item table remnants.
+  cleaned = cleaned
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      if (/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?$/.test(trimmed)) return false;
+      if (/^\|/.test(trimmed) && /\b(owner|action|due date|deadline|status|priority)\b/i.test(trimmed)) return false;
+      return true;
+    })
+    .join('\n');
+
+  return cleaned.replace(/\n{3,}/g, '\n\n').trim();
 };
 
 export const normaliseMeetingNotesFormatting = (content: string): string => {
