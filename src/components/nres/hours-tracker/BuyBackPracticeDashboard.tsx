@@ -1320,7 +1320,7 @@ function InlineClaimPanel({
             const trail: { label: string; detail?: string; time?: string | null; color?: string }[] = [];
             if (claim.submitted_at) trail.push({ label: `Submitted by ${(claim as any).submitted_by_name || emailToName(claim.submitted_by_email || '') || 'practice'}`, time: claim.submitted_at, color: '#6b7280' });
             if (claim.verified_by) trail.push({ label: `Verified by ${emailToName(claim.verified_by)} (Management Lead)`, time: claim.verified_at, color: '#0369a1' });
-            if (claim.approved_by_email) trail.push({ label: `Approved by ${emailToName(claim.approved_by_email)} (SNO Approver)`, time: (claim as any).approved_at, color: '#7c3aed' });
+            if (claim.approved_by_email) trail.push({ label: `Approved by ${emailToName(claim.approved_by_email)} (SNO Approver)`, time: claim.reviewed_at || (claim as any).approved_at, color: '#7c3aed' });
             if (claim.invoice_generated_at) trail.push({ label: `Invoice ${claim.invoice_number || ''} generated`, time: claim.invoice_generated_at, color: '#d97706' });
             if (claim.expected_payment_date && !isPaid) trail.push({ label: 'Payment scheduled by PML Finance', detail: `Due ${new Date(claim.expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, time: null, color: '#d97706' });
             if (isPaid) trail.push({ label: `Payment sent${claim.bacs_reference ? ` · BACS: ${claim.bacs_reference}` : ''}`, detail: claim.paid_by ? `Processed by ${emailToName(claim.paid_by)} (PML Finance)` : undefined, time: claim.actual_payment_date || claim.paid_at, color: '#059669' });
@@ -1470,7 +1470,7 @@ function InlineClaimPanel({
                       <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>Approved by</div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{emailToName(claim.approved_by_email)}</div>
                       <div style={{ fontSize: 10, color: '#9ca3af' }}>SNO Approver</div>
-                      {(claim as any).approved_at && <div style={{ fontSize: 10, color: '#9ca3af' }}>{shortDate((claim as any).approved_at)}</div>}
+                      {(claim.reviewed_at || (claim as any).approved_at) && <div style={{ fontSize: 10, color: '#9ca3af' }}>{dateStr(claim.reviewed_at || (claim as any).approved_at)}</div>}
                     </div>
                   )}
 
@@ -3050,7 +3050,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
           }}>
             {claim.submitted_at && <InfoBlock label="Submitted by" value={(claim as any).submitted_by_name || emailToName(claim.submitted_by_email || '') || 'Practice'} sub={dateStr(claim.submitted_at)} />}
             {claim.verified_by && <InfoBlock label="Verified by" value={emailToName(claim.verified_by)} sub={dateStr(claim.verified_at)} />}
-            {claim.approved_by_email && <InfoBlock label="Approved by" value={emailToName(claim.approved_by_email)} sub={dateStr((claim as any).approved_at)} highlight="#7c3aed" />}
+            {claim.approved_by_email && <InfoBlock label="Approved by" value={emailToName(claim.approved_by_email)} sub={dateStr(claim.reviewed_at || (claim as any).approved_at)} highlight="#7c3aed" />}
             {claim.invoice_generated_at && <InfoBlock label="Invoice date" value={shortDate(claim.invoice_generated_at)} />}
             {claim.invoice_generated_at && <InfoBlock label="Payment terms" value="Net 30 days" sub={`Due ${dueDate(claim.invoice_generated_at)}`} />}
             {claim.expected_payment_date && !claim.paid_at && <InfoBlock label="Scheduled payment" value={new Date(claim.expected_payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} highlight="#d97706" />}
