@@ -43,14 +43,19 @@ const claimHours = (c: BuyBackClaim) =>
 const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff_details ?? [];
 
 /** Read-only evidence section for verifier view */
-const VerifierEvidenceSection = ({ claimId, staffLines }: { claimId: string; staffLines: any[] }) => {
-  const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl } = useNRESClaimEvidence(claimId);
-  const hasAnyFiles = staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
-  if (!hasAnyFiles) return null;
+const VerifierEvidenceSection = ({ claimId, staffLines, canEdit }: { claimId: string; staffLines: any[]; canEdit: boolean }) => {
+  const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl, uploadEvidence, deleteEvidence, uploading } = useNRESClaimEvidence(claimId);
+  const hasAnyFiles = staffLines.some((_: any, idx: number) => getFilesForStaff(idx).length > 0 || Object.keys(getUploadedTypesForStaff(idx)).length > 0);
+
+  // Management needs to be able to add further evidence before forwarding to the SNO Approver.
+  // Once the claim has moved on, keep this as a read-only evidence viewer.
+  if (!hasAnyFiles && !canEdit) return null;
+
   return (
     <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-      <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151' }}>
-        Supporting Evidence
+      <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <span>Supporting Evidence</span>
+        {canEdit && <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b' }}>Upload or paste additional documents before forwarding</span>}
       </div>
       {staffLines.map((s: any, idx: number) => (
         <StaffLineEvidence
@@ -61,10 +66,10 @@ const VerifierEvidenceSection = ({ claimId, staffLines }: { claimId: string; sta
           staffRole={s.staff_role || s.role}
           uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
           allFilesForStaff={getFilesForStaff(idx)}
-          canEdit={false}
-          uploading={false}
-          onUpload={async () => null}
-          onDelete={async () => {}}
+          canEdit={canEdit}
+          uploading={uploading}
+          onUpload={uploadEvidence}
+          onDelete={deleteEvidence}
           onDownload={getDownloadUrl}
         />
       ))}
@@ -570,7 +575,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           })()}
 
           {/* Supporting Evidence (read-only) */}
-          {lines.length > 0 && <VerifierEvidenceSection claimId={claim.id} staffLines={lines} />}
+          {lines.length > 0 && <VerifierEvidenceSection claimId={claim.id} staffLines={lines} canEdit={isSubmitted} />}
 
           {/* Notes */}
           {directorNotes && (
