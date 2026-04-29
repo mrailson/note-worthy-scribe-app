@@ -128,8 +128,8 @@ export function getClaimTypeBadge(claimType: ClaimType) {
 export function recalculateGLCodes(staffDetails: any[], claimType: ClaimType): any[] {
   return staffDetails.map(s => ({
     ...s,
-    gl_code: getGLCode(claimType, s.staff_role || 'GP'),
-    gl_category: getGLCode(claimType, s.staff_role || 'GP') ?? 'N/A',
+    gl_code: getSDAClaimGLCode({ ...s, gl_code: null, gl_category: null }, claimType),
+    gl_category: getSDAClaimGLCode({ ...s, gl_code: null, gl_category: null }, claimType) ?? 'N/A',
   }));
 }
 
