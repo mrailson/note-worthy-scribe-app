@@ -280,7 +280,7 @@ export function StaffLineEvidence({
               <div key={`${staffIndex}-${cfg.evidence_type}`} className="px-3 py-2 flex items-center gap-3 text-xs">
                 <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium">{cfg.label}</span>
+                  <span className="font-medium">Supporting Evidence</span>
                   {cfg.description && (
                     <p className="text-muted-foreground text-[10px] truncate">{cfg.description}</p>
                   )}
