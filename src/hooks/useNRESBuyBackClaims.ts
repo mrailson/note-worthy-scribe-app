@@ -800,53 +800,59 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           setClaims(prev => prev.map(c => c.id === id ? (invoicedData as BuyBackClaim) : c));
           toast.success(`Invoice ${invoiceNum} generated`);
 
-          // Email invoice PDF to Practice Manager (non-blocking)
-          // Respects email testing mode — redirects to current user when testing
-          const practiceKey = claim?.practice_key as NRESPracticeKey | undefined;
-          const pmContact = practiceKey ? NRES_PRACTICE_CONTACTS[practiceKey] : null;
-          console.log('[Invoice Email] practiceKey:', practiceKey, '| pmContact:', pmContact?.email || 'NONE');
+          // Email invoice PDF and supporting evidence to PML Finance.
+          const practiceKey = freshClaim?.practice_key as NRESPracticeKey | undefined;
           console.log('[Invoice Email] emailConfig:', JSON.stringify({
             disabled: emailConfig?.emailSendingDisabled,
             allowInvoice: emailConfig?.allowInvoiceWhenSuppressed,
             testMode: emailConfig?.emailTestingMode,
             testEmail: emailConfig?.currentUserEmail,
           }));
-          if (pmContact?.email) {
+          if (practiceKey) {
             const practiceName = getPracticeName(practiceKey);
-            const bankDetails = practiceKey ? NRES_PRACTICE_BANK_DETAILS[practiceKey] : null;
-            const claimDate = new Date(claim?.claim_month || '');
+            const claimDate = new Date(freshClaim?.claim_month || '');
             const claimMonthLabel = claimDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-
-            // Convert PDF blob to base64
-            const reader = new FileReader();
-            const base64Promise = new Promise<string>((resolve) => {
-              reader.onloadend = () => {
-                const base64 = (reader.result as string).split(',')[1];
-                resolve(base64);
-              };
-            });
-            reader.readAsDataURL(pdfBlob);
-            const pdfBase64 = await base64Promise;
+            const pdfBase64 = await blobToBase64(pdfBlob);
 
             // If sending is disabled AND invoice exception is not enabled, skip invoice email
             if (emailConfig?.emailSendingDisabled && !emailConfig?.allowInvoiceWhenSuppressed) {
               console.log('[Email suppressed] Invoice email — sending disabled for high-volume testing');
             } else {
-            // Invoice email goes to the person who submitted the claim (the claim raiser).
-            // The Practice Manager (from NRES_PRACTICE_CONTACTS) and PML are CC'd so they
-            // are still kept informed. In testing mode, everything is redirected to the
-            // current user with no CCs.
-            const submitterEmail = (freshClaim as any)?.submitted_by_email || claim?.submitted_by_email || '';
-            const primaryRecipient = submitterEmail || pmContact.email;
+            const pmlFinanceEmail = 'amanda.palin2@nhs.net';
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
-              : primaryRecipient;
-            // CC PML finance only (removed practice manager - Lucy request)
-            const ccList: string[] = [];
-            ccList.push('amanda.palin2@nhs.net');
-            const invoiceCc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
-              ? []
-              : ccList;
+              : pmlFinanceEmail;
+            const bccList = ['malcolm.railson@nhs.net', 'amanda.palin2@nhs.net']
+              .filter(email => email.toLowerCase() !== invoiceRecipient.toLowerCase());
+            const invoiceBcc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail) ? [] : bccList;
+
+            const { data: evidenceRows, error: evidenceError } = await supabase
+              .from('nres_claim_evidence')
+              .select('file_name, file_path, file_type')
+              .eq('claim_id', id);
+
+            if (evidenceError) {
+              console.error('Failed to fetch claim evidence for invoice email:', evidenceError);
+            }
+
+            const evidenceAttachments = await Promise.all((evidenceRows || []).map(async (evidence: any) => {
+              try {
+                const { data: fileBlob, error: downloadError } = await supabase.storage
+                  .from('nres-claim-evidence')
+                  .download(evidence.file_path);
+                if (downloadError || !fileBlob) throw downloadError || new Error('No file data returned');
+                return {
+                  content: await blobToBase64(fileBlob),
+                  filename: evidence.file_name || 'supporting-evidence',
+                  type: evidence.file_type || 'application/octet-stream',
+                };
+              } catch (attachmentError) {
+                console.error('Failed to attach supporting evidence:', evidence.file_name, attachmentError);
+                return null;
+              }
+            }));
+
+            const evidenceAttachmentList = evidenceAttachments.filter(Boolean) as Array<{ content: string; filename: string; type: string }>;
 
             // Build approved-items rows + GL subtotals
             const glSummaryEntries = Object.entries(glSummary as Record<string, number>);
@@ -866,8 +872,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
                     ? `${s.allocation_value ?? 0} days`
                     : `${s.allocation_value ?? 0}`;
               return `<tr style="border-bottom:1px solid #eef1f5;">
-                <td style="padding:8px 6px;font-size:13px;color:#111;">${(s.staff_name || '—').toString().replace(/&/g, '&amp;')}</td>
-                <td style="padding:8px 6px;font-size:13px;color:#444;">${(s.staff_role || '—').toString().replace(/&/g, '&amp;')}</td>
+                <td style="padding:8px 6px;font-size:13px;color:#111;">${escapeHtml(s.staff_name || '—')}</td>
+                <td style="padding:8px 6px;font-size:13px;color:#444;">${escapeHtml(s.staff_role || '—')}</td>
                 <td style="padding:8px 6px;font-size:13px;color:#444;">${gl}</td>
                 <td style="padding:8px 6px;font-size:13px;color:#444;text-align:right;">${sessions}</td>
                 <td style="padding:8px 6px;font-size:13px;color:#111;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(s.claimed_amount || 0)}</td>
@@ -886,17 +892,11 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             paymentDueDate.setDate(paymentDueDate.getDate() + 30);
             const paymentDueLabel = paymentDueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             const invoiceDateLabel = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-            // Greet the actual recipient: prefer the submitter's name (derived from email
-            // local-part as a friendly fallback), otherwise fall back to the practice manager.
-            const submitterFirstName = submitterEmail
-              ? (() => {
-                  const local = submitterEmail.split('@')[0] || '';
-                  const first = local.split(/[._-]/)[0] || local;
-                  return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : '';
-                })()
-              : '';
-            const firstName = submitterFirstName || (pmContact.practiceManager || '').split(' ')[0] || pmContact.practiceManager;
             const pdfFilename = `Invoice_${invoiceNum}.pdf`;
+            const approvedAt = (invoicedData as any)?.reviewed_at || freshClaim?.reviewed_at || new Date().toISOString();
+            const approverName = emailConfig?.currentUserName || friendlyNameFromEmail(user.email) || 'Andrew Moore';
+            const approvalStamp = formatApprovedDateTime(approvedAt);
+            const attachmentCount = 1 + evidenceAttachmentList.length;
 
             // Derive a friendly claim type label from staff categories
             const claimTypeLabel = (() => {
@@ -921,18 +921,23 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: invoiceRecipient,
-                subject: `${claimTypeLabel} claim approved — ${practiceName} — ${claimMonthLabel} — ${totalLabel}`,
+                subject: `TEST EMAIL PRIOR TO GOLIVE PLEASE IGNORE — ${claimTypeLabel} invoice approved — ${practiceName} — ${claimMonthLabel} — ${totalLabel}`,
                 html_content: `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
+  <div style="background:#fef2f2;border:2px solid #dc2626;padding:14px 18px;text-align:center;">
+    <strong style="color:#991b1b;font-size:15px;letter-spacing:0.4px;">TEST EMAIL PRIOR TO GOLIVE PLEASE IGNORE</strong>
+  </div>
   <div style="background:#003087;padding:22px 28px;">
     <p style="color:#9fb6e0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES NEIGHBOURHOOD ACCESS SERVICE</p>
-    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">${claimTypeLabel} claim approved — ${practiceName}</h1>
+    <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">${claimTypeLabel} invoice approved — ${practiceName}</h1>
     <p style="color:#cdd9ee;font-size:13px;margin:0;">${practiceName} · ${claimMonthLabel}</p>
   </div>
 
   <div style="padding:26px 28px 8px;">
-    <p style="margin:0 0 10px;font-size:15px;">Hi ${firstName},</p>
-    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">PML has approved your ${claimMonthLabel} ${claimTypeLabelLower} claim for <strong>${practiceName}</strong>. The matching invoice is attached — no action needed.</p>
+    <p style="margin:0 0 10px;font-size:15px;">Dear PML Finance,</p>
+    <p style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#333;">This claim is part of the <strong>NRES SDA Pilot</strong>.</p>
+    <p style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#333;">The claim has been approved by: <strong>SNO Approver ${escapeHtml(approverName)}</strong> on <strong>${approvalStamp}</strong>.</p>
+    <p style="margin:0 0 22px;font-size:14px;line-height:1.55;color:#333;">All evidence used in support of the claim has been added to this email. For any further details, please log into <strong>Notewell NRES Dashboard &gt; SDA Claims</strong> as needed.</p>
 
     <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:10px 0;margin:0 -10px 22px;">
       <tr>
@@ -986,33 +991,32 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     <div style="margin:22px 0 6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;display:flex;align-items:center;">
       <div style="font-size:22px;margin-right:12px;">📎</div>
       <div>
-        <p style="margin:0;font-size:13px;font-weight:600;color:#1e3a8a;">${pdfFilename}</p>
-        <p style="margin:2px 0 0;font-size:12px;color:#475569;">PDF invoice attached to this email</p>
+        <p style="margin:0;font-size:13px;font-weight:600;color:#1e3a8a;">${attachmentCount} attachment${attachmentCount === 1 ? '' : 's'} included</p>
+        <p style="margin:2px 0 0;font-size:12px;color:#475569;">${pdfFilename} plus ${evidenceAttachmentList.length} supporting evidence file${evidenceAttachmentList.length === 1 ? '' : 's'}</p>
       </div>
     </div>
   </div>
 
   <div style="padding:14px 28px 22px;border-top:1px solid #eef1f5;">
-    <p style="margin:0 0 4px;font-size:11px;color:#64748b;line-height:1.5;">Prefer to raise your own invoices? Email <a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;text-decoration:none;">amanda.palin2@nhs.net</a> to opt out of automated invoicing.</p>
-    <p style="margin:0;font-size:11px;color:#64748b;line-height:1.5;">Queries: contact PML — Amanda Palin · <a href="mailto:amanda.palin2@nhs.net" style="color:#005EB8;text-decoration:none;">amanda.palin2@nhs.net</a></p>
+    <p style="margin:0;font-size:11px;color:#64748b;line-height:1.5;">This automated notification was generated by Notewell for the NRES SDA Claims workflow.</p>
   </div>
 </div>
                 `,
                 from_name: `NRES ${claimTypeLabel} Claims`,
-                cc_emails: invoiceCc,
+                bcc_emails: invoiceBcc,
                 extra_attachments: [{
                   content: pdfBase64,
                   filename: pdfFilename,
                   type: 'application/pdf',
-                }],
+                }, ...evidenceAttachmentList],
               },
             }).then(() => {
               const recipientLabel = (emailConfig?.emailTestingMode)
                 ? `${invoiceRecipient} (test mode)`
                 : invoiceRecipient;
-              toast.success(`Invoice emailed to ${recipientLabel}`);
+              toast.success(`Invoice and evidence emailed to ${recipientLabel}`);
             }).catch((emailErr) => {
-              console.error('Failed to email invoice to claim submitter:', emailErr);
+              console.error('Failed to email invoice to PML Finance:', emailErr);
               toast.error('Invoice generated but email failed to send');
             });
             } // end else (sending not disabled)
