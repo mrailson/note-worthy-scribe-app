@@ -1069,7 +1069,10 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
     const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
-      const headingText = decodeHtmlEntities(headingMatch[2]).toUpperCase();
+      const headingText = decodeHtmlEntities(headingMatch[2])
+        .replace(/\*+/g, '')
+        .replace(/^\s+|\s+$/g, '')
+        .toUpperCase();
       
       // Skip Meeting Details, Executive Summary, and the meeting title itself —
       // all three are rendered separately (createHeaderBlock / details table)
