@@ -3173,7 +3173,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                           <td style={{ padding: '10px', color: '#374151' }}>{s.staff_role || '—'}</td>
                           <td style={{ padding: '10px' }}>
                             <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
-                              {s.gl_code || (s.staff_category === 'management' ? 'N/A' : '—')}
+                              {getSDAClaimGLCode(s, claim.claim_type || 'buyback') || '—'}
                             </code>
                           </td>
                           {hasLocum ? (
