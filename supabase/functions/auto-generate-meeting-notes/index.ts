@@ -928,7 +928,7 @@ serve(async (req) => {
     // Detail level instructions for note generation
     const detailInstructions: Record<string, string> = {
       'brief': `
-DETAIL LEVEL: BRIEF
+[INTERNAL — do not include this header in the output] Detail target: BRIEF
 - Focus ONLY on key decisions and action items
 - Executive summary: 1-2 sentences maximum
 - Discussion summary: Maximum 3 key points, each with Agreed line only (skip Context, Discussion, and Implication sub-sections)
@@ -937,21 +937,21 @@ DETAIL LEVEL: BRIEF
 - Keep total notes to approximately 300 words`,
       
       'summary': `
-DETAIL LEVEL: SUMMARY
+[INTERNAL — do not include this header in the output] Detail target: SUMMARY
 - Concise coverage of main discussion points
 - Executive summary: 2-3 sentences
 - Discussion summary: 4-5 key points with Context and Agreed sub-sections only (skip Discussion and Implication to save space)
 - Keep total notes to approximately 500 words`,
       
       'standard': `
-DETAIL LEVEL: STANDARD
+[INTERNAL — do not include this header in the output] Detail target: STANDARD
 - Complete meeting notes with all relevant details
 - Follow the full format as specified
 - Include all sections with appropriate detail
 - Keep total notes to approximately 800 words`,
       
       'detailed': `
-DETAIL LEVEL: DETAILED
+[INTERNAL — do not include this header in the output] Detail target: DETAILED
 - Comprehensive notes with full context
 - Expanded executive summary with key quotes
 - Thorough discussion of all points raised
@@ -959,7 +959,7 @@ DETAIL LEVEL: DETAILED
 - Keep total notes to approximately 1200 words`,
       
       'full': `
-DETAIL LEVEL: FULL
+[INTERNAL — do not include this header in the output] Detail target: FULL
 - Exhaustive documentation of the meeting
 - Include relevant quotes from participants
 - Document all discussion threads completely
