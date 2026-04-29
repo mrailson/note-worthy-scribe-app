@@ -550,10 +550,12 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             display: 'flex', flexWrap: 'wrap', gap: 20, padding: '14px 0 12px',
             fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6',
           }}>
+            {(() => {
+              const name = resolveSubmitterName(claim, profileNames || {});
+              const submitter = name || claim.submitted_by_email || '—';
+              return <InfoBlock label="Submitted by" value={submitter} sub={dateStr(claim.submitted_at)} />;
+            })()}
             <InfoBlock label="Verified by" value={claim.verified_by || '—'} sub={dateStr(claim.verified_at)} />
-            <InfoBlock label="Submitted" value={dateStr(claim.submitted_at)} />
-            {(() => { const name = resolveSubmitterName(claim, profileNames || {}); return name ? <InfoBlock label="Submitted by" value={name} sub={claim.submitted_by_email || undefined} /> : claim.submitted_by_email ? <InfoBlock label="Submitted by" value={claim.submitted_by_email} /> : null; })()}
-            {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             {((claim as any).approved_by_email || claim.reviewed_at || (claim as any).approved_at) && (() => {
               const approverEmail = (claim as any).approved_by_email || '';
               const approverName = approverEmail
@@ -562,6 +564,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               const approvalTime = claim.reviewed_at || (claim as any).approved_at || null;
               return <InfoBlock label="Approved by" value={approverName} sub={dateStr(approvalTime)} highlight="#7c3aed" />;
             })()}
+            {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
             {(claim as any).expected_payment_date && !claim.paid_at && (
               <InfoBlock label="Scheduled payment" value={new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB')} highlight="#d97706" />
             )}
