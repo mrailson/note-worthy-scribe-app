@@ -608,7 +608,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
                     display: 'inline-flex', alignItems: 'center', gap: 5, opacity: saving ? 0.6 : 1,
                   }}
                 >
-                  <ShieldCheck className="w-3.5 h-3.5" /> Verify & Forward to Director
+                  <ShieldCheck className="w-3.5 h-3.5" /> Verify & Forward to SNO Approver
                 </button>
                 <button
                   onClick={() => onReturn(claim.id, notes || undefined)}
@@ -626,7 +626,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
                   type="text"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  placeholder="Notes for practice or Director…"
+                  placeholder="Notes for practice or SNO Approver…"
                   style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
               </div>
@@ -636,7 +636,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, savi
           {/* Already verified */}
           {claim.status === 'verified' && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#059669' }}>
-              <ShieldCheck className="w-3.5 h-3.5" /> Verified by {claim.verified_by} — awaiting Director review
+              <ShieldCheck className="w-3.5 h-3.5" /> Verified by {claim.verified_by} — awaiting SNO Approver review
             </div>
           )}
         </div>
@@ -755,7 +755,7 @@ const MeetingVerifierCard = ({ entries, expanded, onToggle, onVerify, onReturn, 
                     display: 'inline-flex', alignItems: 'center', gap: 5, opacity: saving ? 0.6 : 1,
                   }}
                 >
-                  <ShieldCheck className="w-3.5 h-3.5" /> Verify & Forward to Director
+                  <ShieldCheck className="w-3.5 h-3.5" /> Verify & Forward to SNO Approver
                 </button>
                 <button
                   onClick={() => onReturn(ids, notes || undefined)}
@@ -773,7 +773,7 @@ const MeetingVerifierCard = ({ entries, expanded, onToggle, onVerify, onReturn, 
                   type="text"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  placeholder="Notes for practice or Director…"
+                  placeholder="Notes for practice or SNO Approver…"
                   style={{ flex: 1, minWidth: 200, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
                 />
               </div>
@@ -783,7 +783,7 @@ const MeetingVerifierCard = ({ entries, expanded, onToggle, onVerify, onReturn, 
           {/* Already verified */}
           {!allSubmitted && entries[0]?.status === 'verified' && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#059669' }}>
-              <ShieldCheck className="w-3.5 h-3.5" /> Verified — awaiting Director review
+              <ShieldCheck className="w-3.5 h-3.5" /> Verified — awaiting SNO Approver review
             </div>
           )}
         </div>
