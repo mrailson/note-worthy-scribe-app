@@ -205,8 +205,6 @@ Use the following structure. Every section is mandatory. If a section has no con
 
 ---
 
-**[MEETING TITLE — derive from the primary topic of discussion, or use: ${params.meetingTitle || 'General Meeting'}]**
-
 **MEETING DETAILS**
 
 | Field | Value |
