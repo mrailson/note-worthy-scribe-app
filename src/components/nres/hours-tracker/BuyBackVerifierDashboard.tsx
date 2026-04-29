@@ -5,10 +5,12 @@ import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar, Eye, Mic, Square, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
@@ -140,6 +142,27 @@ const DESCRIPTION_LIMIT = 1500;
 const todayStr = () => format(new Date(), 'dd/MM/yyyy');
 const nowTimeStr = () => format(new Date(), 'HH:mm');
 const newInvoiceTableRow = (date = todayStr(), start = '', stop = '', details = ''): InvoiceTableRow => ({ id: crypto.randomUUID(), date, start, stop, details });
+
+const TIME_OPTIONS_15_MIN = Array.from({ length: 96 }, (_, index) => {
+  const minutes = index * 15;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+});
+
+const parseDisplayDate = (value: string): Date | undefined => {
+  const [day, month, year] = value.split('/').map(Number);
+  if (!day || !month || !year) return undefined;
+  const date = new Date(year, month - 1, day, 12, 0, 0);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+const claimMonthBounds = (claimMonth?: string | null) => {
+  const base = claimMonth ? new Date(`${claimMonth.slice(0, 7)}-01T12:00:00`) : new Date();
+  if (Number.isNaN(base.getTime())) return null;
+  return {
+    from: new Date(base.getFullYear(), base.getMonth(), 1, 12, 0, 0),
+    to: new Date(base.getFullYear(), base.getMonth() + 1, 0, 12, 0, 0),
+  };
+};
 
 const parseInvoiceTableDescription = (description: string): InvoiceTableRow[] => {
   const start = description.indexOf(INVOICE_TABLE_START);
