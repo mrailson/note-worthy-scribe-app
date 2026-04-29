@@ -456,7 +456,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     currentUserEmail: user?.email || undefined,
     currentUserName: resolvedUserName,
   }), [rateSettings.email_testing_mode, rateSettings.email_sending_disabled, rateSettings.allow_invoice_email_when_suppressed, rateSettings.notify_submitter_on_paid, user?.email, resolvedUserName]);
-  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateStaffLine, refetch: refetchClaims } = useNRESBuyBackClaims(emailConfig);
+  const { claims, loading: loadingClaims, saving: savingClaim, admin: claimAdmin, createClaim, submitClaim, verifyClaim, queryClaim, approveClaim, rejectClaim, updatePaymentStatus, confirmDeclaration, deleteClaim, updateClaimAmount, updateStaffClaimedAmount, removeStaffFromClaim, updateStaffNotes, updateClaimNotes, updateStaffLine, refetch: refetchClaims } = useNRESBuyBackClaims(emailConfig);
   const { myPractices, mySubmitPractices, myApproverPractices, myVerifierPractices, loading: loadingAccess, admin: accessAdmin, hasAccess, grantAccess, revokeByKey } = useNRESBuyBackAccess();
   const { entries: meetingLogEntries, addMeetingEntry, deleteMeetingEntry, submitMonthEntries, verifyMeetingEntries, returnMeetingEntries, approveMeetingEntries, rejectMeetingEntries, queryMeetingEntries, refetch: refetchMeetingLog } = useNRESMeetingLog();
 
@@ -909,6 +909,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           staff={practiceStaff}
           onSubmit={canSubmitForPractice ? (id: string, practiceNotes?: string) => submitClaim(id, undefined, practiceNotes) : undefined}
           onResubmit={canSubmitForPractice ? (id, notes) => submitClaim(id, notes) : undefined}
+          onUpdateClaimNotes={canSubmitForPractice ? updateClaimNotes : undefined}
           onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount, holidayWeeksDeducted) => {
             const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeksDeducted ?? 0);
             const actualClaimed = (claimedAmount && claimedAmount > 0 && claimedAmount <= maxAmt)
