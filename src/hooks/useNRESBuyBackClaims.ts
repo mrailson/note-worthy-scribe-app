@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getGLCode, type ClaimType } from '@/utils/glCodes';
+import { getSDAClaimGLCode, getGLInvoiceLabel, type ClaimType } from '@/utils/glCodes';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -376,7 +376,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       const staffSnapshot = staffMembers.map(s => {
         const maxAmount = calculateStaffMonthlyAmount(s, claimMonth, s.start_date, rateParams);
         const lineClaimType = resolveClaimTypeFromStaff(s, effectiveClaimType);
-        const glCode = getGLCode(lineClaimType, s.staff_role);
+        const glCode = getSDAClaimGLCode(s, lineClaimType);
         const lineClaimedAmount = isSingleLineClaim && claimedAmount > 0 && claimedAmount !== maxAmount
           ? claimedAmount
           : maxAmount;
@@ -773,9 +773,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       const staffDetails = (freshClaim?.staff_details as any[]) || [];
       const glSummary = staffDetails.reduce((summary: Record<string, number>, s) => {
         const storedCode = s.gl_code || s.gl_category;
-        const glCode = /^\d{4}$/.test(String(storedCode || ''))
-          ? storedCode
-          : getGLCode(freshClaim?.claim_type || 'buyback', s.staff_role || '') || 'N/A';
+        const glCode = getSDAClaimGLCode(s, freshClaim?.claim_type || 'buyback') || 'N/A';
         summary[glCode] = (summary[glCode] || 0) + (s.claimed_amount || 0);
         return summary;
       }, {});
@@ -882,9 +880,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             const fmtAmt = (n: number) => `£${(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const itemsRows = (staffDetails || []).map((s: any) => {
               const storedCode = s.gl_code || s.gl_category;
-              const gl = /^\d{4}$/.test(String(storedCode || ''))
-                ? storedCode
-                : getGLCode(freshClaim?.claim_type || 'buyback', s.staff_role || '') || 'N/A';
+              const gl = getSDAClaimGLCode(s, freshClaim?.claim_type || 'buyback') || 'N/A';
               const sessions = s.allocation_type === 'sessions'
                 ? `${s.allocation_value ?? 0}`
                 : s.allocation_type === 'hours'
@@ -895,7 +891,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               return `<tr style="border-bottom:1px solid #eef1f5;">
                 <td style="padding:8px 6px;font-size:13px;color:#111;">${escapeHtml(s.staff_name || '—')}</td>
                 <td style="padding:8px 6px;font-size:13px;color:#444;">${escapeHtml(s.staff_role || '—')}</td>
-                <td style="padding:8px 6px;font-size:13px;color:#444;">${gl}</td>
+                <td style="padding:8px 6px;font-size:13px;color:#444;">${escapeHtml(getGLInvoiceLabel(gl))}</td>
                 <td style="padding:8px 6px;font-size:13px;color:#444;text-align:right;">${sessions}</td>
                 <td style="padding:8px 6px;font-size:13px;color:#111;text-align:right;font-variant-numeric:tabular-nums;">${fmtAmt(s.claimed_amount || 0)}</td>
               </tr>`;
