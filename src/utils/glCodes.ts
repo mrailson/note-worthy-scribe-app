@@ -28,6 +28,15 @@ const GL_LABELS: Record<string, string> = {
   '5423': 'ACP Buy-Back',
 };
 
+const GL_INVOICE_LABELS: Record<string, string> = {
+  '5411': '5411 - GP Additional SDA',
+  '5412': '5412 - ANP Additional SDA',
+  '5413': '5413 - ACP Additional SDA',
+  '5421': '5421 - GP - Buy Back',
+  '5422': '5422 - ANP - Buy Back',
+  '5423': '5423 - ACP - Buy Back',
+};
+
 const CLAIM_TYPE_CONFIG = {
   buyback: { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' },
   additional: { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
@@ -73,6 +82,15 @@ export function getGLShortLabel(glCode: string | null): string {
 }
 
 /**
+ * Get the invoice-facing GL label for PML Finance.
+ * e.g. "5421 - GP - Buy Back"
+ */
+export function getGLInvoiceLabel(glCode: string | null): string {
+  if (!glCode) return 'N/A — Management';
+  return GL_INVOICE_LABELS[glCode] ?? glCode;
+}
+
+/**
  * Get the claim type badge config.
  */
 export function getClaimTypeBadge(claimType: ClaimType) {
@@ -91,4 +109,4 @@ export function recalculateGLCodes(staffDetails: any[], claimType: ClaimType): a
   }));
 }
 
-export { GL_CODES, GL_LABELS, CLAIM_TYPE_CONFIG };
+export { GL_CODES, GL_LABELS, GL_INVOICE_LABELS, CLAIM_TYPE_CONFIG };
