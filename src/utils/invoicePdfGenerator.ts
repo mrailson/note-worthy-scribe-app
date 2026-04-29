@@ -19,6 +19,19 @@ const NHS_DARK_BLUE: [number, number, number] = [0, 48, 135];
 const NHS_BLUE: [number, number, number] = [0, 94, 184];
 const GREY_60: number = 60;
 const GREY_100: number = 100;
+const INVOICE_TABLE_START = '[[INVOICE_TABLE]]';
+const INVOICE_TABLE_END = '[[/INVOICE_TABLE]]';
+
+function parseInvoiceTableDescription(description: string) {
+  const start = description.indexOf(INVOICE_TABLE_START);
+  const end = description.indexOf(INVOICE_TABLE_END);
+  if (start === -1 || end === -1 || end <= start) return null;
+  const rows = description.slice(start + INVOICE_TABLE_START.length, end).trim().split('\n').map(line => {
+    const [date = '', startTime = '', stop = '', ...details] = line.split('|').map(part => part.trim());
+    return { date, start: startTime, stop, details: details.join(' | ') };
+  }).filter(row => row.date || row.start || row.stop || row.details);
+  return rows.length ? rows : null;
+}
 
 export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const { claim, invoiceNumber, neighbourhoodName } = data;
@@ -187,9 +200,25 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
 
   // --- Optional invoice-facing claim description ---
   const invoiceDescription = String((claim as any).practice_notes || '').trim();
-  const descriptionLines = invoiceDescription ? doc.splitTextToSize(invoiceDescription, 176) : [];
+  const invoiceTableRows = parseInvoiceTableDescription(invoiceDescription);
+  const descriptionLines = invoiceDescription && !invoiceTableRows ? doc.splitTextToSize(invoiceDescription, 176) : [];
   let finalY = (doc as any).lastAutoTable.finalY + 10;
-  if (descriptionLines.length > 0) {
+  if (invoiceTableRows) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...NHS_DARK_BLUE);
+    doc.text('Claim details', 14, finalY);
+    autoTable(doc, {
+      startY: finalY + 3,
+      head: [['Date', 'Start', 'Stop', 'Details']],
+      body: invoiceTableRows.map(row => [row.date || '—', row.start || '—', row.stop || '—', row.details || '—']),
+      styles: { fontSize: 8.5, cellPadding: 2.5, overflow: 'linebreak' },
+      headStyles: { fillColor: [239, 246, 255], textColor: NHS_DARK_BLUE, fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 18 }, 2: { cellWidth: 18 }, 3: { cellWidth: 116 } },
+      margin: { left: 14, right: 14 },
+    });
+    finalY = (doc as any).lastAutoTable.finalY + 10;
+  } else if (descriptionLines.length > 0) {
     const descHeight = Math.min(42, 10 + descriptionLines.length * 4.2);
     doc.setFillColor(239, 246, 255);
     doc.roundedRect(14, finalY - 4, 182, descHeight, 2, 2, 'F');
