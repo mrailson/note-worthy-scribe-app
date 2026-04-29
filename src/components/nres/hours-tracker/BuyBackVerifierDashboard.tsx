@@ -628,8 +628,22 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
-                <button onClick={handleQuickDate} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Date {quickLine.date}</button>
-                <button onClick={handleQuickStart} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Start {quickLine.start || 'now'}</button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}><CalendarIcon className="w-3.5 h-3.5" /> Date {quickLine.date}</button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+                <Select value={quickLine.start || undefined} onValueChange={value => setQuickLine(prev => ({ ...prev, start: value }))}>
+                  <SelectTrigger className="h-8 w-[112px] border-amber-300 bg-background text-amber-800 text-xs font-semibold"><SelectValue placeholder="Start" /></SelectTrigger>
+                  <SelectContent className="max-h-72">{TIME_OPTIONS_15_MIN.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={quickLine.stop || undefined} onValueChange={value => setQuickLine(prev => ({ ...prev, stop: value }))}>
+                  <SelectTrigger className="h-8 w-[112px] border-amber-300 bg-background text-amber-800 text-xs font-semibold"><SelectValue placeholder="Stop" /></SelectTrigger>
+                  <SelectContent className="max-h-72">{TIME_OPTIONS_15_MIN.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
+                </Select>
                 <button onClick={handleQuickStop} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: '#fef3c7', color: '#78350f', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Stop + add line</button>
                 <input value={quickLine.details} onChange={e => setQuickLine(prev => ({ ...prev, details: e.target.value }))} placeholder="Line details" style={{ flex: '1 1 220px', minWidth: 180, padding: '5px 8px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12 }} />
               </div>
