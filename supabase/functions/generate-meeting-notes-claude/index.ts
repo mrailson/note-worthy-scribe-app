@@ -783,6 +783,14 @@ serve(async (req) => {
     }
 
     // Post-processing
+    // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
+    // the heading from the table header onto separate lines. Without this, the markdown
+    // parser sees "## Actions" as the first column name and column-mapping fails.
+    meetingMinutes = meetingMinutes.replace(
+      /^(#{1,6}\s+[A-Za-z][A-Za-z0-9\s&]*?)\s+(\|\s*[A-Za-z].*\|)\s*$/gm,
+      '$1\n\n$2'
+    );
+
     meetingMinutes = sanitizeMeetingMinutes(meetingMinutes);
     meetingMinutes = sanitiseActionOwners(meetingMinutes, processedTranscript);
 

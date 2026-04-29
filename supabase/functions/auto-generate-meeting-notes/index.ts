@@ -1726,6 +1726,14 @@ ${cleanedTranscript}`;
         throw new Error('AI returned empty content. This may indicate an API configuration issue.');
       }
 
+      // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
+      // the heading from the table header onto separate lines. Without this, the markdown
+      // parser sees "## Actions" as the first column name and column-mapping fails.
+      generatedNotes = generatedNotes.replace(
+        /^(#{1,6}\s+[A-Za-z][A-Za-z0-9\s&]*?)\s+(\|\s*[A-Za-z].*\|)\s*$/gm,
+        '$1\n\n$2'
+      );
+
       console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
       console.log('📝 Generated preview:', generatedNotes.substring(0, 200));
     } catch (fetchError: any) {
