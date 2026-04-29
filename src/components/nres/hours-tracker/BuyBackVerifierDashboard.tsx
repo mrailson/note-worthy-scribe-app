@@ -461,6 +461,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const lines = claimLines(claim);
   const isManagement = lines.length > 0 && lines.every((l: any) => l.staff_category === 'management');
   const isSubmitted = claim.status === 'submitted';
+  const canEditInvoiceDescription = !!onUpdateClaimNotes && ['submitted', 'verified', 'awaiting_review', 'approved'].includes(String(claim.status));
   const hasPartA = (claim as any).part_a ?? true;
   const hasPartB = !!(claim as any).part_b;
   const partBDetail = (claim as any).part_b_detail;
@@ -592,7 +593,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
           </div>
 
           {/* Invoice description / claim details */}
-          {isSubmitted && onUpdateClaimNotes ? (
+          {canEditInvoiceDescription ? (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                 <div style={{ fontWeight: 700, color: '#78350f' }}>Invoice description / claim details</div>
