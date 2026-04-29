@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { dedupTranscriptText } from '@/lib/dedupTranscriptText';
-import { removeActionItemsSection } from '@/utils/meeting/cleanMeetingContent';
+import { normaliseMeetingNotesFormatting, removeActionItemsSection } from '@/utils/meeting/cleanMeetingContent';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { SelectionFindReplacePopup } from '@/components/SelectionFindReplacePopup';
 
@@ -140,7 +140,6 @@ import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal"
 import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
 import { NotesViewSettingsPopover } from "@/components/meeting-details/NotesViewSettingsPopover";
 import { CorrectionManager } from "@/components/CorrectionManager";
-import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
 
 interface Meeting {
   id: string;
