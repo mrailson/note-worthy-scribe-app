@@ -156,7 +156,7 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
     i + 1,
     e.person_name || '—',
     e.management_role_key?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Meeting Attendance',
-    getGLInvoiceLabel(getMeetingAttendanceGLCode(e.management_role_key)),
+    getGLInvoiceLabel(getMeetingAttendanceGLCode(e.management_role_key, e.hourly_rate)),
     new Date(e.work_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     `${e.hours} hrs @ ${fmt(e.hourly_rate)}/hr`,
     e.description || '—',
@@ -182,7 +182,7 @@ export function generateMeetingInvoicePdf(data: MeetingInvoiceData): jsPDF {
   const grandTotal = entries.reduce((sum, e) => sum + e.total_amount, 0);
   const totalHours = entries.reduce((sum, e) => sum + e.hours, 0);
   const glGroups = entries.reduce((summary: Record<string, number>, e) => {
-    const gl = getMeetingAttendanceGLCode(e.management_role_key);
+    const gl = getMeetingAttendanceGLCode(e.management_role_key, e.hourly_rate);
     summary[gl] = (summary[gl] || 0) + e.total_amount;
     return summary;
   }, {});
