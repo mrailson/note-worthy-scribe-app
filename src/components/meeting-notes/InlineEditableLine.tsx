@@ -121,9 +121,9 @@ const InlineEditableLine: React.FC<InlineEditableLineProps> = ({
         return 'text-base font-semibold text-foreground';
       case 'bullet':
       case 'numbered':
-        return 'text-muted-foreground leading-relaxed';
+        return 'text-foreground leading-relaxed';
       default:
-        return 'text-muted-foreground leading-relaxed';
+        return 'text-foreground leading-relaxed';
     }
   };
 
