@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -49,6 +48,54 @@ serve(async (req) => {
       .eq("meeting_id", meetingId)
       .maybeSingle();
 
+    let transcript =
+      meeting.best_of_all_transcript ||
+      meeting.live_transcript_text ||
+      meeting.assembly_transcript_text ||
+      meeting.whisper_transcript_text ||
+      "";
+
+    if (!transcript.trim()) {
+      const { data: chunks, error: chunkError } = await supabase
+        .from("meeting_transcription_chunks")
+        .select("chunk_number, cleaned_text, cleaning_status, transcription_text, word_count")
+        .eq("meeting_id", meetingId)
+        .order("chunk_number");
+
+      if (chunkError) {
+        console.warn("⚠️ Could not fetch transcript chunks:", chunkError);
+      }
+
+      const chunkTexts = (chunks || [])
+        .map((chunk: any) => {
+          if (chunk.cleaned_text && chunk.cleaning_status === "completed") return chunk.cleaned_text;
+          try {
+            const parsed = JSON.parse(chunk.transcription_text || "");
+            if (Array.isArray(parsed)) return parsed.map((seg: any) => seg.text || "").join(" ");
+            return typeof parsed === "string" ? parsed : chunk.transcription_text;
+          } catch {
+            return chunk.transcription_text || "";
+          }
+        })
+        .map((text: string) => text.trim())
+        .filter(Boolean);
+
+      if (chunkTexts.length > 0) {
+        transcript = chunkTexts.join("\n\n");
+        const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+        await supabase
+          .from("meetings")
+          .update({
+            whisper_transcript_text: transcript,
+            word_count: wordCount,
+            primary_transcript_source: "consolidated",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", meetingId);
+        steps.push("chunks_consolidated");
+      }
+    }
+
     // Step 1: Generate title + notes if missing or stuck mid-generation
     const needsNotes =
       !existingSummary?.summary ||
@@ -59,13 +106,6 @@ serve(async (req) => {
 
     if (needsNotes || needsTitle) {
       console.log(`📝 Generating notes/title for ${meetingId} (needsNotes=${needsNotes}, needsTitle=${needsTitle})`);
-      const transcript =
-        meeting.best_of_all_transcript ||
-        meeting.live_transcript_text ||
-        meeting.assembly_transcript_text ||
-        meeting.whisper_transcript_text ||
-        "";
-
       if (!transcript.trim()) {
         return new Response(JSON.stringify({ error: "No transcript available for notes generation" }), {
           status: 400,
@@ -188,6 +228,22 @@ serve(async (req) => {
       console.warn("⚠️ Could not mark queue entries completed:", queueUpdateError);
     } else {
       steps.push("queue_marked_completed");
+    }
+
+    const { error: meetingUpdateError } = await supabase
+      .from("meetings")
+      .update({
+        status: "completed",
+        notes_generation_status: "completed",
+        end_time: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", meetingId);
+
+    if (meetingUpdateError) {
+      console.warn("⚠️ Could not finalise meeting status:", meetingUpdateError);
+    } else {
+      steps.push("meeting_marked_completed");
     }
 
     return new Response(JSON.stringify({ success: true, meetingId, steps }), {
