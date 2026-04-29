@@ -376,6 +376,7 @@ function InlineClaimPanel({
   const [localClaim, setLocalClaim] = useState<BuyBackClaim | null>(existingClaim);
 
   useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
+  useEffect(() => { setPracticeNotes((localClaim as any)?.practice_notes || ''); }, [localClaim?.id, (localClaim as any)?.practice_notes]);
 
   const isLocum = staffMember.staff_category === 'gp_locum';
   const isManagement = staffMember.staff_category === 'management';
@@ -1043,17 +1044,17 @@ function InlineClaimPanel({
                 ))}
               </div>
 
-              {/* Practice notes (optional) */}
+              {/* Invoice description / claim details */}
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  Practice Note <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — visible to verifiers and finance)</span>
+                  Invoice description / claim details <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — printed on the invoice)</span>
                 </label>
                 <textarea
                   value={practiceNotes}
                   onChange={(e) => setPracticeNotes(e.target.value)}
-                  placeholder="Add any notes for the verifier or finance team…"
-                  maxLength={500}
-                  rows={2}
+                  placeholder="Add dates, times or notes to print on the invoice, e.g. 03/04/2026 10:00–12:00 Programme planning meeting."
+                  maxLength={1500}
+                  rows={3}
                   style={{
                     width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1',
                     fontSize: 13, color: '#374151', resize: 'vertical', fontFamily: 'inherit',
@@ -1061,7 +1062,7 @@ function InlineClaimPanel({
                   }}
                 />
                 {practiceNotes.length > 0 && (
-                  <div style={{ fontSize: 10, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{practiceNotes.length}/500</div>
+                  <div style={{ fontSize: 10, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>{practiceNotes.length}/1500</div>
                 )}
               </div>
 
