@@ -2786,7 +2786,7 @@ export function ClaimsViewSwitcher({
 
       {/* ── SUMMARY VIEW ───────────────────────────────────────── */}
       {view === 'summary' && (
-        <HistorySummary claims={periodClaims} hidePeriodFilter />
+        <HistorySummary claims={periodClaims} hidePeriodFilter directorMode={directorMode} />
       )}
 
       {/* ── Status filter indicator ─────────────────────────── */}
