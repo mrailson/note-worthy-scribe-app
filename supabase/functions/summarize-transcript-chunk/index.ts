@@ -61,7 +61,7 @@ serve(async (req) => {
       });
     }
 
-    const { text, meetingTitle, chunkIndex = 0, totalChunks = 1, detailLevel = 'standard' } = await req.json();
+    const { text, meetingTitle, chunkIndex = 0, totalChunks = 1, detailLevel = 'standard', meetingDate, meetingYear } = await req.json();
 
     if (!text || typeof text !== 'string') {
       return new Response(JSON.stringify({ error: 'Missing text' }), {
@@ -70,7 +70,17 @@ serve(async (req) => {
       });
     }
 
-    const userPrompt = `Meeting: ${meetingTitle || 'Meeting'}
+    const dateGuard = meetingYear
+      ? `═══ CRITICAL DATE HANDLING ═══
+Meeting date: ${meetingDate} (year = ${meetingYear}).
+Resolve all bare or relative dates (e.g. "1st May", "next month", "Friday") against the
+meeting date above, NOT against your training cutoff. NEVER write a year earlier than
+${meetingYear} unless this chunk EXPLICITLY uses that earlier year.
+══════════════════════════════
+\n\n`
+      : '';
+
+    const userPrompt = `${dateGuard}Meeting: ${meetingTitle || 'Meeting'}
 Chunk ${chunkIndex + 1} of ${totalChunks}. Detail level: ${detailLevel}.
 
 Transcript chunk:

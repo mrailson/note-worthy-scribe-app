@@ -414,7 +414,22 @@ serve(async (req) => {
 
     const joined = summaries.map((s, i) => `--- Chunk ${i + 1} ---\n${s}`).join("\n\n");
 
-    const userPrompt = `Meeting: ${meetingTitle || 'Meeting'}
+    // Date guard — prepended so it appears BEFORE the system prompt's structural rules.
+    // Prevents year-hallucination when transcript uses bare/relative dates ("1st May").
+    const meetingYearMatch = (meetingDate || '').match(/\b(20\d{2})\b/);
+    const meetingYear = meetingYearMatch ? meetingYearMatch[1] : '';
+    const dateGuard = meetingYear
+      ? `═══ CRITICAL DATE HANDLING — APPLY THROUGHOUT ═══
+Meeting date: ${meetingDate} (year = ${meetingYear}).
+Resolve all relative or bare dates (e.g. "1st May", "next month", "Friday") against this
+meeting date, NOT against your training cutoff. NEVER write a year earlier than ${meetingYear}
+unless the source EXPLICITLY uses that earlier year. When a date is mentioned without a year,
+assume ${meetingYear}.
+═══════════════════════════════════════════════════
+\n\n`
+      : '';
+
+    const userPrompt = `${dateGuard}Meeting: ${meetingTitle || 'Meeting'}
 Date: ${meetingDate || ''}  Time: ${meetingTime || ''}
 Detail level: ${detailLevel}
 

@@ -1341,22 +1341,45 @@ Format each entry as:
 
 Always emit the columns in this exact order: Action, Owner, Deadline. Never reorder them. Never use "Responsible Party" or any other synonym in place of "Owner". Do NOT include a Priority column — priority assignment has been removed from this product because automated guesses were unreliable.
 
-STRICT RULES FOR ACTION ITEMS — quality over quantity:
+ACTION ITEM EXTRACTION RULES — read these carefully, they are the most common source of missed actions:
+- Scan the ENTIRE transcript from start to finish, NOT just the "previous actions" / "action review" / "matters arising" section at the start
+- Pay SPECIAL attention to: AOB (any other business), "next steps", closing remarks, items raised in the final third of the meeting, and "items for next meeting"
+- Capture an action whenever someone says ANY of these (or close paraphrases):
+  • "I'll take that away" / "let me take that as an action" / "let me take that away as an action and come back to you"
+  • "I'll come back to you on…" / "I'll follow up with…" / "let me check…"
+  • "we need to…" / "someone needs to…" / "I will…" / "I'll…"
+  • "[Name] to [verb] …" (third-party assignment)
+  • "next meeting we should…" / "for the next meeting…" / "invite [X] to the next meeting"
+  • "explore a … home for …" / "investigate …" / "finalise and present …" when followed by a commitment
+- If an attendee assigns themselves a task implicitly ("I'll follow up with X", "let me check"), capture it as an action with that attendee as the owner
+- Distinguish NEW actions raised in this meeting from CARRIED-FORWARD actions reviewed at the start. Capture both, but prioritise NEW actions when you hit the 8-item cap
+- Do NOT invent actions. If unsure whether something is an action vs a discussion point, err toward capturing it but mark deadline as TBC
+
+SELF-CHECK BEFORE FINALISING ACTION ITEMS (mandatory):
+Re-scan the LAST 25% of the transcript specifically. Meetings frequently raise new actions in closing remarks that get missed when the model focuses on early structured sections (e.g. "review of previous actions"). Specifically look for:
+- Any "I'll take that away" / "let me come back to you" statements in the closing portion
+- Any "next meeting" commitments (e.g. "invite X to give a status update next time")
+- Any "finalise and present at [future date/event]" commitments
+If you find any of these and they are not already in your ACTION ITEMS table, add them now before responding.
+
+STRICT QUALITY RULES — quality over quantity:
 - ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
 - Each action must have a CLEAR DELIVERABLE — something that can be completed and ticked off
-- Maximum 8 action items per meeting. If more than 8 were discussed, include only the most important ones
+- Maximum 8 action items per meeting. If more than 8 were discussed, include only the most important ones (prefer NEW actions over carried-forward ones)
 - NEVER include ongoing responsibilities, standing tasks, or watching briefs (e.g., "Continue to monitor...", "Keep reviewing...", "Maintain oversight of...")
-- NEVER include vague actions like "Consider options", "Review situation", "Assess position", "Explore possibilities"
-- If an action doesn't answer "What specific thing will be DONE and FINISHED?", it's not an action — it belongs in OPEN ITEMS & RISKS instead
-- ONLY include a person's name in "Owner" if they were EXPLICITLY mentioned in the transcript as being responsible
-- If the responsible party is not explicitly stated, write "TBC" (To Be Confirmed)
-- If a deadline is not explicitly mentioned, write "TBC"
+- NEVER include vague actions like "Consider options", "Review situation", "Assess position" UNLESS the speaker explicitly committed to come back with a specific output
+- ONLY include a person's name in "Owner" if they were EXPLICITLY mentioned in the transcript as being responsible (or if they self-assigned)
+- If the responsible party is not explicitly stated, write "TBC"
+- If a deadline is not explicitly mentioned, write "TBC" (or "Next Meeting" if the speaker said "for next meeting" / "at the next meeting")
 - Do NOT assign actions to people based on their role or position unless explicitly stated
 
 EXAMPLES OF REAL ACTIONS (include these):
 - "Draft email to practices summarising board proposals" — has a deliverable (the email)
 - "Attend GPA Board meeting on 18th March to represent PCN concerns" — specific event, specific date
 - "Update SOP for locum ICE access onboarding" — clear deliverable (the updated SOP)
+- "Finalise and present the Outcomes Framework to the Board Development Workshop on 21 May" — clear deliverable, specific date
+- "Invite Glenn to provide a status update on the WorkWell programme at next meeting" — clear deliverable, deadline = Next Meeting
+- "Explore a formal commissioning home for Action for Happiness within ICB governance" — owner committed ("let me take that away as an action")
 
 EXAMPLES OF NON-ACTIONS (move these to OPEN ITEMS & RISKS instead):
 - "Monitor ICB updates regarding contract wording" — ongoing watching brief, no deliverable
@@ -1479,6 +1502,38 @@ The transcript mishears these terms regularly — always use the corrected versi
     };
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${dayOfWeek} ${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
+    const meetingYear = meetingDate.getFullYear();
+
+    // CRITICAL DATE HANDLING — prepended to system prompt so it appears at the very top.
+    // Without this, models hallucinate years from their training cutoff (e.g. "1st May 2024"
+    // when the meeting is on 30 April 2026 and the speaker says "1st May").
+    const dateGuard = `═══════════════════════════════════════════════════════════════════════════════
+CRITICAL DATE HANDLING — READ FIRST, APPLY THROUGHOUT
+═══════════════════════════════════════════════════════════════════════════════
+
+The meeting date is: ${formattedDate} (year = ${meetingYear}).
+
+When the transcript references relative or partial dates (e.g. "next month", "1st May",
+"Friday", "21 May", "the workshop on the 21st"), you MUST resolve them relative to the
+meeting date above, NOT relative to your training cutoff.
+
+Hard rules:
+- If a date is mentioned WITHOUT a year, assume it falls in ${meetingYear} unless the
+  context clearly indicates otherwise (e.g. an explicit reference to a past event, or
+  a date in the meeting that has already passed by ${formattedDate}, in which case it
+  rolls into ${meetingYear + 1}).
+- NEVER write a year earlier than ${meetingYear} unless the transcript EXPLICITLY uses
+  that earlier year (e.g. someone literally says "2024"). Do not infer earlier years
+  from your prior knowledge of NHS programme timelines.
+- "Next month" = the calendar month after ${months[meetingDate.getMonth()]} ${meetingYear}.
+- "Next year" = ${meetingYear + 1}.
+- When in doubt, use ${meetingYear}.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+`;
+    systemPrompt = dateGuard + systemPrompt;
+
 
 
 
@@ -1564,7 +1619,7 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
     }).format(startTime);
 
     const userPrompt = `Meeting Title: ${generatedTitle}
-Meeting Date: ${formattedDate}
+Meeting Date: ${formattedDate}  (year = ${meetingYear} — resolve all bare/relative dates against this)
 Recording Start Time: ${formattedStartTime}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
@@ -1610,7 +1665,7 @@ ${cleanedTranscript}`;
             const i = cursor++;
             if (i >= chunks.length) break;
             const { data, error } = await supabase.functions.invoke('summarize-transcript-chunk', {
-              body: { text: chunks[i], meetingTitle: generatedTitle, chunkIndex: i, totalChunks: chunks.length, detailLevel: 'standard' },
+              body: { text: chunks[i], meetingTitle: generatedTitle, chunkIndex: i, totalChunks: chunks.length, detailLevel: 'standard', meetingDate: formattedDate, meetingYear },
             });
             if (error) {
               console.warn(`🧩 chunk ${i} invoke error: ${error.message ?? error}`);
