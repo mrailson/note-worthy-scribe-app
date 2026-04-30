@@ -1608,34 +1608,57 @@ export const MeetingHistoryList = ({
         if (currentType === 'standard') {
           
           try {
-            const lsModel = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-              ? 'claude-sonnet-4-6'
-              : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
-            const effectiveModel = modelOverride || lsModel;
-            const isPremium = effectiveModel === 'gemini-3.1-pro' || effectiveModel === 'gemini-2.5-flash';
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel);
+            // Map UI model keys → edge-function modelOverride values.
+            //   undefined           → server-side default (Gemini 3.1 Pro + auto-fallback chain)
+            //   'gemini-3-flash'    → fast Gemini Flash (60s timeout, no fallback)
+            //   'sonnet-4.6'        → Claude Sonnet 4.6
+            //   'gemini-2.5-flash'  → premium long-context (PIN-gated)
+            // localStorage 'meeting-regenerate-llm' is the user's saved Settings preference.
+            const lsModel = localStorage.getItem('meeting-regenerate-llm');
+            const resolveModel = (raw?: string): string | undefined => {
+              if (!raw || raw === 'default') return undefined;
+              if (raw === 'sonnet-4.6') return 'claude-sonnet-4-6';
+              return raw;
+            };
+            const effectiveModel = modelOverride
+              ? resolveModel(modelOverride)
+              : resolveModel(lsModel || undefined);
+            const isPremium = effectiveModel === 'gemini-2.5-flash';
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel || '(server default: Gemini 3.1 Pro)');
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
               { body: {
                   meetingId,
                   forceRegenerate: true,
-                  modelOverride: effectiveModel,
+                  ...(effectiveModel ? { modelOverride: effectiveModel } : {}),
                   skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
                   ...(isPremium ? { premiumPin: PREMIUM_REGEN_PIN } : {}),
                 } }
             );
-            
+
             console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
             
             if (standardError) {
               console.error('❌ Edge function error:', standardError);
               throw new Error(`Standard notes failed: ${standardError.message || JSON.stringify(standardError)}`);
             }
-            
+
+            // Surface fallback if the primary model failed and a different one produced the notes.
+            if (data?.fallbackCount && data.fallbackCount > 0 && data?.actualModelUsed) {
+              const fallbackLabels: Record<string, string> = {
+                'gemini-3-flash': 'Gemini 3 Flash',
+                'gemini-2.5-pro': 'Gemini 2.5 Pro',
+                'gpt-5': 'OpenAI GPT-5',
+                'claude-sonnet-4-6': 'Claude Sonnet 4.6',
+              };
+              const label = fallbackLabels[data.actualModelUsed] || data.actualModelUsed;
+              toast.warning(`⚡ Generated with ${label} — primary model was unavailable`, { duration: 6000 });
+            }
+
             console.log('⏳ Polling for note completion...');
             // Poll for completion in meeting_summaries table (not meetings.notes_style_3)
             await pollForNoteCompletion(meetingId, 'summary', 'meeting_summaries');
-            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || effectiveModel);
+            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.actualModelUsed || data?.modelUsed || effectiveModel || 'gemini-3.1-pro');
             completedCount++;
 
             // Safety net: ensure meeting title was generated
