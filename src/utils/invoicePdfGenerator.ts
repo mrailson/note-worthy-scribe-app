@@ -223,7 +223,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     doc.text('Details', 18, finalY + 2);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(GREY_60);
-    doc.text(descriptionLines.slice(0, 15), 18, finalY + 8);
+    doc.text(descriptionLines.slice(0, 20), 18, finalY + 8);
     finalY += descHeight + 8;
   }
 
