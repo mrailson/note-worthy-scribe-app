@@ -316,6 +316,52 @@ function normaliseMergeOutput(content: string): string {
   );
   console.log(`[normaliseMergeOutput] Final-pass post-bold split inserted ${boldSplitCount} paragraph breaks`);
 
+  // FINAL PASS — fix malformed action items table.
+  // The LLM sometimes emits the column header as plain text (no leading "|"),
+  // then bolds the first action row, then puts the separator after that row.
+  // Reconstruct the table into proper markdown form: |Header|\n|---|\n|row|\n|row|...
+  out = out.replace(
+    /(#\s+ACTION\s+ITEMS\s*\n+)([\s\S]+?)(?=\n#\s+|\n*$)/i,
+    (_match, heading, body) => {
+      const lines = body.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      // Find a malformed header line — content matching "Action | Owner | Deadline"
+      // without a leading "|", possibly with a trailing "|"
+      const headerLineIdx = lines.findIndex(l =>
+        /^Action\s*\|\s*Owner\s*\|\s*Deadline\s*\|?\s*$/i.test(l)
+      );
+
+      // Find data rows — lines that start with "|" and aren't separator rows
+      const dataRows = lines.filter(l =>
+        l.startsWith('|') && !/^\|[-:\s|]+\|?\s*$/.test(l)
+      );
+
+      // If no malformed pattern found, return body unchanged
+      if (headerLineIdx === -1 || dataRows.length === 0) {
+        return `${heading}${body}`;
+      }
+
+      // Strip ** markers from cell contents in the first row (which got incorrectly bolded)
+      // and from any other rows
+      const cleanedRows = dataRows.map(row => {
+        // Split on |, strip ** from each cell, rejoin
+        const cells = row.split('|').map(c => c.replace(/\*\*/g, '').trim());
+        // Reconstruct with leading and trailing |
+        const nonEmptyCells = cells.filter((c, i) => i > 0 && i < cells.length - 1);
+        return `| ${nonEmptyCells.join(' | ')} |`;
+      });
+
+      // Reconstruct the table properly
+      const rebuilt = [
+        '| Action | Owner | Deadline |',
+        '| --- | --- | --- |',
+        ...cleanedRows
+      ].join('\n');
+
+      console.log(`[normaliseMergeOutput] Action items table reconstructed: ${cleanedRows.length} rows`);
+      return `${heading}${rebuilt}\n`;
+    }
+  );
+
   // Final newline-collapse so the new breaks don't double up
   out = out.replace(/\n{3,}/g, '\n\n');
 
