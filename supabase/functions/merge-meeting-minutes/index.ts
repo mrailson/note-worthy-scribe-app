@@ -319,6 +319,26 @@ function normaliseMergeOutput(content: string): string {
   // Final newline-collapse so the new breaks don't double up
   out = out.replace(/\n{3,}/g, '\n\n');
 
+  // FINAL PASS — ensure blank line between consecutive bullets in Discussion Summary.
+  // Sonnet emits Key Points bullets as "- bullet1\n- bullet2\n- bullet3" with no
+  // blank line between them, which renders as a tight list with no visual gap.
+  // Insert a blank line between consecutive bullet items so they get readable spacing.
+  // We only do this within the DISCUSSION SUMMARY section to avoid affecting other lists.
+  let spacingCount = 0;
+  out = out.replace(
+    /(# DISCUSSION SUMMARY[\s\S]*?)(?=# DECISIONS REGISTER|# OPEN ITEMS|$)/i,
+    (discussionSection) => {
+      return discussionSection.replace(
+        /(\n-\s+[^\n]+)\n(-\s+)/g,
+        (_match, firstBullet, nextBulletStart) => {
+          spacingCount++;
+          return `${firstBullet}\n\n${nextBulletStart}`;
+        }
+      );
+    }
+  );
+  console.log(`[normaliseMergeOutput] Discussion Summary bullet spacing inserted ${spacingCount} blank lines`);
+
   return out.trim();
 }
 
