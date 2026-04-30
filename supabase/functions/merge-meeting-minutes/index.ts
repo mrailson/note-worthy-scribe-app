@@ -95,6 +95,7 @@ Key Points
 <bullet list of confirmed agenda items if any>
 
 MERGING INSTRUCTIONS:
+- ATTENDEES PRESERVATION: If ANY chunk summary mentions attendees, role-bearers, or named participants (even informally), include them in the # ATTENDEES section. Never write "Attendee details were not provided" — instead, list every named person from the chunks. If the chunks contain only generic role labels (e.g. "Chair", "ICB lead"), list those. Only omit the # ATTENDEES section entirely if NO chunk contains any reference to people.
 - Deduplicate content across chunks. Resolve contradictions in favour of the more specific or later mention.
 - Preserve all unique names, numbers, dates, and decisions verbatim.
 - If a chunk arrived as an "[unsummarised excerpt …]" placeholder, integrate its substantive content where possible and silently drop the placeholder marker.
@@ -146,6 +147,14 @@ function normaliseMergeOutput(content: string): string {
 
   // 1. Strip stray clusters of 4+ consecutive asterisks
   out = out.replace(/\*{4,}/g, '');
+
+  // 1a. (NEW Rule F) Reinforced strip of stray bold markers.
+  // Strip "** **" (close-bold immediately followed by open-bold with space)
+  out = out.replace(/\*{2}\s+\*{2}/g, ' ');
+  // Strip empty bold runs "** **" or "****" where they wrap nothing
+  out = out.replace(/\*{2,}\s*\*{2,}/g, '');
+  // Final sweep: any run of 3+ asterisks remaining
+  out = out.replace(/\*{3,}/g, '');
 
   const KNOWN_SECTIONS = [
     'MEETING DETAILS',
@@ -232,6 +241,18 @@ function normaliseMergeOutput(content: string): string {
 
   out = out.split(/\n\n+/).map(lowercaseAllCapsParagraph).join('\n\n');
 
+  // 5a. (NEW Rule D) Force a paragraph break before "Key Points" when mid-text
+  out = out.replace(/(\S)\s+(Key Points)\s+/g, '$1\n\n$2\n\n');
+
+  // Insert paragraph breaks before numbered list items (1., 2., 3., etc.)
+  // when they appear mid-paragraph rather than at the start of a line.
+  out = out.replace(/([^\n])\s+(\d{1,2}\.\s+[A-Z][a-zA-Z])/g, (match, before, numberedItem) => {
+    if (/[.!?)\]"]/.test(before)) {
+      return `${before}\n\n${numberedItem}`;
+    }
+    return match;
+  });
+
   // 5b. (NEW Rule C) Split "# SECTION_NAME - content" / ":" / "—" / "–" / "|" same-line patterns.
   const sectionWithTrailingContent = new RegExp(
     `^(#\\s+${SECTION_NAMES_REGEX_GROUP})\\s*[-:—–|]\\s*(.+)$`,
@@ -240,6 +261,12 @@ function normaliseMergeOutput(content: string): string {
   out = out.replace(sectionWithTrailingContent, (_match, heading, body) => {
     return `${heading}\n\n${body.trim()}`;
   });
+
+  // 5c. (NEW Rule E) Specific catch for "# NEXT MEETING\n\nTo be determined - <content>"
+  out = out.replace(
+    /(#\s+NEXT\s+MEETING\s*\n+\s*To be determined)\s*[-:—–]\s*(.+)/gi,
+    '$1\n\n$2'
+  );
 
   // 6. Ensure each known section heading has blank line before and after
   for (const section of KNOWN_SECTIONS) {
