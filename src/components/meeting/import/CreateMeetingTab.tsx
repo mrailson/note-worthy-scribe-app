@@ -875,14 +875,14 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       <div className="pt-2 pb-1 border-t border-border/50 bg-background shrink-0">
         <Button
           onClick={handleCreateMeeting}
-          disabled={!hasContent || hasPendingFiles || isCreating}
+          disabled={!hasContent || hasPendingFiles || isCreating || isImporting}
           className="w-full"
           size="lg"
         >
-          {isCreating ? (
+          {isCreating || isImporting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Creating Meeting...
+              {importStep || `Creating Meeting${importProgress ? ` (${importProgress}%)` : '...'}`}
             </>
           ) : (
             <>
