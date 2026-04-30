@@ -1458,41 +1458,51 @@ export const MeetingHistoryList = ({
   };
 
   // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
-  // modelOverride is a free-form string identifier (e.g. 'gemini-3.1-pro', 'gemini-2.5-flash')
-  // so future premium options can be added without changing this signature.
-  const handleProcessClick = async (meeting: Meeting, modelOverride?: string) => {
+  // modelOverride is a free-form string identifier. Accepted values:
+  //   undefined / 'default'  → server-side default (Gemini 3.1 Pro with auto-fallback chain)
+  //   'gemini-3-flash'       → fast, lower quality, ~25s
+  //   'sonnet-4.6'           → Claude Sonnet 4.6 alternative perspective
+  //   'gemini-2.5-flash'     → premium long-context (PIN-gated)
+  // Future premium options can be added without changing this signature.
+  type RegenerateModel = 'default' | 'gemini-3-flash' | 'sonnet-4.6' | 'gemini-2.5-flash';
+  const handleProcessClick = async (meeting: Meeting, modelOverride?: RegenerateModel | string) => {
     const meetingId = meeting.id;
+    const isDefault = !modelOverride || modelOverride === 'default';
 
     // Friendly label for in-progress toast
-    const modelLabel = modelOverride === 'gemini-3.1-pro'
-      ? 'Gemini 3.1 Pro'
-      : modelOverride === 'gemini-2.5-flash'
-        ? 'Gemini 2.5 Flash'
-        : modelOverride;
+    const modelLabel =
+      modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' :
+      modelOverride === 'sonnet-4.6' ? 'Claude Sonnet 4.6' :
+      modelOverride === 'gemini-2.5-flash' ? 'Gemini 2.5 Flash' :
+      modelOverride;
 
     // Show toast notification
     toast.info(
-      modelOverride
-        ? `Regenerating with ${modelLabel}...`
-        : 'Regenerating Meeting Overview, Standard Minutes, and Audio...',
+      isDefault
+        ? 'Regenerating with Gemini 3.1 Pro — this may take 60-120 seconds...'
+        : `Regenerating with ${modelLabel}...`,
       { duration: 3000 }
     );
-    
+
     // Automatically regenerate Overview first, then Standard Minutes
-    await handleFullProcessing(meeting, {
+    const result = await handleFullProcessing(meeting, {
       standard: true,
       overview: true,
       executive: false,
       limerick: false
-    }, modelOverride);
+    }, isDefault ? undefined : modelOverride);
 
-    // Success toast for premium runs
-    if (modelOverride === 'gemini-3.1-pro') {
-      toast.success('✨ Regenerated with Gemini 3.1 Pro');
+    // Success toast
+    if (modelOverride === 'gemini-3-flash') {
+      toast.success('⚡ Regenerated with Gemini 3 Flash');
+    } else if (modelOverride === 'sonnet-4.6') {
+      toast.success('✨ Regenerated with Claude Sonnet 4.6');
     } else if (modelOverride === 'gemini-2.5-flash') {
       toast.success('✨ Regenerated with Gemini 2.5 Flash');
+    } else {
+      toast.success('✓ Notes regenerated');
     }
-    
+
     // Generate audio overview at the end
     try {
       const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
