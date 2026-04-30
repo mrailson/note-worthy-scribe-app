@@ -316,27 +316,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         
         const subject = `Notewell AI | ${freshMeetingData.title} — ${meetingDate}`;
         
-        // Convert notes content to styled HTML using shared professional builder
-        const { buildProfessionalMeetingEmail } = await import('@/utils/meetingEmailBuilder');
-        const htmlContent = buildProfessionalMeetingEmail(
-          freshMeetingData.content,
-          senderName,
-          freshMeetingData.title,
-          {
-            date: meetingDate,
-            time: freshMeetingData.startTime 
-              ? new Date(freshMeetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
-              : undefined,
-            duration: freshMeetingData.duration,
-            format: freshMeetingData.format,
-            location: freshMeetingData.location,
-            overview: freshMeetingData.overview,
-            wordCount: freshMeetingData.wordCount,
-            attendees: Array.isArray(freshMeetingData.participants) ? freshMeetingData.participants : [],
-          }
-        );
-        
-        // Generate Word document attachment using professional generator
+        // Generate Word document attachment FIRST so the email body can reflect attachment status
         let wordAttachment = null;
         try {
           const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
@@ -432,8 +412,30 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             console.log('📎 Word attachment generated via professional fallback');
           } catch (fallbackError) {
             console.error('All Word generation attempts failed:', fallbackError);
+            showToast.warning('Email sent without Word attachment — open the meeting from history and click "Email Meeting Notes" to retry.', { duration: 8000 });
           }
         }
+        
+        // Convert notes content to styled HTML using shared professional builder
+        const { buildProfessionalMeetingEmail } = await import('@/utils/meetingEmailBuilder');
+        const htmlContent = buildProfessionalMeetingEmail(
+          freshMeetingData.content,
+          senderName,
+          freshMeetingData.title,
+          {
+            date: meetingDate,
+            time: freshMeetingData.startTime 
+              ? new Date(freshMeetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
+              : undefined,
+            duration: freshMeetingData.duration,
+            format: freshMeetingData.format,
+            location: freshMeetingData.location,
+            overview: freshMeetingData.overview,
+            wordCount: freshMeetingData.wordCount,
+            attendees: Array.isArray(freshMeetingData.participants) ? freshMeetingData.participants : [],
+            hasAttachment: wordAttachment !== null,
+          }
+        );
         
         // Send email via Resend edge function
         const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
