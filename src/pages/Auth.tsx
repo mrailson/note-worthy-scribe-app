@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { validateInput, validateEmail, checkRateLimit } = useSecurityValidation();
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +32,12 @@ export default function Auth() {
     password: '',
     confirmPassword: ''
   });
+
+  const getReturnPath = () => {
+    const params = new URLSearchParams(location.search);
+    const returnTo = params.get('returnTo');
+    return returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/';
+  };
 
   // Handle magic link tokens and redirect if already logged in
   useEffect(() => {
@@ -65,7 +72,7 @@ export default function Auth() {
               description: "You have successfully logged in.",
               section: 'security',
             });
-            navigate('/');
+             navigate(getReturnPath(), { replace: true });
             return;
           }
         } catch (err) {
@@ -75,12 +82,12 @@ export default function Auth() {
       
       // If already logged in (and not processing magic link), redirect
       if (user) {
-        navigate('/');
+        navigate(getReturnPath(), { replace: true });
       }
     };
     
     handleMagicLink();
-  }, [user, navigate]);
+  }, [user, navigate, location.search]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +166,7 @@ export default function Auth() {
           description: "You have successfully logged in.",
           section: 'security',
         });
-        navigate('/');
+        navigate(getReturnPath(), { replace: true });
       }
     } catch (error) {
       showShadcnToast({

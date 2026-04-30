@@ -152,20 +152,33 @@ function WaveformBars({ active, isPaused, stream }) {
   );
 }
 
-function ModePill({ mode, isAutoFallback, disabled, onTap }) {
+function ModePill({ mode, isAutoFallback, disabled, onTap, authLoading, isAuthenticated }) {
   const live = mode === "live";
 
   // Three visual states:
   //   live                                 → 🟢 green  "Online"
   //   offline + isAutoFallback             → 🟡 amber  "Offline (no connection)"
   //   offline + user-chosen                → ⚪ slate  "Offline mode"
-  const variant = live
+  const variant = live && authLoading
+    ? "checking"
+    : live && !isAuthenticated
+    ? "signin"
+    : live
     ? "online"
     : isAutoFallback
     ? "fallback"
     : "offline";
 
   const styles = {
+    checking: {
+      borderColor: "rgba(100,116,139,0.30)",
+      bg: "rgba(100,116,139,0.08)",
+      dot: "#64748b",
+      dotBg: "linear-gradient(135deg,#64748b,#94a3b8)",
+      dotShadow: "0 2px 6px rgba(100,116,139,0.35)",
+      labelColor: "#475569",
+      label: "Checking login…",
+    },
     online: {
       borderColor: "rgba(22,163,74,0.30)",
       bg: "rgba(22,163,74,0.08)",
@@ -173,7 +186,16 @@ function ModePill({ mode, isAutoFallback, disabled, onTap }) {
       dotBg: "linear-gradient(135deg,#16a34a,#22c55e)",
       dotShadow: "0 2px 6px rgba(22,163,74,0.4)",
       labelColor: "#15803d",
-      label: "Online",
+      label: "Online · Signed in",
+    },
+    signin: {
+      borderColor: "rgba(245,158,11,0.40)",
+      bg: "rgba(245,158,11,0.10)",
+      dot: "#f59e0b",
+      dotBg: "linear-gradient(135deg,#f59e0b,#f97316)",
+      dotShadow: "0 2px 6px rgba(245,158,11,0.4)",
+      labelColor: "#d97706",
+      label: "Online · Sign in needed",
     },
     fallback: {
       borderColor: "rgba(245,158,11,0.40)",
@@ -228,7 +250,7 @@ function ModePill({ mode, isAutoFallback, disabled, onTap }) {
   );
 }
 
-function ModeSheet({ mode, onClose, onSelect }) {
+function ModeSheet({ mode, onClose, onSelect, isAuthenticated, authLoading, onSignIn }) {
   return (
     <div
       onClick={onClose}
@@ -242,8 +264,16 @@ function ModeSheet({ mode, onClose, onSelect }) {
         <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
         <div style={{fontSize:16,fontWeight:700,color:"#1a2332",marginBottom:3}}>Recording Mode</div>
         <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>
-          Auto-detected from your connection. Tap to override.
+          Auto-detected from your connection and login status. Tap to override.
         </div>
+
+        {mode === "live" && !authLoading && !isAuthenticated && (
+          <div style={{background:"rgba(245,158,11,0.10)",borderRadius:12,padding:"12px",border:"1px solid rgba(245,158,11,0.30)",marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:4}}>Sign in needed</div>
+            <div style={{fontSize:12,color:"#92400e",lineHeight:1.45,marginBottom:10}}>You have internet, but your Notewell login is not active. Sign in to use live recording, sync, and old meetings.</div>
+            <button onClick={onSignIn} style={{width:"100%",padding:"9px 12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",color:"white",fontSize:13,fontWeight:700,fontFamily:"inherit",cursor:"pointer"}}>Sign in</button>
+          </div>
+        )}
 
         {[
           {
@@ -1106,7 +1136,7 @@ function stopSilentAudio() {
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user: authUser } = useAuth();
+  const { user: authUser, session: authSession, loading: authLoading, refreshSessionStatus } = useAuth();
   // Recording mode + connectivity (persisted preference, three-state pill).
   // Hook owns: localStorage preference, navigator.onLine, auto-fallback flag.
   // We map the hook's "online"/"offline" vocabulary to the recorder's existing
@@ -1161,6 +1191,19 @@ export default function NoteWellRecorder() {
 
   // ── Pre-flight modal state ──
   const [showPreFlight, setShowPreFlight] = useState(false);
+
+  const navigateToSignIn = useCallback((returnTo = location.pathname || "/new-recorder") => {
+    navigate(`/auth?returnTo=${encodeURIComponent(returnTo)}`);
+  }, [location.pathname, navigate]);
+
+  const ensureSignedIn = useCallback(async (returnTo = location.pathname || "/new-recorder") => {
+    if (authUser && authSession) return authSession;
+    const currentSession = await refreshSessionStatus();
+    if (currentSession?.user) return currentSession;
+    showToast("Please sign in to use online recording and meetings", "error");
+    navigateToSignIn(returnTo);
+    return null;
+  }, [authSession, authUser, location.pathname, navigateToSignIn, refreshSessionStatus]);
 
   // ── Honest timer state (visibility-aware) ──
   const lastTickRef = useRef(Date.now());
@@ -1982,19 +2025,10 @@ export default function NoteWellRecorder() {
     let user = authUser || null;
     if (!user) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await refreshSessionStatus();
         user = session?.user || null;
       } catch (e) {
-        console.warn("[sync] getSession failed:", e);
-      }
-    }
-    if (!user) {
-      // Last-resort refresh — only when we genuinely have no session at all.
-      try {
-        const { data: { session } } = await supabase.auth.refreshSession();
-        user = session?.user || null;
-      } catch (e) {
-        console.warn("[sync] refreshSession failed:", e);
+        console.warn("[sync] session check failed:", e);
       }
     }
     if (!user) {
@@ -2003,6 +2037,7 @@ export default function NoteWellRecorder() {
         recordingTitle: rec.title, message: "Session expired",
       });
       await logSyncDiagnostic(rec.id, { event: "preflight_fail", reason: "auth_expired" });
+      navigateToSignIn(location.pathname || "/new-recorder");
       return { ok: false, errorType: "auth_expired" };
     }
 
@@ -2613,8 +2648,8 @@ export default function NoteWellRecorder() {
     try {
       setRetranscribingIds(prev => ({ ...prev, [rec.id]: true }));
       showToast("Re-processing started…", "info");
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { showToast("Please sign in first", "error"); return; }
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
 
       // Mobile recordings store audio under a random sessionId, not the meetingId.
       // So we call auto-generate-meeting-notes to regenerate notes from the existing transcript.
@@ -2640,8 +2675,8 @@ export default function NoteWellRecorder() {
     if (!rec.id) return;
     try {
       setEmailingIds(prev => ({ ...prev, [rec.id]: true }));
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { showToast("Please sign in first", "error"); return; }
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
 
       // Get user email from profile
       const { data: profile } = await supabase
@@ -2779,7 +2814,7 @@ export default function NoteWellRecorder() {
   const localCount  = recordings.filter(r => r.status==="local"||r.status==="error").length;
 
   // ── Pre-flight intercept for mobile devices ──
-  const handleRecordTap = () => {
+  const handleRecordTap = async () => {
     if (!isIdle) {
       // Already recording — handle pause/resume
       if (isRecording) pauseRecording();
@@ -2787,6 +2822,10 @@ export default function NoteWellRecorder() {
       return;
     }
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (mode === "live") {
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
+    }
     const alreadyShown = sessionStorage.getItem(SESSION_KEY);
     if (isMobile && !alreadyShown) {
       setShowPreFlight(true);
@@ -2795,9 +2834,13 @@ export default function NoteWellRecorder() {
     startRecording();
   };
 
-  const handlePreFlightStart = () => {
+  const handlePreFlightStart = async () => {
     sessionStorage.setItem(SESSION_KEY, "true");
     setShowPreFlight(false);
+    if (mode === "live") {
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
+    }
     startRecording();
   };
 
@@ -2905,9 +2948,11 @@ export default function NoteWellRecorder() {
               mode={mode}
               isAutoFallback={recordingMode.isAutoFallback}
               disabled={!isIdle}
+              authLoading={authLoading}
+              isAuthenticated={!!authUser}
               onTap={()=>setShowSheet(true)}
             />
-            <button onClick={()=>navigate("/meetings")} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexShrink:0}} title="My Meetings">
+            <button onClick={async ()=>{ const session = await ensureSignedIn("/meetings"); if (session) navigate("/meetings"); }} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexShrink:0}} title="My Meetings">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </button>
           </div>
@@ -3138,7 +3183,7 @@ export default function NoteWellRecorder() {
               </div>
               {localCount > 0 && isOnline && (
                 <button
-                  onClick={()=>recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
+                  onClick={async ()=>{ const session = await ensureSignedIn(location.pathname || "/new-recorder"); if (session) recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording); }}
                   style={{fontSize:11,color:"#1565c0",fontWeight:700,border:"1px solid rgba(21,101,192,0.2)",background:"rgba(21,101,192,0.05)",cursor:"pointer",padding:"3px 10px",borderRadius:8,fontFamily:"inherit"}}
                 >
                   ↑ Sync all
@@ -3164,7 +3209,7 @@ export default function NoteWellRecorder() {
 
             {/* My Meetings card */}
             <button
-              onClick={()=>navigate("/meetings")}
+              onClick={async ()=>{ const session = await ensureSignedIn("/meetings"); if (session) navigate("/meetings"); }}
               style={{width:"100%",background:"white",borderRadius:16,padding:"14px 16px",border:"none",cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}
             >
               <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -3181,7 +3226,7 @@ export default function NoteWellRecorder() {
 
 
         {showSheet && (
-          <ModeSheet mode={mode} onClose={()=>setShowSheet(false)} onSelect={m=>{setMode(m);setShowSheet(false);}} />
+          <ModeSheet mode={mode} onClose={()=>setShowSheet(false)} onSelect={m=>{setMode(m);setShowSheet(false);}} isAuthenticated={!!authUser} authLoading={authLoading} onSignIn={()=>navigateToSignIn(location.pathname || "/new-recorder")} />
         )}
 
         {showSettings && (

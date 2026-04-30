@@ -1,66 +1,63 @@
-Yes — that is the right direction. The safest fix is not to make the modal/email/document parsers more tolerant, but to make imported transcript meetings arrive at the same stored notes contract that recorded meetings already produce.
+## Proposed fix
 
-## Plan
+Yes — the current issue is that the green **Online** pill only means “the browser has internet”, not “you are authenticated with Supabase”. That is why it can show Online but still fail to load old meetings or only discover the missing login when an upload starts.
 
-1. Align imported transcript note generation with recorded meetings
-   - Trace the recorded-meeting post-notes path and reuse the same final formatting contract for imports.
-   - Keep the imported transcript entry point, but ensure the final saved `meeting_summaries.summary` looks like the recorded output: section headings on their own lines, markdown preserved, no collapsed headings/body text.
-   - Do not change `SafeModeNotesModal` parsing.
-   - Do not change the email formatter to mask bad markdown.
+I propose changing the recorder so it has a clear, honest status model:
 
-2. Fix the chunked merge clean-up bug
-   - Update the `merge-meeting-minutes` tone-audit clean-up so it no longer collapses newlines with `\s{2,}`.
-   - Replace that with line-safe whitespace normalisation: collapse repeated spaces/tabs inside lines, preserve paragraph and heading breaks.
-   - Add a small final guard in the merge output to keep required headings on separate lines if Claude returns them too tightly.
+```text
+Internet online + signed in      -> Online · Signed in
+Internet online + not signed in  -> Online · Sign in needed
+No internet                      -> Offline / Offline mode
+Auth still restoring             -> Checking login…
+```
 
-3. Make long imported transcripts follow the same final markdown contract as short/recorded meetings
-   - Keep the chunked summarisation path for long imports, because very long transcripts still need chunking.
-   - Change only the final reduce/merge stage so it emits the same section order and line structure used by recorded notes:
-     - `# MEETING DETAILS`
-     - `Date:`
-     - `Time:`
-     - `# EXECUTIVE SUMMARY`
-     - `# ATTENDEES` where available
-     - `# DISCUSSION SUMMARY`
-     - `# DECISIONS REGISTER`
-     - `# ACTION ITEMS`
-     - `# OPEN ITEMS & RISKS`
-     - `# NEXT MEETING`
-   - Ensure `# OPEN ITEMS & RISKS` remains bullets, not a markdown table.
+## What I will change
 
-4. Confirm imported meetings use the same completion-email trigger route as recorded meetings
-   - Check all transcript import creation paths, not just `useMeetingImporter.ts`, because the recent Northamptonshire rows still showed `import_source = null`.
-   - Set `import_source` consistently for transcript imports before notes are generated.
-   - Keep the existing mobile/recorded DB trigger mechanism and its allow-list; only ensure imported rows enter it correctly.
-   - Do not change `deliver-mobile-meeting-email` behaviour unless inspection shows a direct mismatch with recorded meetings.
+1. **Make AuthContext expose a real readiness/refresh check**
+   - Keep the current persisted Supabase session behaviour.
+   - Add a safe `refreshSessionStatus()` helper that checks/restores the current session using `getSession()` and, when needed, `refreshSession()`.
+   - Avoid calling async Supabase auth methods inside `onAuthStateChange`, to prevent auth event deadlocks.
+   - Keep role/module checks server-side through the existing user roles table.
 
-5. Keep resend and auto-email on the same source of truth
-   - Manual resend should continue to use the stored `meeting_summaries.summary`.
-   - Auto-email should continue to use the same stored summary.
-   - The fix should therefore improve both the email body and Word attachment by fixing the stored imported-summary markdown upstream.
+2. **Update the mobile recorder status pill**
+   - Replace the misleading plain **Online** label with a combined network + login state.
+   - If internet is available but the user is not logged in, show a warning state such as **Online · Sign in needed** rather than green **Online**.
+   - Tapping that status will explain what is wrong and offer a direct **Sign in** button.
 
-6. Deployment and verification boundaries
-   - Any changed edge function under `supabase/functions/` will need redeployment after editing.
-   - I will not invoke the live email function or send test emails myself.
-   - I will not run live-preview automated checks.
-   - I will list every modified file and every new file after implementation.
+3. **Force login before online-only actions**
+   - When in online/live mode, starting a recording will first check the real auth session.
+   - If the session is missing/expired, the user will be sent to login before recording/uploading, rather than finding out after upload.
+   - The same check will be used for:
+     - Sync all
+     - Sync individual recording
+     - Re-process notes
+     - Email audio/notes actions where applicable
+     - My Meetings / old meetings navigation
 
-## Manual test plan after implementation
+4. **Make My Meetings easier and safer to access**
+   - The document/My Meetings button and the My Meetings card will verify the auth session first.
+   - If not logged in, navigate to `/auth` with a return path so the user comes back to meetings/recorder after login.
+   - This avoids the confusing “empty old meetings” or inaccessible list state.
 
-1. Short transcript import
-   - Import a short transcript under the chunking threshold.
-   - Confirm the notes modal renders Date, Executive Summary, Discussion Summary, and Open Items & Risks correctly.
-   - Confirm the completion email arrives automatically.
-   - Confirm the email body is not unexpectedly capitalised.
-   - Confirm the Word attachment has clean section formatting.
+5. **Improve the `/meetings` page guard**
+   - Currently it can sit in loading state if no user is present because `fetchMeetings()` returns early without clearing loading.
+   - I will make it explicitly handle:
+     - auth still loading: show “Checking login…”
+     - no user: show a clear sign-in prompt
+     - signed in: load meetings as normal
+   - This should make old meetings reliable and understandable.
 
-2. Long transcript import
-   - Import a long transcript over 50k characters.
-   - Confirm the stored/generated notes have headings on separate lines.
-   - Confirm the notes modal renders the same sections as a recorded meeting.
-   - Confirm the completion email arrives automatically.
-   - Confirm the email body and Word attachment match the recorded-meeting quality.
+6. **Improve login return flow**
+   - Update `/auth` so if a user is redirected there from the recorder or meetings page, successful login returns them to the intended page instead of always going home.
+   - Keep existing magic-link/password behaviour intact.
 
-## Technical notes
+## Files likely to change
 
-The key root cause is the chunked merge function collapsing markdown structure after Claude has generated the notes. Recorded meetings already produce the correct structure, so the target is to make imports preserve that same markdown contract before the notes are saved and emailed.
+- `src/contexts/AuthContext.tsx`
+- `src/components/recorder/NoteWellRecorderMobile.jsx`
+- `src/pages/MeetingHistory.tsx`
+- `src/pages/Auth.tsx`
+
+## Expected result
+
+After this change, **Online** will no longer imply the wrong thing. If you are connected but not actually logged in, the UI will say so immediately and provide a clear sign-in path. Online recording/sync/meeting history will require a valid session up front, so the app will not wait until upload completion to discover that authentication is missing.

@@ -17,6 +17,7 @@ interface AuthContextType {
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
   hasModuleAccess: (module: string) => boolean;
   refreshUserModules: () => Promise<void>;
+  refreshSessionStatus: () => Promise<Session | null>;
   checkConsultationExamplesVisibility: () => Promise<void>;
 }
 
@@ -219,40 +220,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     ]);
   };
 
+  const applySessionState = (currentSession: Session | null) => {
+    setSession(currentSession);
+    setUser(currentSession?.user ?? null);
+    if (currentSession?.user) {
+      setTimeout(() => {
+        fetchUserData(currentSession.user.id);
+      }, 0);
+    } else {
+      fetchedUserIdRef.current = null;
+      setUserModules([]);
+      setIsSystemAdmin(false);
+      setCanViewConsultationExamples(true);
+    }
+  };
+
+  const refreshSessionStatus = async (): Promise<Session | null> => {
+    try {
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession?.user) {
+        applySessionState(existingSession);
+        return existingSession;
+      }
+
+      const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+      applySessionState(refreshedSession ?? null);
+      return refreshedSession ?? null;
+    } catch (error) {
+      console.warn('Session refresh/check failed:', error);
+      applySessionState(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+        applySessionState(session);
         setLoading(false);
-        
-        // Fetch user data when user logs in
-        if (session?.user) {
-          // Use setTimeout to avoid state update during render
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
-        } else {
-          fetchedUserIdRef.current = null;
-          setUserModules([]);
-          setIsSystemAdmin(false);
-          setCanViewConsultationExamples(true);
-        }
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      applySessionState(session);
       setLoading(false);
-      // Fetch data for existing session
-      if (session?.user) {
-        setTimeout(() => {
-          fetchUserData(session.user.id);
-        }, 0);
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -466,6 +481,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updatePassword,
     hasModuleAccess,
     refreshUserModules: () => user?.id ? fetchUserData(user.id, true) : Promise.resolve(),
+    refreshSessionStatus,
     checkConsultationExamplesVisibility,
   };
 
