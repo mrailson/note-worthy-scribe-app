@@ -1375,6 +1375,9 @@ Re-scan the LAST 25% of the transcript specifically. Meetings frequently raise n
 - Any "finalise and present at [future date/event]" commitments
 If you find any of these and they are not already in your ACTION ITEMS table, add them now before responding.
 
+CROSS-SECTION CHECK (mandatory, run AFTER drafting Decisions Register and Next Meeting):
+Before finalising the Action Items table, cross-check the Decisions Register and Next Meeting sections. For each item in those sections that has a named owner and a future task, ensure it ALSO appears in the Action Items table with the owner and deadline populated. Decisions and next-meeting commitments are NOT mutually exclusive with actions — owner-bearing items must be duplicated into Action Items.
+
 STRICT QUALITY RULES — quality over quantity:
 - ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
 - Each action must have a CLEAR DELIVERABLE — something that can be completed and ticked off
