@@ -117,11 +117,22 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log("Starting multi-type meeting notes generation...");
 
-    const { meetingId, batchId, transcript, meetingTitle, meetingDate, meetingTime } = await req.json();
+    const { meetingId, batchId, transcript, meetingTitle, meetingDate, meetingTime, modelOverride, premiumPin } = await req.json();
 
     if (!meetingId || !transcript) {
       return new Response(JSON.stringify({ error: 'Meeting ID and transcript are required' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Server-side PIN gate for premium models. Hardcoded for now;
+    // future improvement: read from Supabase secret PREMIUM_REGEN_PIN.
+    const PREMIUM_REGEN_PIN = '1045';
+    const PREMIUM_MODELS = ['claude-opus-4-7', 'gemini-2.5-flash'];
+    if (modelOverride && PREMIUM_MODELS.includes(modelOverride) && premiumPin !== PREMIUM_REGEN_PIN) {
+      return new Response(JSON.stringify({ error: 'Premium model requires valid PIN' }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }

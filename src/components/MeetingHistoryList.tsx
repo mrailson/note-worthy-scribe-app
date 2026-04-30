@@ -39,7 +39,9 @@ import {
   Folder,
   BookOpen,
   HeartPulse,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Zap
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
@@ -195,6 +197,24 @@ interface MeetingHistoryListProps {
   // Callback for opening the correction manager
   onOpenCorrectionManager?: () => void;
 }
+
+// PIN required to confirm premium-model regenerations on the client.
+// Server-side enforcement lives in the auto-generate-meeting-notes edge function.
+const PREMIUM_REGEN_PIN = '1045';
+
+const promptForPremiumPin = (modelLabel: string, costNote: string): boolean => {
+  const userPin = window.prompt(
+    `Regenerate this meeting using ${modelLabel}?\n\n` +
+    `${costNote}\n\n` +
+    `Enter the 4-digit PIN to confirm:`
+  );
+  if (userPin === null) return false; // user cancelled
+  if (userPin !== PREMIUM_REGEN_PIN) {
+    toast.error('Incorrect PIN. Premium regeneration cancelled.');
+    return false;
+  }
+  return true;
+};
 
 export const MeetingHistoryList = ({ 
   meetings, 
@@ -1438,13 +1458,16 @@ export const MeetingHistoryList = ({
   };
 
   // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
-  const handleProcessClick = async (meeting: Meeting) => {
+  const handleProcessClick = async (meeting: Meeting, modelOverride?: string) => {
     const meetingId = meeting.id;
     
     // Show toast notification
-    toast.info('Regenerating Meeting Overview, Standard Minutes, and Audio...', {
-      duration: 3000
-    });
+    toast.info(
+      modelOverride
+        ? `Regenerating with ${modelOverride}...`
+        : 'Regenerating Meeting Overview, Standard Minutes, and Audio...',
+      { duration: 3000 }
+    );
     
     // Automatically regenerate Overview first, then Standard Minutes
     await handleFullProcessing(meeting, {
@@ -1452,7 +1475,7 @@ export const MeetingHistoryList = ({
       overview: true,
       executive: false,
       limerick: false
-    });
+    }, modelOverride);
     
     // Generate audio overview at the end
     try {
@@ -1492,7 +1515,11 @@ export const MeetingHistoryList = ({
   };
 
   // Handle full processing pipeline - Sequential processing
-  const handleFullProcessing = async (meeting: Meeting, selectedTypes: { standard: boolean; overview: boolean; executive: boolean; limerick: boolean }) => {
+  const handleFullProcessing = async (
+    meeting: Meeting,
+    selectedTypes: { standard: boolean; overview: boolean; executive: boolean; limerick: boolean },
+    modelOverride?: string
+  ) => {
     const meetingId = meeting.id;
     
     if (processingMeetings[meetingId]?.isProcessing) {
@@ -1555,13 +1582,21 @@ export const MeetingHistoryList = ({
         if (currentType === 'standard') {
           
           try {
-            const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+            const lsModel = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
               ? 'claude-sonnet-4-6'
               : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', modelOverride);
+            const effectiveModel = modelOverride || lsModel;
+            const isPremium = effectiveModel === 'claude-opus-4-7' || effectiveModel === 'gemini-2.5-flash';
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
-              { body: { meetingId, forceRegenerate: true, modelOverride, skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true' } }
+              { body: {
+                  meetingId,
+                  forceRegenerate: true,
+                  modelOverride: effectiveModel,
+                  skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
+                  ...(isPremium ? { premiumPin: PREMIUM_REGEN_PIN } : {}),
+                } }
             );
             
             console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
@@ -1574,7 +1609,7 @@ export const MeetingHistoryList = ({
             console.log('⏳ Polling for note completion...');
             // Poll for completion in meeting_summaries table (not meetings.notes_style_3)
             await pollForNoteCompletion(meetingId, 'summary', 'meeting_summaries');
-            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || modelOverride);
+            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || effectiveModel);
             completedCount++;
 
             // Safety net: ensure meeting title was generated
@@ -2810,7 +2845,46 @@ export const MeetingHistoryList = ({
                       })()}
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
-                      
+
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const confirmed = promptForPremiumPin(
+                            'Claude Opus 4.7 (premium)',
+                            'This is a premium model that may produce higher-quality notes for complex meetings, at approximately 2-3x the standard generation cost. Existing notes will be replaced.'
+                          );
+                          if (confirmed) {
+                            handleProcessClick(meeting, 'claude-opus-4-7');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Opus 4.7 (premium)'}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const confirmed = promptForPremiumPin(
+                            'Gemini 2.5 Flash (cheap, long meetings)',
+                            'This routes the meeting through a fast, low-cost model with a large context window — useful for meetings over 60 minutes. Cost is approximately 1/13th of standard generation. Output structure may differ slightly from Claude. Existing notes will be replaced.'
+                          );
+                          if (confirmed) {
+                            handleProcessClick(meeting, 'gemini-2.5-flash');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Zap className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini Flash (cheap)'}
+                      </DropdownMenuItem>
+
+
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
                           onSelect={(e) => {

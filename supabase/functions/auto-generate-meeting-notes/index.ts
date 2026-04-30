@@ -237,8 +237,23 @@ serve(async (req) => {
       transcriptSource,
       modelOverride = 'claude-sonnet-4-6',
       skipQc = false,
+      premiumPin,
     } = requestBody;
     meetingId = parsedMeetingId;
+
+    // Server-side PIN gate for premium models. Hardcoded for now;
+    // future improvement: read from Supabase secret PREMIUM_REGEN_PIN.
+    const PREMIUM_REGEN_PIN = '1045';
+    const PREMIUM_MODELS = ['claude-opus-4-7', 'gemini-2.5-flash'];
+    if (PREMIUM_MODELS.includes(modelOverride)) {
+      if (premiumPin !== PREMIUM_REGEN_PIN) {
+        return new Response(
+          JSON.stringify({ error: 'Premium model requires valid PIN' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto', 'and model:', modelOverride);
 
     if (!meetingId) {
@@ -1575,7 +1590,14 @@ ${cleanedTranscript}`;
     let generatedNotes = '';
     let modelUsed = modelOverride;
 
-    if (modelOverride.startsWith('claude-') && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS) {
+    // Chunking is only used for Sonnet/Haiku Claude models. Opus 4.7 (1M context)
+    // and Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
+    const useChunking = (
+      modelOverride.startsWith('claude-sonnet-') ||
+      modelOverride.startsWith('claude-haiku-')
+    ) && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS;
+
+    if (useChunking) {
       try {
         console.log(`🧩 Chunked path: ${cleanedTranscript.length} chars > ${CHUNK_THRESHOLD_CHARS}, splitting…`);
         const chunks = splitTextIntoChunks(cleanedTranscript, CHUNK_SIZE, CHUNK_OVERLAP);
@@ -1664,7 +1686,13 @@ ${cleanedTranscript}`;
           ?.map((block: any) => block.text)
           ?.join('\n') || '';
       } else {
-        modelUsed = 'gemini-3-flash';
+        // Route to Gemini. 'gemini-2.5-flash' (premium long-context option) maps to
+        // 'google/gemini-2.5-flash'; legacy default falls back to gemini-3-flash-preview.
+        const geminiModel = modelOverride === 'gemini-2.5-flash'
+          ? 'google/gemini-2.5-flash'
+          : 'google/gemini-3-flash-preview';
+        modelUsed = modelOverride === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-3-flash';
+        console.log(`🧠 Using Gemini model: ${geminiModel}`);
         const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -1672,7 +1700,7 @@ ${cleanedTranscript}`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
+            model: geminiModel,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
