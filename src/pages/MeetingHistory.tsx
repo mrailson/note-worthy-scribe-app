@@ -158,7 +158,7 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
 };
 
 const MeetingHistory = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading, refreshSessionStatus } = useAuth();
   const { isResourceOperationSafe } = useRecording(); // Move hook to top level
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -1104,8 +1104,12 @@ const MeetingHistory = () => {
       console.log('✅ Calling fetchMeetings from primary useEffect');
       fetchMeetings();
       fetchMicTestServiceSettings();
+    } else if (!authLoading) {
+      refreshSessionStatus().then((session) => {
+        if (!session?.user) setLoading(false);
+      });
     }
-  }, [user?.id]); // Use user.id instead of user object to prevent unnecessary re-renders
+  }, [user?.id, authLoading]); // Use user.id instead of user object to prevent unnecessary re-renders
 
   const handlePageChange = (page: number) => {
     fetchMeetings(page);
@@ -1254,6 +1258,9 @@ const MeetingHistory = () => {
     
     if (!user) {
       console.log('❌ fetchMeetings BLOCKED - No user');
+      setMeetings([]);
+      setFilteredMeetings([]);
+      setLoading(false);
       return;
     }
     
