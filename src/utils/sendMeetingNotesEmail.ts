@@ -13,7 +13,19 @@ interface SendMeetingNotesEmailOpts {
   senderName?: string;
 }
 
-const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
+const GENERIC_TITLES = [
+  "mobile recording",
+  "meeting",
+  "new meeting",
+  "untitled meeting",
+  "untitled",
+  "general meeting",
+  "general discussion",
+  "general update",
+  "team meeting",
+  "weekly meeting",
+  "monthly meeting"
+];
 
 const GENERIC_TITLE_PATTERNS = [
   /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,           // "Meeting 20 Apr 18:50"
