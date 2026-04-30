@@ -244,7 +244,7 @@ serve(async (req) => {
     // Server-side PIN gate for premium models. Hardcoded for now;
     // future improvement: read from Supabase secret PREMIUM_REGEN_PIN.
     const PREMIUM_REGEN_PIN = '1045';
-    const PREMIUM_MODELS = ['claude-opus-4-7', 'gemini-2.5-flash'];
+    const PREMIUM_MODELS = ['gemini-3.1-pro', 'gemini-3.1-pro-preview', 'gemini-2.5-flash'];
     if (PREMIUM_MODELS.includes(modelOverride)) {
       if (premiumPin !== PREMIUM_REGEN_PIN) {
         return new Response(
