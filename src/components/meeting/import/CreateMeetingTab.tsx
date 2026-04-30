@@ -26,6 +26,7 @@ import { saveAs } from 'file-saver';
 import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMeetingImporter } from '@/hooks/useMeetingImporter';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { chunkWavFile, blobToBase64 } from '@/utils/wavChunker';
@@ -73,6 +74,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   onFilesAddedRef
 }) => {
   const { user } = useAuth();
+  const { importMeeting, isImporting, progress: importProgress, currentStep: importStep } = useMeetingImporter();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -472,46 +474,15 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     
     try {
       const title = meetingTitle.trim() || `Imported Meeting - ${new Date().toLocaleDateString('en-GB')}`;
-      const wordCount = transcript.split(/\s+/).length;
-      const estimatedMinutes = Math.max(1, Math.round(wordCount / 150)); // ~150 words per minute
-      
-      // Create meeting with transcript in both live and batch fields
-      const { data: meeting, error: meetingError } = await supabase
-        .from('meetings')
-        .insert({
-          title,
-          description: 'Meeting created from imported content',
-          meeting_type: 'general',
-          start_time: new Date().toISOString(),
-          end_time: new Date(Date.now() + estimatedMinutes * 60000).toISOString(),
-          duration_minutes: estimatedMinutes,
-          status: 'completed',
-          user_id: user.id,
-          live_transcript_text: transcript,
-          whisper_transcript_text: transcript
-        })
-        .select()
-        .single();
-      
-      if (meetingError) throw meetingError;
-      
-      // Also save to meeting_transcripts table for compatibility
-      await supabase
-        .from('meeting_transcripts')
-        .insert({
-          meeting_id: meeting.id,
-          content: transcript,
-          confidence_score: 0.9,
-          timestamp_seconds: 0
-        });
-      
-      // Trigger notes generation in background
-      supabase.functions.invoke('auto-generate-meeting-notes', {
-        body: { meetingId: meeting.id }
-      }).catch(err => console.error('Note generation error:', err));
+      const meetingId = await importMeeting({
+        transcript,
+        title,
+        attendees: [],
+        source: 'text_import',
+      });
       
       // Show success panel instead of closing immediately
-      setImportedMeetingId(meeting.id);
+      setImportedMeetingId(meetingId);
       setImportSuccess(true);
       
     } catch (error: any) {
@@ -904,14 +875,14 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       <div className="pt-2 pb-1 border-t border-border/50 bg-background shrink-0">
         <Button
           onClick={handleCreateMeeting}
-          disabled={!hasContent || hasPendingFiles || isCreating}
+          disabled={!hasContent || hasPendingFiles || isCreating || isImporting}
           className="w-full"
           size="lg"
         >
-          {isCreating ? (
+          {isCreating || isImporting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Creating Meeting...
+              {importStep || `Creating Meeting${importProgress ? ` (${importProgress}%)` : '...'}`}
             </>
           ) : (
             <>
