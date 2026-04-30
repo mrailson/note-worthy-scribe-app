@@ -2554,6 +2554,7 @@ export function ClaimsViewSwitcher({
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
+  onDeleteClaim?: (id: string) => Promise<void>;
   saving?: boolean;
   directorMode?: boolean;
   practiceFilter?: string;
