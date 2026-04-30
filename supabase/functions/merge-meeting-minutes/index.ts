@@ -256,7 +256,7 @@ function normaliseMergeOutput(content: string): string {
   // letter and a sequence of letters (heading-like), since this strongly
   // indicates a topic label rather than a date or arbitrary number.
   out = out.replace(
-    /([^\n])\s+(\d{1,2}\.\s+[A-Z][a-zA-Z]{2,})/g,
+    /([^\n])\s+(\d{1,2}\.\s+\*{0,2}[A-Z][a-zA-Z]{2,})/g,
     '$1\n\n$2'
   );
 
