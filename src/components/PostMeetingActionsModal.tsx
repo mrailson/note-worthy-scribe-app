@@ -217,9 +217,36 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         // If the title is still a generic placeholder, wait briefly for the AI title
         // generator to finish committing, then refetch. If still generic, call
         // generate-meeting-title manually as a final fallback.
-        const GENERIC_TITLE_RE = /^(meeting|general meeting|new meeting|untitled meeting|untitled|mobile recording|general discussion|general update|team meeting|weekly meeting|monthly meeting)$/i;
-        const isGenericMeetingTitle = (t: string | null | undefined) =>
-          !t || GENERIC_TITLE_RE.test(t.trim());
+        const GENERIC_EXACT_TITLES = new Set([
+          'meeting',
+          'general meeting',
+          'new meeting',
+          'untitled meeting',
+          'untitled',
+          'mobile recording',
+          'general discussion',
+          'general update',
+          'team meeting',
+          'weekly meeting',
+          'monthly meeting',
+        ]);
+
+        const GENERIC_TITLE_PATTERNS: RegExp[] = [
+          /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,           // "Meeting 20 Apr 18:50"
+          /^Mobile Recording\b/i,                              // "Mobile Recording 20 Apr"
+          /^Meeting\s*-\s*\w{3},/i,                            // "Meeting - Thu, 30th April 2026 (9:27 am)"
+          /^Meeting\s*-\s*\w+day/i,                            // "Meeting - Monday..."
+          /^Meeting\s*-\s*\d{1,2}(st|nd|rd|th)/i,              // "Meeting - 14th..."
+          /^Meeting\s+\d+$/i,                                  // "Meeting 1"
+          /^Imported Meeting\s*-/i,                            // "Imported Meeting - 30/04/2026"
+        ];
+
+        const isGenericMeetingTitle = (t: string | null | undefined): boolean => {
+          if (!t) return true;
+          const trimmed = t.trim();
+          if (GENERIC_EXACT_TITLES.has(trimmed.toLowerCase())) return true;
+          return GENERIC_TITLE_PATTERNS.some(p => p.test(trimmed));
+        };
 
         let resolvedMeeting = freshMeeting;
         const waitMs = [3000, 5000, 8000];
