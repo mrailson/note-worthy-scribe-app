@@ -627,7 +627,23 @@ export const MeetingHistoryList = ({
     completedCount?: number;
     totalCount?: number;
     startedAt?: number;
+    durationMinutes?: number | null;
   }>>({});
+
+  // Watchdog + status-rotation thresholds scale with meeting length so we don't
+  // alarm users on long meetings where 130s is normal.
+  const getWatchdogThresholdMs = (meetingDurationMinutes?: number | null): number => {
+    if (!meetingDurationMinutes || meetingDurationMinutes <= 0) return 150_000;
+    if (meetingDurationMinutes <= 80) return 150_000;
+    if (meetingDurationMinutes <= 120) return 180_000;
+    return 240_000;
+  };
+  const getStatusRotationMs = (meetingDurationMinutes?: number | null): number => {
+    if (!meetingDurationMinutes || meetingDurationMinutes <= 0) return 20_000;
+    if (meetingDurationMinutes <= 80) return 20_000;
+    if (meetingDurationMinutes <= 120) return 30_000;
+    return 45_000;
+  };
 
   // Tick state forces re-render every 5s while any meeting is generating, so the
   // rotating "Analysing transcript..." → "Extracting key points..." → "Identifying actions..."
@@ -639,11 +655,12 @@ export const MeetingHistoryList = ({
     if (!anyProcessing) return;
     const id = setInterval(() => {
       setProgressTick(t => t + 1);
-      // Watchdog: warn the user once when a generation passes 130s.
+      // Watchdog: warn the user once when a generation passes its scaled threshold.
       const now = Date.now();
       Object.entries(processingMeetings).forEach(([mid, p]) => {
+        const threshold = getWatchdogThresholdMs(p?.durationMinutes);
         if (p?.isProcessing && p.currentStage === 'standard' && p.startedAt &&
-            (now - p.startedAt) > 130000 && !longGenWarnedRef.current[mid]) {
+            (now - p.startedAt) > threshold && !longGenWarnedRef.current[mid]) {
           longGenWarnedRef.current[mid] = true;
           toast.info('Taking longer than usual — this can happen with longer meetings. Hang tight.', { duration: 8000 });
         }
@@ -1613,6 +1630,7 @@ export const MeetingHistoryList = ({
         completedCount: 0,
         totalCount: typesToProcess.length,
         startedAt: Date.now(),
+        durationMinutes: meeting.duration_minutes ?? null,
       }
     }));
 
@@ -1894,11 +1912,13 @@ export const MeetingHistoryList = ({
     // referenced via progressTick to force re-render.
     void progressTick;
     if (processing.currentStage === 'standard' && processing.startedAt) {
-      const elapsed = (Date.now() - processing.startedAt) / 1000;
-      if (elapsed > 130) return 'Taking longer than usual — hang tight';
-      if (elapsed > 75) return 'Finalising notes...';
-      if (elapsed > 45) return 'Identifying actions & decisions...';
-      if (elapsed > 20) return 'Extracting key discussion points...';
+      const elapsedMs = Date.now() - processing.startedAt;
+      const rotationMs = getStatusRotationMs(processing.durationMinutes);
+      const watchdogMs = getWatchdogThresholdMs(processing.durationMinutes);
+      if (elapsedMs > watchdogMs) return 'Taking longer than usual — hang tight';
+      if (elapsedMs > rotationMs * 3) return 'Finalising notes...';
+      if (elapsedMs > rotationMs * 2) return 'Identifying actions & decisions...';
+      if (elapsedMs > rotationMs * 1) return 'Extracting key discussion points...';
       return 'Analysing transcript...';
     }
 
