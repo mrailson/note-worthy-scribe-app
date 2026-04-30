@@ -678,8 +678,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
           if (error) throw error;
           const text = String(data?.text || '').trim();
           if (text) {
-            if (invoiceMode === 'table') setQuickLine(prev => ({ ...prev, details: appendInvoiceText(prev.details, text).replace(/\n/g, ' ') }));
-            else setInvoiceDescription(prev => appendInvoiceText(prev, text));
+            setInvoiceDescription(prev => appendInvoiceText(prev, text));
           }
         } catch (error) {
           console.error('Invoice dictation failed:', error);
