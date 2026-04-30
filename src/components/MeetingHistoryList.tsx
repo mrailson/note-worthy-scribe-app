@@ -1912,11 +1912,13 @@ export const MeetingHistoryList = ({
     // referenced via progressTick to force re-render.
     void progressTick;
     if (processing.currentStage === 'standard' && processing.startedAt) {
-      const elapsed = (Date.now() - processing.startedAt) / 1000;
-      if (elapsed > 130) return 'Taking longer than usual — hang tight';
-      if (elapsed > 75) return 'Finalising notes...';
-      if (elapsed > 45) return 'Identifying actions & decisions...';
-      if (elapsed > 20) return 'Extracting key discussion points...';
+      const elapsedMs = Date.now() - processing.startedAt;
+      const rotationMs = getStatusRotationMs(processing.durationMinutes);
+      const watchdogMs = getWatchdogThresholdMs(processing.durationMinutes);
+      if (elapsedMs > watchdogMs) return 'Taking longer than usual — hang tight';
+      if (elapsedMs > rotationMs * 3) return 'Finalising notes...';
+      if (elapsedMs > rotationMs * 2) return 'Identifying actions & decisions...';
+      if (elapsedMs > rotationMs * 1) return 'Extracting key discussion points...';
       return 'Analysing transcript...';
     }
 
