@@ -140,6 +140,7 @@ import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal"
 import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
 import { NotesViewSettingsPopover } from "@/components/meeting-details/NotesViewSettingsPopover";
 import { CorrectionManager } from "@/components/CorrectionManager";
+import { resolveMeetingModel, modelOverrideField } from "@/utils/resolveMeetingModel";
 
 interface Meeting {
   id: string;
@@ -509,9 +510,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         minute: '2-digit' 
       }) : '';
       
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-        ? 'claude-sonnet-4-6'
-        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
+      const modelOverride = resolveMeetingModel();
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: { 
           transcript: transcriptToUse,
@@ -519,7 +518,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meetingDate,
           meetingTime,
           detailLevel: 'standard',
-          modelOverride,
+          ...modelOverrideField(),
           meetingId: meeting.id,
           skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
         }
@@ -549,7 +548,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Refresh generation metadata badges from edge function response or DB
       if (data?.qc || data?.modelUsed) {
         const freshMeta: any = {
-          model: data.modelUsed || modelOverride,
+          model: data.modelUsed || modelOverride || 'gemini-3.1-pro',
           transcript_source: 'auto',
           note_style: 'standard',
         };
@@ -620,9 +619,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         minute: '2-digit' 
       }) : '';
       
-      const modelOverrideLvl = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-        ? 'claude-sonnet-4-6'
-        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
+      const modelOverrideLvl = resolveMeetingModel();
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: { 
           transcript: transcriptToUse,
@@ -630,7 +627,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meetingDate,
           meetingTime,
           detailLevel: levelLabel.toLowerCase(),
-          modelOverride: modelOverrideLvl,
+          ...modelOverrideField(),
           meetingId: meeting.id,
           skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
         }
@@ -662,7 +659,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Refresh generation metadata badges from edge function response or DB
       if (data?.qc || data?.modelUsed) {
         const freshMeta: any = {
-          model: data.modelUsed || modelOverrideLvl,
+          model: data.modelUsed || modelOverrideLvl || 'gemini-3.1-pro',
           transcript_source: 'auto',
           note_style: 'standard',
         };

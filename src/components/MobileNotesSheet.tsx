@@ -18,6 +18,7 @@ import { mergeLive } from "@/utils/TranscriptMerge";
 import { detectDevice } from "@/utils/DeviceDetection";
 import { BackupBadge } from "@/components/offline/BackupBadge";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
+import { resolveMeetingModel, modelOverrideField } from "@/utils/resolveMeetingModel";
 import { 
   Copy, 
   FileText, 
@@ -544,9 +545,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
             hour: '2-digit', 
             minute: '2-digit' 
           }) : '';
-          const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-            ? 'claude-sonnet-4-6'
-            : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
+          const modelOverride = resolveMeetingModel();
 
           result = await supabase.functions.invoke('generate-meeting-notes-claude', {
             body: {
@@ -555,7 +554,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
               meetingDate: meetingDate,
               meetingTime: meetingTime,
               detailLevel: 'standard',
-              modelOverride
+              ...modelOverrideField()
             }
           });
           break;

@@ -112,6 +112,7 @@ import { RecordingErrorCard } from "@/components/recording/RecordingErrorCard";
 import { PatientBanner } from "@/components/PatientBanner";
 import { getDemoPatientForMeeting } from "@/data/demoPatients";
 import { DemoMeetingCard } from "@/components/meeting-history/DemoMeetingCard";
+import { resolveMeetingModel, modelOverrideField } from "@/utils/resolveMeetingModel";
 
 
 interface Meeting {
@@ -1655,21 +1656,8 @@ export const MeetingHistoryList = ({
         if (currentType === 'standard') {
           
           try {
-            // Map UI model keys → edge-function modelOverride values.
-            //   undefined           → server-side default (Gemini 3.1 Pro + auto-fallback chain)
-            //   'gemini-3-flash'    → fast Gemini Flash (60s timeout, no fallback)
-            //   'sonnet-4.6'        → Claude Sonnet 4.6
-            //   'gemini-2.5-flash'  → premium long-context (PIN-gated)
-            // localStorage 'meeting-regenerate-llm' is the user's saved Settings preference.
-            const lsModel = localStorage.getItem('meeting-regenerate-llm');
-            const resolveModel = (raw?: string): string | undefined => {
-              if (!raw || raw === 'default') return undefined;
-              if (raw === 'sonnet-4.6') return 'claude-sonnet-4-6';
-              return raw;
-            };
-            const effectiveModel = modelOverride
-              ? resolveModel(modelOverride)
-              : resolveModel(lsModel || undefined);
+            // Resolution lives in src/utils/resolveMeetingModel.ts (single source of truth).
+            const effectiveModel = resolveMeetingModel(modelOverride);
             const isPremium = effectiveModel === 'gemini-2.5-flash';
             console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel || '(server default: Gemini 3.1 Pro)');
             const { data, error: standardError } = await supabase.functions.invoke(
@@ -1677,7 +1665,7 @@ export const MeetingHistoryList = ({
               { body: {
                   meetingId,
                   forceRegenerate: true,
-                  ...(effectiveModel ? { modelOverride: effectiveModel } : {}),
+                  ...modelOverrideField(modelOverride),
                   skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
                   ...(isPremium ? { premiumPin: PREMIUM_REGEN_PIN } : {}),
                 } }

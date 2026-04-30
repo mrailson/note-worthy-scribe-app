@@ -60,6 +60,7 @@ import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
 import { MeetingFolderView } from "@/components/meeting-folders/MeetingFolderView";
 import { CorrectionManager } from "@/components/CorrectionManager";
+import { resolveMeetingModel, modelOverrideField } from "@/utils/resolveMeetingModel";
 
 interface Meeting {
   id: string;
@@ -564,9 +565,7 @@ const MeetingHistory = () => {
     
     setIsGeneratingNotes(true);
     try {
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-        ? 'claude-sonnet-4-6'
-        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
+      const modelOverride = resolveMeetingModel();
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: meetingTranscript,
@@ -574,7 +573,7 @@ const MeetingHistory = () => {
           meetingDate: new Date(selectedMeeting.created_at).toISOString().split('T')[0],
           meetingTime: new Date(selectedMeeting.created_at).toLocaleTimeString(),
           detailLevel: 'standard',
-          modelOverride,
+          ...modelOverrideField(),
           skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
         }
       });
@@ -584,10 +583,10 @@ const MeetingHistory = () => {
       setMeetingSummary(data.meetingMinutes);
       
       // Store which model was used for this meeting (shown in footer)
-      localStorage.setItem(`meeting-llm-used-${selectedMeeting.id}`, modelOverride);
+      localStorage.setItem(`meeting-llm-used-${selectedMeeting.id}`, modelOverride ?? 'default');
       
       // Show which model was used
-      const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash';
+      const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' : 'Gemini 3.1 Pro';
       showToast.success(`Notes regenerated using ${modelLabel}`);
       
       // Save to database

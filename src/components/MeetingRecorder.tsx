@@ -126,6 +126,7 @@ import { useMeetingData } from "@/hooks/useMeetingData";
 // import { transcodeToWhisperFormat, shouldTranscode } from '@/utils/audioTranscoder';
 import { buildAssemblyAudioStream, cleanupAssemblyAudioStream } from '@/utils/buildAssemblyAudioStream';
 import type { BuildAssemblyAudioStreamResult } from '@/utils/buildAssemblyAudioStream';
+import { resolveMeetingModel, modelOverrideField } from '@/utils/resolveMeetingModel';
 
 interface TranscriptData {
   text: string;
@@ -5955,10 +5956,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             console.warn('Failed to load note type preference, using standard:', err);
           }
 
-          const storedModel = localStorage.getItem('meeting-regenerate-llm');
-          console.log('🧠 localStorage meeting-regenerate-llm value:', storedModel);
-          const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
-          console.log('🧠 Using model for initial generation:', modelOverride);
+          const modelOverride = resolveMeetingModel();
+          console.log('🧠 Using model for initial generation:', modelOverride ?? '(server default: Gemini 3.1 Pro)');
           const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
           
           // Fire-and-forget: do NOT await the edge function — long meetings (60min+)
@@ -5969,7 +5968,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               body: { 
                 meetingId: savedMeeting.id,
                 forceRegenerate: false,
-                modelOverride,
+                ...modelOverrideField(),
                 skipQc,
               }
             })
@@ -6003,7 +6002,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 console.warn('🔄 Safety net: notes still not generating after 3min, retrying...');
                 supabase.functions
                   .invoke('auto-generate-meeting-notes', {
-                    body: { meetingId: savedMeeting.id, forceRegenerate: false, modelOverride, skipQc }
+                    body: { meetingId: savedMeeting.id, forceRegenerate: false, ...modelOverrideField(), skipQc }
                   })
                   .catch(() => console.warn('Safety net retry also timed out client-side'));
               }
@@ -6088,7 +6087,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               body: {
                 meetingId: capturedMeetingId,
                 forceRegenerate: false,
-                modelOverride: 'claude-sonnet-4-6',
+                ...modelOverrideField(),
                 skipQc: true,
               }
             })

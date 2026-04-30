@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { resolveMeetingModel, modelOverrideField } from "@/utils/resolveMeetingModel";
 
 interface MeetingSummaryProps {
   duration: string;
@@ -347,9 +348,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
     setIsClaudeGenerating(true);
     
     try {
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-        ? 'claude-sonnet-4-6'
-        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
+      const modelOverride = resolveMeetingModel();
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript,
@@ -357,7 +356,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
           meetingDate: new Date().toLocaleDateString('en-GB'),
           meetingTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
           detailLevel: levelToUse,
-          modelOverride
+          ...modelOverrideField()
         }
       });
 

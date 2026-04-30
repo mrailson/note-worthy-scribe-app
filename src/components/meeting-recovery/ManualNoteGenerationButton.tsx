@@ -3,6 +3,7 @@ import { FileText, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { modelOverrideField } from "@/utils/resolveMeetingModel";
 
 interface ManualNoteGenerationButtonProps {
   meetingId: string;
@@ -63,13 +64,6 @@ export const ManualNoteGenerationButton = ({
         minute: '2-digit' 
       }) : '';
 
-      // Resolve user's saved model preference. 'default' / unset / legacy 'gemini-3-flash'
-      // → undefined (server uses new default: Gemini 3.1 Pro with auto-fallback chain).
-      const lsModel = localStorage.getItem('meeting-regenerate-llm');
-      const modelOverride = (!lsModel || lsModel === 'default' || lsModel === 'gemini-3-flash')
-        ? undefined
-        : lsModel;
-
       const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: { 
@@ -78,7 +72,7 @@ export const ManualNoteGenerationButton = ({
           meetingDate,
           meetingTime,
           detailLevel: 'standard',
-          modelOverride,
+          ...modelOverrideField(),
           meetingId,
           skipQc,
         }
