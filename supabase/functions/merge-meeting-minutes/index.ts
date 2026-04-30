@@ -240,6 +240,18 @@ function normaliseMergeOutput(content: string): string {
 
   out = out.split(/\n\n+/).map(lowercaseAllCapsParagraph).join('\n\n');
 
+  // 5a. (NEW Rule D) Force a paragraph break before "Key Points" when mid-text
+  out = out.replace(/(\S)\s+(Key Points)\s+/g, '$1\n\n$2\n\n');
+
+  // Insert paragraph breaks before numbered list items (1., 2., 3., etc.)
+  // when they appear mid-paragraph rather than at the start of a line.
+  out = out.replace(/([^\n])\s+(\d{1,2}\.\s+[A-Z][a-zA-Z])/g, (match, before, numberedItem) => {
+    if (/[.!?)\]"]/.test(before)) {
+      return `${before}\n\n${numberedItem}`;
+    }
+    return match;
+  });
+
   // 5b. (NEW Rule C) Split "# SECTION_NAME - content" / ":" / "—" / "–" / "|" same-line patterns.
   const sectionWithTrailingContent = new RegExp(
     `^(#\\s+${SECTION_NAMES_REGEX_GROUP})\\s*[-:—–|]\\s*(.+)$`,
@@ -248,6 +260,12 @@ function normaliseMergeOutput(content: string): string {
   out = out.replace(sectionWithTrailingContent, (_match, heading, body) => {
     return `${heading}\n\n${body.trim()}`;
   });
+
+  // 5c. (NEW Rule E) Specific catch for "# NEXT MEETING\n\nTo be determined - <content>"
+  out = out.replace(
+    /(#\s+NEXT\s+MEETING\s*\n+\s*To be determined)\s*[-:—–]\s*(.+)/gi,
+    '$1\n\n$2'
+  );
 
   // 6. Ensure each known section heading has blank line before and after
   for (const section of KNOWN_SECTIONS) {
