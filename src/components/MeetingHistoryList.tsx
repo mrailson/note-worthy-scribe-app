@@ -1595,7 +1595,8 @@ export const MeetingHistoryList = ({
         currentStage: typesToProcess[0],
         stages: initialStages,
         completedCount: 0,
-        totalCount: typesToProcess.length
+        totalCount: typesToProcess.length,
+        startedAt: Date.now(),
       }
     }));
 
