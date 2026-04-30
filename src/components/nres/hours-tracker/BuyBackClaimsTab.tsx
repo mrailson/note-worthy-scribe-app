@@ -2474,11 +2474,11 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
     };
     const labels: Record<string, string> = {
       draft: 'Draft',
-      submitted: 'Submitted',
-      verified: 'Verified',
-      approved: 'Approved',
-      queried: 'Queried — Awaiting Amendment',
-      invoiced: 'Invoiced',
+      submitted: 'Awaiting Verification',
+      verified: 'Awaiting Approval',
+      approved: 'Approved – Invoice Pending',
+      queried: 'Action Needed – Query Raised',
+      invoiced: 'Invoice Issued',
       paid: 'Paid',
       rejected: 'Rejected (Closed)',
     };
