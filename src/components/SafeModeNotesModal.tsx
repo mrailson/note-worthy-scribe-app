@@ -1089,6 +1089,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   // memo is declared later in the component.
   useEffect(() => {
     if (notesContent) {
+      setIsGenerating(false);
       const cleanedForParsing = removeActionItemsSection(notesContent);
       const parsed = parseNotesIntoSections(cleanedForParsing);
       setSections(parsed);
