@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
+import { createClient } from "npm:@supabase/supabase-js@2.49.2";
 import { buildProfessionalMeetingEmail } from "../_shared/meetingEmailBuilder.ts";
 import { generateMeetingDocxBase64, generateMeetingFilename } from "../_shared/generateMeetingDocx.ts";
 
@@ -10,6 +9,7 @@ const corsHeaders = {
 };
 
 const GENERIC_TITLES = ["mobile recording", "meeting", "new meeting", "untitled meeting", "untitled"];
+const UK_TIME_ZONE = "Europe/London";
 
 const GENERIC_TITLE_PATTERNS = [
   /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,           // "Meeting 20 Apr 18:50"
@@ -42,7 +42,33 @@ const humanizeEmailLocalPart = (email: string | null | undefined) => {
     .join(" ");
 };
 
-serve(async (req: Request) => {
+const formatMeetingDate = (value: string | null | undefined): string => {
+  const date = value ? new Date(value) : new Date();
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: UK_TIME_ZONE,
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
+const formatMeetingTime = (value: string | null | undefined): string | undefined => {
+  if (!value) return undefined;
+  const date = new Date(value);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: UK_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+  const zone = new Intl.DateTimeFormat("en-GB", {
+    timeZone: UK_TIME_ZONE,
+    timeZoneName: "short",
+  }).formatToParts(date).find((part) => part.type === "timeZoneName")?.value || "UK time";
+  return `${time} ${zone}`;
+};
+
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -188,13 +214,8 @@ serve(async (req: Request) => {
 
     console.log(`📧 [deliver-mobile-meeting-email] Title before email: "${meetingTitle}" | isGeneric: ${isGenericMeetingTitle(meetingTitle)} | codePath: edge-function-deliver`);
 
-    const meetingDate = meeting.start_time
-      ? new Date(meeting.start_time).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
-      : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-
-    const meetingTime = meeting.start_time
-      ? new Date(meeting.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + " GMT"
-      : undefined;
+    const meetingDate = formatMeetingDate(meeting.start_time);
+    const meetingTime = formatMeetingTime(meeting.start_time);
 
     const subject = `Notewell AI | ${meetingTitle} — ${meetingDate}`;
 
