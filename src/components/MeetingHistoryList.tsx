@@ -1020,13 +1020,17 @@ export const MeetingHistoryList = ({
       }
 
       const { sendMeetingNotesEmail } = await import('@/utils/sendMeetingNotesEmail');
-      await sendMeetingNotesEmail({
+      const result = await sendMeetingNotesEmail({
         meetingId: meeting.id,
         recipientEmail: user.email,
         senderName,
       });
 
-      toast.success(`Meeting notes emailed to ${user.email}`, { id: toastId });
+      if (typeof result === 'object' && result?.attachmentFailed) {
+        toast.warning(`Email sent to ${user.email}, but Word attachment failed to generate. Try Regenerate Notes first then re-email.`, { id: toastId, duration: 8000 });
+      } else {
+        toast.success(`Meeting notes emailed to ${user.email}`, { id: toastId });
+      }
     } catch (error: any) {
       console.error('📧 Error sending meeting notes email:', error);
       toast.error(error?.message || 'Failed to send meeting notes email', { id: toastId });
