@@ -213,9 +213,48 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           .select('title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count')
           .eq('id', meetingId)
           .maybeSingle();
-        
+
+        // If the title is still a generic placeholder, wait briefly for the AI title
+        // generator to finish committing, then refetch. If still generic, call
+        // generate-meeting-title manually as a final fallback.
+        const GENERIC_TITLE_RE = /^(meeting|general meeting|new meeting|untitled meeting|untitled|mobile recording|general discussion|general update|team meeting|weekly meeting|monthly meeting)$/i;
+        const isGenericMeetingTitle = (t: string | null | undefined) =>
+          !t || GENERIC_TITLE_RE.test(t.trim());
+
+        let resolvedMeeting = freshMeeting;
+        const waitMs = [3000, 5000, 8000];
+        for (const wait of waitMs) {
+          if (!isGenericMeetingTitle(resolvedMeeting?.title)) break;
+          console.log(`⏳ Title still generic ("${resolvedMeeting?.title}") — waiting ${wait}ms for AI title…`);
+          await new Promise(r => setTimeout(r, wait));
+          const { data: refreshed } = await supabase
+            .from('meetings')
+            .select('title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count')
+            .eq('id', meetingId)
+            .maybeSingle();
+          if (refreshed) resolvedMeeting = refreshed;
+        }
+
+        // If the title is still generic after the wait, ask generate-meeting-title to retry directly
+        if (isGenericMeetingTitle(resolvedMeeting?.title)) {
+          try {
+            const { data: titleResult } = await supabase.functions.invoke<{ title?: string }>(
+              'generate-meeting-title',
+              { body: { meetingId, currentTitle: resolvedMeeting?.title || 'Meeting' } }
+            );
+            const newTitle = titleResult?.title?.trim();
+            if (newTitle && !isGenericMeetingTitle(newTitle)) {
+              await supabase.from('meetings').update({ title: newTitle }).eq('id', meetingId);
+              resolvedMeeting = { ...(resolvedMeeting || {}), title: newTitle } as typeof resolvedMeeting;
+              console.log(`✅ Generated fallback title for post-meeting send: "${newTitle}"`);
+            }
+          } catch (e) {
+            console.warn('⚠️ Fallback title generation failed:', e);
+          }
+        }
+
         const freshMeetingData = {
-          title: freshMeeting?.title || meetingTitle,
+          title: resolvedMeeting?.title || meetingTitle,
           startTime: freshMeeting?.start_time,
           duration: freshMeeting?.duration_minutes,
           participants: freshMeeting?.participants || [],
