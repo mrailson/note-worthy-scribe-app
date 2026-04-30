@@ -2533,6 +2533,7 @@ export function ClaimsViewSwitcher({
   onSubmit,
   onResubmit,
   onUpdateClaimNotes,
+  onDeleteClaim,
   saving,
   // Director-mode extensions (all optional, off by default)
   directorMode = false,
