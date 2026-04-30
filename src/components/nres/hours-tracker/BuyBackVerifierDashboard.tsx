@@ -709,6 +709,66 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const removeInvoiceRow = (id: string) => syncRows(invoiceRows.filter(row => row.id !== id));
   const addBlankInvoiceRow = () => syncRows([...invoiceRows, newInvoiceTableRow()]);
 
+  // Parse clipboard text from Excel/Sheets (TSV) into row objects.
+  // Returns null if the paste isn't tabular (no tabs and no multi-column structure).
+  const parseClipboardAsRows = (text: string): InvoiceTableRow[] | null => {
+    const cleaned = text.replace(/\r\n?/g, '\n').replace(/\n+$/g, '');
+    if (!cleaned) return null;
+    const lines = cleaned.split('\n');
+    const hasTabs = lines.some(l => l.includes('\t'));
+    if (!hasTabs) return null;
+    const rows: InvoiceTableRow[] = [];
+    for (const line of lines) {
+      const cols = line.split('\t').map(c => c.trim());
+      if (cols.every(c => !c)) continue;
+      // Skip an obvious header row (case-insensitive match on Date/Start)
+      if (rows.length === 0 && /^date$/i.test(cols[0] || '') && /^start/i.test(cols[1] || '')) continue;
+      const [date = '', start = '', stop = '', ...rest] = cols;
+      rows.push(newInvoiceTableRow(date, start, stop, rest.join(' | ')));
+    }
+    return rows.length ? rows : null;
+  };
+
+  // Paste handler for the Text textarea — auto-detect Excel paste & switch to Table.
+  const handleTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData('text/plain');
+    const parsed = parseClipboardAsRows(text);
+    if (!parsed) return; // fall through to default paste
+    e.preventDefault();
+    setInvoiceMode('table');
+    syncRows([...invoiceRows.filter(r => r.date || r.start || r.stop || r.details.trim()), ...parsed]);
+  };
+
+  // Paste handler for individual table cell inputs — fills a grid starting at this cell.
+  const handleCellPaste = (rowId: string, field: keyof Omit<InvoiceTableRow, 'id'>) => (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text/plain');
+    const cleaned = text.replace(/\r\n?/g, '\n').replace(/\n+$/g, '');
+    if (!cleaned.includes('\t') && !cleaned.includes('\n')) return; // single value — default paste
+    e.preventDefault();
+    const grid = cleaned.split('\n').map(l => l.split('\t'));
+    const fields: Array<keyof Omit<InvoiceTableRow, 'id'>> = ['date', 'start', 'stop', 'details'];
+    const startFieldIdx = fields.indexOf(field);
+    const startRowIdx = invoiceRows.findIndex(r => r.id === rowId);
+    if (startRowIdx === -1) return;
+    const next = [...invoiceRows];
+    grid.forEach((cols, gRow) => {
+      const targetIdx = startRowIdx + gRow;
+      if (targetIdx >= next.length) next.push(newInvoiceTableRow());
+      const target = { ...next[targetIdx] };
+      cols.forEach((val, gCol) => {
+        const fieldIdx = startFieldIdx + gCol;
+        if (fieldIdx < fields.length) {
+          (target as any)[fields[fieldIdx]] = val.trim();
+        } else {
+          // Overflow columns get appended to details
+          target.details = [target.details, val.trim()].filter(Boolean).join(' | ');
+        }
+      });
+      next[targetIdx] = target;
+    });
+    syncRows(next);
+  };
+
   const handleVerify = async () => {
     if (onUpdateClaimNotes && invoiceDescription !== savedInvoiceDescription) {
       await onUpdateClaimNotes(claim.id, invoiceDescription);
@@ -793,13 +853,14 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               {voiceError && <div style={{ marginBottom: 6, color: '#b91c1c', fontSize: 11 }}>{voiceError}</div>}
               {invoiceMode === 'table' ? (
                 <div style={{ overflowX: 'auto', border: '1px solid #fcd34d', borderRadius: 6, background: '#fff' }}>
+                  <div style={{ padding: '6px 8px', fontSize: 11, color: '#78350f', background: '#fffbeb', borderBottom: '1px solid #fde68a' }}>Tip: copy a Date / Start / Stop / Details range from Excel and paste into any cell — rows will be filled automatically.</div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead><tr>{['Date', 'Start', 'Stop', 'Details', ''].map(h => <th key={h} style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #fde68a', color: '#78350f', fontSize: 11 }}>{h}</th>)}</tr></thead>
-                    <tbody>{invoiceRows.map(row => <tr key={row.id}><td style={{ padding: 4 }}><input value={row.date} onChange={e => updateInvoiceRow(row.id, { date: e.target.value })} style={{ width: 92, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.start} onChange={e => updateInvoiceRow(row.id, { start: e.target.value })} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.stop} onChange={e => updateInvoiceRow(row.id, { stop: e.target.value })} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.details} onChange={e => updateInvoiceRow(row.id, { details: e.target.value })} style={{ width: '100%', minWidth: 220, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4, width: 34 }}><button onClick={() => removeInvoiceRow(row.id)} style={{ border: 'none', background: 'transparent', color: '#b91c1c', cursor: 'pointer' }} title="Remove row"><Trash2 className="w-3.5 h-3.5" /></button></td></tr>)}</tbody>
+                    <tbody>{invoiceRows.map(row => <tr key={row.id}><td style={{ padding: 4 }}><input value={row.date} onChange={e => updateInvoiceRow(row.id, { date: e.target.value })} onPaste={handleCellPaste(row.id, 'date')} style={{ width: 92, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.start} onChange={e => updateInvoiceRow(row.id, { start: e.target.value })} onPaste={handleCellPaste(row.id, 'start')} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.stop} onChange={e => updateInvoiceRow(row.id, { stop: e.target.value })} onPaste={handleCellPaste(row.id, 'stop')} style={{ width: 58, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4 }}><input value={row.details} onChange={e => updateInvoiceRow(row.id, { details: e.target.value })} onPaste={handleCellPaste(row.id, 'details')} style={{ width: '100%', minWidth: 220, padding: 4, border: '1px solid #fde68a', borderRadius: 4 }} /></td><td style={{ padding: 4, width: 34 }}><button onClick={() => removeInvoiceRow(row.id)} style={{ border: 'none', background: 'transparent', color: '#b91c1c', cursor: 'pointer' }} title="Remove row"><Trash2 className="w-3.5 h-3.5" /></button></td></tr>)}</tbody>
                   </table>
                   <button onClick={addBlankInvoiceRow} style={{ margin: 6, padding: '4px 8px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 4, alignItems: 'center' }}><Plus className="w-3 h-3" /> Add row</button>
                 </div>
-              ) : <textarea value={invoiceDescription} onChange={e => setInvoiceDescription(capLineWidth(e.target.value).slice(0, DESCRIPTION_LIMIT))} placeholder="Add multiple dates, times or invoice wording to print on the invoice…" rows={3} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }} />}
+              ) : <textarea value={invoiceDescription} onChange={e => setInvoiceDescription(capLineWidth(e.target.value).slice(0, DESCRIPTION_LIMIT))} onPaste={handleTextareaPaste} placeholder="Add multiple dates, times or invoice wording to print on the invoice… (paste from Excel to auto-fill the table)" rows={3} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }} />}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 6 }}>
                 <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.split('\n').length} / 20 lines · max {MAX_LINE_CHARS} chars/line · {invoiceDescription.length}/{DESCRIPTION_LIMIT} characters — printed on the invoice if completed</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
