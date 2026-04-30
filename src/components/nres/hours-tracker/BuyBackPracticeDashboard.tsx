@@ -2533,6 +2533,7 @@ export function ClaimsViewSwitcher({
   onSubmit,
   onResubmit,
   onUpdateClaimNotes,
+  onDeleteClaim,
   saving,
   // Director-mode extensions (all optional, off by default)
   directorMode = false,
@@ -2553,6 +2554,7 @@ export function ClaimsViewSwitcher({
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
+  onDeleteClaim?: (id: string) => Promise<void>;
   saving?: boolean;
   directorMode?: boolean;
   practiceFilter?: string;
@@ -2806,6 +2808,7 @@ export function ClaimsViewSwitcher({
               onSubmit={onSubmit}
               onResubmit={onResubmit}
               onUpdateClaimNotes={onUpdateClaimNotes}
+              onDeleteClaim={onDeleteClaim}
               saving={saving}
             />
           ))}
@@ -3036,16 +3039,18 @@ export function ClaimsViewSwitcher({
 }
 
 // --- Claim Card (preserved) ---
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
+  onDeleteClaim?: (id: string) => Promise<void>;
   saving?: boolean;
 }) {
   const [queryResponse, setQueryResponse] = useState('');
+  const [deletingClaim, setDeletingClaim] = useState(false);
   const [invoiceDescription, setInvoiceDescription] = useState((claim as any).practice_notes || '');
   const total = claimTotal(claim);
   const hours = claimHours(claim);
@@ -3457,16 +3462,44 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                 />
                 <button
                   onClick={async () => { await onUpdateClaimNotes?.(claim.id, invoiceDescription); onResubmit?.(claim.id, queryResponse); setQueryResponse(''); }}
-                  disabled={saving}
+                  disabled={saving || deletingClaim}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 18px',
                     borderRadius: 8, border: 'none', background: '#059669', color: '#fff',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    fontSize: 13, fontWeight: 600, cursor: (saving || deletingClaim) ? 'not-allowed' : 'pointer',
+                    opacity: (saving || deletingClaim) ? 0.6 : 1,
                   }}
                 >
                   <Send style={{ width: 14, height: 14 }} />
                   Resubmit
                 </button>
+                {onDeleteClaim && (
+                  <button
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        'Are you sure you want to delete this claim?\n\nAll submission data for this claim will be permanently deleted, including any supporting documents and evidence.\n\nThis action cannot be undone.'
+                      );
+                      if (!confirmed) return;
+                      setDeletingClaim(true);
+                      try {
+                        await onDeleteClaim(claim.id);
+                      } finally {
+                        setDeletingClaim(false);
+                      }
+                    }}
+                    disabled={saving || deletingClaim}
+                    title="Delete this returned claim"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                      borderRadius: 8, border: '1px solid #fecaca', background: '#fff', color: '#dc2626',
+                      fontSize: 13, fontWeight: 600, cursor: (saving || deletingClaim) ? 'not-allowed' : 'pointer',
+                      opacity: (saving || deletingClaim) ? 0.6 : 1,
+                    }}
+                  >
+                    <Trash2 style={{ width: 14, height: 14 }} />
+                    {deletingClaim ? 'Deleting…' : 'Delete Claim'}
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -3724,6 +3757,7 @@ export function BuyBackPracticeDashboard({
           onSubmit={onSubmit}
           onResubmit={onResubmit}
           onUpdateClaimNotes={onUpdateClaimNotes}
+          onDeleteClaim={onDeleteClaim}
           saving={savingClaim}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}

@@ -1,41 +1,43 @@
-# Fix: SDA Verification "Preview invoice" shows "This content is blocked"
+## Goal
 
-## Root cause
+When a claim is returned by a Verifier or SNO/Director Approver (status = `queried`), the Practice should be able to delete the claim entirely from the Individual Claim View card — with a confirmation pop-up — as an alternative to amending and resubmitting it.
 
-The Invoice preview dialog (`InvoicePreviewDialog` in `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx`, line 86) renders the generated PDF inside an `<iframe>` whose `src` is a `blob:` URL created by `URL.createObjectURL(pdfDoc.output('blob'))`.
+## Where it appears
 
-The app's client-side Content Security Policy in `src/components/SecurityWrapper.tsx` (line 23) currently sets:
+In the **Individual Claim View** card on the practice's SDA Claims page, inside the existing "⚠ Respond to Query" section (the same row that shows the response input and the green **Resubmit** button), a new red **Delete Claim** button will sit next to Resubmit.
 
-```
-frame-src 'self' https://dphcnbricafkbtizkoal.supabase.co https://*.elevenlabs.io
-```
-
-This does **not** include `blob:`, so Chrome blocks the iframe and shows the standard "This content is blocked. Contact the site owner to fix the issue." page — exactly what the screenshot shows on `gpnotewell.co.uk`. (It works fine in the Lovable preview because preview iframes inherit a more permissive policy.)
-
-The same CSP already correctly allows `blob:` for `script-src`, `img-src`, `media-src`, and `worker-src` — `frame-src` was simply missed.
-
-## Change
-
-In `src/components/SecurityWrapper.tsx`, update the `frame-src` directive only:
-
-- Add `blob:` so the generated PDF blob URL can be embedded.
-- (Defensive) also add `data:` for parity with the other directives, since some PDF preview flows fall back to data URLs.
-
-New value:
-
-```
-frame-src 'self' blob: data: https://dphcnbricafkbtizkoal.supabase.co https://*.elevenlabs.io
+```text
+[ Your response to the Verifier query… ]  [ ✅ Resubmit ]  [ 🗑 Delete Claim ]
 ```
 
-No other directive, no other file, and no application logic is touched. The existing Supabase and ElevenLabs frame allowances are preserved, so storage previews and the voice agent widget are unaffected.
+Clicking **Delete Claim** triggers a confirmation pop-up:
 
-## Why this is safe
+> Are you sure you want to delete this claim?
+>
+> All submission data for this claim will be permanently deleted, including any supporting documents and evidence. This action cannot be undone.
+>
+> [Cancel] [Delete]
 
-- `blob:` URLs are same-origin and created only by our own code (jsPDF in `generateInvoicePdf`); they cannot be forged from a remote attacker.
-- `object-src 'none'`, `base-uri 'self'`, and `form-action 'self'` remain unchanged.
-- The `X-Frame-Options: DENY` header (set later in the same component) only restricts who can frame **us**, not what we can frame, so it does not conflict.
+On confirm, the claim and all its evidence are removed (using the existing `deleteClaim` flow that already cleans up `nres_claim_evidence` and storage objects). The claim disappears from the list. A toast confirms deletion.
 
-## Verification after deploy
+## Scope
 
-1. Open SDA → SDA Claims → Managerial Lead Verification queue → click "Preview invoice" on a verified claim. The PDF should render inline in the dialog instead of showing "This content is blocked".
-2. Confirm no new CSP violations appear in the browser console for unrelated frames (Supabase storage previews, ElevenLabs widget).
+- Only shown when `claim.status === 'queried'` (returned by Verifier or Approver). Not shown for draft, submitted, verified, approved, invoiced, or paid claims.
+- Only shown to users who have permission to act on the claim for that practice — the same condition that already gates the Resubmit button.
+- No backend changes — `deleteClaim` already exists in `useNRESBuyBackClaims` and is wired into `BuyBackPracticeDashboard` as `onDeleteClaim`.
+
+## Technical changes (single file)
+
+`src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`:
+
+1. **`ClaimsViewSwitcher`** — add optional `onDeleteClaim?: (id: string) => Promise<void>` prop and forward it to `PracticeClaimCard` in the cards view.
+2. **`PracticeClaimCard`** — add optional `onDeleteClaim` prop. In the `isQueried` "Respond to Query" block (around line 3445–3472), add a red Delete button beside Resubmit that calls `window.confirm(...)` and then `await onDeleteClaim(claim.id)`. Use a small local `deleting` state to disable both buttons during the call.
+3. **Main `BuyBackPracticeDashboard` render** — pass `onDeleteClaim={onDeleteClaim}` to the `<ClaimsViewSwitcher>` at line 3718 (the prop is already destructured at line 3491).
+
+The Verifier and PML dashboards (`BuyBackVerifierDashboard.tsx`, `BuyBackPMLDashboard.tsx`) also use `ClaimsViewSwitcher` but will simply not pass `onDeleteClaim`, so the button will not appear there — preserving the rule that only the practice can delete.
+
+## Out of scope
+
+- No change to the existing per-staff-line Delete button on draft claims (that flow already works).
+- No change to the spreadsheet or invoices views — only the cards view shows the queried response area.
+- No change to `useNRESBuyBackClaims.deleteClaim` itself.
