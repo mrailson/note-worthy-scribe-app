@@ -20,8 +20,9 @@ export interface MeetingEmailMeta {
 /** Strip duplicate/redundant heading blocks from notes content */
 export const stripDuplicateBlocks = (text: string): string => {
   let cleaned = text;
-  cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*NOTES\s*$/gim, '');
-  cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*DETAILS\s*$/gim, '');
+  cleaned = cleaned.replace(/^#{0,2}\s*\*{0,2}\s*MEETING\s*NOTES\s*\*{0,2}\s*$/gim, '');
+  cleaned = cleaned.replace(/^#{0,2}\s*\*{0,2}\s*MEETING\s*DETAILS\s*\*{0,2}\s*$/gim, '');
+  cleaned = cleaned.replace(/^#{0,2}\s*\*{0,2}\s*MEETING\s+DETAILS\s*\*{0,2}\s+(?:DATE|TIME|LOCATION|ATTENDEES|DURATION)[\s\S]*$/gim, '');
   cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
   cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Date:\*?\*?.*$/gim, '');
   cleaned = cleaned.replace(/^[\s•*-]*\*?\*?Time:\*?\*?.*$/gim, '');
