@@ -1042,14 +1042,13 @@ IMPORTANT: Drastically reduce narrative. This should be the shortest note type.
 Structure:
 1. QUICK REFERENCE box at the top: "X decisions made | Y actions assigned | Z deadlines this month"
 2. DECISIONS — bullet list of every decision, one line each, prefixed with **[RESOLVED]**, **[AGREED]**, or **[NOTED]** label, bold the outcome
-3. ACTION ITEMS — the full action table with owners, deadlines, and priority (this is the PRIMARY content)
+3. ACTION ITEMS — the full action table with owners and deadlines (this is the PRIMARY content)
 4. KEY CONTEXT — only 2-3 sentences of background, maximum, for each major topic. Only include context that is essential to understand the actions.
 5. RISKS — bullet list only if there are genuine risks or blockers
 
 Rules:
 - Lead with actions and decisions, not discussion
 - No detailed discussion summaries — if it didn't result in a decision or action, skip it
-- Group actions by priority (High → Medium → Low)
 - Clear ownership and deadlines for every action — chase any that are TBC
 - Maximum 1 page of content (excluding the action table)
 - This style should be approximately 40% of Standard word count`,
@@ -1321,11 +1320,11 @@ Format each entry as:
 (If no decisions were made: "No formal decisions were recorded in this meeting")
 
 # ACTION ITEMS
-| Action | Owner | Deadline | Priority |
-|--------|-------|----------|----------|
-| [Specific task with a clear deliverable] | [Person's name OR "TBC"] | [Date/timeframe OR "TBC"] | High/Medium/Low |
+| Action | Owner | Deadline |
+|--------|-------|----------|
+| [Specific task with a clear deliverable] | [Person's name OR "TBC"] | [Date/timeframe OR "TBC"] |
 
-Always emit the columns in this exact order: Action, Owner, Deadline, Priority. Never reorder them. Never use "Responsible Party" or any other synonym in place of "Owner".
+Always emit the columns in this exact order: Action, Owner, Deadline. Never reorder them. Never use "Responsible Party" or any other synonym in place of "Owner". Do NOT include a Priority column — priority assignment has been removed from this product because automated guesses were unreliable.
 
 STRICT RULES FOR ACTION ITEMS — quality over quantity:
 - ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
