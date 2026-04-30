@@ -1590,7 +1590,14 @@ ${cleanedTranscript}`;
     let generatedNotes = '';
     let modelUsed = modelOverride;
 
-    if (modelOverride.startsWith('claude-') && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS) {
+    // Chunking is only used for Sonnet/Haiku Claude models. Opus 4.7 (1M context)
+    // and Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
+    const useChunking = (
+      modelOverride.startsWith('claude-sonnet-') ||
+      modelOverride.startsWith('claude-haiku-')
+    ) && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS;
+
+    if (useChunking) {
       try {
         console.log(`🧩 Chunked path: ${cleanedTranscript.length} chars > ${CHUNK_THRESHOLD_CHARS}, splitting…`);
         const chunks = splitTextIntoChunks(cleanedTranscript, CHUNK_SIZE, CHUNK_OVERLAP);
