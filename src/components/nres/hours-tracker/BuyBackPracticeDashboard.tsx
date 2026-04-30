@@ -2333,6 +2333,8 @@ export function StaffRosterSection({
                           confirmDeclaration={confirmDeclaration}
                           onClose={() => onClickClaim('')}
                           saving={saving}
+                          claimMonths={claimMonths}
+                          onChangeMonth={(newMonthDate) => onClickClaim(`${member.id}_${newMonthDate}`)}
                         />
                       )
                     )}
