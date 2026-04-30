@@ -6036,9 +6036,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           setLastCompletedMeetingDuration(formattedDuration);
           setShowPostMeetingActions(true);
           
-          // Only now hide the processing overlay
-          setIsStoppingRecording(false);
-          stopInProgressRef.current = false;
+          // Keep the "Complete!" overlay up briefly so the post-meeting modal
+          // has time to mount before the underlying (reset) recording UI is exposed.
+          setTimeout(() => {
+            setIsStoppingRecording(false);
+            stopInProgressRef.current = false;
+          }, 300);
           
           console.log('✅ Recording state reset & post-meeting modal shown');
         } catch (error) {
@@ -6056,8 +6059,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           setLastCompletedMeetingDuration(fmt);
           setShowPostMeetingActions(true);
           
-          setIsStoppingRecording(false);
-          stopInProgressRef.current = false;
+          // Keep the "Complete!" overlay up briefly so the post-meeting modal
+          // has time to mount before the underlying (reset) recording UI is exposed.
+          setTimeout(() => {
+            setIsStoppingRecording(false);
+            stopInProgressRef.current = false;
+          }, 300);
           
           console.log('✅ Recording state reset & post-meeting modal shown (after bg error)');
         }
