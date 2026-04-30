@@ -2489,7 +2489,7 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
             {byMonth.length === 0 ? (
               <tr><td colSpan={COLS.length} style={{ padding: 20, textAlign: 'center', color: '#9ca3af' }}>No claims in this period.</td></tr>
             ) : byMonth.map((row: any) => (
-              <tr key={row.month} style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <tr key={row.key} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 {COLS.map((col) => (
                   <td key={col.key} style={{
                     padding: '8px 8px', textAlign: col.align,
