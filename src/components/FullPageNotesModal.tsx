@@ -2294,9 +2294,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
       });
 
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-        ? 'claude-sonnet-4-6'
-        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
+      const modelOverride = resolveMeetingModel();
       let data, error;
       try {
         console.log('🧠 Regenerating with model:', modelOverride);
