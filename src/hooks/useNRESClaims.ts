@@ -80,14 +80,14 @@ export interface Practice {
 // ── Status config ────────────────────────────────────────────────────────
 
 export const STATUS_CONFIG: Record<ClaimStatus, { label: string; color: string; bg: string; step: number }> = {
-  draft:           { label: 'Draft',           color: '#64748b', bg: '#f1f5f9', step: 0 },
-  submitted:       { label: 'Submitted',       color: '#2563eb', bg: '#dbeafe', step: 1 },
-  verified:        { label: 'Verified',        color: '#7c3aed', bg: '#ede9fe', step: 2 },
-  approved:        { label: 'Approved',        color: '#059669', bg: '#d1fae5', step: 3 },
-  invoice_created: { label: 'Invoice Created', color: '#d97706', bg: '#fef3c7', step: 4 },
-  scheduled:       { label: 'Scheduled',       color: '#0891b2', bg: '#cffafe', step: 5 },
-  paid:            { label: 'Paid',            color: '#16a34a', bg: '#bbf7d0', step: 6 },
-  queried:         { label: 'Queried',         color: '#dc2626', bg: '#fee2e2', step: -1 },
+  draft:           { label: 'Draft',                       color: '#64748b', bg: '#f1f5f9', step: 0 },
+  submitted:       { label: 'Awaiting Verification',       color: '#2563eb', bg: '#dbeafe', step: 1 },
+  verified:        { label: 'Awaiting Approval',           color: '#7c3aed', bg: '#ede9fe', step: 2 },
+  approved:        { label: 'Approved – Invoice Pending',  color: '#059669', bg: '#d1fae5', step: 3 },
+  invoice_created: { label: 'Invoice Issued',              color: '#d97706', bg: '#fef3c7', step: 4 },
+  scheduled:       { label: 'Payment Scheduled',           color: '#0891b2', bg: '#cffafe', step: 5 },
+  paid:            { label: 'Paid',                        color: '#16a34a', bg: '#bbf7d0', step: 6 },
+  queried:         { label: 'Action Needed – Query Raised', color: '#dc2626', bg: '#fee2e2', step: -1 },
 };
 
 export const PIPELINE: ClaimStatus[] = ['draft', 'submitted', 'verified', 'approved', 'invoice_created', 'scheduled', 'paid'];
