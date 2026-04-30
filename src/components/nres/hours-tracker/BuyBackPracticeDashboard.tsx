@@ -195,6 +195,22 @@ export function getClaimMonths(): { label: string; monthDate: string; month: num
   return months;
 }
 
+/**
+ * The default claim month for the Practice Claim UI.
+ * On days 1–15 of the calendar month, default to the previous month
+ * (because most practices are still claiming for the month just ended).
+ * On day 16 onward, default to the current calendar month.
+ * Returns "YYYY-MM".
+ */
+export function getDefaultClaimMonthStr(): string {
+  const now = new Date();
+  const useLast = now.getDate() <= 15;
+  const target = useLast
+    ? new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaffMember, monthDate: string): BuyBackClaim | null {
   return claims.find(c => {
     if (c.claim_month.slice(0, 7) !== monthDate.slice(0, 7)) return false;
@@ -355,6 +371,8 @@ function InlineClaimPanel({
   confirmDeclaration,
   onClose,
   saving,
+  claimMonths,
+  onChangeMonth,
 }: {
   staffMember: BuyBackStaffMember;
   monthDate: string;
@@ -369,6 +387,10 @@ function InlineClaimPanel({
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   onClose: () => void;
   saving?: boolean;
+  /** All months selectable from this panel (passed in from the parent table). */
+  claimMonths?: { label: string; monthDate: string; month: number; year: number }[];
+  /** Switch the panel to a different month for the same staff member. */
+  onChangeMonth?: (newMonthDate: string) => void;
 }) {
   const [creating, setCreating] = useState(false);
   const [declared, setDeclared] = useState(false);
@@ -626,8 +648,47 @@ function InlineClaimPanel({
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
                   <div>
                     {/* Month prominently */}
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em', marginBottom: 5 }}>
-                      {fullMonth}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' as const }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>
+                        {fullMonth}
+                      </div>
+                      {claimMonths && claimMonths.length > 1 && onChangeMonth && (() => {
+                        const today = new Date();
+                        const currentYM = today.getFullYear() * 100 + (today.getMonth() + 1);
+                        return (
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#6b7280', fontWeight: 500 }}>
+                            <span>Change month:</span>
+                            <select
+                              value={monthDate}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                if (next && next !== monthDate) onChangeMonth(next);
+                              }}
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                border: '1px solid #d1d5db',
+                                background: '#fff',
+                                fontSize: 12,
+                                color: '#111827',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {claimMonths.map(cm => {
+                                const cmYM = cm.year * 100 + (cm.month + 1);
+                                const isFuture = cmYM > currentYM;
+                                const fullCm = new Date(cm.monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                                return (
+                                  <option key={cm.monthDate} value={cm.monthDate} disabled={isFuture}>
+                                    {fullCm}{isFuture ? ' (future)' : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </label>
+                        );
+                      })()}
                     </div>
                     {/* Category + status pills */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
@@ -1930,6 +1991,8 @@ export function StaffRosterSection({
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+  // Default highlighted claim target: previous month if today is 1–15, else current month.
+  const defaultClaimMonthStr = getDefaultClaimMonthStr();
 
   // Always collapsed by default for a cleaner view
   const [sectionOpen, setSectionOpen] = useState(false);
@@ -2143,19 +2206,26 @@ export function StaffRosterSection({
                   Allocation
                 </th>
                 {claimMonths.map(cm => {
-                  const isCurrentMo = cm.monthDate.slice(0, 7) === currentMonthStr;
-                  const isLastMo = cm.monthDate.slice(0, 7) === lastMonthStr;
+                  const monthKey = cm.monthDate.slice(0, 7);
+                  const isDefaultMo = monthKey === defaultClaimMonthStr;
+                  const isCurrentMo = monthKey === currentMonthStr;
+                  const isLastMo = monthKey === lastMonthStr;
+                  // Only show the secondary "current/last" label if it's NOT already the default,
+                  // to avoid double-labelling.
+                  const showCurrentBadge = isCurrentMo && !isDefaultMo;
+                  const showLastBadge = isLastMo && !isDefaultMo;
                   return (
                     <th key={cm.monthDate} style={{
                       textAlign: 'center', padding: '6px 10px', fontSize: 10, fontWeight: 600,
-                      color: isCurrentMo ? '#2563eb' : isLastMo ? '#92400e' : '#9ca3af',
+                      color: isDefaultMo ? '#2563eb' : showLastBadge ? '#92400e' : showCurrentBadge ? '#2563eb' : '#9ca3af',
                       textTransform: 'uppercase' as const, letterSpacing: '0.04em',
                       borderBottom: '2px solid #e5e7eb',
-                      background: isCurrentMo ? '#eff6ff' : isLastMo ? '#fffbeb' : 'transparent',
+                      background: isDefaultMo ? '#eff6ff' : showLastBadge ? '#fffbeb' : 'transparent',
                     }}>
                       <div>{cm.label}</div>
-                      {isCurrentMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#93c5fd', marginTop: 1 }}>This month</div>}
-                      {isLastMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#fcd34d', marginTop: 1 }}>Last month</div>}
+                      {isDefaultMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#93c5fd', marginTop: 1 }}>Default claim month</div>}
+                      {showCurrentBadge && <div style={{ fontSize: 9, fontWeight: 400, color: '#93c5fd', marginTop: 1 }}>This month</div>}
+                      {showLastBadge && <div style={{ fontSize: 9, fontWeight: 400, color: '#fcd34d', marginTop: 1 }}>Last month</div>}
                     </th>
                   );
                 })}
@@ -2168,7 +2238,8 @@ export function StaffRosterSection({
               {staffList.map(member => {
                 const rowCells = claimMonths.map(cm => {
                   const claim = findClaimForStaffMonth(claims, member, cm.monthDate);
-                  const isCurrentMo = cm.monthDate.slice(0, 7) === currentMonthStr;
+                  // Highlight the DEFAULT claim month (prev month on days 1–15, otherwise current).
+                  const isCurrentMo = cm.monthDate.slice(0, 7) === defaultClaimMonthStr;
                   return { cm, claim, isCurrentMo };
                 });
 
@@ -2262,6 +2333,8 @@ export function StaffRosterSection({
                           confirmDeclaration={confirmDeclaration}
                           onClose={() => onClickClaim('')}
                           saving={saving}
+                          claimMonths={claimMonths}
+                          onChangeMonth={(newMonthDate) => onClickClaim(`${member.id}_${newMonthDate}`)}
                         />
                       )
                     )}
