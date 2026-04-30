@@ -548,7 +548,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Refresh generation metadata badges from edge function response or DB
       if (data?.qc || data?.modelUsed) {
         const freshMeta: any = {
-          model: data.modelUsed || modelOverride,
+          model: data.modelUsed || modelOverride || 'gemini-3.1-pro',
           transcript_source: 'auto',
           note_style: 'standard',
         };
