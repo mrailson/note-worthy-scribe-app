@@ -257,6 +257,9 @@ type InvoiceTableRow = { id: string; date: string; start: string; stop: string; 
 const INVOICE_TABLE_START = '[[INVOICE_TABLE]]';
 const INVOICE_TABLE_END = '[[/INVOICE_TABLE]]';
 const DESCRIPTION_LIMIT = 1500;
+const MAX_LINE_CHARS = 106;
+const capLineWidth = (text: string) =>
+  text.split('\n').map(l => l.length > MAX_LINE_CHARS ? l.slice(0, MAX_LINE_CHARS) : l).join('\n');
 const DEFAULT_START_TIME = '08:00';
 const DEFAULT_STOP_TIME = '17:00';
 
@@ -796,9 +799,9 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                   </table>
                   <button onClick={addBlankInvoiceRow} style={{ margin: 6, padding: '4px 8px', borderRadius: 6, border: '1px solid #fcd34d', background: '#fff', color: '#92400e', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', gap: 4, alignItems: 'center' }}><Plus className="w-3 h-3" /> Add row</button>
                 </div>
-              ) : <textarea value={invoiceDescription} onChange={e => setInvoiceDescription(e.target.value.slice(0, DESCRIPTION_LIMIT))} placeholder="Add multiple dates, times or invoice wording to print on the invoice…" rows={3} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }} />}
+              ) : <textarea value={invoiceDescription} onChange={e => setInvoiceDescription(capLineWidth(e.target.value).slice(0, DESCRIPTION_LIMIT))} placeholder="Add multiple dates, times or invoice wording to print on the invoice…" rows={3} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #fcd34d', fontSize: 12, resize: 'vertical', outline: 'none', background: '#fff' }} />}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.split('\n').length} / 20 lines · {invoiceDescription.length}/{DESCRIPTION_LIMIT} characters — printed on the invoice if completed</span>
+                <span style={{ fontSize: 11, color: '#92400e' }}>{invoiceDescription.split('\n').length} / 20 lines · max {MAX_LINE_CHARS} chars/line · {invoiceDescription.length}/{DESCRIPTION_LIMIT} characters — printed on the invoice if completed</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => setInvoicePreviewOpen(true)}

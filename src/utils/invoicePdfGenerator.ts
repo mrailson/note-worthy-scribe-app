@@ -196,7 +196,12 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   // --- Optional invoice-facing claim description ---
   const invoiceDescription = String((claim as any).practice_notes || '').trim();
   const invoiceTableRows = parseInvoiceTableDescription(invoiceDescription);
-  const descriptionLines = invoiceDescription && !invoiceTableRows ? doc.splitTextToSize(invoiceDescription, 176) : [];
+  const MAX_LINE_CHARS = 106;
+  const cappedDescription = invoiceDescription
+    .split('\n')
+    .map(l => l.length > MAX_LINE_CHARS ? l.slice(0, MAX_LINE_CHARS) : l)
+    .join('\n');
+  const descriptionLines = invoiceDescription && !invoiceTableRows ? doc.splitTextToSize(cappedDescription, 176) : [];
   let finalY = (doc as any).lastAutoTable.finalY + 10;
   if (invoiceTableRows) {
     doc.setFontSize(9);
