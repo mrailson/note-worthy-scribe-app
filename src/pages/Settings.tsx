@@ -116,24 +116,12 @@ export default function Settings() {
   const MIGRATION_TOAST_KEY = 'meeting-regenerate-llm-pro-migration-shown';
 
   // LLM model preference for note regeneration.
-  // Migration: users whose only saved preference was the legacy 'gemini-3-flash' AND who
-  // haven't manually changed in the last 30 days get migrated to 'default' (= Gemini 3.1 Pro).
-  // Old 'claude-haiku-4-5-20251001' is normalised to 'default' as it's no longer offered.
+  // Legacy-value migration (incl. stale Sonnet) lives in src/utils/resolveMeetingModel.ts
+  // (ensureMigration). Settings is now ONLY responsible for read+write of the user's
+  // explicit choice — never for normalisation.
   const [regenerateLlm, setRegenerateLlm] = useState<string>(() => {
     const stored = localStorage.getItem('meeting-regenerate-llm');
     if (!stored) {
-      localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
-      return DEFAULT_MEETING_LLM;
-    }
-    const lastChanged = parseInt(localStorage.getItem(PREF_LAST_CHANGED_KEY) || '0', 10);
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const eligibleForMigration = !lastChanged || lastChanged < thirtyDaysAgo;
-    if (stored === 'gemini-3-flash' && eligibleForMigration) {
-      localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
-      return DEFAULT_MEETING_LLM;
-    }
-    if (stored === 'claude-haiku-4-5-20251001') {
-      // Removed option — fall back to default
       localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
       return DEFAULT_MEETING_LLM;
     }
