@@ -5968,7 +5968,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               body: { 
                 meetingId: savedMeeting.id,
                 forceRegenerate: false,
-                modelOverride,
+                ...modelOverrideField(),
                 skipQc,
               }
             })
@@ -6002,7 +6002,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 console.warn('🔄 Safety net: notes still not generating after 3min, retrying...');
                 supabase.functions
                   .invoke('auto-generate-meeting-notes', {
-                    body: { meetingId: savedMeeting.id, forceRegenerate: false, modelOverride, skipQc }
+                    body: { meetingId: savedMeeting.id, forceRegenerate: false, ...modelOverrideField(), skipQc }
                   })
                   .catch(() => console.warn('Safety net retry also timed out client-side'));
               }
