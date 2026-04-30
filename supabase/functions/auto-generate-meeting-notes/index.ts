@@ -1619,7 +1619,7 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
     }).format(startTime);
 
     const userPrompt = `Meeting Title: ${generatedTitle}
-Meeting Date: ${formattedDate}
+Meeting Date: ${formattedDate}  (year = ${meetingYear} — resolve all bare/relative dates against this)
 Recording Start Time: ${formattedStartTime}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
