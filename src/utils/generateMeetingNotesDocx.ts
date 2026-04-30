@@ -633,6 +633,11 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   let cleanedContent = stripTranscriptSection(options.content);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
   cleanedContent = sanitiseMeetingNotes(cleanedContent);
+
+  // Strip any existing Action Items section so we can append a structured table from data.
+  if (options.actionItems !== undefined) {
+    cleanedContent = stripActionItemsSection(cleanedContent);
+  }
   
   // Also clean the attendees field
   const cleanedAttendees = options.metadata.attendees 
