@@ -25,11 +25,35 @@ interface MeetingMetadata {
   loggedUserName?: string; // The logged-in user who ran the meeting
 }
 
+export interface ActionItemForExport {
+  action_text: string;
+  assignee_name?: string | null;
+  due_date?: string | null;
+  status?: string | null;
+}
+
 interface GenerateMeetingNotesOptions {
   metadata: MeetingMetadata;
   content: string;
   filename?: string;
+  actionItems?: ActionItemForExport[];
 }
+
+// Strip any existing "Action Items" section (heading + following bullet/table content)
+// from the markdown so we don't duplicate it when we append the structured table.
+export const stripActionItemsSection = (content: string): string => {
+  // Matches a heading like "## Action Items" / "## ACTION ITEMS" / "**ACTION ITEMS**"
+  // and everything until the next heading or end of document.
+  const patterns = [
+    /\n*#{1,6}\s*action\s*items\s*\n[\s\S]*?(?=\n#{1,6}\s|\n\*\*[A-Z][^*]*\*\*\s*\n|$)/gi,
+    /\n*\*\*\s*action\s*items\s*\*\*\s*\n[\s\S]*?(?=\n#{1,6}\s|\n\*\*[A-Z][^*]*\*\*\s*\n|$)/gi,
+  ];
+  let cleaned = content;
+  for (const p of patterns) {
+    cleaned = cleaned.replace(p, '\n');
+  }
+  return cleaned.trim();
+};
 
 // Replace "Facilitator" or "Unidentified" references with the actual user name
 export const replaceFacilitatorWithUserName = (content: string, userName?: string): string => {
@@ -601,6 +625,125 @@ const createMetadataTable = async (metadata: MeetingMetadata) => {
   });
 };
 
+// Build a native Word "Action Items" section: H1 heading + 4-column table.
+export const buildActionItemsSection = async (
+  items: ActionItemForExport[]
+): Promise<any[]> => {
+  const {
+    Paragraph,
+    TextRun,
+    Table,
+    TableRow,
+    TableCell,
+    WidthType,
+    BorderStyle,
+    HeadingLevel,
+    ShadingType,
+  } = await import("docx");
+
+  const elements: any[] = [];
+
+  // Spacing before the heading
+  elements.push(new Paragraph({ children: [new TextRun("")], spacing: { before: 240 } }));
+
+  // Heading 1: "Action Items"
+  elements.push(
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [new TextRun({
+        text: "Action Items",
+        bold: true,
+        size: FONTS.size.heading1,
+        color: NHS_COLORS.headingBlue,
+        font: FONTS.default,
+      })],
+      spacing: { before: 240, after: 160 },
+    })
+  );
+
+  if (!items || items.length === 0) {
+    elements.push(
+      new Paragraph({
+        children: [new TextRun({
+          text: "No action items recorded.",
+          italics: true,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+          font: FONTS.default,
+        })],
+      })
+    );
+    return elements;
+  }
+
+  const headers = ["Action", "Owner", "Deadline", "Status"];
+  // Total ~9360 twips of usable width with 1" margins on US Letter / similar
+  const totalWidth = 9360;
+  const colPercents = [45, 20, 20, 15];
+  const columnWidths = colPercents.map(p => Math.round((p / 100) * totalWidth));
+
+  const cellMargins = { top: 100, bottom: 100, left: 120, right: 120 };
+  const thinBorder = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
+  const tableBorders = {
+    top: thinBorder,
+    bottom: thinBorder,
+    left: thinBorder,
+    right: thinBorder,
+    insideHorizontal: thinBorder,
+    insideVertical: thinBorder,
+  };
+
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: headers.map((label, idx) => new TableCell({
+      width: { size: columnWidths[idx], type: WidthType.DXA },
+      shading: { fill: "E5E7EB", type: ShadingType.CLEAR, color: "auto" },
+      margins: cellMargins,
+      children: [new Paragraph({
+        children: [new TextRun({
+          text: label,
+          bold: true,
+          size: FONTS.size.body,
+          color: "111111",
+          font: FONTS.default,
+        })],
+      })],
+    })),
+  });
+
+  const dataRows = items.map((item) => {
+    const action = (item.action_text ?? "").toString().trim() || "—";
+    const owner = (item.assignee_name ?? "").toString().trim() || "TBC";
+    const deadlineRaw = (item.due_date ?? "").toString().trim();
+    const deadline = deadlineRaw || "TBC";
+    const status = (item.status ?? "").toString().trim() || "Open";
+
+    const cells = [action, owner, deadline, status].map((text, idx) => new TableCell({
+      width: { size: columnWidths[idx], type: WidthType.DXA },
+      margins: cellMargins,
+      children: [new Paragraph({
+        children: [new TextRun({
+          text,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+          font: FONTS.default,
+        })],
+      })],
+    }));
+
+    return new TableRow({ children: cells });
+  });
+
+  elements.push(new Table({
+    width: { size: totalWidth, type: WidthType.DXA },
+    columnWidths,
+    borders: tableBorders,
+    rows: [headerRow, ...dataRows],
+  }));
+
+  return elements;
+};
+
 // Main export function
 export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOptions): Promise<void> => {
   const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
@@ -609,6 +752,11 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   let cleanedContent = stripTranscriptSection(options.content);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
   cleanedContent = sanitiseMeetingNotes(cleanedContent);
+
+  // Strip any existing Action Items section so we can append a structured table from data.
+  if (options.actionItems !== undefined) {
+    cleanedContent = stripActionItemsSection(cleanedContent);
+  }
   
   // Also clean the attendees field
   const cleanedAttendees = options.metadata.attendees 
@@ -665,6 +813,12 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   // Parse and add content
   const contentElements = await parseContentToDocxElements(cleanedContent);
   children.push(...contentElements);
+
+  // Append structured Action Items section from data (if provided)
+  if (options.actionItems !== undefined) {
+    const actionElements = await buildActionItemsSection(options.actionItems);
+    children.push(...actionElements);
+  }
   
   // Footer
   const now = new Date();
