@@ -29,13 +29,14 @@ Decision taxonomy (mandatory):
 Merging instructions:
 - Mirror the single-shot meeting notes structure exactly. Start immediately with "# MEETING DETAILS" — no title, preamble, or text before it.
 - Under "# MEETING DETAILS", write separate label-only lines: "Date: <human date>" and "Time: <human time>". Use the supplied meeting date/time from the request; if either value is unavailable, keep the label and leave the value blank. Add "Location:" only when the source summaries contain an explicit location.
-- Then emit "# EXECUTIVE SUMMARY" as one concise paragraph, followed by "# ATTENDEES" when attendee details are available, then "# DISCUSSION SUMMARY". The first line under discussion summary must be "**Meeting Purpose:** ..." before the key points content.
-- Put key points, decisions, and actions under appropriate sub-headings within this structure. Use "# DECISIONS REGISTER" for decisions and "# ACTION ITEMS" for actions. Action items must remain a markdown table with columns Action, Owner, Deadline, Priority.
-- Emit "# OPEN ITEMS & RISKS" as a bullet list only, using this form: "- **Risk title:** detail — Status: Open/Closed". Do NOT use markdown pipe tables for risks or issues. If any input summaries contain table-shaped risks/issues, convert them into bullets.
+- Then emit "# EXECUTIVE SUMMARY" as one concise paragraph, followed by "# ATTENDEES" when attendee details are available, then "# DISCUSSION SUMMARY".
+- Under "# DISCUSSION SUMMARY", the first line must be exactly "**Meeting Purpose:** [one sentence]". The second content block must be a literal sub-heading line that says exactly "Key Points" with no #, no bold, and on its own line. Then list numbered topics as "1. **[Topic Heading]**" each on its own line, followed by a blank line, followed by a body paragraph.
+- Put decisions and actions under appropriate top-level headings within this structure. Use "# DECISIONS REGISTER" for decisions and "# ACTION ITEMS" for actions. Action items must be a markdown table with exactly these column headers in this order: Action | Owner | Deadline | Priority. Never use "Responsible Party" or "Due date" as column names. If owner or deadline is unknown, write "TBC".
+- Emit "# OPEN ITEMS & RISKS" as plain bullet lines describing items deferred, outstanding questions, and strategic considerations in the same wording style as the single-shot prompt. Do not include Status: tags. Do NOT use markdown pipe tables for risks or issues. If any input summaries contain table-shaped risks/issues, convert them into bullets.
 - Finish with "# NEXT MEETING".
 - Deduplicate, resolve contradictions, preserve unique details.
-- Action items: "[Owner] – Action – Due date (if mentioned)".
 - If a chunk arrived as an "[unsummarised excerpt …]" placeholder, integrate its substantive content where possible and silently drop the placeholder marker from the final output (do NOT mention it).
+- Before responding, verify every top-level section starts with a # markdown heading on its own line. If any section uses bold (**) instead of #, rewrite it as a # heading.
 - Markdown output, no preambles.`;
 
 function performProfessionalToneAudit(content: string): string {
