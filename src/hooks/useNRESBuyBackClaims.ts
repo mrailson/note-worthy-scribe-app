@@ -936,12 +936,9 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             supabase.functions.invoke('send-meeting-email-resend', {
               body: {
                 to_email: invoiceRecipient,
-                subject: `TEST EMAIL PRIOR TO GOLIVE PLEASE IGNORE — ${claimTypeLabel} invoice approved — ${practiceName} — ${claimMonthLabel} — ${totalLabel}`,
+                subject: `${claimTypeLabel} invoice approved — ${practiceName} — ${claimMonthLabel} — ${totalLabel}`,
                 html_content: `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;background:#ffffff;color:#111;">
-  <div style="background:#fef2f2;border:2px solid #dc2626;padding:14px 18px;text-align:center;">
-    <strong style="color:#991b1b;font-size:15px;letter-spacing:0.4px;">TEST EMAIL PRIOR TO GOLIVE PLEASE IGNORE</strong>
-  </div>
   <div style="background:#003087;padding:22px 28px;">
     <p style="color:#9fb6e0;font-size:11px;margin:0 0 6px;letter-spacing:1.4px;text-transform:uppercase;font-weight:600;">NRES NEIGHBOURHOOD ACCESS SERVICE</p>
     <h1 style="color:#ffffff;font-size:22px;margin:0 0 4px;font-weight:700;letter-spacing:-0.2px;">${claimTypeLabel} invoice approved — ${practiceName}</h1>
