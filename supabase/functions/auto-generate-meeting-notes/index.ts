@@ -1729,6 +1729,53 @@ ${cleanedTranscript}`;
     // we automatically retry with the next model in the chain. This protects against
     // transient Pro outages and Google-wide incidents.
     const skipSingleShot = generatedNotes.trim().length > 0;
+    let extractionReasoningTrace: string | null = null;
+    let extractedActionCount: number | null = null;
+    let decisionCount: number | null = null;
+    let nextMeetingItemCount: number | null = null;
+    let crossSectionCheckPerformed = false;
+
+    const stripExtractionReasoningTrace = (notes: string): string => {
+      if (!notes) return notes;
+      const traceMatch = notes.match(/<!--\s*ACTION_EXTRACTION_REASONING_TRACE_START([\s\S]*?)ACTION_EXTRACTION_REASONING_TRACE_END\s*-->/i);
+      if (traceMatch) {
+        extractionReasoningTrace = traceMatch[1].trim().slice(0, 12000);
+        crossSectionCheckPerformed = /re-?scanned?\s+the\s+Decisions\s+Register|cross-?section\s+check|Next\s+Meeting\s+sections/i.test(extractionReasoningTrace);
+        return notes.replace(traceMatch[0], '').replace(/^\s+/, '').trim();
+      }
+      crossSectionCheckPerformed = /I\s+have\s+re-?scanned?\s+the\s+Decisions\s+Register|cross-?section\s+check\s*:/i.test(notes);
+      return notes;
+    };
+
+    const countMarkdownTableRows = (section: string): number => section
+      .split('\n')
+      .filter((line) => line.trim().startsWith('|'))
+      .filter((line) => !/\|[-:\s|]+\|/.test(line))
+      .filter((line) => !/\b(action|owner|deadline|decision|status|date|item)\b/i.test(line))
+      .length;
+
+    const extractSection = (notes: string, headingPattern: string): string => {
+      const match = notes.match(new RegExp(`#{1,3}\\s*(?:${headingPattern})\\s*\\n([\\s\\S]*?)(?=\\n#{1,3}\\s+|$)`, 'i'));
+      return match?.[1] || '';
+    };
+
+    const countBulletsOrLines = (section: string, emptyPattern: RegExp): number => {
+      const trimmed = section.trim();
+      if (!trimmed || emptyPattern.test(trimmed)) return 0;
+      if (trimmed.includes('|')) return countMarkdownTableRows(trimmed);
+      const bulletCount = trimmed.split('\n').filter((line) => /^\s*(?:[-*•]|\d+\.)\s+\S/.test(line)).length;
+      return bulletCount || 1;
+    };
+
+    const collectExtractionDiagnostics = (notes: string) => {
+      const actionSection = extractSection(notes, 'ACTION\\s+ITEMS|Action\\s+Items');
+      const decisionSection = extractSection(notes, 'DECISIONS\\s+REGISTER|Decisions\\s+Register');
+      const nextMeetingSection = extractSection(notes, 'NEXT\\s+MEETING|Next\\s+Meeting');
+
+      extractedActionCount = countBulletsOrLines(actionSection, /no\s+(action\s+items|actions)\s+(were\s+)?recorded/i);
+      decisionCount = countBulletsOrLines(decisionSection, /no\s+(formal\s+)?decisions\s+(were\s+)?recorded/i);
+      nextMeetingItemCount = countBulletsOrLines(nextMeetingSection, /to\s+be\s+determined|not\s+(mentioned|specified|confirmed)/i);
+    };
 
     // Build fallback chain. Primary is always the requested model. Fallbacks are appended
     // only if the primary is the new default (Pro) — explicit overrides like 'gemini-3-flash'
