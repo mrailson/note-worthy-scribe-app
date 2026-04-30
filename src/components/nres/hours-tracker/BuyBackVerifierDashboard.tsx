@@ -781,9 +781,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                 <div style={{ fontWeight: 700, color: '#78350f' }}>Invoice description / claim details</div>
-                <div style={{ display: 'inline-flex', border: '1px solid #fcd34d', borderRadius: 6, overflow: 'hidden', background: '#fff' }}>
-                  {(['text', 'table'] as const).map(mode => <button key={mode} onClick={() => { setInvoiceMode(mode); if (mode === 'table' && !invoiceRows.length) setInvoiceRows([newInvoiceTableRow()]); }} style={{ padding: '4px 10px', border: 'none', background: invoiceMode === mode ? '#fef3c7' : '#fff', color: '#78350f', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>{mode === 'text' ? 'Text' : 'Table'}</button>)}
-                </div>
+                <div style={{ fontSize: 10, color: '#92400e', fontStyle: 'italic' }}>Tip: copy a row range from Excel and paste below — columns are preserved.</div>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
                 <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
