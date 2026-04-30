@@ -583,10 +583,10 @@ const MeetingHistory = () => {
       setMeetingSummary(data.meetingMinutes);
       
       // Store which model was used for this meeting (shown in footer)
-      localStorage.setItem(`meeting-llm-used-${selectedMeeting.id}`, modelOverride);
+      localStorage.setItem(`meeting-llm-used-${selectedMeeting.id}`, modelOverride ?? 'default');
       
       // Show which model was used
-      const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash';
+      const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' : 'Gemini 3.1 Pro';
       showToast.success(`Notes regenerated using ${modelLabel}`);
       
       // Save to database
