@@ -1645,7 +1645,7 @@ ${cleanedTranscript}`;
     let generatedNotes = '';
     let modelUsed = modelOverride;
 
-    // Chunking is only used for Sonnet/Haiku Claude models. Opus 4.7 (1M context)
+    // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
     // and Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
     const useChunking = (
       modelOverride.startsWith('claude-sonnet-') ||
