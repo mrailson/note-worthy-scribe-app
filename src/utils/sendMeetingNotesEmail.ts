@@ -190,25 +190,9 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
 
   const subject = `Notewell AI | ${meetingTitle} — ${meetingDate}`;
 
-  // 5. Build HTML
-  const htmlContent = buildProfessionalMeetingEmail(
-    summary.summary,
-    senderName,
-    meetingTitle,
-    {
-      date: meetingDate,
-      time: meetingTime,
-      duration: meeting?.duration_minutes,
-      format: meeting?.meeting_format,
-      location: meeting?.meeting_location,
-      overview: meeting?.overview,
-      wordCount: meeting?.word_count,
-      attendees: Array.isArray(meeting?.participants) ? meeting.participants : [],
-    }
-  );
-
-  // 6. Generate Word attachment (with fallback)
+  // 5. Generate Word attachment FIRST (so the email body can reflect attachment status)
   let wordAttachment: { content: string; filename: string; type: string } | null = null;
+  let attachmentFailureReason: string | null = null;
   try {
     const { generateProfessionalWordBlob } = await import("@/utils/generateProfessionalMeetingDocx");
     const cleanTitle = cleanMeetingTitle(meetingTitle);
@@ -263,7 +247,26 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
     console.log("📎 Word attachment generated for meeting email");
   } catch (docErr) {
     console.warn("Word attachment generation failed (non-critical):", docErr);
+    attachmentFailureReason = docErr instanceof Error ? docErr.message : String(docErr);
   }
+
+  // 6. Build HTML (now reflects whether attachment exists)
+  const htmlContent = buildProfessionalMeetingEmail(
+    summary.summary,
+    senderName,
+    meetingTitle,
+    {
+      date: meetingDate,
+      time: meetingTime,
+      duration: meeting?.duration_minutes,
+      format: meeting?.meeting_format,
+      location: meeting?.meeting_location,
+      overview: meeting?.overview,
+      wordCount: meeting?.word_count,
+      attendees: Array.isArray(meeting?.participants) ? meeting.participants : [],
+      hasAttachment: wordAttachment !== null,
+    }
+  );
 
   // 7. Send email — validate result
   const { data, error } = await supabase.functions.invoke("send-meeting-email-resend", {
@@ -285,5 +288,11 @@ export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Pr
   }
 
   console.log("✅ Meeting notes email sent to:", recipientEmail);
+
+  if (attachmentFailureReason) {
+    console.warn("⚠️ Email sent but Word attachment failed:", attachmentFailureReason);
+    return { success: true, attachmentFailed: true, reason: attachmentFailureReason };
+  }
+
   return true;
 }
