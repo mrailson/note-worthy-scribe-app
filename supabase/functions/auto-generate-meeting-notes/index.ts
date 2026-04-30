@@ -1502,6 +1502,38 @@ The transcript mishears these terms regularly — always use the corrected versi
     };
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const formattedDate = `${dayOfWeek} ${day}${ordinalSuffix(day)} ${months[meetingDate.getMonth()]} ${meetingDate.getFullYear()}`;
+    const meetingYear = meetingDate.getFullYear();
+
+    // CRITICAL DATE HANDLING — prepended to system prompt so it appears at the very top.
+    // Without this, models hallucinate years from their training cutoff (e.g. "1st May 2024"
+    // when the meeting is on 30 April 2026 and the speaker says "1st May").
+    const dateGuard = `═══════════════════════════════════════════════════════════════════════════════
+CRITICAL DATE HANDLING — READ FIRST, APPLY THROUGHOUT
+═══════════════════════════════════════════════════════════════════════════════
+
+The meeting date is: ${formattedDate} (year = ${meetingYear}).
+
+When the transcript references relative or partial dates (e.g. "next month", "1st May",
+"Friday", "21 May", "the workshop on the 21st"), you MUST resolve them relative to the
+meeting date above, NOT relative to your training cutoff.
+
+Hard rules:
+- If a date is mentioned WITHOUT a year, assume it falls in ${meetingYear} unless the
+  context clearly indicates otherwise (e.g. an explicit reference to a past event, or
+  a date in the meeting that has already passed by ${formattedDate}, in which case it
+  rolls into ${meetingYear + 1}).
+- NEVER write a year earlier than ${meetingYear} unless the transcript EXPLICITLY uses
+  that earlier year (e.g. someone literally says "2024"). Do not infer earlier years
+  from your prior knowledge of NHS programme timelines.
+- "Next month" = the calendar month after ${months[meetingDate.getMonth()]} ${meetingYear}.
+- "Next year" = ${meetingYear + 1}.
+- When in doubt, use ${meetingYear}.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+`;
+    systemPrompt = dateGuard + systemPrompt;
+
 
 
 
