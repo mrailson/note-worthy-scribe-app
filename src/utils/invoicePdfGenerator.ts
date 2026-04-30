@@ -214,7 +214,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     });
     finalY = (doc as any).lastAutoTable.finalY + 10;
   } else if (descriptionLines.length > 0) {
-    const descHeight = Math.min(42, 10 + descriptionLines.length * 4.2);
+    const descHeight = Math.min(73, 10 + descriptionLines.length * 4.2);
     doc.setFillColor(239, 246, 255);
     doc.roundedRect(14, finalY - 4, 182, descHeight, 2, 2, 'F');
     doc.setFontSize(9);
@@ -223,7 +223,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     doc.text('Details', 18, finalY + 2);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(GREY_60);
-    doc.text(descriptionLines.slice(0, 8), 18, finalY + 8);
+    doc.text(descriptionLines.slice(0, 15), 18, finalY + 8);
     finalY += descHeight + 8;
   }
 
