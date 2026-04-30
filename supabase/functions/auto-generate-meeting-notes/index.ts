@@ -1343,6 +1343,17 @@ Format each entry as:
 
 Always emit the columns in this exact order: Action, Owner, Deadline. Never reorder them. Never use "Responsible Party" or any other synonym in place of "Owner". Do NOT include a Priority column — priority assignment has been removed from this product because automated guesses were unreliable.
 
+CLASSIFICATION RULE (read this FIRST — it overrides any tendency to file things only under Decisions or Next Meeting):
+Any commitment with a named or implied owner that requires a future task to be completed is an ACTION, even if it could also be characterised as a decision or a next-meeting item. Such items MUST appear in BOTH the Decisions Register (as an agreement) AND the Action Items table (with owner and deadline) — they are not mutually exclusive.
+
+Specifically:
+- "I'll take that away" / "let me come back to you" → Action (with that speaker as owner)
+- "X will present at next meeting" → Action (with X as owner, deadline = Next Meeting), even if also listed in the next meeting agenda
+- "Y to do Z by [date]" → Action with Y as owner and date as deadline, even if it's also a board commitment
+- "We agreed [person] will do [thing]" → BOTH Decision AND Action
+
+Only items where NO owner can be identified or implied should be excluded from the Action Items table. Generic statements like "we should consider X" without a named owner stay in Open Items.
+
 ACTION ITEM EXTRACTION RULES — read these carefully, they are the most common source of missed actions:
 - Scan the ENTIRE transcript from start to finish, NOT just the "previous actions" / "action review" / "matters arising" section at the start
 - Pay SPECIAL attention to: AOB (any other business), "next steps", closing remarks, items raised in the final third of the meeting, and "items for next meeting"
