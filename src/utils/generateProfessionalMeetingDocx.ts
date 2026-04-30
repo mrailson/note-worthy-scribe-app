@@ -728,11 +728,11 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
   // Column widths - adjust based on whether priority is shown
   const columnWidths = priorityColumnOn 
     ? [38, 14, 16, 12, 20] // Action, Owner, Deadline, Priority, Status
-    : [55, 22, 23]; // Action, Owner, Deadline (no Priority or Status)
+    : [46, 18, 18, 18]; // Action, Owner, Deadline, Status
   
   const headerCells = priorityColumnOn 
     ? ['Action', 'Owner', 'Deadline', 'Priority', 'Status']
-    : ['Action', 'Owner', 'Deadline'];
+    : ['Action', 'Owner', 'Deadline', 'Status'];
   
   const table = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -840,25 +840,23 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
           );
         }
 
-        // Status column (only when priority/status columns are on)
-        if (priorityColumnOn) {
-          cells.push(
-              new TableCell({
-                children: [new Paragraph({
-                  children: [new TextRun({ 
-                    text: statusDisplay.text,
-                    size: FONTS.size.body,
-                    color: statusDisplay.color,
-                    font: FONTS.default,
-                    bold: item.isCompleted,
-                  })],
-                  spacing: { before: 60, after: 60 },
+        // Status column
+        cells.push(
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ 
+                  text: statusDisplay.text,
+                  size: FONTS.size.body,
+                  color: statusDisplay.color,
+                  font: FONTS.default,
+                  bold: item.isCompleted,
                 })],
-                shading: rowBg ? { fill: rowBg } : undefined,
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-              }),
-          );
-        }
+                spacing: { before: 60, after: 60 },
+              })],
+              shading: rowBg ? { fill: rowBg } : undefined,
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            }),
+        );
 
         return new TableRow({ children: cells });
       }),
