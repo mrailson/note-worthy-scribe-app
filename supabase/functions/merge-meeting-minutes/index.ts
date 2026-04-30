@@ -401,7 +401,9 @@ serve(async (req) => {
       });
     }
 
-    const { summaries, meetingTitle, meetingDate, meetingTime, detailLevel = 'standard' } = await req.json();
+    const { summaries, meetingTitle, meetingDate, meetingTime, detailLevel = 'standard', modelOverride } = await req.json();
+    const modelToUse = modelOverride || 'claude-sonnet-4-6';
+    const isOpus47 = typeof modelToUse === 'string' && modelToUse.startsWith('claude-opus-4-7');
 
     if (!Array.isArray(summaries) || summaries.length === 0) {
       return new Response(JSON.stringify({ error: 'Missing summaries[]' }), {
@@ -434,7 +436,7 @@ ${joined}`;
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: modelToUse,
           max_tokens: 8000,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: userPrompt }],
@@ -463,7 +465,7 @@ ${joined}`;
     meetingMinutes = performProfessionalToneAudit(meetingMinutes);
     meetingMinutes = normaliseMergeOutput(meetingMinutes);
 
-    return new Response(JSON.stringify({ meetingMinutes, model: 'claude-sonnet-4-6', chunksMerged: summaries.length }), {
+    return new Response(JSON.stringify({ meetingMinutes, model: modelToUse, chunksMerged: summaries.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
