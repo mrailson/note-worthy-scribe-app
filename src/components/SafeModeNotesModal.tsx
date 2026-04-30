@@ -1111,10 +1111,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Fetch notes and meeting format
     const fetchNotes = async () => {
       try {
-        // First try meetings table for notes_style_3, meeting_format, meeting_location, and primary_transcript_source
+        // First try meetings table for notes_style_3, generation status, meeting_format, meeting_location, and primary_transcript_source
         const { data: meetingData } = await supabase
           .from('meetings')
-          .select('notes_style_3, meeting_format, meeting_location, primary_transcript_source')
+          .select('notes_style_3, notes_generation_status, meeting_format, meeting_location, primary_transcript_source')
           .eq('id', meeting.id)
           .maybeSingle();
 
@@ -1154,13 +1154,23 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           }
         }
 
+        const hasMeetingNotes = Boolean(meetingData?.notes_style_3?.trim());
+        const hasSummaryNotes = Boolean(summaryData?.summary?.trim());
+
+        if (meetingData?.notes_generation_status === 'generating' && !hasMeetingNotes && !hasSummaryNotes) {
+          setIsGenerating(true);
+          return;
+        }
+
         if (meetingData?.notes_style_3) {
+          setIsGenerating(false);
           setNotesContent(cleanNotesForDisplay(meetingData.notes_style_3));
           setIsLoadingNotes(false);
           return;
         }
 
         if (summaryData?.summary) {
+          setIsGenerating(false);
           setNotesContent(cleanNotesForDisplay(summaryData.summary));
         }
       } catch (error) {
