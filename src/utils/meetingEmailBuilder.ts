@@ -15,6 +15,7 @@ export interface MeetingEmailMeta {
   overview?: string;
   wordCount?: number;
   attendees?: string[];
+  hasAttachment?: boolean;
 }
 
 /** Strip duplicate/redundant heading blocks from notes content */
@@ -358,14 +359,29 @@ export const buildProfessionalMeetingEmail = (
           ${greeting}
         </p>
         
+        ${meetingMeta?.hasAttachment === false ? `
+        <p style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
+          Your meeting notes are ready below. The Word document attachment could not be generated for this meeting — open the meeting in Notewell AI and use the Word export button to download the full minutes.
+        </p>
+        ` : `
         <p style="margin: 0 0 20px 0; font-family: Arial, sans-serif; font-size: 14px; color: #374151; line-height: 1.6;">
           Your meeting notes are ready. Full minutes are in the attached Word document — summary below.
         </p>
+        `}
         
         ${detailsTableHTML}
         
         ${overviewHTML}
         
+        ${meetingMeta?.hasAttachment === false ? `
+        <!-- Attachment failure callout -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+          <tr><td style="background-color: #FEF3C7; border: 1px solid #FCD34D; border-radius: 6px; padding: 14px 20px;">
+            <p style="margin: 0 0 4px 0; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; color: #92400E;">⚠️ Word document not generated</p>
+            <p style="margin: 0; font-family: Arial, sans-serif; font-size: 13px; color: #B45309;">Open the meeting in Notewell AI to download the Word minutes manually.</p>
+          </td></tr>
+        </table>
+        ` : `
         <!-- Attachment callout -->
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
           <tr><td style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 14px 20px;">
@@ -373,6 +389,7 @@ export const buildProfessionalMeetingEmail = (
             <p style="margin: 0; font-family: Arial, sans-serif; font-size: 13px; color: #15803D;">Open the Word document for the complete minutes</p>
           </td></tr>
         </table>
+        `}
         
         <!-- Divider -->
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 24px 0 16px 0;">
