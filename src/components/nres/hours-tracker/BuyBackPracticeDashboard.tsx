@@ -385,6 +385,10 @@ function InlineClaimPanel({
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   onClose: () => void;
   saving?: boolean;
+  /** All months selectable from this panel (passed in from the parent table). */
+  claimMonths?: { label: string; monthDate: string; month: number; year: number }[];
+  /** Switch the panel to a different month for the same staff member. */
+  onChangeMonth?: (newMonthDate: string) => void;
 }) {
   const [creating, setCreating] = useState(false);
   const [declared, setDeclared] = useState(false);
