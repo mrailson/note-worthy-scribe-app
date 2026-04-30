@@ -2948,9 +2948,11 @@ export default function NoteWellRecorder() {
               mode={mode}
               isAutoFallback={recordingMode.isAutoFallback}
               disabled={!isIdle}
+              authLoading={authLoading}
+              isAuthenticated={!!authUser}
               onTap={()=>setShowSheet(true)}
             />
-            <button onClick={()=>navigate("/meetings")} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexShrink:0}} title="My Meetings">
+            <button onClick={async ()=>{ const session = await ensureSignedIn("/meetings"); if (session) navigate("/meetings"); }} style={{width:36,height:36,borderRadius:10,border:"1px solid rgba(21,101,192,0.15)",background:"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",flexShrink:0}} title="My Meetings">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1565c0" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </button>
           </div>
@@ -3181,7 +3183,7 @@ export default function NoteWellRecorder() {
               </div>
               {localCount > 0 && isOnline && (
                 <button
-                  onClick={()=>recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording)}
+                  onClick={async ()=>{ const session = await ensureSignedIn(location.pathname || "/new-recorder"); if (session) recordings.filter(r=>r.status==="local"||r.status==="error").forEach(syncRecording); }}
                   style={{fontSize:11,color:"#1565c0",fontWeight:700,border:"1px solid rgba(21,101,192,0.2)",background:"rgba(21,101,192,0.05)",cursor:"pointer",padding:"3px 10px",borderRadius:8,fontFamily:"inherit"}}
                 >
                   ↑ Sync all
@@ -3207,7 +3209,7 @@ export default function NoteWellRecorder() {
 
             {/* My Meetings card */}
             <button
-              onClick={()=>navigate("/meetings")}
+              onClick={async ()=>{ const session = await ensureSignedIn("/meetings"); if (session) navigate("/meetings"); }}
               style={{width:"100%",background:"white",borderRadius:16,padding:"14px 16px",border:"none",cursor:"pointer",fontFamily:"inherit",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}
             >
               <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -3224,7 +3226,7 @@ export default function NoteWellRecorder() {
 
 
         {showSheet && (
-          <ModeSheet mode={mode} onClose={()=>setShowSheet(false)} onSelect={m=>{setMode(m);setShowSheet(false);}} />
+          <ModeSheet mode={mode} onClose={()=>setShowSheet(false)} onSelect={m=>{setMode(m);setShowSheet(false);}} isAuthenticated={!!authUser} authLoading={authLoading} onSignIn={()=>navigateToSignIn(location.pathname || "/new-recorder")} />
         )}
 
         {showSettings && (
