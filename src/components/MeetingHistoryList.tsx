@@ -39,7 +39,9 @@ import {
   Folder,
   BookOpen,
   HeartPulse,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Zap
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
@@ -1438,13 +1440,16 @@ export const MeetingHistoryList = ({
   };
 
   // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
-  const handleProcessClick = async (meeting: Meeting) => {
+  const handleProcessClick = async (meeting: Meeting, modelOverride?: string) => {
     const meetingId = meeting.id;
     
     // Show toast notification
-    toast.info('Regenerating Meeting Overview, Standard Minutes, and Audio...', {
-      duration: 3000
-    });
+    toast.info(
+      modelOverride
+        ? `Regenerating with ${modelOverride}...`
+        : 'Regenerating Meeting Overview, Standard Minutes, and Audio...',
+      { duration: 3000 }
+    );
     
     // Automatically regenerate Overview first, then Standard Minutes
     await handleFullProcessing(meeting, {
@@ -1452,7 +1457,7 @@ export const MeetingHistoryList = ({
       overview: true,
       executive: false,
       limerick: false
-    });
+    }, modelOverride);
     
     // Generate audio overview at the end
     try {
@@ -1492,7 +1497,11 @@ export const MeetingHistoryList = ({
   };
 
   // Handle full processing pipeline - Sequential processing
-  const handleFullProcessing = async (meeting: Meeting, selectedTypes: { standard: boolean; overview: boolean; executive: boolean; limerick: boolean }) => {
+  const handleFullProcessing = async (
+    meeting: Meeting,
+    selectedTypes: { standard: boolean; overview: boolean; executive: boolean; limerick: boolean },
+    modelOverride?: string
+  ) => {
     const meetingId = meeting.id;
     
     if (processingMeetings[meetingId]?.isProcessing) {
