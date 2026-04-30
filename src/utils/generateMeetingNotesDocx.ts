@@ -625,6 +625,125 @@ const createMetadataTable = async (metadata: MeetingMetadata) => {
   });
 };
 
+// Build a native Word "Action Items" section: H1 heading + 4-column table.
+export const buildActionItemsSection = async (
+  items: ActionItemForExport[]
+): Promise<any[]> => {
+  const {
+    Paragraph,
+    TextRun,
+    Table,
+    TableRow,
+    TableCell,
+    WidthType,
+    BorderStyle,
+    HeadingLevel,
+    ShadingType,
+  } = await import("docx");
+
+  const elements: any[] = [];
+
+  // Spacing before the heading
+  elements.push(new Paragraph({ children: [new TextRun("")], spacing: { before: 240 } }));
+
+  // Heading 1: "Action Items"
+  elements.push(
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [new TextRun({
+        text: "Action Items",
+        bold: true,
+        size: FONTS.size.h1,
+        color: NHS_COLORS.headingBlue,
+        font: FONTS.default,
+      })],
+      spacing: { before: 240, after: 160 },
+    })
+  );
+
+  if (!items || items.length === 0) {
+    elements.push(
+      new Paragraph({
+        children: [new TextRun({
+          text: "No action items recorded.",
+          italics: true,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+          font: FONTS.default,
+        })],
+      })
+    );
+    return elements;
+  }
+
+  const headers = ["Action", "Owner", "Deadline", "Status"];
+  // Total ~9360 twips of usable width with 1" margins on US Letter / similar
+  const totalWidth = 9360;
+  const colPercents = [45, 20, 20, 15];
+  const columnWidths = colPercents.map(p => Math.round((p / 100) * totalWidth));
+
+  const cellMargins = { top: 100, bottom: 100, left: 120, right: 120 };
+  const thinBorder = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
+  const tableBorders = {
+    top: thinBorder,
+    bottom: thinBorder,
+    left: thinBorder,
+    right: thinBorder,
+    insideHorizontal: thinBorder,
+    insideVertical: thinBorder,
+  };
+
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: headers.map((label, idx) => new TableCell({
+      width: { size: columnWidths[idx], type: WidthType.DXA },
+      shading: { fill: "E5E7EB", type: ShadingType.CLEAR, color: "auto" },
+      margins: cellMargins,
+      children: [new Paragraph({
+        children: [new TextRun({
+          text: label,
+          bold: true,
+          size: FONTS.size.body,
+          color: "111111",
+          font: FONTS.default,
+        })],
+      })],
+    })),
+  });
+
+  const dataRows = items.map((item) => {
+    const action = (item.action_text ?? "").toString().trim() || "—";
+    const owner = (item.assignee_name ?? "").toString().trim() || "TBC";
+    const deadlineRaw = (item.due_date ?? "").toString().trim();
+    const deadline = deadlineRaw || "TBC";
+    const status = (item.status ?? "").toString().trim() || "Open";
+
+    const cells = [action, owner, deadline, status].map((text, idx) => new TableCell({
+      width: { size: columnWidths[idx], type: WidthType.DXA },
+      margins: cellMargins,
+      children: [new Paragraph({
+        children: [new TextRun({
+          text,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+          font: FONTS.default,
+        })],
+      })],
+    }));
+
+    return new TableRow({ children: cells });
+  });
+
+  elements.push(new Table({
+    width: { size: totalWidth, type: WidthType.DXA },
+    columnWidths,
+    borders: tableBorders,
+    rows: [headerRow, ...dataRows],
+  }));
+
+  return elements;
+};
+
 // Main export function
 export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOptions): Promise<void> => {
   const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
