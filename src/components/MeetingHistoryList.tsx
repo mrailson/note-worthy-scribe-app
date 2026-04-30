@@ -626,7 +626,19 @@ export const MeetingHistoryList = ({
     error?: string;
     completedCount?: number;
     totalCount?: number;
+    startedAt?: number;
   }>>({});
+
+  // Tick state forces re-render every 5s while any meeting is generating, so the
+  // rotating "Analysing transcript..." → "Extracting key points..." → "Identifying actions..."
+  // status text updates without polling logic in every consumer.
+  const [progressTick, setProgressTick] = useState(0);
+  useEffect(() => {
+    const anyProcessing = Object.values(processingMeetings).some(p => p?.isProcessing);
+    if (!anyProcessing) return;
+    const id = setInterval(() => setProgressTick(t => t + 1), 5000);
+    return () => clearInterval(id);
+  }, [processingMeetings]);
 
   // Multi-type notes hooks for each meeting
   const [multiTypeHooks, setMultiTypeHooks] = useState<Record<string, any>>({});
