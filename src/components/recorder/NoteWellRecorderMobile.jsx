@@ -2648,8 +2648,8 @@ export default function NoteWellRecorder() {
     try {
       setRetranscribingIds(prev => ({ ...prev, [rec.id]: true }));
       showToast("Re-processing started…", "info");
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { showToast("Please sign in first", "error"); return; }
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
 
       // Mobile recordings store audio under a random sessionId, not the meetingId.
       // So we call auto-generate-meeting-notes to regenerate notes from the existing transcript.
@@ -2675,8 +2675,8 @@ export default function NoteWellRecorder() {
     if (!rec.id) return;
     try {
       setEmailingIds(prev => ({ ...prev, [rec.id]: true }));
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { showToast("Please sign in first", "error"); return; }
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
 
       // Get user email from profile
       const { data: profile } = await supabase
@@ -2814,7 +2814,7 @@ export default function NoteWellRecorder() {
   const localCount  = recordings.filter(r => r.status==="local"||r.status==="error").length;
 
   // ── Pre-flight intercept for mobile devices ──
-  const handleRecordTap = () => {
+  const handleRecordTap = async () => {
     if (!isIdle) {
       // Already recording — handle pause/resume
       if (isRecording) pauseRecording();
@@ -2822,6 +2822,10 @@ export default function NoteWellRecorder() {
       return;
     }
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (mode === "live") {
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
+    }
     const alreadyShown = sessionStorage.getItem(SESSION_KEY);
     if (isMobile && !alreadyShown) {
       setShowPreFlight(true);
@@ -2830,9 +2834,13 @@ export default function NoteWellRecorder() {
     startRecording();
   };
 
-  const handlePreFlightStart = () => {
+  const handlePreFlightStart = async () => {
     sessionStorage.setItem(SESSION_KEY, "true");
     setShowPreFlight(false);
+    if (mode === "live") {
+      const session = await ensureSignedIn(location.pathname || "/new-recorder");
+      if (!session) return;
+    }
     startRecording();
   };
 
