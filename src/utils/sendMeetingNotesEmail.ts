@@ -60,9 +60,12 @@ const humanizeEmailLocalPart = (email: string | null | undefined) => {
  * Fetches meeting data + summary, builds HTML + Word attachment,
  * and sends via the send-meeting-email-resend edge function.
  *
- * Returns `true` on success, throws on failure.
+ * Returns `true` on success, or an object with attachmentFailed flag if the
+ * email was sent but the Word attachment could not be generated. Throws on failure.
  */
-export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Promise<boolean> {
+export type SendMeetingNotesEmailResult = true | { success: true; attachmentFailed: true; reason: string };
+
+export async function sendMeetingNotesEmail(opts: SendMeetingNotesEmailOpts): Promise<SendMeetingNotesEmailResult> {
   const { meetingId, recipientEmail } = opts;
 
   // 1. Fetch meeting metadata
