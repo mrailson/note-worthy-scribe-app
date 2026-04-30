@@ -1779,13 +1779,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
       </div>
       )}
 
-      {/* Management Time Section — hidden for mgmt_lead, pml_director, pml_finance */}
-      {effectiveIsAdmin && !isENN && !isManagementLead && !isPMLDirector && !isPMLFinance && effectiveShowStaffMgmt && (
-        <>
-          <Separator className="my-6" />
-          <ManagementTimeTab isAdmin={effectiveIsAdmin} />
-        </>
-      )}
+      {/* NRES Management Time section removed — superseded by NRES Management & Meeting Attendance above */}
 
       {/* Footer */}
       {effectiveIsAdmin && !testActive && (
