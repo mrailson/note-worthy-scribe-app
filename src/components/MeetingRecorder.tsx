@@ -6087,7 +6087,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               body: {
                 meetingId: capturedMeetingId,
                 forceRegenerate: false,
-                modelOverride: 'claude-sonnet-4-6',
+                ...modelOverrideField(),
                 skipQc: true,
               }
             })
