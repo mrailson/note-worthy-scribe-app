@@ -2885,6 +2885,7 @@ export const MeetingHistoryList = ({
                       </DropdownMenuItem>
 
 
+                      <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
                           onSelect={(e) => {
                             e.preventDefault();
