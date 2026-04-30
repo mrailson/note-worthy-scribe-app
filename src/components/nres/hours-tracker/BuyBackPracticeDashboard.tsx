@@ -2808,6 +2808,7 @@ export function ClaimsViewSwitcher({
               onSubmit={onSubmit}
               onResubmit={onResubmit}
               onUpdateClaimNotes={onUpdateClaimNotes}
+              onDeleteClaim={onDeleteClaim}
               saving={saving}
             />
           ))}
