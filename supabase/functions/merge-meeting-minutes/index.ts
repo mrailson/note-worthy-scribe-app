@@ -289,6 +289,36 @@ function normaliseMergeOutput(content: string): string {
   // 7. Collapse 3+ consecutive newlines to exactly 2
   out = out.replace(/\n{3,}/g, '\n\n');
 
+  // FINAL PASS — split numbered list items that are still running inline.
+  // This runs after all other rules and uses the simplest possible regex:
+  // any sequence of "[period or other sentence-ender][space(s)][1-2 digits][period][space]"
+  // gets a paragraph break inserted before the digits.
+  let splitCount = 0;
+  out = out.replace(
+    /([.!?\)\]\"])(\s+)(\d{1,2}\.\s+)/g,
+    (_match, ender, _space, numberAndDot) => {
+      splitCount++;
+      return `${ender}\n\n${numberAndDot}`;
+    }
+  );
+  console.log(`[normaliseMergeOutput] Final-pass numbered-item split inserted ${splitCount} paragraph breaks`);
+
+  // Also handle the case where a numbered item follows a closing bold marker
+  // (e.g. "...programme** 3. **Next heading**") which the above regex misses
+  // because ** is not in the sentence-ender character class.
+  let boldSplitCount = 0;
+  out = out.replace(
+    /(\*\*)(\s+)(\d{1,2}\.\s+)/g,
+    (_match, ender, _space, numberAndDot) => {
+      boldSplitCount++;
+      return `${ender}\n\n${numberAndDot}`;
+    }
+  );
+  console.log(`[normaliseMergeOutput] Final-pass post-bold split inserted ${boldSplitCount} paragraph breaks`);
+
+  // Final newline-collapse so the new breaks don't double up
+  out = out.replace(/\n{3,}/g, '\n\n');
+
   return out.trim();
 }
 
