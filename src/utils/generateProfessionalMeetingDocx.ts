@@ -1405,8 +1405,11 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   // Parse action items from original content (before any stripping)
   const actionItems = parseActionItems(options.content);
   
-// Remove action items section from content (we'll render it as a table)
-  let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+  let contentWithoutActionItems = cleanedContent;
+  // NOTE: previously removeActionItemsSection was called here to strip the LLM's
+  // markdown action items table from the body so a separate ACTION LOG table
+  // could be rendered. We now let the body markdown table render naturally
+  // via parseContentToDocxElements, which handles markdown tables correctly.
   
   // Remove executive summary section from content (we're rendering it separately in the box)
   if (executiveSummary) {
@@ -1438,25 +1441,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
-  // Action Items section as professional table
-  if (actionItems.length > 0) {
-    // Add section divider and heading
-    children.push(await createSectionDivider());
-    children.push(new Paragraph({
-      children: [new TextRun({ 
-        text: "ACTION ITEMS",
-        bold: true,
-        size: FONTS.size.heading2,
-        color: NHS_COLORS.headingBlue,
-        font: FONTS.default,
-      })],
-      spacing: { before: 0, after: 180 },
-    }));
-    
-    // Add the action items table
-    const actionTableElements = await createActionItemsTable(actionItems);
-    children.push(...actionTableElements);
-  }
+  // Action items now render inline via parseContentToDocxElements (markdown table in body)
   
   // Create footer with meeting date/time
   const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
@@ -1769,8 +1754,8 @@ export const generateProfessionalWordBlob = async (
     isCompleted: item.isCompleted,
   }));
   
-  // Remove action items section from content (we'll render it as a table)
-  let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+  // Action items now render inline via the body markdown table; do not strip.
+  let contentWithoutActionItems = cleanedContent;
   contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
   
   // Build document
@@ -1804,34 +1789,7 @@ export const generateProfessionalWordBlob = async (
   }
   children.push(...contentElements);
   
-  // (3) Action Items section as professional table (ACTION LOG)
-  if (actionItems.length > 0) {
-    const divider = await createSectionDivider();
-    children.push(divider);
-    
-    children.push(new Paragraph({
-      children: [new TextRun({
-        text: "ACTION LOG",
-        bold: true,
-        size: FONTS.size.heading2,
-        color: NHS_COLORS.headingBlue,
-        font: FONTS.default,
-      })],
-      spacing: { before: 0, after: 180 },
-    }));
-    
-    let actionTableElements: any[];
-    try {
-      actionTableElements = await createActionItemsTable(actionItems);
-    } catch (err) {
-      console.error('❌ [docx] Failed at action items table builder', {
-        error: err instanceof Error ? err.message : String(err),
-        actionItemCount: actionItems.length,
-      });
-      throw new Error(`docx action items table failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-    children.push(...actionTableElements);
-  }
+  // (3) Action items now render inline via parseContentToDocxElements (markdown table in body)
   
   // Create footer with meeting date/time
   const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
@@ -1925,9 +1883,9 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
     isCompleted: item.isCompleted,
   }));
   
-// Remove action items section from content (we'll render it as a table)
-  let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
-  
+  // Action items now render inline via the body markdown table; do not strip.
+  let contentWithoutActionItems = cleanedContent;
+
   // Also remove executive summary section from content (user requested to strip it)
   contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
   
@@ -1956,26 +1914,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
-  // Action Items section as professional table (ACTION LOG)
-  if (actionItems.length > 0) {
-    // Add section divider and heading
-    const divider = await createSectionDivider();
-    children.push(divider);
-    
-    children.push(new Paragraph({
-      children: [new TextRun({
-        text: "ACTION LOG",
-        bold: true,
-        size: FONTS.size.heading2,
-        color: NHS_COLORS.headingBlue,
-        font: FONTS.default,
-      })],
-      spacing: { before: 0, after: 180 },
-    }));
-    
-    const actionTableElements = await createActionItemsTable(actionItems, options.priorityColumnOn !== false);
-    children.push(...actionTableElements);
-  }
+  // Action items now render inline via parseContentToDocxElements (markdown table in body)
   
   // Create footer with meeting date/time (only if footerOn is not explicitly false)
   const includeFooter = options.footerOn !== false;
