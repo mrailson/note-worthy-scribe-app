@@ -1946,6 +1946,8 @@ export function StaffRosterSection({
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+  // Default highlighted claim target: previous month if today is 1–15, else current month.
+  const defaultClaimMonthStr = getDefaultClaimMonthStr();
 
   // Always collapsed by default for a cleaner view
   const [sectionOpen, setSectionOpen] = useState(false);
