@@ -596,7 +596,6 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const savedInvoiceDescription = (claim as any).practice_notes || '';
   const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
-  const [invoiceMode, setInvoiceMode] = useState<'text' | 'table'>(parseInvoiceTableDescription(savedInvoiceDescription).length ? 'table' : 'text');
   const [invoiceRows, setInvoiceRows] = useState<InvoiceTableRow[]>(() => parseInvoiceTableDescription(savedInvoiceDescription));
   const [quickLine, setQuickLine] = useState({ date: todayStr(), start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
