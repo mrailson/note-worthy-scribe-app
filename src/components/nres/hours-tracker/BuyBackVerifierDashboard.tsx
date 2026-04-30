@@ -622,7 +622,6 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     setInvoiceDescription(savedInvoiceDescription);
     const parsedRows = parseInvoiceTableDescription(savedInvoiceDescription);
     setInvoiceRows(parsedRows);
-    setInvoiceMode(parsedRows.length ? 'table' : 'text');
   }, [claim.id, savedInvoiceDescription]);
 
   useEffect(() => {
