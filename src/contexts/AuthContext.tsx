@@ -481,6 +481,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updatePassword,
     hasModuleAccess,
     refreshUserModules: () => user?.id ? fetchUserData(user.id, true) : Promise.resolve(),
+    refreshSessionStatus,
     checkConsultationExamplesVisibility,
   };
 
