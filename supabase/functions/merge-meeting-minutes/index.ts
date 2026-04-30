@@ -147,6 +147,14 @@ function normaliseMergeOutput(content: string): string {
   // 1. Strip stray clusters of 4+ consecutive asterisks
   out = out.replace(/\*{4,}/g, '');
 
+  // 1a. (NEW Rule F) Reinforced strip of stray bold markers.
+  // Strip "** **" (close-bold immediately followed by open-bold with space)
+  out = out.replace(/\*{2}\s+\*{2}/g, ' ');
+  // Strip empty bold runs "** **" or "****" where they wrap nothing
+  out = out.replace(/\*{2,}\s*\*{2,}/g, '');
+  // Final sweep: any run of 3+ asterisks remaining
+  out = out.replace(/\*{3,}/g, '');
+
   const KNOWN_SECTIONS = [
     'MEETING DETAILS',
     'EXECUTIVE SUMMARY',
