@@ -1890,8 +1890,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
     isCompleted: item.isCompleted,
   }));
   
-  // Action items now render inline via the body markdown table; do not strip.
-  let contentWithoutActionItems = cleanedContent;
+  let contentWithoutActionItems = options.actionItems.length ? removeActionItemsSection(cleanedContent) : cleanedContent;
 
   // Also remove executive summary section from content (user requested to strip it)
   contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
@@ -1921,7 +1920,14 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
-  // Action items now render inline via parseContentToDocxElements (markdown table in body)
+  if (actionItems.length > 0) {
+    children.push(await createSectionDivider());
+    children.push(new Paragraph({
+      children: [new TextRun({ text: "ACTION ITEMS", bold: true, size: FONTS.size.heading2, color: NHS_COLORS.headingBlue, font: FONTS.default })],
+      spacing: { before: 0, after: 180 },
+    }));
+    children.push(...await createActionItemsTable(actionItems, options.priorityColumnOn));
+  }
   
   // Create footer with meeting date/time (only if footerOn is not explicitly false)
   const includeFooter = options.footerOn !== false;
