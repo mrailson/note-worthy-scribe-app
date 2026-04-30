@@ -728,11 +728,11 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
   // Column widths - adjust based on whether priority is shown
   const columnWidths = priorityColumnOn 
     ? [38, 14, 16, 12, 20] // Action, Owner, Deadline, Priority, Status
-    : [55, 22, 23]; // Action, Owner, Deadline (no Priority or Status)
+    : [46, 18, 18, 18]; // Action, Owner, Deadline, Status
   
   const headerCells = priorityColumnOn 
     ? ['Action', 'Owner', 'Deadline', 'Priority', 'Status']
-    : ['Action', 'Owner', 'Deadline'];
+    : ['Action', 'Owner', 'Deadline', 'Status'];
   
   const table = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -840,25 +840,23 @@ const createActionItemsTable = async (items: ParsedActionItem[], priorityColumnO
           );
         }
 
-        // Status column (only when priority/status columns are on)
-        if (priorityColumnOn) {
-          cells.push(
-              new TableCell({
-                children: [new Paragraph({
-                  children: [new TextRun({ 
-                    text: statusDisplay.text,
-                    size: FONTS.size.body,
-                    color: statusDisplay.color,
-                    font: FONTS.default,
-                    bold: item.isCompleted,
-                  })],
-                  spacing: { before: 60, after: 60 },
+        // Status column
+        cells.push(
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ 
+                  text: statusDisplay.text,
+                  size: FONTS.size.body,
+                  color: statusDisplay.color,
+                  font: FONTS.default,
+                  bold: item.isCompleted,
                 })],
-                shading: rowBg ? { fill: rowBg } : undefined,
-                margins: { top: 80, bottom: 80, left: 120, right: 120 },
-              }),
-          );
-        }
+                spacing: { before: 60, after: 60 },
+              })],
+              shading: rowBg ? { fill: rowBg } : undefined,
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            }),
+        );
 
         return new TableRow({ children: cells });
       }),
@@ -1405,11 +1403,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   // Parse action items from original content (before any stripping)
   const actionItems = parseActionItems(options.content);
   
-  let contentWithoutActionItems = cleanedContent;
-  // NOTE: previously removeActionItemsSection was called here to strip the LLM's
-  // markdown action items table from the body so a separate ACTION LOG table
-  // could be rendered. We now let the body markdown table render naturally
-  // via parseContentToDocxElements, which handles markdown tables correctly.
+  let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
   
   // Remove executive summary section from content (we're rendering it separately in the box)
   if (executiveSummary) {
@@ -1441,7 +1435,14 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
-  // Action items now render inline via parseContentToDocxElements (markdown table in body)
+  if (actionItems.length > 0) {
+    children.push(await createSectionDivider());
+    children.push(new Paragraph({
+      children: [new TextRun({ text: "ACTION ITEMS", bold: true, size: FONTS.size.heading2, color: NHS_COLORS.headingBlue, font: FONTS.default })],
+      spacing: { before: 0, after: 180 },
+    }));
+    children.push(...await createActionItemsTable(actionItems));
+  }
   
   // Create footer with meeting date/time
   const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
@@ -1754,8 +1755,7 @@ export const generateProfessionalWordBlob = async (
     isCompleted: item.isCompleted,
   }));
   
-  // Action items now render inline via the body markdown table; do not strip.
-  let contentWithoutActionItems = cleanedContent;
+  let contentWithoutActionItems = parsedActionItems?.length ? removeActionItemsSection(cleanedContent) : cleanedContent;
   contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
   
   // Build document
@@ -1789,7 +1789,14 @@ export const generateProfessionalWordBlob = async (
   }
   children.push(...contentElements);
   
-  // (3) Action items now render inline via parseContentToDocxElements (markdown table in body)
+  if (actionItems.length > 0) {
+    children.push(await createSectionDivider());
+    children.push(new Paragraph({
+      children: [new TextRun({ text: "ACTION ITEMS", bold: true, size: FONTS.size.heading2, color: NHS_COLORS.headingBlue, font: FONTS.default })],
+      spacing: { before: 0, after: 180 },
+    }));
+    children.push(...await createActionItemsTable(actionItems));
+  }
   
   // Create footer with meeting date/time
   const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
@@ -1883,8 +1890,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
     isCompleted: item.isCompleted,
   }));
   
-  // Action items now render inline via the body markdown table; do not strip.
-  let contentWithoutActionItems = cleanedContent;
+  let contentWithoutActionItems = options.actionItems.length ? removeActionItemsSection(cleanedContent) : cleanedContent;
 
   // Also remove executive summary section from content (user requested to strip it)
   contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
@@ -1914,7 +1920,14 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
   children.push(...contentElements);
   
-  // Action items now render inline via parseContentToDocxElements (markdown table in body)
+  if (actionItems.length > 0) {
+    children.push(await createSectionDivider());
+    children.push(new Paragraph({
+      children: [new TextRun({ text: "ACTION ITEMS", bold: true, size: FONTS.size.heading2, color: NHS_COLORS.headingBlue, font: FONTS.default })],
+      spacing: { before: 0, after: 180 },
+    }));
+    children.push(...await createActionItemsTable(actionItems, options.priorityColumnOn));
+  }
   
   // Create footer with meeting date/time (only if footerOn is not explicitly false)
   const includeFooter = options.footerOn !== false;
