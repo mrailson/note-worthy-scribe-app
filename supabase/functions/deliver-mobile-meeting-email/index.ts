@@ -55,17 +55,23 @@ const formatMeetingDate = (value: string | null | undefined): string => {
 const formatMeetingTime = (value: string | null | undefined): string | undefined => {
   if (!value) return undefined;
   const date = new Date(value);
-  const time = new Intl.DateTimeFormat("en-GB", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: UK_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(date);
+  }).formatToParts(date);
+
+  const hour = parts.find((part) => part.type === "hour")?.value || "00";
+  const minute = Number(parts.find((part) => part.type === "minute")?.value || "0");
+  const fiveMinuteBlock = Math.floor(minute / 5) * 5;
+  const roundedTime = `${hour}:${String(fiveMinuteBlock).padStart(2, "0")}`;
+
   const zone = new Intl.DateTimeFormat("en-GB", {
     timeZone: UK_TIME_ZONE,
     timeZoneName: "short",
   }).formatToParts(date).find((part) => part.type === "timeZoneName")?.value || "UK time";
-  return `${time} ${zone}`;
+  return `${roundedTime} ${zone}`;
 };
 
 Deno.serve(async (req: Request) => {
