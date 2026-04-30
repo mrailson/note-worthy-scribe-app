@@ -1630,6 +1630,7 @@ export const MeetingHistoryList = ({
         completedCount: 0,
         totalCount: typesToProcess.length,
         startedAt: Date.now(),
+        durationMinutes: meeting.duration_minutes ?? null,
       }
     }));
 
