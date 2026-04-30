@@ -1602,7 +1602,7 @@ export const MeetingHistoryList = ({
               ? 'claude-sonnet-4-6'
               : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
             const effectiveModel = modelOverride || lsModel;
-            const isPremium = effectiveModel === 'claude-opus-4-7' || effectiveModel === 'gemini-2.5-flash';
+            const isPremium = effectiveModel === 'gemini-3.1-pro' || effectiveModel === 'gemini-2.5-flash';
             console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
