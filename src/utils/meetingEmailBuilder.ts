@@ -15,6 +15,7 @@ export interface MeetingEmailMeta {
   overview?: string;
   wordCount?: number;
   attendees?: string[];
+  hasAttachment?: boolean;
 }
 
 /** Strip duplicate/redundant heading blocks from notes content */
