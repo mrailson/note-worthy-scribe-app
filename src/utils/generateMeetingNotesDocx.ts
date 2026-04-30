@@ -25,11 +25,35 @@ interface MeetingMetadata {
   loggedUserName?: string; // The logged-in user who ran the meeting
 }
 
+export interface ActionItemForExport {
+  action_text: string;
+  assignee_name?: string | null;
+  due_date?: string | null;
+  status?: string | null;
+}
+
 interface GenerateMeetingNotesOptions {
   metadata: MeetingMetadata;
   content: string;
   filename?: string;
+  actionItems?: ActionItemForExport[];
 }
+
+// Strip any existing "Action Items" section (heading + following bullet/table content)
+// from the markdown so we don't duplicate it when we append the structured table.
+export const stripActionItemsSection = (content: string): string => {
+  // Matches a heading like "## Action Items" / "## ACTION ITEMS" / "**ACTION ITEMS**"
+  // and everything until the next heading or end of document.
+  const patterns = [
+    /\n*#{1,6}\s*action\s*items\s*\n[\s\S]*?(?=\n#{1,6}\s|\n\*\*[A-Z][^*]*\*\*\s*\n|$)/gi,
+    /\n*\*\*\s*action\s*items\s*\*\*\s*\n[\s\S]*?(?=\n#{1,6}\s|\n\*\*[A-Z][^*]*\*\*\s*\n|$)/gi,
+  ];
+  let cleaned = content;
+  for (const p of patterns) {
+    cleaned = cleaned.replace(p, '\n');
+  }
+  return cleaned.trim();
+};
 
 // Replace "Facilitator" or "Unidentified" references with the actual user name
 export const replaceFacilitatorWithUserName = (content: string, userName?: string): string => {
