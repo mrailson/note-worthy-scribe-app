@@ -74,6 +74,8 @@ export const buildNHSStyles = () => {
           color: NHS_COLORS.headingBlue,
         },
         paragraph: {
+          keepNext: true,
+          keepLines: true,
           spacing: {
             before: 240,
             after: 120,
@@ -92,6 +94,8 @@ export const buildNHSStyles = () => {
           color: NHS_COLORS.headingBlue,
         },
         paragraph: {
+          keepNext: true,
+          keepLines: true,
           spacing: {
             before: 200,
             after: 100,
@@ -110,6 +114,8 @@ export const buildNHSStyles = () => {
           color: NHS_COLORS.headingBlue,
         },
         paragraph: {
+          keepNext: true,
+          keepLines: true,
           spacing: {
             before: 160,
             after: 80,
