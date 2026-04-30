@@ -3039,16 +3039,18 @@ export function ClaimsViewSwitcher({
 }
 
 // --- Claim Card (preserved) ---
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
+  onDeleteClaim?: (id: string) => Promise<void>;
   saving?: boolean;
 }) {
   const [queryResponse, setQueryResponse] = useState('');
+  const [deletingClaim, setDeletingClaim] = useState(false);
   const [invoiceDescription, setInvoiceDescription] = useState((claim as any).practice_notes || '');
   const total = claimTotal(claim);
   const hours = claimHours(claim);
