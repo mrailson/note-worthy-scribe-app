@@ -110,6 +110,7 @@ import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 import { exportConsultationToWord } from '@/utils/consultationWordExport';
 import { WordIcon } from '@/components/icons/WordIcon';
+import { resolveMeetingModel, modelOverrideField } from '@/utils/resolveMeetingModel';
 
 // Maximum length for Standard minutes rendering - skip expensive formatting for very long notes
 const MAX_MINUTES_RENDER_LENGTH = 50000;
@@ -2187,11 +2188,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
       });
 
-      // Read LLM preference from localStorage
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-        ? 'claude-sonnet-4-6'
-        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
-      
+      const modelOverride = resolveMeetingModel();
+
       const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
@@ -2200,7 +2198,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           meetingDate: meetingDate,
           meetingTime: meetingTime,
           detailLevel: 'standard',
-          modelOverride,
+          ...modelOverrideField(),
           skipQc,
         }
       });
@@ -2217,7 +2215,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         
         // Store which model was used for this meeting (shown in footer)
         if (meeting?.id) {
-          localStorage.setItem(`meeting-llm-used-${meeting.id}`, modelOverride);
+          localStorage.setItem(`meeting-llm-used-${meeting.id}`, modelOverride ?? 'default');
           
           // Store quality gate results
           if (data.qualityGate) {
@@ -2232,7 +2230,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
         
         // Show which model was used + quality gate status
-        const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : modelOverride === 'claude-haiku-4-5-20251001' ? 'Claude Haiku 4.5' : 'Gemini 3 Flash';
+        const modelLabel = modelOverride === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6' : modelOverride === 'claude-haiku-4-5-20251001' ? 'Claude Haiku 4.5' : modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' : 'Gemini 3.1 Pro';
         const qgStatus = data.qualityGate?.status;
         const qgSuffix = qgStatus === 'CLEAN' ? ' ✅ Verified' 
           : qgStatus === 'AUTO_CORRECTED' ? ` ⚠️ ${data.qualityGate.accuracyIssueCount + data.qualityGate.missingTopicCount + data.qualityGate.missingActionCount} items auto-corrected`
