@@ -2193,7 +2193,8 @@ export function StaffRosterSection({
               {staffList.map(member => {
                 const rowCells = claimMonths.map(cm => {
                   const claim = findClaimForStaffMonth(claims, member, cm.monthDate);
-                  const isCurrentMo = cm.monthDate.slice(0, 7) === currentMonthStr;
+                  // Highlight the DEFAULT claim month (prev month on days 1–15, otherwise current).
+                  const isCurrentMo = cm.monthDate.slice(0, 7) === defaultClaimMonthStr;
                   return { cm, claim, isCurrentMo };
                 });
 
