@@ -371,6 +371,8 @@ function InlineClaimPanel({
   confirmDeclaration,
   onClose,
   saving,
+  claimMonths,
+  onChangeMonth,
 }: {
   staffMember: BuyBackStaffMember;
   monthDate: string;
