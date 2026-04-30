@@ -694,6 +694,12 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   // Parse and add content
   const contentElements = await parseContentToDocxElements(cleanedContent);
   children.push(...contentElements);
+
+  // Append structured Action Items section from data (if provided)
+  if (options.actionItems !== undefined) {
+    const actionElements = await buildActionItemsSection(options.actionItems);
+    children.push(...actionElements);
+  }
   
   // Footer
   const now = new Date();
