@@ -2375,7 +2375,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         // Update generation metadata badges from edge function response
         if (data?.qc || data?.modelUsed) {
           const freshMeta: any = {
-            model: data.modelUsed || modelOverride,
+            model: data.modelUsed || modelOverride || 'gemini-3.1-pro',
             transcript_source: 'auto',
             note_style: 'standard',
           };
@@ -2394,8 +2394,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
 
         // Update the LLM badge
-        localStorage.setItem(`meeting-llm-used-${meeting.id}`, data?.modelUsed || modelOverride);
-        const modelLabel = modelOverride.startsWith('claude-') ? 'Claude Sonnet 4.6' : 'Gemini 3 Flash';
+        localStorage.setItem(`meeting-llm-used-${meeting.id}`, data?.modelUsed || modelOverride || 'default');
+        const modelLabel = (modelOverride ?? '').startsWith('claude-') ? 'Claude Sonnet 4.6' : modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' : 'Gemini 3.1 Pro';
         toast.success(`Notes regenerated using ${modelLabel}`);
       } else {
         console.error('❌ No content returned from edge function');
