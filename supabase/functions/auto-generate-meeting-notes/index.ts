@@ -1386,6 +1386,14 @@ If you find any of these and they are not already in your ACTION ITEMS table, ad
 CROSS-SECTION CHECK (mandatory, run AFTER drafting Decisions Register and Next Meeting):
 Before finalising the Action Items table, cross-check the Decisions Register and Next Meeting sections. For each item in those sections that has a named owner and a future task, ensure it ALSO appears in the Action Items table with the owner and deadline populated. Decisions and next-meeting commitments are NOT mutually exclusive with actions — owner-bearing items must be duplicated into Action Items.
 
+REASONING TRACE (diagnostic only — MUST appear BEFORE the final notes):
+Before the final notes, output this exact diagnostic block:
+<!-- ACTION_EXTRACTION_REASONING_TRACE_START
+- Rejected action candidates: [brief bullets listing any owner-bearing or possible action items considered for the Action Items table but rejected, with the reason]
+- Cross-section check: I have re-scanned the Decisions Register and Next Meeting sections for owner-bearing future tasks and duplicated qualifying items into Action Items.
+ACTION_EXTRACTION_REASONING_TRACE_END -->
+Then output the final meeting notes. This diagnostic block is for internal logging only and will be stripped before user-facing notes/DOCX generation.
+
 STRICT QUALITY RULES — quality over quantity:
 - ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
 - Each action must have a CLEAR DELIVERABLE — something that can be completed and ticked off
@@ -1721,6 +1729,53 @@ ${cleanedTranscript}`;
     // we automatically retry with the next model in the chain. This protects against
     // transient Pro outages and Google-wide incidents.
     const skipSingleShot = generatedNotes.trim().length > 0;
+    let extractionReasoningTrace: string | null = null;
+    let extractedActionCount: number | null = null;
+    let decisionCount: number | null = null;
+    let nextMeetingItemCount: number | null = null;
+    let crossSectionCheckPerformed = false;
+
+    const stripExtractionReasoningTrace = (notes: string): string => {
+      if (!notes) return notes;
+      const traceMatch = notes.match(/<!--\s*ACTION_EXTRACTION_REASONING_TRACE_START([\s\S]*?)ACTION_EXTRACTION_REASONING_TRACE_END\s*-->/i);
+      if (traceMatch) {
+        extractionReasoningTrace = traceMatch[1].trim().slice(0, 12000);
+        crossSectionCheckPerformed = /re-?scanned?\s+the\s+Decisions\s+Register|cross-?section\s+check|Next\s+Meeting\s+sections/i.test(extractionReasoningTrace);
+        return notes.replace(traceMatch[0], '').replace(/^\s+/, '').trim();
+      }
+      crossSectionCheckPerformed = /I\s+have\s+re-?scanned?\s+the\s+Decisions\s+Register|cross-?section\s+check\s*:/i.test(notes);
+      return notes;
+    };
+
+    const countMarkdownTableRows = (section: string): number => section
+      .split('\n')
+      .filter((line) => line.trim().startsWith('|'))
+      .filter((line) => !/\|[-:\s|]+\|/.test(line))
+      .filter((line) => !/\b(action|owner|deadline|decision|status|date|item)\b/i.test(line))
+      .length;
+
+    const extractSection = (notes: string, headingPattern: string): string => {
+      const match = notes.match(new RegExp(`#{1,3}\\s*(?:${headingPattern})\\s*\\n([\\s\\S]*?)(?=\\n#{1,3}\\s+|$)`, 'i'));
+      return match?.[1] || '';
+    };
+
+    const countBulletsOrLines = (section: string, emptyPattern: RegExp): number => {
+      const trimmed = section.trim();
+      if (!trimmed || emptyPattern.test(trimmed)) return 0;
+      if (trimmed.includes('|')) return countMarkdownTableRows(trimmed);
+      const bulletCount = trimmed.split('\n').filter((line) => /^\s*(?:[-*•]|\d+\.)\s+\S/.test(line)).length;
+      return bulletCount || 1;
+    };
+
+    const collectExtractionDiagnostics = (notes: string) => {
+      const actionSection = extractSection(notes, 'ACTION\\s+ITEMS|Action\\s+Items');
+      const decisionSection = extractSection(notes, 'DECISIONS\\s+REGISTER|Decisions\\s+Register');
+      const nextMeetingSection = extractSection(notes, 'NEXT\\s+MEETING|Next\\s+Meeting');
+
+      extractedActionCount = countBulletsOrLines(actionSection, /no\s+(action\s+items|actions)\s+(were\s+)?recorded/i);
+      decisionCount = countBulletsOrLines(decisionSection, /no\s+(formal\s+)?decisions\s+(were\s+)?recorded/i);
+      nextMeetingItemCount = countBulletsOrLines(nextMeetingSection, /to\s+be\s+determined|not\s+(mentioned|specified|confirmed)/i);
+    };
 
     // Build fallback chain. Primary is always the requested model. Fallbacks are appended
     // only if the primary is the new default (Pro) — explicit overrides like 'gemini-3-flash'
@@ -1893,7 +1948,15 @@ ${cleanedTranscript}`;
         '$1\n\n$2'
       );
 
+      generatedNotes = stripExtractionReasoningTrace(generatedNotes);
+      collectExtractionDiagnostics(generatedNotes);
+
       console.log('✅ Generated notes length:', generatedNotes.length, 'chars', '| model:', actualModelUsed, '| fallbacks:', fallbackCount);
+    }
+
+    if (skipSingleShot) {
+      generatedNotes = stripExtractionReasoningTrace(generatedNotes);
+      collectExtractionDiagnostics(generatedNotes);
     }
 
     // Log generation outcome to meeting_generation_log (admin-readable monitoring).
@@ -1906,6 +1969,11 @@ ${cleanedTranscript}`;
         fallback_count: fallbackCount,
         generation_ms: Date.now() - notesGenStart,
         failure_reasons: failureReasons.length > 0 ? failureReasons : null,
+        extracted_action_count: extractedActionCount,
+        decision_count: decisionCount,
+        next_meeting_item_count: nextMeetingItemCount,
+        cross_section_check_performed: crossSectionCheckPerformed,
+        extraction_reasoning_trace: extractionReasoningTrace,
       });
     } catch (logErr) {
       console.warn('⚠️ Failed to write generation log (non-blocking):', logErr);
