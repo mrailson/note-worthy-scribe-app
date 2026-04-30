@@ -1303,11 +1303,11 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="verified">Verified</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="queried">Queried</SelectItem>
-                  <SelectItem value="invoiced">Invoiced</SelectItem>
+                  <SelectItem value="submitted">Awaiting Verification</SelectItem>
+                  <SelectItem value="verified">Awaiting Approval</SelectItem>
+                  <SelectItem value="approved">Approved – Invoice Pending</SelectItem>
+                  <SelectItem value="queried">Action Needed – Query Raised</SelectItem>
+                  <SelectItem value="invoiced">Invoice Issued</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
