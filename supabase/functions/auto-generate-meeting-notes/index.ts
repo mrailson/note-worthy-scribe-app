@@ -2000,17 +2000,44 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     // Extract and store action items immediately after notes are saved
     try {
       console.log('📋 Extracting action items from generated notes...');
-      
-      // Check if action items already exist for this meeting (avoid duplicates on regeneration)
-      const { data: existingItems } = await supabase
-        .from('meeting_action_items')
-        .select('id')
-        .eq('meeting_id', meetingId)
-        .limit(1);
-      
-      if (existingItems && existingItems.length > 0) {
-        console.log('⚠️ Action items already exist for this meeting, skipping extraction');
+
+      // On forceRegenerate, delete existing action items first so the user can
+      // actually recover from corrupt data by clicking Regenerate Notes. Otherwise,
+      // skip extraction if items already exist to avoid duplicates on idempotent runs.
+      if (forceRegenerate) {
+        console.log('🗑️ forceRegenerate=true — deleting existing action items before re-extraction');
+        const { error: deleteError } = await supabase
+          .from('meeting_action_items')
+          .delete()
+          .eq('meeting_id', meetingId);
+        if (deleteError) {
+          console.warn('⚠️ Failed to delete existing action items (continuing anyway):', deleteError.message);
+        } else {
+          console.log('✅ Existing action items cleared');
+        }
       } else {
+        const { data: existingItems } = await supabase
+          .from('meeting_action_items')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .limit(1);
+
+        if (existingItems && existingItems.length > 0) {
+          console.log('⚠️ Action items already exist for this meeting, skipping extraction');
+        }
+      }
+
+      // Only proceed with extraction if forceRegenerate OR no existing items
+      const shouldExtract = forceRegenerate || await (async () => {
+        const { data: existingItems } = await supabase
+          .from('meeting_action_items')
+          .select('id')
+          .eq('meeting_id', meetingId)
+          .limit(1);
+        return !existingItems || existingItems.length === 0;
+      })();
+
+      if (shouldExtract) {
         // Parse action items from the generated notes
         const actionItemsToInsert: Array<{
           meeting_id: string;
