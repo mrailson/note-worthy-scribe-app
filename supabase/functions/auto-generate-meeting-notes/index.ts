@@ -1985,6 +1985,19 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       throw summaryError;
     }
 
+    const { error: notesMirrorError } = await supabase
+      .from('meetings')
+      .update({
+        notes_style_3: generatedNotes,
+        notes_generation_status: 'completed',
+        primary_transcript_source: actualTranscriptSource,
+      })
+      .eq('id', meetingId);
+
+    if (notesMirrorError) {
+      console.warn('⚠️ Failed to mirror generated notes to meetings.notes_style_3:', notesMirrorError);
+    }
+
     // Extract and store action items immediately after notes are saved
     try {
       console.log('📋 Extracting action items from generated notes...');
