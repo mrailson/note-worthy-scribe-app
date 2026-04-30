@@ -214,7 +214,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     });
     finalY = (doc as any).lastAutoTable.finalY + 10;
   } else if (descriptionLines.length > 0) {
-    const descHeight = Math.min(73, 10 + descriptionLines.length * 4.2);
+    const descHeight = Math.min(94, 10 + descriptionLines.length * 4.2);
     doc.setFillColor(239, 246, 255);
     doc.roundedRect(14, finalY - 4, 182, descHeight, 2, 2, 'F');
     doc.setFontSize(9);
