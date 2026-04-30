@@ -2895,51 +2895,48 @@ export const MeetingHistoryList = ({
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
 
+                      {/* Gemini 3 Flash — fast, lower-quality alternative for quick re-runs */}
                       <DropdownMenuItem
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          // Confirmation dialog (per spec)
                           const ok = window.confirm(
-                            'Regenerate with Gemini 3.1 Pro?\n\n' +
-                            "This uses Google's most advanced reasoning model. It may take 60-120 " +
-                            'seconds and costs roughly 4x more than the default. Useful for testing ' +
-                            'extraction quality on complex meetings. Continue?'
+                            'Regenerate with Gemini 3 Flash?\n\n' +
+                            'Faster generation (~25 seconds) but slightly lower extraction quality ' +
+                            'than the default. Useful for quick re-runs.\n\n' +
+                            'Use Flash?'
                           );
-                          if (!ok) return;
-                          // Server-side PIN gate still enforced
-                          const confirmed = promptForPremiumPin(
-                            'Gemini 3.1 Pro (premium)',
-                            "Google's most advanced reasoning model. ~4x default cost, 60-120s runtime. Existing notes will be replaced."
-                          );
-                          if (confirmed) {
-                            handleProcessClick(meeting, 'gemini-3.1-pro');
-                          }
-                        }}
-                        disabled={processingMeetings[meeting.id]?.isProcessing}
-                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini 3.1 Pro (premium)'}
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          const confirmed = promptForPremiumPin(
-                            'Gemini 2.5 Flash (cheap, long meetings)',
-                            'This routes the meeting through a fast, low-cost model with a large context window — useful for meetings over 60 minutes. Cost is approximately 1/13th of standard generation. Output structure may differ slightly from Claude. Existing notes will be replaced.'
-                          );
-                          if (confirmed) {
-                            handleProcessClick(meeting, 'gemini-2.5-flash');
+                          if (ok) {
+                            handleProcessClick(meeting, 'gemini-3-flash');
                           }
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
                         className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
                       >
                         <Zap className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini Flash (cheap)'}
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini 3 Flash (fast)'}
+                      </DropdownMenuItem>
+
+                      {/* Claude Sonnet 4.6 — alternative perspective for cross-checking */}
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const ok = window.confirm(
+                            'Regenerate with Claude Sonnet 4.6?\n\n' +
+                            "Anthropic's model — provides a different perspective on the same " +
+                            'transcript. Useful for cross-checking action item extraction.\n\n' +
+                            'Use Sonnet?'
+                          );
+                          if (ok) {
+                            handleProcessClick(meeting, 'sonnet-4.6');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Sonnet 4.6 (alternative)'}
                       </DropdownMenuItem>
 
 
