@@ -655,11 +655,12 @@ export const MeetingHistoryList = ({
     if (!anyProcessing) return;
     const id = setInterval(() => {
       setProgressTick(t => t + 1);
-      // Watchdog: warn the user once when a generation passes 130s.
+      // Watchdog: warn the user once when a generation passes its scaled threshold.
       const now = Date.now();
       Object.entries(processingMeetings).forEach(([mid, p]) => {
+        const threshold = getWatchdogThresholdMs(p?.durationMinutes);
         if (p?.isProcessing && p.currentStage === 'standard' && p.startedAt &&
-            (now - p.startedAt) > 130000 && !longGenWarnedRef.current[mid]) {
+            (now - p.startedAt) > threshold && !longGenWarnedRef.current[mid]) {
           longGenWarnedRef.current[mid] = true;
           toast.info('Taking longer than usual — this can happen with longer meetings. Hang tight.', { duration: 8000 });
         }
