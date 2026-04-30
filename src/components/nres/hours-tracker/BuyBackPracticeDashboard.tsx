@@ -195,6 +195,22 @@ export function getClaimMonths(): { label: string; monthDate: string; month: num
   return months;
 }
 
+/**
+ * The default claim month for the Practice Claim UI.
+ * On days 1–15 of the calendar month, default to the previous month
+ * (because most practices are still claiming for the month just ended).
+ * On day 16 onward, default to the current calendar month.
+ * Returns "YYYY-MM".
+ */
+export function getDefaultClaimMonthStr(): string {
+  const now = new Date();
+  const useLast = now.getDate() <= 15;
+  const target = useLast
+    ? new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
+  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function findClaimForStaffMonth(claims: BuyBackClaim[], staffMember: BuyBackStaffMember, monthDate: string): BuyBackClaim | null {
   return claims.find(c => {
     if (c.claim_month.slice(0, 7) !== monthDate.slice(0, 7)) return false;
