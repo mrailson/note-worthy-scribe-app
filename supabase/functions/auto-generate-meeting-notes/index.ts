@@ -1941,6 +1941,9 @@ ${cleanedTranscript}`;
         throw lastError || new Error('All AI generation attempts failed');
       }
 
+      generatedNotes = stripExtractionReasoningTrace(generatedNotes);
+      collectExtractionDiagnostics(generatedNotes);
+
       // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
       // the heading from the table header onto separate lines.
       generatedNotes = generatedNotes.replace(
@@ -1961,6 +1964,11 @@ ${cleanedTranscript}`;
         fallback_count: fallbackCount,
         generation_ms: Date.now() - notesGenStart,
         failure_reasons: failureReasons.length > 0 ? failureReasons : null,
+        extracted_action_count: extractedActionCount,
+        decision_count: decisionCount,
+        next_meeting_item_count: nextMeetingItemCount,
+        cross_section_check_performed: crossSectionCheckPerformed,
+        extraction_reasoning_trace: extractionReasoningTrace,
       });
     } catch (logErr) {
       console.warn('⚠️ Failed to write generation log (non-blocking):', logErr);
