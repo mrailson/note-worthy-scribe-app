@@ -15,6 +15,23 @@ const decodeHtmlEntities = (text: string): string => {
     .replace(/&nbsp;/g, ' ');
 };
 
+const formatLocationForDisplay = (location: string): string => {
+  const normalised = location.trim().toLowerCase();
+
+  const platformMap: Record<string, string> = {
+    teams: "Microsoft Teams",
+    "ms teams": "Microsoft Teams",
+    "microsoft teams": "Microsoft Teams",
+    zoom: "Zoom",
+    "google meet": "Google Meet",
+    gmeet: "Google Meet",
+    meet: "Google Meet",
+    webex: "Webex",
+  };
+
+  return platformMap[normalised] || location.replace(/\b\w/g, char => char.toUpperCase());
+};
+
 interface MeetingMetadata {
   title: string;
   date?: string;
@@ -465,7 +482,7 @@ const createMeetingDetailsBox = async (metadata: MeetingMetadata) => {
   if (metadata.date) rows.push(createDetailRow("Date", metadata.date));
   if (metadata.time) rows.push(createDetailRow("Time", metadata.time));
   if (metadata.duration) rows.push(createDetailRow("Duration", metadata.duration));
-  if (metadata.location) rows.push(createDetailRow("Location", metadata.location));
+  if (metadata.location) rows.push(createDetailRow("Location", formatLocationForDisplay(metadata.location)));
   if (metadata.venue) rows.push(createDetailRow("Venue", metadata.venue));
   if (metadata.attendees) rows.push(createDetailRow("Attendees", metadata.attendees));
   
@@ -868,6 +885,34 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
     
     // Skip empty lines with minimal spacing
     if (!line) {
+      const isListItemLine = (value: string) => {
+        const trimmed = value.trim();
+        return trimmed.startsWith('- ') || trimmed.startsWith('• ') ||
+          (trimmed.startsWith('* ') && !trimmed.startsWith('**')) ||
+          /^\d+\.\s+/.test(trimmed);
+      };
+
+      const previousNonEmptyLine = (() => {
+        for (let j = i - 1; j >= 0; j--) {
+          const candidate = lines[j].trim();
+          if (candidate) return candidate;
+        }
+        return '';
+      })();
+
+      const nextNonEmptyLine = (() => {
+        for (let j = i + 1; j < lines.length; j++) {
+          const candidate = lines[j].trim();
+          if (candidate) return candidate;
+        }
+        return '';
+      })();
+
+      if (isListItemLine(previousNonEmptyLine) && isListItemLine(nextNonEmptyLine)) {
+        i++;
+        continue;
+      }
+
       if (!previousWasHeading) {
         elements.push(new Paragraph({
           children: [new TextRun({ text: "", size: FONTS.size.body })],
@@ -1098,6 +1143,8 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
             font: FONTS.default,
           })],
           spacing: { before: 0, after: 140 },
+          keepNext: true,
+          keepLines: true,
         }));
         previousWasHeading = true;
         i++;
