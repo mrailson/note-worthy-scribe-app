@@ -1591,7 +1591,7 @@ export const MeetingHistoryList = ({
             console.log('⏳ Polling for note completion...');
             // Poll for completion in meeting_summaries table (not meetings.notes_style_3)
             await pollForNoteCompletion(meetingId, 'summary', 'meeting_summaries');
-            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || modelOverride);
+            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || effectiveModel);
             completedCount++;
 
             // Safety net: ensure meeting title was generated
