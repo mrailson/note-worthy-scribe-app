@@ -250,7 +250,7 @@ function ModePill({ mode, isAutoFallback, disabled, onTap, authLoading, isAuthen
   );
 }
 
-function ModeSheet({ mode, onClose, onSelect }) {
+function ModeSheet({ mode, onClose, onSelect, isAuthenticated, authLoading, onSignIn }) {
   return (
     <div
       onClick={onClose}
@@ -264,8 +264,16 @@ function ModeSheet({ mode, onClose, onSelect }) {
         <div style={{width:40,height:4,background:"#e2e8f0",borderRadius:2,margin:"0 auto 18px"}}/>
         <div style={{fontSize:16,fontWeight:700,color:"#1a2332",marginBottom:3}}>Recording Mode</div>
         <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>
-          Auto-detected from your connection. Tap to override.
+          Auto-detected from your connection and login status. Tap to override.
         </div>
+
+        {mode === "live" && !authLoading && !isAuthenticated && (
+          <div style={{background:"rgba(245,158,11,0.10)",borderRadius:12,padding:"12px",border:"1px solid rgba(245,158,11,0.30)",marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#92400e",marginBottom:4}}>Sign in needed</div>
+            <div style={{fontSize:12,color:"#92400e",lineHeight:1.45,marginBottom:10}}>You have internet, but your Notewell login is not active. Sign in to use live recording, sync, and old meetings.</div>
+            <button onClick={onSignIn} style={{width:"100%",padding:"9px 12px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#1565c0,#0288d1)",color:"white",fontSize:13,fontWeight:700,fontFamily:"inherit",cursor:"pointer"}}>Sign in</button>
+          </div>
+        )}
 
         {[
           {
