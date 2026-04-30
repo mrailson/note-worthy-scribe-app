@@ -2845,8 +2845,46 @@ export const MeetingHistoryList = ({
                       })()}
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
-                      
-                      <AlertDialogTrigger asChild>
+
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const confirmed = promptForPremiumPin(
+                            'Claude Opus 4.7 (premium)',
+                            'This is a premium model that may produce higher-quality notes for complex meetings, at approximately 2-3x the standard generation cost. Existing notes will be replaced.'
+                          );
+                          if (confirmed) {
+                            handleProcessClick(meeting, 'claude-opus-4-7');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Opus 4.7 (premium)'}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const confirmed = promptForPremiumPin(
+                            'Gemini 2.5 Flash (cheap, long meetings)',
+                            'This routes the meeting through a fast, low-cost model with a large context window — useful for meetings over 60 minutes. Cost is approximately 1/13th of standard generation. Output structure may differ slightly from Claude. Existing notes will be replaced.'
+                          );
+                          if (confirmed) {
+                            handleProcessClick(meeting, 'gemini-2.5-flash');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Zap className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini Flash (cheap)'}
+                      </DropdownMenuItem>
+
+
                         <DropdownMenuItem 
                           onSelect={(e) => {
                             e.preventDefault();
