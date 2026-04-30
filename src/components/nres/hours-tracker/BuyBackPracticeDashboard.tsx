@@ -2510,7 +2510,7 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
                     fontVariantNumeric: col.key !== 'month' ? 'tabular-nums' : undefined,
                     fontWeight: 700, fontSize: col.key === 'total' ? 13 : 12,
                     color: col.key === 'month' ? '#374151' : col.key === 'total' ? '#111827' : cellColor(totals, col),
-                  }}>{col.key === 'month' ? 'TOTALS' : cellVal(totals, col)}</td>
+                  }}>{col.key === 'month' ? 'TOTALS' : col.key === 'practice' ? '' : cellVal(totals, col)}</td>
                 ))}
               </tr>
             </tfoot>
