@@ -139,6 +139,93 @@ function performProfessionalToneAudit(content: string): string {
   return audited.replace(/\s{2,}/g, ' ').replace(/\n\s*\n\s*\n/g, '\n\n').trim();
 }
 
+function normaliseMergeOutput(content: string): string {
+  if (!content) return content;
+  let out = content;
+
+  // 1. Strip stray clusters of 4+ consecutive asterisks
+  out = out.replace(/\*{4,}/g, '');
+
+  const KNOWN_SECTIONS = [
+    'MEETING DETAILS',
+    'EXECUTIVE SUMMARY',
+    'ATTENDEES',
+    'DISCUSSION SUMMARY',
+    'DECISIONS REGISTER',
+    'OPEN ITEMS & RISKS',
+    'OPEN ITEMS AND RISKS',
+    'ACTION ITEMS',
+    'NEXT MEETING',
+  ];
+
+  // 2. Convert "**SECTION**" lines to "# SECTION"
+  for (const section of KNOWN_SECTIONS) {
+    const escaped = section.replace(/[&]/g, '\\$&');
+    const re = new RegExp(`^\\*{1,2}\\s*${escaped}\\s*\\*{1,2}\\s*$`, 'gim');
+    out = out.replace(re, `# ${section}`);
+  }
+
+  // 3. Split heading + dash/colon + remainder on same line
+  for (const section of KNOWN_SECTIONS) {
+    const escaped = section.replace(/[&]/g, '\\$&');
+    const re = new RegExp(
+      `^(#{1,6}\\s*|\\*{1,2}\\s*)${escaped}(\\*{1,2}\\s*)?\\s*[-:—–]\\s+(.+)$`,
+      'gim'
+    );
+    out = out.replace(re, `# ${section}\n\n$3`);
+  }
+
+  // 4. Force paragraph break before inline "# KNOWN_SECTION"
+  for (const section of KNOWN_SECTIONS) {
+    const escaped = section.replace(/[&]/g, '\\$&');
+    const re = new RegExp(`(\\S)\\s+#\\s+${escaped}\\b`, 'g');
+    out = out.replace(re, `$1\n\n# ${section}`);
+  }
+
+  // 5. Convert all-caps prose lines to sentence case
+  const ACRONYM_WHITELIST = new Set([
+    'NHS', 'ICB', 'GP', 'GPs', 'OPIT', 'KGH', 'NHFT', 'UHN', 'UHL', 'TBC',
+    'TDA', 'EDI', 'CMO', 'PCN', 'ARD', 'COPD', 'NARP', 'CYPMHND', 'BST',
+    'GMT', 'WNC', 'LMS', 'QOF', 'CQC', 'RESOLVED', 'AGREED', 'NOTED',
+    'AND', 'OR', 'OF', 'TO', 'THE', 'A', 'AN', 'IN', 'ON', 'AT', 'IS', 'AS',
+    'BY', 'BE', 'IT', 'WAS', 'WERE', 'HAS', 'HAVE',
+  ]);
+
+  out = out.split('\n').map(line => {
+    if (line.startsWith('#') || line.startsWith('|') || line.length < 80) return line;
+    if (/^\*{1,2}[^*]{1,60}\*{1,2}$/.test(line.trim())) return line;
+    const words = line.split(/(\s+)/);
+    const alphaWords = words.filter(w => /[a-zA-Z]/.test(w));
+    if (alphaWords.length < 8) return line;
+    const upperCount = alphaWords.filter(w => {
+      const clean = w.replace(/[^a-zA-Z]/g, '');
+      return clean.length > 0 && clean === clean.toUpperCase();
+    }).length;
+    if (upperCount / alphaWords.length < 0.7) return line;
+
+    let lowered = line.toLowerCase();
+    for (const acronym of ACRONYM_WHITELIST) {
+      const re = new RegExp(`\\b${acronym.toLowerCase()}\\b`, 'g');
+      lowered = lowered.replace(re, acronym);
+    }
+    lowered = lowered.replace(/^(\s*\*{0,2}\s*)([a-z])/, (_m, prefix, letter) => prefix + letter.toUpperCase());
+    lowered = lowered.replace(/(\.\s+)([a-z])/g, (_m, prefix, letter) => prefix + letter.toUpperCase());
+    return lowered;
+  }).join('\n');
+
+  // 6. Ensure each known section heading has blank line before and after
+  for (const section of KNOWN_SECTIONS) {
+    const escaped = section.replace(/[&]/g, '\\$&');
+    const re = new RegExp(`(?:\\n)?\\n?(#\\s+${escaped})\\s*\\n?(?:\\n)?`, 'g');
+    out = out.replace(re, `\n\n$1\n\n`);
+  }
+
+  // 7. Collapse 3+ consecutive newlines to exactly 2
+  out = out.replace(/\n{3,}/g, '\n\n');
+
+  return out.trim();
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -212,6 +299,7 @@ ${joined}`;
       .join('\n');
 
     meetingMinutes = performProfessionalToneAudit(meetingMinutes);
+    meetingMinutes = normaliseMergeOutput(meetingMinutes);
 
     return new Response(JSON.stringify({ meetingMinutes, model: 'claude-sonnet-4-6', chunksMerged: summaries.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
