@@ -140,6 +140,7 @@ function performProfessionalToneAudit(content: string): string {
 }
 
 function normaliseMergeOutput(content: string): string {
+  console.log('[normaliseMergeOutput] Running on content of length:', content?.length || 0);
   if (!content) return content;
   let out = content;
 
@@ -157,6 +158,20 @@ function normaliseMergeOutput(content: string): string {
     'ACTION ITEMS',
     'NEXT MEETING',
   ];
+
+  const SECTION_NAMES_REGEX_GROUP = '(?:MEETING DETAILS|EXECUTIVE SUMMARY|ATTENDEES|DISCUSSION SUMMARY|DECISIONS REGISTER|OPEN ITEMS\\s*(?:&|AND)\\s*RISKS|ACTION ITEMS|NEXT MEETING)';
+
+  // 1b (NEW Rule A). Unwrap "**SECTION_NAME [substantial content...]**" — bold-wrapped
+  // block where the bold opens with a known section name and contains far more than
+  // just the heading. Split into "# SECTION_NAME\n\n[rest]" and strip the bold wrapper.
+  const wrappedSectionRe = new RegExp(
+    `\\*{1,2}\\s*(${SECTION_NAMES_REGEX_GROUP})\\s+([\\s\\S]+?)\\*{1,2}`,
+    'gi'
+  );
+  out = out.replace(wrappedSectionRe, (_match, section, body) => {
+    const cleanSection = section.replace(/\s+/g, ' ').trim().toUpperCase();
+    return `\n\n# ${cleanSection}\n\n${body.trim()}\n\n`;
+  });
 
   // 2. Convert "**SECTION**" lines to "# SECTION"
   for (const section of KNOWN_SECTIONS) {
@@ -182,36 +197,49 @@ function normaliseMergeOutput(content: string): string {
     out = out.replace(re, `$1\n\n# ${section}`);
   }
 
-  // 5. Convert all-caps prose lines to sentence case
+  // 5. (NEW Rule B) Convert all-caps prose paragraphs to sentence case — paragraph-level.
   const ACRONYM_WHITELIST = new Set([
-    'NHS', 'ICB', 'GP', 'GPs', 'OPIT', 'KGH', 'NHFT', 'UHN', 'UHL', 'TBC',
-    'TDA', 'EDI', 'CMO', 'PCN', 'ARD', 'COPD', 'NARP', 'CYPMHND', 'BST',
-    'GMT', 'WNC', 'LMS', 'QOF', 'CQC', 'RESOLVED', 'AGREED', 'NOTED',
+    'NHS', 'ICB', 'GP', 'GPS', 'OPIT', 'OPIP', 'KGH', 'NHFT', 'UHN', 'UHL',
+    'TBC', 'TDA', 'EDI', 'CMO', 'PCN', 'ARD', 'COPD', 'NARP', 'CYPMHND',
+    'BST', 'GMT', 'WNC', 'LMS', 'QOF', 'CQC', 'UEC', 'LES', 'VAC-IMS',
+    'BESOL', 'WORKWELL', 'INNOVATE',
+    'RESOLVED', 'AGREED', 'NOTED',
     'AND', 'OR', 'OF', 'TO', 'THE', 'A', 'AN', 'IN', 'ON', 'AT', 'IS', 'AS',
-    'BY', 'BE', 'IT', 'WAS', 'WERE', 'HAS', 'HAVE',
+    'BY', 'BE', 'IT', 'WAS', 'WERE', 'HAS', 'HAVE', 'WILL', 'FOR', 'WITH',
+    'I', 'II', 'III', 'IV', 'V',
   ]);
 
-  out = out.split('\n').map(line => {
-    if (line.startsWith('#') || line.startsWith('|') || line.length < 80) return line;
-    if (/^\*{1,2}[^*]{1,60}\*{1,2}$/.test(line.trim())) return line;
-    const words = line.split(/(\s+)/);
-    const alphaWords = words.filter(w => /[a-zA-Z]/.test(w));
-    if (alphaWords.length < 8) return line;
+  const lowercaseAllCapsParagraph = (text: string): string => {
+    if (/^\s*#/.test(text) || /^\s*\|/.test(text)) return text;
+    const alphaWords = text.split(/\s+/).filter(w => /[a-zA-Z]/.test(w));
+    if (alphaWords.length < 8) return text;
     const upperCount = alphaWords.filter(w => {
       const clean = w.replace(/[^a-zA-Z]/g, '');
       return clean.length > 0 && clean === clean.toUpperCase();
     }).length;
-    if (upperCount / alphaWords.length < 0.7) return line;
+    if (upperCount / alphaWords.length < 0.7) return text;
 
-    let lowered = line.toLowerCase();
+    let lowered = text.toLowerCase();
     for (const acronym of ACRONYM_WHITELIST) {
       const re = new RegExp(`\\b${acronym.toLowerCase()}\\b`, 'g');
       lowered = lowered.replace(re, acronym);
     }
-    lowered = lowered.replace(/^(\s*\*{0,2}\s*)([a-z])/, (_m, prefix, letter) => prefix + letter.toUpperCase());
-    lowered = lowered.replace(/(\.\s+)([a-z])/g, (_m, prefix, letter) => prefix + letter.toUpperCase());
+    lowered = lowered.replace(/^(\s*)([a-z])/, (_m, prefix, letter) => prefix + letter.toUpperCase());
+    lowered = lowered.replace(/([.?!]\s+)([a-z])/g, (_m, prefix, letter) => prefix + letter.toUpperCase());
+    lowered = lowered.replace(/(\b\d+\.\s+)([a-z])/g, (_m, prefix, letter) => prefix + letter.toUpperCase());
     return lowered;
-  }).join('\n');
+  };
+
+  out = out.split(/\n\n+/).map(lowercaseAllCapsParagraph).join('\n\n');
+
+  // 5b. (NEW Rule C) Split "# SECTION_NAME - content" / ":" / "—" / "–" / "|" same-line patterns.
+  const sectionWithTrailingContent = new RegExp(
+    `^(#\\s+${SECTION_NAMES_REGEX_GROUP})\\s*[-:—–|]\\s*(.+)$`,
+    'gim'
+  );
+  out = out.replace(sectionWithTrailingContent, (_match, heading, body) => {
+    return `${heading}\n\n${body.trim()}`;
+  });
 
   // 6. Ensure each known section heading has blank line before and after
   for (const section of KNOWN_SECTIONS) {
