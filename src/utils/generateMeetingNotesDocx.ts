@@ -653,7 +653,7 @@ export const buildActionItemsSection = async (
       children: [new TextRun({
         text: "Action Items",
         bold: true,
-        size: FONTS.size.h1,
+        size: FONTS.size.heading1,
         color: NHS_COLORS.headingBlue,
         font: FONTS.default,
       })],
