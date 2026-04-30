@@ -257,6 +257,9 @@ type InvoiceTableRow = { id: string; date: string; start: string; stop: string; 
 const INVOICE_TABLE_START = '[[INVOICE_TABLE]]';
 const INVOICE_TABLE_END = '[[/INVOICE_TABLE]]';
 const DESCRIPTION_LIMIT = 1500;
+const MAX_LINE_CHARS = 106;
+const capLineWidth = (text: string) =>
+  text.split('\n').map(l => l.length > MAX_LINE_CHARS ? l.slice(0, MAX_LINE_CHARS) : l).join('\n');
 const DEFAULT_START_TIME = '08:00';
 const DEFAULT_STOP_TIME = '17:00';
 
