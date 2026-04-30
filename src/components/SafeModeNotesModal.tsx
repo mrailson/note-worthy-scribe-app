@@ -230,6 +230,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [fontSize, setFontSize] = useState(14);
   const [copied, setCopied] = useState(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // Chunk analysis state
   const [transcriptChunks, setTranscriptChunks] = useState<any[]>([]);
@@ -1088,6 +1089,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   // memo is declared later in the component.
   useEffect(() => {
     if (notesContent) {
+      setIsGenerating(false);
       const cleanedForParsing = removeActionItemsSection(notesContent);
       const parsed = parseNotesIntoSections(cleanedForParsing);
       setSections(parsed);
@@ -1110,10 +1112,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Fetch notes and meeting format
     const fetchNotes = async () => {
       try {
-        // First try meetings table for notes_style_3, meeting_format, meeting_location, and primary_transcript_source
+        // First try meetings table for notes_style_3, generation status, meeting_format, meeting_location, and primary_transcript_source
         const { data: meetingData } = await supabase
           .from('meetings')
-          .select('notes_style_3, meeting_format, meeting_location, primary_transcript_source')
+          .select('notes_style_3, notes_generation_status, meeting_format, meeting_location, primary_transcript_source')
           .eq('id', meeting.id)
           .maybeSingle();
 
@@ -1153,13 +1155,23 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           }
         }
 
+        const hasMeetingNotes = Boolean(meetingData?.notes_style_3?.trim());
+        const hasSummaryNotes = Boolean(summaryData?.summary?.trim());
+
+        if (meetingData?.notes_generation_status === 'generating' && !hasMeetingNotes && !hasSummaryNotes) {
+          setIsGenerating(true);
+          return;
+        }
+
         if (meetingData?.notes_style_3) {
+          setIsGenerating(false);
           setNotesContent(cleanNotesForDisplay(meetingData.notes_style_3));
           setIsLoadingNotes(false);
           return;
         }
 
         if (summaryData?.summary) {
+          setIsGenerating(false);
           setNotesContent(cleanNotesForDisplay(summaryData.summary));
         }
       } catch (error) {
@@ -3089,7 +3101,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   };
 
   const currentContent = activeTab === 'notes' ? notesContent : transcript;
-  const isLoading = activeTab === 'notes' ? isLoadingNotes : isLoadingTranscript;
+  const isLoading = activeTab === 'notes' ? isLoadingNotes || isGenerating : isLoadingTranscript;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -3628,7 +3640,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-muted-foreground">Loading notes...</span>
+                      <span className="ml-2 text-muted-foreground">
+                        {isGenerating
+                          ? 'Generating meeting notes from your imported transcript… this usually takes 30–90 seconds. The page will refresh automatically when ready.'
+                          : 'Loading notes...'}
+                      </span>
                     </div>
                   ) : notesContent ? (
                     <>
