@@ -1513,7 +1513,7 @@ export const MeetingHistoryList = ({
     );
 
     // Automatically regenerate Overview first, then Standard Minutes
-    const result = await handleFullProcessing(meeting, {
+    await handleFullProcessing(meeting, {
       standard: true,
       overview: true,
       executive: false,
