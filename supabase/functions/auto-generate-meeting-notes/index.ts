@@ -1686,7 +1686,13 @@ ${cleanedTranscript}`;
           ?.map((block: any) => block.text)
           ?.join('\n') || '';
       } else {
-        modelUsed = 'gemini-3-flash';
+        // Route to Gemini. 'gemini-2.5-flash' (premium long-context option) maps to
+        // 'google/gemini-2.5-flash'; legacy default falls back to gemini-3-flash-preview.
+        const geminiModel = modelOverride === 'gemini-2.5-flash'
+          ? 'google/gemini-2.5-flash'
+          : 'google/gemini-3-flash-preview';
+        modelUsed = modelOverride === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-3-flash';
+        console.log(`🧠 Using Gemini model: ${geminiModel}`);
         const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -1694,7 +1700,7 @@ ${cleanedTranscript}`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
+            model: geminiModel,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
