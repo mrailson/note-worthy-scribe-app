@@ -2383,16 +2383,18 @@ export function StaffRosterSection({
 }
 
 // --- History Summary (preserved) ---
-function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; hidePeriodFilter?: boolean }) {
+function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: BuyBackClaim[]; hidePeriodFilter?: boolean; directorMode?: boolean }) {
   const [period, setPeriod] = useState('all');
   const periodClaims = hidePeriodFilter ? claims : filterByPeriod(claims, period);
 
   const byMonth = useMemo(() => {
     const m: Record<string, any> = {};
     periodClaims.forEach((c) => {
-      const label = getClaimMonthLabel(c);
-      if (!m[label]) m[label] = { month: label, claims: 0, hours: 0, sessions: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 };
-      const r = m[label];
+      const monthLabel = getClaimMonthLabel(c);
+      const practice = directorMode ? (getPracticeName(c.practice_key) || '—') : '';
+      const key = directorMode ? `${monthLabel}__${practice}` : monthLabel;
+      if (!m[key]) m[key] = { key, month: monthLabel, practice, claims: 0, hours: 0, sessions: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 };
+      const r = m[key];
       const t = claimTotal(c);
       r.claims += 1;
       r.hours += claimHours(c);
@@ -2408,9 +2410,11 @@ function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; 
     return (Object.values(m) as any[]).sort((a: any, b: any) => {
       const [am, ay] = [monthOrder.indexOf(a.month.split(' ')[0]), parseInt(a.month.split(' ')[1])];
       const [bm, by] = [monthOrder.indexOf(b.month.split(' ')[0]), parseInt(b.month.split(' ')[1])];
-      return by !== ay ? by - ay : bm - am;
+      if (by !== ay) return by - ay;
+      if (bm !== am) return bm - am;
+      return (a.practice || '').localeCompare(b.practice || '');
     });
-  }, [periodClaims]);
+  }, [periodClaims, directorMode]);
 
   const totals = useMemo(() => byMonth.reduce((acc: any, r: any) => ({
     claims: acc.claims + r.claims, hours: acc.hours + r.hours, sessions: acc.sessions + r.sessions,
@@ -2420,6 +2424,7 @@ function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; 
 
   const COLS = [
     { key: 'month', label: 'Period', align: 'left' as const },
+    ...(directorMode ? [{ key: 'practice', label: 'Practice', align: 'left' as const }] : []),
     { key: 'claims', label: 'Claims', align: 'center' as const, w: 55 },
     { key: 'sessions', label: 'Staff', align: 'center' as const, w: 55 },
     { key: 'hours', label: 'Hours', align: 'right' as const, w: 60 },
@@ -2432,7 +2437,7 @@ function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; 
 
   const cellVal = (row: any, col: any) => {
     const v = row[col.key];
-    if (col.key === 'month') return v;
+    if (col.key === 'month' || col.key === 'practice') return v;
     if (col.key === 'claims' || col.key === 'sessions') return v;
     if (col.key === 'hours') return v.toFixed(1);
     if (v === 0) return '—';
@@ -2440,7 +2445,7 @@ function HistorySummary({ claims, hidePeriodFilter }: { claims: BuyBackClaim[]; 
   };
 
   const cellColor = (row: any, col: any) => {
-    if (col.key === 'month') return '#374151';
+    if (col.key === 'month' || col.key === 'practice') return '#374151';
     if (col.key === 'claims' || col.key === 'sessions' || col.key === 'hours') return '#6b7280';
     if (col.key === 'total') return '#111827';
     if (row[col.key] === 0) return '#d1d5db';
