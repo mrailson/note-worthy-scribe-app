@@ -1,4 +1,4 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// jsr type import removed (causes deploy timeouts)
 
 const cors = (origin: string | null) => ({
   "Access-Control-Allow-Origin": origin || "*",
