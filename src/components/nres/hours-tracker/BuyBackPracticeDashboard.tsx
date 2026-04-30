@@ -631,9 +631,11 @@ function InlineClaimPanel({
             const currentStatus = existingClaim?.status || 'new';
             const statusLabel = currentStatus === 'new' ? 'Not yet claimed'
               : currentStatus === 'draft' ? 'Draft'
-              : currentStatus === 'submitted' ? 'Submitted'
-              : currentStatus === 'queried' ? 'Queried'
-              : currentStatus === 'invoiced' ? 'Invoiced'
+              : currentStatus === 'submitted' ? 'Awaiting Verification'
+              : currentStatus === 'verified' ? 'Awaiting Approval'
+              : currentStatus === 'approved' ? 'Approved – Invoice Pending'
+              : currentStatus === 'queried' ? 'Action Needed – Query Raised'
+              : currentStatus === 'invoiced' ? 'Invoice Issued'
               : currentStatus === 'paid' ? 'Paid'
               : currentStatus;
             return (
