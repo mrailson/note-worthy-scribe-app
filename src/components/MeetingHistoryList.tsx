@@ -1458,13 +1458,22 @@ export const MeetingHistoryList = ({
   };
 
   // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
+  // modelOverride is a free-form string identifier (e.g. 'gemini-3.1-pro', 'gemini-2.5-flash')
+  // so future premium options can be added without changing this signature.
   const handleProcessClick = async (meeting: Meeting, modelOverride?: string) => {
     const meetingId = meeting.id;
-    
+
+    // Friendly label for in-progress toast
+    const modelLabel = modelOverride === 'gemini-3.1-pro'
+      ? 'Gemini 3.1 Pro'
+      : modelOverride === 'gemini-2.5-flash'
+        ? 'Gemini 2.5 Flash'
+        : modelOverride;
+
     // Show toast notification
     toast.info(
       modelOverride
-        ? `Regenerating with ${modelOverride}...`
+        ? `Regenerating with ${modelLabel}...`
         : 'Regenerating Meeting Overview, Standard Minutes, and Audio...',
       { duration: 3000 }
     );
@@ -1476,6 +1485,13 @@ export const MeetingHistoryList = ({
       executive: false,
       limerick: false
     }, modelOverride);
+
+    // Success toast for premium runs
+    if (modelOverride === 'gemini-3.1-pro') {
+      toast.success('✨ Regenerated with Gemini 3.1 Pro');
+    } else if (modelOverride === 'gemini-2.5-flash') {
+      toast.success('✨ Regenerated with Gemini 2.5 Flash');
+    }
     
     // Generate audio overview at the end
     try {
