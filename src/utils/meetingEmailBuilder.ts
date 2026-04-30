@@ -88,16 +88,40 @@ export const convertToStyledHTML = (text: string): string => {
           const clean = stripInlineMarkdown(cell).toLowerCase();
           if (clean === 'priority' || clean === 'status') excludeIndices.add(idx);
         });
-        let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-family: Arial, sans-serif;">\n';
+        const headerLower = headerRow.map(c => stripInlineMarkdown(c).toLowerCase());
+        const filteredHeaderLower = headerLower.filter((_, idx) => !excludeIndices.has(idx));
+        const isActionTable = filteredHeaderLower.some(h => /^action(\s|$|s)/.test(h)) &&
+                              filteredHeaderLower.some(h => h === 'owner' || h === 'responsible' || h === 'assignee');
+        let colWidths: string[];
+        if (isActionTable) {
+          colWidths = filteredHeaderLower.map(h => {
+            if (/^action/.test(h)) return '52%';
+            if (h === 'owner' || h === 'responsible' || h === 'assignee') return '20%';
+            if (/^(deadline|due|due date|by)$/.test(h)) return '16%';
+            return '12%';
+          });
+          const totalParsed = colWidths.reduce((sum, w) => sum + parseInt(w, 10), 0);
+          if (totalParsed < 90 || totalParsed > 110) {
+            colWidths = filteredHeaderLower.map(() => `${Math.floor(100 / filteredHeaderLower.length)}%`);
+          }
+        } else {
+          colWidths = filteredHeaderLower.map(() => `${Math.floor(100 / filteredHeaderLower.length)}%`);
+        }
+        let tableHTML = '<table style="border-collapse: collapse; width: 100%; table-layout: fixed; margin: 16px 0; font-family: Arial, sans-serif; word-wrap: break-word;">\n';
+        tableHTML += '  <colgroup>\n';
+        colWidths.forEach(w => {
+          tableHTML += `    <col style="width: ${w};" />\n`;
+        });
+        tableHTML += '  </colgroup>\n';
         tableRows.forEach((cells, rowIdx) => {
           const filteredCells = cells.filter((_, idx) => !excludeIndices.has(idx));
           tableHTML += '  <tr>\n';
           filteredCells.forEach(cell => {
             const cleanCell = stripInlineMarkdown(cell);
             if (rowIdx === 0) {
-              tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600;">${cleanCell}</th>\n`;
+              tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600; word-wrap: break-word; vertical-align: top;">${cleanCell}</th>\n`;
             } else {
-              tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">${cleanCell}</td>\n`;
+              tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left; word-wrap: break-word; vertical-align: top;">${cleanCell}</td>\n`;
             }
           });
           tableHTML += '  </tr>\n';
