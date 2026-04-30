@@ -33,6 +33,24 @@ function parseInvoiceTableDescription(description: string) {
   return rows.length ? rows : null;
 }
 
+// Detect a pasted "pipe-aligned" table (produced by the Excel paste handler in the verifier).
+// Requires 2+ data lines with the same column count separated by "|". Ignores a header
+// underline row made of dashes/box-drawing characters.
+function parsePipeAlignedTable(description: string): { head: string[]; body: string[][] } | null {
+  const text = description.trim();
+  if (!text) return null;
+  const lines = text.split('\n').map(l => l.trimEnd());
+  const isSep = (l: string) => /[─\-]/.test(l) && /^[\s\-─┼|+]+$/.test(l);
+  const split = (l: string) => l.split('|').map(c => c.trim());
+  const dataLines = lines.filter(l => l.includes('|') && !isSep(l));
+  if (dataLines.length < 2) return null;
+  const rows = dataLines.map(split);
+  const cols = rows[0].length;
+  if (cols < 2) return null;
+  if (!rows.every(r => r.length === cols)) return null;
+  return { head: rows[0], body: rows.slice(1) };
+}
+
 export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const { claim, invoiceNumber, neighbourhoodName } = data;
   const doc = new jsPDF();
@@ -196,12 +214,13 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   // --- Optional invoice-facing claim description ---
   const invoiceDescription = String((claim as any).practice_notes || '').trim();
   const invoiceTableRows = parseInvoiceTableDescription(invoiceDescription);
+  const pipeTable = !invoiceTableRows ? parsePipeAlignedTable(invoiceDescription) : null;
   const MAX_LINE_CHARS = 106;
   const cappedDescription = invoiceDescription
     .split('\n')
     .map(l => l.length > MAX_LINE_CHARS ? l.slice(0, MAX_LINE_CHARS) : l)
     .join('\n');
-  const descriptionLines = invoiceDescription && !invoiceTableRows ? doc.splitTextToSize(cappedDescription, 176) : [];
+  const descriptionLines = invoiceDescription && !invoiceTableRows && !pipeTable ? doc.splitTextToSize(cappedDescription, 176) : [];
   let finalY = (doc as any).lastAutoTable.finalY + 10;
   if (invoiceTableRows) {
     doc.setFontSize(9);
@@ -215,6 +234,20 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
       styles: { fontSize: 8.5, cellPadding: 2.5, overflow: 'linebreak' },
       headStyles: { fillColor: [239, 246, 255], textColor: NHS_DARK_BLUE, fontStyle: 'bold' },
       columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 18 }, 2: { cellWidth: 18 }, 3: { cellWidth: 116 } },
+      margin: { left: 14, right: 14 },
+    });
+    finalY = (doc as any).lastAutoTable.finalY + 10;
+  } else if (pipeTable) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...NHS_DARK_BLUE);
+    doc.text('Details', 14, finalY);
+    autoTable(doc, {
+      startY: finalY + 3,
+      head: [pipeTable.head],
+      body: pipeTable.body,
+      styles: { fontSize: 8.5, cellPadding: 2.5, overflow: 'linebreak' },
+      headStyles: { fillColor: [239, 246, 255], textColor: NHS_DARK_BLUE, fontStyle: 'bold' },
       margin: { left: 14, right: 14 },
     });
     finalY = (doc as any).lastAutoTable.finalY + 10;
