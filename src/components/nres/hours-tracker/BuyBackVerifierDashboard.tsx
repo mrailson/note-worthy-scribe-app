@@ -702,21 +702,68 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const removeInvoiceRow = (id: string) => syncRows(invoiceRows.filter(row => row.id !== id));
   const addBlankInvoiceRow = () => syncRows([...invoiceRows, newInvoiceTableRow()]);
 
-  // Convert clipboard text from Excel/Sheets (TSV) into formatted invoice text lines.
-  // Returns null if the paste isn't tabular.
+  // Convert clipboard text from Excel/Sheets (TSV) into a nicely aligned text table.
+  // Each column is padded to its widest cell so things line up in the monospace textarea
+  // and on the printed invoice. Returns null if the paste isn't tabular.
   const formatClipboardAsLines = (text: string): string | null => {
     const cleaned = text.replace(/\r\n?/g, '\n').replace(/\n+$/g, '');
     if (!cleaned) return null;
-    const lines = cleaned.split('\n');
-    const hasTabs = lines.some(l => l.includes('\t'));
-    if (!hasTabs) return null;
-    const formatted: string[] = [];
-    for (const line of lines) {
-      const cols = line.split('\t').map(c => c.trim()).filter(c => c.length > 0);
-      if (!cols.length) continue;
-      formatted.push(cols.join(' · '));
+    const rawLines = cleaned.split('\n');
+    if (!rawLines.some(l => l.includes('\t'))) return null;
+
+    // Split into rows of cells; keep all cells (don't drop empties — we need column alignment).
+    const rows = rawLines
+      .map(line => line.split('\t').map(c => c.trim()))
+      .filter(cells => cells.some(c => c.length > 0));
+    if (!rows.length) return null;
+
+    // Trim trailing empty columns globally.
+    const colCount = Math.max(...rows.map(r => r.length));
+    let lastNonEmpty = 0;
+    for (let c = 0; c < colCount; c++) {
+      if (rows.some(r => (r[c] || '').length > 0)) lastNonEmpty = c;
     }
-    return formatted.length ? formatted.join('\n') : null;
+    const trimmed = rows.map(r => {
+      const out = r.slice(0, lastNonEmpty + 1);
+      while (out.length < lastNonEmpty + 1) out.push('');
+      return out;
+    });
+
+    // Compute width per column, but cap so we don't blow past the per-line limit.
+    const cols = lastNonEmpty + 1;
+    const sepWidth = 3; // " | "
+    const maxRowWidth = MAX_LINE_CHARS;
+    const rawWidths = Array.from({ length: cols }, (_, c) =>
+      Math.max(1, ...trimmed.map(r => (r[c] || '').length))
+    );
+    const totalSep = sepWidth * (cols - 1);
+    let budget = Math.max(cols, maxRowWidth - totalSep);
+    const widths = [...rawWidths];
+    // Shrink widest columns proportionally if over budget.
+    let total = widths.reduce((a, b) => a + b, 0);
+    while (total > budget) {
+      const idx = widths.indexOf(Math.max(...widths));
+      if (widths[idx] <= 4) break;
+      widths[idx] -= 1;
+      total -= 1;
+    }
+
+    const pad = (s: string, w: number) => {
+      if (s.length > w) return s.slice(0, Math.max(1, w - 1)) + '…';
+      return s + ' '.repeat(w - s.length);
+    };
+    const formatRow = (r: string[]) =>
+      r.map((cell, i) => pad(cell, widths[i])).join(' | ').replace(/\s+$/, '');
+
+    const out: string[] = [];
+    trimmed.forEach((r, i) => {
+      out.push(formatRow(r));
+      if (i === 0 && trimmed.length > 1) {
+        // Underline header row for readability.
+        out.push(widths.map(w => '─'.repeat(w)).join('─┼─'));
+      }
+    });
+    return out.join('\n');
   };
 
   // Paste handler for the textarea — preserves Excel table formatting as readable lines.
