@@ -1341,22 +1341,45 @@ Format each entry as:
 
 Always emit the columns in this exact order: Action, Owner, Deadline. Never reorder them. Never use "Responsible Party" or any other synonym in place of "Owner". Do NOT include a Priority column — priority assignment has been removed from this product because automated guesses were unreliable.
 
-STRICT RULES FOR ACTION ITEMS — quality over quantity:
+ACTION ITEM EXTRACTION RULES — read these carefully, they are the most common source of missed actions:
+- Scan the ENTIRE transcript from start to finish, NOT just the "previous actions" / "action review" / "matters arising" section at the start
+- Pay SPECIAL attention to: AOB (any other business), "next steps", closing remarks, items raised in the final third of the meeting, and "items for next meeting"
+- Capture an action whenever someone says ANY of these (or close paraphrases):
+  • "I'll take that away" / "let me take that as an action" / "let me take that away as an action and come back to you"
+  • "I'll come back to you on…" / "I'll follow up with…" / "let me check…"
+  • "we need to…" / "someone needs to…" / "I will…" / "I'll…"
+  • "[Name] to [verb] …" (third-party assignment)
+  • "next meeting we should…" / "for the next meeting…" / "invite [X] to the next meeting"
+  • "explore a … home for …" / "investigate …" / "finalise and present …" when followed by a commitment
+- If an attendee assigns themselves a task implicitly ("I'll follow up with X", "let me check"), capture it as an action with that attendee as the owner
+- Distinguish NEW actions raised in this meeting from CARRIED-FORWARD actions reviewed at the start. Capture both, but prioritise NEW actions when you hit the 8-item cap
+- Do NOT invent actions. If unsure whether something is an action vs a discussion point, err toward capturing it but mark deadline as TBC
+
+SELF-CHECK BEFORE FINALISING ACTION ITEMS (mandatory):
+Re-scan the LAST 25% of the transcript specifically. Meetings frequently raise new actions in closing remarks that get missed when the model focuses on early structured sections (e.g. "review of previous actions"). Specifically look for:
+- Any "I'll take that away" / "let me come back to you" statements in the closing portion
+- Any "next meeting" commitments (e.g. "invite X to give a status update next time")
+- Any "finalise and present at [future date/event]" commitments
+If you find any of these and they are not already in your ACTION ITEMS table, add them now before responding.
+
+STRICT QUALITY RULES — quality over quantity:
 - ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
 - Each action must have a CLEAR DELIVERABLE — something that can be completed and ticked off
-- Maximum 8 action items per meeting. If more than 8 were discussed, include only the most important ones
+- Maximum 8 action items per meeting. If more than 8 were discussed, include only the most important ones (prefer NEW actions over carried-forward ones)
 - NEVER include ongoing responsibilities, standing tasks, or watching briefs (e.g., "Continue to monitor...", "Keep reviewing...", "Maintain oversight of...")
-- NEVER include vague actions like "Consider options", "Review situation", "Assess position", "Explore possibilities"
-- If an action doesn't answer "What specific thing will be DONE and FINISHED?", it's not an action — it belongs in OPEN ITEMS & RISKS instead
-- ONLY include a person's name in "Owner" if they were EXPLICITLY mentioned in the transcript as being responsible
-- If the responsible party is not explicitly stated, write "TBC" (To Be Confirmed)
-- If a deadline is not explicitly mentioned, write "TBC"
+- NEVER include vague actions like "Consider options", "Review situation", "Assess position" UNLESS the speaker explicitly committed to come back with a specific output
+- ONLY include a person's name in "Owner" if they were EXPLICITLY mentioned in the transcript as being responsible (or if they self-assigned)
+- If the responsible party is not explicitly stated, write "TBC"
+- If a deadline is not explicitly mentioned, write "TBC" (or "Next Meeting" if the speaker said "for next meeting" / "at the next meeting")
 - Do NOT assign actions to people based on their role or position unless explicitly stated
 
 EXAMPLES OF REAL ACTIONS (include these):
 - "Draft email to practices summarising board proposals" — has a deliverable (the email)
 - "Attend GPA Board meeting on 18th March to represent PCN concerns" — specific event, specific date
 - "Update SOP for locum ICE access onboarding" — clear deliverable (the updated SOP)
+- "Finalise and present the Outcomes Framework to the Board Development Workshop on 21 May" — clear deliverable, specific date
+- "Invite Glenn to provide a status update on the WorkWell programme at next meeting" — clear deliverable, deadline = Next Meeting
+- "Explore a formal commissioning home for Action for Happiness within ICB governance" — owner committed ("let me take that away as an action")
 
 EXAMPLES OF NON-ACTIONS (move these to OPEN ITEMS & RISKS instead):
 - "Monitor ICB updates regarding contract wording" — ongoing watching brief, no deliverable
