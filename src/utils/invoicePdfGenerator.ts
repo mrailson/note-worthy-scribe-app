@@ -220,7 +220,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...NHS_DARK_BLUE);
-    doc.text('Claim details', 18, finalY + 2);
+    doc.text('Details', 18, finalY + 2);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(GREY_60);
     doc.text(descriptionLines.slice(0, 8), 18, finalY + 8);
