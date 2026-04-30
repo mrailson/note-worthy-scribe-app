@@ -993,18 +993,23 @@ serve(async (req) => {
       'standard': `
 NOTE TYPE: STANDARD PROFESSIONAL
 IMPORTANT: Do NOT use Context/Discussion/Agreed/Implication sub-headings.
-Instead, use traditional numbered key points as concise paragraphs:
+Instead, use traditional key points where each topic is its own markdown heading:
 
-KEY POINTS format — produce numbered topic sections in EXACTLY this layout:
-1. **[Topic Heading on its own line]**
+KEY POINTS format — produce topic sections in EXACTLY this layout:
+### [Topic Heading on its own line]
 
-   [Body paragraph starts here AFTER A BLANK LINE. Body text MUST NEVER appear on the same line as the heading. One or two concise paragraphs covering what was discussed and what was decided. Keep it tight — no more than 4-5 sentences per point.]
+[Body paragraph starts here AFTER A BLANK LINE. One or two concise paragraphs covering what was discussed and what was decided. Keep it tight — no more than 4-5 sentences per point.]
 
-2. **[Next Topic Heading on its own line]**
+### [Next Topic Heading on its own line]
 
-   [Body paragraph after a blank line.]
+[Body paragraph after a blank line.]
 
-CRITICAL: Every numbered topic heading must be on a line by itself, with a completely blank line between the heading and the body paragraph. Do NOT put any body content on the same line as the heading.
+CRITICAL FORMATTING RULES for Key Points:
+- Each topic title MUST be a level-3 markdown heading (### Topic Name) on its own line. The DOCX exporter relies on this to apply the blue Heading 3 style.
+- Do NOT use inline bold (e.g. "**Topic Name** body text...") for topic titles. Inline bold renders as body text and loses the heading style.
+- Do NOT use numbered lists (e.g. "1. **Topic**") for topic titles — use ### headings instead.
+- There MUST be a completely blank line between the ### heading and the body paragraph beneath it.
+- Do NOT put any body content on the same line as the heading.
 
 Additional rules:
 - Balanced professional language — formal but accessible
@@ -1017,11 +1022,14 @@ Additional rules:
 NOTE TYPE: NHS FORMAL GOVERNANCE
 This is a shorter, more formal style preferred for board packs and governance circulation.
 IMPORTANT: For this note type, use a SIMPLER discussion structure. Do NOT use the Context/Discussion/Agreed/Implication sub-headings.
-Instead, use traditional numbered key points as concise paragraphs:
+Instead, use key points where each topic is its own markdown heading:
 
 KEY POINTS format:
-1. **[Topic Heading]**
+### [Topic Heading]
+
 [One or two concise paragraphs covering what was discussed and what was decided. Use formal passive voice: "The meeting noted...", "It was resolved that...", "Members agreed...". Keep it tight — no more than 4-5 sentences per point.]
+
+CRITICAL: Each topic title MUST be a level-3 markdown heading (### Topic Name) on its own line, followed by a blank line, then the body paragraph. Do NOT use inline bold (e.g. "**Topic** body...") — the DOCX exporter relies on ### to apply the blue Heading 3 style.
 
 Additional NHS Formal rules:
 - Use formal NHS governance language throughout
