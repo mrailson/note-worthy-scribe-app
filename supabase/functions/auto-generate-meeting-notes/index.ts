@@ -1941,9 +1941,6 @@ ${cleanedTranscript}`;
         throw lastError || new Error('All AI generation attempts failed');
       }
 
-      generatedNotes = stripExtractionReasoningTrace(generatedNotes);
-      collectExtractionDiagnostics(generatedNotes);
-
       // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
       // the heading from the table header onto separate lines.
       generatedNotes = generatedNotes.replace(
@@ -1951,7 +1948,15 @@ ${cleanedTranscript}`;
         '$1\n\n$2'
       );
 
+      generatedNotes = stripExtractionReasoningTrace(generatedNotes);
+      collectExtractionDiagnostics(generatedNotes);
+
       console.log('✅ Generated notes length:', generatedNotes.length, 'chars', '| model:', actualModelUsed, '| fallbacks:', fallbackCount);
+    }
+
+    if (skipSingleShot) {
+      generatedNotes = stripExtractionReasoningTrace(generatedNotes);
+      collectExtractionDiagnostics(generatedNotes);
     }
 
     // Log generation outcome to meeting_generation_log (admin-readable monitoring).
