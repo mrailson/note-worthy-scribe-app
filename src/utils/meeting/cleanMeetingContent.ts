@@ -360,6 +360,24 @@ export const normaliseMeetingNotesFormatting = (content: string): string => {
 
   cleaned = normaliseLoosePipeRows(cleaned);
 
+  cleaned = cleaned
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      // Detect bullet markers: -, •, * (but NOT ** which is bold)
+      const bulletMatch = trimmed.match(/^([-•]|\*(?!\*))\s*(.*)$/);
+      if (!bulletMatch) return true; // not a bullet, keep
+      // Strip markdown bold/italic markers, brackets, and colons from the body
+      const body = bulletMatch[2]
+        .replace(/\*+/g, '')
+        .replace(/^\[+|\]+$/g, '')
+        .replace(/^:|:$/g, '')
+        .trim();
+      // Drop the bullet if nothing meaningful remains
+      return body.length > 0;
+    })
+    .join('\n');
+
   return cleaned
     .split('\n')
     .map(line => line.replace(/[ \t]{2,}/g, ' ').trimEnd())
