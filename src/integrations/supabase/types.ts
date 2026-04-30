@@ -6878,6 +6878,39 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_generation_log: {
+        Row: {
+          actual_model_used: string
+          created_at: string
+          failure_reasons: Json | null
+          fallback_count: number
+          generation_ms: number | null
+          id: string
+          meeting_id: string
+          primary_model: string
+        }
+        Insert: {
+          actual_model_used: string
+          created_at?: string
+          failure_reasons?: Json | null
+          fallback_count?: number
+          generation_ms?: number | null
+          id?: string
+          meeting_id: string
+          primary_model: string
+        }
+        Update: {
+          actual_model_used?: string
+          created_at?: string
+          failure_reasons?: Json | null
+          fallback_count?: number
+          generation_ms?: number | null
+          id?: string
+          meeting_id?: string
+          primary_model?: string
+        }
+        Relationships: []
+      }
       meeting_groups: {
         Row: {
           additional_members: Json | null

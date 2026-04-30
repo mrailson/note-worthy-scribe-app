@@ -63,9 +63,12 @@ export const ManualNoteGenerationButton = ({
         minute: '2-digit' 
       }) : '';
 
-      const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-        ? 'claude-sonnet-4-6'
-        : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
+      // Resolve user's saved model preference. 'default' / unset / legacy 'gemini-3-flash'
+      // → undefined (server uses new default: Gemini 3.1 Pro with auto-fallback chain).
+      const lsModel = localStorage.getItem('meeting-regenerate-llm');
+      const modelOverride = (!lsModel || lsModel === 'default' || lsModel === 'gemini-3-flash')
+        ? undefined
+        : lsModel;
 
       const skipQc = localStorage.getItem('meeting-qc-enabled') !== 'true';
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {

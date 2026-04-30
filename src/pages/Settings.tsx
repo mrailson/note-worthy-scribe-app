@@ -109,23 +109,56 @@ export default function Settings() {
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
   
-  const DEFAULT_MEETING_LLM = 'claude-sonnet-4-6';
+  // 'default' resolves server-side to Gemini 3.1 Pro (with auto-fallback to Flash, 2.5 Pro, GPT-5).
+  // Other accepted values: 'gemini-3-flash', 'claude-sonnet-4-6'.
+  const DEFAULT_MEETING_LLM = 'default';
+  const PREF_LAST_CHANGED_KEY = 'meeting-regenerate-llm-last-changed';
+  const MIGRATION_TOAST_KEY = 'meeting-regenerate-llm-pro-migration-shown';
 
-  // LLM model preference for note regeneration
+  // LLM model preference for note regeneration.
+  // Migration: users whose only saved preference was the legacy 'gemini-3-flash' AND who
+  // haven't manually changed in the last 30 days get migrated to 'default' (= Gemini 3.1 Pro).
+  // Old 'claude-haiku-4-5-20251001' is normalised to 'default' as it's no longer offered.
   const [regenerateLlm, setRegenerateLlm] = useState<string>(() => {
     const stored = localStorage.getItem('meeting-regenerate-llm');
-    if (!stored || stored === 'gemini-3-flash') {
+    if (!stored) {
+      localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
+      return DEFAULT_MEETING_LLM;
+    }
+    const lastChanged = parseInt(localStorage.getItem(PREF_LAST_CHANGED_KEY) || '0', 10);
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const eligibleForMigration = !lastChanged || lastChanged < thirtyDaysAgo;
+    if (stored === 'gemini-3-flash' && eligibleForMigration) {
+      localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
+      return DEFAULT_MEETING_LLM;
+    }
+    if (stored === 'claude-haiku-4-5-20251001') {
+      // Removed option — fall back to default
       localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
       return DEFAULT_MEETING_LLM;
     }
     return stored;
   });
-  
+
+  // One-time migration toast — fires once per user after the Pro upgrade.
+  useEffect(() => {
+    if (regenerateLlm === DEFAULT_MEETING_LLM && !localStorage.getItem(MIGRATION_TOAST_KEY)) {
+      localStorage.setItem(MIGRATION_TOAST_KEY, '1');
+      toast({
+        title: '✨ Default model upgraded',
+        description: 'Your default model has been upgraded to Gemini 3.1 Pro for better extraction quality. You can change this in Settings.',
+        duration: 8000,
+      });
+    }
+  }, []);
+
   const handleRegenerateLlmChange = (value: string) => {
     setRegenerateLlm(value);
     localStorage.setItem('meeting-regenerate-llm', value);
+    localStorage.setItem(PREF_LAST_CHANGED_KEY, String(Date.now()));
     toast({ title: "AI model preference updated" });
   };
+
   
   // Usage statistics state
   const [usageStats, setUsageStats] = useState({
@@ -889,22 +922,23 @@ export default function Settings() {
                           <SelectValue placeholder="Select AI model" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (Default — Premium)</SelectItem>
-                          <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast — Beta)</SelectItem>
-                          <SelectItem value="gemini-3-flash">Gemini 3 Flash</SelectItem>
+                          <SelectItem value="default">Gemini 3.1 Pro (Default — best quality)</SelectItem>
+                          <SelectItem value="gemini-3-flash">Gemini 3 Flash (faster, lower cost)</SelectItem>
+                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (alternative perspective)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p className="mb-2">
                         <strong>Current model:</strong> {
-                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6 (default)' :
-                          regenerateLlm === 'claude-haiku-4-5-20251001' ? 'Claude Haiku 4.5' :
-                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash' : 'Claude Sonnet 4.6'
+                          regenerateLlm === 'default' ? 'Gemini 3.1 Pro (default — best quality)' :
+                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash (faster, lower cost)' :
+                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6 (alternative perspective)' :
+                          'Gemini 3.1 Pro (default)'
                         }
                       </p>
                       <p>
-                        This model is used for both initial note generation (after stopping a recording) and manual "Regenerate Notes" actions. Claude models use a governance-grade prompt optimised for exhaustive topic extraction and risk identification.
+                        This model is used for both initial note generation (after stopping a recording) and manual "Regenerate Notes" actions. If the default Pro model fails or times out, the system automatically falls back to Gemini 3 Flash, then Gemini 2.5 Pro, then GPT-5.
                       </p>
                     </div>
                   </div>

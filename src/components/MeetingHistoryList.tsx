@@ -626,7 +626,35 @@ export const MeetingHistoryList = ({
     error?: string;
     completedCount?: number;
     totalCount?: number;
+    startedAt?: number;
   }>>({});
+
+  // Tick state forces re-render every 5s while any meeting is generating, so the
+  // rotating "Analysing transcript..." → "Extracting key points..." → "Identifying actions..."
+  // status text updates without polling logic in every consumer.
+  const [progressTick, setProgressTick] = useState(0);
+  const longGenWarnedRef = useRef<Record<string, boolean>>({});
+  useEffect(() => {
+    const anyProcessing = Object.values(processingMeetings).some(p => p?.isProcessing);
+    if (!anyProcessing) return;
+    const id = setInterval(() => {
+      setProgressTick(t => t + 1);
+      // Watchdog: warn the user once when a generation passes 130s.
+      const now = Date.now();
+      Object.entries(processingMeetings).forEach(([mid, p]) => {
+        if (p?.isProcessing && p.currentStage === 'standard' && p.startedAt &&
+            (now - p.startedAt) > 130000 && !longGenWarnedRef.current[mid]) {
+          longGenWarnedRef.current[mid] = true;
+          toast.info('Taking longer than usual — this can happen with longer meetings. Hang tight.', { duration: 8000 });
+        }
+        if (!p?.isProcessing) {
+          delete longGenWarnedRef.current[mid];
+        }
+      });
+    }, 5000);
+    return () => clearInterval(id);
+  }, [processingMeetings]);
+
 
   // Multi-type notes hooks for each meeting
   const [multiTypeHooks, setMultiTypeHooks] = useState<Record<string, any>>({});
@@ -1458,41 +1486,51 @@ export const MeetingHistoryList = ({
   };
 
   // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
-  // modelOverride is a free-form string identifier (e.g. 'gemini-3.1-pro', 'gemini-2.5-flash')
-  // so future premium options can be added without changing this signature.
-  const handleProcessClick = async (meeting: Meeting, modelOverride?: string) => {
+  // modelOverride is a free-form string identifier. Accepted values:
+  //   undefined / 'default'  → server-side default (Gemini 3.1 Pro with auto-fallback chain)
+  //   'gemini-3-flash'       → fast, lower quality, ~25s
+  //   'sonnet-4.6'           → Claude Sonnet 4.6 alternative perspective
+  //   'gemini-2.5-flash'     → premium long-context (PIN-gated)
+  // Future premium options can be added without changing this signature.
+  type RegenerateModel = 'default' | 'gemini-3-flash' | 'sonnet-4.6' | 'gemini-2.5-flash';
+  const handleProcessClick = async (meeting: Meeting, modelOverride?: RegenerateModel | string) => {
     const meetingId = meeting.id;
+    const isDefault = !modelOverride || modelOverride === 'default';
 
     // Friendly label for in-progress toast
-    const modelLabel = modelOverride === 'gemini-3.1-pro'
-      ? 'Gemini 3.1 Pro'
-      : modelOverride === 'gemini-2.5-flash'
-        ? 'Gemini 2.5 Flash'
-        : modelOverride;
+    const modelLabel =
+      modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' :
+      modelOverride === 'sonnet-4.6' ? 'Claude Sonnet 4.6' :
+      modelOverride === 'gemini-2.5-flash' ? 'Gemini 2.5 Flash' :
+      modelOverride;
 
     // Show toast notification
     toast.info(
-      modelOverride
-        ? `Regenerating with ${modelLabel}...`
-        : 'Regenerating Meeting Overview, Standard Minutes, and Audio...',
+      isDefault
+        ? 'Regenerating with Gemini 3.1 Pro — this may take 60-120 seconds...'
+        : `Regenerating with ${modelLabel}...`,
       { duration: 3000 }
     );
-    
+
     // Automatically regenerate Overview first, then Standard Minutes
     await handleFullProcessing(meeting, {
       standard: true,
       overview: true,
       executive: false,
       limerick: false
-    }, modelOverride);
+    }, isDefault ? undefined : modelOverride);
 
-    // Success toast for premium runs
-    if (modelOverride === 'gemini-3.1-pro') {
-      toast.success('✨ Regenerated with Gemini 3.1 Pro');
+    // Success toast
+    if (modelOverride === 'gemini-3-flash') {
+      toast.success('⚡ Regenerated with Gemini 3 Flash');
+    } else if (modelOverride === 'sonnet-4.6') {
+      toast.success('✨ Regenerated with Claude Sonnet 4.6');
     } else if (modelOverride === 'gemini-2.5-flash') {
       toast.success('✨ Regenerated with Gemini 2.5 Flash');
+    } else {
+      toast.success('✓ Notes regenerated');
     }
-    
+
     // Generate audio overview at the end
     try {
       const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
@@ -1573,7 +1611,8 @@ export const MeetingHistoryList = ({
         currentStage: typesToProcess[0],
         stages: initialStages,
         completedCount: 0,
-        totalCount: typesToProcess.length
+        totalCount: typesToProcess.length,
+        startedAt: Date.now(),
       }
     }));
 
@@ -1598,34 +1637,57 @@ export const MeetingHistoryList = ({
         if (currentType === 'standard') {
           
           try {
-            const lsModel = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
-              ? 'claude-sonnet-4-6'
-              : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
-            const effectiveModel = modelOverride || lsModel;
-            const isPremium = effectiveModel === 'gemini-3.1-pro' || effectiveModel === 'gemini-2.5-flash';
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel);
+            // Map UI model keys → edge-function modelOverride values.
+            //   undefined           → server-side default (Gemini 3.1 Pro + auto-fallback chain)
+            //   'gemini-3-flash'    → fast Gemini Flash (60s timeout, no fallback)
+            //   'sonnet-4.6'        → Claude Sonnet 4.6
+            //   'gemini-2.5-flash'  → premium long-context (PIN-gated)
+            // localStorage 'meeting-regenerate-llm' is the user's saved Settings preference.
+            const lsModel = localStorage.getItem('meeting-regenerate-llm');
+            const resolveModel = (raw?: string): string | undefined => {
+              if (!raw || raw === 'default') return undefined;
+              if (raw === 'sonnet-4.6') return 'claude-sonnet-4-6';
+              return raw;
+            };
+            const effectiveModel = modelOverride
+              ? resolveModel(modelOverride)
+              : resolveModel(lsModel || undefined);
+            const isPremium = effectiveModel === 'gemini-2.5-flash';
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel || '(server default: Gemini 3.1 Pro)');
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
               { body: {
                   meetingId,
                   forceRegenerate: true,
-                  modelOverride: effectiveModel,
+                  ...(effectiveModel ? { modelOverride: effectiveModel } : {}),
                   skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
                   ...(isPremium ? { premiumPin: PREMIUM_REGEN_PIN } : {}),
                 } }
             );
-            
+
             console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
             
             if (standardError) {
               console.error('❌ Edge function error:', standardError);
               throw new Error(`Standard notes failed: ${standardError.message || JSON.stringify(standardError)}`);
             }
-            
+
+            // Surface fallback if the primary model failed and a different one produced the notes.
+            if (data?.fallbackCount && data.fallbackCount > 0 && data?.actualModelUsed) {
+              const fallbackLabels: Record<string, string> = {
+                'gemini-3-flash': 'Gemini 3 Flash',
+                'gemini-2.5-pro': 'Gemini 2.5 Pro',
+                'gpt-5': 'OpenAI GPT-5',
+                'claude-sonnet-4-6': 'Claude Sonnet 4.6',
+              };
+              const label = fallbackLabels[data.actualModelUsed] || data.actualModelUsed;
+              toast.warning(`⚡ Generated with ${label} — primary model was unavailable`, { duration: 6000 });
+            }
+
             console.log('⏳ Polling for note completion...');
             // Poll for completion in meeting_summaries table (not meetings.notes_style_3)
             await pollForNoteCompletion(meetingId, 'summary', 'meeting_summaries');
-            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.modelUsed || effectiveModel);
+            localStorage.setItem(`meeting-llm-used-${meetingId}`, data?.actualModelUsed || data?.modelUsed || effectiveModel || 'gemini-3.1-pro');
             completedCount++;
 
             // Safety net: ensure meeting title was generated
@@ -1822,18 +1884,31 @@ export const MeetingHistoryList = ({
   const getProcessingButtonText = (processing: any) => {
     if (!processing) return 'Regenerate Notes';
     if (processing.currentStage === 'complete') return 'Complete!';
-    
+
     if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
       return 'Failed';
     }
-    
+
+    // For the long single-shot 'standard' stage (Gemini 3.1 Pro can take 60-120s),
+    // rotate status text so users see progress, not a static spinner. No fake percentages.
+    // referenced via progressTick to force re-render.
+    void progressTick;
+    if (processing.currentStage === 'standard' && processing.startedAt) {
+      const elapsed = (Date.now() - processing.startedAt) / 1000;
+      if (elapsed > 130) return 'Taking longer than usual — hang tight';
+      if (elapsed > 75) return 'Finalising notes...';
+      if (elapsed > 45) return 'Identifying actions & decisions...';
+      if (elapsed > 20) return 'Extracting key discussion points...';
+      return 'Analysing transcript...';
+    }
+
     const stageLabels = {
       'standard': 'Standard...',
       'overview': 'Overview...',
       'executive': 'Executive...',
       'limerick': 'Limerick...'
     };
-    
+
     return stageLabels[processing.currentStage] || 'Processing...';
   };
 
@@ -2862,51 +2937,48 @@ export const MeetingHistoryList = ({
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
 
+                      {/* Gemini 3 Flash — fast, lower-quality alternative for quick re-runs */}
                       <DropdownMenuItem
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          // Confirmation dialog (per spec)
                           const ok = window.confirm(
-                            'Regenerate with Gemini 3.1 Pro?\n\n' +
-                            "This uses Google's most advanced reasoning model. It may take 60-120 " +
-                            'seconds and costs roughly 4x more than the default. Useful for testing ' +
-                            'extraction quality on complex meetings. Continue?'
+                            'Regenerate with Gemini 3 Flash?\n\n' +
+                            'Faster generation (~25 seconds) but slightly lower extraction quality ' +
+                            'than the default. Useful for quick re-runs.\n\n' +
+                            'Use Flash?'
                           );
-                          if (!ok) return;
-                          // Server-side PIN gate still enforced
-                          const confirmed = promptForPremiumPin(
-                            'Gemini 3.1 Pro (premium)',
-                            "Google's most advanced reasoning model. ~4x default cost, 60-120s runtime. Existing notes will be replaced."
-                          );
-                          if (confirmed) {
-                            handleProcessClick(meeting, 'gemini-3.1-pro');
-                          }
-                        }}
-                        disabled={processingMeetings[meeting.id]?.isProcessing}
-                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini 3.1 Pro (premium)'}
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          const confirmed = promptForPremiumPin(
-                            'Gemini 2.5 Flash (cheap, long meetings)',
-                            'This routes the meeting through a fast, low-cost model with a large context window — useful for meetings over 60 minutes. Cost is approximately 1/13th of standard generation. Output structure may differ slightly from Claude. Existing notes will be replaced.'
-                          );
-                          if (confirmed) {
-                            handleProcessClick(meeting, 'gemini-2.5-flash');
+                          if (ok) {
+                            handleProcessClick(meeting, 'gemini-3-flash');
                           }
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
                         className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
                       >
                         <Zap className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini Flash (cheap)'}
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini 3 Flash (fast)'}
+                      </DropdownMenuItem>
+
+                      {/* Claude Sonnet 4.6 — alternative perspective for cross-checking */}
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const ok = window.confirm(
+                            'Regenerate with Claude Sonnet 4.6?\n\n' +
+                            "Anthropic's model — provides a different perspective on the same " +
+                            'transcript. Useful for cross-checking action item extraction.\n\n' +
+                            'Use Sonnet?'
+                          );
+                          if (ok) {
+                            handleProcessClick(meeting, 'sonnet-4.6');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Sonnet 4.6 (alternative)'}
                       </DropdownMenuItem>
 
 

@@ -235,16 +235,18 @@ serve(async (req) => {
       detailLevel = 'standard',
       noteType = 'standard',
       transcriptSource,
-      modelOverride = 'claude-sonnet-4-6',
+      // Default model is now Gemini 3.1 Pro (best extraction quality on test set,
+      // ~£0.04/meeting). Flash, Sonnet, and GPT-5 act as automatic fallbacks.
+      modelOverride = 'gemini-3.1-pro',
       skipQc = false,
       premiumPin,
     } = requestBody;
     meetingId = parsedMeetingId;
 
-    // Server-side PIN gate for premium models. Hardcoded for now;
-    // future improvement: read from Supabase secret PREMIUM_REGEN_PIN.
+    // Server-side PIN gate for premium models. Pro is now the default and is
+    // intentionally NOT pin-gated (canonical path). Other premium overrides remain gated.
     const PREMIUM_REGEN_PIN = '1045';
-    const PREMIUM_MODELS = ['gemini-3.1-pro', 'gemini-3.1-pro-preview', 'gemini-2.5-flash'];
+    const PREMIUM_MODELS = ['gemini-2.5-flash'];
     if (PREMIUM_MODELS.includes(modelOverride)) {
       if (premiumPin !== PREMIUM_REGEN_PIN) {
         return new Response(
@@ -1692,148 +1694,201 @@ ${cleanedTranscript}`;
       }
     }
 
-    // Single-shot path: runs when chunked path was skipped or failed.
-    // Create AbortController with 2 minute timeout for AI generation.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+    // Single-shot path with automatic fallback chain.
+    // Primary model is whatever modelOverride resolves to; if it fails (timeout, 5xx, empty),
+    // we automatically retry with the next model in the chain. This protects against
+    // transient Pro outages and Google-wide incidents.
     const skipSingleShot = generatedNotes.trim().length > 0;
-    if (skipSingleShot) clearTimeout(timeoutId);
 
-    if (!skipSingleShot) try {
-      if (modelOverride.startsWith('claude-')) {
-        // Pass the model ID directly — claude-sonnet-4-6 is valid as-is
-        console.log(`🧠 Using Claude model: ${modelOverride}`);
-        const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
-        if (!anthropicApiKey) {
-          throw new Error('ANTHROPIC_API_KEY not configured');
-        }
-
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicApiKey,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: modelOverride,
-            max_tokens: 8000,
-            system: systemPrompt,
-            messages: [
-              { role: 'user', content: userPrompt }
-            ],
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-        console.log('📡 Anthropic response status:', response.status);
-
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error('❌ Anthropic API error:', response.status, errorData);
-          throw new Error(`Anthropic API error: ${response.status} - ${errorData}`);
-        }
-
-        const data = await response.json();
-        generatedNotes = data.content
-          ?.filter((block: any) => block.type === 'text')
-          ?.map((block: any) => block.text)
-          ?.join('\n') || '';
-      } else {
-        // Route to Gemini.
-        //   'gemini-3.1-pro' / 'gemini-3.1-pro-preview' → google/gemini-3.1-pro-preview (premium reasoning)
-        //   'gemini-2.5-flash' → google/gemini-2.5-flash (cheap, long-context)
-        //   default → google/gemini-3-flash-preview
-        let geminiModel = 'google/gemini-3-flash-preview';
-        if (modelOverride === 'gemini-3.1-pro' || modelOverride === 'gemini-3.1-pro-preview') {
-          geminiModel = 'google/gemini-3.1-pro-preview';
-          modelUsed = 'gemini-3.1-pro';
-        } else if (modelOverride === 'gemini-2.5-flash') {
-          geminiModel = 'google/gemini-2.5-flash';
-          modelUsed = 'gemini-2.5-flash';
-        } else {
-          modelUsed = 'gemini-3-flash';
-        }
-        console.log(`🧠 Using Gemini model: ${geminiModel}`);
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: geminiModel,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            max_completion_tokens: 8000,
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-        console.log('📡 Lovable AI response status:', response.status);
-
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error('❌ Lovable AI API error:', response.status, errorData);
-          
-          if (response.status === 429) {
-            throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-          }
-          if (response.status === 402) {
-            throw new Error('Insufficient AI credits. Please add credits to your workspace.');
-          }
-          if (response.status === 413) {
-            throw new Error('Transcript too large. Please try cleaning the transcript first.');
-          }
-          
-          throw new Error(`Lovable AI API error: ${response.status} - ${errorData}`);
-        }
-
-        const responseText = await response.text();
-        if (!responseText || responseText.trim().length === 0) {
-          console.error('❌ Lovable AI returned empty response body');
-          throw new Error('Lovable AI returned an empty response. Please try again.');
-        }
-        
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('❌ Failed to parse Lovable AI response:', responseText.substring(0, 500));
-          throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
-        }
-        console.log('📦 Lovable AI response data:', JSON.stringify(data).substring(0, 500));
-        
-        generatedNotes = data.choices?.[0]?.message?.content || '';
+    // Build fallback chain. Primary is always the requested model. Fallbacks are appended
+    // only if the primary is the new default (Pro) — explicit overrides like 'gemini-3-flash'
+    // or 'sonnet-4.6' are honoured without fallback (user picked them deliberately).
+    const buildFallbackChain = (primary: string): string[] => {
+      if (primary === 'gemini-3.1-pro' || primary === 'gemini-3.1-pro-preview') {
+        return ['gemini-3.1-pro', 'gemini-3-flash', 'gemini-2.5-pro', 'gpt-5'];
       }
+      return [primary];
+    };
+    const chain = buildFallbackChain(modelOverride);
+    const failureReasons: Array<{ model: string; reason: string }> = [];
+    let actualModelUsed = modelOverride;
+    let fallbackCount = 0;
 
+    // Helper: run a single model attempt. Returns notes string on success, throws on failure.
+    const runAttempt = async (modelKey: string): Promise<string> => {
+      // Pro gets the full 120s; explicit fast Flash override gets 60s; everything else 120s.
+      const timeoutMs = modelKey === 'gemini-3-flash' ? 60000 : 120000;
+      const attemptController = new AbortController();
+      const attemptTimeout = setTimeout(() => attemptController.abort(), timeoutMs);
+      try {
+        let notes = '';
+        if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
+          const claudeModel = modelKey === 'sonnet-4.6' ? 'claude-sonnet-4-6' : modelKey;
+          console.log(`🧠 [attempt] Claude model: ${claudeModel}`);
+          const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+          if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+          const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': anthropicApiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: claudeModel,
+              max_tokens: 8000,
+              system: systemPrompt,
+              messages: [{ role: 'user', content: userPrompt }],
+            }),
+            signal: attemptController.signal,
+          });
+          if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
+          }
+          const data = await response.json();
+          notes = data.content
+            ?.filter((block: any) => block.type === 'text')
+            ?.map((block: any) => block.text)
+            ?.join('\n') || '';
+        } else if (modelKey === 'gpt-5') {
+          // OpenAI provider via Lovable AI Gateway — different-provider fallback
+          // protects against Google-wide outages.
+          console.log('🧠 [attempt] OpenAI gpt-5 via gateway');
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'openai/gpt-5',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              max_completion_tokens: 8000,
+            }),
+            signal: attemptController.signal,
+          });
+          if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Gateway gpt-5 ${response.status}: ${errorData.substring(0, 300)}`);
+          }
+          const data = await response.json();
+          notes = data.choices?.[0]?.message?.content || '';
+        } else {
+          // Gemini routing.
+          //   'gemini-3.1-pro' / 'gemini-3.1-pro-preview' → google/gemini-3.1-pro-preview (default)
+          //   'gemini-2.5-pro' → google/gemini-2.5-pro (stable fallback)
+          //   'gemini-2.5-flash' → google/gemini-2.5-flash (premium long-context override)
+          //   'gemini-3-flash' or anything else → google/gemini-3-flash-preview
+          let geminiModel = 'google/gemini-3-flash-preview';
+          if (modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview') {
+            geminiModel = 'google/gemini-3.1-pro-preview';
+          } else if (modelKey === 'gemini-2.5-pro') {
+            geminiModel = 'google/gemini-2.5-pro';
+          } else if (modelKey === 'gemini-2.5-flash') {
+            geminiModel = 'google/gemini-2.5-flash';
+          }
+          console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: geminiModel,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              max_completion_tokens: 8000,
+            }),
+            signal: attemptController.signal,
+          });
+          if (!response.ok) {
+            const errorData = await response.text();
+            // 429 and 402 are user-facing — surface immediately rather than silently fall back.
+            if (response.status === 429) throw new Error('RATE_LIMIT: Rate limit exceeded. Please wait a moment and try again.');
+            if (response.status === 402) throw new Error('CREDITS: Insufficient AI credits. Please add credits to your workspace.');
+            if (response.status === 413) throw new Error(`Lovable AI 413: Transcript too large.`);
+            throw new Error(`Lovable AI ${response.status}: ${errorData.substring(0, 300)}`);
+          }
+          const responseText = await response.text();
+          if (!responseText || responseText.trim().length === 0) {
+            throw new Error('Lovable AI returned empty response body');
+          }
+          const data = JSON.parse(responseText);
+          notes = data.choices?.[0]?.message?.content || '';
+        }
+        if (!notes || notes.trim().length === 0) {
+          throw new Error('AI returned empty content');
+        }
+        return notes;
+      } finally {
+        clearTimeout(attemptTimeout);
+      }
+    };
+
+    if (!skipSingleShot) {
+      let lastError: Error | null = null;
+      for (let i = 0; i < chain.length; i++) {
+        const attemptModel = chain[i];
+        try {
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}`);
+          generatedNotes = await runAttempt(attemptModel);
+          actualModelUsed = attemptModel;
+          fallbackCount = i;
+          modelUsed = attemptModel;
+          if (i > 0) {
+            console.log(`⚡ Fallback succeeded with ${attemptModel} (primary ${chain[0]} failed)`);
+          }
+          break;
+        } catch (err: any) {
+          const reason = err?.name === 'AbortError'
+            ? `timeout after ${attemptModel === 'gemini-3-flash' ? 60 : 120}s`
+            : (err?.message || 'unknown error');
+          console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
+          failureReasons.push({ model: attemptModel, reason });
+          lastError = err instanceof Error ? err : new Error(String(err));
+          // Surface user-facing errors immediately — don't burn through fallbacks for credit/rate-limit issues.
+          if (typeof err?.message === 'string' && (err.message.startsWith('RATE_LIMIT:') || err.message.startsWith('CREDITS:'))) {
+            throw new Error(err.message.replace(/^(RATE_LIMIT|CREDITS):\s*/, ''));
+          }
+        }
+      }
       if (!generatedNotes || generatedNotes.trim().length === 0) {
-        console.error('⚠️ AI returned empty content!');
-        throw new Error('AI returned empty content. This may indicate an API configuration issue.');
+        console.error('❌ All fallback attempts exhausted');
+        throw lastError || new Error('All AI generation attempts failed');
       }
 
       // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
-      // the heading from the table header onto separate lines. Without this, the markdown
-      // parser sees "## Actions" as the first column name and column-mapping fails.
+      // the heading from the table header onto separate lines.
       generatedNotes = generatedNotes.replace(
         /^(#{1,6}\s+[A-Za-z][A-Za-z0-9\s&]*?)\s+(\|\s*[A-Za-z].*\|)\s*$/gm,
         '$1\n\n$2'
       );
 
-      console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
-      console.log('📝 Generated preview:', generatedNotes.substring(0, 200));
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        console.error('⏱️ AI generation timed out after 2 minutes');
-        throw new Error('AI generation timed out. Please try with a shorter transcript or contact support.');
-      }
-      throw fetchError;
+      console.log('✅ Generated notes length:', generatedNotes.length, 'chars', '| model:', actualModelUsed, '| fallbacks:', fallbackCount);
     }
+
+    // Log generation outcome to meeting_generation_log (admin-readable monitoring).
+    // Non-blocking — log failure must not break note generation.
+    try {
+      await supabase.from('meeting_generation_log').insert({
+        meeting_id: meetingId,
+        primary_model: chain[0] || modelOverride,
+        actual_model_used: actualModelUsed,
+        fallback_count: fallbackCount,
+        generation_ms: Date.now() - notesGenStart,
+        failure_reasons: failureReasons.length > 0 ? failureReasons : null,
+      });
+    } catch (logErr) {
+      console.warn('⚠️ Failed to write generation log (non-blocking):', logErr);
+    }
+
 
     // Post-process ACTION ITEMS to enforce explicit ownership only
     try {
@@ -2459,6 +2514,9 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notesLength: generatedNotes.length,
         content: generatedNotes,
         modelUsed,
+        actualModelUsed,
+        fallbackCount,
+        primaryModel: modelOverride,
         qc: qcResult,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
