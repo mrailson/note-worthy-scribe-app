@@ -1,44 +1,66 @@
-The formatting is off because the notes content being rendered contains raw markdown/table syntax that is no longer being reliably converted before display/email. In your screenshots I can see two related symptoms:
+Yes — that is the right direction. The safest fix is not to make the modal/email/document parsers more tolerant, but to make imported transcript meetings arrive at the same stored notes contract that recorded meetings already produce.
 
-1. In the notes modal, a whole numbered section is being shown as one long paragraph, with raw markers like `--- ### Key Points ###` left in the text.
-2. In the emailed body, Outlook is receiving the same unnormalised content, so headings, numbered sections, and markdown tables collapse into dense blue/black text instead of proper sections, paragraphs, bullets, and tables.
+## Plan
 
-This is not a Word-only problem; it is a formatting pipeline problem. The Word attachment may now generate, but the source content needs normalising before it is displayed, emailed, and exported.
+1. Align imported transcript note generation with recorded meetings
+   - Trace the recorded-meeting post-notes path and reuse the same final formatting contract for imports.
+   - Keep the imported transcript entry point, but ensure the final saved `meeting_summaries.summary` looks like the recorded output: section headings on their own lines, markdown preserved, no collapsed headings/body text.
+   - Do not change `SafeModeNotesModal` parsing.
+   - Do not change the email formatter to mask bad markdown.
 
-Plan to fix it:
+2. Fix the chunked merge clean-up bug
+   - Update the `merge-meeting-minutes` tone-audit clean-up so it no longer collapses newlines with `\s{2,}`.
+   - Replace that with line-safe whitespace normalisation: collapse repeated spaces/tabs inside lines, preserve paragraph and heading breaks.
+   - Add a small final guard in the merge output to keep required headings on separate lines if Claude returns them too tightly.
 
-1. Add a meeting-notes normalisation helper
-   - Clean obvious markdown artefacts such as inline `---`, repeated `###`, escaped asterisks, and divider lines.
-   - Split collapsed numbered agenda items back onto separate lines.
-   - Convert malformed table-like lines using `|` into proper markdown table blocks where possible.
-   - Preserve important governance prefixes such as **RESOLVED**, **AGREED**, and **NOTED** and keep them visually distinct.
-   - Keep British English/date/time conventions unchanged.
+3. Make long imported transcripts follow the same final markdown contract as short/recorded meetings
+   - Keep the chunked summarisation path for long imports, because very long transcripts still need chunking.
+   - Change only the final reduce/merge stage so it emits the same section order and line structure used by recorded notes:
+     - `# MEETING DETAILS`
+     - `Date:`
+     - `Time:`
+     - `# EXECUTIVE SUMMARY`
+     - `# ATTENDEES` where available
+     - `# DISCUSSION SUMMARY`
+     - `# DECISIONS REGISTER`
+     - `# ACTION ITEMS`
+     - `# OPEN ITEMS & RISKS`
+     - `# NEXT MEETING`
+   - Ensure `# OPEN ITEMS & RISKS` remains bullets, not a markdown table.
 
-2. Apply the normaliser to the notes modal display
-   - Use the cleaned content before rendering the notes tab in `SafeModeNotesModal` / related modal render path.
-   - Ensure numbered points appear as separate paragraphs rather than one wall of text.
-   - Ensure action/risk table sections show as tables or readable rows, not raw pipes.
+4. Confirm imported meetings use the same completion-email trigger route as recorded meetings
+   - Check all transcript import creation paths, not just `useMeetingImporter.ts`, because the recent Northamptonshire rows still showed `import_source = null`.
+   - Set `import_source` consistently for transcript imports before notes are generated.
+   - Keep the existing mobile/recorded DB trigger mechanism and its allow-list; only ensure imported rows enter it correctly.
+   - Do not change `deliver-mobile-meeting-email` behaviour unless inspection shows a direct mismatch with recorded meetings.
 
-3. Apply the same normalisation before email HTML generation
-   - Update `src/utils/meetingEmailBuilder.ts` so `convertToStyledHTML()` handles collapsed numbered sections and imperfect markdown tables.
-   - Make the Outlook HTML more robust by using simple email-safe tables/paragraphs rather than relying on markdown-looking plain text.
-   - Remove the duplicate full-notes body from the email if required, or keep it but properly formatted; the email currently says “summary below” but then includes the full raw notes, which is why the message becomes huge.
+5. Keep resend and auto-email on the same source of truth
+   - Manual resend should continue to use the stored `meeting_summaries.summary`.
+   - Auto-email should continue to use the same stored summary.
+   - The fix should therefore improve both the email body and Word attachment by fixing the stored imported-summary markdown upstream.
 
-4. Apply the same cleanup before Word generation
-   - Feed cleaned content into `generateProfessionalWordFromContent()` / `generateProfessionalWordBlob()`.
-   - Keep the earlier safety fallback for blank action deadlines (`TBC`) so DOCX generation does not fail.
-   - Ensure action tables use safe default values for action, owner, deadline, and priority.
+6. Deployment and verification boundaries
+   - Any changed edge function under `supabase/functions/` will need redeployment after editing.
+   - I will not invoke the live email function or send test emails myself.
+   - I will not run live-preview automated checks.
+   - I will list every modified file and every new file after implementation.
 
-5. Improve error visibility
-   - Keep clearer toast errors for failed Word downloads.
-   - Add console warnings around malformed table conversion so we can diagnose future bad AI output without exposing this to users.
+## Manual test plan after implementation
 
-Technical notes:
+1. Short transcript import
+   - Import a short transcript under the chunking threshold.
+   - Confirm the notes modal renders Date, Executive Summary, Discussion Summary, and Open Items & Risks correctly.
+   - Confirm the completion email arrives automatically.
+   - Confirm the email body is not unexpectedly capitalised.
+   - Confirm the Word attachment has clean section formatting.
 
-- Likely files to update:
-  - `src/utils/meetingEmailBuilder.ts`
-  - `src/utils/generateProfessionalMeetingDocx.ts`
-  - `src/components/SafeModeNotesModal.tsx` or the shared renderer it uses
-  - possibly `src/components/MeetingHistoryList.tsx` for the quick Word button path
-- I will not change the meeting generation model itself first, because existing stored notes already contain malformed markdown. The immediate fix should clean both existing and future notes at render/export time.
-- After implementation, I will verify the same meeting path visually in the modal and check that the email/Word source conversion no longer leaves raw `###`, `---`, or broken pipe-table output.
+2. Long transcript import
+   - Import a long transcript over 50k characters.
+   - Confirm the stored/generated notes have headings on separate lines.
+   - Confirm the notes modal renders the same sections as a recorded meeting.
+   - Confirm the completion email arrives automatically.
+   - Confirm the email body and Word attachment match the recorded-meeting quality.
+
+## Technical notes
+
+The key root cause is the chunked merge function collapsing markdown structure after Claude has generated the notes. Recorded meetings already produce the correct structure, so the target is to make imports preserve that same markdown contract before the notes are saved and emailed.
