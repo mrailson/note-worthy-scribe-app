@@ -140,6 +140,7 @@ function performProfessionalToneAudit(content: string): string {
 }
 
 function normaliseMergeOutput(content: string): string {
+  console.log('[normaliseMergeOutput] Running on content of length:', content?.length || 0);
   if (!content) return content;
   let out = content;
 
@@ -157,6 +158,20 @@ function normaliseMergeOutput(content: string): string {
     'ACTION ITEMS',
     'NEXT MEETING',
   ];
+
+  const SECTION_NAMES_REGEX_GROUP = '(?:MEETING DETAILS|EXECUTIVE SUMMARY|ATTENDEES|DISCUSSION SUMMARY|DECISIONS REGISTER|OPEN ITEMS\\s*(?:&|AND)\\s*RISKS|ACTION ITEMS|NEXT MEETING)';
+
+  // 1b (NEW Rule A). Unwrap "**SECTION_NAME [substantial content...]**" — bold-wrapped
+  // block where the bold opens with a known section name and contains far more than
+  // just the heading. Split into "# SECTION_NAME\n\n[rest]" and strip the bold wrapper.
+  const wrappedSectionRe = new RegExp(
+    `\\*{1,2}\\s*(${SECTION_NAMES_REGEX_GROUP})\\s+([\\s\\S]+?)\\*{1,2}`,
+    'gi'
+  );
+  out = out.replace(wrappedSectionRe, (_match, section, body) => {
+    const cleanSection = section.replace(/\s+/g, ' ').trim().toUpperCase();
+    return `\n\n# ${cleanSection}\n\n${body.trim()}\n\n`;
+  });
 
   // 2. Convert "**SECTION**" lines to "# SECTION"
   for (const section of KNOWN_SECTIONS) {
