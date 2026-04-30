@@ -652,9 +652,38 @@ function InlineClaimPanel({
                       <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>
                         {fullMonth}
                       </div>
-                      {claimMonths && claimMonths.length > 1 && onChangeMonth && (() => {
+                      {onChangeMonth && (() => {
+                        // Build a broader month list specifically for the dropdown so
+                        // users can switch claim month even when the table only shows
+                        // a single column (e.g. early in the pilot).
                         const today = new Date();
                         const currentYM = today.getFullYear() * 100 + (today.getMonth() + 1);
+                        const optionMap = new Map<string, { monthDate: string; year: number; month: number }>();
+                        // Walk from pilot start up to one month past today (for forward visibility),
+                        // capped at 36 months to avoid runaway lists.
+                        const start = new Date(PILOT_START.getFullYear(), PILOT_START.getMonth(), 1);
+                        const end = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                        const cursor = new Date(start);
+                        let safety = 0;
+                        while (cursor <= end && safety < 36) {
+                          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-01`;
+                          optionMap.set(key, { monthDate: key, year: cursor.getFullYear(), month: cursor.getMonth() });
+                          cursor.setMonth(cursor.getMonth() + 1);
+                          safety++;
+                        }
+                        // Make sure the currently-open month is selectable even if outside the window.
+                        if (!optionMap.has(monthDate)) {
+                          const [y, m] = monthDate.split('-').map(Number);
+                          optionMap.set(monthDate, { monthDate, year: y, month: m - 1 });
+                        }
+                        // Also fold in any months from the parent table list (defensive).
+                        (claimMonths || []).forEach(cm => {
+                          if (!optionMap.has(cm.monthDate)) optionMap.set(cm.monthDate, cm);
+                        });
+                        const options = Array.from(optionMap.values()).sort((a, b) =>
+                          a.monthDate < b.monthDate ? -1 : a.monthDate > b.monthDate ? 1 : 0
+                        );
+                        if (options.length < 2) return null;
                         return (
                           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#6b7280', fontWeight: 500 }}>
                             <span>Change month:</span>
@@ -675,7 +704,7 @@ function InlineClaimPanel({
                                 cursor: 'pointer',
                               }}
                             >
-                              {claimMonths.map(cm => {
+                              {options.map(cm => {
                                 const cmYM = cm.year * 100 + (cm.month + 1);
                                 const isFuture = cmYM > currentYM;
                                 const fullCm = new Date(cm.monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
