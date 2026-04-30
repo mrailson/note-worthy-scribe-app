@@ -1136,7 +1136,7 @@ function stopSilentAudio() {
 export default function NoteWellRecorder() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user: authUser } = useAuth();
+  const { user: authUser, session: authSession, loading: authLoading, refreshSessionStatus } = useAuth();
   // Recording mode + connectivity (persisted preference, three-state pill).
   // Hook owns: localStorage preference, navigator.onLine, auto-fallback flag.
   // We map the hook's "online"/"offline" vocabulary to the recorder's existing
@@ -1191,6 +1191,19 @@ export default function NoteWellRecorder() {
 
   // ── Pre-flight modal state ──
   const [showPreFlight, setShowPreFlight] = useState(false);
+
+  const navigateToSignIn = useCallback((returnTo = location.pathname || "/new-recorder") => {
+    navigate(`/auth?returnTo=${encodeURIComponent(returnTo)}`);
+  }, [location.pathname, navigate]);
+
+  const ensureSignedIn = useCallback(async (returnTo = location.pathname || "/new-recorder") => {
+    if (authUser && authSession) return authSession;
+    const currentSession = await refreshSessionStatus();
+    if (currentSession?.user) return currentSession;
+    showToast("Please sign in to use online recording and meetings", "error");
+    navigateToSignIn(returnTo);
+    return null;
+  }, [authSession, authUser, location.pathname, navigateToSignIn, refreshSessionStatus]);
 
   // ── Honest timer state (visibility-aware) ──
   const lastTickRef = useRef(Date.now());
