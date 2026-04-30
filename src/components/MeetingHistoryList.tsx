@@ -198,6 +198,24 @@ interface MeetingHistoryListProps {
   onOpenCorrectionManager?: () => void;
 }
 
+// PIN required to confirm premium-model regenerations on the client.
+// Server-side enforcement lives in the auto-generate-meeting-notes edge function.
+const PREMIUM_REGEN_PIN = '1045';
+
+const promptForPremiumPin = (modelLabel: string, costNote: string): boolean => {
+  const userPin = window.prompt(
+    `Regenerate this meeting using ${modelLabel}?\n\n` +
+    `${costNote}\n\n` +
+    `Enter the 4-digit PIN to confirm:`
+  );
+  if (userPin === null) return false; // user cancelled
+  if (userPin !== PREMIUM_REGEN_PIN) {
+    toast.error('Incorrect PIN. Premium regeneration cancelled.');
+    return false;
+  }
+  return true;
+};
+
 export const MeetingHistoryList = ({ 
   meetings, 
   onEdit, 
