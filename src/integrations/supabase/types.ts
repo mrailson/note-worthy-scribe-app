@@ -6882,31 +6882,46 @@ export type Database = {
         Row: {
           actual_model_used: string
           created_at: string
+          cross_section_check_performed: boolean
+          decision_count: number | null
+          extracted_action_count: number | null
+          extraction_reasoning_trace: string | null
           failure_reasons: Json | null
           fallback_count: number
           generation_ms: number | null
           id: string
           meeting_id: string
+          next_meeting_item_count: number | null
           primary_model: string
         }
         Insert: {
           actual_model_used: string
           created_at?: string
+          cross_section_check_performed?: boolean
+          decision_count?: number | null
+          extracted_action_count?: number | null
+          extraction_reasoning_trace?: string | null
           failure_reasons?: Json | null
           fallback_count?: number
           generation_ms?: number | null
           id?: string
           meeting_id: string
+          next_meeting_item_count?: number | null
           primary_model: string
         }
         Update: {
           actual_model_used?: string
           created_at?: string
+          cross_section_check_performed?: boolean
+          decision_count?: number | null
+          extracted_action_count?: number | null
+          extraction_reasoning_trace?: string | null
           failure_reasons?: Json | null
           fallback_count?: number
           generation_ms?: number | null
           id?: string
           meeting_id?: string
+          next_meeting_item_count?: number | null
           primary_model?: string
         }
         Relationships: []
