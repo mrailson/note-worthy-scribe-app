@@ -55,12 +55,12 @@ const PILOT_START = new Date(2026, 3, 1); // 1 April 2026
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
   draft: { label: 'Draft', color: '#6b7280', bg: '#f9fafb', border: '#d1d5db', dot: '#9ca3af' },
-  submitted: { label: 'Submitted', color: '#0369a1', bg: '#f0f9ff', border: '#7dd3fc', dot: '#38bdf8' },
-  verified: { label: 'Pending', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
-  approved: { label: 'Approved', color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd', dot: '#8b5cf6' },
-  queried: { label: 'Queried!', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444' },
+  submitted: { label: 'Awaiting Verification', color: '#0369a1', bg: '#f0f9ff', border: '#7dd3fc', dot: '#38bdf8' },
+  verified: { label: 'Awaiting Approval', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', dot: '#3b82f6' },
+  approved: { label: 'Approved – Invoice Pending', color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd', dot: '#8b5cf6' },
+  queried: { label: 'Action Needed – Query Raised', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', dot: '#ef4444' },
   paid: { label: 'Paid', color: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '#22c55e' },
-  invoiced: { label: 'Invoiced', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', dot: '#f59e0b' },
+  invoiced: { label: 'Invoice Issued', color: '#d97706', bg: '#fffbeb', border: '#fcd34d', dot: '#f59e0b' },
   rejected: { label: 'Rejected', color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', dot: '#dc2626' },
 };
 
