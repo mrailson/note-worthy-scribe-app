@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { modelOverrideField } from '@/utils/resolveMeetingModel';
 
 interface MeetingImportData {
   transcript: string;
@@ -144,14 +145,12 @@ export const useMeetingImporter = () => {
 
       // Step 4: Trigger background note generation with user's preferred model
       try {
-        const storedModel = localStorage.getItem('meeting-regenerate-llm');
-        const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
         await supabase.functions.invoke('auto-generate-meeting-notes', {
           body: { 
             meetingId: meeting.id,
             source: 'import',
             config: data,
-            modelOverride,
+            ...modelOverrideField(),
           }
         });
       } catch (functionError) {

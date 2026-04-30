@@ -20,6 +20,7 @@ import { cleanWhisperResponse } from "@/utils/whisper-chunk-cleaner";
 import { ConnectionBanner } from "@/components/recorder/ConnectionBanner";
 import { useRecordingMode } from "@/hooks/useRecordingMode";
 import { useAuth } from "@/contexts/AuthContext";
+import { modelOverrideField } from "@/utils/resolveMeetingModel";
 
 // ─── IndexedDB helpers ────────────────────────────────────────────────────────
 const DB_NAME = "notewell_recordings_v1";
@@ -1811,11 +1812,8 @@ export default function NoteWellRecorder() {
 
   // ── Generate notes via unified orchestrator pipeline ──────────────────────
   const generateNotesForMeeting = async (meetingId) => {
-    const storedModel = localStorage.getItem('meeting-regenerate-llm');
-    const modelOverride = !storedModel || storedModel === 'gemini-3-flash' ? 'claude-sonnet-4-6' : storedModel;
-
     const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
-      body: { meetingId, forceRegenerate: false, modelOverride, skipQc: true },
+      body: { meetingId, forceRegenerate: false, ...modelOverrideField(), skipQc: true },
     });
 
     if (error) throw new Error(error.message || 'Note generation failed');
