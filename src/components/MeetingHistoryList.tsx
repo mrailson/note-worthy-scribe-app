@@ -633,12 +633,28 @@ export const MeetingHistoryList = ({
   // rotating "Analysing transcript..." → "Extracting key points..." → "Identifying actions..."
   // status text updates without polling logic in every consumer.
   const [progressTick, setProgressTick] = useState(0);
+  const longGenWarnedRef = useRef<Record<string, boolean>>({});
   useEffect(() => {
     const anyProcessing = Object.values(processingMeetings).some(p => p?.isProcessing);
     if (!anyProcessing) return;
-    const id = setInterval(() => setProgressTick(t => t + 1), 5000);
+    const id = setInterval(() => {
+      setProgressTick(t => t + 1);
+      // Watchdog: warn the user once when a generation passes 130s.
+      const now = Date.now();
+      Object.entries(processingMeetings).forEach(([mid, p]) => {
+        if (p?.isProcessing && p.currentStage === 'standard' && p.startedAt &&
+            (now - p.startedAt) > 130000 && !longGenWarnedRef.current[mid]) {
+          longGenWarnedRef.current[mid] = true;
+          toast.info('Taking longer than usual — this can happen with longer meetings. Hang tight.', { duration: 8000 });
+        }
+        if (!p?.isProcessing) {
+          delete longGenWarnedRef.current[mid];
+        }
+      });
+    }, 5000);
     return () => clearInterval(id);
   }, [processingMeetings]);
+
 
   // Multi-type notes hooks for each meeting
   const [multiTypeHooks, setMultiTypeHooks] = useState<Record<string, any>>({});
