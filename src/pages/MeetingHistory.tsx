@@ -1775,6 +1775,41 @@ const MeetingHistory = () => {
     );
   }
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">Checking login…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Sign in to view meetings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Your old meetings are protected by your Notewell login.</p>
+              <Button className="w-full" onClick={() => navigate('/auth?returnTo=/meetings')}>
+                Sign in
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-background">
