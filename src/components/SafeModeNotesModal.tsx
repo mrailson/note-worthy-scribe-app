@@ -230,6 +230,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [fontSize, setFontSize] = useState(14);
   const [copied, setCopied] = useState(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // Chunk analysis state
   const [transcriptChunks, setTranscriptChunks] = useState<any[]>([]);
