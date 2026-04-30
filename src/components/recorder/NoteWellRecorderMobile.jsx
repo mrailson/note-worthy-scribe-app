@@ -159,7 +159,7 @@ function ModePill({ mode, isAutoFallback, disabled, onTap, authLoading, isAuthen
   //   live                                 → 🟢 green  "Online"
   //   offline + isAutoFallback             → 🟡 amber  "Offline (no connection)"
   //   offline + user-chosen                → ⚪ slate  "Offline mode"
-  const variant = authLoading
+  const variant = live && authLoading
     ? "checking"
     : live && !isAuthenticated
     ? "signin"
@@ -186,7 +186,7 @@ function ModePill({ mode, isAutoFallback, disabled, onTap, authLoading, isAuthen
       dotBg: "linear-gradient(135deg,#16a34a,#22c55e)",
       dotShadow: "0 2px 6px rgba(22,163,74,0.4)",
       labelColor: "#15803d",
-      label: "Online",
+      label: "Online · Signed in",
     },
     signin: {
       borderColor: "rgba(245,158,11,0.40)",
