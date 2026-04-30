@@ -648,8 +648,47 @@ function InlineClaimPanel({
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
                   <div>
                     {/* Month prominently */}
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em', marginBottom: 5 }}>
-                      {fullMonth}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' as const }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>
+                        {fullMonth}
+                      </div>
+                      {claimMonths && claimMonths.length > 1 && onChangeMonth && (() => {
+                        const today = new Date();
+                        const currentYM = today.getFullYear() * 100 + (today.getMonth() + 1);
+                        return (
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#6b7280', fontWeight: 500 }}>
+                            <span>Change month:</span>
+                            <select
+                              value={monthDate}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                if (next && next !== monthDate) onChangeMonth(next);
+                              }}
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                border: '1px solid #d1d5db',
+                                background: '#fff',
+                                fontSize: 12,
+                                color: '#111827',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {claimMonths.map(cm => {
+                                const cmYM = cm.year * 100 + (cm.month + 1);
+                                const isFuture = cmYM > currentYM;
+                                const fullCm = new Date(cm.monthDate + 'T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                                return (
+                                  <option key={cm.monthDate} value={cm.monthDate} disabled={isFuture}>
+                                    {fullCm}{isFuture ? ' (future)' : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </label>
+                        );
+                      })()}
                     </div>
                     {/* Category + status pills */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
