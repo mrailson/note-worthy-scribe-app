@@ -922,22 +922,23 @@ export default function Settings() {
                           <SelectValue placeholder="Select AI model" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (Default — Premium)</SelectItem>
-                          <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast — Beta)</SelectItem>
-                          <SelectItem value="gemini-3-flash">Gemini 3 Flash</SelectItem>
+                          <SelectItem value="default">Gemini 3.1 Pro (Default — best quality)</SelectItem>
+                          <SelectItem value="gemini-3-flash">Gemini 3 Flash (faster, lower cost)</SelectItem>
+                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (alternative perspective)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p className="mb-2">
                         <strong>Current model:</strong> {
-                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6 (default)' :
-                          regenerateLlm === 'claude-haiku-4-5-20251001' ? 'Claude Haiku 4.5' :
-                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash' : 'Claude Sonnet 4.6'
+                          regenerateLlm === 'default' ? 'Gemini 3.1 Pro (default — best quality)' :
+                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash (faster, lower cost)' :
+                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6 (alternative perspective)' :
+                          'Gemini 3.1 Pro (default)'
                         }
                       </p>
                       <p>
-                        This model is used for both initial note generation (after stopping a recording) and manual "Regenerate Notes" actions. Claude models use a governance-grade prompt optimised for exhaustive topic extraction and risk identification.
+                        This model is used for both initial note generation (after stopping a recording) and manual "Regenerate Notes" actions. If the default Pro model fails or times out, the system automatically falls back to Gemini 3 Flash, then Gemini 2.5 Pro, then GPT-5.
                       </p>
                     </div>
                   </div>
