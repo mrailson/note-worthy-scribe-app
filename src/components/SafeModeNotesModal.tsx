@@ -3100,7 +3100,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   };
 
   const currentContent = activeTab === 'notes' ? notesContent : transcript;
-  const isLoading = activeTab === 'notes' ? isLoadingNotes : isLoadingTranscript;
+  const isLoading = activeTab === 'notes' ? isLoadingNotes || isGenerating : isLoadingTranscript;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -3639,7 +3639,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-muted-foreground">Loading notes...</span>
+                      <span className="ml-2 text-muted-foreground">
+                        {isGenerating
+                          ? 'Generating meeting notes from your imported transcript… this usually takes 30–90 seconds. The page will refresh automatically when ready.'
+                          : 'Loading notes...'}
+                      </span>
                     </div>
                   ) : notesContent ? (
                     <>
