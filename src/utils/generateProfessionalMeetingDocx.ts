@@ -1723,6 +1723,16 @@ export const generateProfessionalWordBlob = async (
   parsedDetails?: ParsedMeetingDetailsInput,
   parsedActionItems?: ParsedActionItemInput[]
 ): Promise<Blob> => {
+  const __startTime = performance.now();
+  console.log('📊 [docx] Starting generation', {
+    contentLength: content?.length || 0,
+    contentLines: content ? content.split('\n').length : 0,
+    title: title?.substring(0, 80),
+    hasDetails: !!parsedDetails,
+    actionItemCount: parsedActionItems?.length || 0,
+    timestamp: new Date().toISOString(),
+  });
+
   const { Document, Packer, Paragraph, TextRun } = await import("docx");
   
   // Use provided metadata
@@ -1735,10 +1745,19 @@ export const generateProfessionalWordBlob = async (
     attendees: parsedDetails?.attendees,
   };
   
-  // Clean content
-  let cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(content));
-  cleanedContent = deduplicateActionItems(cleanedContent);
-  cleanedContent = replaceFacilitatorWithUserName(cleanedContent, metadata.loggedUserName);
+  // (1) Clean content
+  let cleanedContent: string;
+  try {
+    cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(content));
+    cleanedContent = deduplicateActionItems(cleanedContent);
+    cleanedContent = replaceFacilitatorWithUserName(cleanedContent, metadata.loggedUserName);
+  } catch (err) {
+    console.error('❌ [docx] Failed at content cleaning', {
+      error: err instanceof Error ? err.message : String(err),
+      contentLength: content?.length || 0,
+    });
+    throw new Error(`docx content cleaning failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
   
   // Convert provided action items to internal format
   const actionItems: ParsedActionItem[] = (parsedActionItems || []).map(item => ({
@@ -1771,11 +1790,21 @@ export const generateProfessionalWordBlob = async (
     children.push(...detailsElements);
   }
   
-  // Main content (without action items)
-  const contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
+  // (2) Main content parser walk (without action items)
+  let contentElements: any[];
+  try {
+    contentElements = await parseContentToDocxElements(contentWithoutActionItems, metadata.title);
+  } catch (err) {
+    console.error('❌ [docx] Failed at content parser walk', {
+      error: err instanceof Error ? err.message : String(err),
+      contentLength: contentWithoutActionItems?.length || 0,
+      contentLines: contentWithoutActionItems ? contentWithoutActionItems.split('\n').length : 0,
+    });
+    throw new Error(`docx content parser failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
   children.push(...contentElements);
   
-  // Action Items section as professional table (ACTION LOG)
+  // (3) Action Items section as professional table (ACTION LOG)
   if (actionItems.length > 0) {
     const divider = await createSectionDivider();
     children.push(divider);
@@ -1791,36 +1820,72 @@ export const generateProfessionalWordBlob = async (
       spacing: { before: 0, after: 180 },
     }));
     
-    const actionTableElements = await createActionItemsTable(actionItems);
+    let actionTableElements: any[];
+    try {
+      actionTableElements = await createActionItemsTable(actionItems);
+    } catch (err) {
+      console.error('❌ [docx] Failed at action items table builder', {
+        error: err instanceof Error ? err.message : String(err),
+        actionItemCount: actionItems.length,
+      });
+      throw new Error(`docx action items table failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
     children.push(...actionTableElements);
   }
   
   // Create footer with meeting date/time
   const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
   
-  // Build document
-  const doc = new Document({
-    styles: buildNHSStyles(),
-    numbering: buildNumbering(),
-    sections: [{
-      properties: {
-        page: {
-          margin: {
-            top: 1440,
-            right: 1440,
-            bottom: 1440,
-            left: 1440,
+  // (4) Build document + serialise to blob
+  let doc: any;
+  try {
+    doc = new Document({
+      styles: buildNHSStyles(),
+      numbering: buildNumbering(),
+      sections: [{
+        properties: {
+          page: {
+            margin: {
+              top: 1440,
+              right: 1440,
+              bottom: 1440,
+              left: 1440,
+            },
           },
         },
-      },
-      footers: {
-        default: footer,
-      },
-      children,
-    }],
+        footers: {
+          default: footer,
+        },
+        children,
+      }],
+    });
+  } catch (err) {
+    console.error('❌ [docx] Failed at Document construction', {
+      error: err instanceof Error ? err.message : String(err),
+      childCount: children.length,
+    });
+    throw new Error(`docx Document construction failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  
+  let blob: Blob;
+  try {
+    blob = await Packer.toBlob(doc);
+  } catch (err) {
+    console.error('❌ [docx] Failed at Packer.toBlob serialisation', {
+      error: err instanceof Error ? err.message : String(err),
+      childCount: children.length,
+    });
+    throw new Error(`docx blob serialisation failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  
+  const __duration = Math.round(performance.now() - __startTime);
+  console.log('✅ [docx] Generation complete', {
+    durationMs: __duration,
+    blobSize: blob.size,
+    contentLength: content?.length || 0,
   });
   
-  return await Packer.toBlob(doc);
+  return blob;
 };
 
 // New function that accepts pre-parsed action items and details
