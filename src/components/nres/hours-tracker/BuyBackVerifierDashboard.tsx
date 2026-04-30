@@ -702,64 +702,34 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const removeInvoiceRow = (id: string) => syncRows(invoiceRows.filter(row => row.id !== id));
   const addBlankInvoiceRow = () => syncRows([...invoiceRows, newInvoiceTableRow()]);
 
-  // Parse clipboard text from Excel/Sheets (TSV) into row objects.
-  // Returns null if the paste isn't tabular (no tabs and no multi-column structure).
-  const parseClipboardAsRows = (text: string): InvoiceTableRow[] | null => {
+  // Convert clipboard text from Excel/Sheets (TSV) into formatted invoice text lines.
+  // Returns null if the paste isn't tabular.
+  const formatClipboardAsLines = (text: string): string | null => {
     const cleaned = text.replace(/\r\n?/g, '\n').replace(/\n+$/g, '');
     if (!cleaned) return null;
     const lines = cleaned.split('\n');
     const hasTabs = lines.some(l => l.includes('\t'));
     if (!hasTabs) return null;
-    const rows: InvoiceTableRow[] = [];
+    const formatted: string[] = [];
     for (const line of lines) {
-      const cols = line.split('\t').map(c => c.trim());
-      if (cols.every(c => !c)) continue;
-      // Skip an obvious header row (case-insensitive match on Date/Start)
-      if (rows.length === 0 && /^date$/i.test(cols[0] || '') && /^start/i.test(cols[1] || '')) continue;
-      const [date = '', start = '', stop = '', ...rest] = cols;
-      rows.push(newInvoiceTableRow(date, start, stop, rest.join(' | ')));
+      const cols = line.split('\t').map(c => c.trim()).filter(c => c.length > 0);
+      if (!cols.length) continue;
+      formatted.push(cols.join(' · '));
     }
-    return rows.length ? rows : null;
+    return formatted.length ? formatted.join('\n') : null;
   };
 
-  // Paste handler for the Text textarea — auto-detect Excel paste & switch to Table.
+  // Paste handler for the textarea — preserves Excel table formatting as readable lines.
   const handleTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const text = e.clipboardData.getData('text/plain');
-    const parsed = parseClipboardAsRows(text);
-    if (!parsed) return; // fall through to default paste
+    const formatted = formatClipboardAsLines(text);
+    if (!formatted) return; // not tabular — default paste
     e.preventDefault();
-    setInvoiceMode('table');
-    syncRows([...invoiceRows.filter(r => r.date || r.start || r.stop || r.details.trim()), ...parsed]);
-  };
-
-  // Paste handler for individual table cell inputs — fills a grid starting at this cell.
-  const handleCellPaste = (rowId: string, field: keyof Omit<InvoiceTableRow, 'id'>) => (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const text = e.clipboardData.getData('text/plain');
-    const cleaned = text.replace(/\r\n?/g, '\n').replace(/\n+$/g, '');
-    if (!cleaned.includes('\t') && !cleaned.includes('\n')) return; // single value — default paste
-    e.preventDefault();
-    const grid = cleaned.split('\n').map(l => l.split('\t'));
-    const fields: Array<keyof Omit<InvoiceTableRow, 'id'>> = ['date', 'start', 'stop', 'details'];
-    const startFieldIdx = fields.indexOf(field);
-    const startRowIdx = invoiceRows.findIndex(r => r.id === rowId);
-    if (startRowIdx === -1) return;
-    const next = [...invoiceRows];
-    grid.forEach((cols, gRow) => {
-      const targetIdx = startRowIdx + gRow;
-      if (targetIdx >= next.length) next.push(newInvoiceTableRow());
-      const target = { ...next[targetIdx] };
-      cols.forEach((val, gCol) => {
-        const fieldIdx = startFieldIdx + gCol;
-        if (fieldIdx < fields.length) {
-          (target as any)[fields[fieldIdx]] = val.trim();
-        } else {
-          // Overflow columns get appended to details
-          target.details = [target.details, val.trim()].filter(Boolean).join(' | ');
-        }
-      });
-      next[targetIdx] = target;
-    });
-    syncRows(next);
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart ?? invoiceDescription.length;
+    const end = textarea.selectionEnd ?? invoiceDescription.length;
+    const next = capLineWidth(invoiceDescription.slice(0, start) + formatted + invoiceDescription.slice(end)).slice(0, DESCRIPTION_LIMIT);
+    setInvoiceDescription(next);
   };
 
   const handleVerify = async () => {
