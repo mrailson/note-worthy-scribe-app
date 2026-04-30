@@ -1022,11 +1022,14 @@ Additional rules:
 NOTE TYPE: NHS FORMAL GOVERNANCE
 This is a shorter, more formal style preferred for board packs and governance circulation.
 IMPORTANT: For this note type, use a SIMPLER discussion structure. Do NOT use the Context/Discussion/Agreed/Implication sub-headings.
-Instead, use traditional numbered key points as concise paragraphs:
+Instead, use key points where each topic is its own markdown heading:
 
 KEY POINTS format:
-1. **[Topic Heading]**
+### [Topic Heading]
+
 [One or two concise paragraphs covering what was discussed and what was decided. Use formal passive voice: "The meeting noted...", "It was resolved that...", "Members agreed...". Keep it tight — no more than 4-5 sentences per point.]
+
+CRITICAL: Each topic title MUST be a level-3 markdown heading (### Topic Name) on its own line, followed by a blank line, then the body paragraph. Do NOT use inline bold (e.g. "**Topic** body...") — the DOCX exporter relies on ### to apply the blue Heading 3 style.
 
 Additional NHS Formal rules:
 - Use formal NHS governance language throughout
