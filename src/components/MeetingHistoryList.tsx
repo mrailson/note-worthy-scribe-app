@@ -1868,18 +1868,31 @@ export const MeetingHistoryList = ({
   const getProcessingButtonText = (processing: any) => {
     if (!processing) return 'Regenerate Notes';
     if (processing.currentStage === 'complete') return 'Complete!';
-    
+
     if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
       return 'Failed';
     }
-    
+
+    // For the long single-shot 'standard' stage (Gemini 3.1 Pro can take 60-120s),
+    // rotate status text so users see progress, not a static spinner. No fake percentages.
+    // referenced via progressTick to force re-render.
+    void progressTick;
+    if (processing.currentStage === 'standard' && processing.startedAt) {
+      const elapsed = (Date.now() - processing.startedAt) / 1000;
+      if (elapsed > 130) return 'Taking longer than usual — hang tight';
+      if (elapsed > 75) return 'Finalising notes...';
+      if (elapsed > 45) return 'Identifying actions & decisions...';
+      if (elapsed > 20) return 'Extracting key discussion points...';
+      return 'Analysing transcript...';
+    }
+
     const stageLabels = {
       'standard': 'Standard...',
       'overview': 'Overview...',
       'executive': 'Executive...',
       'limerick': 'Limerick...'
     };
-    
+
     return stageLabels[processing.currentStage] || 'Processing...';
   };
 
