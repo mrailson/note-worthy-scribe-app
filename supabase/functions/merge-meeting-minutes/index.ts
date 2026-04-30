@@ -95,6 +95,7 @@ Key Points
 <bullet list of confirmed agenda items if any>
 
 MERGING INSTRUCTIONS:
+- ATTENDEES PRESERVATION: If ANY chunk summary mentions attendees, role-bearers, or named participants (even informally), include them in the # ATTENDEES section. Never write "Attendee details were not provided" — instead, list every named person from the chunks. If the chunks contain only generic role labels (e.g. "Chair", "ICB lead"), list those. Only omit the # ATTENDEES section entirely if NO chunk contains any reference to people.
 - Deduplicate content across chunks. Resolve contradictions in favour of the more specific or later mention.
 - Preserve all unique names, numbers, dates, and decisions verbatim.
 - If a chunk arrived as an "[unsummarised excerpt …]" placeholder, integrate its substantive content where possible and silently drop the placeholder marker.
