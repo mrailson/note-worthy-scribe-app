@@ -645,11 +645,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   };
   const handleQuickStop = () => {
     const completed = { ...quickLine, start: quickLine.start || DEFAULT_START_TIME, stop: quickLine.stop || DEFAULT_STOP_TIME };
-    if (invoiceMode === 'table') {
-      syncRows([...invoiceRows, newInvoiceTableRow(completed.date || todayStr(), completed.start, completed.stop, completed.details)]);
-    } else {
-      setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
-    }
+    setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
     setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: prev.details }));
   };
 
