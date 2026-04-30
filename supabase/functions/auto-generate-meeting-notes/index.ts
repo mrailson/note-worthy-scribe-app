@@ -1741,12 +1741,20 @@ ${cleanedTranscript}`;
           ?.map((block: any) => block.text)
           ?.join('\n') || '';
       } else {
-        // Route to Gemini. 'gemini-2.5-flash' (premium long-context option) maps to
-        // 'google/gemini-2.5-flash'; legacy default falls back to gemini-3-flash-preview.
-        const geminiModel = modelOverride === 'gemini-2.5-flash'
-          ? 'google/gemini-2.5-flash'
-          : 'google/gemini-3-flash-preview';
-        modelUsed = modelOverride === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-3-flash';
+        // Route to Gemini.
+        //   'gemini-3.1-pro' / 'gemini-3.1-pro-preview' → google/gemini-3.1-pro-preview (premium reasoning)
+        //   'gemini-2.5-flash' → google/gemini-2.5-flash (cheap, long-context)
+        //   default → google/gemini-3-flash-preview
+        let geminiModel = 'google/gemini-3-flash-preview';
+        if (modelOverride === 'gemini-3.1-pro' || modelOverride === 'gemini-3.1-pro-preview') {
+          geminiModel = 'google/gemini-3.1-pro-preview';
+          modelUsed = 'gemini-3.1-pro';
+        } else if (modelOverride === 'gemini-2.5-flash') {
+          geminiModel = 'google/gemini-2.5-flash';
+          modelUsed = 'gemini-2.5-flash';
+        } else {
+          modelUsed = 'gemini-3-flash';
+        }
         console.log(`🧠 Using Gemini model: ${geminiModel}`);
         const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
