@@ -2305,7 +2305,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             meetingDate: meetingDate,
             meetingTime: meetingTime,
             detailLevel: 'standard',
-            modelOverride,
+            ...modelOverrideField(),
             meetingId: meeting.id,
             skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
           }
