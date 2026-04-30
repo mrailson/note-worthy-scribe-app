@@ -1,49 +1,41 @@
-## Practice Claim — default & changeable claim month
+# Fix: SDA Verification "Preview invoice" shows "This content is blocked"
 
-### Behaviour today
-- The Staff Roster table shows up to 3 month columns. The column for today's calendar month is highlighted blue and labelled "This month".
-- Clicking a "+ Claim" button opens the Inline Claim Panel locked to that column's month. There is no way to change the month from inside the panel.
-- Result: from the 1st of a new month, the highlighted "This month" target jumps to the new month even though most practices are still claiming for the month just ended.
+## Root cause
 
-### What you want
-1. The **default highlighted claim target** should be the **previous month** when today is the 1st–15th of the month, and the **current month** otherwise (16th onward).
-2. The user must still be able to **change the claim month** to current (or any allowed month) if they want to.
+The Invoice preview dialog (`InvoicePreviewDialog` in `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx`, line 86) renders the generated PDF inside an `<iframe>` whose `src` is a `blob:` URL created by `URL.createObjectURL(pdfDoc.output('blob'))`.
 
-### Changes (file: `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`)
+The app's client-side Content Security Policy in `src/components/SecurityWrapper.tsx` (line 23) currently sets:
 
-**1. Add a small helper for the default target month**
-```ts
-function getDefaultClaimMonthStr(): string {
-  const now = new Date();
-  const useLast = now.getDate() <= 15;
-  const target = useLast
-    ? new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    : new Date(now.getFullYear(), now.getMonth(), 1);
-  return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`;
-}
+```
+frame-src 'self' https://dphcnbricafkbtizkoal.supabase.co https://*.elevenlabs.io
 ```
 
-**2. Use it instead of `currentMonthStr` for the "default target" highlight**
-- Around line 1930, add `const defaultClaimMonthStr = getDefaultClaimMonthStr();`.
-- Where the table header decides the blue "This month" highlight (line 2146) and the cell button highlight (line 2171), use `defaultClaimMonthStr` instead of `currentMonthStr` for the **primary** highlight. Keep `lastMonthStr` logic only as a fallback for cases where the default already equals last month (avoid double-highlighting).
-- Update the small label under the header from "This month" to "Default claim month" (and drop the redundant "Last month" amber label when it equals the default).
+This does **not** include `blob:`, so Chrome blocks the iframe and shows the standard "This content is blocked. Contact the site owner to fix the issue." page — exactly what the screenshot shows on `gpnotewell.co.uk`. (It works fine in the Lovable preview because preview iframes inherit a more permissive policy.)
 
-**3. Add a "Change month" control inside the Inline Claim Panel**
-- In `InlineClaimPanel` (around line 595, where `fullMonth` is computed and rendered as the big title), render a small dropdown next to the month title:
-  - Options = the same `claimMonths` already passed down (≤ 3 recent months, filtered by `PILOT_START`).
-  - Default selection = the `monthDate` the panel was opened with.
-  - On change: close the current panel and re-open it for the newly chosen month (call `onClickClaim(`${staffMember.id}_${newMonthDate}`)`). This reuses the existing open/close mechanism — no new state plumbing.
-- Disable months that are in the future relative to today (matches existing `isFuture` rule in `MonthStatusCell`).
+The same CSP already correctly allows `blob:` for `script-src`, `img-src`, `media-src`, and `worker-src` — `frame-src` was simply missed.
 
-**4. Wire `claimMonths` into the panel**
-- Pass the existing `claimMonths` array (already in scope at the table render, line 2175) as a prop to `InlineClaimPanel` so the dropdown has its options.
+## Change
 
-### What is NOT changing
-- `getClaimMonths()` still returns the same 3-month window — no schema changes.
-- `MonthStatusCell` "+ Claim" buttons remain on every eligible month, so the user can also change month by clicking a different column directly.
-- No database or edge-function changes. Pure UI.
-- All existing styling, calculation logic, and submit flow are untouched.
+In `src/components/SecurityWrapper.tsx`, update the `frame-src` directive only:
 
-### Net effect
-- On 1–15 May 2026, April is highlighted as the default and the panel opens on April. The user can switch to May from the dropdown (or by clicking May's column).
-- On 16+ May, May is highlighted as the default. April remains selectable.
+- Add `blob:` so the generated PDF blob URL can be embedded.
+- (Defensive) also add `data:` for parity with the other directives, since some PDF preview flows fall back to data URLs.
+
+New value:
+
+```
+frame-src 'self' blob: data: https://dphcnbricafkbtizkoal.supabase.co https://*.elevenlabs.io
+```
+
+No other directive, no other file, and no application logic is touched. The existing Supabase and ElevenLabs frame allowances are preserved, so storage previews and the voice agent widget are unaffected.
+
+## Why this is safe
+
+- `blob:` URLs are same-origin and created only by our own code (jsPDF in `generateInvoicePdf`); they cannot be forged from a remote attacker.
+- `object-src 'none'`, `base-uri 'self'`, and `form-action 'self'` remain unchanged.
+- The `X-Frame-Options: DENY` header (set later in the same component) only restricts who can frame **us**, not what we can frame, so it does not conflict.
+
+## Verification after deploy
+
+1. Open SDA → SDA Claims → Managerial Lead Verification queue → click "Preview invoice" on a verified claim. The PDF should render inline in the dialog instead of showing "This content is blocked".
+2. Confirm no new CSP violations appear in the browser console for unrelated frames (Supabase storage previews, ElevenLabs widget).

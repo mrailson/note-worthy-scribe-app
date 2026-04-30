@@ -20,7 +20,7 @@ export const SecurityWrapper = ({ children }: SecurityWrapperProps) => {
       "img-src 'self' data: https: blob:",
       "connect-src 'self' https://dphcnbricafkbtizkoal.supabase.co wss://dphcnbricafkbtizkoal.supabase.co https://api.openai.com https://api.assemblyai.com wss://api.assemblyai.com https://api.deepgram.com wss://api.deepgram.com https://lovable-api.com wss://lovable-api.com https://*.plausible.io https://*.elevenlabs.io wss://*.elevenlabs.io https://*.livekit.cloud wss://*.livekit.cloud https://*.turn.livekit.cloud",
       "media-src 'self' blob: https://dphcnbricafkbtizkoal.supabase.co",
-      "frame-src 'self' https://dphcnbricafkbtizkoal.supabase.co https://*.elevenlabs.io",
+      "frame-src 'self' blob: data: https://dphcnbricafkbtizkoal.supabase.co https://*.elevenlabs.io",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
