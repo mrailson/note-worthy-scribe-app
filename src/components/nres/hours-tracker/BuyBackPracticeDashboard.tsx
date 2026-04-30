@@ -3110,6 +3110,16 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
         />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, minWidth: 0 }}>
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{monthLabel}</span>
+          {/* Practice name — shown in admin/director views to identify the claim's practice */}
+          {showPracticeName && claim.practice_key && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6,
+              fontSize: 11, fontWeight: 600, color: '#1e40af', background: '#dbeafe', border: '1px solid #bfdbfe',
+              whiteSpace: 'nowrap',
+            }}>
+              {getPracticeName(claim.practice_key)}
+            </span>
+          )}
           {/* Staff name — most important identifier */}
           {staffSummary && (
             <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{staffSummary}</span>
