@@ -95,7 +95,7 @@ Key Points
 <bullet list of confirmed agenda items if any>
 
 MERGING INSTRUCTIONS:
-- ATTENDEES PRESERVATION: If ANY chunk summary mentions attendees, role-bearers, or named participants (even informally), include them in the # ATTENDEES section. Never write "Attendee details were not provided" — instead, list every named person from the chunks. If the chunks contain only generic role labels (e.g. "Chair", "ICB lead"), list those. Only omit the # ATTENDEES section entirely if NO chunk contains any reference to people.
+- ATTENDEES — REQUIRED EXTRACTION: Read every chunk summary and extract ANY person referenced: by name, by role ("Chair", "ICB lead", "GP partner"), or by descriptor ("the funder representative"). Compile these into the # ATTENDEES section as a bullet list, even if no chunk has an explicit "Attendees:" label. The phrase "Attendee details were not provided" is FORBIDDEN — never emit it. If absolutely no people are mentioned in any chunk, omit the # ATTENDEES section entirely rather than emitting a placeholder.
 - Deduplicate content across chunks. Resolve contradictions in favour of the more specific or later mention.
 - Preserve all unique names, numbers, dates, and decisions verbatim.
 - If a chunk arrived as an "[unsummarised excerpt …]" placeholder, integrate its substantive content where possible and silently drop the placeholder marker.
@@ -145,16 +145,22 @@ function normaliseMergeOutput(content: string): string {
   if (!content) return content;
   let out = content;
 
-  // 1. Strip stray clusters of 4+ consecutive asterisks
-  out = out.replace(/\*{4,}/g, '');
-
-  // 1a. (NEW Rule F) Reinforced strip of stray bold markers.
-  // Strip "** **" (close-bold immediately followed by open-bold with space)
-  out = out.replace(/\*{2}\s+\*{2}/g, ' ');
-  // Strip empty bold runs "** **" or "****" where they wrap nothing
-  out = out.replace(/\*{2,}\s*\*{2,}/g, '');
-  // Final sweep: any run of 3+ asterisks remaining
-  out = out.replace(/\*{3,}/g, '');
+  // 1. (Rule F) Aggressive stray-asterisk stripper. Run twice — once at the
+  // top to clean LLM input, once at the bottom to clean any new stray
+  // asterisks introduced by heading-conversion or paragraph-splitting rules.
+  const stripStrayAsterisks = (text: string): string => {
+    let s = text;
+    // Bold-close immediately followed by bold-open (no whitespace)
+    s = s.replace(/\*{2}\*{2}/g, '');
+    // Bold-close, whitespace, bold-open
+    s = s.replace(/\*{2}\s+\*{2}/g, ' ');
+    // 3+ consecutive asterisks anywhere
+    s = s.replace(/\*{3,}/g, '');
+    // Empty bold pairs "** **" or "****"
+    s = s.replace(/\*{2}\s*\*{2}/g, '');
+    return s;
+  };
+  out = stripStrayAsterisks(out);
 
   const KNOWN_SECTIONS = [
     'MEETING DETAILS',
@@ -244,14 +250,15 @@ function normaliseMergeOutput(content: string): string {
   // 5a. (NEW Rule D) Force a paragraph break before "Key Points" when mid-text
   out = out.replace(/(\S)\s+(Key Points)\s+/g, '$1\n\n$2\n\n');
 
-  // Insert paragraph breaks before numbered list items (1., 2., 3., etc.)
+  // Insert paragraph breaks before numbered list items (1. through 99.)
   // when they appear mid-paragraph rather than at the start of a line.
-  out = out.replace(/([^\n])\s+(\d{1,2}\.\s+[A-Z][a-zA-Z])/g, (match, before, numberedItem) => {
-    if (/[.!?)\]"]/.test(before)) {
-      return `${before}\n\n${numberedItem}`;
-    }
-    return match;
-  });
+  // We break unconditionally if the numbered item is followed by a capital
+  // letter and a sequence of letters (heading-like), since this strongly
+  // indicates a topic label rather than a date or arbitrary number.
+  out = out.replace(
+    /([^\n])\s+(\d{1,2}\.\s+[A-Z][a-zA-Z]{2,})/g,
+    '$1\n\n$2'
+  );
 
   // 5b. (NEW Rule C) Split "# SECTION_NAME - content" / ":" / "—" / "–" / "|" same-line patterns.
   const sectionWithTrailingContent = new RegExp(
@@ -274,6 +281,10 @@ function normaliseMergeOutput(content: string): string {
     const re = new RegExp(`(?:\\n)?\\n?(#\\s+${escaped})\\s*\\n?(?:\\n)?`, 'g');
     out = out.replace(re, `\n\n$1\n\n`);
   }
+
+  // Final asterisk sweep — catch any stray markers introduced by the
+  // heading-conversion or paragraph-splitting rules above.
+  out = stripStrayAsterisks(out);
 
   // 7. Collapse 3+ consecutive newlines to exactly 2
   out = out.replace(/\n{3,}/g, '\n\n');
