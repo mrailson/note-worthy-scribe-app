@@ -1386,6 +1386,14 @@ If you find any of these and they are not already in your ACTION ITEMS table, ad
 CROSS-SECTION CHECK (mandatory, run AFTER drafting Decisions Register and Next Meeting):
 Before finalising the Action Items table, cross-check the Decisions Register and Next Meeting sections. For each item in those sections that has a named owner and a future task, ensure it ALSO appears in the Action Items table with the owner and deadline populated. Decisions and next-meeting commitments are NOT mutually exclusive with actions — owner-bearing items must be duplicated into Action Items.
 
+REASONING TRACE (diagnostic only — MUST appear BEFORE the final notes):
+Before the final notes, output this exact diagnostic block:
+<!-- ACTION_EXTRACTION_REASONING_TRACE_START
+- Rejected action candidates: [brief bullets listing any owner-bearing or possible action items considered for the Action Items table but rejected, with the reason]
+- Cross-section check: I have re-scanned the Decisions Register and Next Meeting sections for owner-bearing future tasks and duplicated qualifying items into Action Items.
+ACTION_EXTRACTION_REASONING_TRACE_END -->
+Then output the final meeting notes. This diagnostic block is for internal logging only and will be stripped before user-facing notes/DOCX generation.
+
 STRICT QUALITY RULES — quality over quantity:
 - ONLY include actions that were EXPLICITLY AGREED or COMMITTED TO during the meeting
 - Each action must have a CLEAR DELIVERABLE — something that can be completed and ticked off
