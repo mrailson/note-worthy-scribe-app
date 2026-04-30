@@ -237,8 +237,23 @@ serve(async (req) => {
       transcriptSource,
       modelOverride = 'claude-sonnet-4-6',
       skipQc = false,
+      premiumPin,
     } = requestBody;
     meetingId = parsedMeetingId;
+
+    // Server-side PIN gate for premium models. Hardcoded for now;
+    // future improvement: read from Supabase secret PREMIUM_REGEN_PIN.
+    const PREMIUM_REGEN_PIN = '1045';
+    const PREMIUM_MODELS = ['claude-opus-4-7', 'gemini-2.5-flash'];
+    if (PREMIUM_MODELS.includes(modelOverride)) {
+      if (premiumPin !== PREMIUM_REGEN_PIN) {
+        return new Response(
+          JSON.stringify({ error: 'Premium model requires valid PIN' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto', 'and model:', modelOverride);
 
     if (!meetingId) {
