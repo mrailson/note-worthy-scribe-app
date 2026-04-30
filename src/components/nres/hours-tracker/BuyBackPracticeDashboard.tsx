@@ -3040,7 +3040,7 @@ export function ClaimsViewSwitcher({
 }
 
 // --- Claim Card (preserved) ---
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, showPracticeName, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
@@ -3048,6 +3048,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   onDeleteClaim?: (id: string) => Promise<void>;
+  showPracticeName?: boolean;
   saving?: boolean;
 }) {
   const [queryResponse, setQueryResponse] = useState('');
