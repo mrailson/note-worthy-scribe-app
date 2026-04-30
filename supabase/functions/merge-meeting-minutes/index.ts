@@ -299,6 +299,7 @@ ${joined}`;
       .join('\n');
 
     meetingMinutes = performProfessionalToneAudit(meetingMinutes);
+    meetingMinutes = normaliseMergeOutput(meetingMinutes);
 
     return new Response(JSON.stringify({ meetingMinutes, model: 'claude-sonnet-4-6', chunksMerged: summaries.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
