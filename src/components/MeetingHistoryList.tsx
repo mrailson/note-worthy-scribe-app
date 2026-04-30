@@ -1564,13 +1564,21 @@ export const MeetingHistoryList = ({
         if (currentType === 'standard') {
           
           try {
-            const modelOverride = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
+            const lsModel = localStorage.getItem('meeting-regenerate-llm') === 'gemini-3-flash'
               ? 'claude-sonnet-4-6'
               : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', modelOverride);
+            const effectiveModel = modelOverride || lsModel;
+            const isPremium = effectiveModel === 'claude-opus-4-7' || effectiveModel === 'gemini-2.5-flash';
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
-              { body: { meetingId, forceRegenerate: true, modelOverride, skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true' } }
+              { body: {
+                  meetingId,
+                  forceRegenerate: true,
+                  modelOverride: effectiveModel,
+                  skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
+                  ...(isPremium ? { premiumPin: PREMIUM_REGEN_PIN } : {}),
+                } }
             );
             
             console.log('📥 Response from auto-generate-meeting-notes:', { data, error: standardError });
