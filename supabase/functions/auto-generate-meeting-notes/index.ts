@@ -235,16 +235,18 @@ serve(async (req) => {
       detailLevel = 'standard',
       noteType = 'standard',
       transcriptSource,
-      modelOverride = 'claude-sonnet-4-6',
+      // Default model is now Gemini 3.1 Pro (best extraction quality on test set,
+      // ~£0.04/meeting). Flash, Sonnet, and GPT-5 act as automatic fallbacks.
+      modelOverride = 'gemini-3.1-pro',
       skipQc = false,
       premiumPin,
     } = requestBody;
     meetingId = parsedMeetingId;
 
-    // Server-side PIN gate for premium models. Hardcoded for now;
-    // future improvement: read from Supabase secret PREMIUM_REGEN_PIN.
+    // Server-side PIN gate for premium models. Pro is now the default and is
+    // intentionally NOT pin-gated (canonical path). Other premium overrides remain gated.
     const PREMIUM_REGEN_PIN = '1045';
-    const PREMIUM_MODELS = ['gemini-3.1-pro', 'gemini-3.1-pro-preview', 'gemini-2.5-flash'];
+    const PREMIUM_MODELS = ['gemini-2.5-flash'];
     if (PREMIUM_MODELS.includes(modelOverride)) {
       if (premiumPin !== PREMIUM_REGEN_PIN) {
         return new Response(
