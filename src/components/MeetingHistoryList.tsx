@@ -1458,13 +1458,22 @@ export const MeetingHistoryList = ({
   };
 
   // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
+  // modelOverride is a free-form string identifier (e.g. 'gemini-3.1-pro', 'gemini-2.5-flash')
+  // so future premium options can be added without changing this signature.
   const handleProcessClick = async (meeting: Meeting, modelOverride?: string) => {
     const meetingId = meeting.id;
-    
+
+    // Friendly label for in-progress toast
+    const modelLabel = modelOverride === 'gemini-3.1-pro'
+      ? 'Gemini 3.1 Pro'
+      : modelOverride === 'gemini-2.5-flash'
+        ? 'Gemini 2.5 Flash'
+        : modelOverride;
+
     // Show toast notification
     toast.info(
       modelOverride
-        ? `Regenerating with ${modelOverride}...`
+        ? `Regenerating with ${modelLabel}...`
         : 'Regenerating Meeting Overview, Standard Minutes, and Audio...',
       { duration: 3000 }
     );
@@ -1476,6 +1485,13 @@ export const MeetingHistoryList = ({
       executive: false,
       limerick: false
     }, modelOverride);
+
+    // Success toast for premium runs
+    if (modelOverride === 'gemini-3.1-pro') {
+      toast.success('✨ Regenerated with Gemini 3.1 Pro');
+    } else if (modelOverride === 'gemini-2.5-flash') {
+      toast.success('✨ Regenerated with Gemini 2.5 Flash');
+    }
     
     // Generate audio overview at the end
     try {
@@ -1586,7 +1602,7 @@ export const MeetingHistoryList = ({
               ? 'claude-sonnet-4-6'
               : (localStorage.getItem('meeting-regenerate-llm') || 'claude-sonnet-4-6');
             const effectiveModel = modelOverride || lsModel;
-            const isPremium = effectiveModel === 'claude-opus-4-7' || effectiveModel === 'gemini-2.5-flash';
+            const isPremium = effectiveModel === 'gemini-3.1-pro' || effectiveModel === 'gemini-2.5-flash';
             console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
@@ -2850,19 +2866,28 @@ export const MeetingHistoryList = ({
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          // Confirmation dialog (per spec)
+                          const ok = window.confirm(
+                            'Regenerate with Gemini 3.1 Pro?\n\n' +
+                            "This uses Google's most advanced reasoning model. It may take 60-120 " +
+                            'seconds and costs roughly 4x more than the default. Useful for testing ' +
+                            'extraction quality on complex meetings. Continue?'
+                          );
+                          if (!ok) return;
+                          // Server-side PIN gate still enforced
                           const confirmed = promptForPremiumPin(
-                            'Claude Opus 4.7 (premium)',
-                            'This is a premium model that may produce higher-quality notes for complex meetings, at approximately 2-3x the standard generation cost. Existing notes will be replaced.'
+                            'Gemini 3.1 Pro (premium)',
+                            "Google's most advanced reasoning model. ~4x default cost, 60-120s runtime. Existing notes will be replaced."
                           );
                           if (confirmed) {
-                            handleProcessClick(meeting, 'claude-opus-4-7');
+                            handleProcessClick(meeting, 'gemini-3.1-pro');
                           }
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
                         className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Opus 4.7 (premium)'}
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini 3.1 Pro (premium)'}
                       </DropdownMenuItem>
 
                       <DropdownMenuItem

@@ -244,7 +244,7 @@ serve(async (req) => {
     // Server-side PIN gate for premium models. Hardcoded for now;
     // future improvement: read from Supabase secret PREMIUM_REGEN_PIN.
     const PREMIUM_REGEN_PIN = '1045';
-    const PREMIUM_MODELS = ['claude-opus-4-7', 'gemini-2.5-flash'];
+    const PREMIUM_MODELS = ['gemini-3.1-pro', 'gemini-3.1-pro-preview', 'gemini-2.5-flash'];
     if (PREMIUM_MODELS.includes(modelOverride)) {
       if (premiumPin !== PREMIUM_REGEN_PIN) {
         return new Response(
@@ -1645,7 +1645,7 @@ ${cleanedTranscript}`;
     let generatedNotes = '';
     let modelUsed = modelOverride;
 
-    // Chunking is only used for Sonnet/Haiku Claude models. Opus 4.7 (1M context)
+    // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
     // and Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
     const useChunking = (
       modelOverride.startsWith('claude-sonnet-') ||
@@ -1741,12 +1741,20 @@ ${cleanedTranscript}`;
           ?.map((block: any) => block.text)
           ?.join('\n') || '';
       } else {
-        // Route to Gemini. 'gemini-2.5-flash' (premium long-context option) maps to
-        // 'google/gemini-2.5-flash'; legacy default falls back to gemini-3-flash-preview.
-        const geminiModel = modelOverride === 'gemini-2.5-flash'
-          ? 'google/gemini-2.5-flash'
-          : 'google/gemini-3-flash-preview';
-        modelUsed = modelOverride === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-3-flash';
+        // Route to Gemini.
+        //   'gemini-3.1-pro' / 'gemini-3.1-pro-preview' → google/gemini-3.1-pro-preview (premium reasoning)
+        //   'gemini-2.5-flash' → google/gemini-2.5-flash (cheap, long-context)
+        //   default → google/gemini-3-flash-preview
+        let geminiModel = 'google/gemini-3-flash-preview';
+        if (modelOverride === 'gemini-3.1-pro' || modelOverride === 'gemini-3.1-pro-preview') {
+          geminiModel = 'google/gemini-3.1-pro-preview';
+          modelUsed = 'gemini-3.1-pro';
+        } else if (modelOverride === 'gemini-2.5-flash') {
+          geminiModel = 'google/gemini-2.5-flash';
+          modelUsed = 'gemini-2.5-flash';
+        } else {
+          modelUsed = 'gemini-3-flash';
+        }
         console.log(`🧠 Using Gemini model: ${geminiModel}`);
         const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
