@@ -83,11 +83,11 @@ Key Points
 
 # ACTION ITEMS
 
-| Action | Owner | Deadline | Priority |
-| --- | --- | --- | --- |
-| <action description> | <name or TBC> | <date or TBC> | <High/Medium/Low> |
+| Action | Owner | Deadline |
+| --- | --- | --- |
+| <action description> | <name or TBC> | <date or TBC> |
 
-(use exactly these column headers in this order — never "Responsible Party", "Due date", or "By when")
+(use exactly these three column headers in this order — never "Responsible Party", "Due date", "By when", or "Priority". Priority is intentionally omitted because automated priority assignment was found to be unreliable.)
 
 # NEXT MEETING
 
@@ -107,7 +107,7 @@ SELF-VERIFICATION (apply before returning your response):
 3. Confirm every "# " heading is on its own line with a blank line before and after.
 4. Confirm "**Meeting Purpose:**" appears as the first line under "# DISCUSSION SUMMARY".
 5. Confirm every numbered key point (1., 2., etc.) is on its own line.
-6. Confirm the action items section is a markdown pipe table with exactly the four columns Action | Owner | Deadline | Priority in that order.
+6. Confirm the action items section is a markdown pipe table with exactly the three columns Action | Owner | Deadline in that order. Do NOT add a Priority column.
 7. If any check fails, regenerate that section before returning.`;
 
 function performProfessionalToneAudit(content: string): string {
