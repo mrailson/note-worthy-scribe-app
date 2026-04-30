@@ -2025,19 +2025,10 @@ export default function NoteWellRecorder() {
     let user = authUser || null;
     if (!user) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await refreshSessionStatus();
         user = session?.user || null;
       } catch (e) {
-        console.warn("[sync] getSession failed:", e);
-      }
-    }
-    if (!user) {
-      // Last-resort refresh — only when we genuinely have no session at all.
-      try {
-        const { data: { session } } = await supabase.auth.refreshSession();
-        user = session?.user || null;
-      } catch (e) {
-        console.warn("[sync] refreshSession failed:", e);
+        console.warn("[sync] session check failed:", e);
       }
     }
     if (!user) {
@@ -2046,6 +2037,7 @@ export default function NoteWellRecorder() {
         recordingTitle: rec.title, message: "Session expired",
       });
       await logSyncDiagnostic(rec.id, { event: "preflight_fail", reason: "auth_expired" });
+      navigateToSignIn(location.pathname || "/new-recorder");
       return { ok: false, errorType: "auth_expired" };
     }
 
