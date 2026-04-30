@@ -152,20 +152,33 @@ function WaveformBars({ active, isPaused, stream }) {
   );
 }
 
-function ModePill({ mode, isAutoFallback, disabled, onTap }) {
+function ModePill({ mode, isAutoFallback, disabled, onTap, authLoading, isAuthenticated }) {
   const live = mode === "live";
 
   // Three visual states:
   //   live                                 → 🟢 green  "Online"
   //   offline + isAutoFallback             → 🟡 amber  "Offline (no connection)"
   //   offline + user-chosen                → ⚪ slate  "Offline mode"
-  const variant = live
+  const variant = authLoading
+    ? "checking"
+    : live && !isAuthenticated
+    ? "signin"
+    : live
     ? "online"
     : isAutoFallback
     ? "fallback"
     : "offline";
 
   const styles = {
+    checking: {
+      borderColor: "rgba(100,116,139,0.30)",
+      bg: "rgba(100,116,139,0.08)",
+      dot: "#64748b",
+      dotBg: "linear-gradient(135deg,#64748b,#94a3b8)",
+      dotShadow: "0 2px 6px rgba(100,116,139,0.35)",
+      labelColor: "#475569",
+      label: "Checking login…",
+    },
     online: {
       borderColor: "rgba(22,163,74,0.30)",
       bg: "rgba(22,163,74,0.08)",
@@ -174,6 +187,15 @@ function ModePill({ mode, isAutoFallback, disabled, onTap }) {
       dotShadow: "0 2px 6px rgba(22,163,74,0.4)",
       labelColor: "#15803d",
       label: "Online",
+    },
+    signin: {
+      borderColor: "rgba(245,158,11,0.40)",
+      bg: "rgba(245,158,11,0.10)",
+      dot: "#f59e0b",
+      dotBg: "linear-gradient(135deg,#f59e0b,#f97316)",
+      dotShadow: "0 2px 6px rgba(245,158,11,0.4)",
+      labelColor: "#d97706",
+      label: "Online · Sign in needed",
     },
     fallback: {
       borderColor: "rgba(245,158,11,0.40)",
