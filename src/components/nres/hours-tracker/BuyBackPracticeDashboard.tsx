@@ -2161,19 +2161,26 @@ export function StaffRosterSection({
                   Allocation
                 </th>
                 {claimMonths.map(cm => {
-                  const isCurrentMo = cm.monthDate.slice(0, 7) === currentMonthStr;
-                  const isLastMo = cm.monthDate.slice(0, 7) === lastMonthStr;
+                  const monthKey = cm.monthDate.slice(0, 7);
+                  const isDefaultMo = monthKey === defaultClaimMonthStr;
+                  const isCurrentMo = monthKey === currentMonthStr;
+                  const isLastMo = monthKey === lastMonthStr;
+                  // Only show the secondary "current/last" label if it's NOT already the default,
+                  // to avoid double-labelling.
+                  const showCurrentBadge = isCurrentMo && !isDefaultMo;
+                  const showLastBadge = isLastMo && !isDefaultMo;
                   return (
                     <th key={cm.monthDate} style={{
                       textAlign: 'center', padding: '6px 10px', fontSize: 10, fontWeight: 600,
-                      color: isCurrentMo ? '#2563eb' : isLastMo ? '#92400e' : '#9ca3af',
+                      color: isDefaultMo ? '#2563eb' : showLastBadge ? '#92400e' : showCurrentBadge ? '#2563eb' : '#9ca3af',
                       textTransform: 'uppercase' as const, letterSpacing: '0.04em',
                       borderBottom: '2px solid #e5e7eb',
-                      background: isCurrentMo ? '#eff6ff' : isLastMo ? '#fffbeb' : 'transparent',
+                      background: isDefaultMo ? '#eff6ff' : showLastBadge ? '#fffbeb' : 'transparent',
                     }}>
                       <div>{cm.label}</div>
-                      {isCurrentMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#93c5fd', marginTop: 1 }}>This month</div>}
-                      {isLastMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#fcd34d', marginTop: 1 }}>Last month</div>}
+                      {isDefaultMo && <div style={{ fontSize: 9, fontWeight: 400, color: '#93c5fd', marginTop: 1 }}>Default claim month</div>}
+                      {showCurrentBadge && <div style={{ fontSize: 9, fontWeight: 400, color: '#93c5fd', marginTop: 1 }}>This month</div>}
+                      {showLastBadge && <div style={{ fontSize: 9, fontWeight: 400, color: '#fcd34d', marginTop: 1 }}>Last month</div>}
                     </th>
                   );
                 })}
