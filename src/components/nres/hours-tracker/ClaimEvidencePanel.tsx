@@ -167,7 +167,11 @@ export function EvidenceSlot({
 }) {
   const filesToShow = allowMultiple ? (uploadedFiles || []) : (uploadedFile ? [uploadedFile] : []);
   const hasFile = filesToShow.length > 0;
-  const displayLabel = config.evidence_type === 'other_supporting' ? 'Supporting Evidence' : config.label;
+  const isOtherSupporting = config.evidence_type === 'other_supporting';
+  const displayLabel = isOtherSupporting ? '' : config.label;
+  const displayDescription = isOtherSupporting
+    ? 'Any documentation to support the claim is added below. You can view or download the evidence as needed.'
+    : config.description;
 
   const handleDownload = async (filePath: string) => {
     const url = await onDownload(filePath);
