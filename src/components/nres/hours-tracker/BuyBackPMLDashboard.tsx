@@ -735,9 +735,18 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               }
               return { max: 0, formula: '—' };
             };
+            const getUnitRate = (s: any): string => {
+              const cat = s.staff_category || 'buyback';
+              if (cat === 'gp_locum') return s.allocation_type === 'daily' ? '£750.00 / day' : '£375.00 / session';
+              if (cat === 'meeting') return (s.hourly_rate ?? 0) > 0 ? `£${Number(s.hourly_rate).toFixed(2)} / hr` : '—';
+              if (cat === 'management' && s.allocation_type === 'hours') return (s.hourly_rate ?? 0) > 0 ? `£${Number(s.hourly_rate).toFixed(2)} / hr` : '—';
+              if (s.allocation_type === 'wte') return 'WTE × on-costs';
+              if ((s.hourly_rate ?? 0) > 0) return `£${Number(s.hourly_rate).toFixed(2)} / hr`;
+              return 'On-costs applied';
+            };
             const headers = hasLocum
-              ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Amount', 'Max Claimable']
-              : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Amount', 'Max Claimable'];
+              ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable']
+              : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable'];
             const rightAlignIdx = hasLocum ? 5 : 4;
             const totalClaimed = staffDetails.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
             const totalMax = staffDetails.reduce((sum: number, s: any) => sum + getMaxInfo(s).max, 0);
@@ -802,6 +811,9 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                           return totalHrs !== null ? totalHrs.toFixed(1) : '—';
                         })()}
                       </td>
+                      <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums', fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {getUnitRate(s)}
+                      </td>
                       <td style={{
                         padding: '10px', textAlign: 'right', fontWeight: 600,
                         fontVariantNumeric: 'tabular-nums', color: lineOver ? '#dc2626' : '#111827'
@@ -836,6 +848,20 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                 </tr>
               </tfoot>
             </table>
+            </div>
+            {/* Calculation explainer for SNO Approver transparency */}
+            <div style={{
+              marginTop: 8, padding: '8px 12px', borderRadius: 6,
+              background: '#f8fafc', border: '1px solid #e2e8f0',
+              fontSize: 11.5, color: '#475569', fontStyle: 'italic', lineHeight: 1.5,
+            }}>
+              <strong style={{ fontStyle: 'normal', color: '#334155' }}>How this total was reached:</strong>{' '}
+              Each line is calculated as <em>Allocation × Unit Rate</em>, then summed across all staff entries.
+              GP Locum sessions use a fixed £375/session (or £750/day); meeting & management lines use the staff member's hourly rate;
+              Buy-Back and New SDA salaried lines apply WTE × annual rate (incl. on-costs) ÷ 12.
+              Per-line formulas are shown in the <strong style={{ fontStyle: 'normal', color: '#334155' }}>Max Claimable</strong> column above.
+              Grand total: <strong style={{ fontStyle: 'normal', color: '#111827' }}>{fmtGBP(totalClaimed)}</strong>
+              {totalMax > 0 && totalMax !== totalClaimed && <> · Max permitted: <strong style={{ fontStyle: 'normal', color: '#111827' }}>{fmtGBP(totalMax)}</strong></>}.
             </div>
           </div>
             );
