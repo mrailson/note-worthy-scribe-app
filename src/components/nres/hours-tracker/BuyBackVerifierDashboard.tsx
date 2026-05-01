@@ -144,7 +144,7 @@ const MAX_LINE_CHARS = 106;
 const capLineWidth = (text: string) =>
   text.split('\n').map(l => l.length > MAX_LINE_CHARS ? l.slice(0, MAX_LINE_CHARS) : l).join('\n');
 const DEFAULT_START_TIME = '08:00';
-const DEFAULT_STOP_TIME = '17:00';
+const DEFAULT_STOP_TIME = '18:00';
 
 const todayStr = () => format(new Date(), 'dd/MM/yyyy');
 const nowTimeStr = () => format(new Date(), 'HH:mm');
