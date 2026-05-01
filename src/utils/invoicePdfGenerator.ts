@@ -5,6 +5,31 @@ import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DET
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import { getSDAClaimGLCode, getGLInvoiceLabel } from '@/utils/glCodes';
+import { formatMaxClaimableInfo } from '@/utils/buybackMaxClaimable';
+
+/** Derive a printable Unit Rate string for an invoice line. */
+function getUnitRate(s: any): string {
+  const cat = s.staff_category || 'buyback';
+  const allocType = s.allocation_type || '';
+  const rate = s.hourly_rate ?? 0;
+  if (cat === 'gp_locum') {
+    return allocType === 'daily' ? '£750.00 / day' : '£375.00 / session';
+  }
+  if (cat === 'meeting') {
+    return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
+  }
+  if (cat === 'management') {
+    if (allocType === 'hours' && rate > 0) return `£${rate.toFixed(2)} / hr`;
+    return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
+  }
+  // Salaried / buy-back / new SDA — WTE-based with on-costs
+  if (allocType === 'wte') {
+    return 'WTE × on-costs';
+  }
+  if (allocType === 'hours' && rate > 0) return `£${rate.toFixed(2)} / hr`;
+  if (allocType === 'sessions') return `£${(rate || 0).toFixed(2)} / session`;
+  return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
+}
 
 interface InvoiceData {
   claim: BuyBackClaim;
