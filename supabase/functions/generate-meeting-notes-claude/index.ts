@@ -869,6 +869,71 @@ serve(async (req) => {
       }
     }
 
+    // ─── LLM REFUSAL DETECTION ────────────────────────────────────────────
+    // Detect strict-JSON refusal { "is_meeting": false, ... } from the model.
+    if (!forceGenerate) {
+      try {
+        const trimmed = (meetingMinutes || '').trim();
+        const jsonCandidate = trimmed.startsWith('```')
+          ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+          : trimmed;
+        if (jsonCandidate.startsWith('{') && jsonCandidate.includes('"is_meeting"')) {
+          const parsed = JSON.parse(jsonCandidate);
+          if (parsed && parsed.is_meeting === false) {
+            const detectedType: string = typeof parsed.detected_content_type === 'string' ? parsed.detected_content_type : 'unclear';
+            const explanation: string = typeof parsed.explanation === 'string' ? parsed.explanation : 'Content does not appear to be a meeting.';
+            console.log(`⛔ LLM refusal: detected_content_type=${detectedType} — ${explanation}`);
+
+            const friendlyMessage = `# This recording does not appear to be a meeting\n\nNotewell AI evaluated the transcript and concluded the content type is **${detectedType}**.\n\n> ${explanation}\n\nNo meeting notes have been generated to avoid hallucinating content. If this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Recording details: ${guardDurationSeconds ?? '—'} seconds, ${transcriptWordCount} words.*`;
+
+            const supabaseUrl2 = Deno.env.get('SUPABASE_URL');
+            const serviceKey2 = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+            if (supabaseUrl2 && serviceKey2 && reqMeetingId) {
+              const sb = createClient(supabaseUrl2, serviceKey2);
+              try {
+                await sb.from('meeting_summaries').upsert({
+                  meeting_id: reqMeetingId,
+                  summary: friendlyMessage,
+                  generation_metadata: { status: 'insufficient_content', reason: 'llm_refused_non_meeting', detected_content_type: detectedType, explanation, transcript_word_count: transcriptWordCount, duration_seconds: guardDurationSeconds, guard: 'llm', model: modelLabel },
+                  ai_generated: false,
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'meeting_id' });
+                await sb.from('meetings').update({
+                  notes_style_3: friendlyMessage,
+                  notes_generation_status: 'insufficient_content',
+                  word_count: transcriptWordCount,
+                  updated_at: new Date().toISOString(),
+                }).eq('id', reqMeetingId);
+                await sb.from('meeting_generation_log').insert({
+                  meeting_id: reqMeetingId,
+                  primary_model: modelLabel,
+                  actual_model_used: modelLabel,
+                  fallback_count: 0,
+                  generation_ms: Date.now() - functionStartTime,
+                  skip_reason: 'llm_refused_non_meeting',
+                  detected_content_type: detectedType,
+                  transcript_word_count: transcriptWordCount,
+                  duration_seconds: guardDurationSeconds,
+                  transcript_snippet: (transcript || '').slice(0, 200),
+                });
+              } catch (e) {
+                console.warn('⚠️ Failed to persist LLM refusal:', e);
+              }
+            }
+
+            return new Response(JSON.stringify({
+              status: 'insufficient_content',
+              reason: 'llm_refused_non_meeting',
+              detected_content_type: detectedType,
+              explanation,
+              transcript_word_count: transcriptWordCount,
+              duration_seconds: guardDurationSeconds,
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+      } catch (_e) { /* not JSON — proceed */ }
+    }
+
     // Post-processing
     // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
     // the heading from the table header onto separate lines. Without this, the markdown
