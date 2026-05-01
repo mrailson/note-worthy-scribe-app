@@ -774,12 +774,29 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             };
             const getUnitRate = (s: any): string => {
               const cat = s.staff_category || 'buyback';
-              if (cat === 'gp_locum') return s.allocation_type === 'daily' ? '£750.00 / day' : '£375.00 / session';
-              if (cat === 'meeting') return (s.hourly_rate ?? 0) > 0 ? `£${Number(s.hourly_rate).toFixed(2)} / hr` : '—';
-              if (cat === 'management' && s.allocation_type === 'hours') return (s.hourly_rate ?? 0) > 0 ? `£${Number(s.hourly_rate).toFixed(2)} / hr` : '—';
-              if (s.allocation_type === 'wte') return 'WTE × on-costs';
-              if ((s.hourly_rate ?? 0) > 0) return `£${Number(s.hourly_rate).toFixed(2)} / hr`;
-              return 'On-costs applied';
+              const allocType = s.allocation_type || '';
+              const baseRate = Number(s.hourly_rate ?? 0);
+              if (cat === 'gp_locum') return allocType === 'daily' ? '£750.00 / day' : '£375.00 / session';
+              if (cat === 'meeting') return baseRate > 0 ? `£${baseRate.toFixed(2)} / hr` : '—';
+              if (cat === 'management') {
+                const hr = Number(s.hourly_rate_with_on_costs ?? baseRate);
+                return hr > 0 ? `£${hr.toFixed(2)} / hr (incl. on-costs)` : '—';
+              }
+              // Salaried / buy-back / new SDA
+              let hourly = Number(s.hourly_rate_with_on_costs ?? 0);
+              if (!hourly && s.calculated_amount && s.allocation_value) {
+                const monthly = Number(s.calculated_amount);
+                const alloc = Number(s.allocation_value);
+                if (alloc > 0) {
+                  if (allocType === 'wte') hourly = (monthly * 12) / (alloc * 1950);
+                  else if (allocType === 'sessions') hourly = (monthly * 12) / (alloc * (25 / 6) * 52);
+                  else if (allocType === 'hours') hourly = (monthly * 12) / (alloc * 52);
+                }
+              }
+              if (hourly > 0) return `£${hourly.toFixed(2)} / hr (incl. on-costs)`;
+              if (allocType === 'hours' && baseRate > 0) return `£${baseRate.toFixed(2)} / hr`;
+              if (allocType === 'sessions' && baseRate > 0) return `£${baseRate.toFixed(2)} / session`;
+              return baseRate > 0 ? `£${baseRate.toFixed(2)} / hr` : '—';
             };
             const headers = hasLocum
               ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable']

@@ -107,6 +107,8 @@ const formatApprovedDateTime = (iso?: string | null) => {
  */
 const DEFAULT_GP_SESSION_ANNUAL = 11000 * 1.2938;
 const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
+/** Standard NHS GP session length: 4 hours 10 minutes = 25/6 ≈ 4.1667 hrs */
+export const HOURS_PER_SESSION = 25 / 6;
 
 function resolveClaimTypeFromStaff(staffMember: Pick<BuyBackStaffMember, 'staff_category'>, fallback: ClaimType = 'buyback'): ClaimType {
   if (staffMember.staff_category === 'new_sda' || staffMember.staff_category === 'gp_locum') return 'additional';
@@ -185,7 +187,10 @@ export function calculateStaffMonthlyAmount(
     if (roleRate !== undefined) {
       const includesOnCosts = roleConfig?.includes_on_costs !== false;
       const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
-      
+      // Roles whose default allocation is 'sessions' price annual_rate per ONE session/week.
+      // Hours entered for these roles must be converted to sessions, not WTE.
+      const isSessionPriced = roleConfig?.allocation_default === 'sessions';
+
       if (staff.allocation_type === 'daily') {
         const dailyRate = roleConfig?.daily_rate ?? staff.allocation_value;
         const workingDays = rateParams.workingDaysInMonth ?? 21.67;
@@ -195,7 +200,12 @@ export function calculateStaffMonthlyAmount(
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
       } else if (staff.allocation_type === 'hours') {
         const annualWithOnCosts = roleRate * multiplier;
-        fullMonthly = ((staff.allocation_value / 37.5) * annualWithOnCosts) / 12;
+        if (isSessionPriced) {
+          // hours/wk ÷ 4.1667 = sessions/wk; rate is per session/yr
+          fullMonthly = ((staff.allocation_value / HOURS_PER_SESSION) * annualWithOnCosts) / 12;
+        } else {
+          fullMonthly = ((staff.allocation_value / 37.5) * annualWithOnCosts) / 12;
+        }
       } else {
         const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
@@ -384,16 +394,20 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
         // Derive an effective hourly rate (incl. on-costs where applicable) for invoice display
         let hourlyRateWithOnCosts: number | undefined;
+        let isSessionPriced = false;
         const cat = (s as any).staff_category;
         if (cat !== 'gp_locum' && cat !== 'meeting' && cat !== 'management' && rateParams?.getRoleAnnualRate && s.staff_role) {
           const roleRate = rateParams.getRoleAnnualRate(s.staff_role);
           const roleConfig = rateParams.getRoleConfig?.(s.staff_role);
+          isSessionPriced = roleConfig?.allocation_default === 'sessions';
           if (roleRate !== undefined) {
             const includesOnCosts = roleConfig?.includes_on_costs !== false;
             const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
             const annualWithOnCosts = roleRate * multiplier;
-            // NHS standard whole-time equivalent hours: 37.5 × 52 = 1950
-            hourlyRateWithOnCosts = annualWithOnCosts / 1950;
+            // For session-priced roles: hourly = annual-per-session ÷ (sessions/yr per session/wk)
+            // 1 session/wk × 52 wks × 4.1667 hrs = 216.67 hrs/yr.
+            const hoursPerYear = isSessionPriced ? (52 * HOURS_PER_SESSION) : 1950;
+            hourlyRateWithOnCosts = annualWithOnCosts / hoursPerYear;
           }
         } else if (cat === 'management' && (s as any).hourly_rate) {
           hourlyRateWithOnCosts = (s as any).hourly_rate;
@@ -407,6 +421,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           allocation_value: s.allocation_value,
           hourly_rate: s.hourly_rate,
           hourly_rate_with_on_costs: hourlyRateWithOnCosts,
+          is_session_priced: isSessionPriced,
           start_date: s.start_date,
           practice_key: s.practice_key,
           claimed_amount: lineClaimedAmount,
