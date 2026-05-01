@@ -1628,7 +1628,11 @@ export const MeetingHistoryList = ({
     const meetingId = meeting.id;
     
     if (processingMeetings[meetingId]?.isProcessing) {
-      return; // Already processing
+      // Surface the dropped click so the user knows their second/third click
+      // was a no-op rather than silently appearing to succeed.
+      toast.warning('A regeneration is already in progress for this meeting — wait for it to finish before triggering another.', { duration: 6000 });
+      // Throw so handleProcessClick's downstream success toast does not fire.
+      throw new Error('regenerate-already-in-progress');
     }
 
     // Build list of selected types in order - Overview first, then Standard, then others
