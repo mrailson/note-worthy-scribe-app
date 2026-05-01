@@ -110,6 +110,8 @@ const LLMDiagnostics = () => {
   const [configSaving, setConfigSaving] = useState(false);
   const [stats24h, setStats24h] = useState<{ total: number; firstAttemptOk: number; fallbacks: number } | null>(null);
 
+  const [rejectedRows, setRejectedRows] = useState<RejectionRow[]>([]);
+
   // Auth gate
   useEffect(() => {
     if (authLoading) return;
