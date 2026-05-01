@@ -8303,6 +8303,31 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         }}
       />
       
+      {/* Finalising overlay — keeps a clear "still working" signal between the
+          recording panel collapsing and the Saved modal mounting. */}
+      {isFinalisingMeeting && (
+        <div
+          className="fixed inset-0 z-[60] bg-background/85 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200"
+          role="status"
+          aria-live="polite"
+        >
+          <Card className="w-[min(92vw,420px)] shadow-2xl border-primary/20">
+            <CardContent className="p-6 text-center space-y-3">
+              <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
+              <h3 className="text-lg font-semibold">Finalising your meeting…</h3>
+              <p className="text-sm text-muted-foreground">
+                Saving the recording, transcript and notes. Please don't close this tab — the confirmation will appear in a moment.
+              </p>
+              {stopRecordingStep && (
+                <div className="text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse pt-1">
+                  {stopRecordingStep}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Post-Meeting Actions Modal */}
       <PostMeetingActionsModal
         isOpen={showPostMeetingActions}
