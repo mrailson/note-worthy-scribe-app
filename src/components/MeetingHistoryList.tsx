@@ -1550,6 +1550,7 @@ export const MeetingHistoryList = ({
       modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' :
       modelOverride === 'sonnet-4.6' ? 'Claude Sonnet 4.6' :
       modelOverride === 'gemini-2.5-flash' ? 'Gemini 2.5 Flash' :
+      modelOverride === 'gpt-5.2' ? 'OpenAI GPT-5.2' :
       modelOverride;
 
     // Show toast notification
