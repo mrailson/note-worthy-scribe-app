@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark, HelpCircle, Settings } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark, HelpCircle, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPracticeName, NRES_PRACTICE_BANK_DETAILS, NRES_ODS_CODES, NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
