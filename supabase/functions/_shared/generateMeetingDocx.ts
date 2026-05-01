@@ -620,7 +620,7 @@ export async function generateMeetingDocxBase64(opts: GenerateMeetingDocxOpts): 
     children.push(...createActionItemsTable(parsedActions));
   }
 
-  const footer = createFooter(undefined, metadata.date, metadata.time);
+  const footer = createFooter(undefined, metadata.date, metadata.time, opts.modelUsed);
 
   const doc = new Document({
     styles: buildNHSStyles(),
