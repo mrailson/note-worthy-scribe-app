@@ -560,6 +560,8 @@ export interface GenerateMeetingDocxOpts {
     status?: string;
     isCompleted?: boolean;
   }>;
+  /** LLM identifier (mirrors meetings.notes_model_used) — stamped into footer. */
+  modelUsed?: string;
 }
 
 /**
