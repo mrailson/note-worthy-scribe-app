@@ -273,10 +273,16 @@ export default function MeetingNotesGenerator() {
     }
   }
 
-  async function downloadDocx(markdown: string, filename: string) {
+  async function downloadDocx(markdown: string, filename: string, meetingId?: string) {
     try {
       const { data, error: functionError } = await supabase.functions.invoke('export-docx', {
-        body: { markdown, filename }
+        body: {
+          markdown,
+          filename,
+          // When meetingId is supplied the edge function routes through the
+          // NHS-styled docx generator and stamps the model in the footer.
+          ...(meetingId ? { meetingId } : {}),
+        }
       });
 
       if (functionError) {
