@@ -208,6 +208,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const normaliseTranscriptSourceForMeeting = (source: string | null | undefined): string | null => {
+  const raw = (source || '').toLowerCase().trim();
+  if (!raw) return null;
+  if (raw === 'best_of_all') return 'best_of_all';
+  if (raw === 'consolidated') return 'consolidated';
+  if (raw.includes('whisper') || raw === 'meetings_consolidated') return 'whisper';
+  if (raw.includes('assembly') || raw.includes('live')) return 'assembly';
+  if (raw.includes('deepgram')) return 'deepgram';
+  if (raw.includes('meeting_transcription_chunks') || raw.includes('meeting_transcripts') || raw.includes('transcription_chunks')) return 'whisper';
+  return null;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
