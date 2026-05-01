@@ -1576,6 +1576,8 @@ export const MeetingHistoryList = ({
       toast.success('✨ Regenerated with Claude Sonnet 4.6');
     } else if (modelOverride === 'gemini-2.5-flash') {
       toast.success('✨ Regenerated with Gemini 2.5 Flash');
+    } else if (modelOverride === 'gpt-5.2') {
+      toast.success('🧠 Regenerated with OpenAI GPT-5.2');
     } else {
       toast.success('✓ Notes regenerated');
     }
