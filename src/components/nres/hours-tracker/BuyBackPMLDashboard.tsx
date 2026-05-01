@@ -1763,7 +1763,11 @@ export function BuyBackPMLDashboard({
             practiceFilter={practiceFilter}
             onPracticeFilterChange={setPracticeFilter}
             practiceOptions={practiceOptions}
-            defaultView={view === 'finance' ? 'invoices' : 'spreadsheet'}
+            defaultView={
+              view === 'finance'
+                ? (financeStatusFilter === 'paid' || financeStatusFilter === 'invoiced' || financeStatusFilter === 'queried' ? 'cards' : 'invoices')
+                : 'spreadsheet'
+            }
             exportVariant={view === 'finance' ? 'finance' : 'director'}
             statusFilter={view === 'finance' ? financeStatusFilter : undefined}
             onStatusFilterChange={view === 'finance' ? setFinanceStatusFilter : undefined}
