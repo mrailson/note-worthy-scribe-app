@@ -45,7 +45,21 @@ const claimTotal = (c: BuyBackClaim) => {
 };
 
 const claimHours = (c: BuyBackClaim) =>
-  ((c as any).staff_lines ?? c.staff_details ?? []).reduce((a: number, l: any) => a + (l.total_hours ?? l.totalHrs ?? 0), 0);
+  ((c as any).staff_lines ?? c.staff_details ?? []).reduce((a: number, l: any) => {
+    const stored = l.total_hours ?? l.totalHrs ?? 0;
+    if (stored > 0) return a + stored;
+    // GP Locum: sessions × 250 minutes / 60
+    if (l.staff_category === 'gp_locum') {
+      const sessions = l.allocation_value ?? 0;
+      return a + (Math.round(sessions * 250) / 60);
+    }
+    // Management: derive from claimed amount ÷ hourly rate when available
+    if (l.staff_category === 'management' && l.hourly_rate > 0) {
+      const amt = l.calculated_amount ?? l.claimed_amount ?? l.claimed ?? 0;
+      if (amt > 0) return a + (amt / l.hourly_rate);
+    }
+    return a;
+  }, 0);
 
 const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff_details ?? [];
 
