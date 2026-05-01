@@ -1255,6 +1255,19 @@ export const MeetingHistoryList = ({
           .eq('id', meeting.id)
           .maybeSingle();
         notesModelUsed = (modelRow as any)?.notes_model_used ?? null;
+
+        // Fallback: if the meetings column is NULL (older runs / consolidated
+        // path before the model-stamp wiring), read the most recent log row.
+        if (!notesModelUsed) {
+          const { data: logRow } = await supabase
+            .from('meeting_generation_log')
+            .select('actual_model_used')
+            .eq('meeting_id', meeting.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          notesModelUsed = (logRow as any)?.actual_model_used ?? null;
+        }
       } catch (modelErr) {
         console.warn('⚠️ Could not load notes_model_used for footer:', modelErr);
       }
