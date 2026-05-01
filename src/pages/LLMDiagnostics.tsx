@@ -642,6 +642,65 @@ const LLMDiagnostics = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* SECTION 4 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>4. Recordings rejected as non-meetings (last 7 days)</CardTitle>
+              <CardDescription>
+                Meetings where the pipeline guard or the LLM declined to generate notes
+                because the recording did not appear to be a meeting (too short, entertainment,
+                test recording, etc.). Use this to spot false positives — real short meetings
+                that are being rejected by mistake.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {rejectedRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No recordings rejected in the last 7 days.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>When</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>Words</TableHead>
+                        <TableHead>Skip reason</TableHead>
+                        <TableHead>Detected type</TableHead>
+                        <TableHead>Transcript snippet</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rejectedRows.map((r, idx) => {
+                        const dur = r.duration_seconds;
+                        const durLabel = dur == null ? '—'
+                          : dur < 60 ? `${dur}s`
+                          : `${Math.floor(dur / 60)}m ${Math.round(dur % 60)}s`;
+                        return (
+                          <TableRow key={`${r.meeting_id}-${idx}`}>
+                            <TableCell className="whitespace-nowrap text-xs">{formatDateTime(r.created_at)}</TableCell>
+                            <TableCell className="whitespace-nowrap">{durLabel}</TableCell>
+                            <TableCell className="whitespace-nowrap tabular-nums">{r.transcript_word_count ?? '—'}</TableCell>
+                            <TableCell>
+                              {r.skip_reason ? <Badge variant="outline">{r.skip_reason}</Badge> : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {r.detected_content_type ? <Badge variant="secondary">{r.detected_content_type}</Badge> : '—'}
+                            </TableCell>
+                            <TableCell className="max-w-md">
+                              <span className="text-xs text-muted-foreground break-words">
+                                {truncate(r.transcript_snippet, 200) || '—'}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </main>
       </div>
     </TooltipProvider>
