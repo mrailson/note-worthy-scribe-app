@@ -698,6 +698,7 @@ serve(async (req) => {
 
           const transcriptData = finalTranscriptResult?.[0];
           fullTranscript = transcriptData?.transcript || '';
+          actualTranscriptSource = normaliseTranscriptSourceForMeeting(transcriptData?.source) || 'whisper';
           itemCount = transcriptData?.item_count || 0;
         }
       }
