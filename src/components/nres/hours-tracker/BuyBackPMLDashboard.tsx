@@ -210,6 +210,16 @@ function InfoBlock({ label, value, sub, highlight }: { label: string; value: str
   );
 }
 
+function parsePracticeNoteRows(notes: string): string[][] {
+  const body = notes
+    .replace(/\[\[INVOICE_TABLE\]\]/g, '')
+    .replace(/\[\[\/INVOICE_TABLE\]\]/g, '');
+
+  return body.split('\n').map(line => line.trim()).filter(Boolean)
+    .map(line => line.split('|').map(part => part.trim()))
+    .filter(parts => parts.length >= 4 && /^\d{1,2}[./-]\d{1,2}/.test(parts[0]));
+}
+
 function EvidencePill({ label, met }: { label: string; met: boolean }) {
   return (
     <span
@@ -644,11 +654,38 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           </div>
 
           {/* Practice notes */}
-          {(claim as any).practice_notes && (
-            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <strong>Practice Note:</strong> {(claim as any).practice_notes}
-            </div>
-          )}
+          {(claim as any).practice_notes && (() => {
+            const notes = String((claim as any).practice_notes || '');
+            const rows = parsePracticeNoteRows(notes);
+            return (
+              <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Invoice description</div>
+                {rows.length ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: 12 }}>
+                      <thead>
+                        <tr>{['Date', 'Start', 'Stop', 'Description'].map(heading => (
+                          <th key={heading} style={{ textAlign: 'left', padding: '5px 7px', border: '1px solid #fde68a', color: '#78350f', background: '#fef3c7' }}>{heading}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row, index) => (
+                          <tr key={index}>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row[0]}</td>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row[1]}</td>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row[2]}</td>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.slice(3).join(' | ')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{notes}</div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Bank details for payment verification */}
           {(() => {
