@@ -510,7 +510,11 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoiceRows, setInvoiceRows] = useState<InvoiceTableRow[]>(() => parseInvoiceTableDescription(savedInvoiceDescription));
-  const [quickLine, setQuickLine] = useState({ date: todayStr(), start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' });
+  const claimMonthDefault = (() => {
+    const b = claimMonthBounds(claim.claim_month);
+    return b ? format(b.from, 'dd/MM/yyyy') : todayStr();
+  })();
+  const [quickLine, setQuickLine] = useState({ date: claimMonthDefault, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const datePickerRef = useRef<HTMLDivElement | null>(null);
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'processing'>('idle');
