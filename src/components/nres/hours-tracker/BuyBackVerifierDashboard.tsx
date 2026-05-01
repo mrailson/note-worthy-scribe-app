@@ -183,7 +183,29 @@ const appendInvoiceText = (current: string, addition: string) => {
   return next.slice(0, DESCRIPTION_LIMIT);
 };
 
-/** Resolve a display name — if stored value looks like an email, derive a readable name from it */
+// ── Document import helpers (Management category only) ─────────────────────
+function importFileTypeFor(file: File): 'pdf' | 'image' | 'word' | null {
+  const n = file.name.toLowerCase();
+  if (file.type === 'application/pdf' || n.endsWith('.pdf')) return 'pdf';
+  if (file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(n)) return 'image';
+  if (n.endsWith('.docx') || n.endsWith('.doc') || file.type.includes('officedocument.wordprocessing')) return 'word';
+  return null;
+}
+function importFileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('Read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+// ISO YYYY-MM-DD → DD/MM/YYYY (British)
+function isoToDisplayDate(iso: string): string {
+  if (!iso) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
 function resolveSubmitterName(claim: BuyBackClaim, profileNames: Record<string, string>): string | undefined {
   const email = claim.submitted_by_email;
   if (email && profileNames[email.toLowerCase()]) return profileNames[email.toLowerCase()];
