@@ -5,6 +5,31 @@ import { NRES_PRACTICE_ADDRESSES, NRES_PRACTICE_CONTACTS, NRES_PRACTICE_BANK_DET
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import { getSDAClaimGLCode, getGLInvoiceLabel } from '@/utils/glCodes';
+import { formatMaxClaimableInfo } from '@/utils/buybackMaxClaimable';
+
+/** Derive a printable Unit Rate string for an invoice line. */
+function getUnitRate(s: any): string {
+  const cat = s.staff_category || 'buyback';
+  const allocType = s.allocation_type || '';
+  const rate = s.hourly_rate ?? 0;
+  if (cat === 'gp_locum') {
+    return allocType === 'daily' ? '£750.00 / day' : '£375.00 / session';
+  }
+  if (cat === 'meeting') {
+    return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
+  }
+  if (cat === 'management') {
+    if (allocType === 'hours' && rate > 0) return `£${rate.toFixed(2)} / hr`;
+    return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
+  }
+  // Salaried / buy-back / new SDA — WTE-based with on-costs
+  if (allocType === 'wte') {
+    return 'WTE × on-costs';
+  }
+  if (allocType === 'hours' && rate > 0) return `£${rate.toFixed(2)} / hr`;
+  if (allocType === 'sessions') return `£${(rate || 0).toFixed(2)} / session`;
+  return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
+}
 
 interface InvoiceData {
   claim: BuyBackClaim;
@@ -193,8 +218,8 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     getGLInvoiceLabel(resolveGLCode(s)),
     s.staff_category === 'gp_locum'
       ? (s.allocation_type === 'daily'
-        ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''} @ £750/day`
-        : `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''} @ £375`)
+        ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''}`
+        : `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`)
       : s.allocation_type === 'sessions'
         ? `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`
         : s.allocation_type === 'hours'
@@ -202,21 +227,49 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
           : s.allocation_type === 'daily'
             ? `${s.allocation_value}/day`
             : `${s.allocation_value} WTE`,
+    getUnitRate(s),
     fmt(s.claimed_amount || 0),
   ]);
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['#', 'Staff Member', 'Role', 'GL Category', 'Allocation', 'Amount']],
+    head: [['#', 'Staff Member', 'Role', 'GL Category', 'Allocation', 'Unit Rate', 'Amount']],
     body: tableData,
-    styles: { fontSize: 9, cellPadding: 3 },
-    headStyles: { fillColor: [0, 94, 184], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    headStyles: { fillColor: [0, 94, 184], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
     columnStyles: {
-      0: { cellWidth: 10 },
-      5: { halign: 'right' },
+      0: { cellWidth: 8 },
+      1: { cellWidth: 32 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 28 },
+      4: { cellWidth: 26 },
+      5: { cellWidth: 26, halign: 'right' },
+      6: { cellWidth: 'auto', halign: 'right', fontStyle: 'bold' },
     },
     alternateRowStyles: { fillColor: [240, 244, 245] },
   });
+
+  // --- Calculation explainer line beneath staff table ---
+  const tableEndY = (doc as any).lastAutoTable.finalY;
+  const formulaParts = staffDetails
+    .map((s: any) => formatMaxClaimableInfo(s).formula)
+    .filter((f: string) => f && f !== '—');
+  const grandTotalForExplainer = staffDetails.reduce(
+    (a: number, s: any) => a + (s.claimed_amount || 0),
+    0
+  );
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(GREY_100);
+  const explainer =
+    'Invoice total derived line-by-line as Allocation × Unit Rate (WTE lines include applied on-costs):  ' +
+    (formulaParts.length
+      ? formulaParts.join('  +  ') + `  =  ${fmt(grandTotalForExplainer)}`
+      : `Total = ${fmt(grandTotalForExplainer)}`);
+  const explainerLines = doc.splitTextToSize(explainer, 182);
+  doc.text(explainerLines, 14, tableEndY + 5);
+  // Push subsequent content down based on explainer height
+  (doc as any).lastAutoTable.finalY = tableEndY + 2 + explainerLines.length * 3.6;
 
   // --- Optional invoice-facing claim description ---
   const invoiceDescription = String((claim as any).practice_notes || '').trim();

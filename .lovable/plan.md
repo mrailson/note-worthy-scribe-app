@@ -1,40 +1,63 @@
-## Tidy up the claim card header
+## Goal
 
-Right now the collapsed claim card header packs the Claim ID chip, practice name, month, category badges, status badge and (sometimes) the "Over threshold" warning all on one wrapping row, with no labels. On 1366×768 NHS laptops this wraps awkwardly and it's not obvious what each value is.
+Per PML's request, update the generated invoice PDF so each staff line shows the **Unit Rate** used, and include a **calculation explainer line** beneath the staff table making the math behind the invoice total fully transparent.
 
-We'll reorganise into **two clean rows with small captions** above the key fields.
+## Scope
 
-### New layout (collapsed header)
+Single file: `src/utils/invoicePdfGenerator.ts` (used by both download and preview flows via `InvoiceDownloadLink` and `InvoicePreviewDialog`).
+
+No DB changes, no schema changes, no other components touched.
+
+## Changes
+
+### 1. New "Unit Rate" column in the staff line table
+
+Currently the table is:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│  CLAIM ID     CLAIM PERIOD     PRACTICE                          £1,304 │
-│  #100         April 2026       Brackley & Towcester PCN Ltd      1 line │
-│                                                                         │
-│  [Buy-Back] [NRES Management] [Invoice Issued]                          │
-└──────────────────────────────────────────────────────────────────────────┘
+# | Staff Member | Role | GL Category | Allocation | Amount
 ```
 
-- **Row 1 — captioned identification fields** (left side):
-  - `CLAIM ID` → `#100` (monospace slate chip)
-  - `CLAIM PERIOD` → `April 2026`
-  - `PRACTICE` → practice name
-  - Captions are 9–10px uppercase muted slate; values are 13px semi-bold.
-- **Row 2 — badges**: category chips (Buy-Back / NRES Management / etc.) + status badge + any "Over threshold" warning. Same coloured pills as today, but on their own line so they don't clash with the names.
-- **Right side** unchanged: total amount and "N lines · N sessions".
+After:
 
-A small reusable inline `Field` helper renders the caption + value pair so spacing/typography stays consistent.
+```text
+# | Staff Member | Role | GL Category | Allocation | Unit Rate | Amount
+```
 
-### Where to apply it
+Unit Rate derivation per row, mirroring logic already used in `formatMaxClaimableInfo` (`src/utils/buybackMaxClaimable.ts`):
 
-- **PML / SNO Approver dashboard** — `src/components/nres/hours-tracker/BuyBackPMLDashboard.tsx` (the screenshot you sent)
-- **Verifier dashboard** — `src/components/nres/hours-tracker/BuyBackVerifierDashboard.tsx` (same single-row issue)
-- **Practice dashboard claim card** — `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx` (claim row 3116) — same caption treatment so the three views look consistent
-- **Practice claims tab card** — `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` (line 2488) — already fairly compact, but we'll add the captions for consistency
+- `gp_locum` + `daily` → `£750 / day`
+- `gp_locum` + `sessions` → `£375 / session`
+- `meeting` → `£{hourly_rate} / hr`
+- `management` + `hours` → `£{hourly_rate} / hr` (× 4.33 wks shown in explainer line)
+- Salaried / buy-back / new SDA (`wte`) → `£{calculated_amount} / WTE` (or `On-costs applied` when no per-unit rate exists)
+- Fallback → `—`
 
-### Notes
+Column widths re-balanced so the table still fits A4 width (Allocation narrower, Unit Rate ~22mm, Amount right-aligned as today).
 
-- No data changes — purely presentational.
-- Captions are visible at all times (not on hover) so accountants/approvers immediately see what each value is.
-- Spacing kept compact (6px between rows, 14px between caption groups) to honour the NHS-laptop density rule.
-- Right-hand total column and the expand chevron stay exactly where they are.
+### 2. Calculation explainer line beneath the staff table
+
+Immediately under the staff table (before the optional "Details" block / pipe table), render a small italic note:
+
+> *Invoice total derived from: (Allocation × Unit Rate) per line, summed across all staff entries. On-cost multiplier of {X}× applied to salaried/WTE lines where shown.*
+
+The on-cost multiplier value is pulled from `claim.staff_details` (already present per row via `calculated_amount`) — we will surface the multiplier from `useNRESBuyBackRateSettings` indirectly by reading `staff.on_cost_multiplier` if present on the line, otherwise omit the multiplier sentence.
+
+### 3. Per-line formula tooltip text (printed)
+
+Add a thin secondary row beneath each staff line listing the formula string from `formatMaxClaimableInfo(staff).formula`, e.g. `"3 sessions × £375 = £1,125.00"`, rendered in 7.5pt grey under the staff name. Keeps each row to a single visible "card" but makes the math explicit on the printed invoice.
+
+(If this clutters the layout in QA, fall back to a single "Calculation basis" column showing the formula string instead of a sub-row.)
+
+## Verification
+
+- Open an existing claim in the Invoice Preview dialog and confirm:
+  - Unit Rate column renders with correct values for locum (sessions + daily), management, meeting, and WTE buy-back rows.
+  - Explainer line appears beneath the table.
+  - Table still fits on the page; totals box on the right unchanged.
+- Download an invoice PDF and confirm the same on the saved file.
+
+## Out of scope
+
+- Changing the invoice number format, GL subtotals, bank details block, or footer.
+- Database/schema changes — `unit_rate` is computed from existing `staff_details` fields.
