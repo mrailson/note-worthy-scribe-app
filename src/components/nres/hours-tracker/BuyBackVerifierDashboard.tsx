@@ -691,12 +691,16 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               </span>
             </div>
           </div>
-          {/* Row 2 — badges */}
+          {/* Row 2 — category & alerts (status moved to centre) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <ClaimTypeBadge claim={claim} />
-            <StatusBadge status={claim.status} />
             {isSubmitted && <span style={{ fontSize: 11, color: '#0369a1', fontWeight: 500 }}>Needs verification</span>}
           </div>
+        </div>
+        {/* Centre — Status with caption */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', flexShrink: 0, padding: '0 16px' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Status</span>
+          <StatusBadge status={claim.status} />
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 100 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}</div>
