@@ -84,10 +84,8 @@ const LLMDiagnostics = () => {
   const { user, isSystemAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [pingPro, setPingPro] = useState<PingResult | null>(null);
-  const [pingFlash, setPingFlash] = useState<PingResult | null>(null);
-  const [pingingPro, setPingingPro] = useState(false);
-  const [pingingFlash, setPingingFlash] = useState(false);
+  const [pingRuns, setPingRuns] = useState<PingRun[]>([]);
+  const [busyKeys, setBusyKeys] = useState<Set<string>>(new Set());
 
   const [fallbackRows, setFallbackRows] = useState<FallbackRow[]>([]);
   const [bucketStats, setBucketStats] = useState<Array<{ label: string; total: number; fallbacks: number; pct: number }>>([]);
@@ -103,26 +101,37 @@ const LLMDiagnostics = () => {
     }
   }, [authLoading, user, isSystemAdmin, navigate]);
 
-  const runPing = useCallback(async (model: 'gemini-3.1-pro' | 'gemini-3-flash') => {
-    const setBusy = model === 'gemini-3.1-pro' ? setPingingPro : setPingingFlash;
-    const setResult = model === 'gemini-3.1-pro' ? setPingPro : setPingFlash;
-    setBusy(true);
-    setResult(null);
+  const runPing = useCallback(async (variant: PingVariant) => {
+    const id = `${variant.key}-${Date.now()}`;
+    setBusyKeys(prev => { const n = new Set(prev); n.add(variant.key); return n; });
+    setPingRuns(prev => [{ id, variant, busy: true, result: null }, ...prev]);
     try {
-      const { data, error } = await supabase.functions.invoke('gemini-ping', { body: { model } });
-      if (error) throw error;
-      setResult(data as PingResult);
-    } catch (err: any) {
-      setResult({
-        status_code: 0,
-        elapsed_ms: 0,
-        body_preview: '',
-        error_message: err?.message || String(err),
+      const { data, error } = await supabase.functions.invoke('gemini-ping', {
+        body: {
+          model: variant.model,
+          max_tokens: variant.max_tokens,
+          reasoning_mode: variant.reasoning_mode,
+        },
       });
+      if (error) throw error;
+      setPingRuns(prev => prev.map(r => r.id === id ? { ...r, busy: false, result: data as PingResult } : r));
+    } catch (err: any) {
+      setPingRuns(prev => prev.map(r => r.id === id ? {
+        ...r,
+        busy: false,
+        result: {
+          status_code: 0,
+          elapsed_ms: 0,
+          body_preview: '',
+          error_message: err?.message || String(err),
+        },
+      } : r));
     } finally {
-      setBusy(false);
+      setBusyKeys(prev => { const n = new Set(prev); n.delete(variant.key); return n; });
     }
   }, []);
+
+  const clearPingRuns = useCallback(() => setPingRuns([]), []);
 
   const loadData = useCallback(async () => {
     if (!isSystemAdmin) return;
