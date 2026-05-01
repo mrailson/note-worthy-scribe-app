@@ -11,6 +11,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { RefreshCw, Loader2, Activity, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
+type ReasoningMode = 'default' | 'excluded' | 'low' | 'minimal';
+
 type PingResult = {
   status_code: number;
   elapsed_ms: number;
@@ -18,6 +20,35 @@ type PingResult = {
   error_message: string | null;
   model_tested?: string;
   gateway_model?: string;
+  max_tokens?: number;
+  reasoning_mode?: ReasoningMode;
+  finish_reason?: string | null;
+  native_finish_reason?: string | null;
+  total_tokens?: number | null;
+};
+
+type PingVariant = {
+  key: string;
+  label: string;
+  model: 'gemini-3.1-pro' | 'gemini-3-flash';
+  max_tokens: number;
+  reasoning_mode: ReasoningMode;
+  buttonVariant?: 'default' | 'secondary' | 'outline';
+};
+
+const VARIANTS: PingVariant[] = [
+  { key: 'flash', label: 'Flash', model: 'gemini-3-flash', max_tokens: 1024, reasoning_mode: 'default', buttonVariant: 'secondary' },
+  { key: 'pro-current', label: 'Pro (current)', model: 'gemini-3.1-pro', max_tokens: 1024, reasoning_mode: 'default' },
+  { key: 'pro-16k', label: 'Pro (max 16k)', model: 'gemini-3.1-pro', max_tokens: 16000, reasoning_mode: 'default' },
+  { key: 'pro-no-reasoning', label: 'Pro (reasoning off, max 16k)', model: 'gemini-3.1-pro', max_tokens: 16000, reasoning_mode: 'excluded' },
+  { key: 'pro-low', label: 'Pro (reasoning low, max 16k)', model: 'gemini-3.1-pro', max_tokens: 16000, reasoning_mode: 'low' },
+];
+
+type PingRun = {
+  id: string;
+  variant: PingVariant;
+  busy: boolean;
+  result: PingResult | null;
 };
 
 type FallbackRow = {
@@ -53,10 +84,8 @@ const LLMDiagnostics = () => {
   const { user, isSystemAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [pingPro, setPingPro] = useState<PingResult | null>(null);
-  const [pingFlash, setPingFlash] = useState<PingResult | null>(null);
-  const [pingingPro, setPingingPro] = useState(false);
-  const [pingingFlash, setPingingFlash] = useState(false);
+  const [pingRuns, setPingRuns] = useState<PingRun[]>([]);
+  const [busyKeys, setBusyKeys] = useState<Set<string>>(new Set());
 
   const [fallbackRows, setFallbackRows] = useState<FallbackRow[]>([]);
   const [bucketStats, setBucketStats] = useState<Array<{ label: string; total: number; fallbacks: number; pct: number }>>([]);
@@ -72,26 +101,37 @@ const LLMDiagnostics = () => {
     }
   }, [authLoading, user, isSystemAdmin, navigate]);
 
-  const runPing = useCallback(async (model: 'gemini-3.1-pro' | 'gemini-3-flash') => {
-    const setBusy = model === 'gemini-3.1-pro' ? setPingingPro : setPingingFlash;
-    const setResult = model === 'gemini-3.1-pro' ? setPingPro : setPingFlash;
-    setBusy(true);
-    setResult(null);
+  const runPing = useCallback(async (variant: PingVariant) => {
+    const id = `${variant.key}-${Date.now()}`;
+    setBusyKeys(prev => { const n = new Set(prev); n.add(variant.key); return n; });
+    setPingRuns(prev => [{ id, variant, busy: true, result: null }, ...prev]);
     try {
-      const { data, error } = await supabase.functions.invoke('gemini-ping', { body: { model } });
-      if (error) throw error;
-      setResult(data as PingResult);
-    } catch (err: any) {
-      setResult({
-        status_code: 0,
-        elapsed_ms: 0,
-        body_preview: '',
-        error_message: err?.message || String(err),
+      const { data, error } = await supabase.functions.invoke('gemini-ping', {
+        body: {
+          model: variant.model,
+          max_tokens: variant.max_tokens,
+          reasoning_mode: variant.reasoning_mode,
+        },
       });
+      if (error) throw error;
+      setPingRuns(prev => prev.map(r => r.id === id ? { ...r, busy: false, result: data as PingResult } : r));
+    } catch (err: any) {
+      setPingRuns(prev => prev.map(r => r.id === id ? {
+        ...r,
+        busy: false,
+        result: {
+          status_code: 0,
+          elapsed_ms: 0,
+          body_preview: '',
+          error_message: err?.message || String(err),
+        },
+      } : r));
     } finally {
-      setBusy(false);
+      setBusyKeys(prev => { const n = new Set(prev); n.delete(variant.key); return n; });
     }
   }, []);
+
+  const clearPingRuns = useCallback(() => setPingRuns([]), []);
 
   const loadData = useCallback(async () => {
     if (!isSystemAdmin) return;
@@ -190,45 +230,62 @@ const LLMDiagnostics = () => {
     );
   }
 
-  const renderPingCard = (label: string, result: PingResult | null, busy: boolean) => (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Activity className="h-4 w-4" /> {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        {busy && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Calling model directly…
-          </div>
-        )}
-        {!busy && !result && (
-          <p className="text-muted-foreground">No result yet — click the button above.</p>
-        )}
-        {result && (
-          <>
-            <div className="flex flex-wrap gap-2 items-center">
-              <Badge variant={result.status_code >= 200 && result.status_code < 300 ? 'default' : 'destructive'}>
-                HTTP {result.status_code}
-              </Badge>
-              <Badge variant="secondary">{result.elapsed_ms} ms</Badge>
-              {result.gateway_model && <Badge variant="outline">{result.gateway_model}</Badge>}
+  const finishReasonClass = (fr?: string | null): string => {
+    if (fr === 'stop') return 'bg-green-600 hover:bg-green-600 text-white border-transparent';
+    if (fr === 'length') return 'bg-amber-500 hover:bg-amber-500 text-white border-transparent';
+    if (fr) return 'bg-destructive text-destructive-foreground border-transparent';
+    return 'bg-muted text-muted-foreground border-transparent';
+  };
+
+  const renderPingCard = (run: PingRun) => {
+    const { variant, busy, result } = run;
+    return (
+      <Card key={run.id}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Activity className="h-4 w-4" /> {variant.label}
+          </CardTitle>
+          <CardDescription className="text-xs">
+            {variant.model} · max_tokens {variant.max_tokens} · reasoning {variant.reasoning_mode}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {busy && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Calling model directly…
             </div>
-            {result.error_message && (
-              <div className="flex items-start gap-1 text-destructive">
-                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                <span className="break-all">{result.error_message}</span>
+          )}
+          {result && (
+            <>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Badge variant={result.status_code >= 200 && result.status_code < 300 ? 'default' : 'destructive'}>
+                  HTTP {result.status_code}
+                </Badge>
+                <Badge variant="secondary">{result.elapsed_ms} ms</Badge>
+                {result.gateway_model && <Badge variant="outline">{result.gateway_model}</Badge>}
               </div>
-            )}
-            <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-muted p-2 text-xs font-mono whitespace-pre-wrap break-words">
+              <div className="flex flex-wrap gap-2 items-center">
+                <Badge className={finishReasonClass(result.finish_reason)}>
+                  finish: {result.finish_reason ?? '—'}
+                </Badge>
+                <Badge variant="outline">native: {result.native_finish_reason ?? '—'}</Badge>
+                <Badge variant="outline">tokens: {result.total_tokens ?? '—'}</Badge>
+              </div>
+              {result.error_message && (
+                <div className="flex items-start gap-1 text-destructive">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span className="break-all">{result.error_message}</span>
+                </div>
+              )}
+              <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-muted p-2 text-xs font-mono whitespace-pre-wrap break-words">
 {result.body_preview || '(empty body)'}
-            </pre>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
+              </pre>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <TooltipProvider>
@@ -241,7 +298,10 @@ const LLMDiagnostics = () => {
               <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
                 This page diagnoses whether <code>gemini-3.1-pro</code> is genuinely failing in production
                 or whether our generation pipeline is misreporting a different problem as a timeout.
-                Section 1 pings each model directly (no fallback wrapper) so you see the raw HTTP behaviour.
+                Section 1 pings each model directly (no fallback wrapper) so you see the raw HTTP behaviour,
+                and lets you compare Pro with different <code>max_tokens</code> and reasoning settings to
+                isolate whether the MAX_TOKENS truncation is fixed by raising the limit, by disabling
+                reasoning, or only by both together.
                 Section 2 lists the most recent meetings where Pro fell back to Flash, with the captured
                 status code, elapsed time and error message. Section 3 shows the fallback rate over the last
                 7 days bucketed by meeting length — if the &lt;10 min bucket shows a high fallback %, Pro is
@@ -260,26 +320,51 @@ const LLMDiagnostics = () => {
               <CardTitle>1. Live model ping test</CardTitle>
               <CardDescription>
                 Sends a fixed one-sentence summarisation prompt directly to each model — no fallback chain,
-                no wrapper. Each click is a fresh request.
+                no wrapper. Each click is a fresh request and accumulates as a card below for comparison.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-3">
-                <Button onClick={() => runPing('gemini-3.1-pro')} disabled={pingingPro}>
-                  {pingingPro && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Test Pro
-                </Button>
-                <Button variant="secondary" onClick={() => runPing('gemini-3-flash')} disabled={pingingFlash}>
-                  {pingingFlash && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Test Flash
-                </Button>
+              <p className="text-sm text-muted-foreground">
+                <strong>Goal:</strong> a Pro variant that returns <code>finish_reason='stop'</code> with a complete summary in the body. That's your fix.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {VARIANTS.map(v => {
+                  const busy = busyKeys.has(v.key);
+                  return (
+                    <Button
+                      key={v.key}
+                      size="sm"
+                      variant={v.buttonVariant ?? 'default'}
+                      onClick={() => runPing(v)}
+                      disabled={busy}
+                    >
+                      {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Test {v.label}
+                    </Button>
+                  );
+                })}
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {renderPingCard('gemini-3.1-pro', pingPro, pingingPro)}
-                {renderPingCard('gemini-3-flash', pingFlash, pingingFlash)}
-              </div>
+              {pingRuns.length > 0 && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={clearPingRuns}
+                    className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
+                    Clear results
+                  </button>
+                </div>
+              )}
+              {pingRuns.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No results yet — click any button above.</p>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {pingRuns.map(renderPingCard)}
+                </div>
+              )}
             </CardContent>
           </Card>
+
 
           {/* SECTION 2 */}
           <Card>
