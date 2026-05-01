@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { Upload, Image, FileText, Loader2, X, CheckCircle2 } from 'lucide-react';
+import { Upload, Image, FileText, Loader2, X, CheckCircle2, Clipboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 // Module-level active zone tracker — only one zone responds to Ctrl+V
 let activeZoneId: string | null = null;
@@ -128,11 +129,60 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
     }
   };
 
+  // Read clipboard via Async Clipboard API — works without prior Ctrl+V
+  const handlePasteButton = useCallback(async () => {
+    activate();
+    try {
+      if (!navigator.clipboard?.read) {
+        toast.info('Press Ctrl+V to paste your screenshot');
+        return;
+      }
+      const items = await navigator.clipboard.read();
+      const files: File[] = [];
+      for (const item of items) {
+        for (const type of item.types) {
+          if (type.startsWith('image/') || type === 'application/pdf') {
+            const blob = await item.getType(type);
+            const ext = type.split('/')[1] || 'png';
+            const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            files.push(new File([blob], `pasted-${ts}.${ext}`, { type }));
+            break;
+          }
+        }
+      }
+      if (files.length === 0) {
+        toast.info('No image found in clipboard. Copy a screenshot first, then click Paste.');
+        return;
+      }
+      if (compact) {
+        onFilesSelected(multiple ? files : [files[0]]);
+        const first = files[0];
+        if (first.type.startsWith('image/')) {
+          const url = URL.createObjectURL(first);
+          setPastedThumbnailUrl(url);
+        }
+        setPasteFlash(true);
+        setTimeout(() => {
+          setPasteFlash(false);
+          setPastedThumbnailUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+        }, 4000);
+      } else if (multiple) {
+        setPendingFiles(prev => [...prev, ...files]);
+      } else {
+        onFilesSelected([files[0]]);
+      }
+    } catch (err) {
+      console.error('Clipboard read failed', err);
+      toast.error('Could not read clipboard. Try Ctrl+V instead.');
+    }
+  }, [activate, compact, multiple, onFilesSelected]);
+
   if (compact) {
     return (
       <div
         className="flex items-center gap-2"
         onClick={activate}
+        onMouseEnter={activate}
         onFocus={activate}
         tabIndex={0}
         role="button"
@@ -142,6 +192,10 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
           {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
           Upload
         </Button>
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={uploading} onClick={handlePasteButton} title="Paste image from clipboard">
+          <Clipboard className="w-3 h-3 mr-1" />
+          Paste
+        </Button>
         {pasteFlash ? (
           <span className="text-[10px] text-green-600 font-medium flex items-center gap-1 animate-in fade-in">
             {pastedThumbnailUrl && (
@@ -150,14 +204,14 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
             <CheckCircle2 className="w-3 h-3" /> Screenshot pasted!
           </span>
         ) : (
-          <span className="text-[10px] text-muted-foreground">Click here, then Ctrl+V to paste</span>
+          <span className="text-[10px] text-muted-foreground">or Ctrl+V</span>
         )}
       </div>
     );
   }
 
   return (
-    <div ref={dropZoneRef} onClick={activate} onFocus={activate}>
+    <div ref={dropZoneRef} onClick={activate} onMouseEnter={activate} onFocus={activate}>
       <input ref={fileInputRef} type="file" className="hidden" accept={accept || '.pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif'} multiple={multiple} onChange={handleFileChange} />
 
       <div
@@ -184,6 +238,12 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
             PDF, PNG, JPG, DOCX, XLSX — multiple files accepted
           </p>
         </div>
+      </div>
+
+      <div className="mt-2 flex justify-center">
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={uploading} onClick={(e) => { e.stopPropagation(); handlePasteButton(); }}>
+          <Clipboard className="w-3 h-3 mr-1" /> Paste from clipboard
+        </Button>
       </div>
 
       {pendingFiles.length > 0 && (
