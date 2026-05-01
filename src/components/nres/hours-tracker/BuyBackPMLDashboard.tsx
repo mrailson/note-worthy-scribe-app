@@ -8,6 +8,7 @@ import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
+import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { ClaimsViewSwitcher } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
