@@ -1029,20 +1029,50 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                 </div>
               </div>
             </div>
-          ) : (claim as any).practice_notes && (
-            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
-              <strong>Invoice description:</strong>
-              {parseInvoiceTableDescription((claim as any).practice_notes).length ? (
-                <div style={{ marginTop: 6, overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: 12 }}><thead><tr>{['Date', 'Start', 'Stop', 'Details'].map(h => <th key={h} style={{ textAlign: 'left', padding: '5px 7px', border: '1px solid #fde68a', color: '#78350f' }}>{h}</th>)}</tr></thead><tbody>{parseInvoiceTableDescription((claim as any).practice_notes).map(row => <tr key={row.id}><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.date}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.start}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.stop}</td><td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{row.details}</td></tr>)}</tbody></table></div>
-              ) : ` ${(claim as any).practice_notes}`}
-              <button
-                onClick={() => setInvoicePreviewOpen(true)}
-                style={{ marginLeft: 12, padding: '4px 10px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
-              >
-                <Eye className="w-3.5 h-3.5" /> Preview invoice
-              </button>
-            </div>
-          )}
+          ) : (claim as any).practice_notes && (() => {
+            const notes = String((claim as any).practice_notes || '');
+            const legacyRows = parseInvoiceTableDescription(notes);
+            const pipeRows = legacyRows.length ? [] : notes.split('\n').map(l => l.trim()).filter(Boolean)
+              .map(l => l.split('|').map(c => c.trim()))
+              .filter(parts => parts.length >= 4 && /^\d{1,2}[\/\-.]\d{1,2}/.test(parts[0]));
+            const isTable = legacyRows.length > 0 || pipeRows.length > 0;
+            return (
+              <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, fontSize: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                  <strong>Invoice description</strong>
+                  <button
+                    onClick={() => setInvoicePreviewOpen(true)}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Preview invoice
+                  </button>
+                </div>
+                {isTable ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: 12 }}>
+                      <thead>
+                        <tr>{['Date', 'Start', 'Stop', 'Description'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '5px 7px', border: '1px solid #fde68a', color: '#78350f', background: '#fef3c7' }}>{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody>
+                        {(legacyRows.length ? legacyRows.map(r => [r.date, r.start, r.stop, r.details]) : pipeRows.map(r => [r[0], r[1], r[2], r.slice(3).join(' | ')])).map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{r[0]}</td>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{r[1]}</td>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{r[2]}</td>
+                            <td style={{ padding: '5px 7px', border: '1px solid #fde68a' }}>{r[3]}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{notes}</div>
+                )}
+              </div>
+            );
+          })()}
 
           <InvoicePreviewDialog open={invoicePreviewOpen} onOpenChange={setInvoicePreviewOpen} claim={claim} invoiceDescription={invoiceDescription} />
 
