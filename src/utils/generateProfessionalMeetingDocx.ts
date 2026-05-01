@@ -1690,7 +1690,13 @@ export const generateProfessionalWordFromContent = async (
   footerOn?: boolean,
   meetingDetailsOn?: boolean,
   attendeesOn?: boolean,
-  priorityColumnOn?: boolean
+  priorityColumnOn?: boolean,
+  /**
+   * The model that produced the saved notes (mirrors meetings.notes_model_used).
+   * Optional — when omitted the footer renders "unknown" so older notes still
+   * carry a provenance segment.
+   */
+  notesModelUsed?: string | null,
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
@@ -1708,6 +1714,7 @@ export const generateProfessionalWordFromContent = async (
         location: parsedDetails?.location,
         venue: parsedDetails?.venue,
         attendees: parsedDetails?.attendees,
+        notesModelUsed,
       },
       content: filteredContent,
       actionItems: actionItemsToUse,
@@ -1721,7 +1728,7 @@ export const generateProfessionalWordFromContent = async (
   } else {
     // Fallback to auto-parsing
     await generateProfessionalMeetingDocx({
-      metadata: { title },
+      metadata: { title, notesModelUsed },
       content: filteredContent,
       logoUrl,
     });
