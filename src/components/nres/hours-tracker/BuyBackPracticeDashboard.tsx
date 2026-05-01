@@ -3491,11 +3491,41 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             </div>
           )}
 
-          {!isDraft && !isQueried && (claim as any).practice_notes && (
-            <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', fontSize: 12, color: '#1e3a8a', whiteSpace: 'pre-wrap' as const }}>
-              <strong>Invoice description:</strong> {(claim as any).practice_notes}
-            </div>
-          )}
+          {!isDraft && !isQueried && (claim as any).practice_notes && (() => {
+            const notes = String((claim as any).practice_notes || '');
+            const rows = notes.split('\n').map(l => l.trim()).filter(Boolean)
+              .map(l => l.split('|').map(c => c.trim()))
+              .filter(parts => parts.length >= 4 && /^\d{1,2}[\/\-.]\d{1,2}/.test(parts[0]));
+            const isTable = rows.length > 0;
+            return (
+              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', fontSize: 12, color: '#1e3a8a' }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Invoice description</div>
+                {isTable ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: 12 }}>
+                      <thead>
+                        <tr>{['Date', 'Start', 'Stop', 'Description'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '5px 8px', border: '1px solid #bfdbfe', color: '#1e3a8a', background: '#dbeafe' }}>{h}</th>
+                        ))}</tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '5px 8px', border: '1px solid #bfdbfe' }}>{r[0]}</td>
+                            <td style={{ padding: '5px 8px', border: '1px solid #bfdbfe' }}>{r[1]}</td>
+                            <td style={{ padding: '5px 8px', border: '1px solid #bfdbfe' }}>{r[2]}</td>
+                            <td style={{ padding: '5px 8px', border: '1px solid #bfdbfe' }}>{r.slice(3).join(' | ')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{notes}</div>
+                )}
+              </div>
+            );
+          })()}
 
           {(isDraft || isQueried) && (
             <div style={{ marginTop: 12 }}>
