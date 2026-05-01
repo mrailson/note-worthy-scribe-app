@@ -1813,6 +1813,11 @@ ${cleanedTranscript}`;
     const failureReasons: Array<{ model: string; reason: string }> = [];
     let actualModelUsed = modelOverride;
     let fallbackCount = 0;
+    // Diagnostic capture for Gemini Pro attempts (read by /admin/llm-diagnostics)
+    let proStatusCode: number | null = null;
+    let proElapsedMs: number | null = null;
+    let proErrorMessage: string | null = null;
+    let fallbackReason: string | null = null;
 
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
     const runAttempt = async (modelKey: string): Promise<string> => {
@@ -1892,6 +1897,8 @@ ${cleanedTranscript}`;
             geminiModel = 'google/gemini-2.5-flash';
           }
           console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
+          const isPro = modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview';
+          const proStart = isPro ? Date.now() : 0;
           const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -1908,8 +1915,13 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          if (isPro) {
+            proStatusCode = response.status;
+            proElapsedMs = Date.now() - proStart;
+          }
           if (!response.ok) {
             const errorData = await response.text();
+            if (isPro) proErrorMessage = `HTTP ${response.status}: ${errorData.substring(0, 500)}`;
             // 429 and 402 are user-facing — surface immediately rather than silently fall back.
             if (response.status === 429) throw new Error('RATE_LIMIT: Rate limit exceeded. Please wait a moment and try again.');
             if (response.status === 402) throw new Error('CREDITS: Insufficient AI credits. Please add credits to your workspace.');
@@ -1918,9 +1930,16 @@ ${cleanedTranscript}`;
           }
           const responseText = await response.text();
           if (!responseText || responseText.trim().length === 0) {
+            if (isPro) proErrorMessage = 'Empty response body';
             throw new Error('Lovable AI returned empty response body');
           }
-          const data = JSON.parse(responseText);
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseErr: any) {
+            if (isPro) proErrorMessage = `Parse error: ${parseErr?.message || 'invalid JSON'}`;
+            throw parseErr;
+          }
           notes = data.choices?.[0]?.message?.content || '';
         }
         if (!notes || notes.trim().length === 0) {
@@ -1947,11 +1966,30 @@ ${cleanedTranscript}`;
           }
           break;
         } catch (err: any) {
-          const reason = err?.name === 'AbortError'
+          const isAbort = err?.name === 'AbortError';
+          const reason = isAbort
             ? `timeout after ${attemptModel === 'gemini-3-flash' ? 60 : 120}s`
             : (err?.message || 'unknown error');
           console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
+          // Capture Pro-specific diagnostics (only the first Pro attempt — index 0).
+          const isPro = attemptModel === 'gemini-3.1-pro' || attemptModel === 'gemini-3.1-pro-preview';
+          if (isPro && fallbackReason === null) {
+            if (isAbort) {
+              fallbackReason = 'timeout';
+              if (proErrorMessage === null) proErrorMessage = reason;
+              if (proStatusCode === null) proStatusCode = 0;
+            } else if (typeof err?.message === 'string' && err.message.startsWith('Lovable AI ')) {
+              fallbackReason = 'http_error';
+              if (proErrorMessage === null) proErrorMessage = err.message.substring(0, 500);
+            } else if (typeof err?.message === 'string' && /JSON|parse/i.test(err.message)) {
+              fallbackReason = 'parse_error';
+              if (proErrorMessage === null) proErrorMessage = err.message.substring(0, 500);
+            } else {
+              fallbackReason = 'other';
+              if (proErrorMessage === null) proErrorMessage = (err?.message || String(err)).substring(0, 500);
+            }
+          }
           lastError = err instanceof Error ? err : new Error(String(err));
           // Surface user-facing errors immediately — don't burn through fallbacks for credit/rate-limit issues.
           if (typeof err?.message === 'string' && (err.message.startsWith('RATE_LIMIT:') || err.message.startsWith('CREDITS:'))) {
@@ -1997,6 +2035,10 @@ ${cleanedTranscript}`;
         next_meeting_item_count: nextMeetingItemCount,
         cross_section_check_performed: crossSectionCheckPerformed,
         extraction_reasoning_trace: extractionReasoningTrace,
+        pro_status_code: proStatusCode,
+        pro_elapsed_ms: proElapsedMs,
+        pro_error_message: proErrorMessage,
+        fallback_reason: fallbackReason,
       });
     } catch (logErr) {
       console.warn('⚠️ Failed to write generation log (non-blocking):', logErr);

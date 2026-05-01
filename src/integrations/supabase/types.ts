@@ -6888,11 +6888,15 @@ export type Database = {
           extraction_reasoning_trace: string | null
           failure_reasons: Json | null
           fallback_count: number
+          fallback_reason: string | null
           generation_ms: number | null
           id: string
           meeting_id: string
           next_meeting_item_count: number | null
           primary_model: string
+          pro_elapsed_ms: number | null
+          pro_error_message: string | null
+          pro_status_code: number | null
         }
         Insert: {
           actual_model_used: string
@@ -6903,11 +6907,15 @@ export type Database = {
           extraction_reasoning_trace?: string | null
           failure_reasons?: Json | null
           fallback_count?: number
+          fallback_reason?: string | null
           generation_ms?: number | null
           id?: string
           meeting_id: string
           next_meeting_item_count?: number | null
           primary_model: string
+          pro_elapsed_ms?: number | null
+          pro_error_message?: string | null
+          pro_status_code?: number | null
         }
         Update: {
           actual_model_used?: string
@@ -6918,11 +6926,15 @@ export type Database = {
           extraction_reasoning_trace?: string | null
           failure_reasons?: Json | null
           fallback_count?: number
+          fallback_reason?: string | null
           generation_ms?: number | null
           id?: string
           meeting_id?: string
           next_meeting_item_count?: number | null
           primary_model?: string
+          pro_elapsed_ms?: number | null
+          pro_error_message?: string | null
+          pro_status_code?: number | null
         }
         Relationships: []
       }
