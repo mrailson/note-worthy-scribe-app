@@ -17,13 +17,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
 import { StaffLineEvidence } from './ClaimEvidencePanel';
 import { getSDAClaimGLCode } from '@/utils/glCodes';
-import * as pdfjsLib from 'pdfjs-dist';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface VerifierDashboardProps {
   claims: BuyBackClaim[];
