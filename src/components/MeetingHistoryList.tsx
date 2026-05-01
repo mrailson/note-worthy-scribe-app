@@ -3022,6 +3022,28 @@ export const MeetingHistoryList = ({
                         {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Sonnet 4.6 (alternative)'}
                       </DropdownMenuItem>
 
+                      {/* OpenAI GPT-5.2 — third-provider option for cross-checking */}
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const ok = window.confirm(
+                            'Regenerate with OpenAI GPT-5.2?\n\n' +
+                            "OpenAI's current flagship model — provides a third-provider perspective " +
+                            'alongside Gemini and Sonnet for side-by-side comparison.\n\n' +
+                            'Use GPT-5.2?'
+                          );
+                          if (ok) {
+                            handleProcessClick(meeting, 'gpt-5.2');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with GPT-5.2 (OpenAI)'}
+                      </DropdownMenuItem>
+
 
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
