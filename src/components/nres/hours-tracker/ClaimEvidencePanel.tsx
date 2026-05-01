@@ -256,6 +256,7 @@ export function StaffLineEvidence({
   onDelete,
   onDownload,
   hideHeader = false,
+  triggerOpenAt,
 }: {
   staffCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum';
   staffIndex: number;
@@ -269,6 +270,8 @@ export function StaffLineEvidence({
   onDelete: (id: string) => Promise<void>;
   onDownload: (filePath: string) => Promise<string | null>;
   hideHeader?: boolean;
+  /** When this number changes, opens the viewer modal at file index 0 (or value if >=0) */
+  triggerOpenAt?: number;
 }) {
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const allTypes = getConfigForCategory(staffCategory);
