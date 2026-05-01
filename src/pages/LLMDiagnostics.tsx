@@ -222,12 +222,74 @@ const LLMDiagnostics = () => {
     }
   }, [isSystemAdmin]);
 
+  // Load active primary model + last-24h stats
+  const loadConfig = useCallback(async () => {
+    if (!isSystemAdmin) return;
+    setConfigLoading(true);
+    try {
+      const { data: settingRow } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'MEETING_PRIMARY_MODEL')
+        .maybeSingle();
+      const v = settingRow?.setting_value;
+      const candidate = typeof v === 'string' ? v : '';
+      const resolved = ['gemini-3-flash', 'gemini-3.1-pro'].includes(candidate)
+        ? candidate
+        : 'gemini-3-flash';
+      setActiveModel(resolved);
+      setPendingModel(resolved);
+
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: dayLogs } = await supabase
+        .from('meeting_generation_log')
+        .select('fallback_count')
+        .gte('created_at', since)
+        .limit(2000);
+      const total = dayLogs?.length ?? 0;
+      const fallbacks = (dayLogs || []).filter((l: any) => (l.fallback_count ?? 0) > 0).length;
+      const firstAttemptOk = total - fallbacks;
+      setStats24h({ total, firstAttemptOk, fallbacks });
+    } catch (err: any) {
+      console.error('Failed to load config:', err);
+    } finally {
+      setConfigLoading(false);
+    }
+  }, [isSystemAdmin]);
+
+  const saveConfig = useCallback(async () => {
+    if (!isSystemAdmin) return;
+    if (!['gemini-3-flash', 'gemini-3.1-pro'].includes(pendingModel)) {
+      toast.error('Invalid model selection.');
+      return;
+    }
+    setConfigSaving(true);
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .update({
+          setting_value: pendingModel as any,
+          updated_by: user?.id ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('setting_key', 'MEETING_PRIMARY_MODEL');
+      if (error) throw error;
+      setActiveModel(pendingModel);
+      toast.success(`Primary model set to ${pendingModel}.`);
+    } catch (err: any) {
+      toast.error(`Failed to save: ${err?.message || 'unknown error'}`);
+    } finally {
+      setConfigSaving(false);
+    }
+  }, [isSystemAdmin, pendingModel, user?.id]);
+
   useEffect(() => {
     if (!isSystemAdmin) return;
     loadData();
-    const t = setInterval(loadData, 30_000);
+    loadConfig();
+    const t = setInterval(() => { loadData(); loadConfig(); }, 30_000);
     return () => clearInterval(t);
-  }, [isSystemAdmin, loadData]);
+  }, [isSystemAdmin, loadData, loadConfig]);
 
   const maxPct = useMemo(() => Math.max(10, ...bucketStats.map(b => b.pct)), [bucketStats]);
 
