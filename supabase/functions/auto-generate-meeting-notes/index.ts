@@ -1813,10 +1813,18 @@ ${cleanedTranscript}`;
       nextMeetingItemCount = countBulletsOrLines(nextMeetingSection, /to\s+be\s+determined|not\s+(mentioned|specified|confirmed)/i);
     };
 
-    // Build fallback chain. Primary is always the requested model. Fallbacks are appended
-    // only if the primary is the new default (Pro) — explicit overrides like 'gemini-3-flash'
-    // or 'sonnet-4.6' are honoured without fallback (user picked them deliberately).
+    // Build fallback chain. Primary is whatever the caller / setting resolved to.
+    // Auto-fallback ladder fires for both supported primaries:
+    //   - Flash primary  → flash → pro → 2.5-pro → gpt-5  (Pro is last-resort because
+    //     it usually returns truncated output, but truncated > nothing)
+    //   - Pro primary    → pro   → flash → 2.5-pro → gpt-5  (legacy chain, in case the
+    //     admin flips back via the MEETING_PRIMARY_MODEL setting once Google fixes Pro)
+    // Other explicit overrides (sonnet, gpt-5, etc.) are honoured without fallback.
+    const PER_ATTEMPT_TIMEOUT_MS = 30_000;
     const buildFallbackChain = (primary: string): string[] => {
+      if (primary === 'gemini-3-flash') {
+        return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
+      }
       if (primary === 'gemini-3.1-pro' || primary === 'gemini-3.1-pro-preview') {
         return ['gemini-3.1-pro', 'gemini-3-flash', 'gemini-2.5-pro', 'gpt-5'];
       }
@@ -1834,8 +1842,9 @@ ${cleanedTranscript}`;
 
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
     const runAttempt = async (modelKey: string): Promise<string> => {
-      // Pro gets the full 120s; explicit fast Flash override gets 60s; everything else 120s.
-      const timeoutMs = modelKey === 'gemini-3-flash' ? 60000 : 120000;
+      // Single per-attempt timeout for all models. Flash returns in ~1–2s, so 30s
+      // is generous; Pro/2.5-pro/gpt-5 fallbacks share the same budget.
+      const timeoutMs = PER_ATTEMPT_TIMEOUT_MS;
       const attemptController = new AbortController();
       const attemptTimeout = setTimeout(() => attemptController.abort(), timeoutMs);
       try {
