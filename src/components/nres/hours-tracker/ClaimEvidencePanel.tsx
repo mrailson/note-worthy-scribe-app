@@ -42,6 +42,28 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
   const claimTypeLabel = ({ buyback: 'Buy-Back', new_sda: 'New SDA', management: 'NRES Management', gp_locum: 'GP Locum', mixed: 'Mixed' } as Record<typeof claimCategory, string>)[claimCategory];
   const tooltipRows = visibleConfig.length > 0 ? visibleConfig : applicableConfig;
 
+  // Ordered list of all visible files for prev/next navigation in the viewer
+  const orderedFiles = useMemo<ClaimEvidenceFile[]>(() => {
+    const list: ClaimEvidenceFile[] = [];
+    visibleConfig.forEach(cfg => {
+      if (cfg.evidence_type === 'other_supporting') {
+        (filesByType[cfg.evidence_type] || []).forEach(f => list.push(f));
+      } else {
+        const single = uploadedTypes[cfg.evidence_type];
+        if (single) list.push(single as ClaimEvidenceFile);
+      }
+    });
+    return list;
+  }, [visibleConfig, filesByType, uploadedTypes]);
+
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openViewer = (file: ClaimEvidenceFile) => {
+    const idx = orderedFiles.findIndex(f => f.id === file.id);
+    setViewerIndex(idx >= 0 ? idx : 0);
+    setViewerOpen(true);
+  };
+
   if (configLoading) {
     return (
       <div className="px-3 py-2 border-t flex items-center gap-2 text-xs text-muted-foreground">
@@ -101,10 +123,18 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
             onUploadFiles={(files) => files.forEach(file => uploadEvidence(cfg.evidence_type, file))}
             onDelete={(id) => deleteEvidence(id)}
             onDownload={getDownloadUrl}
+            onView={openViewer}
             allowMultiple={cfg.evidence_type === 'other_supporting'}
           />
         ))}
       </div>
+      <EvidenceViewerModal
+        open={viewerOpen}
+        files={orderedFiles}
+        initialIndex={viewerIndex}
+        getDownloadUrl={getDownloadUrl}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   );
 }
