@@ -512,8 +512,8 @@ serve(async (req) => {
             hasSpeakerLabels: /\[Speaker [A-Z]\]/i.test(liveTranscript || ''),
             meetingId,
             meetingTitle: meeting.title,
-            meetingDate: meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : null,
-            meetingTime: meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null,
+            meetingDate: meeting.start_time ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(meeting.start_time)) : null,
+            meetingTime: meeting.start_time ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' }).format(new Date(meeting.start_time)) : null,
             meetingLocation: meetingTranscript?.meeting_location,
             attendees: attendeeList,
             detailLevel
@@ -1820,14 +1820,15 @@ ${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${attendeeWithOrg.length
 **IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
 ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` : ''}`;
 
-    // Format meeting date for title context
-    const formattedMeetingDate = meeting.start_time 
-      ? new Date(meeting.start_time).toLocaleDateString('en-GB', { 
-          weekday: 'long', 
-          day: 'numeric', 
-          month: 'long', 
-          year: 'numeric' 
-        })
+    // Format meeting date for title context (Europe/London, BST/GMT-aware)
+    const formattedMeetingDate = meeting.start_time
+      ? new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Europe/London',
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }).format(new Date(meeting.start_time))
       : undefined;
 
     // Get document names for title context
