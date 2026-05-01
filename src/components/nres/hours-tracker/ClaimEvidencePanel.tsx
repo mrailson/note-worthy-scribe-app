@@ -189,12 +189,14 @@ export function EvidenceSlot({
       )}
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="font-medium">{displayLabel}</span>
-          {config.is_mandatory && <span className="text-red-500 text-[10px]">Required</span>}
-        </div>
-        {config.description && (
-          <p className="text-muted-foreground text-[10px] truncate">{config.description}</p>
+        {displayLabel && (
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">{displayLabel}</span>
+            {config.is_mandatory && <span className="text-red-500 text-[10px]">Required</span>}
+          </div>
+        )}
+        {displayDescription && (
+          <p className="text-muted-foreground text-[10px] truncate">{displayDescription}</p>
         )}
         {hasFile && (
           <div className="mt-1 space-y-1">
