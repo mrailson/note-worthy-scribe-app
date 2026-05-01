@@ -68,11 +68,26 @@ function parsePipeAlignedTable(description: string): { head: string[]; body: str
   const isSep = (l: string) => /[─\-]/.test(l) && /^[\s\-─┼|+]+$/.test(l);
   const split = (l: string) => l.split('|').map(c => c.trim());
   const dataLines = lines.filter(l => l.includes('|') && !isSep(l));
-  if (dataLines.length < 2) return null;
+  if (dataLines.length < 1) return null;
   const rows = dataLines.map(split);
   const cols = rows[0].length;
   if (cols < 2) return null;
   if (!rows.every(r => r.length === cols)) return null;
+
+  // If the first row looks like data (date-like first cell, time-like 2nd/3rd cells),
+  // it came from our verifier's clean pipe format — synthesise titles instead of
+  // promoting row 1 to a header.
+  const firstCell = rows[0][0] || '';
+  const looksLikeDate = /^\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?$/.test(firstCell) || firstCell === '—';
+  const looksLikeTime = (s: string) => /^\d{1,2}:\d{2}$/.test(s) || s === '—';
+  const isDataFirstRow = looksLikeDate && cols >= 4 && looksLikeTime(rows[0][1]) && looksLikeTime(rows[0][2]);
+
+  if (isDataFirstRow) {
+    const head = ['Date', 'Start', 'Stop', 'Description', ...Array.from({ length: Math.max(0, cols - 4) }, (_, i) => `Col ${i + 5}`)];
+    return { head: head.slice(0, cols), body: rows };
+  }
+
+  if (rows.length < 2) return null;
   return { head: rows[0], body: rows.slice(1) };
 }
 
