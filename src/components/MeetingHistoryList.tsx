@@ -41,7 +41,8 @@ import {
   HeartPulse,
   ChevronRight,
   Sparkles,
-  Zap
+  Zap,
+  Brain
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
@@ -1539,7 +1540,7 @@ export const MeetingHistoryList = ({
   //   'sonnet-4.6'           → Claude Sonnet 4.6 alternative perspective
   //   'gemini-2.5-flash'     → premium long-context (PIN-gated)
   // Future premium options can be added without changing this signature.
-  type RegenerateModel = 'default' | 'gemini-3-flash' | 'sonnet-4.6' | 'gemini-2.5-flash';
+  type RegenerateModel = 'default' | 'gemini-3-flash' | 'sonnet-4.6' | 'gemini-2.5-flash' | 'gpt-5.2';
   const handleProcessClick = async (meeting: Meeting, modelOverride?: RegenerateModel | string) => {
     const meetingId = meeting.id;
     const isDefault = !modelOverride || modelOverride === 'default';
@@ -1549,6 +1550,7 @@ export const MeetingHistoryList = ({
       modelOverride === 'gemini-3-flash' ? 'Gemini 3 Flash' :
       modelOverride === 'sonnet-4.6' ? 'Claude Sonnet 4.6' :
       modelOverride === 'gemini-2.5-flash' ? 'Gemini 2.5 Flash' :
+      modelOverride === 'gpt-5.2' ? 'OpenAI GPT-5.2' :
       modelOverride;
 
     // Show toast notification
@@ -1574,6 +1576,8 @@ export const MeetingHistoryList = ({
       toast.success('✨ Regenerated with Claude Sonnet 4.6');
     } else if (modelOverride === 'gemini-2.5-flash') {
       toast.success('✨ Regenerated with Gemini 2.5 Flash');
+    } else if (modelOverride === 'gpt-5.2') {
+      toast.success('🧠 Regenerated with OpenAI GPT-5.2');
     } else {
       toast.success('✓ Notes regenerated');
     }
@@ -3016,6 +3020,28 @@ export const MeetingHistoryList = ({
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
                         {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Sonnet 4.6 (alternative)'}
+                      </DropdownMenuItem>
+
+                      {/* OpenAI GPT-5.2 — third-provider option for cross-checking */}
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          const ok = window.confirm(
+                            'Regenerate with OpenAI GPT-5.2?\n\n' +
+                            "OpenAI's current flagship model — provides a third-provider perspective " +
+                            'alongside Gemini and Sonnet for side-by-side comparison.\n\n' +
+                            'Use GPT-5.2?'
+                          );
+                          if (ok) {
+                            handleProcessClick(meeting, 'gpt-5.2');
+                          }
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with GPT-5.2 (OpenAI)'}
                       </DropdownMenuItem>
 
 
