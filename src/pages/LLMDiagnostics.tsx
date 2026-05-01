@@ -11,6 +11,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { RefreshCw, Loader2, Activity, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
+type ReasoningMode = 'default' | 'excluded' | 'low' | 'minimal';
+
 type PingResult = {
   status_code: number;
   elapsed_ms: number;
@@ -18,6 +20,35 @@ type PingResult = {
   error_message: string | null;
   model_tested?: string;
   gateway_model?: string;
+  max_tokens?: number;
+  reasoning_mode?: ReasoningMode;
+  finish_reason?: string | null;
+  native_finish_reason?: string | null;
+  total_tokens?: number | null;
+};
+
+type PingVariant = {
+  key: string;
+  label: string;
+  model: 'gemini-3.1-pro' | 'gemini-3-flash';
+  max_tokens: number;
+  reasoning_mode: ReasoningMode;
+  buttonVariant?: 'default' | 'secondary' | 'outline';
+};
+
+const VARIANTS: PingVariant[] = [
+  { key: 'flash', label: 'Flash', model: 'gemini-3-flash', max_tokens: 1024, reasoning_mode: 'default', buttonVariant: 'secondary' },
+  { key: 'pro-current', label: 'Pro (current)', model: 'gemini-3.1-pro', max_tokens: 1024, reasoning_mode: 'default' },
+  { key: 'pro-16k', label: 'Pro (max 16k)', model: 'gemini-3.1-pro', max_tokens: 16000, reasoning_mode: 'default' },
+  { key: 'pro-no-reasoning', label: 'Pro (reasoning off, max 16k)', model: 'gemini-3.1-pro', max_tokens: 16000, reasoning_mode: 'excluded' },
+  { key: 'pro-low', label: 'Pro (reasoning low, max 16k)', model: 'gemini-3.1-pro', max_tokens: 16000, reasoning_mode: 'low' },
+];
+
+type PingRun = {
+  id: string;
+  variant: PingVariant;
+  busy: boolean;
+  result: PingResult | null;
 };
 
 type FallbackRow = {
