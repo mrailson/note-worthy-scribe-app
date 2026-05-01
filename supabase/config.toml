@@ -149,6 +149,9 @@ verify_jwt = false
 [functions.extract-document-text]
 verify_jwt = false
 
+[functions.extract-management-time-entries]
+verify_jwt = false
+
 [functions.regenerate-outcome-letter]
 verify_jwt = true
 
