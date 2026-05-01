@@ -1813,6 +1813,11 @@ ${cleanedTranscript}`;
     const failureReasons: Array<{ model: string; reason: string }> = [];
     let actualModelUsed = modelOverride;
     let fallbackCount = 0;
+    // Diagnostic capture for Gemini Pro attempts (read by /admin/llm-diagnostics)
+    let proStatusCode: number | null = null;
+    let proElapsedMs: number | null = null;
+    let proErrorMessage: string | null = null;
+    let fallbackReason: string | null = null;
 
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
     const runAttempt = async (modelKey: string): Promise<string> => {
