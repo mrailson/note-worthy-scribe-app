@@ -1736,7 +1736,8 @@ expansion:
 
 PML, NRES, NMoC, ICB, MNP, IHO, AFT, LMC, BMA, GMS, PCN, PCSE, ARRS, DES, LES,
 SDA, SNO, NHFT, NGH, KGH, CSO, GPAD, CAIP, NMC, GMC, MHRA, CQC, DSPT, ICS,
-DPIA, MOU, GDPR, BST, GMT, GPA, EA, ENN, AFT, ITP, LFPSE, FCP, ACP, SPLW.
+DPIA, MOU, GDPR, BST, GMT, GPA, EA, ENN, ITP, LFPSE, FCP, ACP, SPLW, PLT,
+MDT, PAC.
 
 If the transcript itself expands the acronym (e.g. "the British Medical
 Association, the BMA"), you may use the expanded form. Otherwise leave the
