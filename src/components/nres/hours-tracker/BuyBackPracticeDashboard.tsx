@@ -3113,52 +3113,61 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
           }}
         />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, minWidth: 0 }}>
-          {claim.claim_ref != null && (
-            <span
-              title="Claim ID — use this when communicating about this claim"
-              style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3, whiteSpace: 'nowrap' }}
-            >
-              Claim #{claim.claim_ref}
-            </span>
-          )}
-          <span style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>{monthLabel}</span>
-          {/* Practice name — shown in admin/director views to identify the claim's practice */}
-          {showPracticeName && claim.practice_key && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6,
-              fontSize: 11, fontWeight: 600, color: '#1e40af', background: '#dbeafe', border: '1px solid #bfdbfe',
-              whiteSpace: 'nowrap',
-            }}>
-              {getPracticeName(claim.practice_key)}
-            </span>
-          )}
-          {/* Staff name — most important identifier */}
-          {staffSummary && (
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{staffSummary}</span>
-          )}
-          {/* Category badge using CATEGORY_LABELS + CATEGORY_COLORS for consistency */}
-          {categoryLabel ? (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6,
-              fontSize: 10, fontWeight: 600,
-              color: categoryColor, background: `${categoryColor}12`, border: `1px solid ${categoryColor}30`,
-            }}>{categoryLabel}</span>
-          ) : (
-            (() => {
-              const cfg = claim.claim_type === 'additional'
-                ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
-                : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
-              return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
-            })()
-          )}
-          <StatusPill status={claim.status} />
-          {isQueried && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 500, color: '#dc2626' }}>
-              <AlertTriangle style={{ width: 12, height: 12 }} /> Action required
-            </span>
-          )}
-          {isDraft && <span style={{ fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>Not yet submitted</span>}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 6, minWidth: 0 }}>
+          {/* Row 1 — captioned identification fields */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' as const }}>
+            {claim.claim_ref != null && (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Claim ID</span>
+                <span
+                  title="Claim ID — use this when communicating about this claim"
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3, alignSelf: 'flex-start', whiteSpace: 'nowrap' as const }}
+                >
+                  #{claim.claim_ref}
+                </span>
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Claim Period</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{monthLabel}</span>
+            </div>
+            {showPracticeName && claim.practice_key && (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 0 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Practice</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{getPracticeName(claim.practice_key)}</span>
+              </div>
+            )}
+            {staffSummary && (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 0 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Staff</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{staffSummary}</span>
+              </div>
+            )}
+          </div>
+          {/* Row 2 — badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
+            {categoryLabel ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6,
+                fontSize: 10, fontWeight: 600,
+                color: categoryColor, background: `${categoryColor}12`, border: `1px solid ${categoryColor}30`,
+              }}>{categoryLabel}</span>
+            ) : (
+              (() => {
+                const cfg = claim.claim_type === 'additional'
+                  ? { label: 'Additional', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' }
+                  : { label: 'Buy-Back', color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' };
+                return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
+              })()
+            )}
+            <StatusPill status={claim.status} />
+            {isQueried && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 500, color: '#dc2626' }}>
+                <AlertTriangle style={{ width: 12, height: 12 }} /> Action required
+              </span>
+            )}
+            {isDraft && <span style={{ fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>Not yet submitted</span>}
+          </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div>

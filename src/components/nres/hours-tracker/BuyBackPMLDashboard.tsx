@@ -540,40 +540,55 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
         <ChevronDown
           className={cn('w-[18px] h-[18px] text-gray-400 transition-transform duration-200', expanded && 'rotate-180')}
         />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
-          {claim.claim_ref != null && (
-            <span
-              title="Claim ID — use this when communicating about this claim"
-              style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3 }}
-            >
-              Claim #{claim.claim_ref}
-            </span>
-          )}
-          <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{practiceName}</span>
-          <span style={{ fontSize: 13, color: '#6b7280' }}>{monthLabel}</span>
-          {(() => {
-            const CATEGORY_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-              buyback:    { label: 'Buy-Back',    color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' },
-              new_sda:    { label: 'New SDA',     color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-              gp_locum:   { label: 'GP Locum',    color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
-              management: { label: 'Management',  color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
-              meeting:    { label: 'Meeting',     color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' },
-              additional: { label: 'Additional',  color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
-            };
-            const dets = ((claim as any).staff_details || []) as any[];
-            const cats = Array.from(new Set(dets.map(d => d.staff_category || 'buyback')));
-            const fallback = cats.length === 0 ? [claim.claim_type === 'additional' ? 'additional' : 'buyback'] : cats;
-            return fallback.map(cat => {
-              const cfg = CATEGORY_BADGE_CONFIG[cat] || CATEGORY_BADGE_CONFIG.buyback;
-              return <span key={cat} style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
-            });
-          })()}
-          <StatusBadge status={displayStatus} />
-          {over && (
-            <span className="inline-flex items-center gap-1 text-amber-600 text-[11px] font-medium">
-              <AlertTriangle className="w-3.5 h-3.5" /> Over threshold
-            </span>
-          )}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+          {/* Row 1 — captioned identification fields */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
+            {claim.claim_ref != null && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Claim ID</span>
+                <span
+                  title="Claim ID — use this when communicating about this claim"
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3, alignSelf: 'flex-start' }}
+                >
+                  #{claim.claim_ref}
+                </span>
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Claim Period</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{monthLabel}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Practice</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{practiceName}</span>
+            </div>
+          </div>
+          {/* Row 2 — status & category badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {(() => {
+              const CATEGORY_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+                buyback:    { label: 'Buy-Back',    color: '#0d9488', bg: '#f0fdfa', border: '#99f6e4' },
+                new_sda:    { label: 'New SDA',     color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+                gp_locum:   { label: 'GP Locum',    color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' },
+                management: { label: 'Management',  color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+                meeting:    { label: 'Meeting',     color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' },
+                additional: { label: 'Additional',  color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
+              };
+              const dets = ((claim as any).staff_details || []) as any[];
+              const cats = Array.from(new Set(dets.map(d => d.staff_category || 'buyback')));
+              const fallback = cats.length === 0 ? [claim.claim_type === 'additional' ? 'additional' : 'buyback'] : cats;
+              return fallback.map(cat => {
+                const cfg = CATEGORY_BADGE_CONFIG[cat] || CATEGORY_BADGE_CONFIG.buyback;
+                return <span key={cat} style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
+              });
+            })()}
+            <StatusBadge status={displayStatus} />
+            {over && (
+              <span className="inline-flex items-center gap-1 text-amber-600 text-[11px] font-medium">
+                <AlertTriangle className="w-3.5 h-3.5" /> Over threshold
+              </span>
+            )}
+          </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>

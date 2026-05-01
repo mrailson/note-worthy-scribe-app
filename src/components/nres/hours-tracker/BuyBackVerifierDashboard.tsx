@@ -665,21 +665,38 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
         <span style={{ color: '#9ca3af', flexShrink: 0 }}>
           {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </span>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
-          {claim.claim_ref != null && (
-            <span
-              title="Claim ID — use this when communicating about this claim"
-              style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3 }}
-            >
-              Claim #{claim.claim_ref}
-            </span>
-          )}
-          <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{practiceName(claim.practice_key)}</span>
-          <span style={{ fontSize: 12, color: '#9ca3af', fontFamily: 'monospace' }}>{practiceCode(claim.practice_key)}</span>
-          <span style={{ fontSize: 13, color: '#6b7280' }}>{getClaimMonthLabel(claim)}</span>
-          <ClaimTypeBadge claim={claim} />
-          <StatusBadge status={claim.status} />
-          {isSubmitted && <span style={{ fontSize: 11, color: '#0369a1', fontWeight: 500 }}>Needs verification</span>}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+          {/* Row 1 — captioned identification fields */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
+            {claim.claim_ref != null && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Claim ID</span>
+                <span
+                  title="Claim ID — use this when communicating about this claim"
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3, alignSelf: 'flex-start' }}
+                >
+                  #{claim.claim_ref}
+                </span>
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Claim Period</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{getClaimMonthLabel(claim)}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Practice</span>
+              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{practiceName(claim.practice_key)}</span>
+                <span style={{ fontSize: 11, color: '#9ca3af', fontFamily: 'monospace' }}>{practiceCode(claim.practice_key)}</span>
+              </span>
+            </div>
+          </div>
+          {/* Row 2 — badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <ClaimTypeBadge claim={claim} />
+            <StatusBadge status={claim.status} />
+            {isSubmitted && <span style={{ fontSize: 11, color: '#0369a1', fontWeight: 500 }}>Needs verification</span>}
+          </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 100 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}</div>

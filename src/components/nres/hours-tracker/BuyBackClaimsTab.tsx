@@ -2485,20 +2485,34 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
   return (
     <div className="border rounded-md overflow-hidden">
       {/* Header */}
-      <div className="bg-muted/50 px-3 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-3 text-sm">
-          {claim.claim_ref != null && (
-            <span
-              className="inline-flex items-center px-2 py-0.5 rounded border border-slate-300 bg-slate-100 text-slate-800 text-[11px] font-bold font-mono tracking-wide"
-              title="Claim ID — use this when communicating about this claim"
-            >
-              Claim #{claim.claim_ref}
-            </span>
-          )}
-          <span className="font-medium">{getPracticeName(claim.practice_key)}</span>
-          <span className="text-muted-foreground">—</span>
-          <span>{format(new Date(claim.claim_month), 'MMMM yyyy')}</span>
-          {statusBadge(claim.status)}
+      <div className="bg-muted/50 px-3 py-2 flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          {/* Row 1 — captioned identification fields */}
+          <div className="flex flex-wrap items-end gap-x-5 gap-y-1">
+            {claim.claim_ref != null && (
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[9px] font-bold tracking-wider uppercase text-slate-400">Claim ID</span>
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded border border-slate-300 bg-slate-100 text-slate-800 text-xs font-bold font-mono self-start"
+                  title="Claim ID — use this when communicating about this claim"
+                >
+                  #{claim.claim_ref}
+                </span>
+              </div>
+            )}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] font-bold tracking-wider uppercase text-slate-400">Claim Period</span>
+              <span className="text-[13px] font-semibold text-slate-900">{format(new Date(claim.claim_month), 'MMMM yyyy')}</span>
+            </div>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="text-[9px] font-bold tracking-wider uppercase text-slate-400">Practice</span>
+              <span className="text-[13px] font-semibold text-slate-900 truncate">{getPracticeName(claim.practice_key)}</span>
+            </div>
+          </div>
+          {/* Row 2 — status badge */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {statusBadge(claim.status)}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           {testActive && canEdit && (
