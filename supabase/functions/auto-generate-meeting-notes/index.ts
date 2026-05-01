@@ -237,6 +237,7 @@ serve(async (req) => {
       transcriptSource,
       skipQc = false,
       premiumPin,
+      forceGenerate = false,
     } = requestBody;
     // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
     // operational setting (system_settings) so admins can flip Flash↔Pro instantly
