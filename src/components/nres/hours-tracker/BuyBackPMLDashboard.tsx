@@ -692,12 +692,47 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
             const hasLocum = staffDetails.some((s: any) => s.staff_category === 'gp_locum');
             const MINS_PER_SESS = 250;
             const fmtLocum = (sessions: number) => { const t = Math.round(sessions * MINS_PER_SESS); const h = Math.floor(t/60); const m = t%60; return { display: m > 0 ? `${h}h ${m}m` : `${h}h`, decimal: (t/60).toFixed(1) }; };
+            const fmtMoney = (n: number) => `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const getMaxInfo = (s: any) => {
-              const cat = s.staff_category || 'buyback'; const av = s.allocation_value ?? 0; const ca = s.calculated_amount ?? 0;
-              if (cat === 'gp_locum') return s.allocation_type === 'daily' ? { max: ca || av*750, formula: `${av} days × £750` } : { max: ca || av*375, formula: `${av} sess × £375` };
-              if (cat === 'meeting') { const hrs = s.total_hours ?? av; const r = s.hourly_rate ?? 0; return { max: ca || hrs*r, formula: `${hrs} hrs × £${r}/hr` }; }
-              if (cat === 'management' && s.allocation_type === 'hours') { const r = s.hourly_rate ?? 0; const wks = (r > 0 && av > 0 && ca > 0) ? (ca / (av * r)).toFixed(1) : '?'; return { max: ca, formula: `${av} hrs/wk × ${wks} wks × £${r}/hr` }; }
-              if (ca > 0) return { max: ca, formula: s.allocation_type === 'wte' ? `${av} WTE × on-costs` : 'Max' };
+              const cat = s.staff_category || 'buyback';
+              const av = s.allocation_value ?? 0;
+              const ca = s.calculated_amount ?? 0;
+              const role = s.staff_role || '';
+              if (cat === 'gp_locum') {
+                if (s.allocation_type === 'daily') {
+                  const max = ca || av * 750;
+                  return { max, formula: `${av} day${av === 1 ? '' : 's'} × £750/day = ${fmtMoney(max)}` };
+                }
+                const max = ca || av * 375;
+                return { max, formula: `${av} session${av === 1 ? '' : 's'} × £375/session = ${fmtMoney(max)}` };
+              }
+              if (cat === 'meeting') {
+                const hrs = s.total_hours ?? av;
+                const r = s.hourly_rate ?? 0;
+                const max = ca || hrs * r;
+                return { max, formula: `${hrs} hr${hrs === 1 ? '' : 's'} × £${r}/hr = ${fmtMoney(max)}` };
+              }
+              if (cat === 'management' && s.allocation_type === 'hours') {
+                const r = s.hourly_rate ?? 0;
+                const wks = (r > 0 && av > 0 && ca > 0) ? (ca / (av * r)) : 0;
+                return { max: ca, formula: `${av} hrs/wk × ${wks ? wks.toFixed(2) : '?'} working wks × £${r}/hr = ${fmtMoney(ca)}` };
+              }
+              // Buy-Back / standard role-based calculations
+              if (ca > 0) {
+                if (s.allocation_type === 'sessions') {
+                  return { max: ca, formula: `${av} session${av === 1 ? '' : 's'}/wk × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(ca)}` };
+                }
+                if (s.allocation_type === 'hours') {
+                  return { max: ca, formula: `${av} hrs/wk ÷ 37.5 × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(ca)}` };
+                }
+                if (s.allocation_type === 'daily') {
+                  return { max: ca, formula: `${av} day${av === 1 ? '' : 's'} × daily rate = ${fmtMoney(ca)}` };
+                }
+                if (s.allocation_type === 'wte') {
+                  return { max: ca, formula: `${av} WTE × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(ca)}` };
+                }
+                return { max: ca, formula: `${role || 'Role'} max for the month = ${fmtMoney(ca)}` };
+              }
               return { max: 0, formula: '—' };
             };
             const headers = hasLocum
@@ -778,11 +813,9 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                         {mi.max > 0 ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                             <span title={mi.formula}>{fmtGBP(mi.max)}</span>
-                            {s.staff_category === 'management' && (
-                              <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right', maxWidth: 220 }}>
-                                {mi.formula}
-                              </span>
-                            )}
+                            <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right', maxWidth: 260, fontStyle: 'italic' }}>
+                              {mi.formula}
+                            </span>
                           </div>
                         ) : '—'}
                       </td>
