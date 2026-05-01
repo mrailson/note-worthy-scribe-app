@@ -563,7 +563,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{practiceName}</span>
             </div>
           </div>
-          {/* Row 2 — status & category badges */}
+          {/* Row 2 — category badges & alerts (status moved to centre) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {(() => {
               const CATEGORY_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -582,13 +582,17 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                 return <span key={cat} style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
               });
             })()}
-            <StatusBadge status={displayStatus} />
             {over && (
               <span className="inline-flex items-center gap-1 text-amber-600 text-[11px] font-medium">
                 <AlertTriangle className="w-3.5 h-3.5" /> Over threshold
               </span>
             )}
           </div>
+        </div>
+        {/* Centre — Status with caption */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', flexShrink: 0, padding: '0 16px' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6 }}>Status</span>
+          <StatusBadge status={displayStatus} />
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>
