@@ -576,9 +576,22 @@ function InlineClaimPanel({
     }
 
     if (allocType === 'hours') {
-      const wteRatio = (allocValue / 37.5);
+      const isSessionPriced = roleConfig?.allocation_default === 'sessions';
+      const HRS_PER_SESSION = 25 / 6; // 4 hrs 10 min
+      const sessions = allocValue / HRS_PER_SESSION;
+      const wteRatio = allocValue / 37.5;
       return {
-        primary: [
+        primary: isSessionPriced ? [
+          { label: `${allocValue} hrs/wk`, accent: true },
+          { label: '÷ 4.17 hrs/session =' },
+          { label: `${sessions.toFixed(2)} sess/wk`, accent: true },
+          { label: '×' },
+          { label: `${fmtGBP(annualRate)}/yr per session`, accent: true },
+          { label: includesOnCosts ? `× ${multiplier.toFixed(4)} on-costs` : '', accent: includesOnCosts },
+          { label: '÷ 12' },
+          { label: '=' },
+          { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
+        ] : [
           { label: `${allocValue} hrs/wk`, accent: true },
           { label: '÷ 37.5 =' },
           { label: `${wteRatio.toFixed(2)} WTE`, accent: true },
@@ -590,11 +603,14 @@ function InlineClaimPanel({
           { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
         ],
         breakdown: includesOnCosts ? [
-          { l: `Base annual salary (${role})`, r: fmtGBP(annualRate) + '/yr' },
+          { l: `Base annual rate (${role}${isSessionPriced ? ', per session/yr' : ''})`, r: fmtGBP(annualRate) + '/yr' },
           { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
           { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
           { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
-          { l: `Monthly max (${wteRatio.toFixed(2)} WTE × total ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
+          { l: isSessionPriced
+              ? `Monthly max (${sessions.toFixed(2)} sess × total ÷ 12)`
+              : `Monthly max (${wteRatio.toFixed(2)} WTE × total ÷ 12)`,
+            r: fmtGBP(calculatedAmount), bold: true, large: true },
         ] : null,
       };
     }
