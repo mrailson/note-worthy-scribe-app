@@ -6108,6 +6108,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       } finally {
         setStopRecordingStep('');
         setIsStoppingRecording(false);
+        setIsFinalisingMeeting(false);
         stopInProgressRef.current = false;
       }
     }
