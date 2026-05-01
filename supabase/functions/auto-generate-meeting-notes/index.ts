@@ -2670,13 +2670,14 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       .update({
         notes_style_3: generatedNotes,
         notes_generation_status: 'completed',
-        primary_transcript_source: actualTranscriptSource,
+        primary_transcript_source: normaliseTranscriptSourceForMeeting(actualTranscriptSource),
         notes_model_used: actualModelUsed,
       })
       .eq('id', meetingId);
 
     if (notesMirrorError) {
-      console.warn('⚠️ Failed to mirror generated notes to meetings.notes_style_3:', notesMirrorError);
+      console.error('❌ Failed to mirror generated notes to meetings.notes_style_3:', notesMirrorError);
+      throw new Error(`Failed to save regenerated notes to meeting record: ${notesMirrorError.message}`);
     }
 
     // Extract and store action items immediately after notes are saved
