@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText, Download } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText, Download } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
@@ -3045,6 +3045,68 @@ export function ClaimsViewSwitcher({
 }
 
 // --- Claim Card (preserved) ---
+/** Read-only collapsible Supporting Evidence section for the Practice view */
+function PracticeEvidenceSection({ claimId, staffLines }: { claimId: string; staffLines: any[] }) {
+  const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl } = useNRESClaimEvidence(claimId);
+  const [expanded, setExpanded] = useState(false);
+  const [openTrigger, setOpenTrigger] = useState<number | undefined>(undefined);
+  const totalFiles = staffLines.reduce((sum: number, _: any, idx: number) => sum + getFilesForStaff(idx).length, 0);
+  const hasAnyFiles = totalFiles > 0 || staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
+  if (!hasAnyFiles) return null;
+
+  const handleViewAll = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (!expanded) setExpanded(true);
+    setOpenTrigger(t => (t === undefined ? 0 : t + 1));
+  };
+
+  return (
+    <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <button
+        type="button"
+        onClick={() => setExpanded(e => !e)}
+        style={{ width: '100%', padding: '8px 14px', background: '#f8fafc', borderBottom: expanded ? '1px solid #e5e7eb' : 'none', fontSize: 12, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', textAlign: 'left' }}
+        aria-expanded={expanded}
+      >
+        {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        <span>Supporting Evidence</span>
+        <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 999, padding: '1px 8px' }}>
+          {totalFiles} uploaded
+        </span>
+        {totalFiles > 0 && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={handleViewAll}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewAll(e); } }}
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#2563eb', cursor: 'pointer' }}
+          >
+            <Eye className="w-3.5 h-3.5" /> View Evidence
+          </span>
+        )}
+      </button>
+      {expanded && staffLines.map((s: any, idx: number) => (
+        <StaffLineEvidence
+          key={idx}
+          staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
+          staffIndex={idx}
+          staffName={s.staff_name || s.name}
+          staffRole={s.staff_role || s.role}
+          uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
+          allFilesForStaff={getFilesForStaff(idx)}
+          canEdit={false}
+          uploading={false}
+          onUpload={async () => null}
+          onDelete={async () => {}}
+          onDownload={getDownloadUrl}
+          hideHeader
+          triggerOpenAt={idx === 0 ? openTrigger : undefined}
+        />
+      ))}
+    </div>
+  );
+}
+
 function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, showPracticeName, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
@@ -3456,27 +3518,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             </div>
           )}
           {!isDraft && !isQueried && staffDets.length > 0 && (
-            <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-              <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151' }}>
-                Supporting Evidence
-              </div>
-              {staffDets.map((s: any, idx: number) => (
-                <StaffLineEvidence
-                  key={idx}
-                  staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
-                  staffIndex={idx}
-                  staffName={s.staff_name}
-                  staffRole={s.staff_role}
-                  uploadedTypesForStaff={getUploadedTypesForStaff(idx)}
-                  allFilesForStaff={getFilesForStaff(idx)}
-                  canEdit={false}
-                  uploading={false}
-                  onUpload={async () => null}
-                  onDelete={async () => {}}
-                  onDownload={getDownloadUrl}
-                />
-              ))}
-            </div>
+            <PracticeEvidenceSection claimId={claim.id} staffLines={staffDets} />
           )}
 
           {isDraft && (
