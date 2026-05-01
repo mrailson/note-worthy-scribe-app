@@ -97,7 +97,7 @@ function hasOverRate(claim: BuyBackClaim): boolean {
 /** Read-only evidence section for PML view */
 function PMLEvidenceSection({ claimId, staffLines }: { claimId: string; staffLines: any[] }) {
   const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl } = useNRESClaimEvidence(claimId);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [openTrigger, setOpenTrigger] = useState<number | undefined>(undefined);
   const totalFiles = staffLines.reduce((sum: number, _: any, idx: number) => sum + getFilesForStaff(idx).length, 0);
   const hasAnyFiles = totalFiles > 0 || staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
