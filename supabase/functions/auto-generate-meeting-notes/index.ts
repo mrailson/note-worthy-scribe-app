@@ -235,12 +235,12 @@ serve(async (req) => {
       detailLevel = 'standard',
       noteType = 'standard',
       transcriptSource,
-      // Default model is now Gemini 3.1 Pro (best extraction quality on test set,
-      // ~£0.04/meeting). Flash, Sonnet, and GPT-5 act as automatic fallbacks.
-      modelOverride = 'gemini-3.1-pro',
       skipQc = false,
       premiumPin,
     } = requestBody;
+    // modelOverride is mutable so the duration-based default below can refine it.
+    // Default to Pro; will be re-evaluated against meeting duration after fetch.
+    let modelOverride: string = requestBody.modelOverride ?? 'gemini-3.1-pro';
     meetingId = parsedMeetingId;
 
     // Server-side PIN gate for premium models. Pro is now the default and is
