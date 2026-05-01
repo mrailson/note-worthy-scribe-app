@@ -7025,6 +7025,44 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_metadata_audit: {
+        Row: {
+          edited_at: string
+          edited_by: string
+          field_name: string
+          id: string
+          meeting_id: string
+          new_value: Json | null
+          old_value: Json | null
+        }
+        Insert: {
+          edited_at?: string
+          edited_by: string
+          field_name: string
+          id?: string
+          meeting_id: string
+          new_value?: Json | null
+          old_value?: Json | null
+        }
+        Update: {
+          edited_at?: string
+          edited_by?: string
+          field_name?: string
+          id?: string
+          meeting_id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_metadata_audit_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_notes_multi: {
         Row: {
           content: string
