@@ -44,6 +44,13 @@ interface MeetingMetadata {
   attendees?: string;
   loggedUserName?: string;
   classification?: string; // e.g., "OFFICIAL", "OFFICIAL - SENSITIVE"
+  /**
+   * The LLM that produced the saved notes (mirrors meetings.notes_model_used).
+   * Rendered into the page footer as a subtle italic provenance stamp so every
+   * download — including re-downloads of older notes — carries an audit trail.
+   * Falls back to "unknown" inside createFooter when undefined/empty.
+   */
+  notesModelUsed?: string | null;
 }
 
 interface GenerateProfessionalMeetingOptions {
@@ -1308,8 +1315,17 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
   return elements;
 };
 
-// Create professional footer
-const createFooter = async (classification?: string, meetingDate?: string, meetingTime?: string) => {
+// Create professional footer.
+// `modelUsed` is the LLM that produced the saved notes (read from
+// meetings.notes_model_used). It is appended in italic light grey so the
+// provenance stamp reads as a subtle annotation; falls back to "unknown"
+// when not yet recorded so older notes still render the segment.
+const createFooter = async (
+  classification?: string,
+  meetingDate?: string,
+  meetingTime?: string,
+  modelUsed?: string | null,
+) => {
   const { Paragraph, TextRun, BorderStyle, AlignmentType, Footer, PageNumber } = await import("docx");
   
   // Use meeting date/time if provided, otherwise don't show date
@@ -1319,6 +1335,8 @@ const createFooter = async (classification?: string, meetingDate?: string, meeti
   } else if (meetingDate) {
     dateTimeText = `Meeting: ${meetingDate}`;
   }
+  
+  const footerModelId = (modelUsed && modelUsed.trim()) || 'unknown';
   
   return new Footer({
     children: [
@@ -1372,6 +1390,14 @@ const createFooter = async (classification?: string, meetingDate?: string, meeti
             children: [PageNumber.TOTAL_PAGES],
             size: FONTS.size.classification,
             color: NHS_COLORS.footerText,
+          }),
+          // Model provenance stamp
+          new TextRun({
+            text: `    |    ${footerModelId}`,
+            size: FONTS.size.classification,
+            color: "9CA3AF",
+            italics: true,
+            font: FONTS.default,
           }),
         ],
         alignment: AlignmentType.CENTER,
@@ -1445,7 +1471,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   }
   
   // Create footer with meeting date/time
-  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
+  const footer = await createFooter(metadata.classification, metadata.date, metadata.time, metadata.notesModelUsed);
   
   // Build document with NHS theme
   const styles = buildNHSStyles();
@@ -1664,7 +1690,13 @@ export const generateProfessionalWordFromContent = async (
   footerOn?: boolean,
   meetingDetailsOn?: boolean,
   attendeesOn?: boolean,
-  priorityColumnOn?: boolean
+  priorityColumnOn?: boolean,
+  /**
+   * The model that produced the saved notes (mirrors meetings.notes_model_used).
+   * Optional — when omitted the footer renders "unknown" so older notes still
+   * carry a provenance segment.
+   */
+  notesModelUsed?: string | null,
 ): Promise<void> => {
   // Filter content based on visibility settings before processing
   const filteredContent = filterContentByVisibility(content, visibleSections);
@@ -1682,6 +1714,7 @@ export const generateProfessionalWordFromContent = async (
         location: parsedDetails?.location,
         venue: parsedDetails?.venue,
         attendees: parsedDetails?.attendees,
+        notesModelUsed,
       },
       content: filteredContent,
       actionItems: actionItemsToUse,
@@ -1695,7 +1728,7 @@ export const generateProfessionalWordFromContent = async (
   } else {
     // Fallback to auto-parsing
     await generateProfessionalMeetingDocx({
-      metadata: { title },
+      metadata: { title, notesModelUsed },
       content: filteredContent,
       logoUrl,
     });
@@ -1707,7 +1740,9 @@ export const generateProfessionalWordBlob = async (
   content: string, 
   title: string,
   parsedDetails?: ParsedMeetingDetailsInput,
-  parsedActionItems?: ParsedActionItemInput[]
+  parsedActionItems?: ParsedActionItemInput[],
+  /** Mirrors meetings.notes_model_used so emailed Word attachments also carry the provenance stamp. */
+  notesModelUsed?: string | null,
 ): Promise<Blob> => {
   const __startTime = performance.now();
   console.log('📊 [docx] Starting generation', {
@@ -1729,6 +1764,7 @@ export const generateProfessionalWordBlob = async (
     location: parsedDetails?.location,
     venue: parsedDetails?.venue,
     attendees: parsedDetails?.attendees,
+    notesModelUsed,
   };
   
   // (1) Clean content
@@ -1799,7 +1835,7 @@ export const generateProfessionalWordBlob = async (
   }
   
   // Create footer with meeting date/time
-  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
+  const footer = await createFooter(metadata.classification, metadata.date, metadata.time, metadata.notesModelUsed);
   
   // (4) Build document + serialise to blob
   let doc: any;
@@ -1931,7 +1967,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   
   // Create footer with meeting date/time (only if footerOn is not explicitly false)
   const includeFooter = options.footerOn !== false;
-  const footer = includeFooter ? await createFooter(metadata.classification, metadata.date, metadata.time) : undefined;
+  const footer = includeFooter ? await createFooter(metadata.classification, metadata.date, metadata.time, metadata.notesModelUsed) : undefined;
   
   // Build and save document
   const doc = new Document({
