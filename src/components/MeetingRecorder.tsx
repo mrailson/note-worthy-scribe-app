@@ -6044,6 +6044,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             setIsStoppingRecording(false);
             stopInProgressRef.current = false;
           }, 300);
+          // Keep finalising overlay slightly longer so the Saved modal mounts above it.
+          setTimeout(() => setIsFinalisingMeeting(false), 500);
           
           console.log('✅ Recording state reset & post-meeting modal shown');
         } catch (error) {
