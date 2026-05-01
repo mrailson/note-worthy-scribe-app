@@ -196,6 +196,7 @@ export function EvidenceSlot({
           <div className="mt-1 space-y-1">
             {filesToShow.map(file => (
               <div key={file.id} className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
+                <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />
                 <span className="truncate">{file.file_name}</span>
                 {file.file_size && <span className="shrink-0">({(file.file_size / 1024).toFixed(0)} KB)</span>}
                 <Button
