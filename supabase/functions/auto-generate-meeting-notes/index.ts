@@ -300,10 +300,15 @@ serve(async (req) => {
     // Long meetings (≥60 min) → gemini-3.1-pro for stronger synthesis across many items.
     // The fallback chain (flash → 2.5-pro → gpt-5) remains intact for both branches.
     // Explicit user/UI overrides via Settings always win.
-    const callerSpecifiedModel = Object.prototype.hasOwnProperty.call(requestBody, 'modelOverride')
-      && requestBody.modelOverride !== undefined
-      && requestBody.modelOverride !== null
-      && requestBody.modelOverride !== '';
+    // Treat the historical default ('gemini-3.1-pro') sent by the auto-generation
+    // path as "not a deliberate user choice" so duration-based routing can apply.
+    // Any other explicit value (flash, sonnet, gpt-5, etc.) is honoured as a real override.
+    const rawClientModel = requestBody.modelOverride;
+    const callerSpecifiedModel =
+      rawClientModel !== undefined &&
+      rawClientModel !== null &&
+      rawClientModel !== '' &&
+      rawClientModel !== 'gemini-3.1-pro';
     if (!callerSpecifiedModel) {
       const mins = Number(meeting?.duration_minutes) || 0;
       const previousDefault = modelOverride;
