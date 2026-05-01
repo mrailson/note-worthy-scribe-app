@@ -6,7 +6,7 @@ import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
 import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2, X } from 'lucide-react';
-import { InvoicePreviewDialog, DRAFT_INVOICE_NUMBER } from './InvoicePreviewDialog';
+import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
