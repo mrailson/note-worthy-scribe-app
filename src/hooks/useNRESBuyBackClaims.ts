@@ -110,6 +110,12 @@ const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
 /** Standard NHS GP session length: 4 hours 10 minutes = 25/6 ≈ 4.1667 hrs */
 export const HOURS_PER_SESSION = 25 / 6;
 
+const isSessionPricedRole = (roleLabel?: string | null, roleConfig?: { allocation_default?: string } | null, annualRate?: number): boolean => {
+  if (roleConfig?.allocation_default === 'sessions') return true;
+  const role = (roleLabel || '').toLowerCase();
+  return role.includes('gp') && !!annualRate && annualRate > 0 && annualRate <= 20000;
+};
+
 function resolveClaimTypeFromStaff(staffMember: Pick<BuyBackStaffMember, 'staff_category'>, fallback: ClaimType = 'buyback'): ClaimType {
   if (staffMember.staff_category === 'new_sda' || staffMember.staff_category === 'gp_locum') return 'additional';
   if (staffMember.staff_category === 'buyback') return 'buyback';
@@ -189,7 +195,7 @@ export function calculateStaffMonthlyAmount(
       const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
       // Roles whose default allocation is 'sessions' price annual_rate per ONE session/week.
       // Hours entered for these roles must be converted to sessions, not WTE.
-      const isSessionPriced = roleConfig?.allocation_default === 'sessions';
+      const isSessionPriced = isSessionPricedRole(staff.staff_role, roleConfig, roleRate);
 
       if (staff.allocation_type === 'daily') {
         const dailyRate = roleConfig?.daily_rate ?? staff.allocation_value;
@@ -399,7 +405,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         if (cat !== 'gp_locum' && cat !== 'meeting' && cat !== 'management' && rateParams?.getRoleAnnualRate && s.staff_role) {
           const roleRate = rateParams.getRoleAnnualRate(s.staff_role);
           const roleConfig = rateParams.getRoleConfig?.(s.staff_role);
-          isSessionPriced = roleConfig?.allocation_default === 'sessions';
+          isSessionPriced = isSessionPricedRole(s.staff_role, roleConfig, roleRate);
           if (roleRate !== undefined) {
             const includesOnCosts = roleConfig?.includes_on_costs !== false;
             const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
