@@ -1242,7 +1242,36 @@ export const MeetingHistoryList = ({
         };
       });
 
-      await generateProfessionalWordFromContent(notes, meeting.title, parsedDetails, parsedActionItems);
+      // Fetch the model that produced these notes so the Word footer carries
+      // a provenance stamp on every download (including re-downloads of older
+      // notes). Best-effort — a missing/null value falls back to "unknown"
+      // inside the docx generator.
+      let notesModelUsed: string | null = null;
+      try {
+        const { data: modelRow } = await supabase
+          .from('meetings')
+          .select('notes_model_used')
+          .eq('id', meeting.id)
+          .maybeSingle();
+        notesModelUsed = (modelRow as any)?.notes_model_used ?? null;
+      } catch (modelErr) {
+        console.warn('⚠️ Could not load notes_model_used for footer:', modelErr);
+      }
+
+      await generateProfessionalWordFromContent(
+        notes,
+        meeting.title,
+        parsedDetails,
+        parsedActionItems,
+        undefined, // visibleSections
+        undefined, // logoUrl
+        undefined, // logoScale
+        undefined, // footerOn
+        undefined, // meetingDetailsOn
+        undefined, // attendeesOn
+        undefined, // priorityColumnOn
+        notesModelUsed,
+      );
       toast.success('Word document downloaded successfully');
     } catch (error: unknown) {
       console.error('Error downloading Word document:', error);
