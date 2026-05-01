@@ -811,6 +811,9 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                           return totalHrs !== null ? totalHrs.toFixed(1) : '—';
                         })()}
                       </td>
+                      <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums', fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {getUnitRate(s)}
+                      </td>
                       <td style={{
                         padding: '10px', textAlign: 'right', fontWeight: 600,
                         fontVariantNumeric: 'tabular-nums', color: lineOver ? '#dc2626' : '#111827'
