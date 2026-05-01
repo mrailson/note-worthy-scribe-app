@@ -1179,16 +1179,8 @@ export const MeetingHistoryList = ({
       // Get meeting date and time
       const startTime = (notesFields as any)?.start_time || meeting.start_time || meeting.created_at;
       const meetingDate = startTime ? new Date(startTime) : new Date();
-      const formattedDate = meetingDate.toLocaleDateString('en-GB', { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      });
-      const formattedTime = meetingDate.toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }) + ' GMT';
+      const formattedDate = formatUkDateLong(meetingDate);
+      const formattedTime = `${formatUkTime(meetingDate)} ${getUkTimezoneLabel(meetingDate)}`;
       
       // Get venue (physical location)
       const venue = (notesFields as any)?.meeting_location || (meeting as any).meeting_location || undefined;
