@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FileText, Trash2, Download, Eye, CheckCircle2, AlertCircle, Loader2, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -176,12 +176,12 @@ export function EvidenceSlot({
 
   return (
     <div className="px-3 py-2 flex items-center gap-3 text-xs">
-      {hasFile ? (
-        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-      ) : config.is_mandatory ? (
-        <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-      ) : (
-        <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+      {!hasFile && (
+        config.is_mandatory ? (
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+        ) : (
+          <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+        )
       )}
 
       <div className="flex-1 min-w-0">
@@ -256,6 +256,7 @@ export function StaffLineEvidence({
   onDelete,
   onDownload,
   hideHeader = false,
+  triggerOpenAt,
 }: {
   staffCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum';
   staffIndex: number;
@@ -269,6 +270,8 @@ export function StaffLineEvidence({
   onDelete: (id: string) => Promise<void>;
   onDownload: (filePath: string) => Promise<string | null>;
   hideHeader?: boolean;
+  /** When this number changes, opens the viewer modal at file index 0 (or value if >=0) */
+  triggerOpenAt?: number;
 }) {
   const { getConfigForCategory } = useNRESEvidenceConfig();
   const allTypes = getConfigForCategory(staffCategory);
@@ -328,6 +331,15 @@ export function StaffLineEvidence({
     setViewerIndex(idx >= 0 ? idx : 0);
     setViewerOpen(true);
   };
+
+  // External trigger (from collapsible card header "View Evidence" link)
+  useEffect(() => {
+    if (triggerOpenAt === undefined) return;
+    if (orderedFiles.length === 0) return;
+    setViewerIndex(triggerOpenAt >= 0 && triggerOpenAt < orderedFiles.length ? triggerOpenAt : 0);
+    setViewerOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerOpenAt]);
 
   return (
     <div className="bg-slate-50/80 dark:bg-slate-900/30">
