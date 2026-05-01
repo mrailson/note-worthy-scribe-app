@@ -1747,7 +1747,17 @@ export const MeetingHistoryList = ({
             }
 
             if (data?.status === 'insufficient_content') {
-              throw new Error(data?.explanation || data?.reason || 'The selected model declined to generate meeting notes for this transcript');
+              const refusingModel: Record<string, string> = {
+                'gpt-5.2': 'GPT-5.2',
+                'gpt-5': 'GPT-5',
+                'claude-sonnet-4-6': 'Claude Sonnet 4.6',
+                'gemini-3-flash': 'Gemini 3 Flash',
+                'gemini-3.1-pro': 'Gemini 3.1 Pro',
+                'gemini-2.5-flash': 'Gemini 2.5 Flash',
+              };
+              const modelLabel = refusingModel[effectiveModel || ''] || effectiveModel || 'The selected model';
+              const why = data?.explanation || data?.reason || 'transcript content was insufficient';
+              throw new Error(`${modelLabel} ran but declined to generate notes — ${why}. Your previous notes have been kept.`);
             }
 
             if (effectiveModel && data?.actualModelUsed && data.actualModelUsed !== effectiveModel) {
