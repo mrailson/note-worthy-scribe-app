@@ -1885,13 +1885,67 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
       timeZoneName: "short",
     }).format(startTime);
 
+    // Soft-hint extractor: scan title, agenda, and uploaded document filenames for a
+    // human-written date (e.g. "1 May 2026", "01-05-2026", "2026-05-01"). If we find one
+    // that differs from start_time by >=1 day, surface it as a hint so the model can flag
+    // the divergence rather than silently rendering the (possibly wrong) DB start_time.
+    const extractFirstDate = (text: string | null | undefined): { iso: string; label: string } | null => {
+      if (!text) return null;
+      const monthLookup: Record<string, number> = {
+        jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+        may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7,
+        sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
+      };
+      const monthIdx = (m: string): number | undefined => monthLookup[m.toLowerCase()];
+      // 1) "1 May 2026" / "01 May 2026" / "1st May 2026"
+      const m1 = text.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{4})\b/i);
+      if (m1) {
+        const d = parseInt(m1[1], 10);
+        const mo = monthIdx(m1[2]);
+        const y = parseInt(m1[3], 10);
+        if (mo !== undefined) return { iso: `${y}-${String(mo + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, label: `${d} ${m1[2]} ${y}` };
+      }
+      // 2) ISO "2026-05-01"
+      const m2 = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+      if (m2) return { iso: `${m2[1]}-${m2[2]}-${m2[3]}`, label: `${m2[3]}/${m2[2]}/${m2[1]}` };
+      // 3) UK "01/05/2026" or "01-05-2026" (assume DD/MM/YYYY for UK)
+      const m3 = text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+      if (m3) {
+        const d = parseInt(m3[1], 10), mo = parseInt(m3[2], 10), y = parseInt(m3[3], 10);
+        if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+          return { iso: `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`, label: `${d}/${mo}/${y}` };
+        }
+      }
+      return null;
+    };
+
+    const candidateSources: Array<{ source: string; text: string | null | undefined }> = [
+      { source: 'title',   text: generatedTitle },
+      { source: 'agenda',  text: meeting.agenda },
+      ...(uploadedDocuments?.map(d => ({ source: 'filename', text: d.file_name })) ?? []),
+    ];
+    let dateHint: { iso: string; label: string; source: string } | null = null;
+    for (const c of candidateSources) {
+      const found = extractFirstDate(c.text);
+      if (found) { dateHint = { ...found, source: c.source }; break; }
+    }
+    // Only surface the hint if it materially differs from start_time (>=1 day apart).
+    const startIsoDate = startTime.toISOString().slice(0, 10);
+    const hintDiffersFromStart = dateHint && dateHint.iso !== startIsoDate;
+
     const recordingStartLine = hasExplicitStartTime
       ? `Recording Start Time: ${formattedStartTime}`
       : `Recording Start Time: Not specified in source — leave the Time field as "Not specified" in the output. Do NOT use the system import timestamp.`;
 
-    const meetingDateLine = hasExplicitStartTime
-      ? `Meeting Date: ${formattedDate}  (year = ${meetingYear} — resolve all bare/relative dates against this)`
-      : `Meeting Date: ${formattedDate}  (year = ${meetingYear} — NOTE: this is the system import date, not a confirmed meeting date. If the transcript, filename, or agenda mentions a different date, prefer that. Use the year above only to resolve bare/relative dates.)`;
+    let meetingDateLine: string;
+    if (!hasExplicitStartTime) {
+      meetingDateLine = `Meeting Date: ${formattedDate}  (year = ${meetingYear} — NOTE: this is the system import date, not a confirmed meeting date. If the transcript, filename, or agenda mentions a different date, prefer that. Use the year above only to resolve bare/relative dates.)`;
+    } else if (hintDiffersFromStart && dateHint) {
+      meetingDateLine = `Meeting Date: ${formattedDate}  (year = ${meetingYear} — system-recorded start date. NOTE: the meeting ${dateHint.source} suggests "${dateHint.label}" which may be the actual meeting date. If the transcript explicitly confirms one of these, use that; otherwise prefer the ${dateHint.source} date and append "(verify)" in the Date field.)`;
+    } else {
+      meetingDateLine = `Meeting Date: ${formattedDate}  (year = ${meetingYear} — resolve all bare/relative dates against this)`;
+    }
+
 
     const userPrompt = `Meeting Title: ${generatedTitle}
 ${meetingDateLine}
