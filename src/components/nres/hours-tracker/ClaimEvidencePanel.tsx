@@ -150,6 +150,7 @@ export function EvidenceSlot({
   onUploadFiles,
   onDelete,
   onDownload,
+  onView,
   allowMultiple = false,
 }: {
   config: EvidenceConfigRow;
@@ -161,6 +162,7 @@ export function EvidenceSlot({
   onUploadFiles?: (files: File[]) => void;
   onDelete: (id: string) => void;
   onDownload: (path: string) => Promise<string | null>;
+  onView?: (file: ClaimEvidenceFile) => void;
   allowMultiple?: boolean;
 }) {
   const filesToShow = allowMultiple ? (uploadedFiles || []) : (uploadedFile ? [uploadedFile] : []);
@@ -196,8 +198,22 @@ export function EvidenceSlot({
               <div key={file.id} className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
                 <span className="truncate">{file.file_name}</span>
                 {file.file_size && <span className="shrink-0">({(file.file_size / 1024).toFixed(0)} KB)</span>}
-                <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={() => handleDownload(file.file_path)}>
-                  <Download className="w-3 h-3 mr-1" /> View
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1 text-[10px]"
+                  onClick={() => onView ? onView(file as ClaimEvidenceFile) : handleDownload(file.file_path)}
+                >
+                  <Eye className="w-3 h-3 mr-1" /> View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1 text-[10px]"
+                  onClick={() => handleDownload(file.file_path)}
+                  title="Download"
+                >
+                  <Download className="w-3 h-3" />
                 </Button>
                 {canEdit && (
                   <Button size="sm" variant="ghost" className="h-5 px-1 text-destructive" onClick={() => onDelete(file.id)}>
