@@ -15,6 +15,14 @@ import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidence
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { getSDAClaimGLCode } from '@/utils/glCodes';
 
+const HOURS_PER_SESSION = 25 / 6;
+
+const isSessionPricedRole = (roleLabel?: string | null, roleConfig?: { allocation_default?: string } | null, annualRate?: number): boolean => {
+  if (roleConfig?.allocation_default === 'sessions') return true;
+  const role = (roleLabel || '').toLowerCase();
+  return role.includes('gp') && !!annualRate && annualRate > 0 && annualRate <= 20000;
+};
+
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
   claims: BuyBackClaim[];
@@ -576,14 +584,13 @@ function InlineClaimPanel({
     }
 
     if (allocType === 'hours') {
-      const isSessionPriced = roleConfig?.allocation_default === 'sessions';
-      const HRS_PER_SESSION = 25 / 6; // 4 hrs 10 min
-      const sessions = allocValue / HRS_PER_SESSION;
+      const isSessionPriced = isSessionPricedRole(role, roleConfig, annualRate);
+      const sessions = allocValue / HOURS_PER_SESSION;
       const wteRatio = allocValue / 37.5;
       return {
         primary: isSessionPriced ? [
           { label: `${allocValue} hrs/wk`, accent: true },
-          { label: '÷ 4.17 hrs/session =' },
+          { label: '÷ 4 hrs 10 mins/session =' },
           { label: `${sessions.toFixed(2)} sess/wk`, accent: true },
           { label: '×' },
           { label: `${fmtGBP(annualRate)}/yr per session`, accent: true },
@@ -776,6 +783,8 @@ function InlineClaimPanel({
                     <span style={{ color: '#6b7280' }}>{getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}</span>
                     {(() => {
                       const annualRate = rateParams?.getRoleAnnualRate?.(staffMember.staff_role) ?? 0;
+                      const roleConfig = rateParams?.getRoleConfig?.(staffMember.staff_role);
+                      const isSessionPriced = isSessionPricedRole(staffMember.staff_role, roleConfig, annualRate);
                       if (!annualRate || isLocum || isMeeting) return null;
                       return (
                         <>
@@ -783,7 +792,7 @@ function InlineClaimPanel({
                           <span style={{ color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                             {fmtGBP(annualRate)}/yr
                           </span>
-                          <span style={{ color: '#9ca3af', fontSize: 11 }}>(WTE rate)</span>
+                          <span style={{ color: '#9ca3af', fontSize: 11 }}>{isSessionPriced ? '(per session/year)' : '(WTE rate)'}</span>
                         </>
                       );
                     })()}
@@ -3371,9 +3380,9 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
               if (calcAmt > 0) {
                 if (s.allocation_type === 'sessions') return { max: calcAmt, formula: `${allocVal} session${allocVal === 1 ? '' : 's'}/wk × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` };
                 if (s.allocation_type === 'hours') {
-                  const isSessionPriced = !!s.is_session_priced;
+                  const isSessionPriced = !!s.is_session_priced || isSessionPricedRole(role, undefined, s.hourly_rate_with_on_costs ? 10500 : undefined);
                   return isSessionPriced
-                    ? { max: calcAmt, formula: `${allocVal} hrs/wk ÷ 4.17 hrs/sess × ${role} per-session annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` }
+                    ? { max: calcAmt, formula: `${allocVal} hrs/wk ÷ 4 hrs 10 mins/session × ${role} per-session annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` }
                     : { max: calcAmt, formula: `${allocVal} hrs/wk ÷ 37.5 × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` };
                 }
                 if (s.allocation_type === 'daily') return { max: calcAmt, formula: `${allocVal} day${allocVal === 1 ? '' : 's'} × daily rate = ${fmtMoney(calcAmt)}` };

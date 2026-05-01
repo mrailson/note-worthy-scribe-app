@@ -56,6 +56,13 @@ function fmtGBP(n: number): string {
 /** GP Locum constants */
 const GP_LOCUM_MAX_DAILY_RATE = 750;
 const GP_LOCUM_SESSION_RATE = 375;
+const HOURS_PER_SESSION = 25 / 6;
+
+const isSessionPricedRole = (roleLabel?: string | null, roleConfig?: { allocation_default?: string } | null, annualRate?: number): boolean => {
+  if (roleConfig?.allocation_default === 'sessions') return true;
+  const role = (roleLabel || '').toLowerCase();
+  return role.includes('gp') && !!annualRate && annualRate > 0 && annualRate <= 20000;
+};
 
 /** Build a human-readable calculation breakdown for the live preview */
 function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocValue: number, rateParams?: RateParams, role?: string, category?: string, hourlyRate?: number): string {
@@ -99,6 +106,10 @@ function calcBreakdown(allocType: 'sessions' | 'wte' | 'hours' | 'daily', allocV
     return `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
   }
   if (allocType === 'hours') {
+    if (isSessionPricedRole(role, roleConfig, rateParams?.getRoleAnnualRate?.(role ?? ''))) {
+      const sessions = allocValue / HOURS_PER_SESSION;
+      return `${allocValue} hrs/wk ÷ 4 hrs 10 mins = ${sessions.toFixed(2)} sessions/wk × ${baseRate}/yr per session ÷ 12 months — ${onCostsLabel}`;
+    }
     const wteRatio = (allocValue / 37.5).toFixed(2);
     return `${allocValue} hrs/wk ÷ 37.5 = ${wteRatio} WTE × ${baseRate}/yr ÷ 12 months — ${onCostsLabel}`;
   }
@@ -1968,13 +1979,21 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
   let baseSalary: number;
   let baseLabel: string;
 
+  const isSessionPriced = isSessionPricedRole(staff.staff_role, roleConfig, baseRate);
+
   if (allocType === 'sessions') {
     baseSalary = allocValue * baseRate;
     baseLabel = `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${rateLabel}/yr`;
   } else if (allocType === 'hours') {
-    const wteRatio = allocValue / 37.5;
-    baseSalary = wteRatio * baseRate;
-    baseLabel = `${allocValue} hrs/wk ÷ 37.5 = ${parseFloat(wteRatio.toFixed(4))} WTE × ${rateLabel}/yr`;
+    if (isSessionPriced) {
+      const sessions = allocValue / HOURS_PER_SESSION;
+      baseSalary = sessions * baseRate;
+      baseLabel = `${allocValue} hrs/wk ÷ 4 hrs 10 mins = ${parseFloat(sessions.toFixed(4))} sessions/wk × ${rateLabel}/yr per session`;
+    } else {
+      const wteRatio = allocValue / 37.5;
+      baseSalary = wteRatio * baseRate;
+      baseLabel = `${allocValue} hrs/wk ÷ 37.5 = ${parseFloat(wteRatio.toFixed(4))} WTE × ${rateLabel}/yr`;
+    }
   } else {
     baseSalary = allocValue * baseRate;
     baseLabel = `${allocValue} WTE × ${rateLabel}/yr`;
