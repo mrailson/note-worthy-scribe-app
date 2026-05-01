@@ -1,0 +1,2 @@
+ALTER TABLE public.meetings ADD COLUMN IF NOT EXISTS notes_model_used text;
+COMMENT ON COLUMN public.meetings.notes_model_used IS 'Identifier of the LLM that actually produced the saved notes (post-fallback). Stamped into Word doc footers for provenance.';
