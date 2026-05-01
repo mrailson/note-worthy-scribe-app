@@ -80,9 +80,16 @@ Deno.serve(async (req) => {
     try {
       const parsed = JSON.parse(text);
       const choice = parsed?.choices?.[0];
-      finish_reason = choice?.finish_reason ?? null;
-      native_finish_reason = choice?.native_finish_reason ?? null;
-      total_tokens = parsed?.usage?.total_tokens ?? null;
+      // OpenAI-compatible shape: choices[0].finish_reason, choices[0].native_finish_reason
+      // Some providers nest under message — check both for robustness.
+      finish_reason = choice?.finish_reason ?? choice?.message?.finish_reason ?? null;
+      native_finish_reason = choice?.native_finish_reason ?? choice?.message?.native_finish_reason ?? null;
+      const usage = parsed?.usage;
+      if (typeof usage?.total_tokens === 'number') {
+        total_tokens = usage.total_tokens;
+      } else if (typeof usage?.completion_tokens === 'number' || typeof usage?.prompt_tokens === 'number') {
+        total_tokens = (usage?.prompt_tokens ?? 0) + (usage?.completion_tokens ?? 0);
+      }
     } catch (_) { /* ignore parse errors */ }
 
     return new Response(
