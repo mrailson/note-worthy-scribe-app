@@ -666,22 +666,64 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
         toast.warning('No dated time entries found in the supporting evidence');
         return;
       }
-      // De-duplicate identical rows (same date + start + stop + details)
-      const seen = new Set<string>();
-      const unique = aggregated.filter(r => {
-        const key = `${r.date}|${r.start}|${r.stop}|${r.details}`.toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      // Sort by date ascending (DD/MM/YYYY)
-      unique.sort((a, b) => {
+
+      // ── Tidy the extracted rows ────────────────────────────────────────────
+      // 1. Drop rows with no date at all
+      const dated = aggregated.filter(r => /^\d{2}\/\d{2}\/\d{4}$/.test(r.date));
+
+      // 2. Group by date and merge: prefer the row that has start+stop times,
+      //    fold in any description text from name-only rows for the same date.
+      const byDate = new Map<string, InvoiceTableRow>();
+      for (const r of dated) {
+        const existing = byDate.get(r.date);
+        const hasTimes = !!(r.start && r.stop && r.start !== '—' && r.stop !== '—');
+        if (!existing) {
+          byDate.set(r.date, { ...r });
+          continue;
+        }
+        const existingHasTimes = !!(existing.start && existing.stop && existing.start !== '—' && existing.stop !== '—');
+        // Prefer the row with times; merge details intelligently
+        const base = existingHasTimes || !hasTimes ? existing : { ...r };
+        const other = base === existing ? r : existing;
+        // Combine details (skip duplicates / empties / placeholders)
+        const cleanDetail = (s: string) => (s || '').replace(/^[—\-\s]+$/, '').trim();
+        const a = cleanDetail(base.details);
+        const b = cleanDetail(other.details);
+        const merged = a && b && a.toLowerCase() !== b.toLowerCase()
+          ? `${a} — ${b}`
+          : (a || b);
+        byDate.set(r.date, {
+          ...base,
+          start: base.start || other.start,
+          stop: base.stop || other.stop,
+          details: (merged || 'Sessional day').slice(0, MAX_LINE_CHARS - 40),
+        });
+      }
+
+      // 3. Drop rows that still have no times (likely not actual sessions)
+      const tidy = Array.from(byDate.values()).filter(r =>
+        r.start && r.stop && r.start !== '—' && r.stop !== '—'
+      );
+
+      if (!tidy.length) {
+        toast.warning('No dated time entries with start/end times found');
+        return;
+      }
+
+      // 4. Sort by date ascending (DD/MM/YYYY)
+      tidy.sort((a, b) => {
         const pa = a.date.split('/').reverse().join('');
         const pb = b.date.split('/').reverse().join('');
         return pa.localeCompare(pb);
       });
-      syncRows([...invoiceRows, ...unique]);
-      toast.success(`Added ${unique.length} line${unique.length === 1 ? '' : 's'} from ${readable.length - failed} file${readable.length - failed === 1 ? '' : 's'}${failed ? ` (${failed} failed)` : ''}`);
+
+      // 5. Replace existing auto-extracted rows with the new clean set
+      //    (keep any user-typed rows that have details but no matching date)
+      const userRows = invoiceRows.filter(r =>
+        r.details.trim() && !tidy.some(t => t.date === r.date)
+      );
+      syncRows([...userRows, ...tidy]);
+      toast.success(`Added ${tidy.length} session${tidy.length === 1 ? '' : 's'} from ${readable.length - failed} file${readable.length - failed === 1 ? '' : 's'}${failed ? ` (${failed} failed)` : ''}`);
     } catch (e: any) {
       console.error('Bulk evidence import failed:', e);
       toast.error(e?.message || 'Import failed');
