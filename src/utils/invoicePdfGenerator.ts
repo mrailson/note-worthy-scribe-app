@@ -293,7 +293,9 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(GREY_100);
   const explainer =
-    'Invoice total derived line-by-line as Allocation × Unit Rate (WTE lines include applied on-costs):  ' +
+    'Invoice total derived line-by-line as Allocation × Unit Rate. ' +
+    'Hourly rates shown for buy-back / salaried lines are the effective hourly cost inclusive of employer on-costs ' +
+    '(NI + pension), based on a 37.5-hour week × 52 weeks (1,950 hrs/year). ' +
     (formulaParts.length
       ? formulaParts.join('  +  ') + `  =  ${fmt(grandTotalForExplainer)}`
       : `Total = ${fmt(grandTotalForExplainer)}`);
