@@ -187,7 +187,10 @@ export function calculateStaffMonthlyAmount(
     if (roleRate !== undefined) {
       const includesOnCosts = roleConfig?.includes_on_costs !== false;
       const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
-      
+      // Roles whose default allocation is 'sessions' price annual_rate per ONE session/week.
+      // Hours entered for these roles must be converted to sessions, not WTE.
+      const isSessionPriced = roleConfig?.allocation_default === 'sessions';
+
       if (staff.allocation_type === 'daily') {
         const dailyRate = roleConfig?.daily_rate ?? staff.allocation_value;
         const workingDays = rateParams.workingDaysInMonth ?? 21.67;
@@ -197,7 +200,12 @@ export function calculateStaffMonthlyAmount(
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
       } else if (staff.allocation_type === 'hours') {
         const annualWithOnCosts = roleRate * multiplier;
-        fullMonthly = ((staff.allocation_value / 37.5) * annualWithOnCosts) / 12;
+        if (isSessionPriced) {
+          // hours/wk ÷ 4.1667 = sessions/wk; rate is per session/yr
+          fullMonthly = ((staff.allocation_value / HOURS_PER_SESSION) * annualWithOnCosts) / 12;
+        } else {
+          fullMonthly = ((staff.allocation_value / 37.5) * annualWithOnCosts) / 12;
+        }
       } else {
         const annualWithOnCosts = roleRate * multiplier;
         fullMonthly = (staff.allocation_value * annualWithOnCosts) / 12;
