@@ -482,7 +482,7 @@ const parseContentToDocxElements = (content: string): any[] => {
   return elements;
 };
 
-const createFooter = (classification?: string, meetingDate?: string, meetingTime?: string): any => {
+const createFooter = (classification?: string, meetingDate?: string, meetingTime?: string, modelUsed?: string): any => {
   let dateTimeText = '';
   if (meetingDate && meetingTime) dateTimeText = `Meeting: ${meetingDate} at ${meetingTime}`;
   else if (meetingDate) dateTimeText = `Meeting: ${meetingDate}`;
@@ -498,6 +498,11 @@ const createFooter = (classification?: string, meetingDate?: string, meetingTime
           new TextRun({ children: [PageNumber.CURRENT], size: FONTS.size.classification, color: NHS_COLORS.footerText }),
           new TextRun({ text: " of ", size: FONTS.size.classification, color: NHS_COLORS.textLightGrey }),
           new TextRun({ children: [PageNumber.TOTAL_PAGES], size: FONTS.size.classification, color: NHS_COLORS.footerText }),
+          // Model provenance stamp — italic light grey, smaller than surrounding footer text
+          ...(modelUsed ? [
+            new TextRun({ text: "    |    ", size: FONTS.size.classification, color: NHS_COLORS.textLightGrey }),
+            new TextRun({ text: modelUsed, size: 14, color: "9CA3AF", font: FONTS.default, italics: true }),
+          ] : []),
         ],
         alignment: AlignmentType.CENTER,
       }),
