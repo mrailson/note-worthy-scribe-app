@@ -2015,7 +2015,6 @@ ${cleanedTranscript}`;
     //     instead of silently producing notes with a different footer/model.
     const AUTO_PER_ATTEMPT_TIMEOUT_MS = 30_000;
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 90_000;
-    const OVERRIDE_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
     const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
       ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
       : AUTO_PER_ATTEMPT_TIMEOUT_MS;
