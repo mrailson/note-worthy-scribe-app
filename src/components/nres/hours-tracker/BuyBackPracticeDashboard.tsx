@@ -3116,17 +3116,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 6, minWidth: 0 }}>
           {/* Row 1 — captioned identification fields */}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' as const }}>
-            {claim.claim_ref != null && (
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Claim ID</span>
-                <span
-                  title="Claim ID — use this when communicating about this claim"
-                  style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3, alignSelf: 'flex-start', whiteSpace: 'nowrap' as const }}
-                >
-                  #{claim.claim_ref}
-                </span>
-              </div>
-            )}
+            {/* Claim ID moved into expanded view */}
             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
               <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Claim Period</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{monthLabel}</span>
