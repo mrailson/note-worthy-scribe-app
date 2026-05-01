@@ -2010,9 +2010,9 @@ ${cleanedTranscript}`;
     //   - Multi-step fallback chain across providers
     //
     // OVERRIDE PATH (caller specified modelOverride in the request body):
-    //   - 90s per attempt (Sonnet / Opus on long governance transcripts need it)
-    //   - SINGLE fallback to Claude Haiku 4.5 if the requested model fails
-    //   - Both attempts logged to meeting_generation_log so the audit trail is complete
+    //   - 90s per attempt (Sonnet / GPT on long governance transcripts need it)
+    //   - no automatic fallback: a failed requested model must surface to the user
+    //     instead of silently producing notes with a different footer/model.
     const AUTO_PER_ATTEMPT_TIMEOUT_MS = 30_000;
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 90_000;
     const OVERRIDE_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
@@ -2020,11 +2020,9 @@ ${cleanedTranscript}`;
       ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
       : AUTO_PER_ATTEMPT_TIMEOUT_MS;
     const buildFallbackChain = (primary: string): string[] => {
-      // Caller-specified models get a single Haiku fallback (no provider chain).
+      // Caller-specified models are audit comparisons: do not substitute another model.
       if (callerSpecifiedModel) {
-        return primary === OVERRIDE_FALLBACK_MODEL
-          ? [primary]
-          : [primary, OVERRIDE_FALLBACK_MODEL];
+        return [primary];
       }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
