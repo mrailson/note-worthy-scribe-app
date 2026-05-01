@@ -1740,7 +1740,9 @@ export const generateProfessionalWordBlob = async (
   content: string, 
   title: string,
   parsedDetails?: ParsedMeetingDetailsInput,
-  parsedActionItems?: ParsedActionItemInput[]
+  parsedActionItems?: ParsedActionItemInput[],
+  /** Mirrors meetings.notes_model_used so emailed Word attachments also carry the provenance stamp. */
+  notesModelUsed?: string | null,
 ): Promise<Blob> => {
   const __startTime = performance.now();
   console.log('📊 [docx] Starting generation', {
@@ -1762,6 +1764,7 @@ export const generateProfessionalWordBlob = async (
     location: parsedDetails?.location,
     venue: parsedDetails?.venue,
     attendees: parsedDetails?.attendees,
+    notesModelUsed,
   };
   
   // (1) Clean content
