@@ -1901,15 +1901,28 @@ ${cleanedTranscript}`;
       nextMeetingItemCount = countBulletsOrLines(nextMeetingSection, /to\s+be\s+determined|not\s+(mentioned|specified|confirmed)/i);
     };
 
-    // Build fallback chain. Primary is whatever the caller / setting resolved to.
-    // Auto-fallback ladder fires for both supported primaries:
-    //   - Flash primary  → flash → pro → 2.5-pro → gpt-5  (Pro is last-resort because
-    //     it usually returns truncated output, but truncated > nothing)
-    //   - Pro primary    → pro   → flash → 2.5-pro → gpt-5  (legacy chain, in case the
-    //     admin flips back via the MEETING_PRIMARY_MODEL setting once Google fixes Pro)
-    // Other explicit overrides (sonnet, gpt-5, etc.) are honoured without fallback.
-    const PER_ATTEMPT_TIMEOUT_MS = 30_000;
+    // ─── Timeout + fallback chain ──────────────────────────────────────────
+    // AUTO PATH (no caller modelOverride):
+    //   - 30s per attempt
+    //   - Multi-step fallback chain across providers
+    //
+    // OVERRIDE PATH (caller specified modelOverride in the request body):
+    //   - 90s per attempt (Sonnet / Opus on long governance transcripts need it)
+    //   - SINGLE fallback to Claude Haiku 4.5 if the requested model fails
+    //   - Both attempts logged to meeting_generation_log so the audit trail is complete
+    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 30_000;
+    const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 90_000;
+    const OVERRIDE_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
+    const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
+      ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
+      : AUTO_PER_ATTEMPT_TIMEOUT_MS;
     const buildFallbackChain = (primary: string): string[] => {
+      // Caller-specified models get a single Haiku fallback (no provider chain).
+      if (callerSpecifiedModel) {
+        return primary === OVERRIDE_FALLBACK_MODEL
+          ? [primary]
+          : [primary, OVERRIDE_FALLBACK_MODEL];
+      }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
       }
@@ -2065,23 +2078,63 @@ ${cleanedTranscript}`;
       let lastError: Error | null = null;
       for (let i = 0; i < chain.length; i++) {
         const attemptModel = chain[i];
+        const attemptStart = Date.now();
+        let attemptStatus: 'success' | 'timeout' | 'error' = 'error';
+        let attemptReason: string | null = null;
         try {
-          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}`);
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? ' (override path, 90s)' : ' (auto path, 30s)'}`);
           generatedNotes = await runAttempt(attemptModel);
           actualModelUsed = attemptModel;
           fallbackCount = i;
           modelUsed = attemptModel;
+          attemptStatus = 'success';
           if (i > 0) {
             console.log(`⚡ Fallback succeeded with ${attemptModel} (primary ${chain[0]} failed)`);
+          }
+          // Per-attempt log row for the override path so the audit trail covers
+          // both the requested model and any Haiku fallback. Auto path keeps its
+          // single summary row at the end (existing behaviour).
+          if (callerSpecifiedModel) {
+            try {
+              await supabase.from('meeting_generation_log').insert({
+                meeting_id: meetingId,
+                primary_model: chain[0] || modelOverride,
+                actual_model_used: attemptModel,
+                fallback_count: i,
+                generation_ms: Date.now() - attemptStart,
+                failure_reasons: null,
+                fallback_reason: i > 0 ? 'override_haiku_fallback' : null,
+              });
+            } catch (logErr) {
+              console.warn('⚠️ Failed to log override-path attempt (non-blocking):', logErr);
+            }
           }
           break;
         } catch (err: any) {
           const isAbort = err?.name === 'AbortError';
+          attemptStatus = isAbort ? 'timeout' : 'error';
           const reason = isAbort
             ? `timeout after ${Math.round(PER_ATTEMPT_TIMEOUT_MS / 1000)}s`
             : (err?.message || 'unknown error');
+          attemptReason = reason;
           console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
+          // Per-attempt failure log for override path.
+          if (callerSpecifiedModel) {
+            try {
+              await supabase.from('meeting_generation_log').insert({
+                meeting_id: meetingId,
+                primary_model: chain[0] || modelOverride,
+                actual_model_used: attemptModel,
+                fallback_count: i,
+                generation_ms: Date.now() - attemptStart,
+                failure_reasons: [{ model: attemptModel, reason, status: attemptStatus }],
+                fallback_reason: attemptStatus,
+              });
+            } catch (logErr) {
+              console.warn('⚠️ Failed to log override-path attempt failure (non-blocking):', logErr);
+            }
+          }
           // Capture Pro-specific diagnostics (only the first Pro attempt — index 0).
           const isPro = attemptModel === 'gemini-3.1-pro' || attemptModel === 'gemini-3.1-pro-preview';
           if (isPro && fallbackReason === null) {
@@ -2489,6 +2542,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notes_style_3: generatedNotes,
         notes_generation_status: 'completed',
         primary_transcript_source: actualTranscriptSource,
+        notes_model_used: actualModelUsed,
       })
       .eq('id', meetingId);
 
@@ -2815,7 +2869,8 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notes_generation_status: 'completed',
         word_count: wordCount,
         overview: aiOverview || null,
-        title: generatedTitle
+        title: generatedTitle,
+        notes_model_used: actualModelUsed,
       })
       .eq('id', meetingId);
 

@@ -37,6 +37,12 @@ interface GenerateMeetingNotesOptions {
   content: string;
   filename?: string;
   actionItems?: ActionItemForExport[];
+  /**
+   * Identifier of the LLM that actually produced the notes (post-fallback).
+   * Stamped into the page footer for provenance so we can tell at a glance
+   * which model emitted which document. Read from meetings.notes_model_used.
+   */
+  modelUsed?: string | null;
 }
 
 // Strip any existing "Action Items" section (heading + following bullet/table content)
@@ -746,7 +752,7 @@ export const buildActionItemsSection = async (
 
 // Main export function
 export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOptions): Promise<void> => {
-  const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
+  const { Document, Packer, Paragraph, TextRun, AlignmentType, Footer, PageNumber } = await import("docx");
   
   // Strip transcript sections and replace Facilitator/Unidentified with logged user's name
   let cleanedContent = stripTranscriptSection(options.content);
@@ -843,6 +849,38 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   const styles = buildNHSStyles();
   const numbering = buildNumbering();
   
+  // Page footer: "OFFICIAL | Meeting: <title> | Page X of Y | <model_id>"
+  // The trailing model id is in lighter grey + italic so the provenance stamp
+  // reads as a subtle annotation rather than competing with the OFFICIAL marking.
+  // Pulled from meetings.notes_model_used so re-downloads of older notes also
+  // carry the stamp (falls back to "model: unknown" if not yet recorded).
+  const footerMeetingTitle = (cleanTitle || 'Meeting Notes').slice(0, 80);
+  const footerModelId = (options.modelUsed && options.modelUsed.trim()) || 'unknown';
+  const footerBaseRun = {
+    size: 14, // 7pt (half-points)
+    color: NHS_COLORS.footerText,
+    font: FONTS.default,
+  } as const;
+  const provenanceFooter = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({ ...footerBaseRun, text: `OFFICIAL | Meeting: ${footerMeetingTitle} | Page ` }),
+          new TextRun({ ...footerBaseRun, children: [PageNumber.CURRENT] }),
+          new TextRun({ ...footerBaseRun, text: ' of ' }),
+          new TextRun({ ...footerBaseRun, children: [PageNumber.TOTAL_PAGES] }),
+          new TextRun({
+            ...footerBaseRun,
+            text: ` | ${footerModelId}`,
+            italics: true,
+            color: '9CA3AF',
+          }),
+        ],
+      }),
+    ],
+  });
+
   const doc = new Document({
     styles: styles,
     numbering: numbering,
@@ -856,6 +894,9 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
             left: 1440,
           },
         },
+      },
+      footers: {
+        default: provenanceFooter,
       },
       children,
     }],

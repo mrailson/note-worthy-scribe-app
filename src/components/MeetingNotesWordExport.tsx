@@ -5,6 +5,7 @@ import { showToast } from '@/utils/toastWrapper';
 import { extractAttendees } from '@/utils/extractAttendees';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateMeetingFilename } from '@/utils/meetingFilename';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MeetingData {
   title: string;
@@ -28,9 +29,15 @@ interface MeetingData {
 
 interface MeetingNotesWordExportProps {
   meetingData: MeetingData;
+  /**
+   * Optional. The DB id of the meeting being exported. When supplied, we look
+   * up `meetings.notes_model_used` so the page footer can carry the model
+   * provenance stamp on every download (including re-downloads of old notes).
+   */
+  meetingId?: string;
 }
 
-const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meetingData }) => {
+const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meetingData, meetingId }) => {
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState('');
@@ -73,7 +80,25 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       
       // Get logged-in user's name to replace Facilitator/Unidentified
       const loggedUserName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
-      
+
+      // Look up the model that produced the saved notes so the page footer
+      // can carry a provenance stamp on every download. Best-effort — a missing
+      // value or DB error must not block the export, so we silently fall back
+      // to "unknown" inside the docx generator.
+      let modelUsed: string | null = null;
+      if (meetingId) {
+        try {
+          const { data: meetingRow } = await supabase
+            .from('meetings')
+            .select('notes_model_used')
+            .eq('id', meetingId)
+            .maybeSingle();
+          modelUsed = (meetingRow as any)?.notes_model_used ?? null;
+        } catch (lookupErr) {
+          console.warn('⚠️ Could not load notes_model_used for footer stamp:', lookupErr);
+        }
+      }
+
       await generateMeetingNotesDocx({
         metadata: {
           title: safeTitle,
@@ -84,6 +109,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
         },
         content: fullContent,
         filename,
+        modelUsed,
       });
       
       setStatus('Success!');
