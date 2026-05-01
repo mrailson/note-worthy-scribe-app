@@ -3268,24 +3268,38 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             }, 0) : 0;
 
             // Max claimable helper inline
+            const fmtMoney = (n: number) => `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const getMaxInfo = (s: any) => {
               const cat = s.staff_category || 'buyback';
               const allocVal = s.allocation_value ?? 0;
               const calcAmt = s.calculated_amount ?? 0;
+              const role = s.staff_role || '';
               if (cat === 'gp_locum') {
-                if (s.allocation_type === 'daily') return { max: calcAmt || allocVal * 750, formula: `${allocVal} day${allocVal !== 1 ? 's' : ''} × £750` };
-                return { max: calcAmt || allocVal * 375, formula: `${allocVal} sess × £375` };
+                if (s.allocation_type === 'daily') {
+                  const max = calcAmt || allocVal * 750;
+                  return { max, formula: `${allocVal} day${allocVal === 1 ? '' : 's'} × £750/day = ${fmtMoney(max)}` };
+                }
+                const max = calcAmt || allocVal * 375;
+                return { max, formula: `${allocVal} session${allocVal === 1 ? '' : 's'} × £375/session = ${fmtMoney(max)}` };
               }
               if (cat === 'meeting') {
                 const hrs = s.total_hours ?? allocVal ?? 0;
                 const rate = s.hourly_rate ?? 0;
-                return { max: calcAmt || hrs * rate, formula: `${hrs} hrs × £${rate}/hr` };
+                const max = calcAmt || hrs * rate;
+                return { max, formula: `${hrs} hr${hrs === 1 ? '' : 's'} × £${rate}/hr = ${fmtMoney(max)}` };
               }
               if (cat === 'management' && s.allocation_type === 'hours') {
                 const rate = s.hourly_rate ?? 0;
-                return { max: calcAmt, formula: `${allocVal} hrs/wk × £${rate}/hr` };
+                const wks = (rate > 0 && allocVal > 0 && calcAmt > 0) ? (calcAmt / (allocVal * rate)) : 0;
+                return { max: calcAmt, formula: `${allocVal} hrs/wk × ${wks ? wks.toFixed(2) : '?'} working wks × £${rate}/hr = ${fmtMoney(calcAmt)}` };
               }
-              if (calcAmt > 0) return { max: calcAmt, formula: s.allocation_type === 'wte' ? `${allocVal} WTE × on-costs` : 'Max' };
+              if (calcAmt > 0) {
+                if (s.allocation_type === 'sessions') return { max: calcAmt, formula: `${allocVal} session${allocVal === 1 ? '' : 's'}/wk × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` };
+                if (s.allocation_type === 'hours') return { max: calcAmt, formula: `${allocVal} hrs/wk ÷ 37.5 × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` };
+                if (s.allocation_type === 'daily') return { max: calcAmt, formula: `${allocVal} day${allocVal === 1 ? '' : 's'} × daily rate = ${fmtMoney(calcAmt)}` };
+                if (s.allocation_type === 'wte') return { max: calcAmt, formula: `${allocVal} WTE × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` };
+                return { max: calcAmt, formula: `${role || 'Role'} max for the month = ${fmtMoney(calcAmt)}` };
+              }
               return { max: 0, formula: '—' };
             };
 
@@ -3348,7 +3362,12 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                           </td>
                           <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
                             {maxInfo.max > 0 ? (
-                              <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 2 }}>
+                                <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
+                                <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right' as const, maxWidth: 260, fontStyle: 'italic' as const }}>
+                                  {maxInfo.formula}
+                                </span>
+                              </div>
                             ) : '—'}
                           </td>
                         </tr>
