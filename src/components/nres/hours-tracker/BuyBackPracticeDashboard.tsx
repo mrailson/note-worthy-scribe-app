@@ -3186,6 +3186,17 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             display: 'flex', flexWrap: 'wrap' as const, gap: 20, padding: '14px 0 12px',
             fontSize: 12, color: '#6b7280', borderBottom: '1px solid #f3f4f6',
           }}>
+            {claim.claim_ref != null && (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Claim ID</span>
+                <span
+                  title="Claim ID — use this when communicating about this claim"
+                  style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3, alignSelf: 'flex-start', whiteSpace: 'nowrap' as const }}
+                >
+                  #{claim.claim_ref}
+                </span>
+              </div>
+            )}
             {claim.submitted_at && <InfoBlock label="Submitted by" value={(claim as any).submitted_by_name || emailToName(claim.submitted_by_email || '') || 'Practice'} sub={dateStr(claim.submitted_at)} />}
             {claim.verified_by && <InfoBlock label="Verified by" value={emailToName(claim.verified_by)} sub={dateStr(claim.verified_at)} />}
             {claim.approved_by_email && <InfoBlock label="Approved by" value={emailToName(claim.approved_by_email)} sub={dateStr(claim.reviewed_at || (claim as any).approved_at)} highlight="#7c3aed" />}
