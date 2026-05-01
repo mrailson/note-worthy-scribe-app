@@ -238,9 +238,28 @@ serve(async (req) => {
       skipQc = false,
       premiumPin,
     } = requestBody;
-    // modelOverride is mutable so the duration-based default below can refine it.
-    // Default to Pro; will be re-evaluated against meeting duration after fetch.
-    let modelOverride: string = requestBody.modelOverride ?? 'gemini-3.1-pro';
+    // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
+    // operational setting (system_settings) so admins can flip Flash↔Pro instantly
+    // via /admin/llm-diagnostics without a redeploy. Falls back to 'gemini-3-flash'
+    // if the setting is missing or unreadable. Pro currently exhausts its token
+    // budget on internal reasoning before producing output (May 2026).
+    const ALLOWED_PRIMARY_MODELS = ['gemini-3-flash', 'gemini-3.1-pro'];
+    let configuredPrimaryModel = 'gemini-3-flash';
+    try {
+      const { data: settingRow } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'MEETING_PRIMARY_MODEL')
+        .maybeSingle();
+      const v = settingRow?.setting_value;
+      const candidate = typeof v === 'string' ? v : (typeof v === 'object' && v !== null ? String(v) : '');
+      if (ALLOWED_PRIMARY_MODELS.includes(candidate)) {
+        configuredPrimaryModel = candidate;
+      }
+    } catch (settingErr) {
+      console.warn('⚠️ Could not read MEETING_PRIMARY_MODEL setting, defaulting to gemini-3-flash:', settingErr);
+    }
+    let modelOverride: string = requestBody.modelOverride ?? configuredPrimaryModel;
     meetingId = parsedMeetingId;
 
     // Server-side PIN gate for premium models. Pro is now the default and is
@@ -295,25 +314,19 @@ serve(async (req) => {
       }
     }
 
-    // Duration-based default model selection (only when caller did not pick one).
-    // Short meetings (<60 min) → gemini-3-flash for fast turnaround.
-    // Long meetings (≥60 min) → gemini-3.1-pro for stronger synthesis across many items.
-    // The fallback chain (flash → 2.5-pro → gpt-5) remains intact for both branches.
-    // Explicit user/UI overrides via Settings always win.
-    // Treat the historical default ('gemini-3.1-pro') sent by the auto-generation
-    // path as "not a deliberate user choice" so duration-based routing can apply.
-    // Any other explicit value (flash, sonnet, gpt-5, etc.) is honoured as a real override.
+    // Primary model is now governed by the MEETING_PRIMARY_MODEL setting
+    // (resolved above into `configuredPrimaryModel`). Explicit caller overrides
+    // via Settings/regenerate dropdown still win — we only use the configured
+    // default when the caller didn't specify a model. Duration-based routing
+    // has been removed: Flash is now fast enough that there's no Pro upside
+    // worth the timeout risk on long meetings.
     const rawClientModel = requestBody.modelOverride;
     const callerSpecifiedModel =
       rawClientModel !== undefined &&
       rawClientModel !== null &&
-      rawClientModel !== '' &&
-      rawClientModel !== 'gemini-3.1-pro';
+      rawClientModel !== '';
     if (!callerSpecifiedModel) {
-      const mins = Number(meeting?.duration_minutes) || 0;
-      const previousDefault = modelOverride;
-      modelOverride = mins >= 60 ? 'gemini-3.1-pro' : 'gemini-3-flash';
-      console.log(`🎯 Duration-based default: ${mins} min → ${modelOverride} (was ${previousDefault})`);
+      console.log(`🎯 Using configured primary model: ${configuredPrimaryModel}`);
     } else {
       console.log(`🎯 Using caller-specified model: ${modelOverride}`);
     }
@@ -1800,10 +1813,18 @@ ${cleanedTranscript}`;
       nextMeetingItemCount = countBulletsOrLines(nextMeetingSection, /to\s+be\s+determined|not\s+(mentioned|specified|confirmed)/i);
     };
 
-    // Build fallback chain. Primary is always the requested model. Fallbacks are appended
-    // only if the primary is the new default (Pro) — explicit overrides like 'gemini-3-flash'
-    // or 'sonnet-4.6' are honoured without fallback (user picked them deliberately).
+    // Build fallback chain. Primary is whatever the caller / setting resolved to.
+    // Auto-fallback ladder fires for both supported primaries:
+    //   - Flash primary  → flash → pro → 2.5-pro → gpt-5  (Pro is last-resort because
+    //     it usually returns truncated output, but truncated > nothing)
+    //   - Pro primary    → pro   → flash → 2.5-pro → gpt-5  (legacy chain, in case the
+    //     admin flips back via the MEETING_PRIMARY_MODEL setting once Google fixes Pro)
+    // Other explicit overrides (sonnet, gpt-5, etc.) are honoured without fallback.
+    const PER_ATTEMPT_TIMEOUT_MS = 30_000;
     const buildFallbackChain = (primary: string): string[] => {
+      if (primary === 'gemini-3-flash') {
+        return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
+      }
       if (primary === 'gemini-3.1-pro' || primary === 'gemini-3.1-pro-preview') {
         return ['gemini-3.1-pro', 'gemini-3-flash', 'gemini-2.5-pro', 'gpt-5'];
       }
@@ -1821,8 +1842,9 @@ ${cleanedTranscript}`;
 
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
     const runAttempt = async (modelKey: string): Promise<string> => {
-      // Pro gets the full 120s; explicit fast Flash override gets 60s; everything else 120s.
-      const timeoutMs = modelKey === 'gemini-3-flash' ? 60000 : 120000;
+      // Single per-attempt timeout for all models. Flash returns in ~1–2s, so 30s
+      // is generous; Pro/2.5-pro/gpt-5 fallbacks share the same budget.
+      const timeoutMs = PER_ATTEMPT_TIMEOUT_MS;
       const attemptController = new AbortController();
       const attemptTimeout = setTimeout(() => attemptController.abort(), timeoutMs);
       try {
@@ -1968,7 +1990,7 @@ ${cleanedTranscript}`;
         } catch (err: any) {
           const isAbort = err?.name === 'AbortError';
           const reason = isAbort
-            ? `timeout after ${attemptModel === 'gemini-3-flash' ? 60 : 120}s`
+            ? `timeout after ${Math.round(PER_ATTEMPT_TIMEOUT_MS / 1000)}s`
             : (err?.message || 'unknown error');
           console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });

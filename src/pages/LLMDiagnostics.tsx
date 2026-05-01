@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { RefreshCw, Loader2, Activity, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RefreshCw, Loader2, Activity, AlertTriangle, Settings as SettingsIcon, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 type ReasoningMode = 'default' | 'excluded' | 'low' | 'minimal';
@@ -90,6 +91,14 @@ const LLMDiagnostics = () => {
   const [fallbackRows, setFallbackRows] = useState<FallbackRow[]>([]);
   const [bucketStats, setBucketStats] = useState<Array<{ label: string; total: number; fallbacks: number; pct: number }>>([]);
   const [loadingData, setLoadingData] = useState(false);
+
+  // Current configuration panel
+  const PER_ATTEMPT_TIMEOUT_S = 30;
+  const [activeModel, setActiveModel] = useState<string>('gemini-3-flash');
+  const [pendingModel, setPendingModel] = useState<string>('gemini-3-flash');
+  const [configLoading, setConfigLoading] = useState(false);
+  const [configSaving, setConfigSaving] = useState(false);
+  const [stats24h, setStats24h] = useState<{ total: number; firstAttemptOk: number; fallbacks: number } | null>(null);
 
   // Auth gate
   useEffect(() => {
@@ -213,12 +222,74 @@ const LLMDiagnostics = () => {
     }
   }, [isSystemAdmin]);
 
+  // Load active primary model + last-24h stats
+  const loadConfig = useCallback(async () => {
+    if (!isSystemAdmin) return;
+    setConfigLoading(true);
+    try {
+      const { data: settingRow } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'MEETING_PRIMARY_MODEL')
+        .maybeSingle();
+      const v = settingRow?.setting_value;
+      const candidate = typeof v === 'string' ? v : '';
+      const resolved = ['gemini-3-flash', 'gemini-3.1-pro'].includes(candidate)
+        ? candidate
+        : 'gemini-3-flash';
+      setActiveModel(resolved);
+      setPendingModel(resolved);
+
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: dayLogs } = await supabase
+        .from('meeting_generation_log')
+        .select('fallback_count')
+        .gte('created_at', since)
+        .limit(2000);
+      const total = dayLogs?.length ?? 0;
+      const fallbacks = (dayLogs || []).filter((l: any) => (l.fallback_count ?? 0) > 0).length;
+      const firstAttemptOk = total - fallbacks;
+      setStats24h({ total, firstAttemptOk, fallbacks });
+    } catch (err: any) {
+      console.error('Failed to load config:', err);
+    } finally {
+      setConfigLoading(false);
+    }
+  }, [isSystemAdmin]);
+
+  const saveConfig = useCallback(async () => {
+    if (!isSystemAdmin) return;
+    if (!['gemini-3-flash', 'gemini-3.1-pro'].includes(pendingModel)) {
+      toast.error('Invalid model selection.');
+      return;
+    }
+    setConfigSaving(true);
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .update({
+          setting_value: pendingModel as any,
+          updated_by: user?.id ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('setting_key', 'MEETING_PRIMARY_MODEL');
+      if (error) throw error;
+      setActiveModel(pendingModel);
+      toast.success(`Primary model set to ${pendingModel}.`);
+    } catch (err: any) {
+      toast.error(`Failed to save: ${err?.message || 'unknown error'}`);
+    } finally {
+      setConfigSaving(false);
+    }
+  }, [isSystemAdmin, pendingModel, user?.id]);
+
   useEffect(() => {
     if (!isSystemAdmin) return;
     loadData();
-    const t = setInterval(loadData, 30_000);
+    loadConfig();
+    const t = setInterval(() => { loadData(); loadConfig(); }, 30_000);
     return () => clearInterval(t);
-  }, [isSystemAdmin, loadData]);
+  }, [isSystemAdmin, loadData, loadConfig]);
 
   const maxPct = useMemo(() => Math.max(10, ...bucketStats.map(b => b.pct)), [bucketStats]);
 
@@ -313,6 +384,86 @@ const LLMDiagnostics = () => {
               Refresh
             </Button>
           </div>
+
+          {/* CURRENT CONFIGURATION */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <SettingsIcon className="h-5 w-5" /> Current configuration
+              </CardTitle>
+              <CardDescription>
+                Live values used by <code>auto-generate-meeting-notes</code>. Changes take effect on the next generation request — no redeploy needed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Active primary model</div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="text-sm">{configLoading ? '…' : activeModel}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      (read from <code>system_settings.MEETING_PRIMARY_MODEL</code>)
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Per-attempt timeout</div>
+                  <Badge variant="secondary" className="text-sm">{PER_ATTEMPT_TIMEOUT_S}s</Badge>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-[1fr_auto] items-end">
+                <div className="space-y-1">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">Change primary model</div>
+                  <Select value={pendingModel} onValueChange={setPendingModel} disabled={configLoading || configSaving}>
+                    <SelectTrigger className="max-w-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini-3-flash">gemini-3-flash (recommended)</SelectItem>
+                      <SelectItem value="gemini-3.1-pro">gemini-3.1-pro (currently truncates)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={saveConfig}
+                  disabled={configSaving || configLoading || pendingModel === activeModel}
+                >
+                  {configSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save
+                </Button>
+              </div>
+
+              <div className="border-t pt-3">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Last 24h</div>
+                {!stats24h ? (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
+                ) : stats24h.total === 0 ? (
+                  <p className="text-sm text-muted-foreground">No meetings generated in the last 24 hours.</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-md border p-3">
+                      <div className="text-2xl font-semibold tabular-nums">{stats24h.total}</div>
+                      <div className="text-xs text-muted-foreground">Meetings generated</div>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <div className="text-2xl font-semibold tabular-nums">
+                        {Math.round((stats24h.firstAttemptOk / stats24h.total) * 100)}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">First-attempt success</div>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <div className="text-2xl font-semibold tabular-nums">
+                        {Math.round((stats24h.fallbacks / stats24h.total) * 100)}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">Fallback rate</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* SECTION 1 */}
           <Card>
