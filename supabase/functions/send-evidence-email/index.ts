@@ -89,7 +89,7 @@ serve(async (req: Request) => {
 
     const resend = new Resend(resendKey);
     const sendRes = await resend.emails.send({
-      from: "Notewell AI <noreply@dialai.co.uk>",
+      from: "Notewell AI <onboarding@resend.dev>",
       to: [recipient],
       subject,
       html,
