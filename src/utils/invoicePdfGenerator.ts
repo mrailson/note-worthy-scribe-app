@@ -74,16 +74,18 @@ function parsePipeAlignedTable(description: string): { head: string[]; body: str
   if (cols < 2) return null;
   if (!rows.every(r => r.length === cols)) return null;
 
-  // If the first row looks like data (date-like first cell, time-like 2nd/3rd cells),
-  // it came from our verifier's clean pipe format — synthesise titles instead of
-  // promoting row 1 to a header.
-  const firstCell = rows[0][0] || '';
-  const looksLikeDate = /^\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?$/.test(firstCell) || firstCell === '—';
-  const looksLikeTime = (s: string) => /^\d{1,2}:\d{2}$/.test(s) || s === '—';
-  const isDataFirstRow = looksLikeDate && cols >= 4 && looksLikeTime(rows[0][1]) && looksLikeTime(rows[0][2]);
+  // Header detection: a real header row is short, alphabetic, and contains no digits.
+  // If the first row doesn't look like a header, synthesise sensible titles so we
+  // never lose the first data row by promoting it to the header.
+  const looksLikeHeaderCell = (s: string) => s.length > 0 && s.length <= 24 && !/\d/.test(s);
+  const firstRowLooksLikeHeader = rows[0].every(looksLikeHeaderCell);
 
-  if (isDataFirstRow) {
-    const head = ['Date', 'Start', 'Stop', 'Description', ...Array.from({ length: Math.max(0, cols - 4) }, (_, i) => `Col ${i + 5}`)];
+  if (!firstRowLooksLikeHeader) {
+    let head: string[];
+    if (cols === 4) head = ['Date', 'Start', 'Stop', 'Description'];
+    else if (cols === 3) head = ['Date', 'Time', 'Description'];
+    else if (cols === 2) head = ['Date', 'Description'];
+    else head = ['Date', 'Start', 'Stop', 'Description', ...Array.from({ length: cols - 4 }, (_, i) => `Col ${i + 5}`)];
     return { head: head.slice(0, cols), body: rows };
   }
 
