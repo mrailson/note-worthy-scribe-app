@@ -2509,10 +2509,11 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
               <span className="text-[13px] font-semibold text-slate-900 truncate">{getPracticeName(claim.practice_key)}</span>
             </div>
           </div>
-          {/* Row 2 — status badge */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {statusBadge(claim.status)}
-          </div>
+        </div>
+        {/* Centre — Status with caption */}
+        <div className="flex flex-col items-center gap-0.5 shrink-0 px-4">
+          <span className="text-[9px] font-bold tracking-wider uppercase text-slate-400">Status</span>
+          {statusBadge(claim.status)}
         </div>
         <div className="flex items-center gap-1">
           {testActive && canEdit && (
