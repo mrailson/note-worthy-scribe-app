@@ -1897,6 +1897,8 @@ ${cleanedTranscript}`;
             geminiModel = 'google/gemini-2.5-flash';
           }
           console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
+          const isPro = modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview';
+          const proStart = isPro ? Date.now() : 0;
           const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -1913,8 +1915,13 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          if (isPro) {
+            proStatusCode = response.status;
+            proElapsedMs = Date.now() - proStart;
+          }
           if (!response.ok) {
             const errorData = await response.text();
+            if (isPro) proErrorMessage = `HTTP ${response.status}: ${errorData.substring(0, 500)}`;
             // 429 and 402 are user-facing — surface immediately rather than silently fall back.
             if (response.status === 429) throw new Error('RATE_LIMIT: Rate limit exceeded. Please wait a moment and try again.');
             if (response.status === 402) throw new Error('CREDITS: Insufficient AI credits. Please add credits to your workspace.');
@@ -1923,9 +1930,16 @@ ${cleanedTranscript}`;
           }
           const responseText = await response.text();
           if (!responseText || responseText.trim().length === 0) {
+            if (isPro) proErrorMessage = 'Empty response body';
             throw new Error('Lovable AI returned empty response body');
           }
-          const data = JSON.parse(responseText);
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseErr: any) {
+            if (isPro) proErrorMessage = `Parse error: ${parseErr?.message || 'invalid JSON'}`;
+            throw parseErr;
+          }
           notes = data.choices?.[0]?.message?.content || '';
         }
         if (!notes || notes.trim().length === 0) {
