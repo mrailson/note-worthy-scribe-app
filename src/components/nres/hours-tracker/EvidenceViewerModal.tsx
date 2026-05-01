@@ -176,16 +176,46 @@ export function EvidenceViewerModal({ open, files, initialIndex, getDownloadUrl,
       const bytes = await buildMergedPdf(targets);
       const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
-      const w = window.open(blobUrl, '_blank');
-      if (w) {
-        // Try to auto-trigger print once loaded
-        const tryPrint = () => { try { w.focus(); w.print(); } catch {} };
-        setTimeout(tryPrint, 800);
-      } else {
-        toast.message('Pop-up blocked — opened the PDF in a new tab to print manually');
-      }
-      // Revoke later
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+
+      // Use a hidden iframe to avoid popup/blob blockers
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = blobUrl;
+      document.body.appendChild(iframe);
+
+      let printed = false;
+      const triggerPrint = () => {
+        if (printed) return;
+        printed = true;
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (err) {
+          console.warn('iframe print failed, falling back to download', err);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `evidence-${Date.now()}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          toast.message('Print blocked by browser — downloaded the PDF instead');
+        }
+      };
+
+      iframe.onload = () => setTimeout(triggerPrint, 300);
+      // Safety net if onload doesn't fire
+      setTimeout(triggerPrint, 2500);
+
+      // Cleanup later
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+        iframe.remove();
+      }, 120_000);
     } catch (e: any) {
       console.error('print failed', e);
       toast.error(e?.message || 'Could not prepare print bundle');
