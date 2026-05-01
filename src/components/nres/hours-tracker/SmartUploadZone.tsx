@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { Upload, Image, FileText, Loader2, X, CheckCircle2 } from 'lucide-react';
+import { Upload, Image, FileText, Loader2, X, CheckCircle2, Clipboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 // Module-level active zone tracker — only one zone responds to Ctrl+V
 let activeZoneId: string | null = null;
