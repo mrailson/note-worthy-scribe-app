@@ -1566,41 +1566,60 @@ ${discussionQualityRules}
 Keep the executive summary concise and focused - maximum 3-4 sentences that quickly convey the meeting's purpose and key outcomes.
 
 ═══════════════════════════════════════════════════════════════════════════════
-TONE OPTIMISER v4.0 — NHS GOVERNANCE-SAFE REQUIREMENTS (APPLY DURING GENERATION)
+TONE OPTIMISER v4.1 — NHS GOVERNANCE-SAFE WITH OPERATIONAL TEXTURE PRESERVED
 ═══════════════════════════════════════════════════════════════════════════════
 
-You MUST transform the transcript into a fully governance-safe, diplomatically worded document that contains no personal identifiers, no emotional language, no adversarial tone, no metaphors, and no informal expressions, while strictly preserving the factual meaning, decisions, actions, and risks.
+Transform the transcript into governance-safe meeting notes that are suitable for NHS Board Packs, ICB circulation, FOI response, and CQC review — WHILE preserving operational texture, named concerns, and the substance of debate.
 
-🔹 1. Remove adversarial, political, or critical language
-Replace any wording implying: blame, misconduct, financial motives, organisational conflict, aggression, "takeovers", "redundancy" or "uselessness", criticism of PML, NHFT, ICB, or any partner organisation.
-Rewrite into neutral alternatives: "members discussed concerns regarding...", "operational challenges were noted...", "potential future organisational changes were discussed..."
+🔹 1. Personal identifiers (STRICT)
+Replace staff names in performance discussions, family relationships, and private circumstances with role-based descriptors: "a pharmacist", "a candidate for the role", "an FCP". Never include personal health, behaviour, relationships, or private quotes about individuals. This rule is non-negotiable.
 
-🔹 2. Remove metaphors, idioms, or vivid/dramatic speech
-Replace phrases like "wolf ready to pounce", "catch 22", "lip service", "playing both sides" with "members expressed concern about...", "noted constraints...", "discussed the need to maintain constructive engagement..."
-
-🔹 3. Remove informal quotations or conversational fragments
-Convert "more money, less hours", "Super 10", "unprofessional behaviour" into "the candidate expressed a preference for alternative working arrangements", "feedback highlighted opportunities to broaden the scope of practice"
-
-🔹 4. Remove personal identifiers or sensitive references
-Replace staff names in performance discussions, family relationships, private circumstances with role-based descriptors: "a pharmacist", "a candidate for the role", "an FCP". Never include personal health, behaviour, relationships, or quotes about individuals.
-
-🔹 5. Recast performance/capability issues using neutral governance language
+🔹 2. Performance and capability issues (STRICT)
+Recast in neutral governance language:
 "failed a prescribing course" → "has not yet completed the prescribing qualification"
-"lack of holistic care" → "feedback indicated opportunities to broaden the approach"
 "displayed unprofessional behaviour" → "areas for development were noted"
+"lack of holistic care" → "feedback indicated opportunities to broaden the approach"
 
-🔹 6. Neutralise strong opinions or emotional tone
-Replace "significant frustration", "severe concerns", "negative experiences", "threat to autonomy" with "operational challenges were noted", "members expressed concerns", "previous issues were acknowledged"
+🔹 3. Operational concerns (PRESERVE WITH ATTRIBUTION)
+Operational frustrations, service-level concerns, and quantitative grumbles ARE governance content and MUST be preserved. Render them in attributed governance form:
+- "Disposer is rubbish, 40 minute wait" → "Members noted operational concerns with the Disposer urgent referral pathway, including reported wait times of approximately 40 minutes."
+- "BMA wants more money for less hours" → "The proposed BMA levy increase from 3p to 7p per patient was discussed; concerns were raised regarding value for money and representation."
+- "Online consultations are white noise" → "Members reported sustained pressure from online consultation volumes, with concerns regarding triage outcomes generating repeat submissions."
 
-🔹 7. Maintain strict governance style
-Use: "members discussed...", "the group noted...", "concerns were raised...", "options were explored...", "it was agreed that..."
-Avoid: informal language, emotive verbs (criticised, blamed, argued), speculation or assumptions
+🔹 4. Conflicts of interest and organisational concerns (PRESERVE WITH CARE)
+Named concerns about conflict of interest, organisational governance, or contractual tension MUST be preserved — these are exactly the items governance bodies need to record. Use neutral verbs but keep the substance:
+"The IHO model raises a potential conflict of interest where the same body would act as both commissioner and provider; members agreed clarification should be sought."
+Do NOT sanitise to the point of erasure. "Concerns were noted" without specifying what the concerns were is not adequate.
 
-🔹 8. Preserve structure and factual content
-Do NOT remove: decisions, actions, dates, financial figures, estates/legal/contracting details, workforce details, risks. Only adjust phrasing.
+🔹 5. Metaphors and dramatic speech (TRANSLATE, DON'T DROP)
+Replace metaphors with their literal meaning rather than dropping the point:
+"wolf ready to pounce" → "members expressed concern that the organisation may move quickly to act on the proposal"
+"catch 22" → "members noted a structural difficulty whereby [X] requires [Y] which in turn requires [X]"
+"lip service" → "members questioned whether [organisation] had moved beyond formal acknowledgement to substantive action"
 
-🔹 9. Final output must be suitable for:
-NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC review
+🔹 6. Direct quotes (USE SPARINGLY)
+Avoid direct quotation. When a phrase is essential to capture the meaning, either paraphrase or use indirect speech: "Members reported that..." or "It was suggested that..." — do not use quotation marks around informal speech.
+
+🔹 7. Strong opinions and emotional tone (NEUTRALISE TONE, KEEP CONTENT)
+Replace emotional intensity with neutral verbs while keeping the underlying content intact:
+"significant frustration" → "members expressed concern"
+"severe concerns" → "concerns were raised"
+"members were furious about X" → "members expressed strong concern regarding X"
+The CONTENT of what frustrated them must be preserved. Removing the emotion without recording what triggered it leaves the reader with an incomplete record.
+
+🔹 8. Governance verbs (USE THESE)
+"members discussed...", "the group noted...", "concerns were raised...", "options were explored...", "it was agreed that...", "members reported...", "clarification was sought regarding..."
+
+🔹 9. Preserve absolutely (NEVER DROP)
+- All decisions, actions, dates, financial figures
+- All estates, legal, and contracting details
+- Workforce details (numbers, roles, recruitment)
+- Risks, including reputational and operational
+- Named operational concerns with quantitative detail
+- Named conflicts of interest
+
+🔹 10. Final output suitability
+NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC review — AND a faithful record of what the meeting actually discussed.
 
 ═══════════════════════════════════════════════════════════════════════════════
 
