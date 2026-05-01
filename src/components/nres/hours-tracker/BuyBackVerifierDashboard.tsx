@@ -542,7 +542,56 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: prev.details }));
   };
 
-  const stopVoiceRecording = async () => {
+  // Import dates/times from a Word/PDF/image and append as table rows (Management only)
+  const handleImportDocument = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large (max 10 MB)');
+      return;
+    }
+    const ft = importFileTypeFor(file);
+    if (!ft) {
+      toast.error('Unsupported file type. Use Word (.docx), PDF or an image.');
+      return;
+    }
+    setImporting(true);
+    try {
+      const dataUrl = await importFileToDataUrl(file);
+      const { data: extractData, error: extractErr } = await supabase.functions.invoke('extract-document-text', {
+        body: { fileType: ft, dataUrl, fileName: file.name },
+      });
+      if (extractErr) throw new Error(extractErr.message || 'Document text extraction failed');
+      const text: string = extractData?.extractedText || '';
+      if (!text || text.trim().length < 5) {
+        toast.error('No readable text found in the document');
+        return;
+      }
+      const { data: aiData, error: aiErr } = await supabase.functions.invoke('extract-management-time-entries', {
+        body: { text },
+      });
+      if (aiErr) throw new Error(aiErr.message || 'AI extraction failed');
+      const entries: any[] = aiData?.entries || [];
+      if (!entries.length) {
+        toast.warning('AI could not find any dated time entries in that document');
+        return;
+      }
+      const newRows: InvoiceTableRow[] = entries.map((e) => newInvoiceTableRow(
+        isoToDisplayDate(e.work_date || ''),
+        e.start_time || '',
+        e.end_time || '',
+        (e.description || '').slice(0, MAX_LINE_CHARS - 40),
+      ));
+      syncRows([...invoiceRows, ...newRows]);
+      toast.success(`Added ${newRows.length} line${newRows.length === 1 ? '' : 's'} from ${file.name}`);
+    } catch (e: any) {
+      console.error('Import failed:', e);
+      toast.error(e?.message || 'Import failed');
+    } finally {
+      setImporting(false);
+      if (importFileInputRef.current) importFileInputRef.current.value = '';
+    }
+  };
+
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === 'inactive') return;
     setVoiceState('processing');
