@@ -1,81 +1,77 @@
-## Problem
-
-When the user clicks **Stop** on the meeting recorder, the UI currently goes through three visual states:
-
-1. **Recording panel** with "Finalising Meeting… / Stopping audio streams…" (good — clearly busy)
-2. **Brief "middle view"** — the recording card disappears as `resetMeeting()` runs and `isStoppingRecording` is flipped off ~300 ms before the modal mounts. The screen looks like the empty *Prepare* setup view (Attendees / Agenda panels), so it appears the meeting is **already done and discarded**.
-3. **"Meeting Saved Successfully" modal** finally appears.
-
-The middle flash is alarming — users think something has gone wrong or that they've lost the recording.
-
 ## Goal
 
-Keep a clear "still finishing" signal visible on screen continuously from the moment **Stop** is pressed until the **Meeting Saved Successfully** modal is fully mounted. No behaviour change to the underlying save/transcribe pipeline.
+Cut post-stop wait time for short meetings (the common case) by routing them to `gemini-3-flash` by default, while preserving `gemini-3.1-pro` quality for long meetings (≥60 minutes) where the extra reasoning genuinely pays off. Easy to revert later once we have the data.
 
-## Approach
+## Where the change happens
 
-Add a lightweight full-screen **"Finalising your meeting"** overlay (fixed, semi-transparent backdrop + centred card with spinner, current step text, and reassurance copy). It is driven by a single new state flag `isFinalisingMeeting` that:
+A single, server-side change in `supabase/functions/auto-generate-meeting-notes/index.ts`. No client changes — all existing user UI overrides (Settings dropdown, regenerate menu) continue to win as they do today.
 
-- Turns **on** the instant the user clicks Stop (alongside the existing `isStoppingRecording`).
-- Stays **on** through `resetMeeting()` and the 300 ms grace gap.
-- Turns **off** only after `showPostMeetingActions` has become `true` (i.e. the Saved modal is mounted).
+### Today (line 240)
 
-Because the overlay sits above the page (z-index above the recorder card but below the Dialog modal), the empty Prepare view never becomes the focal point. The Saved modal then opens "through" the fading overlay.
+```ts
+modelOverride = 'gemini-3.1-pro',  // hard default
+```
 
-## Changes
+The client sends no `modelOverride` for normal auto-generation, so this default is what runs.
 
-### `src/components/MeetingRecorder.tsx`
+### Proposed
 
-1. **New state** near the existing `isStoppingRecording`:
-   ```ts
-   const [isFinalisingMeeting, setIsFinalisingMeeting] = useState(false);
-   ```
+1. Keep the request-body default as today (so an explicit choice from the client still flows through unchanged).
+2. **After the meeting record is loaded** and we know `meeting.duration_minutes`, apply a duration-based default *only when the caller did not specify a model*:
 
-2. **Set on Stop**: in the stop handler (around line 4935 / 5246), set `setIsFinalisingMeeting(true)` at the same point `setIsStoppingRecording(true)` is called.
+```ts
+// Duration-based default (only when caller didn't pick a model explicitly)
+const callerSpecifiedModel = Object.prototype.hasOwnProperty.call(requestBody, 'modelOverride');
+if (!callerSpecifiedModel) {
+  const mins = Number(meeting.duration_minutes) || 0;
+  modelOverride = mins >= 60 ? 'gemini-3.1-pro' : 'gemini-3-flash';
+  console.log(`🎯 Duration-based default: ${mins} min → ${modelOverride}`);
+}
+```
 
-3. **Clear after modal mounts**: in both success and bg-error branches around lines 6036 and 6059, immediately after `setShowPostMeetingActions(true)`, schedule `setIsFinalisingMeeting(false)` on a short delay (e.g. 400 ms — slightly after the existing 300 ms `setIsStoppingRecording(false)` timer) so the overlay only fades out once the Dialog is on screen. Also clear it in the error path at line 6104 and the short-meeting early-return at ~5171.
+3. The existing fallback chain stays intact — if flash itself fails for any reason it still escalates to `gemini-2.5-pro` → `gpt-5` (lines 1781–1797).
 
-4. **Render the overlay** near the bottom of the component's JSX (just before the `PostMeetingActionsModal` at line 8301):
-   ```tsx
-   {isFinalisingMeeting && (
-     <div className="fixed inset-0 z-[60] bg-background/85 backdrop-blur-sm
-                     flex items-center justify-center animate-in fade-in duration-200">
-       <Card className="w-[min(92vw,420px)] shadow-2xl border-primary/20">
-         <CardContent className="p-6 text-center space-y-3">
-           <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
-           <h3 className="text-lg font-semibold">Finalising your meeting…</h3>
-           <p className="text-sm text-muted-foreground">
-             Saving the recording, transcript and notes. Please don't close this tab —
-             the confirmation will appear in a moment.
-           </p>
-           {stopRecordingStep && (
-             <div className="text-xs font-medium text-blue-600 dark:text-blue-400
-                             animate-pulse pt-1">
-               {stopRecordingStep}
-             </div>
-           )}
-         </CardContent>
-       </Card>
-     </div>
-   )}
-   ```
+## Why this is safe
 
-5. **Progress wording polish** — the existing `stopRecordingStep` cycles through "Stopping audio streams…", "Saving meeting…", "Generating notes…", "Complete!". These already drive the overlay's small status line, so the user sees the pipeline progress without code changes.
+- **Fallback chain unchanged.** `getFallbackChain()` (line 1784) only swaps the chain when the *primary* is Pro. When primary is Flash it keeps Flash's existing chain, so behaviour for explicit Flash users today is unchanged.
+- **Per-attempt timeout already differentiates.** Line 1797: Flash has a 60 s timeout, Pro has 120 s — so if Flash ever stalls we lose at most 60 s before fallback (vs the 120 s we just lost on this meeting).
+- **User overrides win.** Anyone who explicitly chose Pro (or anything else) in Settings still gets exactly that — we only change the *unspecified* path.
+- **Long meetings keep Pro.** ≥60 min is where Pro's extra reasoning matters most for synthesis across many agenda items.
 
-## What stays the same
+## Expected impact (based on this meeting's logs)
 
-- Existing in-card "Finalising Meeting… / Stopping…" UI is unchanged — it just becomes the layer underneath the overlay during the transition.
-- Save / transcribe / notes-generation flow is untouched.
-- `PostMeetingActionsModal` ("Meeting Saved Successfully") is untouched and opens on top of the fading overlay as it does today.
+The 4 min / 694-word meeting that took 2 min 23 s to finalise:
+- Pro attempt 1 burned 120 s on a timeout
+- Flash fallback then produced notes in ~7 s
+- Overview added ~14 s
 
-## Out of scope
+With this change that same meeting would have gone Flash-first, finishing notes in ~7 s instead of ~127 s — roughly **2 minutes faster** end to end.
 
-- No changes to the post-meeting modal itself.
-- No changes to background note generation or queue behaviour.
-- No changes to mobile/iOS recording recovery paths beyond the same flag flip.
+## Tracking — how we'll know it's working
 
-## QA checklist (after build)
+Already in the logs (no extra instrumentation needed):
+- `📊 Word count:` and `Duration:` lines tell us the meeting size
+- `🔁 Attempt N/4: <model>` lines tell us which model ran and how many fallbacks were needed
+- `⚡ Fallback succeeded with…` flags every escalation
+- The new `🎯 Duration-based default:` log line will let us grep how often each branch fires
 
-1. Start a short meeting, press Stop → overlay appears immediately, stays visible through "Stopping audio streams… → Saving… → Complete!", then Saved modal appears on top with no blank Prepare view in between.
-2. Force a background error (offline) → overlay still hands over cleanly to the Saved modal via the error branch.
-3. Short meeting (<100 words) early return → overlay does not get stuck (cleared in early-return path).
+After ~48 hours we can run a quick log query to compare:
+- Average end-to-end time, short vs long meetings
+- Fallback rate on Flash (should stay low)
+- Whether any user manually re-runs notes on Pro after a short meeting (signal that quality dropped)
+
+## Files to edit
+
+- `supabase/functions/auto-generate-meeting-notes/index.ts` — single insertion just after the meeting record is fetched, ~10 lines.
+
+## Memory update
+
+Update `mem://index.md` Core line for the meeting notes default to:
+`Meeting notes default model: duration-based — gemini-3-flash for <60 min, gemini-3.1-pro for ≥60 min. Fallback chain unchanged. User UI overrides always win.`
+
+## Out of scope (deliberately)
+
+- No client-side changes
+- No change to fallback chain order
+- No change to user-visible Settings dropdown labels
+- No change to Best-of-All transcript merging
