@@ -215,19 +215,48 @@ function InvoicePreviewDialog({ open, onOpenChange, claim, invoiceDescription }:
 /** Evidence section for management/verifier view */
 const VerifierEvidenceSection = ({ claimId, staffLines, canEdit }: { claimId: string; staffLines: any[]; canEdit: boolean }) => {
   const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl, uploadEvidence, deleteEvidence, uploading } = useNRESClaimEvidence(claimId);
-  const hasAnyFiles = staffLines.some((_: any, idx: number) => getFilesForStaff(idx).length > 0 || Object.keys(getUploadedTypesForStaff(idx)).length > 0);
+  const [expanded, setExpanded] = useState(true);
+  const [openTrigger, setOpenTrigger] = useState<number | undefined>(undefined);
+  const totalFiles = staffLines.reduce((sum: number, _: any, idx: number) => sum + getFilesForStaff(idx).length, 0);
+  const hasAnyFiles = totalFiles > 0 || staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
 
   // Management needs to be able to add further evidence before forwarding to the SNO Approver.
   // Once the claim has moved on, keep this as a read-only evidence viewer.
   if (!hasAnyFiles && !canEdit) return null;
 
+  const handleViewAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!expanded) setExpanded(true);
+    setOpenTrigger(t => (t === undefined ? 0 : t + 1));
+  };
+
   return (
     <div style={{ marginTop: 12, borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-      <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 600, color: '#374151', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+      <button
+        type="button"
+        onClick={() => setExpanded(e => !e)}
+        style={{ width: '100%', padding: '8px 14px', background: '#f8fafc', borderBottom: expanded ? '1px solid #e5e7eb' : 'none', fontSize: 12, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', textAlign: 'left' }}
+        aria-expanded={expanded}
+      >
+        {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         <span>Supporting Evidence</span>
-        {canEdit && <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b' }}>Upload or paste additional documents before forwarding</span>}
-      </div>
-      {staffLines.map((s: any, idx: number) => (
+        <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 999, padding: '1px 8px' }}>
+          {totalFiles} uploaded
+        </span>
+        {totalFiles > 0 && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={handleViewAll}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleViewAll(e as any); } }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#2563eb', cursor: 'pointer' }}
+          >
+            <Eye className="w-3.5 h-3.5" /> View Evidence
+          </span>
+        )}
+        {canEdit && <span style={{ fontSize: 11, fontWeight: 500, color: '#64748b', marginLeft: 'auto' }}>Upload or paste additional documents before forwarding</span>}
+      </button>
+      {expanded && staffLines.map((s: any, idx: number) => (
         <StaffLineEvidence
           key={idx}
           staffCategory={(s.staff_category || 'buyback') as 'buyback' | 'new_sda' | 'management' | 'gp_locum'}
@@ -241,6 +270,8 @@ const VerifierEvidenceSection = ({ claimId, staffLines, canEdit }: { claimId: st
           onUpload={uploadEvidence}
           onDelete={deleteEvidence}
           onDownload={getDownloadUrl}
+          hideHeader
+          triggerOpenAt={idx === 0 ? openTrigger : undefined}
         />
       ))}
     </div>
