@@ -44,6 +44,13 @@ interface MeetingMetadata {
   attendees?: string;
   loggedUserName?: string;
   classification?: string; // e.g., "OFFICIAL", "OFFICIAL - SENSITIVE"
+  /**
+   * The LLM that produced the saved notes (mirrors meetings.notes_model_used).
+   * Rendered into the page footer as a subtle italic provenance stamp so every
+   * download — including re-downloads of older notes — carries an audit trail.
+   * Falls back to "unknown" inside createFooter when undefined/empty.
+   */
+  notesModelUsed?: string | null;
 }
 
 interface GenerateProfessionalMeetingOptions {
