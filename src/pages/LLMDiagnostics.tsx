@@ -226,6 +226,16 @@ const LLMDiagnostics = () => {
         fallbacks: b.fallbacks,
         pct: b.total > 0 ? Math.round((b.fallbacks / b.total) * 100) : 0,
       })));
+
+      // Section 4: recordings rejected as non-meetings (last 7 days)
+      const { data: rejected } = await supabase
+        .from('meeting_generation_log')
+        .select('created_at, meeting_id, duration_seconds, transcript_word_count, skip_reason, detected_content_type, transcript_snippet')
+        .gte('created_at', sevenDaysAgo)
+        .not('skip_reason', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setRejectedRows((rejected || []) as RejectionRow[]);
     } catch (err: any) {
       console.error('Failed to load diagnostics:', err);
       toast.error(`Failed to load diagnostics: ${err?.message || 'unknown error'}`);
