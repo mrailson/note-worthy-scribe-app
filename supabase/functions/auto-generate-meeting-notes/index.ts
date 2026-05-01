@@ -2022,8 +2022,10 @@ ${cleanedTranscript}`;
       : AUTO_PER_ATTEMPT_TIMEOUT_MS;
     const buildFallbackChain = (primary: string): string[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
+      // Allow ONE same-model retry to absorb transient network blips (timeout / 5xx / 429).
+      // The catch block below decides whether the retry actually fires based on error class.
       if (callerSpecifiedModel) {
-        return [primary];
+        return [primary, primary];
       }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
@@ -2204,23 +2206,49 @@ ${cleanedTranscript}`;
 
     if (!skipSingleShot) {
       let lastError: Error | null = null;
+      // Classify an error as transient (worth a same-model retry) vs permanent.
+      // Transient: timeout, 408, 429, 5xx, network/abort. Permanent: other 4xx (auth, bad request, content policy).
+      const isTransientError = (err: any): boolean => {
+        if (err?.name === 'AbortError') return true;
+        const msg: string = typeof err?.message === 'string' ? err.message : String(err ?? '');
+        // Match "Provider 408: ...", "Anthropic 429: ...", "Lovable AI 503: ...", "Gateway gpt-5.2 502: ..."
+        const statusMatch = msg.match(/\b(\d{3})\b/);
+        if (statusMatch) {
+          const status = parseInt(statusMatch[1], 10);
+          if (status === 408 || status === 429 || status >= 500) return true;
+          // Any other 4xx is permanent (auth, validation, content policy, etc.)
+          if (status >= 400 && status < 500) return false;
+        }
+        // Network-level failures with no HTTP status — treat as transient.
+        if (/network|fetch failed|ECONN|ETIMEDOUT|socket hang up/i.test(msg)) return true;
+        // Empty body / parse errors — also worth one retry.
+        if (/empty response|invalid JSON|parse error/i.test(msg)) return true;
+        return false;
+      };
+
       for (let i = 0; i < chain.length; i++) {
         const attemptModel = chain[i];
+        const isSameModelRetry = callerSpecifiedModel && i > 0 && chain[i] === chain[i - 1];
+        // For same-model retries on the override path, give the upstream provider a brief
+        // breather (especially helpful for 429 rate limits and transient 5xx).
+        if (isSameModelRetry) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
         const attemptStart = Date.now();
         let attemptStatus: 'success' | 'timeout' | 'error' = 'error';
         let attemptReason: string | null = null;
         try {
-          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? ' (override path, 90s)' : ' (auto path, 30s)'}`);
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? (isSameModelRetry ? ' (override path, 90s, same-model retry)' : ' (override path, 90s)') : ' (auto path, 30s)'}`);
           generatedNotes = await runAttempt(attemptModel);
           actualModelUsed = attemptModel;
           fallbackCount = i;
           modelUsed = attemptModel;
           attemptStatus = 'success';
           if (i > 0) {
-            console.log(`⚡ Fallback succeeded with ${attemptModel} (primary ${chain[0]} failed)`);
+            console.log(`⚡ ${isSameModelRetry ? 'Same-model retry' : 'Fallback'} succeeded with ${attemptModel} (primary attempt failed)`);
           }
           // Per-attempt log row for the override path so the audit trail covers
-          // both the requested model and any Haiku fallback. Auto path keeps its
+          // both attempts (primary + same-model retry). Auto path keeps its
           // single summary row at the end (existing behaviour).
           if (callerSpecifiedModel) {
             try {
@@ -2231,7 +2259,7 @@ ${cleanedTranscript}`;
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
                 failure_reasons: null,
-                fallback_reason: i > 0 ? 'override_haiku_fallback' : null,
+                fallback_reason: isSameModelRetry ? 'same_model_retry' : null,
               });
             } catch (logErr) {
               console.warn('⚠️ Failed to log override-path attempt (non-blocking):', logErr);
@@ -2257,7 +2285,7 @@ ${cleanedTranscript}`;
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
                 failure_reasons: [{ model: attemptModel, reason, status: attemptStatus }],
-                fallback_reason: attemptStatus,
+                fallback_reason: isSameModelRetry ? 'same_model_retry_failed' : attemptStatus,
               });
             } catch (logErr) {
               console.warn('⚠️ Failed to log override-path attempt failure (non-blocking):', logErr);
@@ -2282,14 +2310,27 @@ ${cleanedTranscript}`;
             }
           }
           lastError = err instanceof Error ? err : new Error(String(err));
-          // Surface user-facing errors immediately — don't burn through fallbacks for credit/rate-limit issues.
-          if (typeof err?.message === 'string' && (err.message.startsWith('RATE_LIMIT:') || err.message.startsWith('CREDITS:'))) {
-            throw new Error(err.message.replace(/^(RATE_LIMIT|CREDITS):\s*/, ''));
+          // Surface CREDITS errors immediately — no point retrying. RATE_LIMIT (429) IS retried once.
+          if (typeof err?.message === 'string' && err.message.startsWith('CREDITS:')) {
+            throw new Error(err.message.replace(/^CREDITS:\s*/, ''));
+          }
+          // Override path: if the error is non-transient (e.g. 400/401/403 content policy or auth),
+          // don't waste a retry — fail fast with a clear message.
+          if (callerSpecifiedModel && !isTransientError(err)) {
+            console.warn(`⛔ Non-transient error on override path — skipping same-model retry.`);
+            break;
           }
         }
       }
       if (!generatedNotes || generatedNotes.trim().length === 0) {
         console.error('❌ All fallback attempts exhausted');
+        // Build a clearer error for caller-specified models so the toast can say
+        // "Sonnet 4.6 failed after N attempts: <reason>".
+        if (callerSpecifiedModel) {
+          const attempts = failureReasons.length;
+          const lastReason = failureReasons[failureReasons.length - 1]?.reason || (lastError?.message ?? 'unknown error');
+          throw new Error(`${modelOverride} failed after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${lastReason}`);
+        }
         throw lastError || new Error('All AI generation attempts failed');
       }
 
