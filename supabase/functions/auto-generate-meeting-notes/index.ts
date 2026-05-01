@@ -1966,11 +1966,30 @@ ${cleanedTranscript}`;
           }
           break;
         } catch (err: any) {
-          const reason = err?.name === 'AbortError'
+          const isAbort = err?.name === 'AbortError';
+          const reason = isAbort
             ? `timeout after ${attemptModel === 'gemini-3-flash' ? 60 : 120}s`
             : (err?.message || 'unknown error');
           console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
+          // Capture Pro-specific diagnostics (only the first Pro attempt — index 0).
+          const isPro = attemptModel === 'gemini-3.1-pro' || attemptModel === 'gemini-3.1-pro-preview';
+          if (isPro && fallbackReason === null) {
+            if (isAbort) {
+              fallbackReason = 'timeout';
+              if (proErrorMessage === null) proErrorMessage = reason;
+              if (proStatusCode === null) proStatusCode = 0;
+            } else if (typeof err?.message === 'string' && err.message.startsWith('Lovable AI ')) {
+              fallbackReason = 'http_error';
+              if (proErrorMessage === null) proErrorMessage = err.message.substring(0, 500);
+            } else if (typeof err?.message === 'string' && /JSON|parse/i.test(err.message)) {
+              fallbackReason = 'parse_error';
+              if (proErrorMessage === null) proErrorMessage = err.message.substring(0, 500);
+            } else {
+              fallbackReason = 'other';
+              if (proErrorMessage === null) proErrorMessage = (err?.message || String(err)).substring(0, 500);
+            }
+          }
           lastError = err instanceof Error ? err : new Error(String(err));
           // Surface user-facing errors immediately — don't burn through fallbacks for credit/rate-limit issues.
           if (typeof err?.message === 'string' && (err.message.startsWith('RATE_LIMIT:') || err.message.startsWith('CREDITS:'))) {
