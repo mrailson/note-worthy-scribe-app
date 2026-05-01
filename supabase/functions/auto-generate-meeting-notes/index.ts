@@ -1788,6 +1788,9 @@ Do NOT infer ownership from:
 - A name appearing in a phrase like "as Julian has just said" — this means
   Julian contributed a comment, NOT that Julian owns an action
 - Someone's role implying they would naturally do the task
+- An action like "invite Giles West to the next meeting" — the OWNER is the
+  person doing the inviting (write "TBC" if unclear), NOT the invitee. The
+  invitee is the SUBJECT of the action, not its owner.
 
 If ownership is unclear, write "TBC" — TBC is always preferable to a confident
 guess.
@@ -1872,18 +1875,27 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
 
     // Format start time in UK local time (BST/GMT) so the label tracks the actual timezone.
     // CRITICAL: Only mark these as authoritative if the meeting record actually has an
-    // explicit start_time. Otherwise we're feeding the DB import timestamp into the prompt
-    // as if it were the meeting time, which the model dutifully renders as "14:00 GMT" etc.
-    // When start_time is missing, tell the model the values are unknown and to leave the
-    // Date/Time fields as "Not specified" rather than inventing a default.
-    const hasExplicitStartTime = !!meeting.start_time;
-    const startTime = hasExplicitStartTime ? new Date(meeting.start_time) : new Date(meeting.created_at);
+    // explicit start_time AND it differs materially from created_at. Several import paths
+    // (notably the Plaud webhook when recordedAt is missing) set start_time = now() at
+    // import time, which the model then dutifully renders as "14:00 GMT" etc.
+    // Heuristic: if start_time is within 5 minutes of created_at, assume it was auto-set
+    // at import and treat it as not specified.
+    const createdTime = new Date(meeting.created_at);
+    const rawStartTime = meeting.start_time ? new Date(meeting.start_time) : null;
+    const startTimeDiffMinutes = rawStartTime
+      ? Math.abs(rawStartTime.getTime() - createdTime.getTime()) / 60_000
+      : Infinity;
+    const hasExplicitStartTime = !!rawStartTime && startTimeDiffMinutes > 5;
+    const startTime = hasExplicitStartTime ? rawStartTime! : createdTime;
     const formattedStartTime = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Europe/London",
       hour: "2-digit",
       minute: "2-digit",
       timeZoneName: "short",
     }).format(startTime);
+    if (!hasExplicitStartTime && rawStartTime) {
+      console.log(`📅 start_time (${rawStartTime.toISOString()}) within 5 min of created_at (${createdTime.toISOString()}) — treating as auto-set, not authoritative`);
+    }
 
     // Soft-hint extractor: scan title, agenda, and uploaded document filenames for a
     // human-written date (e.g. "1 May 2026", "01-05-2026", "2026-05-01"). If we find one
