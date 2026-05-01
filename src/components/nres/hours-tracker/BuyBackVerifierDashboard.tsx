@@ -993,7 +993,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                           <X className="h-4 w-4" />
                         </button>
                       </div>
-                      <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} className="p-3 pointer-events-auto" />
+                      <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} defaultMonth={parseDisplayDate(quickLine.date) || claimDateBounds?.from} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} className="p-3 pointer-events-auto" />
                     </div>
                   )}
                 </div>
