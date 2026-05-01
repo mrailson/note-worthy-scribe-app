@@ -1255,6 +1255,19 @@ export const MeetingHistoryList = ({
           .eq('id', meeting.id)
           .maybeSingle();
         notesModelUsed = (modelRow as any)?.notes_model_used ?? null;
+
+        // Fallback: if the meetings column is NULL (older runs / consolidated
+        // path before the model-stamp wiring), read the most recent log row.
+        if (!notesModelUsed) {
+          const { data: logRow } = await supabase
+            .from('meeting_generation_log')
+            .select('actual_model_used')
+            .eq('meeting_id', meeting.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          notesModelUsed = (logRow as any)?.actual_model_used ?? null;
+        }
       } catch (modelErr) {
         console.warn('⚠️ Could not load notes_model_used for footer:', modelErr);
       }
@@ -1562,14 +1575,27 @@ export const MeetingHistoryList = ({
     );
 
     // Automatically regenerate Overview first, then Standard Minutes
-    await handleFullProcessing(meeting, {
-      standard: true,
-      overview: true,
-      executive: false,
-      limerick: false
-    }, isDefault ? undefined : modelOverride);
+    try {
+      await handleFullProcessing(meeting, {
+        standard: true,
+        overview: true,
+        executive: false,
+        limerick: false
+      }, isDefault ? undefined : modelOverride);
+    } catch (regenErr: any) {
+      // Distinguish silent-drop (in-progress lock) from real failures so the
+      // user always gets a clear signal instead of a misleading success toast.
+      const msg = regenErr?.message || '';
+      if (msg === 'regenerate-already-in-progress') {
+        // Toast already shown by handleFullProcessing — just bail without success.
+        return;
+      }
+      console.error('❌ Regenerate failed:', regenErr);
+      toast.error(`Regenerate with ${modelLabel} failed: ${msg || 'unknown error'} — check the browser console for details.`, { duration: 8000 });
+      return;
+    }
 
-    // Success toast
+    // Success toast — only reached when handleFullProcessing actually completed.
     if (modelOverride === 'gemini-3-flash') {
       toast.success('⚡ Regenerated with Gemini 3 Flash');
     } else if (modelOverride === 'sonnet-4.6') {
@@ -1628,7 +1654,11 @@ export const MeetingHistoryList = ({
     const meetingId = meeting.id;
     
     if (processingMeetings[meetingId]?.isProcessing) {
-      return; // Already processing
+      // Surface the dropped click so the user knows their second/third click
+      // was a no-op rather than silently appearing to succeed.
+      toast.warning('A regeneration is already in progress for this meeting — wait for it to finish before triggering another.', { duration: 6000 });
+      // Throw so handleProcessClick's downstream success toast does not fire.
+      throw new Error('regenerate-already-in-progress');
     }
 
     // Build list of selected types in order - Overview first, then Standard, then others

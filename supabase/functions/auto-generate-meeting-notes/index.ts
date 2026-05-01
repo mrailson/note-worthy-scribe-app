@@ -515,13 +515,18 @@ serve(async (req) => {
             console.log('✅ Consolidated notes generated successfully');
             console.log('📊 Stats:', consolidatedResult.stats);
             
-            // Save the consolidated notes to database
+            // Save the consolidated notes to database. We also stamp
+            // notes_model_used so the docx footer's model provenance reflects
+            // the override that was supplied for THIS regenerate (defence in
+            // depth — the consolidated function is currently absent on disk,
+            // but if it ever returns ok=true we must not leave a stale stamp).
             const { error: updateError } = await supabase
               .from('meetings')
               .update({ 
                 notes_style_3: consolidatedResult.content,
                 notes_generation_status: 'completed',
-                primary_transcript_source: 'consolidated'
+                primary_transcript_source: 'consolidated',
+                notes_model_used: modelOverride || 'consolidated',
               })
               .eq('id', meetingId);
             
