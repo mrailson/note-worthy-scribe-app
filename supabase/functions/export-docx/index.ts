@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { generateMeetingDocxBase64, generateMeetingFilename } from "../_shared/generateMeetingDocx.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,86 +11,45 @@ const corsHeaders = {
 // Simple markdown to HTML converter (since we can't use 'marked' in Deno edge functions)
 function markdownToHtml(markdown: string): string {
   let html = markdown;
-  
+
   // Headers
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
   html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
   html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-  
+
   // Bold and italic
   html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  
+
   // Code
   html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-  
+
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  
+
   // Line breaks and paragraphs
   html = html.replace(/\n\n/g, '</p><p>');
   html = html.replace(/\n/g, '<br>');
-  
+
   // Lists (basic support)
   html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
   html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
   html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
-  
+
   // Wrap in paragraph tags
   if (!html.includes('<p>')) {
     html = '<p>' + html + '</p>';
   }
-  
-  // Basic table support
-  const lines = html.split('\n');
-  let inTable = false;
-  let tableHtml = '';
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (line.includes('|')) {
-      if (!inTable) {
-        tableHtml += '<table>';
-        inTable = true;
-      }
-      const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
-      const isHeader = i === 0 || (i > 0 && lines[i-1].includes('---'));
-      const tag = isHeader ? 'th' : 'td';
-      tableHtml += '<tr>' + cells.map(cell => `<${tag}>${cell}</${tag}>`).join('') + '</tr>';
-    } else if (inTable) {
-      tableHtml += '</table>';
-      inTable = false;
-    }
-    
-    if (!line.includes('|') && !line.includes('---')) {
-      tableHtml += line;
-    }
-  }
-  
-  if (inTable) {
-    tableHtml += '</table>';
-  }
-  
-  return tableHtml || html;
+
+  return html;
 }
 
-// Simple HTML to DOCX converter (basic implementation)
-function htmlToDocx(html: string): Uint8Array {
-  // This is a very basic implementation
-  // In a real application, you'd want to use a proper library
-  const wordXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    <w:p>
-      <w:r>
-        <w:t>${html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}</w:t>
-      </w:r>
-    </w:p>
-  </w:body>
-</w:document>`;
-  
-  return new TextEncoder().encode(wordXml);
+function base64ToUint8Array(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 serve(async (req) => {
@@ -98,7 +59,8 @@ serve(async (req) => {
   }
 
   try {
-    const { markdown, filename } = await req.json();
+    const body = await req.json();
+    const { markdown, filename, meetingId, title } = body || {};
 
     if (typeof markdown !== "string" || !markdown.trim()) {
       return new Response(JSON.stringify({ error: "Body requires { markdown: string }" }), {
@@ -107,9 +69,69 @@ serve(async (req) => {
       });
     }
 
+    // ── NHS-styled meeting docx path (footer w/ model stamp) ───────────────
+    // When the caller supplies meetingId, route through the shared
+    // generateMeetingDocxBase64 helper so the output matches the in-app
+    // styling and carries the model-provenance footer.
+    if (meetingId && typeof meetingId === 'string') {
+      try {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        );
+
+        const { data: meeting } = await supabase
+          .from('meetings')
+          .select('id, title, start_time, duration_minutes, participants, meeting_format, meeting_location, notes_model_used')
+          .eq('id', meetingId)
+          .maybeSingle();
+
+        const startTime = meeting?.start_time ? new Date(meeting.start_time as string) : null;
+        const meetingDate = startTime
+          ? startTime.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+          : undefined;
+        const meetingTime = startTime
+          ? startTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
+          : undefined;
+        const attendees = Array.isArray(meeting?.participants) && (meeting!.participants as any[]).length > 0
+          ? (meeting!.participants as any[]).join(', ')
+          : undefined;
+
+        const cleanTitle = (title || meeting?.title || 'Meeting Notes') as string;
+
+        const base64Content = await generateMeetingDocxBase64({
+          summaryContent: markdown,
+          title: cleanTitle,
+          details: {
+            date: meetingDate,
+            time: meetingTime,
+            location: (meeting as any)?.meeting_format || (meeting as any)?.meeting_location || undefined,
+            attendees,
+          },
+          modelUsed: (meeting as any)?.notes_model_used || undefined,
+        });
+
+        const outFilename = generateMeetingFilename(cleanTitle, startTime || new Date(), 'docx');
+        const bytes = base64ToUint8Array(base64Content);
+
+        return new Response(bytes, {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Disposition': `attachment; filename="${outFilename}"`,
+          },
+        });
+      } catch (mErr) {
+        console.error('⚠️ meeting-docx path failed, falling back to legacy HTML export:', mErr);
+        // fall through to legacy renderer below
+      }
+    }
+
+    // ── Legacy non-meeting HTML-as-.doc path (unchanged behaviour) ─────────
     console.log('Converting markdown to HTML...');
     const html = markdownToHtml(markdown);
-    
+
     console.log('Creating Word document...');
     const page = `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -131,12 +153,11 @@ serve(async (req) => {
 </style>
 </head><body>${html}</body></html>`;
 
-    // Return the styled HTML as a .doc file (Word can open HTML natively)
     const encoder = new TextEncoder();
     const fileBuffer = encoder.encode(page);
 
     const safe = (filename || "meeting-notes").replace(/[^a-z0-9\-_]+/gi, "-");
-    
+
     return new Response(fileBuffer, {
       status: 200,
       headers: {
@@ -148,7 +169,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in export-docx function:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Unexpected error' }), {
+    return new Response(JSON.stringify({ error: (error as any).message || 'Unexpected error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
