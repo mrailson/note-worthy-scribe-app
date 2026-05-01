@@ -38,7 +38,7 @@ interface Props {
   claimLabel?: string;
 }
 
-export function EvidenceViewerModal({ open, files, initialIndex, getDownloadUrl, onClose }: Props) {
+export function EvidenceViewerModal({ open, files, initialIndex, getDownloadUrl, onClose, claimLabel }: Props) {
   const [index, setIndex] = useState(initialIndex);
   const [loading, setLoading] = useState(false);
   const cacheRef = useRef<Map<string, string>>(new Map());
