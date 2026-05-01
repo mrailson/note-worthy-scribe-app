@@ -752,7 +752,7 @@ export const buildActionItemsSection = async (
 
 // Main export function
 export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOptions): Promise<void> => {
-  const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
+  const { Document, Packer, Paragraph, TextRun, AlignmentType, Footer, PageNumber } = await import("docx");
   
   // Strip transcript sections and replace Facilitator/Unidentified with logged user's name
   let cleanedContent = stripTranscriptSection(options.content);
