@@ -19,17 +19,31 @@ function getUnitRate(s: any): string {
     return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
   }
   if (cat === 'management') {
-    if (allocType === 'hours' && rate > 0) return `£${rate.toFixed(2)} / hr`;
-    return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
+    const hr = s.hourly_rate_with_on_costs ?? rate;
+    if (hr > 0) return `£${hr.toFixed(2)} / hr (incl. on-costs)`;
+    return '—';
   }
-  // Salaried / buy-back / new SDA — WTE-based with on-costs
-  if (allocType === 'wte') {
-    return 'WTE × on-costs';
+
+  // Salaried / buy-back / new SDA — surface hourly rate inclusive of on-costs
+  let hourly = s.hourly_rate_with_on_costs as number | undefined;
+
+  // Legacy fallback: derive from snapshot's calculated_amount for older claims
+  if (!hourly && s.calculated_amount && s.allocation_value) {
+    const monthly = Number(s.calculated_amount);
+    const alloc = Number(s.allocation_value);
+    if (alloc > 0) {
+      if (allocType === 'wte') hourly = (monthly * 12) / (alloc * 1950);
+      else if (allocType === 'sessions') hourly = (monthly * 12) / (alloc * 4.4 * 52); // 1 session ≈ 4.4 hrs
+      else if (allocType === 'hours') hourly = (monthly * 12) / (alloc * 52);
+    }
   }
+
+  if (hourly && hourly > 0) return `£${hourly.toFixed(2)} / hr (incl. on-costs)`;
   if (allocType === 'hours' && rate > 0) return `£${rate.toFixed(2)} / hr`;
-  if (allocType === 'sessions') return `£${(rate || 0).toFixed(2)} / session`;
+  if (allocType === 'sessions' && rate > 0) return `£${rate.toFixed(2)} / session`;
   return rate > 0 ? `£${rate.toFixed(2)} / hr` : '—';
 }
+
 
 interface InvoiceData {
   claim: BuyBackClaim;
@@ -279,7 +293,9 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(GREY_100);
   const explainer =
-    'Invoice total derived line-by-line as Allocation × Unit Rate (WTE lines include applied on-costs):  ' +
+    'Invoice total derived line-by-line as Allocation × Unit Rate. ' +
+    'Hourly rates shown for buy-back / salaried lines are the effective hourly cost inclusive of employer on-costs ' +
+    '(NI + pension), based on a 37.5-hour week × 52 weeks (1,950 hrs/year). ' +
     (formulaParts.length
       ? formulaParts.join('  +  ') + `  =  ${fmt(grandTotalForExplainer)}`
       : `Total = ${fmt(grandTotalForExplainer)}`);
