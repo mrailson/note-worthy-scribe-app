@@ -172,11 +172,20 @@ const claimMonthBounds = (claimMonth?: string | null) => {
 };
 
 const parseInvoiceTableDescription = (description: string): InvoiceTableRow[] => {
-  const start = description.indexOf(INVOICE_TABLE_START);
-  const end = description.indexOf(INVOICE_TABLE_END);
-  if (start === -1 || end === -1 || end <= start) return [];
-  return description.slice(start + INVOICE_TABLE_START.length, end).trim().split('\n').map((line) => {
-    const [date = '', startTime = '', stop = '', ...rest] = line.split('|').map(part => part.trim());
+  if (!description) return [];
+  // Strip legacy [[INVOICE_TABLE]] / [[/INVOICE_TABLE]] markers if present
+  let body = description;
+  const start = body.indexOf(INVOICE_TABLE_START);
+  const end = body.indexOf(INVOICE_TABLE_END);
+  if (start !== -1 && end !== -1 && end > start) {
+    body = body.slice(start + INVOICE_TABLE_START.length, end);
+  }
+  return body.trim().split('\n').map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+    // Only treat as a row if it looks like a pipe-delimited entry
+    if (!trimmed.includes('|')) return null;
+    const [date = '', startTime = '', stop = '', ...rest] = trimmed.split('|').map(part => part.trim());
     if (!date && !startTime && !stop && rest.length === 0) return null;
     return newInvoiceTableRow(date, startTime, stop, rest.join(' | '));
   }).filter(Boolean) as InvoiceTableRow[];
@@ -185,11 +194,10 @@ const parseInvoiceTableDescription = (description: string): InvoiceTableRow[] =>
 const serialiseInvoiceTableRows = (rows: InvoiceTableRow[]) => {
   const validRows = rows.filter(row => row.date || row.start || row.stop || row.details.trim());
   if (!validRows.length) return '';
-  return [
-    INVOICE_TABLE_START,
-    ...validRows.map(row => `${row.date || '—'} | ${row.start || '—'} | ${row.stop || '—'} | ${row.details.trim() || '—'}`),
-    INVOICE_TABLE_END,
-  ].join('\n').slice(0, DESCRIPTION_LIMIT);
+  return validRows
+    .map(row => `${row.date || '—'} | ${row.start || '—'} | ${row.stop || '—'} | ${row.details.trim() || '—'}`)
+    .join('\n')
+    .slice(0, DESCRIPTION_LIMIT);
 };
 
 const appendInvoiceText = (current: string, addition: string) => {
