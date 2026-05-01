@@ -612,6 +612,84 @@ serve(async (req) => {
     const transcriptWordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
     console.log(`📏 Transcript word count: ${transcriptWordCount}`);
 
+    // ─── PIPELINE GUARD (300 words / 180s) ──────────────────────────────
+    // Bypass with forceGenerate: true. Looks up duration from the meetings
+    // table when a meetingId is provided.
+    let guardDurationSeconds: number | null = null;
+    if (reqMeetingId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (supabaseUrl && serviceKey) {
+          const sb = createClient(supabaseUrl, serviceKey);
+          const { data: dRow } = await sb.from('meetings').select('duration_minutes').eq('id', reqMeetingId).maybeSingle();
+          if (dRow?.duration_minutes != null) {
+            guardDurationSeconds = Math.round(Number(dRow.duration_minutes) * 60);
+          }
+        }
+      } catch (_e) { /* non-blocking */ }
+    }
+
+    const MIN_TRANSCRIPT_WORDS = 300;
+    const MIN_DURATION_SECONDS = 180;
+    if (!forceGenerate) {
+      const transcriptTooShort = transcriptWordCount < MIN_TRANSCRIPT_WORDS;
+      const durationTooShort = guardDurationSeconds != null && guardDurationSeconds < MIN_DURATION_SECONDS;
+      if (transcriptTooShort || durationTooShort) {
+        const skipReason: 'transcript_too_short' | 'duration_too_short' | 'both_too_short' =
+          transcriptTooShort && durationTooShort ? 'both_too_short'
+            : transcriptTooShort ? 'transcript_too_short'
+            : 'duration_too_short';
+        console.log(`⛔ Pipeline guard: insufficient content (${skipReason}) — words=${transcriptWordCount}, duration=${guardDurationSeconds}s`);
+
+        const friendlyMessage = `# Recording too short for meeting notes\n\nThis recording is too short to generate meeting notes (${guardDurationSeconds ?? '—'} seconds, ${transcriptWordCount} words). Meeting notes work best on recordings over 3 minutes with substantive discussion.\n\nIf this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Notewell AI declined to generate notes to avoid hallucinating content from a recording that does not appear to be a meeting.*`;
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (supabaseUrl && serviceKey && reqMeetingId) {
+          const sb = createClient(supabaseUrl, serviceKey);
+          try {
+            await sb.from('meeting_summaries').upsert({
+              meeting_id: reqMeetingId,
+              summary: friendlyMessage,
+              generation_metadata: { status: 'insufficient_content', reason: skipReason, transcript_word_count: transcriptWordCount, duration_seconds: guardDurationSeconds, guard: 'pipeline' },
+              ai_generated: false,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'meeting_id' });
+            await sb.from('meetings').update({
+              notes_style_3: friendlyMessage,
+              notes_generation_status: 'insufficient_content',
+              word_count: transcriptWordCount,
+              updated_at: new Date().toISOString(),
+            }).eq('id', reqMeetingId);
+            await sb.from('meeting_generation_log').insert({
+              meeting_id: reqMeetingId,
+              primary_model: 'none',
+              actual_model_used: 'none',
+              fallback_count: 0,
+              generation_ms: 0,
+              skip_reason: skipReason,
+              detected_content_type: skipReason,
+              transcript_word_count: transcriptWordCount,
+              duration_seconds: guardDurationSeconds,
+              transcript_snippet: transcript.slice(0, 200),
+            });
+          } catch (e) {
+            console.warn('⚠️ Failed to persist insufficient-content state:', e);
+          }
+        }
+
+        return new Response(JSON.stringify({
+          status: 'insufficient_content',
+          reason: skipReason,
+          transcript_word_count: transcriptWordCount,
+          duration_seconds: guardDurationSeconds,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    } else {
+      console.log('⚠️ forceGenerate=true — bypassing pipeline guard');
+    }
+
     if (transcriptWordCount < 100) {
       console.log('⚠️ Ultra-short transcript (<100 words) — bypassing LLM to prevent hallucination');
       const minimalNotes = `# Meeting Notes — ${meetingTitle || 'Untitled Meeting'}\n\n**Date:** ${meetingDate || 'Not recorded'}  \n**Time:** ${meetingTime || 'Not recorded'}\n\n---\n\n## Recording Summary\n\nThis recording captured minimal content (approximately ${transcriptWordCount} words). The transcript is too short for substantive meeting notes to be generated reliably.\n\nNo agenda items, decisions, or action items were identified from this recording.\n\n---\n\n*Generated by Notewell AI — MHRA Class I registered medical device. These minutes are based solely on the content of the provided transcript. No information has been inferred, estimated, or supplemented beyond what was explicitly recorded.*`;
