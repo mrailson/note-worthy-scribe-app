@@ -5,7 +5,8 @@ import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2, X, Upload, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
