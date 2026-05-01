@@ -15,6 +15,14 @@ import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidence
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { getSDAClaimGLCode } from '@/utils/glCodes';
 
+const HOURS_PER_SESSION = 25 / 6;
+
+const isSessionPricedRole = (roleLabel?: string | null, roleConfig?: { allocation_default?: string } | null, annualRate?: number): boolean => {
+  if (roleConfig?.allocation_default === 'sessions') return true;
+  const role = (roleLabel || '').toLowerCase();
+  return role.includes('gp') && !!annualRate && annualRate > 0 && annualRate <= 20000;
+};
+
 // --- Types ---
 interface BuyBackPracticeDashboardProps {
   claims: BuyBackClaim[];
@@ -576,14 +584,13 @@ function InlineClaimPanel({
     }
 
     if (allocType === 'hours') {
-      const isSessionPriced = roleConfig?.allocation_default === 'sessions';
-      const HRS_PER_SESSION = 25 / 6; // 4 hrs 10 min
-      const sessions = allocValue / HRS_PER_SESSION;
+      const isSessionPriced = isSessionPricedRole(role, roleConfig, annualRate);
+      const sessions = allocValue / HOURS_PER_SESSION;
       const wteRatio = allocValue / 37.5;
       return {
         primary: isSessionPriced ? [
           { label: `${allocValue} hrs/wk`, accent: true },
-          { label: '÷ 4.17 hrs/session =' },
+          { label: '÷ 4 hrs 10 mins/session =' },
           { label: `${sessions.toFixed(2)} sess/wk`, accent: true },
           { label: '×' },
           { label: `${fmtGBP(annualRate)}/yr per session`, accent: true },
