@@ -1741,6 +1741,18 @@ export const MeetingHistoryList = ({
               throw new Error(`Standard notes failed: ${standardError.message || JSON.stringify(standardError)}`);
             }
 
+            if (data?.skipped) {
+              throw new Error(data?.message || 'Standard notes generation was skipped');
+            }
+
+            if (data?.status === 'insufficient_content') {
+              throw new Error(data?.explanation || data?.reason || 'The selected model declined to generate meeting notes for this transcript');
+            }
+
+            if (effectiveModel && data?.actualModelUsed && data.actualModelUsed !== effectiveModel) {
+              throw new Error(`Requested ${effectiveModel}, but the edge function returned ${data.actualModelUsed}`);
+            }
+
             // Surface fallback if the primary model failed and a different one produced the notes.
             if (data?.fallbackCount && data.fallbackCount > 0 && data?.actualModelUsed) {
               const fallbackLabels: Record<string, string> = {

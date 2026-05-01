@@ -208,6 +208,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const normaliseTranscriptSourceForMeeting = (source: string | null | undefined): string | null => {
+  const raw = (source || '').toLowerCase().trim();
+  if (!raw) return null;
+  if (raw === 'best_of_all') return 'best_of_all';
+  if (raw === 'consolidated') return 'consolidated';
+  if (raw.includes('whisper') || raw === 'meetings_consolidated') return 'whisper';
+  if (raw.includes('assembly') || raw.includes('live')) return 'assembly';
+  if (raw.includes('deepgram')) return 'deepgram';
+  if (raw.includes('meeting_transcription_chunks') || raw.includes('meeting_transcripts') || raw.includes('transcription_chunks')) return 'whisper';
+  return null;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -686,6 +698,7 @@ serve(async (req) => {
 
           const transcriptData = finalTranscriptResult?.[0];
           fullTranscript = transcriptData?.transcript || '';
+          actualTranscriptSource = normaliseTranscriptSourceForMeeting(transcriptData?.source) || 'whisper';
           itemCount = transcriptData?.item_count || 0;
         }
       }
@@ -912,6 +925,7 @@ serve(async (req) => {
           await supabase.from('meetings').update({
             notes_style_3: friendlyMessage,
             notes_generation_status: 'insufficient_content',
+            notes_model_used: 'none',
             word_count: wordCount,
             updated_at: new Date().toISOString(),
           }).eq('id', meetingId);
@@ -1997,21 +2011,18 @@ ${cleanedTranscript}`;
     //   - Multi-step fallback chain across providers
     //
     // OVERRIDE PATH (caller specified modelOverride in the request body):
-    //   - 90s per attempt (Sonnet / Opus on long governance transcripts need it)
-    //   - SINGLE fallback to Claude Haiku 4.5 if the requested model fails
-    //   - Both attempts logged to meeting_generation_log so the audit trail is complete
+    //   - 90s per attempt (Sonnet / GPT on long governance transcripts need it)
+    //   - no automatic fallback: a failed requested model must surface to the user
+    //     instead of silently producing notes with a different footer/model.
     const AUTO_PER_ATTEMPT_TIMEOUT_MS = 30_000;
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 90_000;
-    const OVERRIDE_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
     const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
       ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
       : AUTO_PER_ATTEMPT_TIMEOUT_MS;
     const buildFallbackChain = (primary: string): string[] => {
-      // Caller-specified models get a single Haiku fallback (no provider chain).
+      // Caller-specified models are audit comparisons: do not substitute another model.
       if (callerSpecifiedModel) {
-        return primary === OVERRIDE_FALLBACK_MODEL
-          ? [primary]
-          : [primary, OVERRIDE_FALLBACK_MODEL];
+        return [primary];
       }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
@@ -2343,6 +2354,7 @@ ${cleanedTranscript}`;
               await supabase.from('meetings').update({
                 notes_style_3: friendlyMessage,
                 notes_generation_status: 'insufficient_content',
+                notes_model_used: actualModelUsed,
                 word_count: wordCount,
                 updated_at: new Date().toISOString(),
               }).eq('id', meetingId);
@@ -2657,13 +2669,14 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       .update({
         notes_style_3: generatedNotes,
         notes_generation_status: 'completed',
-        primary_transcript_source: actualTranscriptSource,
+        primary_transcript_source: normaliseTranscriptSourceForMeeting(actualTranscriptSource),
         notes_model_used: actualModelUsed,
       })
       .eq('id', meetingId);
 
     if (notesMirrorError) {
-      console.warn('⚠️ Failed to mirror generated notes to meetings.notes_style_3:', notesMirrorError);
+      console.error('❌ Failed to mirror generated notes to meetings.notes_style_3:', notesMirrorError);
+      throw new Error(`Failed to save regenerated notes to meeting record: ${notesMirrorError.message}`);
     }
 
     // Extract and store action items immediately after notes are saved
