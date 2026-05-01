@@ -568,7 +568,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 <div className="flex items-center gap-2 flex-wrap">
                   {getStatusBadge()}
                   {emailSent && (
-                    <Badge variant="outline" className="flex items-center gap-1.5 text-muted-foreground border-muted-foreground/30">
+                    <Badge variant="default" className="flex items-center gap-1.5 bg-green-600 w-fit hover:bg-green-600">
                       <Mail className="h-3 w-3" />
                       Emailed
                     </Badge>
