@@ -147,6 +147,7 @@ export const MeetingRecoveryHelper = () => {
                   <ManualNoteGenerationButton 
                     meetingId={meeting.id}
                     hasExistingNotes={false}
+                    isInsufficientContent={meeting.notes_generation_status === 'insufficient_content'}
                   />
                   <Button
                     size="sm"
