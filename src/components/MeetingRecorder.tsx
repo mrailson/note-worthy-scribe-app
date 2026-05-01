@@ -5173,6 +5173,7 @@ export const MeetingRecorder = ({
         await resetMeeting();
       } finally {
         setIsStoppingRecording(false);
+        setIsFinalisingMeeting(false);
         stopInProgressRef.current = false;
       }
       
