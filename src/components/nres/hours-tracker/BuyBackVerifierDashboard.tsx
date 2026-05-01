@@ -496,7 +496,9 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [importing, setImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState<string>('');
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
+  const { files: evidenceFiles, getDownloadUrl: getEvidenceDownloadUrl } = useNRESClaimEvidence(claim.id);
   const claimDateBounds = claimMonthBounds(claim.claim_month);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
@@ -589,6 +591,103 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     } finally {
       setImporting(false);
       if (importFileInputRef.current) importFileInputRef.current.value = '';
+    }
+  };
+
+  // Import dates/times from ALL Supporting Evidence files attached to this claim
+  const handleImportFromEvidence = async () => {
+    if (!evidenceFiles.length) {
+      toast.error('No supporting evidence uploaded yet');
+      return;
+    }
+    // Filter to readable docs (PDF / image / Word)
+    const readable = evidenceFiles.filter(f => {
+      const n = (f.file_name || '').toLowerCase();
+      const t = (f.file_type || '').toLowerCase();
+      return t === 'application/pdf' || n.endsWith('.pdf')
+        || t.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(n)
+        || n.endsWith('.docx') || n.endsWith('.doc') || t.includes('officedocument.wordprocessing');
+    });
+    if (!readable.length) {
+      toast.error('No PDF, image or Word evidence to read');
+      return;
+    }
+    setImporting(true);
+    setImportStatus(`Reading ${readable.length} file${readable.length === 1 ? '' : 's'}…`);
+    const aggregated: InvoiceTableRow[] = [];
+    let processed = 0;
+    let failed = 0;
+    try {
+      for (const f of readable) {
+        processed += 1;
+        setImportStatus(`Reading ${processed}/${readable.length}: ${f.file_name}`);
+        try {
+          const url = await getEvidenceDownloadUrl(f.file_path);
+          if (!url) { failed += 1; continue; }
+          const resp = await fetch(url);
+          if (!resp.ok) { failed += 1; continue; }
+          const blob = await resp.blob();
+          const dataUrl: string = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(String(r.result || ''));
+            r.onerror = () => reject(r.error || new Error('Read failed'));
+            r.readAsDataURL(blob);
+          });
+          const n = f.file_name.toLowerCase();
+          const ft: 'pdf' | 'image' | 'word' =
+            (f.file_type === 'application/pdf' || n.endsWith('.pdf')) ? 'pdf'
+              : (n.endsWith('.docx') || n.endsWith('.doc') || (f.file_type || '').includes('officedocument.wordprocessing')) ? 'word'
+                : 'image';
+          const { data: extractData, error: extractErr } = await supabase.functions.invoke('extract-document-text', {
+            body: { fileType: ft, dataUrl, fileName: f.file_name },
+          });
+          if (extractErr) { failed += 1; continue; }
+          const text: string = extractData?.extractedText || '';
+          if (!text || text.trim().length < 5) continue;
+          const { data: aiData, error: aiErr } = await supabase.functions.invoke('extract-management-time-entries', {
+            body: { text },
+          });
+          if (aiErr) { failed += 1; continue; }
+          const entries: any[] = aiData?.entries || [];
+          for (const e of entries) {
+            aggregated.push(newInvoiceTableRow(
+              isoToDisplayDate(e.work_date || ''),
+              e.start_time || '',
+              e.end_time || '',
+              (e.description || '').slice(0, MAX_LINE_CHARS - 40),
+            ));
+          }
+        } catch (innerErr) {
+          console.error('Evidence import error for', f.file_name, innerErr);
+          failed += 1;
+        }
+      }
+      if (!aggregated.length) {
+        toast.warning('No dated time entries found in the supporting evidence');
+        return;
+      }
+      // De-duplicate identical rows (same date + start + stop + details)
+      const seen = new Set<string>();
+      const unique = aggregated.filter(r => {
+        const key = `${r.date}|${r.start}|${r.stop}|${r.details}`.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      // Sort by date ascending (DD/MM/YYYY)
+      unique.sort((a, b) => {
+        const pa = a.date.split('/').reverse().join('');
+        const pb = b.date.split('/').reverse().join('');
+        return pa.localeCompare(pb);
+      });
+      syncRows([...invoiceRows, ...unique]);
+      toast.success(`Added ${unique.length} line${unique.length === 1 ? '' : 's'} from ${readable.length - failed} file${readable.length - failed === 1 ? '' : 's'}${failed ? ` (${failed} failed)` : ''}`);
+    } catch (e: any) {
+      console.error('Bulk evidence import failed:', e);
+      toast.error(e?.message || 'Import failed');
+    } finally {
+      setImporting(false);
+      setImportStatus('');
     }
   };
 
@@ -821,7 +920,17 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                   {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                   {importing ? 'Extracting…' : 'Import from document'}
                 </button>
-                <span style={{ fontSize: 10, color: '#92400e', fontStyle: 'italic' }}>Word, PDF or image — auto-fills dates &amp; times</span>
+                <button
+                  type="button"
+                  onClick={handleImportFromEvidence}
+                  disabled={importing || evidenceFiles.length === 0}
+                  title={evidenceFiles.length === 0 ? 'Upload supporting evidence first (PDF, image or Word)' : `Read all ${evidenceFiles.length} supporting evidence file${evidenceFiles.length === 1 ? '' : 's'} and auto-extract dates & times`}
+                  style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #059669', background: importing ? '#ecfdf5' : '#fff', color: '#047857', fontSize: 12, fontWeight: 700, cursor: (importing || evidenceFiles.length === 0) ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center', opacity: (importing || evidenceFiles.length === 0) ? 0.6 : 1 }}
+                >
+                  {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {importing ? 'Reading evidence…' : `Import from supporting evidence${evidenceFiles.length ? ` (${evidenceFiles.length})` : ''}`}
+                </button>
+                <span style={{ fontSize: 10, color: '#92400e', fontStyle: 'italic' }}>{importStatus || 'Word, PDF or image — auto-fills dates & times'}</span>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <div ref={datePickerRef} style={{ position: 'relative', display: 'inline-flex' }}>
