@@ -306,6 +306,28 @@ export function StaffLineEvidence({
     }
   };
 
+  // Ordered list of all uploaded files for this staff line — drives prev/next in viewer
+  const orderedFiles = useMemo<ClaimEvidenceFile[]>(() => {
+    const list: ClaimEvidenceFile[] = [];
+    visibleTypes.forEach(cfg => {
+      if (cfg.evidence_type === 'other_supporting') {
+        (allFilesForStaff || []).filter(f => f.evidence_type === 'other_supporting').forEach(f => list.push(f));
+      } else {
+        const single = uploadedTypesForStaff[cfg.evidence_type];
+        if (single) list.push(single);
+      }
+    });
+    return list;
+  }, [visibleTypes, allFilesForStaff, uploadedTypesForStaff]);
+
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openViewer = (file: ClaimEvidenceFile) => {
+    const idx = orderedFiles.findIndex(f => f.id === file.id);
+    setViewerIndex(idx >= 0 ? idx : 0);
+    setViewerOpen(true);
+  };
+
   return (
     <div className="bg-slate-50/80 dark:bg-slate-900/30">
       {!hideHeader && (
