@@ -472,6 +472,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
 }) {
   const [reviewNotes, setReviewNotes] = useState('');
   const [flaggedLines, setFlaggedLines] = useState<number[]>([]);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
 
   // Finance payment state
   const [schedDate, setSchedDate] = useState(
