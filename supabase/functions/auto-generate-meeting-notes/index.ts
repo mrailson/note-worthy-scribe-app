@@ -718,6 +718,21 @@ serve(async (req) => {
 
     console.log('📄 Raw transcript length:', fullTranscript.length, 'chars');
 
+    // Strip "Meeting transcript." placeholder noise injected by failed-chunk fallbacks.
+    // Sonnet/Gemini ignore it; GPT-5.2 is stricter and refuses transcripts that open
+    // with 100+ identical placeholder lines. Collapse 2+ consecutive occurrences entirely.
+    {
+      const beforeLen = fullTranscript.length;
+      const cleaned = fullTranscript
+        .replace(/(?:\s*Meeting transcript\.\s*){2,}/gi, ' ')
+        .trim();
+      if (cleaned.length !== beforeLen) {
+        const removed = beforeLen - cleaned.length;
+        console.log(`🧹 Stripped ${removed} chars of "Meeting transcript." placeholder noise (${beforeLen} → ${cleaned.length})`);
+        fullTranscript = cleaned;
+      }
+    }
+
     // Fetch explicit attendees added to the meeting card with their organizations
     const { data: cardAttendees, error: attendeesError } = await supabase
       .from('meeting_attendees')
