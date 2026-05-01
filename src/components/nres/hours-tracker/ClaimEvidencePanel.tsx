@@ -167,7 +167,11 @@ export function EvidenceSlot({
 }) {
   const filesToShow = allowMultiple ? (uploadedFiles || []) : (uploadedFile ? [uploadedFile] : []);
   const hasFile = filesToShow.length > 0;
-  const displayLabel = config.evidence_type === 'other_supporting' ? 'Supporting Evidence' : config.label;
+  const isOtherSupporting = config.evidence_type === 'other_supporting';
+  const displayLabel = isOtherSupporting ? '' : config.label;
+  const displayDescription = isOtherSupporting
+    ? 'Any documentation to support the claim is added below. You can view or download the evidence as needed.'
+    : config.description;
 
   const handleDownload = async (filePath: string) => {
     const url = await onDownload(filePath);
@@ -185,12 +189,14 @@ export function EvidenceSlot({
       )}
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="font-medium">{displayLabel}</span>
-          {config.is_mandatory && <span className="text-red-500 text-[10px]">Required</span>}
-        </div>
-        {config.description && (
-          <p className="text-muted-foreground text-[10px] truncate">{config.description}</p>
+        {displayLabel && (
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">{displayLabel}</span>
+            {config.is_mandatory && <span className="text-red-500 text-[10px]">Required</span>}
+          </div>
+        )}
+        {displayDescription && (
+          <p className="text-muted-foreground text-[10px] truncate">{displayDescription}</p>
         )}
         {hasFile && (
           <div className="mt-1 space-y-1">
@@ -391,10 +397,7 @@ export function StaffLineEvidence({
               <div key={`${staffIndex}-${cfg.evidence_type}`} className="px-3 py-2 flex items-center gap-3 text-xs">
                 <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium">Supporting Evidence</span>
-                  {cfg.description && (
-                    <p className="text-muted-foreground text-[10px] truncate">{cfg.description}</p>
-                  )}
+                  <p className="text-muted-foreground text-[10px]">Any documentation to support the claim is added below. You can view or download the evidence as needed.</p>
                   {otherSupportingFiles.length > 0 && (
                     <div className="mt-1 space-y-1">
                       {otherSupportingFiles.map(file => (
