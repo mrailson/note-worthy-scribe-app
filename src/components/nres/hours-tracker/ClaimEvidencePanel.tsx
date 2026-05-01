@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles, Info } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { FileText, Trash2, Download, Eye, CheckCircle2, AlertCircle, Loader2, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -7,6 +7,7 @@ import { useNRESClaimEvidence, type ClaimEvidenceFile } from '@/hooks/useNRESCla
 import { useNRESEvidenceConfig, type EvidenceConfigRow } from '@/hooks/useNRESEvidenceConfig';
 import { SmartUploadZone } from './SmartUploadZone';
 import { generateEvidenceSummaryFallback } from '@/utils/evidenceAiSummary';
+import { EvidenceViewerModal } from './EvidenceViewerModal';
 
 interface ClaimEvidencePanelProps {
   claimId: string;
