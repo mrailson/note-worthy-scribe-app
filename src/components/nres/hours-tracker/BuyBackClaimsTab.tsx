@@ -2395,7 +2395,7 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
           `Date Generated: ${dateStr} at ${timeStr}`,
           `Staff Member: ${staffName}`,
           `Evidence Type: ${evidenceLabel}`,
-          `Claim Reference: ${claim.id.slice(0, 8).toUpperCase()}`,
+          `Claim Reference: ${claim.claim_ref != null ? `#${claim.claim_ref}` : claim.id.slice(0, 8).toUpperCase()}`,
           `Practice: ${getPracticeName(claim.practice_key)}`,
           `Claim Period: ${format(new Date(claim.claim_month), 'MMMM yyyy')}`,
           '',
