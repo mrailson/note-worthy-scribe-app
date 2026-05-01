@@ -20,6 +20,5 @@ export function generateEvidenceSummaryFallback(
     other_supporting: 'other evidence',
   };
 
-  const types = [...new Set(evidenceFiles.map(f => typeLabels[f.evidence_type] || f.evidence_type.replace(/_/g, ' ')))];
-  return `${evidenceFiles.length} file${evidenceFiles.length !== 1 ? 's' : ''} uploaded: ${types.join(', ')}`;
+  return `${evidenceFiles.length} file${evidenceFiles.length !== 1 ? 's' : ''} uploaded`;
 }
