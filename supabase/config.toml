@@ -475,3 +475,6 @@ verify_jwt = false
 
 [functions.render-practice-letterhead]
 verify_jwt = true
+
+[functions.send-evidence-email]
+verify_jwt = true
