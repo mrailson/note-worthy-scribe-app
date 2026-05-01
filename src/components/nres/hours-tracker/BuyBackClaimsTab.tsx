@@ -590,9 +590,11 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   const hiddenTestRoles: import('./TestModeBar').TestRole[] =
     !isFullAdmin && (isPMLDirector || isPMLFinance) ? ['admin'] : [];
 
-  // Test mode state — UI-only, admin users only
+  const canUseTestMode = isFullAdmin;
+
+  // Test mode state — UI-only, full admin users only
   const [testMode, setTestMode] = useState<TestModeState>({ enabled: true, role: defaultTestRole });
-  const testActive = isAdmin && testMode.enabled && testMode.role !== defaultTestRole;
+  const testActive = canUseTestMode && testMode.enabled && testMode.role !== defaultTestRole;
 
   const [claimPractice, setClaimPractice] = useState<string>('');
 
@@ -895,7 +897,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
 
     return (
       <div className="space-y-6">
-        {isAdmin && (
+        {canUseTestMode && (
           <TestModeBar
             state={testMode}
             onChange={setTestMode}
@@ -960,7 +962,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   if (showVerifierDashboard) {
     return (
       <div className="space-y-6">
-        {isAdmin && (
+        {canUseTestMode && (
           <TestModeBar
             state={testMode}
             onChange={setTestMode}
@@ -991,7 +993,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   if (showPMLDashboard) {
     return (
       <div className="space-y-6">
-        {isAdmin && (
+        {canUseTestMode && (
           <TestModeBar
             state={testMode}
             onChange={setTestMode}
@@ -1089,7 +1091,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   return (
     <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1200, margin: '0 auto', padding: '28px 16px' }}>
       {/* Test Mode Bar — admin only — placed at top of page to align with Practice/Verifier/PML views */}
-      {isAdmin && (
+      {canUseTestMode && (
         <div style={{ marginBottom: 16 }}>
           <TestModeBar
             state={testMode}
