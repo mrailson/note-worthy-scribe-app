@@ -28,6 +28,12 @@ interface MeetingData {
 
 interface MeetingNotesWordExportProps {
   meetingData: MeetingData;
+  /**
+   * Optional. The DB id of the meeting being exported. When supplied, we look
+   * up `meetings.notes_model_used` so the page footer can carry the model
+   * provenance stamp on every download (including re-downloads of old notes).
+   */
+  meetingId?: string;
 }
 
 const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meetingData }) => {
