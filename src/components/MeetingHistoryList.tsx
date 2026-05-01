@@ -41,7 +41,8 @@ import {
   HeartPulse,
   ChevronRight,
   Sparkles,
-  Zap
+  Zap,
+  Brain
 } from "lucide-react";
 import AgeingWellDemoModal from "@/components/AgeingWellDemoModal";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
