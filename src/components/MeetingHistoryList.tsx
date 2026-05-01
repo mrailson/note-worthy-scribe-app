@@ -1562,14 +1562,27 @@ export const MeetingHistoryList = ({
     );
 
     // Automatically regenerate Overview first, then Standard Minutes
-    await handleFullProcessing(meeting, {
-      standard: true,
-      overview: true,
-      executive: false,
-      limerick: false
-    }, isDefault ? undefined : modelOverride);
+    try {
+      await handleFullProcessing(meeting, {
+        standard: true,
+        overview: true,
+        executive: false,
+        limerick: false
+      }, isDefault ? undefined : modelOverride);
+    } catch (regenErr: any) {
+      // Distinguish silent-drop (in-progress lock) from real failures so the
+      // user always gets a clear signal instead of a misleading success toast.
+      const msg = regenErr?.message || '';
+      if (msg === 'regenerate-already-in-progress') {
+        // Toast already shown by handleFullProcessing — just bail without success.
+        return;
+      }
+      console.error('❌ Regenerate failed:', regenErr);
+      toast.error(`Regenerate with ${modelLabel} failed: ${msg || 'unknown error'} — check the browser console for details.`, { duration: 8000 });
+      return;
+    }
 
-    // Success toast
+    // Success toast — only reached when handleFullProcessing actually completed.
     if (modelOverride === 'gemini-3-flash') {
       toast.success('⚡ Regenerated with Gemini 3 Flash');
     } else if (modelOverride === 'sonnet-4.6') {
