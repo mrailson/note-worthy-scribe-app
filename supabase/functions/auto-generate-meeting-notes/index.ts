@@ -2130,6 +2130,94 @@ ${cleanedTranscript}`;
       collectExtractionDiagnostics(generatedNotes);
     }
 
+    // ─── LLM REFUSAL DETECTION ────────────────────────────────────────────
+    // The system prompt instructs the model to return a strict JSON refusal
+    // ({ "is_meeting": false, ... }) when the transcript is not a meeting.
+    // Detect that and surface the same friendly message as the pipeline guard.
+    if (!forceGenerate) {
+      try {
+        const trimmed = generatedNotes.trim();
+        const jsonCandidate = trimmed.startsWith('```')
+          ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+          : trimmed;
+        if (jsonCandidate.startsWith('{') && jsonCandidate.includes('"is_meeting"')) {
+          const parsed = JSON.parse(jsonCandidate);
+          if (parsed && parsed.is_meeting === false) {
+            const detectedType: string = typeof parsed.detected_content_type === 'string'
+              ? parsed.detected_content_type
+              : 'unclear';
+            const explanation: string = typeof parsed.explanation === 'string'
+              ? parsed.explanation
+              : 'Content does not appear to be a meeting.';
+
+            console.log(`⛔ LLM refusal: detected_content_type=${detectedType} — ${explanation}`);
+
+            const friendlyMessage = `# This recording does not appear to be a meeting\n\nNotewell AI evaluated the transcript and concluded the content type is **${detectedType}**.\n\n> ${explanation}\n\nNo meeting notes have been generated to avoid hallucinating content. If this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Recording details: ${meetingDurationSeconds ?? '—'} seconds, ${wordCount} words.*`;
+
+            try {
+              await supabase.from('meeting_summaries').upsert({
+                meeting_id: meetingId,
+                summary: friendlyMessage,
+                generation_metadata: {
+                  status: 'insufficient_content',
+                  reason: 'llm_refused_non_meeting',
+                  detected_content_type: detectedType,
+                  explanation,
+                  transcript_word_count: wordCount,
+                  duration_seconds: meetingDurationSeconds,
+                  guard: 'llm',
+                },
+                ai_generated: false,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: 'meeting_id' });
+
+              await supabase.from('meetings').update({
+                notes_style_3: friendlyMessage,
+                notes_generation_status: 'insufficient_content',
+                word_count: wordCount,
+                updated_at: new Date().toISOString(),
+              }).eq('id', meetingId);
+
+              await supabase.from('meeting_notes_queue').update({
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+              }).eq('meeting_id', meetingId);
+            } catch (saveErr) {
+              console.warn('⚠️ Failed to persist LLM-refusal state:', saveErr);
+            }
+
+            try {
+              await supabase.from('meeting_generation_log').insert({
+                meeting_id: meetingId,
+                primary_model: chain[0] || modelOverride,
+                actual_model_used: actualModelUsed,
+                fallback_count: fallbackCount,
+                generation_ms: Date.now() - notesGenStart,
+                skip_reason: 'llm_refused_non_meeting',
+                detected_content_type: detectedType,
+                transcript_word_count: wordCount,
+                duration_seconds: meetingDurationSeconds,
+                transcript_snippet: fullTranscript.slice(0, 200),
+              });
+            } catch (logErr) {
+              console.warn('⚠️ Failed to log LLM refusal:', logErr);
+            }
+
+            return new Response(JSON.stringify({
+              status: 'insufficient_content',
+              reason: 'llm_refused_non_meeting',
+              detected_content_type: detectedType,
+              explanation,
+              transcript_word_count: wordCount,
+              duration_seconds: meetingDurationSeconds,
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+      } catch (parseErr) {
+        // Not JSON — proceed normally
+      }
+    }
+
     // Log generation outcome to meeting_generation_log (admin-readable monitoring).
     // Non-blocking — log failure must not break note generation.
     try {
