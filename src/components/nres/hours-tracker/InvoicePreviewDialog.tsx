@@ -170,7 +170,17 @@ export function InvoicePreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[96vw] w-[96vw] h-[92vh] max-h-[92vh] p-0 overflow-hidden flex flex-col bg-background">
         <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
-          <DialogTitle className="text-left text-base font-semibold">Invoice preview</DialogTitle>
+          <DialogTitle className="text-left text-base font-semibold flex items-center gap-2 flex-wrap">
+            {claim.claim_ref != null && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded border border-slate-300 bg-slate-100 text-slate-800 text-xs font-bold font-mono">
+                Claim #{claim.claim_ref}
+              </span>
+            )}
+            <span>Invoice preview</span>
+            {claim.invoice_number && (
+              <span className="text-xs font-normal text-muted-foreground">· {claim.invoice_number}</span>
+            )}
+          </DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-muted/30">
           <InlineInvoicePdfPreview pdfData={previewPdfData} />

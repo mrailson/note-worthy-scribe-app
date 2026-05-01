@@ -541,6 +541,14 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
           className={cn('w-[18px] h-[18px] text-gray-400 transition-transform duration-200', expanded && 'rotate-180')}
         />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+          {claim.claim_ref != null && (
+            <span
+              title="Claim ID — use this when communicating about this claim"
+              style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#1e293b', background: '#f1f5f9', border: '1px solid #cbd5e1', fontFamily: 'monospace', letterSpacing: 0.3 }}
+            >
+              Claim #{claim.claim_ref}
+            </span>
+          )}
           <span style={{ fontWeight: 600, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{practiceName}</span>
           <span style={{ fontSize: 13, color: '#6b7280' }}>{monthLabel}</span>
           {(() => {

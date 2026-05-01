@@ -141,7 +141,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   // --- Invoice meta (right side, below PML address) ---
   const metaY = 70;
   doc.setFillColor(240, 244, 248);
-  doc.roundedRect(rightX - 2, metaY - 4, 78, 28, 2, 2, 'F');
+  doc.roundedRect(rightX - 2, metaY - 4, 78, 34, 2, 2, 'F');
 
   doc.setFontSize(8);
   doc.setTextColor(GREY_100);
@@ -152,33 +152,40 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(GREY_100);
-  doc.text('Invoice Date:', rightX, metaY + 6);
+  doc.text('Claim ID:', rightX, metaY + 6);
   doc.setTextColor(0);
-  doc.text(new Date().toLocaleDateString('en-GB'), rightX + 40, metaY + 6);
+  doc.setFont('helvetica', 'bold');
+  doc.text(claim.claim_ref != null ? `#${claim.claim_ref}` : '—', rightX + 40, metaY + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GREY_100);
+  doc.text('Invoice Date:', rightX, metaY + 12);
+  doc.setTextColor(0);
+  doc.text(new Date().toLocaleDateString('en-GB'), rightX + 40, metaY + 12);
 
   doc.setTextColor(GREY_100);
-  doc.text('Claim Period:', rightX, metaY + 12);
+  doc.text('Claim Period:', rightX, metaY + 18);
   doc.setTextColor(0);
-  doc.text(claimMonthLabel, rightX + 40, metaY + 12);
+  doc.text(claimMonthLabel, rightX + 40, metaY + 18);
 
   doc.setTextColor(GREY_100);
-  doc.text('Payment Terms:', rightX, metaY + 18);
+  doc.text('Payment Terms:', rightX, metaY + 24);
   doc.setTextColor(0);
-  doc.text('30 days', rightX + 40, metaY + 18);
+  doc.text('30 days', rightX + 40, metaY + 24);
 
   // --- Programme reference ---
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(GREY_100);
-  doc.text(`${neighbourhoodName} Neighbourhood Access Service`, 14, metaY + 22);
+  doc.text(`${neighbourhoodName} Neighbourhood Access Service`, 14, metaY + 28);
 
   // --- Separator ---
   doc.setDrawColor(...NHS_BLUE);
   doc.setLineWidth(0.6);
-  doc.line(14, metaY + 26, 196, metaY + 26);
+  doc.line(14, metaY + 32, 196, metaY + 32);
 
   // --- Staff Lines Table ---
-  const tableStartY = metaY + 30;
+  const tableStartY = metaY + 36;
   const tableData = staffDetails.map((s: any, i: number) => [
     i + 1,
     s.staff_name || '—',
