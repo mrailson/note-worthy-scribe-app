@@ -176,12 +176,12 @@ export function EvidenceSlot({
 
   return (
     <div className="px-3 py-2 flex items-center gap-3 text-xs">
-      {hasFile ? (
-        <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-      ) : config.is_mandatory ? (
-        <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-      ) : (
-        <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+      {!hasFile && (
+        config.is_mandatory ? (
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+        ) : (
+          <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+        )
       )}
 
       <div className="flex-1 min-w-0">
