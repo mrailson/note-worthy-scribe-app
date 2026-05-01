@@ -1990,7 +1990,7 @@ ${cleanedTranscript}`;
         } catch (err: any) {
           const isAbort = err?.name === 'AbortError';
           const reason = isAbort
-            ? `timeout after ${attemptModel === 'gemini-3-flash' ? 60 : 120}s`
+            ? `timeout after ${Math.round(PER_ATTEMPT_TIMEOUT_MS / 1000)}s`
             : (err?.message || 'unknown error');
           console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
