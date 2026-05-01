@@ -2487,6 +2487,14 @@ function ClaimCard({ claim, claimCategory, userId, userEmail, isAdmin, isSuperAd
       {/* Header */}
       <div className="bg-muted/50 px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3 text-sm">
+          {claim.claim_ref != null && (
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded border border-slate-300 bg-slate-100 text-slate-800 text-[11px] font-bold font-mono tracking-wide"
+              title="Claim ID — use this when communicating about this claim"
+            >
+              Claim #{claim.claim_ref}
+            </span>
+          )}
           <span className="font-medium">{getPracticeName(claim.practice_key)}</span>
           <span className="text-muted-foreground">—</span>
           <span>{format(new Date(claim.claim_month), 'MMMM yyyy')}</span>
