@@ -52,7 +52,7 @@ const claimLines = (c: BuyBackClaim): any[] => (c as any).staff_lines ?? c.staff
 /** Evidence section for management/verifier view */
 const VerifierEvidenceSection = ({ claimId, staffLines, canEdit }: { claimId: string; staffLines: any[]; canEdit: boolean }) => {
   const { getUploadedTypesForStaff, getFilesForStaff, getDownloadUrl, uploadEvidence, deleteEvidence, uploading } = useNRESClaimEvidence(claimId);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [openTrigger, setOpenTrigger] = useState<number | undefined>(undefined);
   const totalFiles = staffLines.reduce((sum: number, _: any, idx: number) => sum + getFilesForStaff(idx).length, 0);
   const hasAnyFiles = totalFiles > 0 || staffLines.some((_: any, idx: number) => Object.keys(getUploadedTypesForStaff(idx)).length > 0);
