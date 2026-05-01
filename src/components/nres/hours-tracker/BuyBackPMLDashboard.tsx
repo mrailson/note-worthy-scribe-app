@@ -735,9 +735,18 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               }
               return { max: 0, formula: '—' };
             };
+            const getUnitRate = (s: any): string => {
+              const cat = s.staff_category || 'buyback';
+              if (cat === 'gp_locum') return s.allocation_type === 'daily' ? '£750.00 / day' : '£375.00 / session';
+              if (cat === 'meeting') return (s.hourly_rate ?? 0) > 0 ? `£${Number(s.hourly_rate).toFixed(2)} / hr` : '—';
+              if (cat === 'management' && s.allocation_type === 'hours') return (s.hourly_rate ?? 0) > 0 ? `£${Number(s.hourly_rate).toFixed(2)} / hr` : '—';
+              if (s.allocation_type === 'wte') return 'WTE × on-costs';
+              if ((s.hourly_rate ?? 0) > 0) return `£${Number(s.hourly_rate).toFixed(2)} / hr`;
+              return 'On-costs applied';
+            };
             const headers = hasLocum
-              ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Amount', 'Max Claimable']
-              : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Amount', 'Max Claimable'];
+              ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable']
+              : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable'];
             const rightAlignIdx = hasLocum ? 5 : 4;
             const totalClaimed = staffDetails.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
             const totalMax = staffDetails.reduce((sum: number, s: any) => sum + getMaxInfo(s).max, 0);
