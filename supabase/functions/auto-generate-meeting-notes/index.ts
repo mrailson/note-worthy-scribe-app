@@ -1891,15 +1891,12 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
     // the divergence rather than silently rendering the (possibly wrong) DB start_time.
     const extractFirstDate = (text: string | null | undefined): { iso: string; label: string } | null => {
       if (!text) return null;
-      const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-      const monthAbbr  = ['jan','feb','mar','apr','may','jun','jul','aug','sep','sept','oct','nov','dec'];
-      const monthIdx = (m: string): number => {
-        const lower = m.toLowerCase();
-        const i = monthNames.indexOf(lower);
-        if (i >= 0) return i;
-        const j = monthAbbr.indexOf(lower);
-        if (j >= 0) return j === 4 ? 4 : (j > 4 ? j - 1 : j); // map "may"→4, "sept"→8 collapses to "sep" at 8
+      const monthLookup: Record<string, number> = {
+        jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+        may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7,
+        sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
       };
+      const monthIdx = (m: string): number | undefined => monthLookup[m.toLowerCase()];
       // 1) "1 May 2026" / "01 May 2026" / "1st May 2026"
       const m1 = text.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{4})\b/i);
       if (m1) {
