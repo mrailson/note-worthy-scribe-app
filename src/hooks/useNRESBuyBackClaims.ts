@@ -107,6 +107,8 @@ const formatApprovedDateTime = (iso?: string | null) => {
  */
 const DEFAULT_GP_SESSION_ANNUAL = 11000 * 1.2938;
 const DEFAULT_WTE_ANNUAL        = 60000 * 1.2938;
+/** Standard NHS GP session length: 4 hours 10 minutes = 25/6 ≈ 4.1667 hrs */
+export const HOURS_PER_SESSION = 25 / 6;
 
 function resolveClaimTypeFromStaff(staffMember: Pick<BuyBackStaffMember, 'staff_category'>, fallback: ClaimType = 'buyback'): ClaimType {
   if (staffMember.staff_category === 'new_sda' || staffMember.staff_category === 'gp_locum') return 'additional';
