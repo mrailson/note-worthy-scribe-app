@@ -10,7 +10,7 @@ import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 import { Calendar } from '@/components/ui/calendar';
 import { ClaimsViewSwitcher, type DirectorPracticeOption } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
