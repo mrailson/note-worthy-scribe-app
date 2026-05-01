@@ -238,9 +238,28 @@ serve(async (req) => {
       skipQc = false,
       premiumPin,
     } = requestBody;
-    // modelOverride is mutable so the duration-based default below can refine it.
-    // Default to Pro; will be re-evaluated against meeting duration after fetch.
-    let modelOverride: string = requestBody.modelOverride ?? 'gemini-3.1-pro';
+    // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
+    // operational setting (system_settings) so admins can flip Flash↔Pro instantly
+    // via /admin/llm-diagnostics without a redeploy. Falls back to 'gemini-3-flash'
+    // if the setting is missing or unreadable. Pro currently exhausts its token
+    // budget on internal reasoning before producing output (May 2026).
+    const ALLOWED_PRIMARY_MODELS = ['gemini-3-flash', 'gemini-3.1-pro'];
+    let configuredPrimaryModel = 'gemini-3-flash';
+    try {
+      const { data: settingRow } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'MEETING_PRIMARY_MODEL')
+        .maybeSingle();
+      const v = settingRow?.setting_value;
+      const candidate = typeof v === 'string' ? v : (typeof v === 'object' && v !== null ? String(v) : '');
+      if (ALLOWED_PRIMARY_MODELS.includes(candidate)) {
+        configuredPrimaryModel = candidate;
+      }
+    } catch (settingErr) {
+      console.warn('⚠️ Could not read MEETING_PRIMARY_MODEL setting, defaulting to gemini-3-flash:', settingErr);
+    }
+    let modelOverride: string = requestBody.modelOverride ?? configuredPrimaryModel;
     meetingId = parsedMeetingId;
 
     // Server-side PIN gate for premium models. Pro is now the default and is
