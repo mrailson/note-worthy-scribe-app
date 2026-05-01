@@ -235,12 +235,12 @@ serve(async (req) => {
       detailLevel = 'standard',
       noteType = 'standard',
       transcriptSource,
-      // Default model is now Gemini 3.1 Pro (best extraction quality on test set,
-      // ~£0.04/meeting). Flash, Sonnet, and GPT-5 act as automatic fallbacks.
-      modelOverride = 'gemini-3.1-pro',
       skipQc = false,
       premiumPin,
     } = requestBody;
+    // modelOverride is mutable so the duration-based default below can refine it.
+    // Default to Pro; will be re-evaluated against meeting duration after fetch.
+    let modelOverride: string = requestBody.modelOverride ?? 'gemini-3.1-pro';
     meetingId = parsedMeetingId;
 
     // Server-side PIN gate for premium models. Pro is now the default and is
@@ -300,10 +300,15 @@ serve(async (req) => {
     // Long meetings (≥60 min) → gemini-3.1-pro for stronger synthesis across many items.
     // The fallback chain (flash → 2.5-pro → gpt-5) remains intact for both branches.
     // Explicit user/UI overrides via Settings always win.
-    const callerSpecifiedModel = Object.prototype.hasOwnProperty.call(requestBody, 'modelOverride')
-      && requestBody.modelOverride !== undefined
-      && requestBody.modelOverride !== null
-      && requestBody.modelOverride !== '';
+    // Treat the historical default ('gemini-3.1-pro') sent by the auto-generation
+    // path as "not a deliberate user choice" so duration-based routing can apply.
+    // Any other explicit value (flash, sonnet, gpt-5, etc.) is honoured as a real override.
+    const rawClientModel = requestBody.modelOverride;
+    const callerSpecifiedModel =
+      rawClientModel !== undefined &&
+      rawClientModel !== null &&
+      rawClientModel !== '' &&
+      rawClientModel !== 'gemini-3.1-pro';
     if (!callerSpecifiedModel) {
       const mins = Number(meeting?.duration_minutes) || 0;
       const previousDefault = modelOverride;
