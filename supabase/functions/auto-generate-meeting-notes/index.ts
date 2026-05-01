@@ -295,6 +295,24 @@ serve(async (req) => {
       }
     }
 
+    // Duration-based default model selection (only when caller did not pick one).
+    // Short meetings (<60 min) → gemini-3-flash for fast turnaround.
+    // Long meetings (≥60 min) → gemini-3.1-pro for stronger synthesis across many items.
+    // The fallback chain (flash → 2.5-pro → gpt-5) remains intact for both branches.
+    // Explicit user/UI overrides via Settings always win.
+    const callerSpecifiedModel = Object.prototype.hasOwnProperty.call(requestBody, 'modelOverride')
+      && requestBody.modelOverride !== undefined
+      && requestBody.modelOverride !== null
+      && requestBody.modelOverride !== '';
+    if (!callerSpecifiedModel) {
+      const mins = Number(meeting?.duration_minutes) || 0;
+      const previousDefault = modelOverride;
+      modelOverride = mins >= 60 ? 'gemini-3.1-pro' : 'gemini-3-flash';
+      console.log(`🎯 Duration-based default: ${mins} min → ${modelOverride} (was ${previousDefault})`);
+    } else {
+      console.log(`🎯 Using caller-specified model: ${modelOverride}`);
+    }
+
     // Validate meeting has transcript data before proceeding
     const { data: initialTranscriptCheck } = await supabase
       .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
