@@ -381,6 +381,24 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
         const lineClaimedAmount = isSingleLineClaim && claimedAmount > 0 && claimedAmount !== maxAmount
           ? claimedAmount
           : maxAmount;
+
+        // Derive an effective hourly rate (incl. on-costs where applicable) for invoice display
+        let hourlyRateWithOnCosts: number | undefined;
+        const cat = (s as any).staff_category;
+        if (cat !== 'gp_locum' && cat !== 'meeting' && cat !== 'management' && rateParams?.getRoleAnnualRate && s.staff_role) {
+          const roleRate = rateParams.getRoleAnnualRate(s.staff_role);
+          const roleConfig = rateParams.getRoleConfig?.(s.staff_role);
+          if (roleRate !== undefined) {
+            const includesOnCosts = roleConfig?.includes_on_costs !== false;
+            const multiplier = includesOnCosts ? rateParams.onCostMultiplier : 1;
+            const annualWithOnCosts = roleRate * multiplier;
+            // NHS standard whole-time equivalent hours: 37.5 × 52 = 1950
+            hourlyRateWithOnCosts = annualWithOnCosts / 1950;
+          }
+        } else if (cat === 'management' && (s as any).hourly_rate) {
+          hourlyRateWithOnCosts = (s as any).hourly_rate;
+        }
+
         return {
           staff_name: s.staff_name,
           staff_role: s.staff_role,
@@ -388,6 +406,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           allocation_type: s.allocation_type,
           allocation_value: s.allocation_value,
           hourly_rate: s.hourly_rate,
+          hourly_rate_with_on_costs: hourlyRateWithOnCosts,
           start_date: s.start_date,
           practice_key: s.practice_key,
           claimed_amount: lineClaimedAmount,
