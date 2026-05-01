@@ -5,6 +5,7 @@ import { showToast } from '@/utils/toastWrapper';
 import { extractAttendees } from '@/utils/extractAttendees';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateMeetingFilename } from '@/utils/meetingFilename';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MeetingData {
   title: string;
@@ -36,7 +37,7 @@ interface MeetingNotesWordExportProps {
   meetingId?: string;
 }
 
-const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meetingData }) => {
+const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meetingData, meetingId }) => {
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState('');
