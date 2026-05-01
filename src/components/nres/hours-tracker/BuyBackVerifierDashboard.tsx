@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { type BuyBackClaim } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
-import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
+
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
 import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2, X } from 'lucide-react';
 import { InvoicePreviewDialog, DRAFT_INVOICE_NUMBER } from './InvoicePreviewDialog';
