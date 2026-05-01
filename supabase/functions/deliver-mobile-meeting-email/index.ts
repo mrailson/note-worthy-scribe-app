@@ -280,6 +280,7 @@ Deno.serve(async (req: Request) => {
             : undefined,
         },
         actionItems,
+        modelUsed: (meeting as any).notes_model_used || undefined,
       });
 
       const filename = generateMeetingFilename(
