@@ -1591,7 +1591,13 @@ export const MeetingHistoryList = ({
         return;
       }
       console.error('❌ Regenerate failed:', regenErr);
-      toast.error(`Regenerate with ${modelLabel} failed: ${msg || 'unknown error'} — check the browser console for details.`, { duration: 8000 });
+      // If the edge function already produced a structured "<model> failed after N attempts: <reason>"
+      // message, surface it as-is rather than double-prefixing.
+      const alreadyStructured = /failed after \d+ attempt/i.test(msg);
+      const toastMsg = alreadyStructured
+        ? `${msg} — check the browser console for details.`
+        : `Regenerate with ${modelLabel} failed: ${msg || 'unknown error'} — check the browser console for details.`;
+      toast.error(toastMsg, { duration: 8000 });
       return;
     }
 
