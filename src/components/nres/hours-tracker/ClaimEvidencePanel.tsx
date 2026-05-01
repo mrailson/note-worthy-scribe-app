@@ -332,6 +332,15 @@ export function StaffLineEvidence({
     setViewerOpen(true);
   };
 
+  // External trigger (from collapsible card header "View Evidence" link)
+  useEffect(() => {
+    if (triggerOpenAt === undefined) return;
+    if (orderedFiles.length === 0) return;
+    setViewerIndex(triggerOpenAt >= 0 && triggerOpenAt < orderedFiles.length ? triggerOpenAt : 0);
+    setViewerOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerOpenAt]);
+
   return (
     <div className="bg-slate-50/80 dark:bg-slate-900/30">
       {!hideHeader && (
