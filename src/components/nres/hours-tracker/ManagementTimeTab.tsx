@@ -184,12 +184,12 @@ export function ManagementTimeTab({ isAdmin }: { isAdmin: boolean }) {
   const handleFileSelected = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      showToast.error('File too large (max 10 MB)', { section: 'nres' });
+      showToast.error('File too large (max 10 MB)', { section: 'system' });
       return;
     }
     const ft = fileTypeFor(file);
     if (!ft) {
-      showToast.error('Unsupported file type. Use Word (.docx), PDF or an image.', { section: 'nres' });
+      showToast.error('Unsupported file type. Use Word (.docx), PDF or an image.', { section: 'system' });
       return;
     }
     setImporting(true);
@@ -203,7 +203,7 @@ export function ManagementTimeTab({ isAdmin }: { isAdmin: boolean }) {
       if (extractErr) throw new Error(extractErr.message || 'Document text extraction failed');
       const text: string = extractData?.extractedText || '';
       if (!text || text.trim().length < 5) {
-        showToast.error('No readable text found in the document', { section: 'nres' });
+        showToast.error('No readable text found in the document', { section: 'system' });
         return;
       }
       const { data: aiData, error: aiErr } = await supabase.functions.invoke('extract-management-time-entries', {
@@ -220,14 +220,14 @@ export function ManagementTimeTab({ isAdmin }: { isAdmin: boolean }) {
         description: e.description || '',
       }));
       if (rows.length === 0) {
-        showToast.warning('AI could not find any dated time entries in that document', { section: 'nres' });
+        showToast.warning('AI could not find any dated time entries in that document', { section: 'system' });
         return;
       }
       setImportedRows(rows);
-      showToast.success(`Extracted ${rows.length} entries — review and confirm before adding`, { section: 'nres' });
+      showToast.success(`Extracted ${rows.length} entries — review and confirm before adding`, { section: 'system' });
     } catch (e: any) {
       console.error('Import failed:', e);
-      showToast.error(e?.message || 'Import failed', { section: 'nres' });
+      showToast.error(e?.message || 'Import failed', { section: 'system' });
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -249,12 +249,12 @@ export function ManagementTimeTab({ isAdmin }: { isAdmin: boolean }) {
 
   const addImportedToEntries = async () => {
     if (!importPersonConfig) {
-      showToast.error('Select a person before adding the imported entries', { section: 'nres' });
+      showToast.error('Select a person before adding the imported entries', { section: 'system' });
       return;
     }
     const toAdd = importedRows.filter(r => r.include && r.work_date && r.hours > 0);
     if (toAdd.length === 0) {
-      showToast.error('No valid rows ticked', { section: 'nres' });
+      showToast.error('No valid rows ticked', { section: 'system' });
       return;
     }
     let added = 0;
@@ -284,7 +284,7 @@ export function ManagementTimeTab({ isAdmin }: { isAdmin: boolean }) {
     if (added > 0) {
       const lastMonth = format(startOfMonth(new Date(toAdd[toAdd.length - 1].work_date + 'T12:00:00')), 'yyyy-MM');
       lsSet(lsKey(user?.id, 'last-month'), lastMonth);
-      showToast.success(`Added ${added} entr${added === 1 ? 'y' : 'ies'} from document`, { section: 'nres' });
+      showToast.success(`Added ${added} entr${added === 1 ? 'y' : 'ies'} from document`, { section: 'system' });
       setImportedRows([]);
       setImportedFileName('');
     }
