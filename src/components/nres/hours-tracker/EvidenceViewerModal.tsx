@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Download, X, Loader2, FileQuestion } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Loader2, FileQuestion, Mail, Printer } from 'lucide-react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { ClaimEvidenceFile } from '@/hooks/useNRESClaimEvidence';
 
 type Kind = 'image' | 'pdf' | 'office' | 'other';
@@ -30,6 +34,8 @@ interface Props {
   initialIndex: number;
   getDownloadUrl: (path: string) => Promise<string | null>;
   onClose: () => void;
+  /** Optional context label e.g. "April 2026 — NRES Management" used in email subject/body */
+  claimLabel?: string;
 }
 
 export function EvidenceViewerModal({ open, files, initialIndex, getDownloadUrl, onClose }: Props) {
