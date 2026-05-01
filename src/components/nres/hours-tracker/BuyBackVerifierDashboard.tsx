@@ -691,6 +691,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     }
   };
 
+  const stopVoiceRecording = async () => {
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === 'inactive') return;
     setVoiceState('processing');
