@@ -1957,7 +1957,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   
   // Create footer with meeting date/time (only if footerOn is not explicitly false)
   const includeFooter = options.footerOn !== false;
-  const footer = includeFooter ? await createFooter(metadata.classification, metadata.date, metadata.time) : undefined;
+  const footer = includeFooter ? await createFooter(metadata.classification, metadata.date, metadata.time, metadata.notesModelUsed) : undefined;
   
   // Build and save document
   const doc = new Document({
