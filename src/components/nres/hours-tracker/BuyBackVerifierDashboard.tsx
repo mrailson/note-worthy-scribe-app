@@ -5,7 +5,8 @@ import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
 
 import { NRES_PRACTICES, NRES_ODS_CODES } from '@/data/nresPractices';
-import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Shield, ShieldCheck, Landmark, Search, HelpCircle, Settings, Calendar as CalendarIcon, Eye, Mic, Square, Plus, Trash2, X, Upload, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -182,7 +183,29 @@ const appendInvoiceText = (current: string, addition: string) => {
   return next.slice(0, DESCRIPTION_LIMIT);
 };
 
-/** Resolve a display name — if stored value looks like an email, derive a readable name from it */
+// ── Document import helpers (Management category only) ─────────────────────
+function importFileTypeFor(file: File): 'pdf' | 'image' | 'word' | null {
+  const n = file.name.toLowerCase();
+  if (file.type === 'application/pdf' || n.endsWith('.pdf')) return 'pdf';
+  if (file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(n)) return 'image';
+  if (n.endsWith('.docx') || n.endsWith('.doc') || file.type.includes('officedocument.wordprocessing')) return 'word';
+  return null;
+}
+function importFileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('Read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+// ISO YYYY-MM-DD → DD/MM/YYYY (British)
+function isoToDisplayDate(iso: string): string {
+  if (!iso) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
 function resolveSubmitterName(claim: BuyBackClaim, profileNames: Record<string, string>): string | undefined {
   const email = claim.submitted_by_email;
   if (email && profileNames[email.toLowerCase()]) return profileNames[email.toLowerCase()];
@@ -472,6 +495,8 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [voiceError, setVoiceError] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const [importing, setImporting] = useState(false);
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const claimDateBounds = claimMonthBounds(claim.claim_month);
   const total = claimTotal(claim);
   const hours = claimHours(claim);
@@ -515,6 +540,56 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
     const completed = { ...quickLine, start: quickLine.start || DEFAULT_START_TIME, stop: quickLine.stop || DEFAULT_STOP_TIME };
     setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
     setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: prev.details }));
+  };
+
+  // Import dates/times from a Word/PDF/image and append as table rows (Management only)
+  const handleImportDocument = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large (max 10 MB)');
+      return;
+    }
+    const ft = importFileTypeFor(file);
+    if (!ft) {
+      toast.error('Unsupported file type. Use Word (.docx), PDF or an image.');
+      return;
+    }
+    setImporting(true);
+    try {
+      const dataUrl = await importFileToDataUrl(file);
+      const { data: extractData, error: extractErr } = await supabase.functions.invoke('extract-document-text', {
+        body: { fileType: ft, dataUrl, fileName: file.name },
+      });
+      if (extractErr) throw new Error(extractErr.message || 'Document text extraction failed');
+      const text: string = extractData?.extractedText || '';
+      if (!text || text.trim().length < 5) {
+        toast.error('No readable text found in the document');
+        return;
+      }
+      const { data: aiData, error: aiErr } = await supabase.functions.invoke('extract-management-time-entries', {
+        body: { text },
+      });
+      if (aiErr) throw new Error(aiErr.message || 'AI extraction failed');
+      const entries: any[] = aiData?.entries || [];
+      if (!entries.length) {
+        toast.warning('AI could not find any dated time entries in that document');
+        return;
+      }
+      const newRows: InvoiceTableRow[] = entries.map((e) => newInvoiceTableRow(
+        isoToDisplayDate(e.work_date || ''),
+        e.start_time || '',
+        e.end_time || '',
+        (e.description || '').slice(0, MAX_LINE_CHARS - 40),
+      ));
+      syncRows([...invoiceRows, ...newRows]);
+      toast.success(`Added ${newRows.length} line${newRows.length === 1 ? '' : 's'} from ${file.name}`);
+    } catch (e: any) {
+      console.error('Import failed:', e);
+      toast.error(e?.message || 'Import failed');
+    } finally {
+      setImporting(false);
+      if (importFileInputRef.current) importFileInputRef.current.value = '';
+    }
   };
 
   const stopVoiceRecording = async () => {
@@ -729,6 +804,28 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
                 <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
+                {isManagement && (
+                  <>
+                    <input
+                      ref={importFileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.doc,image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleImportDocument(e.target.files?.[0])}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => importFileInputRef.current?.click()}
+                      disabled={importing}
+                      title="Auto-extract dates and times from a Word, PDF or image of your management time records"
+                      style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #2563eb', background: importing ? '#eff6ff' : '#fff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: importing ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center', opacity: importing ? 0.7 : 1 }}
+                    >
+                      {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      {importing ? 'Extracting…' : 'Import from document'}
+                    </button>
+                    <span style={{ fontSize: 10, color: '#92400e', fontStyle: 'italic' }}>Word, PDF or image — auto-fills dates &amp; times</span>
+                  </>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <div ref={datePickerRef} style={{ position: 'relative', display: 'inline-flex' }}>
