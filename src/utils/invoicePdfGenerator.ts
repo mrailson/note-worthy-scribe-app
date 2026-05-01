@@ -218,8 +218,8 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
     getGLInvoiceLabel(resolveGLCode(s)),
     s.staff_category === 'gp_locum'
       ? (s.allocation_type === 'daily'
-        ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''} @ £750/day`
-        : `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''} @ £375`)
+        ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''}`
+        : `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`)
       : s.allocation_type === 'sessions'
         ? `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`
         : s.allocation_type === 'hours'
@@ -227,21 +227,49 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
           : s.allocation_type === 'daily'
             ? `${s.allocation_value}/day`
             : `${s.allocation_value} WTE`,
+    getUnitRate(s),
     fmt(s.claimed_amount || 0),
   ]);
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['#', 'Staff Member', 'Role', 'GL Category', 'Allocation', 'Amount']],
+    head: [['#', 'Staff Member', 'Role', 'GL Category', 'Allocation', 'Unit Rate', 'Amount']],
     body: tableData,
-    styles: { fontSize: 9, cellPadding: 3 },
-    headStyles: { fillColor: [0, 94, 184], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    headStyles: { fillColor: [0, 94, 184], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
     columnStyles: {
-      0: { cellWidth: 10 },
-      5: { halign: 'right' },
+      0: { cellWidth: 8 },
+      1: { cellWidth: 32 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 28 },
+      4: { cellWidth: 26 },
+      5: { cellWidth: 26, halign: 'right' },
+      6: { cellWidth: 'auto', halign: 'right', fontStyle: 'bold' },
     },
     alternateRowStyles: { fillColor: [240, 244, 245] },
   });
+
+  // --- Calculation explainer line beneath staff table ---
+  const tableEndY = (doc as any).lastAutoTable.finalY;
+  const formulaParts = staffDetails
+    .map((s: any) => formatMaxClaimableInfo(s).formula)
+    .filter((f: string) => f && f !== '—');
+  const grandTotalForExplainer = staffDetails.reduce(
+    (a: number, s: any) => a + (s.claimed_amount || 0),
+    0
+  );
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(GREY_100);
+  const explainer =
+    'Invoice total derived line-by-line as Allocation × Unit Rate (WTE lines include applied on-costs):  ' +
+    (formulaParts.length
+      ? formulaParts.join('  +  ') + `  =  ${fmt(grandTotalForExplainer)}`
+      : `Total = ${fmt(grandTotalForExplainer)}`);
+  const explainerLines = doc.splitTextToSize(explainer, 182);
+  doc.text(explainerLines, 14, tableEndY + 5);
+  // Push subsequent content down based on explainer height
+  (doc as any).lastAutoTable.finalY = tableEndY + 2 + explainerLines.length * 3.6;
 
   // --- Optional invoice-facing claim description ---
   const invoiceDescription = String((claim as any).practice_notes || '').trim();
