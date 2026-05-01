@@ -3380,9 +3380,9 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
               if (calcAmt > 0) {
                 if (s.allocation_type === 'sessions') return { max: calcAmt, formula: `${allocVal} session${allocVal === 1 ? '' : 's'}/wk × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` };
                 if (s.allocation_type === 'hours') {
-                  const isSessionPriced = !!s.is_session_priced;
+                  const isSessionPriced = !!s.is_session_priced || isSessionPricedRole(role, undefined, s.hourly_rate_with_on_costs ? 10500 : undefined);
                   return isSessionPriced
-                    ? { max: calcAmt, formula: `${allocVal} hrs/wk ÷ 4.17 hrs/sess × ${role} per-session annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` }
+                    ? { max: calcAmt, formula: `${allocVal} hrs/wk ÷ 4 hrs 10 mins/session × ${role} per-session annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` }
                     : { max: calcAmt, formula: `${allocVal} hrs/wk ÷ 37.5 × ${role} annual rate (incl. on-costs) ÷ 12 = ${fmtMoney(calcAmt)}` };
                 }
                 if (s.allocation_type === 'daily') return { max: calcAmt, formula: `${allocVal} day${allocVal === 1 ? '' : 's'} × daily rate = ${fmtMoney(calcAmt)}` };
