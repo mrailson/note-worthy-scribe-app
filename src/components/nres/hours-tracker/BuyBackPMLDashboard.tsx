@@ -8,6 +8,7 @@ import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { maskStaffName } from '@/utils/buybackStaffMasking';
 import { InvoiceDownloadLink } from './InvoiceDownloadLink';
+import { InvoicePreviewDialog } from './InvoicePreviewDialog';
 import { ClaimsViewSwitcher } from './BuyBackPracticeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useNRESClaimEvidence } from '@/hooks/useNRESClaimEvidence';
@@ -471,6 +472,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
 }) {
   const [reviewNotes, setReviewNotes] = useState('');
   const [flaggedLines, setFlaggedLines] = useState<number[]>([]);
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
 
   // Finance payment state
   const [schedDate, setSchedDate] = useState(
@@ -596,6 +598,15 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               return <InfoBlock label="Approved by" value={approverName} sub={dateStr(approvalTime)} highlight="#7c3aed" />;
             })()}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
+            <button
+              type="button"
+              onClick={() => setInvoicePreviewOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, border: '1px solid #c4b5fd', background: '#f5f3ff', color: '#5b21b6', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              title="Preview the invoice exactly as it will be issued once approved"
+            >
+              <Eye className="w-3.5 h-3.5" /> Preview invoice
+            </button>
+            <InvoicePreviewDialog open={invoicePreviewOpen} onOpenChange={setInvoicePreviewOpen} claim={claim} />
             {(claim as any).expected_payment_date && !claim.paid_at && (
               <InfoBlock label="Scheduled payment" value={new Date((claim as any).expected_payment_date).toLocaleDateString('en-GB')} highlight="#d97706" />
             )}
