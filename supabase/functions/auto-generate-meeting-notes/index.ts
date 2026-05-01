@@ -1688,7 +1688,73 @@ Hard rules:
 ═══════════════════════════════════════════════════════════════════════════════
 
 `;
-    systemPrompt = dateGuard + systemPrompt;
+
+    const nhsGlossaryAndAntiFabrication = `═══════════════════════════════════════════════════════════════════════════════
+NHS ACRONYMS — DO NOT EXPAND UNLESS THE TRANSCRIPT EXPLICITLY DOES SO
+═══════════════════════════════════════════════════════════════════════════════
+If you encounter any of the following acronyms, leave them as bare initials.
+Do NOT invent expansions, even if the surrounding text invites a confident
+expansion:
+
+PML, NRES, NMoC, ICB, MNP, IHO, AFT, LMC, BMA, GMS, PCN, PCSE, ARRS, DES, LES,
+SDA, SNO, NHFT, NGH, KGH, CSO, GPAD, CAIP, NMC, GMC, MHRA, CQC, DSPT, ICS,
+DPIA, MOU, GDPR, BST, GMT, GPA, EA, ENN, AFT, ITP, LFPSE, FCP, ACP, SPLW.
+
+If the transcript itself expands the acronym (e.g. "the British Medical
+Association, the BMA"), you may use the expanded form. Otherwise leave the
+acronym as bare initials and let the reader infer.
+
+═══════════════════════════════════════════════════════════════════════════════
+COMMON NHS TRANSCRIPTION ERRORS — APPLY THESE CORRECTIONS SILENTLY
+═══════════════════════════════════════════════════════════════════════════════
+The following are recurring mishearings in NHS meeting transcripts produced
+by Whisper/AssemblyAI/Deepgram. Apply these corrections silently when the
+context makes the intended meaning clear:
+
+- "BNA" → "BMA" (when discussing levy, GP defence fund, or LMC funding)
+- "lobotomy" → "phlebotomy" (when discussing blood tests, paediatric services)
+- "GMC contract" → "GMS contract" (when discussing primary care contracts)
+- "Towcester" → "Towcester" (correct spelling — also fix "Toaster", "Tow Chester", "Towster")
+- "Brackley" → "Brackley" (correct — also fix "Brackly", "Brakeley")
+- "Notewell" → "Notewell" (correct — also fix "Note well", "No two well")
+- "phlebotomy" stays as "phlebotomy" — do NOT replace with "lobotomy"
+
+When applying corrections, ALSO correct phonetically similar variations not
+listed here.
+
+═══════════════════════════════════════════════════════════════════════════════
+ANTI-FABRICATION RULES — DATES, OWNERS, ATTENDEES, TIMES
+═══════════════════════════════════════════════════════════════════════════════
+If the transcript does not specify a value, write "TBC" or preserve the
+vagueness. Do NOT invent:
+
+DATES: If the transcript says only "Thursday in May" or "next month" or
+"the workshop on the 21st", do NOT pick a specific date. Write the phrase as
+spoken with "(date TBC)" appended. Example: "Thursday in May (date TBC)".
+The date guard above tells you how to resolve relative dates that ARE specific
+(e.g. "21 May" → "21 May 2026"); but if the transcript is vague, stay vague.
+
+TIMES: If no time is stated in the transcript, leave the Time field blank or
+write "Not specified". Do NOT default to "14:00 GMT" or any other invented time.
+
+ATTENDEES: Only list attendees if the transcript explicitly names them or an
+attendee list was provided in the authoritative context. Do NOT infer
+attendees from speakers being mentioned by name. If no list is available,
+write "Attendees: TBC" or omit the section.
+
+ACTION OWNERS: Only assign a name to the Owner column if the transcript
+explicitly states that person committed to the task or was assigned to it.
+Do NOT infer ownership from:
+- Someone being mentioned by name elsewhere in the meeting
+- A name appearing in a phrase like "as Julian has just said" — this means
+  Julian contributed a comment, NOT that Julian owns an action
+- Someone's role implying they would naturally do the task
+
+If ownership is unclear, write "TBC" — TBC is always preferable to a confident
+guess.
+═══════════════════════════════════════════════════════════════════════════════
+`;
+    systemPrompt = dateGuard + nhsGlossaryAndAntiFabrication + systemPrompt;
 
 
 
