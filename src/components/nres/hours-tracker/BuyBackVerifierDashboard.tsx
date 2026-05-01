@@ -804,6 +804,28 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
                 <button onClick={voiceState === 'recording' ? stopVoiceRecording : startVoiceRecording} disabled={voiceState === 'processing'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #d97706', background: voiceState === 'recording' ? '#fee2e2' : '#fff', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: voiceState === 'processing' ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center' }}>{voiceState === 'recording' ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}{voiceState === 'recording' ? 'Stop speaking' : voiceState === 'processing' ? 'Transcribing…' : 'Speak description'}</button>
+                {isManagement && (
+                  <>
+                    <input
+                      ref={importFileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.doc,image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleImportDocument(e.target.files?.[0])}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => importFileInputRef.current?.click()}
+                      disabled={importing}
+                      title="Auto-extract dates and times from a Word, PDF or image of your management time records"
+                      style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #2563eb', background: importing ? '#eff6ff' : '#fff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: importing ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center', opacity: importing ? 0.7 : 1 }}
+                    >
+                      {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      {importing ? 'Extracting…' : 'Import from document'}
+                    </button>
+                    <span style={{ fontSize: 10, color: '#92400e', fontStyle: 'italic' }}>Word, PDF or image — auto-fills dates &amp; times</span>
+                  </>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <div ref={datePickerRef} style={{ position: 'relative', display: 'inline-flex' }}>
