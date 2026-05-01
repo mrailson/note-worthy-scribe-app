@@ -3362,7 +3362,12 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                           </td>
                           <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
                             {maxInfo.max > 0 ? (
-                              <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 2 }}>
+                                <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
+                                <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right' as const, maxWidth: 260, fontStyle: 'italic' as const }}>
+                                  {maxInfo.formula}
+                                </span>
+                              </div>
                             ) : '—'}
                           </td>
                         </tr>
