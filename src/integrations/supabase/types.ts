@@ -6884,6 +6884,8 @@ export type Database = {
           created_at: string
           cross_section_check_performed: boolean
           decision_count: number | null
+          detected_content_type: string | null
+          duration_seconds: number | null
           extracted_action_count: number | null
           extraction_reasoning_trace: string | null
           failure_reasons: Json | null
@@ -6897,12 +6899,17 @@ export type Database = {
           pro_elapsed_ms: number | null
           pro_error_message: string | null
           pro_status_code: number | null
+          skip_reason: string | null
+          transcript_snippet: string | null
+          transcript_word_count: number | null
         }
         Insert: {
           actual_model_used: string
           created_at?: string
           cross_section_check_performed?: boolean
           decision_count?: number | null
+          detected_content_type?: string | null
+          duration_seconds?: number | null
           extracted_action_count?: number | null
           extraction_reasoning_trace?: string | null
           failure_reasons?: Json | null
@@ -6916,12 +6923,17 @@ export type Database = {
           pro_elapsed_ms?: number | null
           pro_error_message?: string | null
           pro_status_code?: number | null
+          skip_reason?: string | null
+          transcript_snippet?: string | null
+          transcript_word_count?: number | null
         }
         Update: {
           actual_model_used?: string
           created_at?: string
           cross_section_check_performed?: boolean
           decision_count?: number | null
+          detected_content_type?: string | null
+          duration_seconds?: number | null
           extracted_action_count?: number | null
           extraction_reasoning_trace?: string | null
           failure_reasons?: Json | null
@@ -6935,6 +6947,9 @@ export type Database = {
           pro_elapsed_ms?: number | null
           pro_error_message?: string | null
           pro_status_code?: number | null
+          skip_reason?: string | null
+          transcript_snippet?: string | null
+          transcript_word_count?: number | null
         }
         Relationships: []
       }

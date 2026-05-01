@@ -106,7 +106,15 @@ IMPORTANT CALIBRATION RULES:
 Before setting your score, ask yourself: "Would a professional minute-taker consider these notes acceptable for filing?" If yes, your score should be 75+. If they'd file them with minor corrections, score 80-90. If they'd file them as-is, score 90+.`;
 
 // ─── Notewell AI Governance-Grade System Prompt ───────────────────────────
-const NOTEWELL_SYSTEM_PROMPT = `You are Notewell AI, an MHRA Class I registered medical device for NHS primary care. You generate governance-grade meeting minutes from transcribed audio recordings of NHS meetings.
+const NON_MEETING_REFUSAL_BLOCK = `BEFORE generating any meeting notes, evaluate whether the transcript actually represents a meeting. A meeting transcript should contain: multiple speakers OR a single speaker presenting structured information, discussion of topics with some substance, and content that lasts long enough to have meaningful structure. If the transcript instead appears to be: entertainment content (game shows, music, interviews, podcasts), casual conversation without business purpose, a test recording, background noise, or content too short to contain meaningful discussion (under roughly 300 words of substantive content), you MUST NOT generate meeting notes. Instead, respond with EXACTLY this JSON object and nothing else:
+
+{ "is_meeting": false, "detected_content_type": "<your best guess: 'entertainment', 'casual_conversation', 'test_recording', 'too_short', 'unclear'>", "explanation": "<one sentence explaining what the content appears to be>" }
+
+Do NOT invent a meeting title, attendees, decisions, or action items if the transcript does not support them. Hallucinating a meeting from non-meeting content is a critical failure. When in doubt, return is_meeting: false and let a human review.
+
+`;
+
+const NOTEWELL_SYSTEM_PROMPT = NON_MEETING_REFUSAL_BLOCK + `You are Notewell AI, an MHRA Class I registered medical device for NHS primary care. You generate governance-grade meeting minutes from transcribed audio recordings of NHS meetings.
 
 ## YOUR TASK
 
@@ -519,6 +527,7 @@ serve(async (req) => {
       existingNotes,
       expectedAttendees: reqExpectedAttendees,
       skipQc = false,
+      forceGenerate = false,
     } = await req.json();
 
     // ── QC-only mode: skip note generation, just run QC ──────────────
@@ -602,6 +611,84 @@ serve(async (req) => {
     // ── Short-transcript guard: prevent hallucination on minimal content ──
     const transcriptWordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
     console.log(`📏 Transcript word count: ${transcriptWordCount}`);
+
+    // ─── PIPELINE GUARD (300 words / 180s) ──────────────────────────────
+    // Bypass with forceGenerate: true. Looks up duration from the meetings
+    // table when a meetingId is provided.
+    let guardDurationSeconds: number | null = null;
+    if (reqMeetingId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (supabaseUrl && serviceKey) {
+          const sb = createClient(supabaseUrl, serviceKey);
+          const { data: dRow } = await sb.from('meetings').select('duration_minutes').eq('id', reqMeetingId).maybeSingle();
+          if (dRow?.duration_minutes != null) {
+            guardDurationSeconds = Math.round(Number(dRow.duration_minutes) * 60);
+          }
+        }
+      } catch (_e) { /* non-blocking */ }
+    }
+
+    const MIN_TRANSCRIPT_WORDS = 300;
+    const MIN_DURATION_SECONDS = 180;
+    if (!forceGenerate) {
+      const transcriptTooShort = transcriptWordCount < MIN_TRANSCRIPT_WORDS;
+      const durationTooShort = guardDurationSeconds != null && guardDurationSeconds < MIN_DURATION_SECONDS;
+      if (transcriptTooShort || durationTooShort) {
+        const skipReason: 'transcript_too_short' | 'duration_too_short' | 'both_too_short' =
+          transcriptTooShort && durationTooShort ? 'both_too_short'
+            : transcriptTooShort ? 'transcript_too_short'
+            : 'duration_too_short';
+        console.log(`⛔ Pipeline guard: insufficient content (${skipReason}) — words=${transcriptWordCount}, duration=${guardDurationSeconds}s`);
+
+        const friendlyMessage = `# Recording too short for meeting notes\n\nThis recording is too short to generate meeting notes (${guardDurationSeconds ?? '—'} seconds, ${transcriptWordCount} words). Meeting notes work best on recordings over 3 minutes with substantive discussion.\n\nIf this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Notewell AI declined to generate notes to avoid hallucinating content from a recording that does not appear to be a meeting.*`;
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        if (supabaseUrl && serviceKey && reqMeetingId) {
+          const sb = createClient(supabaseUrl, serviceKey);
+          try {
+            await sb.from('meeting_summaries').upsert({
+              meeting_id: reqMeetingId,
+              summary: friendlyMessage,
+              generation_metadata: { status: 'insufficient_content', reason: skipReason, transcript_word_count: transcriptWordCount, duration_seconds: guardDurationSeconds, guard: 'pipeline' },
+              ai_generated: false,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'meeting_id' });
+            await sb.from('meetings').update({
+              notes_style_3: friendlyMessage,
+              notes_generation_status: 'insufficient_content',
+              word_count: transcriptWordCount,
+              updated_at: new Date().toISOString(),
+            }).eq('id', reqMeetingId);
+            await sb.from('meeting_generation_log').insert({
+              meeting_id: reqMeetingId,
+              primary_model: 'none',
+              actual_model_used: 'none',
+              fallback_count: 0,
+              generation_ms: 0,
+              skip_reason: skipReason,
+              detected_content_type: skipReason,
+              transcript_word_count: transcriptWordCount,
+              duration_seconds: guardDurationSeconds,
+              transcript_snippet: transcript.slice(0, 200),
+            });
+          } catch (e) {
+            console.warn('⚠️ Failed to persist insufficient-content state:', e);
+          }
+        }
+
+        return new Response(JSON.stringify({
+          status: 'insufficient_content',
+          reason: skipReason,
+          transcript_word_count: transcriptWordCount,
+          duration_seconds: guardDurationSeconds,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    } else {
+      console.log('⚠️ forceGenerate=true — bypassing pipeline guard');
+    }
 
     if (transcriptWordCount < 100) {
       console.log('⚠️ Ultra-short transcript (<100 words) — bypassing LLM to prevent hallucination');
@@ -780,6 +867,71 @@ serve(async (req) => {
 
         console.log(`⚡ API response: ${Date.now() - apiStart}ms`);
       }
+    }
+
+    // ─── LLM REFUSAL DETECTION ────────────────────────────────────────────
+    // Detect strict-JSON refusal { "is_meeting": false, ... } from the model.
+    if (!forceGenerate) {
+      try {
+        const trimmed = (meetingMinutes || '').trim();
+        const jsonCandidate = trimmed.startsWith('```')
+          ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+          : trimmed;
+        if (jsonCandidate.startsWith('{') && jsonCandidate.includes('"is_meeting"')) {
+          const parsed = JSON.parse(jsonCandidate);
+          if (parsed && parsed.is_meeting === false) {
+            const detectedType: string = typeof parsed.detected_content_type === 'string' ? parsed.detected_content_type : 'unclear';
+            const explanation: string = typeof parsed.explanation === 'string' ? parsed.explanation : 'Content does not appear to be a meeting.';
+            console.log(`⛔ LLM refusal: detected_content_type=${detectedType} — ${explanation}`);
+
+            const friendlyMessage = `# This recording does not appear to be a meeting\n\nNotewell AI evaluated the transcript and concluded the content type is **${detectedType}**.\n\n> ${explanation}\n\nNo meeting notes have been generated to avoid hallucinating content. If this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Recording details: ${guardDurationSeconds ?? '—'} seconds, ${transcriptWordCount} words.*`;
+
+            const supabaseUrl2 = Deno.env.get('SUPABASE_URL');
+            const serviceKey2 = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+            if (supabaseUrl2 && serviceKey2 && reqMeetingId) {
+              const sb = createClient(supabaseUrl2, serviceKey2);
+              try {
+                await sb.from('meeting_summaries').upsert({
+                  meeting_id: reqMeetingId,
+                  summary: friendlyMessage,
+                  generation_metadata: { status: 'insufficient_content', reason: 'llm_refused_non_meeting', detected_content_type: detectedType, explanation, transcript_word_count: transcriptWordCount, duration_seconds: guardDurationSeconds, guard: 'llm', model: modelLabel },
+                  ai_generated: false,
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: 'meeting_id' });
+                await sb.from('meetings').update({
+                  notes_style_3: friendlyMessage,
+                  notes_generation_status: 'insufficient_content',
+                  word_count: transcriptWordCount,
+                  updated_at: new Date().toISOString(),
+                }).eq('id', reqMeetingId);
+                await sb.from('meeting_generation_log').insert({
+                  meeting_id: reqMeetingId,
+                  primary_model: modelLabel,
+                  actual_model_used: modelLabel,
+                  fallback_count: 0,
+                  generation_ms: Date.now() - functionStartTime,
+                  skip_reason: 'llm_refused_non_meeting',
+                  detected_content_type: detectedType,
+                  transcript_word_count: transcriptWordCount,
+                  duration_seconds: guardDurationSeconds,
+                  transcript_snippet: (transcript || '').slice(0, 200),
+                });
+              } catch (e) {
+                console.warn('⚠️ Failed to persist LLM refusal:', e);
+              }
+            }
+
+            return new Response(JSON.stringify({
+              status: 'insufficient_content',
+              reason: 'llm_refused_non_meeting',
+              detected_content_type: detectedType,
+              explanation,
+              transcript_word_count: transcriptWordCount,
+              duration_seconds: guardDurationSeconds,
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+      } catch (_e) { /* not JSON — proceed */ }
     }
 
     // Post-processing

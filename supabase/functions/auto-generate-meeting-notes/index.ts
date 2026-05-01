@@ -237,6 +237,7 @@ serve(async (req) => {
       transcriptSource,
       skipQc = false,
       premiumPin,
+      forceGenerate = false,
     } = requestBody;
     // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
     // operational setting (system_settings) so admins can flip Flash↔Pro instantly
@@ -866,6 +867,86 @@ serve(async (req) => {
     const wordCount = fullTranscript.split(/\s+/).filter(word => word.length > 0).length;
     console.log('📊 Word count:', wordCount);
 
+    // ─── PIPELINE GUARD: minimum-content check ────────────────────────────
+    // Prevents the LLM from hallucinating meeting content from very short or
+    // non-meeting recordings (e.g. game-show audio, test recordings, brief
+    // background noise). Bypassed when the caller passes forceGenerate: true.
+    const MIN_TRANSCRIPT_WORDS = 300;
+    const MIN_DURATION_SECONDS = 180;
+    const meetingDurationSeconds = meeting.duration_minutes != null
+      ? Math.round(Number(meeting.duration_minutes) * 60)
+      : null;
+    if (!forceGenerate) {
+      const transcriptTooShort = wordCount < MIN_TRANSCRIPT_WORDS;
+      const durationTooShort = meetingDurationSeconds != null && meetingDurationSeconds < MIN_DURATION_SECONDS;
+      if (transcriptTooShort || durationTooShort) {
+        const skipReason: 'transcript_too_short' | 'duration_too_short' | 'both_too_short' =
+          transcriptTooShort && durationTooShort ? 'both_too_short'
+            : transcriptTooShort ? 'transcript_too_short'
+            : 'duration_too_short';
+
+        console.log(`⛔ Pipeline guard: insufficient content (${skipReason}) — words=${wordCount}, duration=${meetingDurationSeconds}s`);
+
+        const friendlyMessage = `# Recording too short for meeting notes\n\nThis recording is too short to generate meeting notes (${meetingDurationSeconds ?? '—'} seconds, ${wordCount} words). Meeting notes work best on recordings over 3 minutes with substantive discussion.\n\nIf this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Notewell AI declined to generate notes to avoid hallucinating content from a recording that does not appear to be a meeting.*`;
+
+        try {
+          await supabase.from('meeting_summaries').upsert({
+            meeting_id: meetingId,
+            summary: friendlyMessage,
+            generation_metadata: {
+              status: 'insufficient_content',
+              reason: skipReason,
+              transcript_word_count: wordCount,
+              duration_seconds: meetingDurationSeconds,
+              guard: 'pipeline',
+            },
+            ai_generated: false,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'meeting_id' });
+
+          await supabase.from('meetings').update({
+            notes_style_3: friendlyMessage,
+            notes_generation_status: 'insufficient_content',
+            word_count: wordCount,
+            updated_at: new Date().toISOString(),
+          }).eq('id', meetingId);
+
+          await supabase.from('meeting_notes_queue').update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          }).eq('meeting_id', meetingId);
+        } catch (saveErr) {
+          console.warn('⚠️ Failed to persist insufficient-content state:', saveErr);
+        }
+
+        try {
+          await supabase.from('meeting_generation_log').insert({
+            meeting_id: meetingId,
+            primary_model: 'none',
+            actual_model_used: 'none',
+            fallback_count: 0,
+            generation_ms: 0,
+            skip_reason: skipReason,
+            detected_content_type: skipReason,
+            transcript_word_count: wordCount,
+            duration_seconds: meetingDurationSeconds,
+            transcript_snippet: fullTranscript.slice(0, 200),
+          });
+        } catch (logErr) {
+          console.warn('⚠️ Failed to log insufficient-content event:', logErr);
+        }
+
+        return new Response(JSON.stringify({
+          status: 'insufficient_content',
+          reason: skipReason,
+          transcript_word_count: wordCount,
+          duration_seconds: meetingDurationSeconds,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    } else {
+      console.log('⚠️ forceGenerate=true — bypassing pipeline guard');
+    }
+
     // Smart cleaning strategy: skip for small/medium transcripts
     let cleanedTranscript = fullTranscript;
     let transcriptUsed = 'raw';
@@ -1295,13 +1376,20 @@ If any check fails, fix it before returning.
 ═══ END CHECKLIST ═══`;
 
     // Generate notes using Lovable AI
-    let systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from ANY provided transcript content.
+    const NON_MEETING_REFUSAL_BLOCK = `BEFORE generating any meeting notes, evaluate whether the transcript actually represents a meeting. A meeting transcript should contain: multiple speakers OR a single speaker presenting structured information, discussion of topics with some substance, and content that lasts long enough to have meaningful structure. If the transcript instead appears to be: entertainment content (game shows, music, interviews, podcasts), casual conversation without business purpose, a test recording, background noise, or content too short to contain meaningful discussion (under roughly 300 words of substantive content), you MUST NOT generate meeting notes. Instead, respond with EXACTLY this JSON object and nothing else:
 
-CRITICAL INSTRUCTIONS:
-- ALWAYS generate structured business meeting notes regardless of the content type (meetings, discussions, educational content, documentaries, etc.)
-- Transform any audio/video transcript into professional business-style meeting notes
-- Extract business-relevant information, decisions, action items, and discussion points from any content
-- Never refuse to generate notes based on content type - treat all content as meeting material`;
+{ "is_meeting": false, "detected_content_type": "<your best guess: 'entertainment', 'casual_conversation', 'test_recording', 'too_short', 'unclear'>", "explanation": "<one sentence explaining what the content appears to be>" }
+
+Do NOT invent a meeting title, attendees, decisions, or action items if the transcript does not support them. Hallucinating a meeting from non-meeting content is a critical failure. When in doubt, return is_meeting: false and let a human review.
+
+`;
+
+    let systemPrompt = NON_MEETING_REFUSAL_BLOCK + `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from a meeting transcript when one is provided.
+
+INSTRUCTIONS (apply only after the non-meeting check above passes):
+- Generate structured business meeting notes from genuine meeting transcripts
+- Transform meeting audio/video transcripts into professional business-style meeting notes
+- Extract business-relevant information, decisions, action items, and discussion points`;
 
     // Add raw transcript handling note if cleaning was skipped
     if (transcriptUsed === 'raw-optimized') {
@@ -2040,6 +2128,94 @@ ${cleanedTranscript}`;
     if (skipSingleShot) {
       generatedNotes = stripExtractionReasoningTrace(generatedNotes);
       collectExtractionDiagnostics(generatedNotes);
+    }
+
+    // ─── LLM REFUSAL DETECTION ────────────────────────────────────────────
+    // The system prompt instructs the model to return a strict JSON refusal
+    // ({ "is_meeting": false, ... }) when the transcript is not a meeting.
+    // Detect that and surface the same friendly message as the pipeline guard.
+    if (!forceGenerate) {
+      try {
+        const trimmed = generatedNotes.trim();
+        const jsonCandidate = trimmed.startsWith('```')
+          ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+          : trimmed;
+        if (jsonCandidate.startsWith('{') && jsonCandidate.includes('"is_meeting"')) {
+          const parsed = JSON.parse(jsonCandidate);
+          if (parsed && parsed.is_meeting === false) {
+            const detectedType: string = typeof parsed.detected_content_type === 'string'
+              ? parsed.detected_content_type
+              : 'unclear';
+            const explanation: string = typeof parsed.explanation === 'string'
+              ? parsed.explanation
+              : 'Content does not appear to be a meeting.';
+
+            console.log(`⛔ LLM refusal: detected_content_type=${detectedType} — ${explanation}`);
+
+            const friendlyMessage = `# This recording does not appear to be a meeting\n\nNotewell AI evaluated the transcript and concluded the content type is **${detectedType}**.\n\n> ${explanation}\n\nNo meeting notes have been generated to avoid hallucinating content. If this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Recording details: ${meetingDurationSeconds ?? '—'} seconds, ${wordCount} words.*`;
+
+            try {
+              await supabase.from('meeting_summaries').upsert({
+                meeting_id: meetingId,
+                summary: friendlyMessage,
+                generation_metadata: {
+                  status: 'insufficient_content',
+                  reason: 'llm_refused_non_meeting',
+                  detected_content_type: detectedType,
+                  explanation,
+                  transcript_word_count: wordCount,
+                  duration_seconds: meetingDurationSeconds,
+                  guard: 'llm',
+                },
+                ai_generated: false,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: 'meeting_id' });
+
+              await supabase.from('meetings').update({
+                notes_style_3: friendlyMessage,
+                notes_generation_status: 'insufficient_content',
+                word_count: wordCount,
+                updated_at: new Date().toISOString(),
+              }).eq('id', meetingId);
+
+              await supabase.from('meeting_notes_queue').update({
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+              }).eq('meeting_id', meetingId);
+            } catch (saveErr) {
+              console.warn('⚠️ Failed to persist LLM-refusal state:', saveErr);
+            }
+
+            try {
+              await supabase.from('meeting_generation_log').insert({
+                meeting_id: meetingId,
+                primary_model: chain[0] || modelOverride,
+                actual_model_used: actualModelUsed,
+                fallback_count: fallbackCount,
+                generation_ms: Date.now() - notesGenStart,
+                skip_reason: 'llm_refused_non_meeting',
+                detected_content_type: detectedType,
+                transcript_word_count: wordCount,
+                duration_seconds: meetingDurationSeconds,
+                transcript_snippet: fullTranscript.slice(0, 200),
+              });
+            } catch (logErr) {
+              console.warn('⚠️ Failed to log LLM refusal:', logErr);
+            }
+
+            return new Response(JSON.stringify({
+              status: 'insufficient_content',
+              reason: 'llm_refused_non_meeting',
+              detected_content_type: detectedType,
+              explanation,
+              transcript_word_count: wordCount,
+              duration_seconds: meetingDurationSeconds,
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+      } catch (parseErr) {
+        // Not JSON — proceed normally
+      }
     }
 
     // Log generation outcome to meeting_generation_log (admin-readable monitoring).

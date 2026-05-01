@@ -62,6 +62,16 @@ type FallbackRow = {
   meeting_duration_seconds: number | null;
 };
 
+type RejectionRow = {
+  created_at: string;
+  meeting_id: string;
+  duration_seconds: number | null;
+  transcript_word_count: number | null;
+  skip_reason: string | null;
+  detected_content_type: string | null;
+  transcript_snippet: string | null;
+};
+
 type Bucket = { label: string; min: number; max: number };
 const BUCKETS: Bucket[] = [
   { label: '<10 min', min: 0, max: 600 },
@@ -99,6 +109,8 @@ const LLMDiagnostics = () => {
   const [configLoading, setConfigLoading] = useState(false);
   const [configSaving, setConfigSaving] = useState(false);
   const [stats24h, setStats24h] = useState<{ total: number; firstAttemptOk: number; fallbacks: number } | null>(null);
+
+  const [rejectedRows, setRejectedRows] = useState<RejectionRow[]>([]);
 
   // Auth gate
   useEffect(() => {
@@ -214,6 +226,16 @@ const LLMDiagnostics = () => {
         fallbacks: b.fallbacks,
         pct: b.total > 0 ? Math.round((b.fallbacks / b.total) * 100) : 0,
       })));
+
+      // Section 4: recordings rejected as non-meetings (last 7 days)
+      const { data: rejected } = await supabase
+        .from('meeting_generation_log')
+        .select('created_at, meeting_id, duration_seconds, transcript_word_count, skip_reason, detected_content_type, transcript_snippet')
+        .gte('created_at', sevenDaysAgo)
+        .not('skip_reason', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setRejectedRows((rejected || []) as RejectionRow[]);
     } catch (err: any) {
       console.error('Failed to load diagnostics:', err);
       toast.error(`Failed to load diagnostics: ${err?.message || 'unknown error'}`);
@@ -376,7 +398,8 @@ const LLMDiagnostics = () => {
                 Section 2 lists the most recent meetings where Pro fell back to Flash, with the captured
                 status code, elapsed time and error message. Section 3 shows the fallback rate over the last
                 7 days bucketed by meeting length — if the &lt;10 min bucket shows a high fallback %, Pro is
-                broken across the board, not just on long meetings.
+                broken across the board, not just on long meetings. Section 4 lists recordings the system
+                rejected as non-meetings (too short, entertainment, etc.) so you can spot false positives.
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={loadData} disabled={loadingData}>
@@ -616,6 +639,65 @@ const LLMDiagnostics = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* SECTION 4 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>4. Recordings rejected as non-meetings (last 7 days)</CardTitle>
+              <CardDescription>
+                Meetings where the pipeline guard or the LLM declined to generate notes
+                because the recording did not appear to be a meeting (too short, entertainment,
+                test recording, etc.). Use this to spot false positives — real short meetings
+                that are being rejected by mistake.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {rejectedRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No recordings rejected in the last 7 days.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>When</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>Words</TableHead>
+                        <TableHead>Skip reason</TableHead>
+                        <TableHead>Detected type</TableHead>
+                        <TableHead>Transcript snippet</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rejectedRows.map((r, idx) => {
+                        const dur = r.duration_seconds;
+                        const durLabel = dur == null ? '—'
+                          : dur < 60 ? `${dur}s`
+                          : `${Math.floor(dur / 60)}m ${Math.round(dur % 60)}s`;
+                        return (
+                          <TableRow key={`${r.meeting_id}-${idx}`}>
+                            <TableCell className="whitespace-nowrap text-xs">{formatDateTime(r.created_at)}</TableCell>
+                            <TableCell className="whitespace-nowrap">{durLabel}</TableCell>
+                            <TableCell className="whitespace-nowrap tabular-nums">{r.transcript_word_count ?? '—'}</TableCell>
+                            <TableCell>
+                              {r.skip_reason ? <Badge variant="outline">{r.skip_reason}</Badge> : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {r.detected_content_type ? <Badge variant="secondary">{r.detected_content_type}</Badge> : '—'}
+                            </TableCell>
+                            <TableCell className="max-w-md">
+                              <span className="text-xs text-muted-foreground break-words">
+                                {truncate(r.transcript_snippet, 200) || '—'}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>

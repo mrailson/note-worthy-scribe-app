@@ -33,7 +33,7 @@ export const MeetingRecoveryHelper = () => {
         .select('id, title, created_at, status, notes_generation_status, word_count')
         .eq('user_id', user.id)
         .eq('status', 'completed')
-        .in('notes_generation_status', ['not_started', 'failed'])
+        .in('notes_generation_status', ['not_started', 'failed', 'insufficient_content'])
         .gt('word_count', 0)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -147,6 +147,7 @@ export const MeetingRecoveryHelper = () => {
                   <ManualNoteGenerationButton 
                     meetingId={meeting.id}
                     hasExistingNotes={false}
+                    isInsufficientContent={meeting.notes_generation_status === 'insufficient_content'}
                   />
                   <Button
                     size="sm"
