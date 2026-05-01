@@ -1870,8 +1870,14 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
       console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
     }
 
-    // Format start time in UK local time (BST/GMT) so the label tracks the actual timezone
-    const startTime = meeting.start_time ? new Date(meeting.start_time) : new Date(meeting.created_at);
+    // Format start time in UK local time (BST/GMT) so the label tracks the actual timezone.
+    // CRITICAL: Only mark these as authoritative if the meeting record actually has an
+    // explicit start_time. Otherwise we're feeding the DB import timestamp into the prompt
+    // as if it were the meeting time, which the model dutifully renders as "14:00 GMT" etc.
+    // When start_time is missing, tell the model the values are unknown and to leave the
+    // Date/Time fields as "Not specified" rather than inventing a default.
+    const hasExplicitStartTime = !!meeting.start_time;
+    const startTime = hasExplicitStartTime ? new Date(meeting.start_time) : new Date(meeting.created_at);
     const formattedStartTime = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Europe/London",
       hour: "2-digit",
@@ -1879,9 +1885,17 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
       timeZoneName: "short",
     }).format(startTime);
 
+    const recordingStartLine = hasExplicitStartTime
+      ? `Recording Start Time: ${formattedStartTime}`
+      : `Recording Start Time: Not specified in source — leave the Time field as "Not specified" in the output. Do NOT use the system import timestamp.`;
+
+    const meetingDateLine = hasExplicitStartTime
+      ? `Meeting Date: ${formattedDate}  (year = ${meetingYear} — resolve all bare/relative dates against this)`
+      : `Meeting Date: ${formattedDate}  (year = ${meetingYear} — NOTE: this is the system import date, not a confirmed meeting date. If the transcript, filename, or agenda mentions a different date, prefer that. Use the year above only to resolve bare/relative dates.)`;
+
     const userPrompt = `Meeting Title: ${generatedTitle}
-Meeting Date: ${formattedDate}  (year = ${meetingYear} — resolve all bare/relative dates against this)
-Recording Start Time: ${formattedStartTime}
+${meetingDateLine}
+${recordingStartLine}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 
 ${contextInfo}
