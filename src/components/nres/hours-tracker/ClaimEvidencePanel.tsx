@@ -341,16 +341,22 @@ export function StaffLineEvidence({
               </div>
             );
           }
+          const isMulti = cfg.evidence_type === 'other_supporting';
+          const filesForType = isMulti
+            ? (allFilesForStaff || []).filter(f => f.evidence_type === 'other_supporting')
+            : undefined;
           return (
             <EvidenceSlot
               key={`${staffIndex}-${cfg.evidence_type}`}
               config={cfg}
               uploadedFile={uploadedTypesForStaff[cfg.evidence_type]}
+              uploadedFiles={filesForType}
               canEdit={canEdit}
               uploading={uploading}
               onUpload={(file) => onUpload(cfg.evidence_type, file, staffIndex)}
               onDelete={(id) => onDelete(id)}
               onDownload={onDownload}
+              allowMultiple={isMulti}
             />
           );
         })}
