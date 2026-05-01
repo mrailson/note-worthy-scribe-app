@@ -219,6 +219,34 @@ export function EvidenceViewerModal({ open, files, initialIndex, getDownloadUrl,
               {current.file_size ? ` · ${formatSize(current.file_size)}` : ''}
             </div>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={emailing} className="h-8">
+                {emailing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Mail className="w-3.5 h-3.5 mr-1.5" />}
+                Email
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-[60]">
+              <DropdownMenuItem onClick={() => sendEmail('current')}>Email this document to me</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => sendEmail('all')} disabled={files.length < 2}>
+                Email all supporting documents to me{files.length > 1 ? ` (${files.length})` : ''}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={printing} className="h-8">
+                {printing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Printer className="w-3.5 h-3.5 mr-1.5" />}
+                Print
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-[60]">
+              <DropdownMenuItem onClick={() => printScope('current')}>Print this evidence</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => printScope('all')} disabled={files.length < 2}>
+                Print all evidence for this claim{files.length > 1 ? ` (${files.length})` : ''}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" size="sm" onClick={handleDownload} className="h-8 mr-8">
             <Download className="w-3.5 h-3.5 mr-1.5" /> Download
           </Button>
