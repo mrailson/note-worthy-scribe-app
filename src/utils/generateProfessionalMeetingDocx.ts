@@ -1308,8 +1308,17 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
   return elements;
 };
 
-// Create professional footer
-const createFooter = async (classification?: string, meetingDate?: string, meetingTime?: string) => {
+// Create professional footer.
+// `modelUsed` is the LLM that produced the saved notes (read from
+// meetings.notes_model_used). It is appended in italic light grey so the
+// provenance stamp reads as a subtle annotation; falls back to "unknown"
+// when not yet recorded so older notes still render the segment.
+const createFooter = async (
+  classification?: string,
+  meetingDate?: string,
+  meetingTime?: string,
+  modelUsed?: string | null,
+) => {
   const { Paragraph, TextRun, BorderStyle, AlignmentType, Footer, PageNumber } = await import("docx");
   
   // Use meeting date/time if provided, otherwise don't show date
@@ -1319,6 +1328,8 @@ const createFooter = async (classification?: string, meetingDate?: string, meeti
   } else if (meetingDate) {
     dateTimeText = `Meeting: ${meetingDate}`;
   }
+  
+  const footerModelId = (modelUsed && modelUsed.trim()) || 'unknown';
   
   return new Footer({
     children: [
@@ -1372,6 +1383,14 @@ const createFooter = async (classification?: string, meetingDate?: string, meeti
             children: [PageNumber.TOTAL_PAGES],
             size: FONTS.size.classification,
             color: NHS_COLORS.footerText,
+          }),
+          // Model provenance stamp
+          new TextRun({
+            text: `    |    ${footerModelId}`,
+            size: FONTS.size.classification,
+            color: "9CA3AF",
+            italics: true,
+            font: FONTS.default,
           }),
         ],
         alignment: AlignmentType.CENTER,
