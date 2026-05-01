@@ -231,6 +231,7 @@ export const MeetingRecorder = ({
   const [backupEnabled, setBackupEnabled] = useState(true);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
+  const [isFinalisingMeeting, setIsFinalisingMeeting] = useState(false);
   const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
   const [duration, setDuration] = useState(0);
   
@@ -4933,6 +4934,7 @@ export const MeetingRecorder = ({
     console.log(`🔒 Captured meetingId ${capturedMeetingId} and cleared sessionStorage`);
     
     if (!isStoppingRecording) setIsStoppingRecording(true);
+    setIsFinalisingMeeting(true);
     setStopRecordingStep('Stopping recording...');
     
     // Check word count before processing.
@@ -5171,6 +5173,7 @@ export const MeetingRecorder = ({
         await resetMeeting();
       } finally {
         setIsStoppingRecording(false);
+        setIsFinalisingMeeting(false);
         stopInProgressRef.current = false;
       }
       
@@ -6041,6 +6044,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             setIsStoppingRecording(false);
             stopInProgressRef.current = false;
           }, 300);
+          // Keep finalising overlay slightly longer so the Saved modal mounts above it.
+          setTimeout(() => setIsFinalisingMeeting(false), 500);
           
           console.log('✅ Recording state reset & post-meeting modal shown');
         } catch (error) {
@@ -6064,6 +6069,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             setIsStoppingRecording(false);
             stopInProgressRef.current = false;
           }, 300);
+          setTimeout(() => setIsFinalisingMeeting(false), 500);
           
           console.log('✅ Recording state reset & post-meeting modal shown (after bg error)');
         }
@@ -6102,6 +6108,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       } finally {
         setStopRecordingStep('');
         setIsStoppingRecording(false);
+        setIsFinalisingMeeting(false);
         stopInProgressRef.current = false;
       }
     }
@@ -8296,6 +8303,31 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         }}
       />
       
+      {/* Finalising overlay — keeps a clear "still working" signal between the
+          recording panel collapsing and the Saved modal mounting. */}
+      {isFinalisingMeeting && (
+        <div
+          className="fixed inset-0 z-[60] bg-background/85 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200"
+          role="status"
+          aria-live="polite"
+        >
+          <Card className="w-[min(92vw,420px)] shadow-2xl border-primary/20">
+            <CardContent className="p-6 text-center space-y-3">
+              <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
+              <h3 className="text-lg font-semibold">Finalising your meeting…</h3>
+              <p className="text-sm text-muted-foreground">
+                Saving the recording, transcript and notes. Please don't close this tab — the confirmation will appear in a moment.
+              </p>
+              {stopRecordingStep && (
+                <div className="text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse pt-1">
+                  {stopRecordingStep}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Post-Meeting Actions Modal */}
       <PostMeetingActionsModal
         isOpen={showPostMeetingActions}
