@@ -920,7 +920,17 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                   {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                   {importing ? 'Extracting…' : 'Import from document'}
                 </button>
-                <span style={{ fontSize: 10, color: '#92400e', fontStyle: 'italic' }}>Word, PDF or image — auto-fills dates &amp; times</span>
+                <button
+                  type="button"
+                  onClick={handleImportFromEvidence}
+                  disabled={importing || evidenceFiles.length === 0}
+                  title={evidenceFiles.length === 0 ? 'Upload supporting evidence first (PDF, image or Word)' : `Read all ${evidenceFiles.length} supporting evidence file${evidenceFiles.length === 1 ? '' : 's'} and auto-extract dates & times`}
+                  style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #059669', background: importing ? '#ecfdf5' : '#fff', color: '#047857', fontSize: 12, fontWeight: 700, cursor: (importing || evidenceFiles.length === 0) ? 'not-allowed' : 'pointer', display: 'inline-flex', gap: 5, alignItems: 'center', opacity: (importing || evidenceFiles.length === 0) ? 0.6 : 1 }}
+                >
+                  {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {importing ? 'Reading evidence…' : `Import from supporting evidence${evidenceFiles.length ? ` (${evidenceFiles.length})` : ''}`}
+                </button>
+                <span style={{ fontSize: 10, color: '#92400e', fontStyle: 'italic' }}>{importStatus || 'Word, PDF or image — auto-fills dates & times'}</span>
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                 <div ref={datePickerRef} style={{ position: 'relative', display: 'inline-flex' }}>
