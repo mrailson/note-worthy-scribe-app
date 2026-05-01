@@ -1,43 +1,98 @@
+# Evidence Viewer Modal — inline preview for SDA Claims
+
 ## Goal
 
-When a claim is returned by a Verifier or SNO/Director Approver (status = `queried`), the Practice should be able to delete the claim entirely from the Individual Claim View card — with a confirmation pop-up — as an alternative to amending and resubmitting it.
+Replace the current "open signed URL in a new browser tab" behaviour on every "View" button in claim evidence with a single in-app modal viewer that:
 
-## Where it appears
+- Opens centred over the claim, blocks the background.
+- Shows the current file (image / PDF / Word / Excel) inline, no download required.
+- Has Previous / Next buttons (and ←/→ keyboard shortcuts) to flip through every uploaded file for that claim/staff line, in upload order.
+- Shows file name, type, size, position (e.g. "3 of 4") and a small thumbnail strip at the bottom for direct jump.
+- Has a Download button as a fallback (so the existing capability is not lost).
+- Closes on ESC, backdrop click, or X.
 
-In the **Individual Claim View** card on the practice's SDA Claims page, inside the existing "⚠ Respond to Query" section (the same row that shows the response input and the green **Resubmit** button), a new red **Delete Claim** button will sit next to Resubmit.
+This replaces the current behaviour where every "View" button calls `getDownloadUrl(...)` and opens a new tab — which is what makes flicking through 4 supporting files feel clunky for the Verifier and SNO Approver.
 
-```text
-[ Your response to the Verifier query… ]  [ ✅ Resubmit ]  [ 🗑 Delete Claim ]
+## Format support
+
+| Type | Detected by | Render |
+|------|-------------|--------|
+| Images (png/jpg/jpeg/gif/webp/svg/bmp) | extension or `file_type` starting with `image/` | `<img>` fitted to viewport, contain |
+| PDF | `.pdf` or `application/pdf` | `<iframe>` of the signed URL — browser-native PDF viewer |
+| Word (.docx/.doc) | extension | Render via Microsoft Office Online viewer iframe: `https://view.officeapps.live.com/op/embed.aspx?src=<encoded signed url>` (works for any publicly reachable URL — Supabase signed URLs qualify for the 1-hour lifetime) |
+| Excel (.xlsx/.xls/.csv) | extension | Same Office Online embed |
+| PowerPoint (.pptx/.ppt) | extension | Same Office Online embed (free bonus) |
+| Anything else | fallback | "Preview not available — Download" CTA inside the modal |
+
+The Office Online embed is a no-install, public Microsoft service that already works with any HTTPS URL, including Supabase signed URLs. No new dependencies, no edge function, no parsing.
+
+## New component
+
+`src/components/nres/hours-tracker/EvidenceViewerModal.tsx`
+
+Props:
+
+```ts
+{
+  open: boolean;
+  files: ClaimEvidenceFile[];        // ordered list to flick through
+  initialIndex: number;               // which file to show first
+  getDownloadUrl: (path: string) => Promise<string | null>;
+  onClose: () => void;
+}
 ```
 
-Clicking **Delete Claim** triggers a confirmation pop-up:
+Internally:
 
-> Are you sure you want to delete this claim?
->
-> All submission data for this claim will be permanently deleted, including any supporting documents and evidence. This action cannot be undone.
->
-> [Cancel] [Delete]
+- Keeps `index` state, syncs to `initialIndex` whenever `open` flips true.
+- For the current file, calls `getDownloadUrl(file.file_path)` once, caches the signed URL in a `Map<fileId, url>` so prev/next is instant on revisit.
+- Pre-fetches the URL for `index+1` and `index-1` in the background for snappy paging.
+- Renders the right viewer based on the extension table above.
+- Header: file name, "N of M", type pill, Download button, X.
+- Footer: "← Previous" and "Next →" buttons, disabled at the ends; thumbnail strip listing each file name with active highlight; clicking a thumbnail jumps to it.
+- Keyboard: ArrowLeft / ArrowRight / Escape.
+- Sized: `max-w-6xl w-[92vw] h-[88vh]`, content area uses flex so the viewer fills the remaining space.
 
-On confirm, the claim and all its evidence are removed (using the existing `deleteClaim` flow that already cleans up `nres_claim_evidence` and storage objects). The claim disappears from the list. A toast confirms deletion.
+Built using existing shadcn `Dialog` for consistency with the rest of the app.
 
-## Scope
+## Wiring — every existing "View" button
 
-- Only shown when `claim.status === 'queried'` (returned by Verifier or Approver). Not shown for draft, submitted, verified, approved, invoiced, or paid claims.
-- Only shown to users who have permission to act on the claim for that practice — the same condition that already gates the Resubmit button.
-- No backend changes — `deleteClaim` already exists in `useNRESBuyBackClaims` and is wired into `BuyBackPracticeDashboard` as `onDeleteClaim`.
+The single source of truth for "View" buttons is `src/components/nres/hours-tracker/ClaimEvidencePanel.tsx`. Two call sites:
 
-## Technical changes (single file)
+1. `EvidenceSlot` (used by `ClaimEvidencePanel` and by `StaffLineEvidence`'s read-only branch) — line ~168.
+2. `StaffLineEvidence` inline `other_supporting` editor branch — line ~322.
 
-`src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`:
+Refactor:
 
-1. **`ClaimsViewSwitcher`** — add optional `onDeleteClaim?: (id: string) => Promise<void>` prop and forward it to `PracticeClaimCard` in the cards view.
-2. **`PracticeClaimCard`** — add optional `onDeleteClaim` prop. In the `isQueried` "Respond to Query" block (around line 3445–3472), add a red Delete button beside Resubmit that calls `window.confirm(...)` and then `await onDeleteClaim(claim.id)`. Use a small local `deleting` state to disable both buttons during the call.
-3. **Main `BuyBackPracticeDashboard` render** — pass `onDeleteClaim={onDeleteClaim}` to the `<ClaimsViewSwitcher>` at line 3718 (the prop is already destructured at line 3491).
+- `ClaimEvidencePanel` and `StaffLineEvidence` each own one `EvidenceViewerModal` instance.
+- They build the ordered `files` list from the same data they already have (`filesByType`, `allFilesForStaff`).
+- They pass an `onView(file)` callback into `EvidenceSlot` that opens the modal at the right index instead of calling `handleDownload`.
+- `EvidenceSlot` keeps a `Download` icon-only fallback button next to "View" so power users can still grab a file directly.
+- Every consumer (Practice Dashboard, Verifier Dashboard, PML Dashboard, Claims Tab) gets the new viewer for free — no edits needed in those files because they all render through `StaffLineEvidence` / `ClaimEvidencePanel`.
 
-The Verifier and PML dashboards (`BuyBackVerifierDashboard.tsx`, `BuyBackPMLDashboard.tsx`) also use `ClaimsViewSwitcher` but will simply not pass `onDeleteClaim`, so the button will not appear there — preserving the rule that only the practice can delete.
+## Files touched
+
+```text
+NEW  src/components/nres/hours-tracker/EvidenceViewerModal.tsx
+EDIT src/components/nres/hours-tracker/ClaimEvidencePanel.tsx
+       - add modal state in ClaimEvidencePanel
+       - add modal state in StaffLineEvidence
+       - replace window.open(url) handlers with setViewerIndex(...)
+       - render <EvidenceViewerModal> at the bottom of each component
+       - keep Download button as secondary action
+```
+
+No DB changes, no edge functions, no new dependencies.
 
 ## Out of scope
 
-- No change to the existing per-staff-line Delete button on draft claims (that flow already works).
-- No change to the spreadsheet or invoices views — only the cards view shows the queried response area.
-- No change to `useNRESBuyBackClaims.deleteClaim` itself.
+- Annotating / commenting on evidence inside the viewer.
+- Side-by-side comparison of two files.
+- Print or rotate controls (browser PDF viewer already provides these for PDFs).
+- Server-side conversion of legacy `.doc`/`.xls` (Office Online embed handles them; if it ever fails for a specific file, the Download fallback covers it).
+
+## Risks and mitigations
+
+- **Office Online requires the URL to be publicly reachable.** Supabase signed URLs are public-by-token for the 1-hour lifetime, so this works. If a session hits the modal after 1 hour without paging, we re-issue the signed URL on demand (already handled by always going through `getDownloadUrl`).
+- **CORS / iframe sandboxing.** PDFs and images load from Supabase storage — already proven to work today via the "View" → new tab path. Iframes for PDFs use the signed URL directly. Office Online loads inside its own iframe and fetches the URL server-side, so no client CORS issue.
+- **Mobile.** Modal collapses to full-screen on small viewports; thumbnail strip becomes horizontally scrollable. Download fallback always visible.

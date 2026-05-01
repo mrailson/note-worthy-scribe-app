@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { FileText, Trash2, Download, CheckCircle2, AlertCircle, Loader2, Sparkles, Info } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { FileText, Trash2, Download, Eye, CheckCircle2, AlertCircle, Loader2, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -7,6 +7,7 @@ import { useNRESClaimEvidence, type ClaimEvidenceFile } from '@/hooks/useNRESCla
 import { useNRESEvidenceConfig, type EvidenceConfigRow } from '@/hooks/useNRESEvidenceConfig';
 import { SmartUploadZone } from './SmartUploadZone';
 import { generateEvidenceSummaryFallback } from '@/utils/evidenceAiSummary';
+import { EvidenceViewerModal } from './EvidenceViewerModal';
 
 interface ClaimEvidencePanelProps {
   claimId: string;
@@ -40,6 +41,28 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
   const visibleConfig = applicableConfig.filter(cfg => cfg.is_mandatory || cfg.evidence_type === 'other_supporting');
   const claimTypeLabel = ({ buyback: 'Buy-Back', new_sda: 'New SDA', management: 'NRES Management', gp_locum: 'GP Locum', mixed: 'Mixed' } as Record<typeof claimCategory, string>)[claimCategory];
   const tooltipRows = visibleConfig.length > 0 ? visibleConfig : applicableConfig;
+
+  // Ordered list of all visible files for prev/next navigation in the viewer
+  const orderedFiles = useMemo<ClaimEvidenceFile[]>(() => {
+    const list: ClaimEvidenceFile[] = [];
+    visibleConfig.forEach(cfg => {
+      if (cfg.evidence_type === 'other_supporting') {
+        (filesByType[cfg.evidence_type] || []).forEach(f => list.push(f));
+      } else {
+        const single = uploadedTypes[cfg.evidence_type];
+        if (single) list.push(single as ClaimEvidenceFile);
+      }
+    });
+    return list;
+  }, [visibleConfig, filesByType, uploadedTypes]);
+
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openViewer = (file: ClaimEvidenceFile) => {
+    const idx = orderedFiles.findIndex(f => f.id === file.id);
+    setViewerIndex(idx >= 0 ? idx : 0);
+    setViewerOpen(true);
+  };
 
   if (configLoading) {
     return (
@@ -100,10 +123,18 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
             onUploadFiles={(files) => files.forEach(file => uploadEvidence(cfg.evidence_type, file))}
             onDelete={(id) => deleteEvidence(id)}
             onDownload={getDownloadUrl}
+            onView={openViewer}
             allowMultiple={cfg.evidence_type === 'other_supporting'}
           />
         ))}
       </div>
+      <EvidenceViewerModal
+        open={viewerOpen}
+        files={orderedFiles}
+        initialIndex={viewerIndex}
+        getDownloadUrl={getDownloadUrl}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   );
 }
@@ -119,6 +150,7 @@ export function EvidenceSlot({
   onUploadFiles,
   onDelete,
   onDownload,
+  onView,
   allowMultiple = false,
 }: {
   config: EvidenceConfigRow;
@@ -130,6 +162,7 @@ export function EvidenceSlot({
   onUploadFiles?: (files: File[]) => void;
   onDelete: (id: string) => void;
   onDownload: (path: string) => Promise<string | null>;
+  onView?: (file: ClaimEvidenceFile) => void;
   allowMultiple?: boolean;
 }) {
   const filesToShow = allowMultiple ? (uploadedFiles || []) : (uploadedFile ? [uploadedFile] : []);
@@ -165,8 +198,22 @@ export function EvidenceSlot({
               <div key={file.id} className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
                 <span className="truncate">{file.file_name}</span>
                 {file.file_size && <span className="shrink-0">({(file.file_size / 1024).toFixed(0)} KB)</span>}
-                <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={() => handleDownload(file.file_path)}>
-                  <Download className="w-3 h-3 mr-1" /> View
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1 text-[10px]"
+                  onClick={() => onView ? onView(file as ClaimEvidenceFile) : handleDownload(file.file_path)}
+                >
+                  <Eye className="w-3 h-3 mr-1" /> View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1 text-[10px]"
+                  onClick={() => handleDownload(file.file_path)}
+                  title="Download"
+                >
+                  <Download className="w-3 h-3" />
                 </Button>
                 {canEdit && (
                   <Button size="sm" variant="ghost" className="h-5 px-1 text-destructive" onClick={() => onDelete(file.id)}>
@@ -259,6 +306,28 @@ export function StaffLineEvidence({
     }
   };
 
+  // Ordered list of all uploaded files for this staff line — drives prev/next in viewer
+  const orderedFiles = useMemo<ClaimEvidenceFile[]>(() => {
+    const list: ClaimEvidenceFile[] = [];
+    visibleTypes.forEach(cfg => {
+      if (cfg.evidence_type === 'other_supporting') {
+        (allFilesForStaff || []).filter(f => f.evidence_type === 'other_supporting').forEach(f => list.push(f));
+      } else {
+        const single = uploadedTypesForStaff[cfg.evidence_type];
+        if (single) list.push(single);
+      }
+    });
+    return list;
+  }, [visibleTypes, allFilesForStaff, uploadedTypesForStaff]);
+
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openViewer = (file: ClaimEvidenceFile) => {
+    const idx = orderedFiles.findIndex(f => f.id === file.id);
+    setViewerIndex(idx >= 0 ? idx : 0);
+    setViewerOpen(true);
+  };
+
   return (
     <div className="bg-slate-50/80 dark:bg-slate-900/30">
       {!hideHeader && (
@@ -319,8 +388,11 @@ export function StaffLineEvidence({
                         <div key={file.id} className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
                           <span className="truncate">{file.file_name}</span>
                           {file.file_size && <span className="shrink-0">({(file.file_size / 1024).toFixed(0)} KB)</span>}
-                          <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={async () => { const url = await onDownload(file.file_path); if (url) window.open(url, '_blank'); }}>
-                            <Download className="w-3 h-3 mr-1" /> View
+                          <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={() => openViewer(file)}>
+                            <Eye className="w-3 h-3 mr-1" /> View
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={async () => { const url = await onDownload(file.file_path); if (url) window.open(url, '_blank'); }} title="Download">
+                            <Download className="w-3 h-3" />
                           </Button>
                           <Button size="sm" variant="ghost" className="h-5 px-1 text-destructive" onClick={() => onDelete(file.id)}>
                             <Trash2 className="w-3 h-3" />
@@ -356,6 +428,7 @@ export function StaffLineEvidence({
               onUpload={(file) => onUpload(cfg.evidence_type, file, staffIndex)}
               onDelete={(id) => onDelete(id)}
               onDownload={onDownload}
+              onView={openViewer}
               allowMultiple={isMulti}
             />
           );
@@ -371,6 +444,14 @@ export function StaffLineEvidence({
           </p>
         </div>
       )}
+
+      <EvidenceViewerModal
+        open={viewerOpen}
+        files={orderedFiles}
+        initialIndex={viewerIndex}
+        getDownloadUrl={onDownload}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   );
 }
