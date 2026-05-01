@@ -92,6 +92,14 @@ const LLMDiagnostics = () => {
   const [bucketStats, setBucketStats] = useState<Array<{ label: string; total: number; fallbacks: number; pct: number }>>([]);
   const [loadingData, setLoadingData] = useState(false);
 
+  // Current configuration panel
+  const PER_ATTEMPT_TIMEOUT_S = 30;
+  const [activeModel, setActiveModel] = useState<string>('gemini-3-flash');
+  const [pendingModel, setPendingModel] = useState<string>('gemini-3-flash');
+  const [configLoading, setConfigLoading] = useState(false);
+  const [configSaving, setConfigSaving] = useState(false);
+  const [stats24h, setStats24h] = useState<{ total: number; firstAttemptOk: number; fallbacks: number } | null>(null);
+
   // Auth gate
   useEffect(() => {
     if (authLoading) return;
