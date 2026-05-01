@@ -231,6 +231,7 @@ export const MeetingRecorder = ({
   const [backupEnabled, setBackupEnabled] = useState(true);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
+  const [isFinalisingMeeting, setIsFinalisingMeeting] = useState(false);
   const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
   const [duration, setDuration] = useState(0);
   
