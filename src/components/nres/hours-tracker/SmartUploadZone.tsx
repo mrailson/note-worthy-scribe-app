@@ -211,7 +211,7 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
   }
 
   return (
-    <div ref={dropZoneRef} onClick={activate} onFocus={activate}>
+    <div ref={dropZoneRef} onClick={activate} onMouseEnter={activate} onFocus={activate}>
       <input ref={fileInputRef} type="file" className="hidden" accept={accept || '.pdf,.doc,.docx,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif'} multiple={multiple} onChange={handleFileChange} />
 
       <div
@@ -238,6 +238,12 @@ export function SmartUploadZone({ onFilesSelected, uploading, accept, multiple =
             PDF, PNG, JPG, DOCX, XLSX — multiple files accepted
           </p>
         </div>
+      </div>
+
+      <div className="mt-2 flex justify-center">
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={uploading} onClick={(e) => { e.stopPropagation(); handlePasteButton(); }}>
+          <Clipboard className="w-3 h-3 mr-1" /> Paste from clipboard
+        </Button>
       </div>
 
       {pendingFiles.length > 0 && (
