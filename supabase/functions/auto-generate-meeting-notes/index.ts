@@ -2022,8 +2022,10 @@ ${cleanedTranscript}`;
       : AUTO_PER_ATTEMPT_TIMEOUT_MS;
     const buildFallbackChain = (primary: string): string[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
+      // Allow ONE same-model retry to absorb transient network blips (timeout / 5xx / 429).
+      // The catch block below decides whether the retry actually fires based on error class.
       if (callerSpecifiedModel) {
-        return [primary];
+        return [primary, primary];
       }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
