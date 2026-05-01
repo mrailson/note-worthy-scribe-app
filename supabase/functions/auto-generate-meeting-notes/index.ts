@@ -1788,6 +1788,9 @@ Do NOT infer ownership from:
 - A name appearing in a phrase like "as Julian has just said" — this means
   Julian contributed a comment, NOT that Julian owns an action
 - Someone's role implying they would naturally do the task
+- An action like "invite Giles West to the next meeting" — the OWNER is the
+  person doing the inviting (write "TBC" if unclear), NOT the invitee. The
+  invitee is the SUBJECT of the action, not its owner.
 
 If ownership is unclear, write "TBC" — TBC is always preferable to a confident
 guess.
