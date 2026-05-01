@@ -217,7 +217,7 @@ function parsePracticeNoteRows(notes: string): string[][] {
 
   return body.split('\n').map(line => line.trim()).filter(Boolean)
     .map(line => line.split('|').map(part => part.trim()))
-    .filter(parts => parts.length >= 4 && /^\d{1,2}[\/\-.]\d{1,2}/.test(parts[0]));
+    .filter(parts => parts.length >= 4 && /^\d{1,2}[/.\-]\d{1,2}/.test(parts[0]));
 }
 
 function EvidencePill({ label, met }: { label: string; met: boolean }) {
