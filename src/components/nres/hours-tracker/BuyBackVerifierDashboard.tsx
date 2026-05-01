@@ -567,7 +567,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const handleQuickStop = () => {
     const completed = { ...quickLine, start: quickLine.start || DEFAULT_START_TIME, stop: quickLine.stop || DEFAULT_STOP_TIME };
     setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
-    setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: prev.details }));
+    setQuickLine(prev => ({ date: prev.date, start: completed.start, stop: completed.stop, details: '' }));
   };
 
   // Import dates/times from a Word/PDF/image and append as table rows (Management only)
