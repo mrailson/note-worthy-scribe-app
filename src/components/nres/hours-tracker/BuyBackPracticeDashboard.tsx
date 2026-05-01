@@ -3144,7 +3144,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
               </div>
             )}
           </div>
-          {/* Row 2 — badges */}
+          {/* Row 2 — category & alerts (status moved to centre) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
             {categoryLabel ? (
               <span style={{
@@ -3160,7 +3160,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                 return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>;
               })()
             )}
-            <StatusPill status={claim.status} />
             {isQueried && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 500, color: '#dc2626' }}>
                 <AlertTriangle style={{ width: 12, height: 12 }} /> Action required
@@ -3168,6 +3167,11 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             )}
             {isDraft && <span style={{ fontSize: 11, color: '#6b7280', fontStyle: 'italic' }}>Not yet submitted</span>}
           </div>
+        </div>
+        {/* Centre — Status with caption */}
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2, alignItems: 'center', flexShrink: 0, padding: '0 16px' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.6 }}>Status</span>
+          <StatusPill status={claim.status} />
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div>
