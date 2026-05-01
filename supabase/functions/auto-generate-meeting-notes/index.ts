@@ -2064,6 +2064,32 @@ ${cleanedTranscript}`;
             ?.filter((block: any) => block.type === 'text')
             ?.map((block: any) => block.text)
             ?.join('\n') || '';
+        } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
+          // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
+          // as a third-provider option alongside Sonnet 4.6 and Gemini.
+          console.log('🧠 [attempt] OpenAI gpt-5.2 via gateway');
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'openai/gpt-5.2',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              max_completion_tokens: 8000,
+            }),
+            signal: attemptController.signal,
+          });
+          if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Gateway gpt-5.2 ${response.status}: ${errorData.substring(0, 300)}`);
+          }
+          const data = await response.json();
+          notes = data.choices?.[0]?.message?.content || '';
         } else if (modelKey === 'gpt-5') {
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
