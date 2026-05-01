@@ -144,7 +144,7 @@ const MAX_LINE_CHARS = 106;
 const capLineWidth = (text: string) =>
   text.split('\n').map(l => l.length > MAX_LINE_CHARS ? l.slice(0, MAX_LINE_CHARS) : l).join('\n');
 const DEFAULT_START_TIME = '08:00';
-const DEFAULT_STOP_TIME = '17:00';
+const DEFAULT_STOP_TIME = '18:00';
 
 const todayStr = () => format(new Date(), 'dd/MM/yyyy');
 const nowTimeStr = () => format(new Date(), 'HH:mm');
@@ -510,7 +510,11 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const [invoiceDescription, setInvoiceDescription] = useState(savedInvoiceDescription);
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false);
   const [invoiceRows, setInvoiceRows] = useState<InvoiceTableRow[]>(() => parseInvoiceTableDescription(savedInvoiceDescription));
-  const [quickLine, setQuickLine] = useState({ date: todayStr(), start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' });
+  const claimMonthDefault = (() => {
+    const b = claimMonthBounds(claim.claim_month);
+    return b ? format(b.from, 'dd/MM/yyyy') : todayStr();
+  })();
+  const [quickLine, setQuickLine] = useState({ date: claimMonthDefault, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: '' });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const datePickerRef = useRef<HTMLDivElement | null>(null);
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'processing'>('idle');
@@ -563,7 +567,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
   const handleQuickStop = () => {
     const completed = { ...quickLine, start: quickLine.start || DEFAULT_START_TIME, stop: quickLine.stop || DEFAULT_STOP_TIME };
     setInvoiceDescription(prev => appendInvoiceText(prev, `${completed.date || todayStr()}, ${completed.start || '—'}–${completed.stop} — ${completed.details}`));
-    setQuickLine(prev => ({ date: prev.date, start: DEFAULT_START_TIME, stop: DEFAULT_STOP_TIME, details: prev.details }));
+    setQuickLine(prev => ({ date: prev.date, start: completed.start, stop: completed.stop, details: '' }));
   };
 
   // Import dates/times from a Word/PDF/image and append as table rows (Management only)
@@ -989,7 +993,7 @@ const VerifierClaimCard = ({ claim, expanded, onToggle, onVerify, onReturn, onUp
                           <X className="h-4 w-4" />
                         </button>
                       </div>
-                      <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} className="p-3 pointer-events-auto" />
+                      <Calendar mode="single" selected={parseDisplayDate(quickLine.date)} defaultMonth={parseDisplayDate(quickLine.date) || claimDateBounds?.from} onSelect={handleQuickDateSelect} disabled={claimDateBounds ? { before: claimDateBounds.from, after: claimDateBounds.to } : undefined} className="p-3 pointer-events-auto" />
                     </div>
                   )}
                 </div>
