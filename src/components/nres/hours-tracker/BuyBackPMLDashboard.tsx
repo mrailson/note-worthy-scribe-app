@@ -813,11 +813,9 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                         {mi.max > 0 ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                             <span title={mi.formula}>{fmtGBP(mi.max)}</span>
-                            {s.staff_category === 'management' && (
-                              <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right', maxWidth: 220 }}>
-                                {mi.formula}
-                              </span>
-                            )}
+                            <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right', maxWidth: 260, fontStyle: 'italic' }}>
+                              {mi.formula}
+                            </span>
                           </div>
                         ) : '—'}
                       </td>
