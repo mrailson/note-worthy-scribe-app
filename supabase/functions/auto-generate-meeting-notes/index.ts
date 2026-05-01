@@ -1901,15 +1901,28 @@ ${cleanedTranscript}`;
       nextMeetingItemCount = countBulletsOrLines(nextMeetingSection, /to\s+be\s+determined|not\s+(mentioned|specified|confirmed)/i);
     };
 
-    // Build fallback chain. Primary is whatever the caller / setting resolved to.
-    // Auto-fallback ladder fires for both supported primaries:
-    //   - Flash primary  → flash → pro → 2.5-pro → gpt-5  (Pro is last-resort because
-    //     it usually returns truncated output, but truncated > nothing)
-    //   - Pro primary    → pro   → flash → 2.5-pro → gpt-5  (legacy chain, in case the
-    //     admin flips back via the MEETING_PRIMARY_MODEL setting once Google fixes Pro)
-    // Other explicit overrides (sonnet, gpt-5, etc.) are honoured without fallback.
-    const PER_ATTEMPT_TIMEOUT_MS = 30_000;
+    // ─── Timeout + fallback chain ──────────────────────────────────────────
+    // AUTO PATH (no caller modelOverride):
+    //   - 30s per attempt
+    //   - Multi-step fallback chain across providers
+    //
+    // OVERRIDE PATH (caller specified modelOverride in the request body):
+    //   - 90s per attempt (Sonnet / Opus on long governance transcripts need it)
+    //   - SINGLE fallback to Claude Haiku 4.5 if the requested model fails
+    //   - Both attempts logged to meeting_generation_log so the audit trail is complete
+    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 30_000;
+    const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 90_000;
+    const OVERRIDE_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
+    const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
+      ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
+      : AUTO_PER_ATTEMPT_TIMEOUT_MS;
     const buildFallbackChain = (primary: string): string[] => {
+      // Caller-specified models get a single Haiku fallback (no provider chain).
+      if (callerSpecifiedModel) {
+        return primary === OVERRIDE_FALLBACK_MODEL
+          ? [primary]
+          : [primary, OVERRIDE_FALLBACK_MODEL];
+      }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
       }
