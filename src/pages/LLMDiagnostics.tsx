@@ -398,7 +398,8 @@ const LLMDiagnostics = () => {
                 Section 2 lists the most recent meetings where Pro fell back to Flash, with the captured
                 status code, elapsed time and error message. Section 3 shows the fallback rate over the last
                 7 days bucketed by meeting length — if the &lt;10 min bucket shows a high fallback %, Pro is
-                broken across the board, not just on long meetings.
+                broken across the board, not just on long meetings. Section 4 lists recordings the system
+                rejected as non-meetings (too short, entertainment, etc.) so you can spot false positives.
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={loadData} disabled={loadingData}>
