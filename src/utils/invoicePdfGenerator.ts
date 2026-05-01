@@ -177,15 +177,15 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(GREY_100);
-  doc.text(`${neighbourhoodName} Neighbourhood Access Service`, 14, metaY + 22);
+  doc.text(`${neighbourhoodName} Neighbourhood Access Service`, 14, metaY + 28);
 
   // --- Separator ---
   doc.setDrawColor(...NHS_BLUE);
   doc.setLineWidth(0.6);
-  doc.line(14, metaY + 26, 196, metaY + 26);
+  doc.line(14, metaY + 32, 196, metaY + 32);
 
   // --- Staff Lines Table ---
-  const tableStartY = metaY + 30;
+  const tableStartY = metaY + 36;
   const tableData = staffDetails.map((s: any, i: number) => [
     i + 1,
     s.staff_name || '—',
