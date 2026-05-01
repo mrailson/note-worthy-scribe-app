@@ -112,11 +112,8 @@ export function EvidenceViewerModal({ open, files, initialIndex, getDownloadUrl,
               {current.file_size ? ` · ${formatSize(current.file_size)}` : ''}
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleDownload} className="h-8">
+          <Button variant="outline" size="sm" onClick={handleDownload} className="h-8 mr-8">
             <Download className="w-3.5 h-3.5 mr-1.5" /> Download
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-            <X className="w-4 h-4" />
           </Button>
         </div>
 
