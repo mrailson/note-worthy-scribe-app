@@ -37,6 +37,12 @@ interface GenerateMeetingNotesOptions {
   content: string;
   filename?: string;
   actionItems?: ActionItemForExport[];
+  /**
+   * Identifier of the LLM that actually produced the notes (post-fallback).
+   * Stamped into the page footer for provenance so we can tell at a glance
+   * which model emitted which document. Read from meetings.notes_model_used.
+   */
+  modelUsed?: string | null;
 }
 
 // Strip any existing "Action Items" section (heading + following bullet/table content)
