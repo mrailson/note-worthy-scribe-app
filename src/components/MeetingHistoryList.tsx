@@ -3646,6 +3646,21 @@ export const MeetingHistoryList = ({
         patientName="Dorothy Pearson"
         meetingTitle={ageingWellMeeting?.title}
       />
+
+      {/* Edit meeting metadata (title, date, time, format) */}
+      <EditMeetingMetadataDialog
+        open={!!editMetadataMeeting}
+        onOpenChange={(o) => { if (!o) setEditMetadataMeeting(null); }}
+        meeting={editMetadataMeeting}
+        onSaved={(updated) => {
+          if (!editMetadataMeeting) return;
+          const id = editMetadataMeeting.id;
+          setLocalMeetings(prev => prev.map(m =>
+            m.id === id ? { ...m, ...updated } as Meeting : m
+          ));
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
     </TooltipProvider>
   );
