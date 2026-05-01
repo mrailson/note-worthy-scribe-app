@@ -783,6 +783,8 @@ function InlineClaimPanel({
                     <span style={{ color: '#6b7280' }}>{getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}</span>
                     {(() => {
                       const annualRate = rateParams?.getRoleAnnualRate?.(staffMember.staff_role) ?? 0;
+                      const roleConfig = rateParams?.getRoleConfig?.(staffMember.staff_role);
+                      const isSessionPriced = isSessionPricedRole(staffMember.staff_role, roleConfig, annualRate);
                       if (!annualRate || isLocum || isMeeting) return null;
                       return (
                         <>
@@ -790,7 +792,7 @@ function InlineClaimPanel({
                           <span style={{ color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                             {fmtGBP(annualRate)}/yr
                           </span>
-                          <span style={{ color: '#9ca3af', fontSize: 11 }}>(WTE rate)</span>
+                          <span style={{ color: '#9ca3af', fontSize: 11 }}>{isSessionPriced ? '(per session/year)' : '(WTE rate)'}</span>
                         </>
                       );
                     })()}
