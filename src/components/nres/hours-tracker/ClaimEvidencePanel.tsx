@@ -388,8 +388,11 @@ export function StaffLineEvidence({
                         <div key={file.id} className="flex items-center gap-1.5 text-muted-foreground text-[10px]">
                           <span className="truncate">{file.file_name}</span>
                           {file.file_size && <span className="shrink-0">({(file.file_size / 1024).toFixed(0)} KB)</span>}
-                          <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={async () => { const url = await onDownload(file.file_path); if (url) window.open(url, '_blank'); }}>
-                            <Download className="w-3 h-3 mr-1" /> View
+                          <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={() => openViewer(file)}>
+                            <Eye className="w-3 h-3 mr-1" /> View
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={async () => { const url = await onDownload(file.file_path); if (url) window.open(url, '_blank'); }} title="Download">
+                            <Download className="w-3 h-3" />
                           </Button>
                           <Button size="sm" variant="ghost" className="h-5 px-1 text-destructive" onClick={() => onDelete(file.id)}>
                             <Trash2 className="w-3 h-3" />
