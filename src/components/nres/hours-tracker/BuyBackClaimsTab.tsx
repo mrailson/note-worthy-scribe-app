@@ -1091,7 +1091,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   return (
     <div style={{ fontFamily: "'DM Sans','Segoe UI',system-ui,sans-serif", maxWidth: 1200, margin: '0 auto', padding: '28px 16px' }}>
       {/* Test Mode Bar — admin only — placed at top of page to align with Practice/Verifier/PML views */}
-      {isAdmin && (
+      {canUseTestMode && (
         <div style={{ marginBottom: 16 }}>
           <TestModeBar
             state={testMode}
