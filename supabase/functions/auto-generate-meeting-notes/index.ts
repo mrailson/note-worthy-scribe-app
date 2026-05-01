@@ -2078,23 +2078,63 @@ ${cleanedTranscript}`;
       let lastError: Error | null = null;
       for (let i = 0; i < chain.length; i++) {
         const attemptModel = chain[i];
+        const attemptStart = Date.now();
+        let attemptStatus: 'success' | 'timeout' | 'error' = 'error';
+        let attemptReason: string | null = null;
         try {
-          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}`);
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? ' (override path, 90s)' : ' (auto path, 30s)'}`);
           generatedNotes = await runAttempt(attemptModel);
           actualModelUsed = attemptModel;
           fallbackCount = i;
           modelUsed = attemptModel;
+          attemptStatus = 'success';
           if (i > 0) {
             console.log(`⚡ Fallback succeeded with ${attemptModel} (primary ${chain[0]} failed)`);
+          }
+          // Per-attempt log row for the override path so the audit trail covers
+          // both the requested model and any Haiku fallback. Auto path keeps its
+          // single summary row at the end (existing behaviour).
+          if (callerSpecifiedModel) {
+            try {
+              await supabase.from('meeting_generation_log').insert({
+                meeting_id: meetingId,
+                primary_model: chain[0] || modelOverride,
+                actual_model_used: attemptModel,
+                fallback_count: i,
+                generation_ms: Date.now() - attemptStart,
+                failure_reasons: null,
+                fallback_reason: i > 0 ? 'override_haiku_fallback' : null,
+              });
+            } catch (logErr) {
+              console.warn('⚠️ Failed to log override-path attempt (non-blocking):', logErr);
+            }
           }
           break;
         } catch (err: any) {
           const isAbort = err?.name === 'AbortError';
+          attemptStatus = isAbort ? 'timeout' : 'error';
           const reason = isAbort
             ? `timeout after ${Math.round(PER_ATTEMPT_TIMEOUT_MS / 1000)}s`
             : (err?.message || 'unknown error');
+          attemptReason = reason;
           console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
+          // Per-attempt failure log for override path.
+          if (callerSpecifiedModel) {
+            try {
+              await supabase.from('meeting_generation_log').insert({
+                meeting_id: meetingId,
+                primary_model: chain[0] || modelOverride,
+                actual_model_used: attemptModel,
+                fallback_count: i,
+                generation_ms: Date.now() - attemptStart,
+                failure_reasons: [{ model: attemptModel, reason, status: attemptStatus }],
+                fallback_reason: attemptStatus,
+              });
+            } catch (logErr) {
+              console.warn('⚠️ Failed to log override-path attempt failure (non-blocking):', logErr);
+            }
+          }
           // Capture Pro-specific diagnostics (only the first Pro attempt — index 0).
           const isPro = attemptModel === 'gemini-3.1-pro' || attemptModel === 'gemini-3.1-pro-preview';
           if (isPro && fallbackReason === null) {
