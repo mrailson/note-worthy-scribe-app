@@ -23,6 +23,7 @@ export interface BuyBackClaim {
   claimed_amount: number;
   declaration_confirmed: boolean;
   status: 'draft' | 'submitted' | 'verified' | 'approved' | 'queried' | 'invoiced' | 'paid' | 'rejected';
+  claim_ref: number | null;
   submitted_at: string | null;
   submitted_by_email: string | null;
   submitted_by_name: string | null;
