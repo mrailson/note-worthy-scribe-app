@@ -490,6 +490,22 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         nextMeeting: docSettings.next_meeting_on,
       };
 
+      // Best-effort lookup so the page footer carries the model that
+      // produced these notes (mirrors meetings.notes_model_used).
+      let notesModelUsed: string | null = null;
+      if (meetingId) {
+        try {
+          const { data: modelRow } = await supabase
+            .from('meetings')
+            .select('notes_model_used')
+            .eq('id', meetingId)
+            .maybeSingle();
+          notesModelUsed = (modelRow as any)?.notes_model_used ?? null;
+        } catch (modelErr) {
+          console.warn('⚠️ Could not load notes_model_used for footer:', modelErr);
+        }
+      }
+
       await generateProfessionalWordFromContent(
         notesContent,
         documentTitle,
@@ -501,7 +517,8 @@ export const MeetingExportStudioModal: React.FC<MeetingExportStudioModalProps> =
         docSettings.footer_on,
         docSettings.meeting_details_on,
         docSettings.attendees_on,
-        docSettings.priority_column_on
+        docSettings.priority_column_on,
+        notesModelUsed,
       );
       toast.success('Word document downloaded');
     } catch (error) {
