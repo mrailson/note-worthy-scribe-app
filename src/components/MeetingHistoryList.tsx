@@ -1540,7 +1540,7 @@ export const MeetingHistoryList = ({
   //   'sonnet-4.6'           → Claude Sonnet 4.6 alternative perspective
   //   'gemini-2.5-flash'     → premium long-context (PIN-gated)
   // Future premium options can be added without changing this signature.
-  type RegenerateModel = 'default' | 'gemini-3-flash' | 'sonnet-4.6' | 'gemini-2.5-flash';
+  type RegenerateModel = 'default' | 'gemini-3-flash' | 'sonnet-4.6' | 'gemini-2.5-flash' | 'gpt-5.2';
   const handleProcessClick = async (meeting: Meeting, modelOverride?: RegenerateModel | string) => {
     const meetingId = meeting.id;
     const isDefault = !modelOverride || modelOverride === 'default';
