@@ -428,6 +428,7 @@ export function StaffLineEvidence({
               onUpload={(file) => onUpload(cfg.evidence_type, file, staffIndex)}
               onDelete={(id) => onDelete(id)}
               onDownload={onDownload}
+              onView={openViewer}
               allowMultiple={isMulti}
             />
           );
@@ -443,6 +444,14 @@ export function StaffLineEvidence({
           </p>
         </div>
       )}
+
+      <EvidenceViewerModal
+        open={viewerOpen}
+        files={orderedFiles}
+        initialIndex={viewerIndex}
+        getDownloadUrl={onDownload}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   );
 }
