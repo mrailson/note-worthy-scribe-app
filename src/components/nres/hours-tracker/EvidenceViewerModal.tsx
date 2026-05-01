@@ -94,6 +94,107 @@ export function EvidenceViewerModal({ open, files, initialIndex, getDownloadUrl,
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  // ---- Email ----
+  const [emailing, setEmailing] = useState(false);
+  const sendEmail = async (scope: 'current' | 'all') => {
+    const targets = scope === 'all' ? files : [current];
+    if (targets.length === 0) return;
+    setEmailing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-evidence-email', {
+        body: {
+          filePaths: targets.map(f => f.file_path),
+          fileNames: targets.map(f => f.file_name),
+          claimLabel,
+          subject: scope === 'all'
+            ? `All supporting evidence${claimLabel ? ` — ${claimLabel}` : ''}`
+            : `Evidence: ${current.file_name}${claimLabel ? ` — ${claimLabel}` : ''}`,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Email sent to ${(data as any)?.recipient || 'you'} (${targets.length} file${targets.length === 1 ? '' : 's'})`);
+    } catch (e: any) {
+      console.error('email failed', e);
+      toast.error(e?.message || 'Could not send email');
+    } finally {
+      setEmailing(false);
+    }
+  };
+
+  // ---- Print (merged PDF) ----
+  const [printing, setPrinting] = useState(false);
+  const buildMergedPdf = async (targets: ClaimEvidenceFile[]): Promise<Uint8Array> => {
+    const merged = await PDFDocument.create();
+    const helv = await merged.embedFont(StandardFonts.Helvetica);
+    const helvBold = await merged.embedFont(StandardFonts.HelveticaBold);
+
+    for (let i = 0; i < targets.length; i++) {
+      const f = targets[i];
+      const url = await ensureUrl(f, true);
+      if (!url) continue;
+      const resp = await fetch(url);
+      const buf = new Uint8Array(await resp.arrayBuffer());
+      const k = classify(f);
+
+      // Cover/separator page
+      const cover = merged.addPage([595.28, 841.89]); // A4
+      cover.drawText(`Evidence ${i + 1} of ${targets.length}`, { x: 50, y: 780, size: 11, font: helv, color: rgb(0.4, 0.45, 0.55) });
+      cover.drawText(f.file_name, { x: 50, y: 750, size: 16, font: helvBold, color: rgb(0.06, 0.09, 0.16) });
+      if (claimLabel) cover.drawText(claimLabel, { x: 50, y: 728, size: 10, font: helv, color: rgb(0.4, 0.45, 0.55) });
+
+      try {
+        if (k === 'pdf') {
+          const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+          const copied = await merged.copyPages(src, src.getPageIndices());
+          copied.forEach(p => merged.addPage(p));
+        } else if (k === 'image') {
+          const ext = (f.file_name.split('.').pop() || '').toLowerCase();
+          let img;
+          if (ext === 'png') img = await merged.embedPng(buf);
+          else img = await merged.embedJpg(buf); // jpg/jpeg/webp may fail; caught below
+          const page = merged.addPage([595.28, 841.89]);
+          const maxW = 495, maxH = 720;
+          const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+          const w = img.width * ratio, h = img.height * ratio;
+          page.drawImage(img, { x: (595.28 - w) / 2, y: (841.89 - h) / 2 - 20, width: w, height: h });
+        } else {
+          cover.drawText('(Inline preview not available — see attachment in original format)', { x: 50, y: 700, size: 10, font: helv, color: rgb(0.6, 0.2, 0.2) });
+        }
+      } catch (e) {
+        console.warn('failed to embed', f.file_name, e);
+        cover.drawText('(Could not embed this file in the print bundle)', { x: 50, y: 700, size: 10, font: helv, color: rgb(0.6, 0.2, 0.2) });
+      }
+    }
+    return await merged.save();
+  };
+
+  const printScope = async (scope: 'current' | 'all') => {
+    const targets = scope === 'all' ? files : [current];
+    if (targets.length === 0) return;
+    setPrinting(true);
+    try {
+      const bytes = await buildMergedPdf(targets);
+      const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
+      const w = window.open(blobUrl, '_blank');
+      if (w) {
+        // Try to auto-trigger print once loaded
+        const tryPrint = () => { try { w.focus(); w.print(); } catch {} };
+        setTimeout(tryPrint, 800);
+      } else {
+        toast.message('Pop-up blocked — opened the PDF in a new tab to print manually');
+      }
+      // Revoke later
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (e: any) {
+      console.error('print failed', e);
+      toast.error(e?.message || 'Could not prepare print bundle');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+
   if (!current) return null;
 
   const kind = classify(current);
