@@ -2035,6 +2035,10 @@ ${cleanedTranscript}`;
         next_meeting_item_count: nextMeetingItemCount,
         cross_section_check_performed: crossSectionCheckPerformed,
         extraction_reasoning_trace: extractionReasoningTrace,
+        pro_status_code: proStatusCode,
+        pro_elapsed_ms: proElapsedMs,
+        pro_error_message: proErrorMessage,
+        fallback_reason: fallbackReason,
       });
     } catch (logErr) {
       console.warn('⚠️ Failed to write generation log (non-blocking):', logErr);
