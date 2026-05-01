@@ -6069,6 +6069,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             setIsStoppingRecording(false);
             stopInProgressRef.current = false;
           }, 300);
+          setTimeout(() => setIsFinalisingMeeting(false), 500);
           
           console.log('✅ Recording state reset & post-meeting modal shown (after bg error)');
         }
