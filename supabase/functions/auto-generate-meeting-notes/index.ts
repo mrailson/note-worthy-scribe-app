@@ -314,25 +314,19 @@ serve(async (req) => {
       }
     }
 
-    // Duration-based default model selection (only when caller did not pick one).
-    // Short meetings (<60 min) → gemini-3-flash for fast turnaround.
-    // Long meetings (≥60 min) → gemini-3.1-pro for stronger synthesis across many items.
-    // The fallback chain (flash → 2.5-pro → gpt-5) remains intact for both branches.
-    // Explicit user/UI overrides via Settings always win.
-    // Treat the historical default ('gemini-3.1-pro') sent by the auto-generation
-    // path as "not a deliberate user choice" so duration-based routing can apply.
-    // Any other explicit value (flash, sonnet, gpt-5, etc.) is honoured as a real override.
+    // Primary model is now governed by the MEETING_PRIMARY_MODEL setting
+    // (resolved above into `configuredPrimaryModel`). Explicit caller overrides
+    // via Settings/regenerate dropdown still win — we only use the configured
+    // default when the caller didn't specify a model. Duration-based routing
+    // has been removed: Flash is now fast enough that there's no Pro upside
+    // worth the timeout risk on long meetings.
     const rawClientModel = requestBody.modelOverride;
     const callerSpecifiedModel =
       rawClientModel !== undefined &&
       rawClientModel !== null &&
-      rawClientModel !== '' &&
-      rawClientModel !== 'gemini-3.1-pro';
+      rawClientModel !== '';
     if (!callerSpecifiedModel) {
-      const mins = Number(meeting?.duration_minutes) || 0;
-      const previousDefault = modelOverride;
-      modelOverride = mins >= 60 ? 'gemini-3.1-pro' : 'gemini-3-flash';
-      console.log(`🎯 Duration-based default: ${mins} min → ${modelOverride} (was ${previousDefault})`);
+      console.log(`🎯 Using configured primary model: ${configuredPrimaryModel}`);
     } else {
       console.log(`🎯 Using caller-specified model: ${modelOverride}`);
     }
