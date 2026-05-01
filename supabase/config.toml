@@ -481,3 +481,6 @@ verify_jwt = true
 
 [functions.send-evidence-email]
 verify_jwt = true
+
+[functions.gemini-ping]
+verify_jwt = true
