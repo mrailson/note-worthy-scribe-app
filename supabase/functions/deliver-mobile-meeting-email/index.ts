@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
     // Always read fresh from DB to pick up the latest AI-generated title
     const { data: meeting, error: meetingErr } = await supabase
       .from("meetings")
-      .select("id, user_id, title, import_source, notes_email_sent_at, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count")
+      .select("id, user_id, title, import_source, notes_email_sent_at, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count, notes_model_used")
       .eq("id", meetingId)
       .maybeSingle();
 
