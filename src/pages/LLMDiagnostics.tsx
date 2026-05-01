@@ -62,6 +62,16 @@ type FallbackRow = {
   meeting_duration_seconds: number | null;
 };
 
+type RejectionRow = {
+  created_at: string;
+  meeting_id: string;
+  duration_seconds: number | null;
+  transcript_word_count: number | null;
+  skip_reason: string | null;
+  detected_content_type: string | null;
+  transcript_snippet: string | null;
+};
+
 type Bucket = { label: string; min: number; max: number };
 const BUCKETS: Bucket[] = [
   { label: '<10 min', min: 0, max: 600 },
