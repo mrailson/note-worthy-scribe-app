@@ -1471,7 +1471,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   }
   
   // Create footer with meeting date/time
-  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
+  const footer = await createFooter(metadata.classification, metadata.date, metadata.time, metadata.notesModelUsed);
   
   // Build document with NHS theme
   const styles = buildNHSStyles();
