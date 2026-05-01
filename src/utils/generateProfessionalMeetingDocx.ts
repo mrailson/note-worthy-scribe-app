@@ -1825,7 +1825,7 @@ export const generateProfessionalWordBlob = async (
   }
   
   // Create footer with meeting date/time
-  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
+  const footer = await createFooter(metadata.classification, metadata.date, metadata.time, metadata.notesModelUsed);
   
   // (4) Build document + serialise to blob
   let doc: any;
