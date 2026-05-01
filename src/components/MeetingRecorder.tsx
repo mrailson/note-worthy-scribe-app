@@ -4934,6 +4934,7 @@ export const MeetingRecorder = ({
     console.log(`🔒 Captured meetingId ${capturedMeetingId} and cleared sessionStorage`);
     
     if (!isStoppingRecording) setIsStoppingRecording(true);
+    setIsFinalisingMeeting(true);
     setStopRecordingStep('Stopping recording...');
     
     // Check word count before processing.
