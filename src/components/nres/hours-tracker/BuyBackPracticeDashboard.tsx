@@ -3206,9 +3206,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             {claim.bacs_reference && <InfoBlock label="BACS ref" value={claim.bacs_reference} />}
             {claim.paid_at && <InfoBlock label="Paid" value={shortDate(claim.actual_payment_date || claim.paid_at)} highlight="#166534" sub={claim.paid_by ? emailToName(claim.paid_by) + ' · PML Finance' : undefined} />}
             {claim.invoice_number && <InvoiceDownloadLink claim={claim} />}
-            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-              <EvidencePill label="Evidence" met={evidenceComplete} />
-            </div>
           </div>
 
           {isQueried && claim.query_notes && (
