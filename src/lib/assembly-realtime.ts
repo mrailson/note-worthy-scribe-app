@@ -86,7 +86,22 @@ export class AssemblyRealtimeClient {
   // Pre-emptive session rotation (avoid AAI's ~60-min hard cap)
   private sessionRotateTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Heartbeat + watchdog state
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private noFinalsWatchdog: ReturnType<typeof setTimeout> | null = null;
+  private lastFinalAt: number = 0;
+  private sessionId: string = "";
+  private meetingId?: string;
+  private userId?: string;
+  private visibilityHandler?: () => void;
+
   constructor(private cb: Callbacks = {}) {}
+
+  /** Optional context for diagnostic logging. */
+  setDiagnosticContext(ctx: { meetingId?: string; userId?: string }) {
+    this.meetingId = ctx.meetingId;
+    this.userId = ctx.userId;
+  }
 
   /** Set keyterms before calling start(). */
   setKeyterms(terms: string[]) {
