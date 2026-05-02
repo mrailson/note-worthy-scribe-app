@@ -2641,6 +2641,8 @@ ${cleanedTranscript}`;
             elapsed_ms: Date.now() - fbStart,
             chars: fbChars,
             error: fbError,
+            openai_request_id: lastGatewayRequestId,
+            gateway_status: lastGatewayStatus,
             meeting_id: meetingId,
             triggered_by: callerSpecifiedModel ? 'manual-regenerate' : 'auto-first-pass',
           }));
