@@ -260,6 +260,10 @@ serve(async (req) => {
     const detailTier: DetailTier = (ALLOWED_DETAIL_TIERS as readonly string[]).includes(rawDetailTier)
       ? (rawDetailTier as DetailTier)
       : 'standard';
+    // Suffix model identifier so docx footer reads e.g. "claude-sonnet-4-6 (detailed)".
+    // Standard tier is the historical baseline so we don't add a suffix for it.
+    const stampModelWithTier = (model: string | null | undefined): string =>
+      detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
     // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
     // operational setting (system_settings) so admins can flip Flash↔Pro instantly
     // via /admin/llm-diagnostics without a redeploy. Falls back to 'gemini-3-flash'
