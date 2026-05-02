@@ -551,7 +551,7 @@ serve(async (req) => {
                 notes_style_3: consolidatedResult.content,
                 notes_generation_status: 'completed',
                 primary_transcript_source: 'consolidated',
-                notes_model_used: modelOverride || 'consolidated',
+                notes_model_used: stampModelWithTier(modelOverride || 'consolidated'),
               })
               .eq('id', meetingId);
             
