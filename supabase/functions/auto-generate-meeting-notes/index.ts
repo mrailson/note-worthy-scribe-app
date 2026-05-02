@@ -2,6 +2,29 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 
+// ─────────────────────────────────────────────────────────────────────────
+// SINGLE SOURCE OF TRUTH for first-pass meeting note generation.
+//
+// Every input path (live recording, mobile, file upload, transcript paste,
+// Plaud webhook, offline sync, mobile email, …) funnels into THIS edge
+// function with no caller-supplied modelOverride; the default chosen here
+// is therefore what users actually see on the first auto-generated note.
+//
+// To change the default, EITHER:
+//   (a) update the `MEETING_PRIMARY_MODEL` row in `system_settings`
+//       (instant, no redeploy — admin-flippable via /admin/llm-diagnostics), OR
+//   (b) edit the constant below and redeploy (used as the fallback when the
+//       DB row is missing or holds a value not in ALLOWED_PRIMARY_MODELS).
+//
+// Decided May 2026 after model comparison: Sonnet 4.6 at standard tier is
+// the only configuration that produces governance-grade output across the
+// full range of input transcripts. Gemini 3 Flash and Pro both fabricated
+// attendees / owners / deadlines on the IHO test corpus.
+// ─────────────────────────────────────────────────────────────────────────
+const DEFAULT_GENERATION_MODEL = 'claude-sonnet-4-6';
+const DEFAULT_DETAIL_TIER = 'standard' as const;
+const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3.1-pro'];
+
 // Large transcript cleaning functions
 function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string[] {
   if (text.length <= target) return [text];
@@ -253,25 +276,23 @@ serve(async (req) => {
     } = requestBody;
     // detailTier is the user-facing output-length selector (Concise/Standard/Detailed).
     // It is independent of the legacy `detailLevel` parameter and only injects a
-    // length directive into the system prompt. Default: 'standard' = no directive.
+    // length directive into the system prompt. Default: DEFAULT_DETAIL_TIER (standard).
     const ALLOWED_DETAIL_TIERS = ['concise', 'standard', 'detailed'] as const;
     type DetailTier = typeof ALLOWED_DETAIL_TIERS[number];
-    const rawDetailTier = typeof requestBody.detailTier === 'string' ? requestBody.detailTier.toLowerCase() : 'standard';
+    const rawDetailTier = typeof requestBody.detailTier === 'string' ? requestBody.detailTier.toLowerCase() : DEFAULT_DETAIL_TIER;
     const detailTier: DetailTier = (ALLOWED_DETAIL_TIERS as readonly string[]).includes(rawDetailTier)
       ? (rawDetailTier as DetailTier)
-      : 'standard';
+      : DEFAULT_DETAIL_TIER;
     console.log(`🎚️ [detailTier] received='${requestBody.detailTier}' → resolved='${detailTier}' (forceRegenerate=${forceRegenerate}, model=${requestBody.modelOverride ?? 'server-default'})`);
     // Suffix model identifier so docx footer reads e.g. "claude-sonnet-4-6 (detailed)".
     // Standard tier is the historical baseline so we don't add a suffix for it.
     const stampModelWithTier = (model: string | null | undefined): string =>
       detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
-    // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
-    // operational setting (system_settings) so admins can flip Flash↔Pro instantly
-    // via /admin/llm-diagnostics without a redeploy. Falls back to 'gemini-3-flash'
-    // if the setting is missing or unreadable. Pro currently exhausts its token
-    // budget on internal reasoning before producing output (May 2026).
-    const ALLOWED_PRIMARY_MODELS = ['gemini-3-flash', 'gemini-3.1-pro'];
-    let configuredPrimaryModel = 'gemini-3-flash';
+    // Resolve operational primary model. Read MEETING_PRIMARY_MODEL from
+    // system_settings so admins can flip the default instantly via
+    // /admin/llm-diagnostics; fall back to DEFAULT_GENERATION_MODEL (top of file)
+    // if the row is missing or holds a value not in ALLOWED_PRIMARY_MODELS.
+    let configuredPrimaryModel: string = DEFAULT_GENERATION_MODEL;
     try {
       const { data: settingRow } = await supabase
         .from('system_settings')
@@ -284,9 +305,11 @@ serve(async (req) => {
         configuredPrimaryModel = candidate;
       }
     } catch (settingErr) {
-      console.warn('⚠️ Could not read MEETING_PRIMARY_MODEL setting, defaulting to gemini-3-flash:', settingErr);
+      console.warn(`⚠️ Could not read MEETING_PRIMARY_MODEL setting, defaulting to ${DEFAULT_GENERATION_MODEL}:`, settingErr);
     }
     let modelOverride: string = requestBody.modelOverride ?? configuredPrimaryModel;
+    const isFirstPassDefault = !requestBody.modelOverride;
+    console.log(`🧭 [model-resolution] firstPassDefault=${isFirstPassDefault} configured='${configuredPrimaryModel}' caller='${requestBody.modelOverride ?? '(none)'}' → final='${modelOverride}'`);
     meetingId = parsedMeetingId;
 
     // Server-side PIN gate for premium models. Pro is now the default and is
@@ -2154,6 +2177,15 @@ ${cleanedTranscript}`;
       // The catch block below decides whether the retry actually fires based on error class.
       if (callerSpecifiedModel) {
         return [primary, primary];
+      }
+      // First-pass auto-default: when MEETING_PRIMARY_MODEL is Sonnet (current
+      // operational policy), behave like an override — Sonnet retry only, no
+      // silent substitution to a different provider. Quality has been validated
+      // for Sonnet at standard tier; Flash/Pro fabricate, so falling back to
+      // them on transient Sonnet errors would degrade output without the user
+      // knowing. A permanent Sonnet failure must surface as a real error.
+      if (primary === 'claude-sonnet-4-6') {
+        return ['claude-sonnet-4-6', 'claude-sonnet-4-6'];
       }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
