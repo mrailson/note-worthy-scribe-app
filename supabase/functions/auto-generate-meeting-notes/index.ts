@@ -2376,6 +2376,7 @@ ${cleanedTranscript}`;
                 generation_ms: Date.now() - attemptStart,
                 failure_reasons: null,
                 fallback_reason: isSameModelRetry ? 'same_model_retry' : null,
+                detail_tier: detailTier,
               });
             } catch (logErr) {
               console.warn('⚠️ Failed to log override-path attempt (non-blocking):', logErr);
