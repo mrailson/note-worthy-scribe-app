@@ -2579,6 +2579,7 @@ ${cleanedTranscript}`;
         pro_elapsed_ms: proElapsedMs,
         pro_error_message: proErrorMessage,
         fallback_reason: fallbackReason,
+        detail_tier: detailTier,
       });
     } catch (logErr) {
       console.warn('⚠️ Failed to write generation log (non-blocking):', logErr);
