@@ -1672,15 +1672,19 @@ NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC re
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-${detailTier === 'concise' ? `OUTPUT LENGTH DIRECTIVE — CONCISE TIER
-Target 600-900 words total. Limit each section to 2-3 sentences. Prefer bullets over prose. Skip operational texture, anecdotes and context unless materially relevant to a decision or action. Decisions, actions, figures and named risks must still be preserved verbatim — only narrative density is reduced.
+${selectedNoteTypeInstruction}
 
-` : detailTier === 'detailed' ? `OUTPUT LENGTH DIRECTIVE — DETAILED TIER
-Target 2,000-3,500 words total. Use full prose with operational texture, specific figures, and named anecdotes that illustrate concerns. Add sub-points where they add clarity. Preserve attributed quotes-as-paraphrase, quantitative grumbles, and the substance of debate. Do not pad — every additional sentence must add either a fact, an attribution, a figure, or operational context.
+${detailTier === 'standard' ? selectedDetailInstruction : ''}
 
-` : ''}${selectedNoteTypeInstruction}
-
-${selectedDetailInstruction}
+${detailTier === 'concise' ? `═══════════════════════════════════════════════════════════════════════════════
+OUTPUT LENGTH DIRECTIVE — CONCISE TIER (OVERRIDES ALL OTHER LENGTH GUIDANCE ABOVE)
+═══════════════════════════════════════════════════════════════════════════════
+Target 600–900 words total. This OVERRIDES any earlier word-count guidance (e.g. "approximately 800 words", "comprehensive", "full coverage"). Limit each section to 2–3 sentences. Prefer bullets over prose. Skip operational texture, anecdotes and context unless materially relevant to a decision or action. Decisions, actions, figures and named risks must still be preserved verbatim — only narrative density is reduced.
+` : detailTier === 'detailed' ? `═══════════════════════════════════════════════════════════════════════════════
+OUTPUT LENGTH DIRECTIVE — DETAILED TIER (OVERRIDES ALL OTHER LENGTH GUIDANCE ABOVE)
+═══════════════════════════════════════════════════════════════════════════════
+Target 2,000–3,500 words total. This OVERRIDES any earlier word-count guidance (e.g. "approximately 800 words"). Use full prose with operational texture, specific figures, and named anecdotes that illustrate concerns. Add sub-points where they add clarity. Preserve attributed quotes-as-paraphrase, quantitative grumbles, and the substance of debate. Do not pad — every additional sentence must add either a fact, an attribution, a figure, or operational context. Aim for at least 2,000 words; do not stop short.
+` : ''}
 
 CROSS-REFERENCE HANDLING:
 - If the transcript includes a "CROSS-REFERENCE" section, treat it as a SECONDARY source only
