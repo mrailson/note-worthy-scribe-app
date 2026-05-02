@@ -978,6 +978,7 @@ serve(async (req) => {
             transcript_word_count: wordCount,
             duration_seconds: meetingDurationSeconds,
             transcript_snippet: fullTranscript.slice(0, 200),
+            detail_tier: detailTier,
           });
         } catch (logErr) {
           console.warn('⚠️ Failed to log insufficient-content event:', logErr);
