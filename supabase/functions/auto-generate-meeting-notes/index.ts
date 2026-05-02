@@ -2366,7 +2366,7 @@ ${cleanedTranscript}`;
         let attemptStatus: 'success' | 'timeout' | 'error' = 'error';
         let attemptReason: string | null = null;
         try {
-          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? (isSameModelRetry ? ' (override path, 90s, same-model retry)' : ' (override path, 90s)') : ' (auto path, 30s)'}`);
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? (isSameModelRetry ? ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s, same-model retry)` : ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s)`) : ' (auto path, 30s)'}`);
           generatedNotes = await runAttempt(attemptModel);
           actualModelUsed = attemptModel;
           fallbackCount = i;
