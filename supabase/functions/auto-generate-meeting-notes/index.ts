@@ -251,6 +251,15 @@ serve(async (req) => {
       premiumPin,
       forceGenerate = false,
     } = requestBody;
+    // detailTier is the user-facing output-length selector (Concise/Standard/Detailed).
+    // It is independent of the legacy `detailLevel` parameter and only injects a
+    // length directive into the system prompt. Default: 'standard' = no directive.
+    const ALLOWED_DETAIL_TIERS = ['concise', 'standard', 'detailed'] as const;
+    type DetailTier = typeof ALLOWED_DETAIL_TIERS[number];
+    const rawDetailTier = typeof requestBody.detailTier === 'string' ? requestBody.detailTier.toLowerCase() : 'standard';
+    const detailTier: DetailTier = (ALLOWED_DETAIL_TIERS as readonly string[]).includes(rawDetailTier)
+      ? (rawDetailTier as DetailTier)
+      : 'standard';
     // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
     // operational setting (system_settings) so admins can flip Flash↔Pro instantly
     // via /admin/llm-diagnostics without a redeploy. Falls back to 'gemini-3-flash'
