@@ -143,51 +143,50 @@ ${context}
 
 Answer questions based solely on the meeting content provided above.`;
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
+    const conversationMessages = [
       ...conversationHistory.map((msg: any) => ({
-        role: msg.role,
-        content: msg.content
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content,
       })),
-      { role: 'user', content: question }
+      { role: 'user', content: question },
     ];
 
-    // Call Lovable AI API
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    // Sonnet-only policy (May 2026): switched from Lovable AI gateway / Gemini.
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages,
-        temperature: 0.7,
+        model: 'claude-sonnet-4-6',
         max_tokens: 2000,
+        system: systemPrompt,
+        temperature: 0.3,
+        messages: conversationMessages,
       }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI API error:', errorText);
-      
+      console.error('Anthropic API error:', errorText);
+
       if (aiResponse.status === 429) {
         throw new Error('Rate limit exceeded. Please try again in a moment.');
       }
-      if (aiResponse.status === 402) {
-        throw new Error('AI credits exhausted. Please contact support.');
-      }
-      
-      throw new Error(`AI API error: ${aiResponse.statusText}`);
+
+      throw new Error(`Anthropic API error: ${aiResponse.statusText}`);
     }
 
     const aiData = await aiResponse.json();
-    const answer = aiData.choices?.[0]?.message?.content || 'I apologize, but I was unable to generate a response.';
+    const answer = (aiData.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '') ||
+      'I apologize, but I was unable to generate a response.';
 
     return new Response(
       JSON.stringify({ answer }),
