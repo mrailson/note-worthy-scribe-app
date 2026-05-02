@@ -274,7 +274,6 @@ serve(async (req) => {
       skipQc = false,
       premiumPin,
       forceGenerate = false,
-      diagnosticDump = false,
     } = requestBody;
     // detailTier is the user-facing output-length selector (Concise/Standard/Detailed).
     // It is independent of the legacy `detailLevel` parameter and only injects a
