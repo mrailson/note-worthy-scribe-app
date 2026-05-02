@@ -2164,7 +2164,10 @@ ${cleanedTranscript}`;
     //   - 90s per attempt (Sonnet / GPT on long governance transcripts need it)
     //   - no automatic fallback: a failed requested model must surface to the user
     //     instead of silently producing notes with a different footer/model.
-    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 30_000;
+    // Bumped 30s→90s: 14k-word governance transcripts on Flash + fallback chain
+    // were timing out before any model could stream. 90s gives Flash room to
+    // complete and still leaves headroom for the fallback chain within Edge limits.
+    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 90_000;
     // Detailed tier on long governance transcripts can push Sonnet/GPT past 90s.
     // 180s gives headroom; same-model retry still bounded so worst case ~6 minutes.
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
