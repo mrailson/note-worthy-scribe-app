@@ -2169,12 +2169,14 @@ ${cleanedTranscript}`;
     // were timing out before any model could stream. 90s gives Flash room to
     // complete and still leaves headroom for the fallback chain within Edge limits.
     // Sonnet-only policy (May 2026), v2 timeout ladder:
-    //   AUTO path (no caller modelOverride):           30s → 60s → 90s
+    //   TEMP DIAGNOSTIC path (2 May 2026):             single 90s Sonnet attempt
     //   FORCE-REGENERATE path (user clicked retry):    single 90s window
     //   OVERRIDE path (audit comparison):              180s × 3 same-model retries
     // Worst case wall time: 180s (auto) / 90s (regen) / 540s (override).
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
-    const AUTO_TIMEOUT_LADDER_MS = [30_000, 60_000, 90_000];
+    // TEMPORARY runtime-pressure experiment: skip 30s/60s rungs so the
+    // orchestrator only holds one Sonnet attempt before the GPT-5 rescue.
+    const AUTO_TIMEOUT_LADDER_MS = [90_000];
     const REGEN_TIMEOUT_LADDER_MS = [90_000];
     const buildFallbackChain = (primary: string): { model: string; timeoutMs: number }[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
@@ -2205,12 +2207,48 @@ ${cleanedTranscript}`;
     let proErrorMessage: string | null = null;
     let fallbackReason: string | null = null;
 
+    const formatMemoryMb = (bytes: number | undefined): number | null =>
+      typeof bytes === 'number' ? Math.round((bytes / 1024 / 1024) * 10) / 10 : null;
+    const logRuntimeMemory = (label: string, extra: Record<string, unknown> = {}) => {
+      try {
+        const usage = typeof Deno.memoryUsage === 'function' ? Deno.memoryUsage() : null;
+        console.log('🧮 RUNTIME_MEMORY ' + JSON.stringify({
+          label,
+          meeting_id: meetingId,
+          rss_mb: formatMemoryMb(usage?.rss),
+          heap_total_mb: formatMemoryMb(usage?.heapTotal),
+          heap_used_mb: formatMemoryMb(usage?.heapUsed),
+          external_mb: formatMemoryMb(usage?.external),
+          ...extra,
+        }));
+      } catch (memoryErr: any) {
+        console.warn('⚠️ RUNTIME_MEMORY unavailable:', memoryErr?.message || String(memoryErr));
+      }
+    };
+
     // Captured per-attempt diagnostics surfaced in the timeout log line.
     let lastAnthropicRequestId: string | null = null;
+    let lastGatewayRequestId: string | null = null;
+    let lastGatewayStatus: number | null = null;
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
     const runAttempt = async (modelKey: string, timeoutMs: number, attemptIdx: number): Promise<string> => {
       const attemptController = new AbortController();
       const attemptStartHr = Date.now();
+      let response: Response | null = null;
+      let responseTextBuffer: string | null = null;
+      if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
+        lastAnthropicRequestId = null;
+      }
+      if (modelKey === 'gpt-5' || modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
+        lastGatewayRequestId = null;
+        lastGatewayStatus = null;
+      }
+      logRuntimeMemory('attempt_start', {
+        attempt: attemptIdx + 1,
+        model: modelKey,
+        timeout_ms: timeoutMs,
+        prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
+      });
       const attemptTimeout = setTimeout(() => {
         const elapsedMs = Date.now() - attemptStartHr;
         // Rich timeout log — JSON line so it's grep-able and parseable in Supabase log search.
@@ -2223,6 +2261,8 @@ ${cleanedTranscript}`;
             prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
             prompt_token_estimate: Math.round(((systemPrompt?.length || 0) + (userPrompt?.length || 0)) / 4),
             anthropic_request_id: lastAnthropicRequestId,
+            openai_request_id: lastGatewayRequestId,
+            gateway_status: lastGatewayStatus,
             meeting_id: meetingId,
           }));
         } catch { /* ignore */ }
@@ -2235,7 +2275,7 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Claude model: ${claudeModel} (timeout ${timeoutMs / 1000}s)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-          const response = await fetch('https://api.anthropic.com/v1/messages', {
+          response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2256,10 +2296,12 @@ ${cleanedTranscript}`;
             console.log(`🆔 anthropic_request_id=${lastAnthropicRequestId} (attempt ${attemptIdx + 1})`);
           }
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const data = await response.json();
+          responseTextBuffer = await response.text();
+          const data = JSON.parse(responseTextBuffer);
           notes = data.content
             ?.filter((block: any) => block.type === 'text')
             ?.map((block: any) => block.text)
@@ -2268,7 +2310,7 @@ ${cleanedTranscript}`;
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
           console.log('🧠 [attempt] OpenAI gpt-5.2 via gateway');
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2284,17 +2326,22 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          lastGatewayStatus = response.status;
+          lastGatewayRequestId = response.headers.get('x-request-id') || response.headers.get('x-trace-id') || response.headers.get('request-id') || null;
+          console.log('🆔 gateway_request_id=' + (lastGatewayRequestId || 'null') + ` status=${lastGatewayStatus} model=gpt-5.2 attempt=${attemptIdx + 1}`);
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             throw new Error(`Gateway gpt-5.2 ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const data = await response.json();
+          responseTextBuffer = await response.text();
+          const data = JSON.parse(responseTextBuffer);
           notes = data.choices?.[0]?.message?.content || '';
         } else if (modelKey === 'gpt-5') {
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
           console.log('🧠 [attempt] OpenAI gpt-5 via gateway');
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2310,11 +2357,16 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          lastGatewayStatus = response.status;
+          lastGatewayRequestId = response.headers.get('x-request-id') || response.headers.get('x-trace-id') || response.headers.get('request-id') || null;
+          console.log('🆔 gateway_request_id=' + (lastGatewayRequestId || 'null') + ` status=${lastGatewayStatus} model=gpt-5 attempt=${attemptIdx + 1}`);
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             throw new Error(`Gateway gpt-5 ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const data = await response.json();
+          responseTextBuffer = await response.text();
+          const data = JSON.parse(responseTextBuffer);
           notes = data.choices?.[0]?.message?.content || '';
         } else {
           // Gemini routing.
@@ -2333,7 +2385,7 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
           const isPro = modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview';
           const proStart = isPro ? Date.now() : 0;
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2354,7 +2406,8 @@ ${cleanedTranscript}`;
             proElapsedMs = Date.now() - proStart;
           }
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             if (isPro) proErrorMessage = `HTTP ${response.status}: ${errorData.substring(0, 500)}`;
             // 429 and 402 are user-facing — surface immediately rather than silently fall back.
             if (response.status === 429) throw new Error('RATE_LIMIT: Rate limit exceeded. Please wait a moment and try again.');
@@ -2362,7 +2415,8 @@ ${cleanedTranscript}`;
             if (response.status === 413) throw new Error(`Lovable AI 413: Transcript too large.`);
             throw new Error(`Lovable AI ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const responseText = await response.text();
+          responseTextBuffer = await response.text();
+          const responseText = responseTextBuffer;
           if (!responseText || responseText.trim().length === 0) {
             if (isPro) proErrorMessage = 'Empty response body';
             throw new Error('Lovable AI returned empty response body');
@@ -2382,6 +2436,20 @@ ${cleanedTranscript}`;
         return notes;
       } finally {
         clearTimeout(attemptTimeout);
+        try {
+          responseTextBuffer = null;
+          if (response?.body) {
+            await response.body.cancel().catch(() => undefined);
+          }
+        } catch { /* response body may already be consumed/locked */ }
+        logRuntimeMemory('attempt_end', {
+          attempt: attemptIdx + 1,
+          model: modelKey,
+          elapsed_ms: Date.now() - attemptStartHr,
+          anthropic_request_id: lastAnthropicRequestId,
+          openai_request_id: lastGatewayRequestId,
+          gateway_status: lastGatewayStatus,
+        });
       }
     };
 
@@ -2581,6 +2649,8 @@ ${cleanedTranscript}`;
             elapsed_ms: Date.now() - fbStart,
             chars: fbChars,
             error: fbError,
+            openai_request_id: lastGatewayRequestId,
+            gateway_status: lastGatewayStatus,
             meeting_id: meetingId,
             triggered_by: callerSpecifiedModel ? 'manual-regenerate' : 'auto-first-pass',
           }));
