@@ -3051,6 +3051,19 @@ export const MeetingHistoryList = ({
                         <FileDown className="h-4 w-4 mr-2" />
                         Download Meeting Notes (Word)
                       </DropdownMenuItem>
+
+                      {/* Output detail tier — applies to the regenerate options below. Per-session only. */}
+                      <div
+                        className="flex items-center justify-between gap-2 px-2 py-1.5 border-y bg-muted/20"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <span className="text-[11px] text-muted-foreground">
+                          Output detail
+                        </span>
+                        <DetailTierSelector />
+                      </div>
+
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
