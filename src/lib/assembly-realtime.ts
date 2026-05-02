@@ -29,6 +29,18 @@ const MAX_RECONNECT_ATTEMPTS = 6;
 const RECONNECT_BACKOFF_MS = [2000, 4000, 8000, 16000, 30000, 30000];
 // AssemblyAI realtime sessions are capped at ~60 min; rotate at 55 min to avoid abrupt termination
 const SESSION_ROTATE_MS = 55 * 60 * 1000;
+// Keep-alive ping cadence — proxy forwards a silent PCM frame upstream
+const HEARTBEAT_MS = 25 * 1000;
+// If no final transcript received in this window, force reconnect
+const NO_FINALS_WATCHDOG_MS = 60 * 1000;
+
+// Lazy diagnostics logger — avoids hard dep at module load
+async function logDiagnostic(payload: Record<string, unknown>) {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await supabase.from("assemblyai_session_diagnostics" as any).insert(payload);
+  } catch { /* swallow — diagnostics must never break the pipeline */ }
+}
 
 export class AssemblyRealtimeClient {
   private ws?: WebSocket;
