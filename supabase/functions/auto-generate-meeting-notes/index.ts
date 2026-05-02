@@ -2403,9 +2403,13 @@ ${cleanedTranscript}`;
         return false;
       };
 
+      // Track which 1-indexed attempt rung produced the notes (1 = first try, 2/3 = retries).
+      // Surfaced via meetings.notes_model_attempt and the model badge.
+      let successfulAttemptNumber = 1;
       for (let i = 0; i < chain.length; i++) {
-        const attemptModel = chain[i];
-        const isSameModelRetry = callerSpecifiedModel && i > 0 && chain[i] === chain[i - 1];
+        const attemptModel = chain[i].model;
+        const attemptTimeoutMs = chain[i].timeoutMs;
+        const isSameModelRetry = callerSpecifiedModel && i > 0 && chain[i].model === chain[i - 1].model;
         // For same-model retries on the override path, give the upstream provider a brief
         // breather (especially helpful for 429 rate limits and transient 5xx).
         if (isSameModelRetry) {
@@ -2415,14 +2419,18 @@ ${cleanedTranscript}`;
         let attemptStatus: 'success' | 'timeout' | 'error' = 'error';
         let attemptReason: string | null = null;
         try {
-          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? (isSameModelRetry ? ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s, same-model retry)` : ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s)`) : ' (auto path, 30s)'}`);
-          generatedNotes = await runAttempt(attemptModel);
+          const pathLabel = callerSpecifiedModel
+            ? (isSameModelRetry ? `override path, ${attemptTimeoutMs / 1000}s, same-model retry` : `override path, ${attemptTimeoutMs / 1000}s`)
+            : (forceRegenerate ? `regenerate path, ${attemptTimeoutMs / 1000}s` : `auto path, ${attemptTimeoutMs / 1000}s`);
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel} (${pathLabel})`);
+          generatedNotes = await runAttempt(attemptModel, attemptTimeoutMs, i);
           actualModelUsed = attemptModel;
           fallbackCount = i;
+          successfulAttemptNumber = i + 1;
           modelUsed = attemptModel;
           attemptStatus = 'success';
           if (i > 0) {
-            console.log(`⚡ ${isSameModelRetry ? 'Same-model retry' : 'Fallback'} succeeded with ${attemptModel} (primary attempt failed)`);
+            console.log(`⚡ ${isSameModelRetry ? 'Same-model retry' : 'Fallback'} succeeded with ${attemptModel} on attempt ${i + 1}/${chain.length}`);
           }
           // Per-attempt log row for the override path so the audit trail covers
           // both attempts (primary + same-model retry). Auto path keeps its
@@ -2431,7 +2439,7 @@ ${cleanedTranscript}`;
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0] || modelOverride,
+                primary_model: chain[0]?.model || modelOverride,
                 actual_model_used: attemptModel,
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
@@ -2448,10 +2456,10 @@ ${cleanedTranscript}`;
           const isAbort = err?.name === 'AbortError';
           attemptStatus = isAbort ? 'timeout' : 'error';
           const reason = isAbort
-            ? `timeout after ${Math.round(PER_ATTEMPT_TIMEOUT_MS / 1000)}s`
+            ? `timeout after ${Math.round(attemptTimeoutMs / 1000)}s`
             : (err?.message || 'unknown error');
           attemptReason = reason;
-          console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
+          console.warn(`⚠️ Attempt ${i + 1}/${chain.length} (${attemptModel}, ${attemptTimeoutMs / 1000}s) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
           // Per-attempt failure log for override path.
           if (callerSpecifiedModel) {
