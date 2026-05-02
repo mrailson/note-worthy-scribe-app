@@ -260,6 +260,7 @@ serve(async (req) => {
     const detailTier: DetailTier = (ALLOWED_DETAIL_TIERS as readonly string[]).includes(rawDetailTier)
       ? (rawDetailTier as DetailTier)
       : 'standard';
+    console.log(`🎚️ [detailTier] received='${requestBody.detailTier}' → resolved='${detailTier}' (forceRegenerate=${forceRegenerate}, model=${requestBody.modelOverride ?? 'server-default'})`);
     // Suffix model identifier so docx footer reads e.g. "claude-sonnet-4-6 (detailed)".
     // Standard tier is the historical baseline so we don't add a suffix for it.
     const stampModelWithTier = (model: string | null | undefined): string =>
