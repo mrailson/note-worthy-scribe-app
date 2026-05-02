@@ -79,7 +79,7 @@ ABOUT NOTEWELL AI:
 - MHRA Class I registered medical device (Manufacturer Self-Certification — registration confirmed)
 - AI-powered clinical consultation transcription and note generation platform designed for NHS primary care
 - Developed by PCN Services Ltd on a not-for-profit, self-funded basis
-- Multi-engine transcription architecture: Whisper, AssemblyAI, Deepgram, Gladia
+- Multi-engine transcription architecture: Whisper, AssemblyAI, Deepgram
 - Hallucination detection (125+ pattern library) and speaker diarisation built in
 - Best-of-Three merge pipeline for transcription accuracy
 - Offline recording capability for mobile and desktop
@@ -195,7 +195,7 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
    Step 1: Clinician initiates recording within Notewell AI during patient consultation
    Step 2: Audio captured locally on device (encrypted at rest using AES-256)
    Step 3: Audio transmitted to transcription engines via TLS 1.3 encrypted connection
-   Step 4: Multi-engine transcription (Whisper, AssemblyAI, Deepgram, Gladia) processes audio in parallel
+   Step 4: Multi-engine transcription (Whisper, AssemblyAI, Deepgram) processes audio in parallel
    Step 5: Best-of-Three merge pipeline selects optimal transcription with hallucination detection (125+ pattern library)
    Step 6: Speaker diarisation identifies clinician vs patient speech
    Step 7: AI generates structured clinical note (SOAP format) from merged transcription
