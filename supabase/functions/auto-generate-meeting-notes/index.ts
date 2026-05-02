@@ -2268,7 +2268,7 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Claude model: ${claudeModel} (timeout ${timeoutMs / 1000}s)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-          const response = await fetch('https://api.anthropic.com/v1/messages', {
+          response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2289,10 +2289,12 @@ ${cleanedTranscript}`;
             console.log(`🆔 anthropic_request_id=${lastAnthropicRequestId} (attempt ${attemptIdx + 1})`);
           }
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const data = await response.json();
+          responseTextBuffer = await response.text();
+          const data = JSON.parse(responseTextBuffer);
           notes = data.content
             ?.filter((block: any) => block.type === 'text')
             ?.map((block: any) => block.text)
@@ -2301,7 +2303,7 @@ ${cleanedTranscript}`;
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
           console.log('🧠 [attempt] OpenAI gpt-5.2 via gateway');
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2317,17 +2319,22 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          lastGatewayStatus = response.status;
+          lastGatewayRequestId = response.headers.get('x-request-id') || response.headers.get('x-trace-id') || response.headers.get('request-id') || null;
+          console.log('🆔 gateway_request_id=' + (lastGatewayRequestId || 'null') + ` status=${lastGatewayStatus} model=gpt-5.2 attempt=${attemptIdx + 1}`);
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             throw new Error(`Gateway gpt-5.2 ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const data = await response.json();
+          responseTextBuffer = await response.text();
+          const data = JSON.parse(responseTextBuffer);
           notes = data.choices?.[0]?.message?.content || '';
         } else if (modelKey === 'gpt-5') {
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
           console.log('🧠 [attempt] OpenAI gpt-5 via gateway');
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2343,11 +2350,16 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          lastGatewayStatus = response.status;
+          lastGatewayRequestId = response.headers.get('x-request-id') || response.headers.get('x-trace-id') || response.headers.get('request-id') || null;
+          console.log('🆔 gateway_request_id=' + (lastGatewayRequestId || 'null') + ` status=${lastGatewayStatus} model=gpt-5 attempt=${attemptIdx + 1}`);
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             throw new Error(`Gateway gpt-5 ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const data = await response.json();
+          responseTextBuffer = await response.text();
+          const data = JSON.parse(responseTextBuffer);
           notes = data.choices?.[0]?.message?.content || '';
         } else {
           // Gemini routing.
@@ -2366,7 +2378,7 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
           const isPro = modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview';
           const proStart = isPro ? Date.now() : 0;
-          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
