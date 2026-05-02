@@ -515,6 +515,32 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     onStartNewMeeting();
   };
 
+  const handleStalledRetry = async () => {
+    setRetrying(true);
+    try {
+      // Flip the row to 'failed' first so the orchestrator's idempotency guard
+      // doesn't refuse the retry, then re-invoke the generator with forceGenerate.
+      await supabase
+        .from('meetings')
+        .update({ notes_generation_status: 'failed' })
+        .eq('id', meetingId);
+
+      const { error: invokeErr } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { meetingId, forceRegenerate: true },
+      });
+      if (invokeErr) throw invokeErr;
+
+      setNotesStatus('generating');
+      showToast.success('Retrying notes generation…', { section: 'meeting_manager' });
+    } catch (err: any) {
+      console.error('Retry failed:', err);
+      showToast.error(`Retry failed: ${err?.message || 'Unknown error'}`, { section: 'meeting_manager' });
+      setNotesStatus('error');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   const getStatusBadge = () => {
     switch (notesStatus) {
       case 'generating':
@@ -531,12 +557,31 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             Ready
           </Badge>
         );
+      case 'stalled':
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant="destructive" className="flex items-center gap-1.5">
+              <AlertCircle className="h-3 w-3" />
+              Generation timed out
+            </Badge>
+            <Button size="sm" variant="outline" onClick={handleStalledRetry} disabled={retrying}>
+              {retrying ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : null}
+              {retrying ? 'Retrying…' : 'Retry'}
+            </Button>
+          </div>
+        );
       case 'error':
         return (
-          <Badge variant="destructive" className="flex items-center gap-1.5">
-            <AlertCircle className="h-3 w-3" />
-            Error generating notes
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="destructive" className="flex items-center gap-1.5">
+              <AlertCircle className="h-3 w-3" />
+              Error generating notes
+            </Badge>
+            <Button size="sm" variant="outline" onClick={handleStalledRetry} disabled={retrying}>
+              {retrying ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : null}
+              {retrying ? 'Retrying…' : 'Retry'}
+            </Button>
+          </div>
         );
       default:
         return (
