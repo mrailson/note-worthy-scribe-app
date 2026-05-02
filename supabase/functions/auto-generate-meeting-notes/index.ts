@@ -3275,6 +3275,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         overview: aiOverview || null,
         title: generatedTitle,
         notes_model_used: stampModelWithTier(actualModelUsed),
+        notes_model_attempt: successfulAttemptNumber,
       })
       .eq('id', meetingId);
 
