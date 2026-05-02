@@ -72,7 +72,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
       const { data, error } = await supabase
         .from('meetings')
-        .select('notes_generation_status, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count')
+        .select('notes_generation_status, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count, updated_at')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -124,7 +124,18 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         } else if (data.notes_generation_status === 'error' || data.notes_generation_status === 'failed') {
           setNotesStatus('error');
         } else {
-          setNotesStatus('generating');
+          // Stale-job safety net: if the row says 'generating' but the server hasn't
+          // touched it in over 6 minutes, the orchestrator likely crashed without
+          // flipping the status. Surface a retry CTA instead of an infinite spinner.
+          const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+          const ageMs = Date.now() - updatedAt;
+          const STALE_THRESHOLD_MS = 6 * 60 * 1000;
+          if (updatedAt && ageMs > STALE_THRESHOLD_MS) {
+            console.warn(`⏱️ Meeting ${meetingId} stuck in 'generating' for ${Math.round(ageMs / 1000)}s — surfacing retry CTA`);
+            setNotesStatus('stalled');
+          } else {
+            setNotesStatus('generating');
+          }
         }
       }
     };
