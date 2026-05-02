@@ -289,6 +289,19 @@ serve(async (req) => {
     // Standard tier is the historical baseline so we don't add a suffix for it.
     const stampModelWithTier = (model: string | null | undefined): string =>
       detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
+    // When the user explicitly requested a single-shot Sonnet pass via the
+    // "Regenerate with Sonnet" refine button, mark the saved model with a
+    // `+refined` suffix so the badge can display "Claude Sonnet 4.6 · refined"
+    // and downstream tooling can distinguish it from the default chunked path.
+    const stampModelForRefine = (model: string | null | undefined): string => {
+      const base = stampModelWithTier(model);
+      if (!requestBody.forceSingleShot) return base;
+      // Only mark as refined when we actually went through the single-shot
+      // path (i.e. chunked path didn't produce these notes). Adding the suffix
+      // to a Haiku-chunked output would be misleading.
+      if (typeof base === 'string' && base.includes('+chunked-haiku')) return base;
+      return `${base}+refined`;
+    };
     // Resolve operational primary model. Read MEETING_PRIMARY_MODEL from
     // system_settings so admins can flip the default instantly via
     // /admin/llm-diagnostics; fall back to DEFAULT_GENERATION_MODEL (top of file)
