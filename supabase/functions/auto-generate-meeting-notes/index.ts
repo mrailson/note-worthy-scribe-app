@@ -1666,7 +1666,13 @@ NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC re
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-${selectedNoteTypeInstruction}
+${detailTier === 'concise' ? `OUTPUT LENGTH DIRECTIVE — CONCISE TIER
+Target 600-900 words total. Limit each section to 2-3 sentences. Prefer bullets over prose. Skip operational texture, anecdotes and context unless materially relevant to a decision or action. Decisions, actions, figures and named risks must still be preserved verbatim — only narrative density is reduced.
+
+` : detailTier === 'detailed' ? `OUTPUT LENGTH DIRECTIVE — DETAILED TIER
+Target 2,000-3,500 words total. Use full prose with operational texture, specific figures, and named anecdotes that illustrate concerns. Add sub-points where they add clarity. Preserve attributed quotes-as-paraphrase, quantitative grumbles, and the substance of debate. Do not pad — every additional sentence must add either a fact, an attribution, a figure, or operational context.
+
+` : ''}${selectedNoteTypeInstruction}
 
 ${selectedDetailInstruction}
 
