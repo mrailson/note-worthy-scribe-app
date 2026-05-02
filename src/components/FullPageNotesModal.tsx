@@ -2935,11 +2935,33 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           className="mx-6 mt-6"
         />
         <DialogHeader>
-          <DialogTitle className={`flex items-center justify-between ${isMobile ? "pr-4" : "pr-8"}`}>
+          <DialogTitle className={`flex items-center justify-between gap-3 flex-wrap ${isMobile ? "pr-4" : "pr-8"}`}>
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Bot className="h-5 w-5 flex-shrink-0" style={{ color: '#005EB8' }} />
               <span className="truncate" style={{ color: '#005EB8' }}>{meeting.title} - Meeting Notes</span>
             </div>
+            {meeting?.id && (
+              <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                <LlmModelBadge meetingId={meeting.id} />
+                <RegenerateWithSonnetButton
+                  meetingId={meeting.id}
+                  onRefined={async () => {
+                    try {
+                      const { data } = await supabase
+                        .from('meetings')
+                        .select('notes_style_3')
+                        .eq('id', meeting.id!)
+                        .maybeSingle();
+                      if (data?.notes_style_3) {
+                        setNotesStyle3(data.notes_style_3);
+                      }
+                    } catch (err) {
+                      console.warn('⚠️ Could not refresh notes after refine:', err);
+                    }
+                  }}
+                />
+              </div>
+            )}
           </DialogTitle>
           <DialogDescription className="sr-only">
             View and edit meeting notes and transcript for {meeting.title}
