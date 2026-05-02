@@ -149,7 +149,7 @@ serve(async (req) => {
     const maxTokens = Math.min(Math.ceil(inputWordCount * 1.5) + 500, 16000);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+    const timeout = setTimeout(() => controller.abort(), 120000); // 120s timeout (raised from 60s for long governance transcripts)
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
