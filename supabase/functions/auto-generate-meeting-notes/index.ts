@@ -2236,6 +2236,13 @@ ${cleanedTranscript}`;
       const attemptStartHr = Date.now();
       let response: Response | null = null;
       let responseTextBuffer: string | null = null;
+      if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
+        lastAnthropicRequestId = null;
+      }
+      if (modelKey === 'gpt-5' || modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
+        lastGatewayRequestId = null;
+        lastGatewayStatus = null;
+      }
       logRuntimeMemory('attempt_start', {
         attempt: attemptIdx + 1,
         model: modelKey,
