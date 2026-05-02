@@ -2409,7 +2409,7 @@ ${cleanedTranscript}`;
 
       // Track which 1-indexed attempt rung produced the notes (1 = first try, 2/3 = retries).
       // Surfaced via meetings.notes_model_attempt and the model badge.
-      let successfulAttemptNumber = 1;
+      // (successfulAttemptNumber declared in outer scope above so failure path can read it.)
       for (let i = 0; i < chain.length; i++) {
         const attemptModel = chain[i].model;
         const attemptTimeoutMs = chain[i].timeoutMs;
