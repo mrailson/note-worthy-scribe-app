@@ -2168,47 +2168,71 @@ ${cleanedTranscript}`;
     // Bumped 30s→90s: 14k-word governance transcripts on Flash + fallback chain
     // were timing out before any model could stream. 90s gives Flash room to
     // complete and still leaves headroom for the fallback chain within Edge limits.
-    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 90_000;
-    // Detailed tier on long governance transcripts can push Sonnet/GPT past 90s.
-    // 180s gives headroom; same-model retry still bounded so worst case ~6 minutes.
+    // Sonnet-only policy (May 2026), v2 timeout ladder:
+    //   AUTO path (no caller modelOverride):           30s → 60s → 90s
+    //   FORCE-REGENERATE path (user clicked retry):    single 90s window
+    //   OVERRIDE path (audit comparison):              180s × 3 same-model retries
+    // Worst case wall time: 180s (auto) / 90s (regen) / 540s (override).
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
-    const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
-      ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
-      : AUTO_PER_ATTEMPT_TIMEOUT_MS;
-    const buildFallbackChain = (primary: string): string[] => {
+    const AUTO_TIMEOUT_LADDER_MS = [30_000, 60_000, 90_000];
+    const REGEN_TIMEOUT_LADDER_MS = [90_000];
+    const buildFallbackChain = (primary: string): { model: string; timeoutMs: number }[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
-      // Allow ONE same-model retry to absorb transient network blips (timeout / 5xx / 429).
-      // The catch block below decides whether the retry actually fires based on error class.
-      // Sonnet-only policy (May 2026): no cross-provider fallback. Three
-      // Sonnet attempts with the existing per-attempt timeout / backoff.
-      // If all three fail, surface a real error rather than degrading silently.
       if (callerSpecifiedModel) {
-        return [primary, primary, primary];
+        return [
+          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
+          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
+          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
+        ];
       }
-      return ['claude-sonnet-4-6', 'claude-sonnet-4-6', 'claude-sonnet-4-6'];
+      // forceRegenerate: skip the impatient 30s/60s rungs — user already waited once.
+      const ladder = forceRegenerate ? REGEN_TIMEOUT_LADDER_MS : AUTO_TIMEOUT_LADDER_MS;
+      return ladder.map((timeoutMs) => ({ model: 'claude-sonnet-4-6', timeoutMs }));
     };
     const chain = buildFallbackChain(modelOverride);
+    // Single fallback timeout used by error reporting / log lines (longest rung).
+    const PER_ATTEMPT_TIMEOUT_MS = chain[chain.length - 1]?.timeoutMs ?? 90_000;
     const failureReasons: Array<{ model: string; reason: string }> = [];
     let actualModelUsed = modelOverride;
     let fallbackCount = 0;
+    // Hoisted so success-path DB writes (line 2943, 3272 etc.) and the failure
+    // catch block can persist which retry rung produced the notes.
+    // 1 = first try, 2/3 = Sonnet retries, 99 = GPT-5 emergency fallback.
+    let successfulAttemptNumber = 1;
     // Diagnostic capture for Gemini Pro attempts (read by /admin/llm-diagnostics)
     let proStatusCode: number | null = null;
     let proElapsedMs: number | null = null;
     let proErrorMessage: string | null = null;
     let fallbackReason: string | null = null;
 
+    // Captured per-attempt diagnostics surfaced in the timeout log line.
+    let lastAnthropicRequestId: string | null = null;
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
-    const runAttempt = async (modelKey: string): Promise<string> => {
-      // Single per-attempt timeout for all models. Flash returns in ~1–2s, so 30s
-      // is generous; Pro/2.5-pro/gpt-5 fallbacks share the same budget.
-      const timeoutMs = PER_ATTEMPT_TIMEOUT_MS;
+    const runAttempt = async (modelKey: string, timeoutMs: number, attemptIdx: number): Promise<string> => {
       const attemptController = new AbortController();
-      const attemptTimeout = setTimeout(() => attemptController.abort(), timeoutMs);
+      const attemptStartHr = Date.now();
+      const attemptTimeout = setTimeout(() => {
+        const elapsedMs = Date.now() - attemptStartHr;
+        // Rich timeout log — JSON line so it's grep-able and parseable in Supabase log search.
+        try {
+          console.warn('⏱️ TIMEOUT_DETAIL ' + JSON.stringify({
+            attempt: attemptIdx + 1,
+            model: modelKey,
+            configured_timeout_ms: timeoutMs,
+            elapsed_ms: elapsedMs,
+            prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
+            prompt_token_estimate: Math.round(((systemPrompt?.length || 0) + (userPrompt?.length || 0)) / 4),
+            anthropic_request_id: lastAnthropicRequestId,
+            meeting_id: meetingId,
+          }));
+        } catch { /* ignore */ }
+        attemptController.abort();
+      }, timeoutMs);
       try {
         let notes = '';
         if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
           const claudeModel = modelKey === 'sonnet-4.6' ? 'claude-sonnet-4-6' : modelKey;
-          console.log(`🧠 [attempt] Claude model: ${claudeModel}`);
+          console.log(`🧠 [attempt] Claude model: ${claudeModel} (timeout ${timeoutMs / 1000}s)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
           const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2226,6 +2250,11 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          // Capture Anthropic request-id for support escalations even on failure paths below.
+          lastAnthropicRequestId = response.headers.get('request-id') || response.headers.get('x-request-id') || null;
+          if (lastAnthropicRequestId) {
+            console.log(`🆔 anthropic_request_id=${lastAnthropicRequestId} (attempt ${attemptIdx + 1})`);
+          }
           if (!response.ok) {
             const errorData = await response.text();
             throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
@@ -2378,9 +2407,13 @@ ${cleanedTranscript}`;
         return false;
       };
 
+      // Track which 1-indexed attempt rung produced the notes (1 = first try, 2/3 = retries).
+      // Surfaced via meetings.notes_model_attempt and the model badge.
+      // (successfulAttemptNumber declared in outer scope above so failure path can read it.)
       for (let i = 0; i < chain.length; i++) {
-        const attemptModel = chain[i];
-        const isSameModelRetry = callerSpecifiedModel && i > 0 && chain[i] === chain[i - 1];
+        const attemptModel = chain[i].model;
+        const attemptTimeoutMs = chain[i].timeoutMs;
+        const isSameModelRetry = callerSpecifiedModel && i > 0 && chain[i].model === chain[i - 1].model;
         // For same-model retries on the override path, give the upstream provider a brief
         // breather (especially helpful for 429 rate limits and transient 5xx).
         if (isSameModelRetry) {
@@ -2390,14 +2423,18 @@ ${cleanedTranscript}`;
         let attemptStatus: 'success' | 'timeout' | 'error' = 'error';
         let attemptReason: string | null = null;
         try {
-          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? (isSameModelRetry ? ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s, same-model retry)` : ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s)`) : ' (auto path, 30s)'}`);
-          generatedNotes = await runAttempt(attemptModel);
+          const pathLabel = callerSpecifiedModel
+            ? (isSameModelRetry ? `override path, ${attemptTimeoutMs / 1000}s, same-model retry` : `override path, ${attemptTimeoutMs / 1000}s`)
+            : (forceRegenerate ? `regenerate path, ${attemptTimeoutMs / 1000}s` : `auto path, ${attemptTimeoutMs / 1000}s`);
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel} (${pathLabel})`);
+          generatedNotes = await runAttempt(attemptModel, attemptTimeoutMs, i);
           actualModelUsed = attemptModel;
           fallbackCount = i;
+          successfulAttemptNumber = i + 1;
           modelUsed = attemptModel;
           attemptStatus = 'success';
           if (i > 0) {
-            console.log(`⚡ ${isSameModelRetry ? 'Same-model retry' : 'Fallback'} succeeded with ${attemptModel} (primary attempt failed)`);
+            console.log(`⚡ ${isSameModelRetry ? 'Same-model retry' : 'Fallback'} succeeded with ${attemptModel} on attempt ${i + 1}/${chain.length}`);
           }
           // Per-attempt log row for the override path so the audit trail covers
           // both attempts (primary + same-model retry). Auto path keeps its
@@ -2406,7 +2443,7 @@ ${cleanedTranscript}`;
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0] || modelOverride,
+                primary_model: chain[0]?.model || modelOverride,
                 actual_model_used: attemptModel,
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
@@ -2423,17 +2460,17 @@ ${cleanedTranscript}`;
           const isAbort = err?.name === 'AbortError';
           attemptStatus = isAbort ? 'timeout' : 'error';
           const reason = isAbort
-            ? `timeout after ${Math.round(PER_ATTEMPT_TIMEOUT_MS / 1000)}s`
+            ? `timeout after ${Math.round(attemptTimeoutMs / 1000)}s`
             : (err?.message || 'unknown error');
           attemptReason = reason;
-          console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
+          console.warn(`⚠️ Attempt ${i + 1}/${chain.length} (${attemptModel}, ${attemptTimeoutMs / 1000}s) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
           // Per-attempt failure log for override path.
           if (callerSpecifiedModel) {
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0] || modelOverride,
+                primary_model: chain[0]?.model || modelOverride,
                 actual_model_used: attemptModel,
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
@@ -2476,8 +2513,47 @@ ${cleanedTranscript}`;
           }
         }
       }
+      // ─── EMERGENCY GPT-5 FALLBACK ────────────────────────────────────────
+      // Sonnet exhausted. Try ONE attempt against openai/gpt-5 via Lovable AI
+      // Gateway so the user gets notes even during an Anthropic-wide outage.
+      // Tagged distinctively so it's visible in the model badge / docx footer.
+      // Only fires on the auto-path (not override / not caller-specified models).
+      if ((!generatedNotes || generatedNotes.trim().length === 0) && !callerSpecifiedModel) {
+        // Read the kill-switch (default ON). If the row is missing, treat as enabled.
+        let emergencyEnabled = true;
+        try {
+          const { data: settingRow } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'MEETING_EMERGENCY_FALLBACK_ENABLED')
+            .maybeSingle();
+          if (settingRow && (settingRow as any).value === false) emergencyEnabled = false;
+          if (settingRow && (settingRow as any).value === 'false') emergencyEnabled = false;
+        } catch { /* table or row missing — keep default */ }
+
+        if (emergencyEnabled) {
+          console.warn('🚨 Sonnet exhausted — attempting GPT-5 emergency fallback (90s)');
+          try {
+            const fallbackNotes = await runAttempt('gpt-5', 90_000, chain.length);
+            if (fallbackNotes && fallbackNotes.trim().length > 0) {
+              generatedNotes = fallbackNotes;
+              actualModelUsed = 'gpt-5-emergency-fallback';
+              modelUsed = 'gpt-5-emergency-fallback';
+              fallbackCount = chain.length;
+              successfulAttemptNumber = 99; // sentinel for emergency fallback
+              console.warn('🆘 GPT-5 emergency fallback succeeded — notes recovered, but Anthropic is degraded.');
+            }
+          } catch (emergencyErr: any) {
+            console.error('❌ GPT-5 emergency fallback also failed:', emergencyErr?.message || String(emergencyErr));
+            failureReasons.push({ model: 'gpt-5-emergency-fallback', reason: emergencyErr?.message || 'unknown error' });
+          }
+        } else {
+          console.warn('⚠️ MEETING_EMERGENCY_FALLBACK_ENABLED=false — skipping GPT-5 fallback');
+        }
+      }
+
       if (!generatedNotes || generatedNotes.trim().length === 0) {
-        console.error('❌ All fallback attempts exhausted');
+        console.error('❌ All fallback attempts exhausted (incl. emergency fallback)');
         // Build a clearer error for caller-specified models so the toast can say
         // "Sonnet 4.6 failed after N attempts: <reason>".
         if (callerSpecifiedModel) {
@@ -2485,7 +2561,7 @@ ${cleanedTranscript}`;
           const lastReason = failureReasons[failureReasons.length - 1]?.reason || (lastError?.message ?? 'unknown error');
           throw new Error(`${modelOverride} failed after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${lastReason}`);
         }
-        throw lastError || new Error('All AI generation attempts failed');
+        throw lastError || new Error('All AI generation attempts failed (Sonnet ×' + chain.length + ' + GPT-5 emergency)');
       }
 
       // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
@@ -2566,7 +2642,7 @@ ${cleanedTranscript}`;
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0] || modelOverride,
+                primary_model: chain[0]?.model || modelOverride,
                 actual_model_used: actualModelUsed,
                 fallback_count: fallbackCount,
                 generation_ms: Date.now() - notesGenStart,
@@ -2601,7 +2677,7 @@ ${cleanedTranscript}`;
     try {
       await supabase.from('meeting_generation_log').insert({
         meeting_id: meetingId,
-        primary_model: chain[0] || modelOverride,
+        primary_model: chain[0]?.model || modelOverride,
         actual_model_used: actualModelUsed,
         fallback_count: fallbackCount,
         generation_ms: Date.now() - notesGenStart,
@@ -2869,6 +2945,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notes_generation_status: 'completed',
         primary_transcript_source: normaliseTranscriptSourceForMeeting(actualTranscriptSource),
         notes_model_used: stampModelWithTier(actualModelUsed),
+        notes_model_attempt: successfulAttemptNumber,
       })
       .eq('id', meetingId);
 
@@ -3198,6 +3275,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         overview: aiOverview || null,
         title: generatedTitle,
         notes_model_used: stampModelWithTier(actualModelUsed),
+        notes_model_attempt: successfulAttemptNumber,
       })
       .eq('id', meetingId);
 
@@ -3262,40 +3340,75 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     console.error('❌ Full error details:', error);
     
     // Try to update status to failed if we have meetingId
-    try {
-      if (meetingId) {
+    // Defensive: split the failure-path DB writes into separate try/catch blocks
+    // so a secondary error (e.g. an undefined variable in the stamp helper, as
+    // seen on 2026-05-02) cannot prevent notes_generation_status from flipping to
+    // 'failed' — the spinner would otherwise run forever.
+    if (meetingId) {
+      try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        
-        // Stamp the model that was attempted (even on failure) so the docx
-        // footer surfaces what was tried instead of "unknown".
-        const failedStamp = (() => {
-          try { return stampModelWithTier(actualModelUsed || modelOverride || 'unknown'); }
-          catch { return actualModelUsed || modelOverride || 'unknown'; }
-        })();
-        await supabase
-          .from('meetings')
-          .update({ 
-            notes_generation_status: 'failed',
-            notes_model_used: failedStamp,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', meetingId);
 
-        await supabase
-          .from('meeting_notes_queue')
-          .update({ 
-            status: 'failed',
-            error_message: error.message,
-            completed_at: new Date().toISOString()
-          })
-          .eq('meeting_id', meetingId);
-          
+        // Stamp the model that was attempted (even on failure). If stampModelWithTier
+        // or the variables it touches throw, we still mark the row as failed.
+        let failedStamp = 'unknown';
+        try {
+          // actualModelUsed is hoisted to outer scope; if even this is undefined
+          // (e.g. error before the chain ran), fall back to modelOverride/'unknown'.
+          // deno-lint-ignore no-explicit-any
+          const candidate = (typeof actualModelUsed !== 'undefined' ? actualModelUsed : undefined)
+            || (typeof modelOverride !== 'undefined' ? modelOverride : undefined)
+            || 'unknown';
+          failedStamp = stampModelWithTier(candidate);
+        } catch (stampErr) {
+          console.warn('⚠️ stampModelWithTier threw on failure path (non-fatal):', stampErr);
+        }
+
+        // First and most important update: flip the status. Don't let any other
+        // column failure block this one.
+        try {
+          await supabase
+            .from('meetings')
+            .update({
+              notes_generation_status: 'failed',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', meetingId);
+        } catch (statusErr) {
+          console.error('❌ CRITICAL: Failed to flip notes_generation_status to failed:', statusErr);
+        }
+
+        // Second update: enrich the row with model stamp and attempt count. Best-effort.
+        try {
+          await supabase
+            .from('meetings')
+            .update({
+              notes_model_used: failedStamp,
+              notes_model_attempt: (typeof successfulAttemptNumber !== 'undefined' ? successfulAttemptNumber : 1),
+            })
+            .eq('id', meetingId);
+        } catch (stampUpdateErr) {
+          console.warn('⚠️ Failed to stamp model on failure row (non-fatal):', stampUpdateErr);
+        }
+
+        try {
+          await supabase
+            .from('meeting_notes_queue')
+            .update({
+              status: 'failed',
+              error_message: error?.message ?? 'unknown error',
+              completed_at: new Date().toISOString(),
+            })
+            .eq('meeting_id', meetingId);
+        } catch (queueErr) {
+          console.warn('⚠️ Failed to mark queue row as failed (non-fatal):', queueErr);
+        }
+
         console.log('✅ Updated meeting status to failed for:', meetingId);
+      } catch (updateError) {
+        console.error('❌ Failed to set up failure-path supabase client:', updateError);
       }
-    } catch (updateError) {
-      console.error('❌ Failed to update error status:', updateError);
     }
 
     return new Response(
