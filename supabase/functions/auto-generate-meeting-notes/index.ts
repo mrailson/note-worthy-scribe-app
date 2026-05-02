@@ -2205,14 +2205,34 @@ ${cleanedTranscript}`;
     const runAttempt = async (modelKey: string): Promise<string> => {
       // Single per-attempt timeout for all models. Flash returns in ~1–2s, so 30s
       // is generous; Pro/2.5-pro/gpt-5 fallbacks share the same budget.
-      const timeoutMs = PER_ATTEMPT_TIMEOUT_MS;
+    // Captured per-attempt diagnostics surfaced in the timeout log line.
+    let lastAnthropicRequestId: string | null = null;
+    // Helper: run a single model attempt. Returns notes string on success, throws on failure.
+    const runAttempt = async (modelKey: string, timeoutMs: number, attemptIdx: number): Promise<string> => {
       const attemptController = new AbortController();
-      const attemptTimeout = setTimeout(() => attemptController.abort(), timeoutMs);
+      const attemptStartHr = Date.now();
+      const attemptTimeout = setTimeout(() => {
+        const elapsedMs = Date.now() - attemptStartHr;
+        // Rich timeout log — JSON line so it's grep-able and parseable in Supabase log search.
+        try {
+          console.warn('⏱️ TIMEOUT_DETAIL ' + JSON.stringify({
+            attempt: attemptIdx + 1,
+            model: modelKey,
+            configured_timeout_ms: timeoutMs,
+            elapsed_ms: elapsedMs,
+            prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
+            prompt_token_estimate: Math.round(((systemPrompt?.length || 0) + (userPrompt?.length || 0)) / 4),
+            anthropic_request_id: lastAnthropicRequestId,
+            meeting_id: meetingId,
+          }));
+        } catch { /* ignore */ }
+        attemptController.abort();
+      }, timeoutMs);
       try {
         let notes = '';
         if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
           const claudeModel = modelKey === 'sonnet-4.6' ? 'claude-sonnet-4-6' : modelKey;
-          console.log(`🧠 [attempt] Claude model: ${claudeModel}`);
+          console.log(`🧠 [attempt] Claude model: ${claudeModel} (timeout ${timeoutMs / 1000}s)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
           const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2230,6 +2250,11 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
+          // Capture Anthropic request-id for support escalations even on failure paths below.
+          lastAnthropicRequestId = response.headers.get('request-id') || response.headers.get('x-request-id') || null;
+          if (lastAnthropicRequestId) {
+            console.log(`🆔 anthropic_request_id=${lastAnthropicRequestId} (attempt ${attemptIdx + 1})`);
+          }
           if (!response.ok) {
             const errorData = await response.text();
             throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
