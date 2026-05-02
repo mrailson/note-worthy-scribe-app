@@ -241,6 +241,22 @@ export class AssemblyRealtimeClient {
     this.ws!.onclose = (ev) => {
       console.log(`🔌 AssemblyRealtimeClient: proxy WS closed ${ev.code} ${ev.reason} (msgs: ${this.totalMessageCount}, finals: ${this.endOfTurnCount}, partials: ${this.partialCount}, audioFrames: ${this.audioFramesSent})`);
       this.sending = false;
+      this.stopHeartbeat();
+      this.stopNoFinalsWatchdog();
+
+      logDiagnostic({
+        meeting_id: this.meetingId ?? null,
+        user_id: this.userId ?? null,
+        session_id: this.sessionId,
+        event_type: "ws_close",
+        ws_close_code: ev.code,
+        ws_close_reason: ev.reason || null,
+        reconnect_attempt: this.reconnectAttempts,
+        audio_frames_sent: this.audioFramesSent,
+        total_messages: this.totalMessageCount,
+        partial_count: this.partialCount,
+        final_count: this.endOfTurnCount,
+      });
 
       if (!this.manualStop && this.shouldReconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         this.attemptReconnect();
