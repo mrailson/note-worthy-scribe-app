@@ -2511,7 +2511,7 @@ ${cleanedTranscript}`;
               await supabase.from('meetings').update({
                 notes_style_3: friendlyMessage,
                 notes_generation_status: 'insufficient_content',
-                notes_model_used: actualModelUsed,
+                notes_model_used: stampModelWithTier(actualModelUsed),
                 word_count: wordCount,
                 updated_at: new Date().toISOString(),
               }).eq('id', meetingId);
