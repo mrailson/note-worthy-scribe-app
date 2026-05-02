@@ -33,8 +33,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error' | 'stalled'>('generating');
-  const [retrying, setRetrying] = useState(false);
+  const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error'>('generating');
   const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
@@ -72,7 +71,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
       const { data, error } = await supabase
         .from('meetings')
-        .select('notes_generation_status, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count, updated_at')
+        .select('notes_generation_status, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -124,18 +123,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         } else if (data.notes_generation_status === 'error' || data.notes_generation_status === 'failed') {
           setNotesStatus('error');
         } else {
-          // Stale-job safety net: if the row says 'generating' but the server hasn't
-          // touched it in over 6 minutes, the orchestrator likely crashed without
-          // flipping the status. Surface a retry CTA instead of an infinite spinner.
-          const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
-          const ageMs = Date.now() - updatedAt;
-          const STALE_THRESHOLD_MS = 6 * 60 * 1000;
-          if (updatedAt && ageMs > STALE_THRESHOLD_MS) {
-            console.warn(`⏱️ Meeting ${meetingId} stuck in 'generating' for ${Math.round(ageMs / 1000)}s — surfacing retry CTA`);
-            setNotesStatus('stalled');
-          } else {
-            setNotesStatus('generating');
-          }
+          setNotesStatus('generating');
         }
       }
     };
@@ -515,32 +503,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     onStartNewMeeting();
   };
 
-  const handleStalledRetry = async () => {
-    setRetrying(true);
-    try {
-      // Flip the row to 'failed' first so the orchestrator's idempotency guard
-      // doesn't refuse the retry, then re-invoke the generator with forceGenerate.
-      await supabase
-        .from('meetings')
-        .update({ notes_generation_status: 'failed' })
-        .eq('id', meetingId);
-
-      const { error: invokeErr } = await supabase.functions.invoke('auto-generate-meeting-notes', {
-        body: { meetingId, forceRegenerate: true },
-      });
-      if (invokeErr) throw invokeErr;
-
-      setNotesStatus('generating');
-      showToast.success('Retrying notes generation…', { section: 'meeting_manager' });
-    } catch (err: any) {
-      console.error('Retry failed:', err);
-      showToast.error(`Retry failed: ${err?.message || 'Unknown error'}`, { section: 'meeting_manager' });
-      setNotesStatus('error');
-    } finally {
-      setRetrying(false);
-    }
-  };
-
   const getStatusBadge = () => {
     switch (notesStatus) {
       case 'generating':
@@ -557,31 +519,12 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             Ready
           </Badge>
         );
-      case 'stalled':
-        return (
-          <div className="flex items-center gap-2">
-            <Badge variant="destructive" className="flex items-center gap-1.5">
-              <AlertCircle className="h-3 w-3" />
-              Generation timed out
-            </Badge>
-            <Button size="sm" variant="outline" onClick={handleStalledRetry} disabled={retrying}>
-              {retrying ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : null}
-              {retrying ? 'Retrying…' : 'Retry'}
-            </Button>
-          </div>
-        );
       case 'error':
         return (
-          <div className="flex items-center gap-2">
-            <Badge variant="destructive" className="flex items-center gap-1.5">
-              <AlertCircle className="h-3 w-3" />
-              Error generating notes
-            </Badge>
-            <Button size="sm" variant="outline" onClick={handleStalledRetry} disabled={retrying}>
-              {retrying ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : null}
-              {retrying ? 'Retrying…' : 'Retry'}
-            </Button>
-          </div>
+          <Badge variant="destructive" className="flex items-center gap-1.5">
+            <AlertCircle className="h-3 w-3" />
+            Error generating notes
+          </Badge>
         );
       default:
         return (

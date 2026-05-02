@@ -109,30 +109,33 @@ export default function Settings() {
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
   
-  // Sonnet-only policy (May 2026): Meeting Recorder is locked to Claude Sonnet 4.6.
-  // The dropdown still exists but only offers 'default' which resolves server-side
-  // to Sonnet 4.6 via MEETING_PRIMARY_MODEL.
+  // 'default' resolves server-side to Gemini 3.1 Pro (with auto-fallback to Flash, 2.5 Pro, GPT-5).
+  // Other accepted values: 'gemini-3-flash', 'claude-sonnet-4-6'.
   const DEFAULT_MEETING_LLM = 'default';
   const PREF_LAST_CHANGED_KEY = 'meeting-regenerate-llm-last-changed';
-  const MIGRATION_TOAST_KEY = 'meeting-regenerate-llm-sonnet-only-shown';
+  const MIGRATION_TOAST_KEY = 'meeting-regenerate-llm-pro-migration-shown';
 
+  // LLM model preference for note regeneration.
+  // Legacy-value migration (incl. stale Sonnet) lives in src/utils/resolveMeetingModel.ts
+  // (ensureMigration). Settings is now ONLY responsible for read+write of the user's
+  // explicit choice — never for normalisation.
   const [regenerateLlm, setRegenerateLlm] = useState<string>(() => {
     const stored = localStorage.getItem('meeting-regenerate-llm');
-    if (!stored || (stored !== 'default' && stored !== 'claude-sonnet-4-6')) {
+    if (!stored) {
       localStorage.setItem('meeting-regenerate-llm', DEFAULT_MEETING_LLM);
       return DEFAULT_MEETING_LLM;
     }
     return stored;
   });
 
-  // One-time migration toast — fires once after the Sonnet-only switch.
+  // One-time migration toast — fires once per user after the Pro upgrade.
   useEffect(() => {
-    if (!localStorage.getItem(MIGRATION_TOAST_KEY)) {
+    if (regenerateLlm === DEFAULT_MEETING_LLM && !localStorage.getItem(MIGRATION_TOAST_KEY)) {
       localStorage.setItem(MIGRATION_TOAST_KEY, '1');
       toast({
-        title: '✨ Meeting AI standardised',
-        description: 'All meeting note generation now uses Claude Sonnet 4.6 for consistent governance-grade output.',
-        duration: 6000,
+        title: '✨ Default model upgraded',
+        description: 'Your default model has been upgraded to Gemini 3.1 Pro for better extraction quality. You can change this in Settings.',
+        duration: 8000,
       });
     }
   }, []);
@@ -892,7 +895,7 @@ export default function Settings() {
                     AI Model for Note Regeneration
                   </CardTitle>
                   <p className="text-muted-foreground">
-                    All meeting note generation is standardised on Claude Sonnet 4.6 for consistent governance-grade output.
+                    Choose which AI model is used when you regenerate meeting notes. This is for quality comparison testing.
                   </p>
                 </CardHeader>
                 <CardContent>
@@ -907,16 +910,23 @@ export default function Settings() {
                           <SelectValue placeholder="Select AI model" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="default">Claude Sonnet 4.6 (Default)</SelectItem>
+                          <SelectItem value="default">Gemini 3.1 Pro (Default — best quality)</SelectItem>
+                          <SelectItem value="gemini-3-flash">Gemini 3 Flash (faster, lower cost)</SelectItem>
+                          <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6 (alternative perspective)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p className="mb-2">
-                        <strong>Current model:</strong> Claude Sonnet 4.6
+                        <strong>Current model:</strong> {
+                          regenerateLlm === 'default' ? 'Gemini 3.1 Pro (default — best quality)' :
+                          regenerateLlm === 'gemini-3-flash' ? 'Gemini 3 Flash (faster, lower cost)' :
+                          regenerateLlm === 'claude-sonnet-4-6' ? 'Claude Sonnet 4.6 (alternative perspective)' :
+                          'Gemini 3.1 Pro (default)'
+                        }
                       </p>
                       <p>
-                        Used for first-pass note generation, manual regeneration, meeting titles, overviews, Q&amp;A, coach analysis, dual-transcript consolidation, hallucination repair, and post-generation quality checks. If Sonnet fails, the system retries up to three times before surfacing an error — there is no cross-provider fallback.
+                        This model is used for both initial note generation (after stopping a recording) and manual "Regenerate Notes" actions. If the default Pro model fails or times out, the system automatically falls back to Gemini 3 Flash, then Gemini 2.5 Pro, then GPT-5.
                       </p>
                     </div>
                   </div>

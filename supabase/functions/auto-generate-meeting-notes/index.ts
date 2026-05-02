@@ -23,8 +23,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 // ─────────────────────────────────────────────────────────────────────────
 const DEFAULT_GENERATION_MODEL = 'claude-sonnet-4-6';
 const DEFAULT_DETAIL_TIER = 'standard' as const;
-// Locked to Sonnet 4.6 only (May 2026 policy). All other providers removed.
-const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6'];
+const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3.1-pro'];
 
 // Large transcript cleaning functions
 function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string[] {
@@ -2043,8 +2042,6 @@ ${cleanedTranscript}`;
     console.log('📊 System prompt length:', systemPrompt.length, 'chars');
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
 
-    // (Diagnostic short-circuit removed May 2026 — payload-trigger investigation closed.)
-
     // ============= CHUNKED MAP-REDUCE PATH (long transcripts only) =============
     // Triggered for transcripts >7,000 chars on Claude path. Map step uses
     // claude-haiku-4-5 in parallel; reduce step uses claude-sonnet-4-6.
@@ -2170,209 +2167,90 @@ ${cleanedTranscript}`;
     // Bumped 30s→90s: 14k-word governance transcripts on Flash + fallback chain
     // were timing out before any model could stream. 90s gives Flash room to
     // complete and still leaves headroom for the fallback chain within Edge limits.
-    // Sonnet-only policy (May 2026), v2 timeout ladder:
-    //   TEMP DIAGNOSTIC path (2 May 2026):             single 90s Sonnet attempt
-    //   FORCE-REGENERATE path (user clicked retry):    single 90s window
-    //   OVERRIDE path (audit comparison):              180s × 3 same-model retries
-    // Worst case wall time: 180s (auto) / 90s (regen) / 540s (override).
+    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 90_000;
+    // Detailed tier on long governance transcripts can push Sonnet/GPT past 90s.
+    // 180s gives headroom; same-model retry still bounded so worst case ~6 minutes.
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
-    // Restored 30/60/90 ladder (post payload-trigger investigation, May 2026).
-    // Streaming SSE means we capture response headers in <2s on healthy
-    // generations, so the 30s rung is useful again — most meetings complete
-    // on attempt 1; the 60s/90s rungs absorb intermittently slower responses.
-    const AUTO_TIMEOUT_LADDER_MS = [30_000, 60_000, 90_000];
-    const REGEN_TIMEOUT_LADDER_MS = [90_000];
-    const buildFallbackChain = (primary: string): { model: string; timeoutMs: number }[] => {
+    const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
+      ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
+      : AUTO_PER_ATTEMPT_TIMEOUT_MS;
+    const buildFallbackChain = (primary: string): string[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
+      // Allow ONE same-model retry to absorb transient network blips (timeout / 5xx / 429).
+      // The catch block below decides whether the retry actually fires based on error class.
       if (callerSpecifiedModel) {
-        return [
-          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
-          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
-          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
-        ];
+        return [primary, primary];
       }
-      // forceRegenerate: skip the impatient 30s/60s rungs — user already waited once.
-      const ladder = forceRegenerate ? REGEN_TIMEOUT_LADDER_MS : AUTO_TIMEOUT_LADDER_MS;
-      return ladder.map((timeoutMs) => ({ model: 'claude-sonnet-4-6', timeoutMs }));
+      // First-pass auto-default: when MEETING_PRIMARY_MODEL is Sonnet (current
+      // operational policy), behave like an override — Sonnet retry only, no
+      // silent substitution to a different provider. Quality has been validated
+      // for Sonnet at standard tier; Flash/Pro fabricate, so falling back to
+      // them on transient Sonnet errors would degrade output without the user
+      // knowing. A permanent Sonnet failure must surface as a real error.
+      if (primary === 'claude-sonnet-4-6') {
+        return ['claude-sonnet-4-6', 'claude-sonnet-4-6'];
+      }
+      if (primary === 'gemini-3-flash') {
+        return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
+      }
+      if (primary === 'gemini-3.1-pro' || primary === 'gemini-3.1-pro-preview') {
+        return ['gemini-3.1-pro', 'gemini-3-flash', 'gemini-2.5-pro', 'gpt-5'];
+      }
+      return [primary];
     };
     const chain = buildFallbackChain(modelOverride);
-    // Single fallback timeout used by error reporting / log lines (longest rung).
-    const PER_ATTEMPT_TIMEOUT_MS = chain[chain.length - 1]?.timeoutMs ?? 90_000;
     const failureReasons: Array<{ model: string; reason: string }> = [];
     let actualModelUsed = modelOverride;
     let fallbackCount = 0;
-    // Hoisted so success-path DB writes (line 2943, 3272 etc.) and the failure
-    // catch block can persist which retry rung produced the notes.
-    // 1 = first try, 2/3 = Sonnet retries, 99 = GPT-5 emergency fallback.
-    let successfulAttemptNumber = 1;
     // Diagnostic capture for Gemini Pro attempts (read by /admin/llm-diagnostics)
     let proStatusCode: number | null = null;
     let proElapsedMs: number | null = null;
     let proErrorMessage: string | null = null;
     let fallbackReason: string | null = null;
 
-    const formatMemoryMb = (bytes: number | undefined): number | null =>
-      typeof bytes === 'number' ? Math.round((bytes / 1024 / 1024) * 10) / 10 : null;
-    const logRuntimeMemory = (label: string, extra: Record<string, unknown> = {}) => {
-      try {
-        const usage = typeof Deno.memoryUsage === 'function' ? Deno.memoryUsage() : null;
-        console.log('🧮 RUNTIME_MEMORY ' + JSON.stringify({
-          label,
-          meeting_id: meetingId,
-          rss_mb: formatMemoryMb(usage?.rss),
-          heap_total_mb: formatMemoryMb(usage?.heapTotal),
-          heap_used_mb: formatMemoryMb(usage?.heapUsed),
-          external_mb: formatMemoryMb(usage?.external),
-          ...extra,
-        }));
-      } catch (memoryErr: any) {
-        console.warn('⚠️ RUNTIME_MEMORY unavailable:', memoryErr?.message || String(memoryErr));
-      }
-    };
-
-    // Captured per-attempt diagnostics surfaced in the timeout log line.
-    let lastAnthropicRequestId: string | null = null;
-    let lastGatewayRequestId: string | null = null;
-    let lastGatewayStatus: number | null = null;
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
-    const runAttempt = async (modelKey: string, timeoutMs: number, attemptIdx: number): Promise<string> => {
+    const runAttempt = async (modelKey: string): Promise<string> => {
+      // Single per-attempt timeout for all models. Flash returns in ~1–2s, so 30s
+      // is generous; Pro/2.5-pro/gpt-5 fallbacks share the same budget.
+      const timeoutMs = PER_ATTEMPT_TIMEOUT_MS;
       const attemptController = new AbortController();
-      const attemptStartHr = Date.now();
-      let response: Response | null = null;
-      let responseTextBuffer: string | null = null;
-      if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
-        lastAnthropicRequestId = null;
-      }
-      if (modelKey === 'gpt-5' || modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
-        lastGatewayRequestId = null;
-        lastGatewayStatus = null;
-      }
-      logRuntimeMemory('attempt_start', {
-        attempt: attemptIdx + 1,
-        model: modelKey,
-        timeout_ms: timeoutMs,
-        prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
-      });
-      const attemptTimeout = setTimeout(() => {
-        const elapsedMs = Date.now() - attemptStartHr;
-        // Rich timeout log — JSON line so it's grep-able and parseable in Supabase log search.
-        try {
-          console.warn('⏱️ TIMEOUT_DETAIL ' + JSON.stringify({
-            attempt: attemptIdx + 1,
-            model: modelKey,
-            configured_timeout_ms: timeoutMs,
-            elapsed_ms: elapsedMs,
-            prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
-            prompt_token_estimate: Math.round(((systemPrompt?.length || 0) + (userPrompt?.length || 0)) / 4),
-            anthropic_request_id: lastAnthropicRequestId,
-            openai_request_id: lastGatewayRequestId,
-            gateway_status: lastGatewayStatus,
-            meeting_id: meetingId,
-          }));
-        } catch { /* ignore */ }
-        attemptController.abort();
-      }, timeoutMs);
+      const attemptTimeout = setTimeout(() => attemptController.abort(), timeoutMs);
       try {
         let notes = '';
         if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
           const claudeModel = modelKey === 'sonnet-4.6' ? 'claude-sonnet-4-6' : modelKey;
-          // Detailed tier may genuinely need 8k output; first-pass standard tier
-          // is capped at 4k after the May 2026 payload-trigger investigation —
-          // 8k worst-case generation routinely exceeded the 90s timeout window
-          // on transcripts in the 13k–20k input-token range.
-          const sonnetMaxTokens = detailTier === 'detailed' ? 8000 : 4000;
-          console.log(`🧠 [attempt] Claude model: ${claudeModel} (timeout ${timeoutMs / 1000}s, max_tokens=${sonnetMaxTokens}, stream=true)`);
+          console.log(`🧠 [attempt] Claude model: ${claudeModel}`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-          response = await fetch('https://api.anthropic.com/v1/messages', {
+          const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'x-api-key': anthropicApiKey,
               'anthropic-version': '2023-06-01',
-              'accept': 'text/event-stream',
             },
             body: JSON.stringify({
               model: claudeModel,
-              max_tokens: sonnetMaxTokens,
+              max_tokens: 8000,
               system: systemPrompt,
               messages: [{ role: 'user', content: userPrompt }],
-              stream: true,
             }),
             signal: attemptController.signal,
           });
-          // Headers arrive within ~1–2s on healthy generations even when the body
-          // stream takes longer — capture request-id immediately for escalations.
-          lastAnthropicRequestId = response.headers.get('request-id') || response.headers.get('x-request-id') || null;
-          if (lastAnthropicRequestId) {
-            console.log(`🆔 anthropic_request_id=${lastAnthropicRequestId} (attempt ${attemptIdx + 1}) headers_received_ms=${Date.now() - attemptStartHr}`);
-          }
           if (!response.ok) {
-            responseTextBuffer = await response.text();
-            throw new Error(`Anthropic ${response.status}: ${responseTextBuffer.substring(0, 300)}`);
+            const errorData = await response.text();
+            throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          if (!response.body) {
-            throw new Error('Anthropic stream returned no body');
-          }
-          // Parse SSE stream: accumulate text from content_block_delta events,
-          // honour message_stop / message_delta(stop_reason), surface mid-stream errors.
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let sseBuffer = '';
-          let stopReason: string | null = null;
-          let streamError: string | null = null;
-          let messageStopSeen = false;
-          // eslint-disable-next-line no-constant-condition
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            sseBuffer += decoder.decode(value, { stream: true });
-            // SSE frames are separated by blank lines (\n\n).
-            let sep: number;
-            while ((sep = sseBuffer.indexOf('\n\n')) !== -1) {
-              const frame = sseBuffer.slice(0, sep);
-              sseBuffer = sseBuffer.slice(sep + 2);
-              // Each frame: optional `event: <name>` line + `data: <json>` line(s).
-              let eventName: string | null = null;
-              const dataLines: string[] = [];
-              for (const rawLine of frame.split('\n')) {
-                const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
-                if (line.startsWith('event:')) eventName = line.slice(6).trim();
-                else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
-              }
-              if (dataLines.length === 0) continue;
-              const dataStr = dataLines.join('\n');
-              let payload: any;
-              try { payload = JSON.parse(dataStr); } catch { continue; }
-              const evt = eventName || payload?.type;
-              if (evt === 'content_block_delta') {
-                const delta = payload?.delta;
-                if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
-                  notes += delta.text;
-                }
-              } else if (evt === 'message_delta') {
-                if (payload?.delta?.stop_reason) stopReason = payload.delta.stop_reason;
-              } else if (evt === 'message_stop') {
-                messageStopSeen = true;
-              } else if (evt === 'error') {
-                streamError = payload?.error?.message || JSON.stringify(payload?.error || payload);
-              } else if (evt === 'ping' || evt === 'message_start' || evt === 'content_block_start' || evt === 'content_block_stop') {
-                // ignore
-              }
-            }
-          }
-          if (streamError) {
-            throw new Error(`Anthropic stream error: ${streamError}`);
-          }
-          if (!messageStopSeen && notes.length === 0) {
-            throw new Error('Anthropic stream closed without message_stop and no content received');
-          }
-          console.log(`✅ Sonnet stream complete: chars=${notes.length}, stop_reason=${stopReason || 'unknown'}, message_stop=${messageStopSeen}`);
+          const data = await response.json();
+          notes = data.content
+            ?.filter((block: any) => block.type === 'text')
+            ?.map((block: any) => block.text)
+            ?.join('\n') || '';
         } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
           console.log('🧠 [attempt] OpenAI gpt-5.2 via gateway');
-          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2388,22 +2266,17 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
-          lastGatewayStatus = response.status;
-          lastGatewayRequestId = response.headers.get('x-request-id') || response.headers.get('x-trace-id') || response.headers.get('request-id') || null;
-          console.log('🆔 gateway_request_id=' + (lastGatewayRequestId || 'null') + ` status=${lastGatewayStatus} model=gpt-5.2 attempt=${attemptIdx + 1}`);
           if (!response.ok) {
-            responseTextBuffer = await response.text();
-            const errorData = responseTextBuffer;
+            const errorData = await response.text();
             throw new Error(`Gateway gpt-5.2 ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          responseTextBuffer = await response.text();
-          const data = JSON.parse(responseTextBuffer);
+          const data = await response.json();
           notes = data.choices?.[0]?.message?.content || '';
         } else if (modelKey === 'gpt-5') {
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
           console.log('🧠 [attempt] OpenAI gpt-5 via gateway');
-          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2419,16 +2292,11 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
-          lastGatewayStatus = response.status;
-          lastGatewayRequestId = response.headers.get('x-request-id') || response.headers.get('x-trace-id') || response.headers.get('request-id') || null;
-          console.log('🆔 gateway_request_id=' + (lastGatewayRequestId || 'null') + ` status=${lastGatewayStatus} model=gpt-5 attempt=${attemptIdx + 1}`);
           if (!response.ok) {
-            responseTextBuffer = await response.text();
-            const errorData = responseTextBuffer;
+            const errorData = await response.text();
             throw new Error(`Gateway gpt-5 ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          responseTextBuffer = await response.text();
-          const data = JSON.parse(responseTextBuffer);
+          const data = await response.json();
           notes = data.choices?.[0]?.message?.content || '';
         } else {
           // Gemini routing.
@@ -2447,7 +2315,7 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
           const isPro = modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview';
           const proStart = isPro ? Date.now() : 0;
-          response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${lovableApiKey}`,
@@ -2468,8 +2336,7 @@ ${cleanedTranscript}`;
             proElapsedMs = Date.now() - proStart;
           }
           if (!response.ok) {
-            responseTextBuffer = await response.text();
-            const errorData = responseTextBuffer;
+            const errorData = await response.text();
             if (isPro) proErrorMessage = `HTTP ${response.status}: ${errorData.substring(0, 500)}`;
             // 429 and 402 are user-facing — surface immediately rather than silently fall back.
             if (response.status === 429) throw new Error('RATE_LIMIT: Rate limit exceeded. Please wait a moment and try again.');
@@ -2477,8 +2344,7 @@ ${cleanedTranscript}`;
             if (response.status === 413) throw new Error(`Lovable AI 413: Transcript too large.`);
             throw new Error(`Lovable AI ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          responseTextBuffer = await response.text();
-          const responseText = responseTextBuffer;
+          const responseText = await response.text();
           if (!responseText || responseText.trim().length === 0) {
             if (isPro) proErrorMessage = 'Empty response body';
             throw new Error('Lovable AI returned empty response body');
@@ -2498,20 +2364,6 @@ ${cleanedTranscript}`;
         return notes;
       } finally {
         clearTimeout(attemptTimeout);
-        try {
-          responseTextBuffer = null;
-          if (response?.body) {
-            await response.body.cancel().catch(() => undefined);
-          }
-        } catch { /* response body may already be consumed/locked */ }
-        logRuntimeMemory('attempt_end', {
-          attempt: attemptIdx + 1,
-          model: modelKey,
-          elapsed_ms: Date.now() - attemptStartHr,
-          anthropic_request_id: lastAnthropicRequestId,
-          openai_request_id: lastGatewayRequestId,
-          gateway_status: lastGatewayStatus,
-        });
       }
     };
 
@@ -2537,13 +2389,9 @@ ${cleanedTranscript}`;
         return false;
       };
 
-      // Track which 1-indexed attempt rung produced the notes (1 = first try, 2/3 = retries).
-      // Surfaced via meetings.notes_model_attempt and the model badge.
-      // (successfulAttemptNumber declared in outer scope above so failure path can read it.)
       for (let i = 0; i < chain.length; i++) {
-        const attemptModel = chain[i].model;
-        const attemptTimeoutMs = chain[i].timeoutMs;
-        const isSameModelRetry = callerSpecifiedModel && i > 0 && chain[i].model === chain[i - 1].model;
+        const attemptModel = chain[i];
+        const isSameModelRetry = callerSpecifiedModel && i > 0 && chain[i] === chain[i - 1];
         // For same-model retries on the override path, give the upstream provider a brief
         // breather (especially helpful for 429 rate limits and transient 5xx).
         if (isSameModelRetry) {
@@ -2553,18 +2401,14 @@ ${cleanedTranscript}`;
         let attemptStatus: 'success' | 'timeout' | 'error' = 'error';
         let attemptReason: string | null = null;
         try {
-          const pathLabel = callerSpecifiedModel
-            ? (isSameModelRetry ? `override path, ${attemptTimeoutMs / 1000}s, same-model retry` : `override path, ${attemptTimeoutMs / 1000}s`)
-            : (forceRegenerate ? `regenerate path, ${attemptTimeoutMs / 1000}s` : `auto path, ${attemptTimeoutMs / 1000}s`);
-          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel} (${pathLabel})`);
-          generatedNotes = await runAttempt(attemptModel, attemptTimeoutMs, i);
+          console.log(`🔁 Attempt ${i + 1}/${chain.length}: ${attemptModel}${callerSpecifiedModel ? (isSameModelRetry ? ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s, same-model retry)` : ` (override path, ${PER_ATTEMPT_TIMEOUT_MS / 1000}s)`) : ' (auto path, 30s)'}`);
+          generatedNotes = await runAttempt(attemptModel);
           actualModelUsed = attemptModel;
           fallbackCount = i;
-          successfulAttemptNumber = i + 1;
           modelUsed = attemptModel;
           attemptStatus = 'success';
           if (i > 0) {
-            console.log(`⚡ ${isSameModelRetry ? 'Same-model retry' : 'Fallback'} succeeded with ${attemptModel} on attempt ${i + 1}/${chain.length}`);
+            console.log(`⚡ ${isSameModelRetry ? 'Same-model retry' : 'Fallback'} succeeded with ${attemptModel} (primary attempt failed)`);
           }
           // Per-attempt log row for the override path so the audit trail covers
           // both attempts (primary + same-model retry). Auto path keeps its
@@ -2573,7 +2417,7 @@ ${cleanedTranscript}`;
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0]?.model || modelOverride,
+                primary_model: chain[0] || modelOverride,
                 actual_model_used: attemptModel,
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
@@ -2590,17 +2434,17 @@ ${cleanedTranscript}`;
           const isAbort = err?.name === 'AbortError';
           attemptStatus = isAbort ? 'timeout' : 'error';
           const reason = isAbort
-            ? `timeout after ${Math.round(attemptTimeoutMs / 1000)}s`
+            ? `timeout after ${Math.round(PER_ATTEMPT_TIMEOUT_MS / 1000)}s`
             : (err?.message || 'unknown error');
           attemptReason = reason;
-          console.warn(`⚠️ Attempt ${i + 1}/${chain.length} (${attemptModel}, ${attemptTimeoutMs / 1000}s) failed: ${reason}`);
+          console.warn(`⚠️ Attempt ${i + 1} (${attemptModel}) failed: ${reason}`);
           failureReasons.push({ model: attemptModel, reason });
           // Per-attempt failure log for override path.
           if (callerSpecifiedModel) {
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0]?.model || modelOverride,
+                primary_model: chain[0] || modelOverride,
                 actual_model_used: attemptModel,
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
@@ -2643,86 +2487,8 @@ ${cleanedTranscript}`;
           }
         }
       }
-      // ─── EMERGENCY GPT-5 FALLBACK ────────────────────────────────────────
-      // Sonnet exhausted. Try ONE attempt against openai/gpt-5 via Lovable AI
-      // Gateway so the user gets notes even during an Anthropic-wide outage.
-      // Tagged distinctively so it's visible in the model badge / docx footer.
-      //
-      // Phase A fix (2 May 2026): previously gated on `!callerSpecifiedModel`,
-      // which meant a manual "Generate Meeting Notes" click — which always
-      // passes the configured model = claude-sonnet-4-6 — bypassed the rescue
-      // and the user got a non-2xx error. We now also allow the rescue when
-      // the caller-specified model IS claude-sonnet-4-6 (the project default).
-      // Other explicit overrides (e.g. an admin choosing Gemini) still bypass:
-      // if they specifically asked for a non-Sonnet model we shouldn't
-      // second-guess them.
-      const rescueAllowedForCaller =
-        !callerSpecifiedModel || (modelOverride === 'claude-sonnet-4-6');
-      if ((!generatedNotes || generatedNotes.trim().length === 0) && rescueAllowedForCaller) {
-        // Read the kill-switch (default ON). If the row is missing, treat as enabled.
-        let emergencyEnabled = true;
-        try {
-          const { data: settingRow } = await supabase
-            .from('system_settings')
-            .select('value')
-            .eq('key', 'MEETING_EMERGENCY_FALLBACK_ENABLED')
-            .maybeSingle();
-          if (settingRow && (settingRow as any).value === false) emergencyEnabled = false;
-          if (settingRow && (settingRow as any).value === 'false') emergencyEnabled = false;
-        } catch { /* table or row missing — keep default */ }
-
-        if (emergencyEnabled) {
-          console.warn('🚨 Sonnet exhausted — attempting GPT-5 emergency fallback (90s)');
-          // Phase A fix (2 May 2026): capture full timing + outcome so the
-          // empty-result branch (previously silent) leaves an audit trail.
-          const fbStart = Date.now();
-          let fbOutcome: 'success' | 'empty' | 'error' = 'error';
-          let fbChars = 0;
-          let fbError: string | null = null;
-          try {
-            const fallbackNotes = await runAttempt('gpt-5', 90_000, chain.length);
-            fbChars = (fallbackNotes || '').length;
-            if (fallbackNotes && fallbackNotes.trim().length > 0) {
-              generatedNotes = fallbackNotes;
-              actualModelUsed = 'gpt-5-emergency-fallback';
-              modelUsed = 'gpt-5-emergency-fallback';
-              fallbackCount = chain.length;
-              successfulAttemptNumber = 99; // sentinel for emergency fallback
-              fbOutcome = 'success';
-              console.warn('🆘 GPT-5 emergency fallback succeeded — notes recovered, but Anthropic is degraded.');
-            } else {
-              fbOutcome = 'empty';
-              fbError = 'GPT-5 returned empty content';
-              console.error('❌ GPT-5 emergency fallback returned empty content');
-              failureReasons.push({ model: 'gpt-5-emergency-fallback', reason: 'empty content' });
-            }
-          } catch (emergencyErr: any) {
-            fbOutcome = 'error';
-            fbError = emergencyErr?.message || String(emergencyErr);
-            console.error('❌ GPT-5 emergency fallback also failed:', fbError);
-            failureReasons.push({ model: 'gpt-5-emergency-fallback', reason: fbError });
-          }
-          // Single structured line so Phase B / future debugging can grep this
-          // even when stdout is truncated. Note: openai_request_id is not
-          // currently captured by runAttempt('gpt-5', …) because it discards
-          // response headers — flagged for a follow-up if Phase B needs it.
-          console.warn('📊 GPT5_FALLBACK_RESULT ' + JSON.stringify({
-            outcome: fbOutcome,
-            elapsed_ms: Date.now() - fbStart,
-            chars: fbChars,
-            error: fbError,
-            openai_request_id: lastGatewayRequestId,
-            gateway_status: lastGatewayStatus,
-            meeting_id: meetingId,
-            triggered_by: callerSpecifiedModel ? 'manual-regenerate' : 'auto-first-pass',
-          }));
-        } else {
-          console.warn('⚠️ MEETING_EMERGENCY_FALLBACK_ENABLED=false — skipping GPT-5 fallback');
-        }
-      }
-
       if (!generatedNotes || generatedNotes.trim().length === 0) {
-        console.error('❌ All fallback attempts exhausted (incl. emergency fallback)');
+        console.error('❌ All fallback attempts exhausted');
         // Build a clearer error for caller-specified models so the toast can say
         // "Sonnet 4.6 failed after N attempts: <reason>".
         if (callerSpecifiedModel) {
@@ -2730,7 +2496,7 @@ ${cleanedTranscript}`;
           const lastReason = failureReasons[failureReasons.length - 1]?.reason || (lastError?.message ?? 'unknown error');
           throw new Error(`${modelOverride} failed after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${lastReason}`);
         }
-        throw lastError || new Error('All AI generation attempts failed (Sonnet ×' + chain.length + ' + GPT-5 emergency)');
+        throw lastError || new Error('All AI generation attempts failed');
       }
 
       // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
@@ -2811,7 +2577,7 @@ ${cleanedTranscript}`;
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0]?.model || modelOverride,
+                primary_model: chain[0] || modelOverride,
                 actual_model_used: actualModelUsed,
                 fallback_count: fallbackCount,
                 generation_ms: Date.now() - notesGenStart,
@@ -2846,7 +2612,7 @@ ${cleanedTranscript}`;
     try {
       await supabase.from('meeting_generation_log').insert({
         meeting_id: meetingId,
-        primary_model: chain[0]?.model || modelOverride,
+        primary_model: chain[0] || modelOverride,
         actual_model_used: actualModelUsed,
         fallback_count: fallbackCount,
         generation_ms: Date.now() - notesGenStart,
@@ -3002,7 +2768,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 4096,
           system: QC_SYSTEM_PROMPT,
           temperature: 0.1,
@@ -3061,7 +2827,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         failed_count: parsed.failed_count,
         categories: parsed.categories,
         summary: parsed.summary,
-        model_used: 'claude-sonnet-4-6',
+        model_used: 'claude-haiku-4-5',
         ran_at: new Date().toISOString(),
       };
 
@@ -3072,7 +2838,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       qcResult = {
         status: 'error',
         error_message: qcError.message || 'Unknown QC error',
-        model_used: 'claude-sonnet-4-6',
+        model_used: 'claude-haiku-4-5',
         ran_at: new Date().toISOString(),
       };
     }
@@ -3114,7 +2880,6 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notes_generation_status: 'completed',
         primary_transcript_source: normaliseTranscriptSourceForMeeting(actualTranscriptSource),
         notes_model_used: stampModelWithTier(actualModelUsed),
-        notes_model_attempt: successfulAttemptNumber,
       })
       .eq('id', meetingId);
 
@@ -3444,7 +3209,6 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         overview: aiOverview || null,
         title: generatedTitle,
         notes_model_used: stampModelWithTier(actualModelUsed),
-        notes_model_attempt: successfulAttemptNumber,
       })
       .eq('id', meetingId);
 
@@ -3509,75 +3273,40 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     console.error('❌ Full error details:', error);
     
     // Try to update status to failed if we have meetingId
-    // Defensive: split the failure-path DB writes into separate try/catch blocks
-    // so a secondary error (e.g. an undefined variable in the stamp helper, as
-    // seen on 2026-05-02) cannot prevent notes_generation_status from flipping to
-    // 'failed' — the spinner would otherwise run forever.
-    if (meetingId) {
-      try {
+    try {
+      if (meetingId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Stamp the model that was attempted (even on failure) so the docx
+        // footer surfaces what was tried instead of "unknown".
+        const failedStamp = (() => {
+          try { return stampModelWithTier(actualModelUsed || modelOverride || 'unknown'); }
+          catch { return actualModelUsed || modelOverride || 'unknown'; }
+        })();
+        await supabase
+          .from('meetings')
+          .update({ 
+            notes_generation_status: 'failed',
+            notes_model_used: failedStamp,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', meetingId);
 
-        // Stamp the model that was attempted (even on failure). If stampModelWithTier
-        // or the variables it touches throw, we still mark the row as failed.
-        let failedStamp = 'unknown';
-        try {
-          // actualModelUsed is hoisted to outer scope; if even this is undefined
-          // (e.g. error before the chain ran), fall back to modelOverride/'unknown'.
-          // deno-lint-ignore no-explicit-any
-          const candidate = (typeof actualModelUsed !== 'undefined' ? actualModelUsed : undefined)
-            || (typeof modelOverride !== 'undefined' ? modelOverride : undefined)
-            || 'unknown';
-          failedStamp = stampModelWithTier(candidate);
-        } catch (stampErr) {
-          console.warn('⚠️ stampModelWithTier threw on failure path (non-fatal):', stampErr);
-        }
-
-        // First and most important update: flip the status. Don't let any other
-        // column failure block this one.
-        try {
-          await supabase
-            .from('meetings')
-            .update({
-              notes_generation_status: 'failed',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', meetingId);
-        } catch (statusErr) {
-          console.error('❌ CRITICAL: Failed to flip notes_generation_status to failed:', statusErr);
-        }
-
-        // Second update: enrich the row with model stamp and attempt count. Best-effort.
-        try {
-          await supabase
-            .from('meetings')
-            .update({
-              notes_model_used: failedStamp,
-              notes_model_attempt: (typeof successfulAttemptNumber !== 'undefined' ? successfulAttemptNumber : 1),
-            })
-            .eq('id', meetingId);
-        } catch (stampUpdateErr) {
-          console.warn('⚠️ Failed to stamp model on failure row (non-fatal):', stampUpdateErr);
-        }
-
-        try {
-          await supabase
-            .from('meeting_notes_queue')
-            .update({
-              status: 'failed',
-              error_message: error?.message ?? 'unknown error',
-              completed_at: new Date().toISOString(),
-            })
-            .eq('meeting_id', meetingId);
-        } catch (queueErr) {
-          console.warn('⚠️ Failed to mark queue row as failed (non-fatal):', queueErr);
-        }
-
+        await supabase
+          .from('meeting_notes_queue')
+          .update({ 
+            status: 'failed',
+            error_message: error.message,
+            completed_at: new Date().toISOString()
+          })
+          .eq('meeting_id', meetingId);
+          
         console.log('✅ Updated meeting status to failed for:', meetingId);
-      } catch (updateError) {
-        console.error('❌ Failed to set up failure-path supabase client:', updateError);
       }
+    } catch (updateError) {
+      console.error('❌ Failed to update error status:', updateError);
     }
 
     return new Response(

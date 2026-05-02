@@ -197,33 +197,31 @@ ESSENTIAL RULES:
 Return ONLY the corrected complete transcription.`;
 
   try {
-    // Sonnet-only policy (May 2026): final validation switched from gpt-4o-mini
-    // to Claude Sonnet 4.6. The audio→text transcription steps above remain
-    // on OpenAI Whisper (Anthropic does not offer ASR).
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
-    if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        system: 'You are a medical transcription expert. Return only the corrected transcription, no other text.',
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a medical transcription expert. Return only the corrected transcription, no other text.' 
+          },
+          { role: 'user', content: validationPrompt }
+        ],
         temperature: 0.1,
-        messages: [{ role: 'user', content: validationPrompt }],
-      }),
+        max_tokens: 2000
+      })
     });
 
     if (response.ok) {
-      const claudeResult = await response.json();
-      const finalText = (claudeResult.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '').trim();
-
-      console.log("Sonnet 4.6 validated transcription:", finalText);
+      const gptResult = await response.json();
+      const finalText = gptResult.choices[0].message.content.trim();
+      
+      console.log("GPT-4 validated transcription:", finalText);
 
       // Final medical term verification
       const medicalValidation = validateMedicalTerms(finalText);
@@ -231,7 +229,7 @@ Return ONLY the corrected complete transcription.`;
       return {
         text: finalText,
         confidence: calculateFinalConfidence(validTranscriptions),
-        validation: 'Triple-checked and Sonnet 4.6 validated',
+        validation: 'Triple-checked and GPT-4 validated',
         sources: validTranscriptions.map(t => t.source),
         medical_validation: medicalValidation,
         original_transcriptions: validTranscriptions.map(t => ({
@@ -241,11 +239,11 @@ Return ONLY the corrected complete transcription.`;
         }))
       };
     } else {
-      console.error("Sonnet 4.6 validation failed, using highest confidence transcription");
+      console.error("GPT-4 validation failed, using highest confidence transcription");
       return {
         text: validTranscriptions[0].text,
         confidence: validTranscriptions[0].confidence,
-        validation: 'Highest confidence (Sonnet 4.6 validation failed)',
+        validation: 'Highest confidence (GPT-4 validation failed)',
         sources: [validTranscriptions[0].source]
       };
     }

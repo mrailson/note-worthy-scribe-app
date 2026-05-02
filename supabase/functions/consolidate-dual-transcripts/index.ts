@@ -90,41 +90,45 @@ ${liveTranscript}
 
 Produce a single consolidated transcript that represents the most accurate version of what was said.`;
 
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
-    if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.3,
         max_tokens: 16000,
-        system: systemPrompt,
-        temperature: 0.2,
-        messages: [{ role: 'user', content: userPrompt }],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Anthropic error:', response.status, errorText);
-
+      console.error('AI gateway error:', response.status, errorText);
+      
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      throw new Error(`Anthropic error: ${response.status}`);
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'AI credits exhausted. Please top up your workspace.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const aiResponse = await response.json();
-    const consolidatedTranscript = (aiResponse.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '').trim();
+    const consolidatedTranscript = aiResponse.choices?.[0]?.message?.content?.trim() || '';
 
     const finalWords = consolidatedTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
 

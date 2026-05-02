@@ -13,13 +13,12 @@ serve(async (req) => {
   }
 
   try {
-    // Sonnet-only policy (May 2026): switched from OpenAI gpt-4o-mini.
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!anthropicApiKey || !supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing required environment variables (ANTHROPIC_API_KEY/SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)');
+    if (!openAIApiKey || !supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing required environment variables');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -151,35 +150,36 @@ ${fullTranscript}
 
 Generate clear, professional meeting notes suitable for distribution to attendees.`;
 
-    console.log('Generating notes with Claude Sonnet 4.6...');
+    console.log('Generating notes with OpenAI...');
 
-    const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
         max_tokens: 2000,
-        system: systemPrompt,
-        temperature: 0.3,
-        messages: [{ role: 'user', content: userPrompt }],
+        temperature: 0.7,
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Anthropic API error:', errorText);
-      throw new Error(`Anthropic API error: ${aiResponse.status}`);
+    if (!openAIResponse.ok) {
+      const errorData = await openAIResponse.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
-    const aiData = await aiResponse.json();
-    const generatedNotes = (aiData.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '');
+    const openAIData = await openAIResponse.json();
+    const generatedNotes = openAIData.choices[0]?.message?.content;
 
     if (!generatedNotes) {
-      throw new Error('No notes generated from Anthropic response');
+      throw new Error('No notes generated from OpenAI response');
     }
 
     console.log('Notes generated successfully, saving to database...');
@@ -197,7 +197,7 @@ Generate clear, professional meeting notes suitable for distribution to attendee
         processing_metadata: {
           generated_at: new Date().toISOString(),
           transcript_chunks: transcriptChunks.length,
-          model: 'claude-sonnet-4-6'
+          openai_model: 'gpt-4o-mini'
         }
       });
 
