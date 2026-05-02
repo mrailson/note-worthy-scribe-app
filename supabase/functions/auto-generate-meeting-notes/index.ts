@@ -2827,7 +2827,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notes_style_3: generatedNotes,
         notes_generation_status: 'completed',
         primary_transcript_source: normaliseTranscriptSourceForMeeting(actualTranscriptSource),
-        notes_model_used: actualModelUsed,
+        notes_model_used: stampModelWithTier(actualModelUsed),
       })
       .eq('id', meetingId);
 
