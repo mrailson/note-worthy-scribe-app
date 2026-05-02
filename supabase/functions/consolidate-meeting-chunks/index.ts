@@ -207,7 +207,7 @@ function postMergeDedup(segments: string[]): PostMergeDedupResult {
 
 // ============= BEST-OF-ALL MERGER (Deno-compatible, 3-engine) =============
 
-type Engine = 'assembly' | 'whisper' | 'deepgram' | 'gladia';
+type Engine = 'assembly' | 'whisper' | 'deepgram';
 
 interface RawChunk {
   engine: Engine;
@@ -268,7 +268,6 @@ function gapFillJaccard(candidateTokens: string[], whisperTokens: string[]): num
 
 function normaliseConfidence(engine: Engine, confidence?: number): number {
   if (engine === 'assembly') return 0.80;
-  if (engine === 'gladia') return 0.78;
   if (engine === 'deepgram') {
     if (confidence == null) return 0.75;
     if (confidence > 1) return Math.max(0, Math.min(1, confidence / 100));
@@ -392,13 +391,12 @@ function postProcessTranscript(s: string): string {
   return out;
 }
 
-function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgramRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG, gladiaRaw: RawChunk[] = []) {
+function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgramRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG) {
   const whisper = normaliseChunks(whisperRaw, cfg).sort((a, b) => a.idx - b.idx);
   const assembly = normaliseChunks(assemblyRaw, cfg).sort((a, b) => (a.startSec - b.startSec) || (a.idx - b.idx));
   const deepgram = normaliseChunks(deepgramRaw, cfg).sort((a, b) => a.idx - b.idx);
-  const gladia = normaliseChunks(gladiaRaw, cfg).sort((a, b) => a.idx - b.idx);
-  
-  const combined = [...assembly, ...deepgram, ...gladia, ...whisper].sort((a, b) => {
+
+  const combined = [...assembly, ...deepgram, ...whisper].sort((a, b) => {
     const t = a.startSec - b.startSec;
     if (t !== 0) return t;
     const tierDiff = getEngineTier(a.engine) - getEngineTier(b.engine);
