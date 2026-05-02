@@ -2407,7 +2407,8 @@ ${cleanedTranscript}`;
             if (response.status === 413) throw new Error(`Lovable AI 413: Transcript too large.`);
             throw new Error(`Lovable AI ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const responseText = await response.text();
+          responseTextBuffer = await response.text();
+          const responseText = responseTextBuffer;
           if (!responseText || responseText.trim().length === 0) {
             if (isPro) proErrorMessage = 'Empty response body';
             throw new Error('Lovable AI returned empty response body');
@@ -2427,6 +2428,20 @@ ${cleanedTranscript}`;
         return notes;
       } finally {
         clearTimeout(attemptTimeout);
+        try {
+          responseTextBuffer = null;
+          if (response?.body) {
+            await response.body.cancel().catch(() => undefined);
+          }
+        } catch { /* response body may already be consumed/locked */ }
+        logRuntimeMemory('attempt_end', {
+          attempt: attemptIdx + 1,
+          model: modelKey,
+          elapsed_ms: Date.now() - attemptStartHr,
+          anthropic_request_id: lastAnthropicRequestId,
+          openai_request_id: lastGatewayRequestId,
+          gateway_status: lastGatewayStatus,
+        });
       }
     };
 
