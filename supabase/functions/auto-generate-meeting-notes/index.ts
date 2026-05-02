@@ -3279,10 +3279,17 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         
+        // Stamp the model that was attempted (even on failure) so the docx
+        // footer surfaces what was tried instead of "unknown".
+        const failedStamp = (() => {
+          try { return stampModelWithTier(actualModelUsed || modelOverride || 'unknown'); }
+          catch { return actualModelUsed || modelOverride || 'unknown'; }
+        })();
         await supabase
           .from('meetings')
           .update({ 
             notes_generation_status: 'failed',
+            notes_model_used: failedStamp,
             updated_at: new Date().toISOString()
           })
           .eq('id', meetingId);
