@@ -569,6 +569,57 @@ export type Database = {
         }
         Relationships: []
       }
+      assemblyai_session_diagnostics: {
+        Row: {
+          audio_frames_sent: number | null
+          created_at: string
+          details: Json | null
+          event_type: string
+          final_count: number | null
+          id: string
+          meeting_id: string | null
+          partial_count: number | null
+          reconnect_attempt: number | null
+          session_id: string | null
+          total_messages: number | null
+          user_id: string | null
+          ws_close_code: number | null
+          ws_close_reason: string | null
+        }
+        Insert: {
+          audio_frames_sent?: number | null
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          final_count?: number | null
+          id?: string
+          meeting_id?: string | null
+          partial_count?: number | null
+          reconnect_attempt?: number | null
+          session_id?: string | null
+          total_messages?: number | null
+          user_id?: string | null
+          ws_close_code?: number | null
+          ws_close_reason?: string | null
+        }
+        Update: {
+          audio_frames_sent?: number | null
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          final_count?: number | null
+          id?: string
+          meeting_id?: string | null
+          partial_count?: number | null
+          reconnect_attempt?: number | null
+          session_id?: string | null
+          total_messages?: number | null
+          user_id?: string | null
+          ws_close_code?: number | null
+          ws_close_reason?: string | null
+        }
+        Relationships: []
+      }
       attendee_template_members: {
         Row: {
           attendee_id: string
@@ -4768,48 +4819,6 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      gladia_transcriptions: {
-        Row: {
-          chunk_number: number
-          confidence: number | null
-          created_at: string | null
-          id: string
-          is_final: boolean | null
-          meeting_id: string
-          session_id: string
-          transcription_text: string
-          updated_at: string | null
-          user_id: string
-          word_count: number | null
-        }
-        Insert: {
-          chunk_number: number
-          confidence?: number | null
-          created_at?: string | null
-          id?: string
-          is_final?: boolean | null
-          meeting_id: string
-          session_id: string
-          transcription_text: string
-          updated_at?: string | null
-          user_id: string
-          word_count?: number | null
-        }
-        Update: {
-          chunk_number?: number
-          confidence?: number | null
-          created_at?: string | null
-          id?: string
-          is_final?: boolean | null
-          meeting_id?: string
-          session_id?: string
-          transcription_text?: string
-          updated_at?: string | null
-          user_id?: string
-          word_count?: number | null
         }
         Relationships: []
       }
