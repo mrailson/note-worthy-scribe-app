@@ -3340,40 +3340,75 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     console.error('❌ Full error details:', error);
     
     // Try to update status to failed if we have meetingId
-    try {
-      if (meetingId) {
+    // Defensive: split the failure-path DB writes into separate try/catch blocks
+    // so a secondary error (e.g. an undefined variable in the stamp helper, as
+    // seen on 2026-05-02) cannot prevent notes_generation_status from flipping to
+    // 'failed' — the spinner would otherwise run forever.
+    if (meetingId) {
+      try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        
-        // Stamp the model that was attempted (even on failure) so the docx
-        // footer surfaces what was tried instead of "unknown".
-        const failedStamp = (() => {
-          try { return stampModelWithTier(actualModelUsed || modelOverride || 'unknown'); }
-          catch { return actualModelUsed || modelOverride || 'unknown'; }
-        })();
-        await supabase
-          .from('meetings')
-          .update({ 
-            notes_generation_status: 'failed',
-            notes_model_used: failedStamp,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', meetingId);
 
-        await supabase
-          .from('meeting_notes_queue')
-          .update({ 
-            status: 'failed',
-            error_message: error.message,
-            completed_at: new Date().toISOString()
-          })
-          .eq('meeting_id', meetingId);
-          
+        // Stamp the model that was attempted (even on failure). If stampModelWithTier
+        // or the variables it touches throw, we still mark the row as failed.
+        let failedStamp = 'unknown';
+        try {
+          // actualModelUsed is hoisted to outer scope; if even this is undefined
+          // (e.g. error before the chain ran), fall back to modelOverride/'unknown'.
+          // deno-lint-ignore no-explicit-any
+          const candidate = (typeof actualModelUsed !== 'undefined' ? actualModelUsed : undefined)
+            || (typeof modelOverride !== 'undefined' ? modelOverride : undefined)
+            || 'unknown';
+          failedStamp = stampModelWithTier(candidate);
+        } catch (stampErr) {
+          console.warn('⚠️ stampModelWithTier threw on failure path (non-fatal):', stampErr);
+        }
+
+        // First and most important update: flip the status. Don't let any other
+        // column failure block this one.
+        try {
+          await supabase
+            .from('meetings')
+            .update({
+              notes_generation_status: 'failed',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', meetingId);
+        } catch (statusErr) {
+          console.error('❌ CRITICAL: Failed to flip notes_generation_status to failed:', statusErr);
+        }
+
+        // Second update: enrich the row with model stamp and attempt count. Best-effort.
+        try {
+          await supabase
+            .from('meetings')
+            .update({
+              notes_model_used: failedStamp,
+              notes_model_attempt: (typeof successfulAttemptNumber !== 'undefined' ? successfulAttemptNumber : 1),
+            })
+            .eq('id', meetingId);
+        } catch (stampUpdateErr) {
+          console.warn('⚠️ Failed to stamp model on failure row (non-fatal):', stampUpdateErr);
+        }
+
+        try {
+          await supabase
+            .from('meeting_notes_queue')
+            .update({
+              status: 'failed',
+              error_message: error?.message ?? 'unknown error',
+              completed_at: new Date().toISOString(),
+            })
+            .eq('meeting_id', meetingId);
+        } catch (queueErr) {
+          console.warn('⚠️ Failed to mark queue row as failed (non-fatal):', queueErr);
+        }
+
         console.log('✅ Updated meeting status to failed for:', meetingId);
+      } catch (updateError) {
+        console.error('❌ Failed to set up failure-path supabase client:', updateError);
       }
-    } catch (updateError) {
-      console.error('❌ Failed to update error status:', updateError);
     }
 
     return new Response(
