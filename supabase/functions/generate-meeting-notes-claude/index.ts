@@ -438,32 +438,36 @@ function chunkTranscript(transcript: string): string[] {
 }
 
 async function callGemini(systemPrompt: string, userPrompt: string, maxTokens = 8192): Promise<string> {
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  // Sonnet-only policy (May 2026): callGemini now routes to Claude Sonnet 4.6
+  // via Anthropic. Name kept for call-site compatibility.
+  if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
+      'x-api-key': anthropicApiKey,
+      'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      max_completion_tokens: maxTokens,
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      system: systemPrompt,
       temperature: 0.15,
+      messages: [{ role: 'user', content: userPrompt }],
     }),
   });
 
   if (!response.ok) {
     if (response.status === 429) throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-    if (response.status === 402) throw new Error('Insufficient Lovable AI credits. Please contact support.');
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`AI service error: ${errorData.error?.message || response.status}`);
+    const errText = await response.text();
+    throw new Error(`Anthropic API error: ${response.status} - ${errText}`);
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  return data.content
+    .filter((b: any) => b.type === 'text')
+    .map((b: any) => b.text)
+    .join('\n');
 }
 
 async function callClaude(model: string, systemPrompt: string, userPrompt: string, maxTokens = 8192): Promise<string> {
@@ -548,7 +552,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
+            model: 'claude-sonnet-4-6',
             max_tokens: 2000,
             system: QC_SYSTEM_PROMPT,
             temperature: 0.1,
@@ -569,11 +573,11 @@ serve(async (req) => {
           failed_count: parsed.failed_count,
           categories: parsed.categories,
           summary: parsed.summary,
-          model_used: 'claude-haiku-4-5',
+          model_used: 'claude-sonnet-4-6',
           ran_at: new Date().toISOString(),
         };
       } catch (e: any) {
-        qcResult = { status: 'error', error_message: e.message, model_used: 'claude-haiku-4-5', ran_at: new Date().toISOString() };
+        qcResult = { status: 'error', error_message: e.message, model_used: 'claude-sonnet-4-6', ran_at: new Date().toISOString() };
       }
 
       // Persist to DB
@@ -595,9 +599,8 @@ serve(async (req) => {
       });
     }
 
-    const effectiveModelOverride = !modelOverride || modelOverride === 'gemini-3-flash'
-      ? 'claude-sonnet-4-6'
-      : modelOverride;
+    // Sonnet-only policy: ignore any caller modelOverride and force Sonnet 4.6.
+    const effectiveModelOverride = 'claude-sonnet-4-6';
 
     console.log('🔍 Request details:', {
       hasTranscript: !!transcript,
@@ -1042,7 +1045,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-sonnet-4-6',
           max_tokens: 4096,
           system: QC_SYSTEM_PROMPT,
           temperature: 0.1,
@@ -1106,7 +1109,7 @@ serve(async (req) => {
         failed_count: parsed.failed_count,
         categories: parsed.categories,
         summary: parsed.summary,
-        model_used: 'claude-haiku-4-5',
+        model_used: 'claude-sonnet-4-6',
         ran_at: new Date().toISOString(),
       };
 
@@ -1123,7 +1126,7 @@ serve(async (req) => {
       qcResult = {
         status: 'error',
         error_message: qcError.message || 'Unknown QC error',
-        model_used: 'claude-haiku-4-5',
+        model_used: 'claude-sonnet-4-6',
         ran_at: new Date().toISOString(),
       };
     }
