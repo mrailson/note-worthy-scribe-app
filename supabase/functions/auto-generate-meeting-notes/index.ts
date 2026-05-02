@@ -2234,6 +2234,14 @@ ${cleanedTranscript}`;
     const runAttempt = async (modelKey: string, timeoutMs: number, attemptIdx: number): Promise<string> => {
       const attemptController = new AbortController();
       const attemptStartHr = Date.now();
+      let response: Response | null = null;
+      let responseTextBuffer: string | null = null;
+      logRuntimeMemory('attempt_start', {
+        attempt: attemptIdx + 1,
+        model: modelKey,
+        timeout_ms: timeoutMs,
+        prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
+      });
       const attemptTimeout = setTimeout(() => {
         const elapsedMs = Date.now() - attemptStartHr;
         // Rich timeout log — JSON line so it's grep-able and parseable in Supabase log search.
@@ -2246,6 +2254,8 @@ ${cleanedTranscript}`;
             prompt_chars: (systemPrompt?.length || 0) + (userPrompt?.length || 0),
             prompt_token_estimate: Math.round(((systemPrompt?.length || 0) + (userPrompt?.length || 0)) / 4),
             anthropic_request_id: lastAnthropicRequestId,
+            openai_request_id: lastGatewayRequestId,
+            gateway_status: lastGatewayStatus,
             meeting_id: meetingId,
           }));
         } catch { /* ignore */ }
