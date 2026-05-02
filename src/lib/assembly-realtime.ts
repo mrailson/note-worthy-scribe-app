@@ -205,6 +205,7 @@ export class AssemblyRealtimeClient {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
         this.totalMessageCount++;
+        this.lastFinalAt = Date.now(); // any inbound message resets the watchdog
 
         if (data?.type === "error") {
           const errMsg = String(data?.error || "AssemblyAI error");
