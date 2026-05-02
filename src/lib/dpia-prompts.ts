@@ -79,7 +79,7 @@ ABOUT NOTEWELL AI:
 - MHRA Class I registered medical device (Manufacturer Self-Certification — registration confirmed)
 - AI-powered clinical consultation transcription and note generation platform designed for NHS primary care
 - Developed by PCN Services Ltd on a not-for-profit, self-funded basis
-- Multi-engine transcription architecture: Whisper, AssemblyAI, Deepgram, Gladia
+- Multi-engine transcription architecture: Whisper, AssemblyAI, Deepgram
 - Hallucination detection (125+ pattern library) and speaker diarisation built in
 - Best-of-Three merge pipeline for transcription accuracy
 - Offline recording capability for mobile and desktop
