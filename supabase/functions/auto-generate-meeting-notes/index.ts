@@ -2195,6 +2195,10 @@ ${cleanedTranscript}`;
     const failureReasons: Array<{ model: string; reason: string }> = [];
     let actualModelUsed = modelOverride;
     let fallbackCount = 0;
+    // Hoisted so success-path DB writes (line 2943, 3272 etc.) and the failure
+    // catch block can persist which retry rung produced the notes.
+    // 1 = first try, 2/3 = Sonnet retries, 99 = GPT-5 emergency fallback.
+    let successfulAttemptNumber = 1;
     // Diagnostic capture for Gemini Pro attempts (read by /admin/llm-diagnostics)
     let proStatusCode: number | null = null;
     let proElapsedMs: number | null = null;
