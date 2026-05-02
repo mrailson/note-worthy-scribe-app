@@ -481,3 +481,10 @@ verify_jwt = true
 
 [functions.gemini-ping]
 verify_jwt = true
+
+# TRANSIENT — Phase B diagnostic for stuck-meeting investigation, 2 May 2026.
+# verify_jwt=false because we use a separate DIAG_TOKEN header gate so we can
+# call it via curl_edge_functions without an auth session. DELETE WITH FUNCTION.
+[functions.diagnose-anthropic-routing]
+verify_jwt = false
+

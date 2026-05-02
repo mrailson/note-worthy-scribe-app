@@ -2517,8 +2517,18 @@ ${cleanedTranscript}`;
       // Sonnet exhausted. Try ONE attempt against openai/gpt-5 via Lovable AI
       // Gateway so the user gets notes even during an Anthropic-wide outage.
       // Tagged distinctively so it's visible in the model badge / docx footer.
-      // Only fires on the auto-path (not override / not caller-specified models).
-      if ((!generatedNotes || generatedNotes.trim().length === 0) && !callerSpecifiedModel) {
+      //
+      // Phase A fix (2 May 2026): previously gated on `!callerSpecifiedModel`,
+      // which meant a manual "Generate Meeting Notes" click — which always
+      // passes the configured model = claude-sonnet-4-6 — bypassed the rescue
+      // and the user got a non-2xx error. We now also allow the rescue when
+      // the caller-specified model IS claude-sonnet-4-6 (the project default).
+      // Other explicit overrides (e.g. an admin choosing Gemini) still bypass:
+      // if they specifically asked for a non-Sonnet model we shouldn't
+      // second-guess them.
+      const rescueAllowedForCaller =
+        !callerSpecifiedModel || (modelOverride === 'claude-sonnet-4-6');
+      if ((!generatedNotes || generatedNotes.trim().length === 0) && rescueAllowedForCaller) {
         // Read the kill-switch (default ON). If the row is missing, treat as enabled.
         let emergencyEnabled = true;
         try {
@@ -2533,20 +2543,47 @@ ${cleanedTranscript}`;
 
         if (emergencyEnabled) {
           console.warn('🚨 Sonnet exhausted — attempting GPT-5 emergency fallback (90s)');
+          // Phase A fix (2 May 2026): capture full timing + outcome so the
+          // empty-result branch (previously silent) leaves an audit trail.
+          const fbStart = Date.now();
+          let fbOutcome: 'success' | 'empty' | 'error' = 'error';
+          let fbChars = 0;
+          let fbError: string | null = null;
           try {
             const fallbackNotes = await runAttempt('gpt-5', 90_000, chain.length);
+            fbChars = (fallbackNotes || '').length;
             if (fallbackNotes && fallbackNotes.trim().length > 0) {
               generatedNotes = fallbackNotes;
               actualModelUsed = 'gpt-5-emergency-fallback';
               modelUsed = 'gpt-5-emergency-fallback';
               fallbackCount = chain.length;
               successfulAttemptNumber = 99; // sentinel for emergency fallback
+              fbOutcome = 'success';
               console.warn('🆘 GPT-5 emergency fallback succeeded — notes recovered, but Anthropic is degraded.');
+            } else {
+              fbOutcome = 'empty';
+              fbError = 'GPT-5 returned empty content';
+              console.error('❌ GPT-5 emergency fallback returned empty content');
+              failureReasons.push({ model: 'gpt-5-emergency-fallback', reason: 'empty content' });
             }
           } catch (emergencyErr: any) {
-            console.error('❌ GPT-5 emergency fallback also failed:', emergencyErr?.message || String(emergencyErr));
-            failureReasons.push({ model: 'gpt-5-emergency-fallback', reason: emergencyErr?.message || 'unknown error' });
+            fbOutcome = 'error';
+            fbError = emergencyErr?.message || String(emergencyErr);
+            console.error('❌ GPT-5 emergency fallback also failed:', fbError);
+            failureReasons.push({ model: 'gpt-5-emergency-fallback', reason: fbError });
           }
+          // Single structured line so Phase B / future debugging can grep this
+          // even when stdout is truncated. Note: openai_request_id is not
+          // currently captured by runAttempt('gpt-5', …) because it discards
+          // response headers — flagged for a follow-up if Phase B needs it.
+          console.warn('📊 GPT5_FALLBACK_RESULT ' + JSON.stringify({
+            outcome: fbOutcome,
+            elapsed_ms: Date.now() - fbStart,
+            chars: fbChars,
+            error: fbError,
+            meeting_id: meetingId,
+            triggered_by: callerSpecifiedModel ? 'manual-regenerate' : 'auto-first-pass',
+          }));
         } else {
           console.warn('⚠️ MEETING_EMERGENCY_FALLBACK_ENABLED=false — skipping GPT-5 fallback');
         }
