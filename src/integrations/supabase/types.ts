@@ -7600,6 +7600,7 @@ export type Database = {
           practice_id: string | null
           primary_transcript_source: string | null
           recording_created_at: string | null
+          refine_count: number
           remote_chunk_paths: string[] | null
           requires_audio_backup: boolean | null
           retry_count: number | null
@@ -7676,6 +7677,7 @@ export type Database = {
           practice_id?: string | null
           primary_transcript_source?: string | null
           recording_created_at?: string | null
+          refine_count?: number
           remote_chunk_paths?: string[] | null
           requires_audio_backup?: boolean | null
           retry_count?: number | null
@@ -7752,6 +7754,7 @@ export type Database = {
           practice_id?: string | null
           primary_transcript_source?: string | null
           recording_created_at?: string | null
+          refine_count?: number
           remote_chunk_paths?: string[] | null
           requires_audio_backup?: boolean | null
           retry_count?: number | null
