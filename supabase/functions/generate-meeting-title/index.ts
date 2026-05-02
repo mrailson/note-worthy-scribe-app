@@ -307,30 +307,33 @@ ${transcriptExcerpt}
 
 Generate a SPECIFIC, descriptive title (4-15 words) that clearly identifies what this meeting was about. The title should lead with the topic that received the MOST discussion time in the transcript, not necessarily the first topic mentioned. If there were two equally major topics, include both. Remember: no generic phrases like "Team Meeting" or "Progress Update".`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+    if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_completion_tokens: 100,
+        model: 'claude-sonnet-4-6',
+        max_tokens: 100,
+        system: systemPrompt,
+        temperature: 0.3,
+        messages: [{ role: 'user', content: userPrompt }],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Lovable AI error:', response.status, errorText);
+      console.error('❌ Anthropic error:', response.status, errorText);
       throw new Error(`AI generation failed: ${response.status}`);
     }
 
     const data = await response.json();
-    let generatedTitle = data.choices?.[0]?.message?.content?.trim() || '';
+    let generatedTitle = (data.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '').trim();
 
     // Clean up the title
     generatedTitle = generatedTitle
@@ -368,25 +371,25 @@ ${transcriptExcerpt.substring(0, 3000)}
 Generate ONLY the title (4-15 words):`;
 
       try {
-        const retryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const retryResponse = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
-            messages: [
-              { role: 'system', content: 'You generate specific meeting titles. Never use generic phrases.' },
-              { role: 'user', content: retryPrompt }
-            ],
-            max_completion_tokens: 100,
+            model: 'claude-sonnet-4-6',
+            max_tokens: 100,
+            system: 'You generate specific meeting titles. Never use generic phrases.',
+            temperature: 0.3,
+            messages: [{ role: 'user', content: retryPrompt }],
           }),
         });
 
         if (retryResponse.ok) {
           const retryData = await retryResponse.json();
-          const retryTitle = retryData.choices?.[0]?.message?.content?.trim()
+          const retryTitle = (retryData.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '').trim()
             .replace(/^["']|["']$/g, '')
             .replace(/^title:\s*/i, '')
             .replace(/\s+/g, ' ')

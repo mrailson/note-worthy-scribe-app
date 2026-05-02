@@ -244,53 +244,55 @@ Format your response exactly like this:
 
 Remember: Use • bullet character, put each bullet on its own line, blank line between paragraph and bullets.`;
 
-    console.log('🔧 Using Lovable AI with google/gemini-3-flash-preview');
+    console.log('🔧 Using Anthropic Claude Sonnet 4.6');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+    if (!anthropicApiKey) {
+      return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_completion_tokens: 550,
+        model: 'claude-sonnet-4-6',
+        max_tokens: 550,
+        system: systemPrompt,
+        temperature: 0.3,
+        messages: [{ role: 'user', content: userPrompt }],
       }),
     });
 
-    console.log('📡 Lovable AI response status:', response.status);
+    console.log('📡 Anthropic response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ Lovable AI API error:', errorData);
-      
+      console.error('❌ Anthropic API error:', errorData);
+
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please wait a moment and try again.' }), {
           status: 429,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Insufficient AI credits. Please add credits to your workspace.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      return new Response(JSON.stringify({ error: `Lovable AI API error: ${response.status}` }), {
+
+      return new Response(JSON.stringify({ error: `Anthropic API error: ${response.status}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const data = await response.json();
-    console.log('✅ Lovable AI response received');
-    
-    let overview = data.choices?.[0]?.message?.content?.trim() || '';
+    console.log('✅ Anthropic response received');
+
+    let overview = (data.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '').trim();
     console.log('📝 Generated overview:', overview);
 
     // Validate that bullet points were included
@@ -299,25 +301,25 @@ Remember: Use • bullet character, put each bullet on its own line, blank line 
     if (overview && !hasBullets) {
       console.warn('⚠️ Overview generated without bullet points, requesting bullet supplement...');
       try {
-        const bulletResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const bulletResponse = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
-            messages: [
-              { role: 'system', content: 'You extract key decisions and actions from meeting summaries. Respond with ONLY 3-5 bullet points using the • character, one per line. Each bullet must name a specific decision, action, or outcome with WHO and WHAT. Use British English. No introduction, no paragraph — bullets only.' },
-              { role: 'user', content: `Extract 3-5 key decisions and actions from this meeting summary:\n\n${overview}` }
-            ],
-            max_completion_tokens: 200,
+            model: 'claude-sonnet-4-6',
+            max_tokens: 200,
+            system: 'You extract key decisions and actions from meeting summaries. Respond with ONLY 3-5 bullet points using the • character, one per line. Each bullet must name a specific decision, action, or outcome with WHO and WHAT. Use British English. No introduction, no paragraph — bullets only.',
+            temperature: 0.2,
+            messages: [{ role: 'user', content: `Extract 3-5 key decisions and actions from this meeting summary:\n\n${overview}` }],
           }),
         });
-        
+
         if (bulletResponse.ok) {
           const bulletData = await bulletResponse.json();
-          const bullets = bulletData.choices?.[0]?.message?.content?.trim() || '';
+          const bullets = (bulletData.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '').trim();
           if (bullets && bullets.includes('•')) {
             overview = `${overview}\n\n${bullets}`;
             console.log('✅ Bullet points added to overview');
