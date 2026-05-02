@@ -1792,10 +1792,12 @@ ${cleanedTranscript}`;
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
 
     // ============= CHUNKED MAP-REDUCE PATH (long transcripts only) =============
-    // Triggered for transcripts >7,000 chars on Claude path. Map step uses
-    // claude-haiku-4-5 in parallel; reduce step uses claude-sonnet-4-6.
-    // Single-shot path below remains the fallback if this errors out.
-    const CHUNK_THRESHOLD_CHARS = 50000;
+    // Triggered for transcripts >15,000 chars on Claude path (≈ 15 minutes of
+    // meeting audio). Map step uses claude-haiku-4-5 in parallel; reduce step
+    // uses claude-sonnet-4-6. Single-shot path below remains the fallback if
+    // this errors out, and the user can also explicitly bypass it via
+    // `forceSingleShot: true` (the "Regenerate with Sonnet" refine button).
+    const CHUNK_THRESHOLD_CHARS = 15000;
     const CHUNK_SIZE = 30000;
     const CHUNK_OVERLAP = 500;
     const CHUNK_CONCURRENCY = 1; // Sequential — Sonnet merge is expensive, no need to fan out
@@ -1805,11 +1807,17 @@ ${cleanedTranscript}`;
     let modelUsed = modelOverride;
 
     // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
-    // and Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
-    const useChunking = (
+    // Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
+    // The refine flow (`forceSingleShot`) explicitly skips chunking even on
+    // long transcripts so the user gets a clean independent Sonnet pass.
+    const useChunking = !forceSingleShot && (
       modelOverride.startsWith('claude-sonnet-') ||
       modelOverride.startsWith('claude-haiku-')
     ) && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS;
+
+    if (forceSingleShot) {
+      console.log(`✋ forceSingleShot=true — bypassing chunked path (transcript ${cleanedTranscript.length} chars)`);
+    }
 
     if (useChunking) {
       try {
