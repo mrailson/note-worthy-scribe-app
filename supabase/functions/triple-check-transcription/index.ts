@@ -231,7 +231,7 @@ Return ONLY the corrected complete transcription.`;
       return {
         text: finalText,
         confidence: calculateFinalConfidence(validTranscriptions),
-        validation: 'Triple-checked and GPT-4 validated',
+        validation: 'Triple-checked and Sonnet 4.6 validated',
         sources: validTranscriptions.map(t => t.source),
         medical_validation: medicalValidation,
         original_transcriptions: validTranscriptions.map(t => ({
@@ -241,11 +241,11 @@ Return ONLY the corrected complete transcription.`;
         }))
       };
     } else {
-      console.error("GPT-4 validation failed, using highest confidence transcription");
+      console.error("Sonnet 4.6 validation failed, using highest confidence transcription");
       return {
         text: validTranscriptions[0].text,
         confidence: validTranscriptions[0].confidence,
-        validation: 'Highest confidence (GPT-4 validation failed)',
+        validation: 'Highest confidence (Sonnet 4.6 validation failed)',
         sources: [validTranscriptions[0].source]
       };
     }
