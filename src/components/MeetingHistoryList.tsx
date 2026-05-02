@@ -1724,13 +1724,15 @@ export const MeetingHistoryList = ({
             // Resolution lives in src/utils/resolveMeetingModel.ts (single source of truth).
             const effectiveModel = resolveMeetingModel(modelOverride);
             const isPremium = effectiveModel === 'gemini-2.5-flash';
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel || '(server default: Gemini 3.1 Pro)');
+            const detailTier = getSessionDetailTier();
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel || '(server default: Gemini 3.1 Pro)', 'detail tier:', detailTier);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
               { body: {
                   meetingId,
                   forceRegenerate: true,
                   ...modelOverrideField(modelOverride),
+                  detailTier,
                   skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
                   ...(isPremium ? { premiumPin: PREMIUM_REGEN_PIN } : {}),
                 } }
