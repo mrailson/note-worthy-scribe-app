@@ -2466,7 +2466,7 @@ ${cleanedTranscript}`;
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0] || modelOverride,
+                primary_model: chain[0]?.model || modelOverride,
                 actual_model_used: attemptModel,
                 fallback_count: i,
                 generation_ms: Date.now() - attemptStart,
@@ -2599,7 +2599,7 @@ ${cleanedTranscript}`;
             try {
               await supabase.from('meeting_generation_log').insert({
                 meeting_id: meetingId,
-                primary_model: chain[0] || modelOverride,
+                primary_model: chain[0]?.model || modelOverride,
                 actual_model_used: actualModelUsed,
                 fallback_count: fallbackCount,
                 generation_ms: Date.now() - notesGenStart,
@@ -2634,7 +2634,7 @@ ${cleanedTranscript}`;
     try {
       await supabase.from('meeting_generation_log').insert({
         meeting_id: meetingId,
-        primary_model: chain[0] || modelOverride,
+        primary_model: chain[0]?.model || modelOverride,
         actual_model_used: actualModelUsed,
         fallback_count: fallbackCount,
         generation_ms: Date.now() - notesGenStart,
