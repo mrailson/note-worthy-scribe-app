@@ -2168,26 +2168,30 @@ ${cleanedTranscript}`;
     // Bumped 30s→90s: 14k-word governance transcripts on Flash + fallback chain
     // were timing out before any model could stream. 90s gives Flash room to
     // complete and still leaves headroom for the fallback chain within Edge limits.
-    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 90_000;
-    // Detailed tier on long governance transcripts can push Sonnet/GPT past 90s.
-    // 180s gives headroom; same-model retry still bounded so worst case ~6 minutes.
+    // Sonnet-only policy (May 2026), v2 timeout ladder:
+    //   AUTO path (no caller modelOverride):           30s → 60s → 90s
+    //   FORCE-REGENERATE path (user clicked retry):    single 90s window
+    //   OVERRIDE path (audit comparison):              180s × 3 same-model retries
+    // Worst case wall time: 180s (auto) / 90s (regen) / 540s (override).
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
-    const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
-      ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
-      : AUTO_PER_ATTEMPT_TIMEOUT_MS;
-    const buildFallbackChain = (primary: string): string[] => {
+    const AUTO_TIMEOUT_LADDER_MS = [30_000, 60_000, 90_000];
+    const REGEN_TIMEOUT_LADDER_MS = [90_000];
+    const buildFallbackChain = (primary: string): { model: string; timeoutMs: number }[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
-      // Allow ONE same-model retry to absorb transient network blips (timeout / 5xx / 429).
-      // The catch block below decides whether the retry actually fires based on error class.
-      // Sonnet-only policy (May 2026): no cross-provider fallback. Three
-      // Sonnet attempts with the existing per-attempt timeout / backoff.
-      // If all three fail, surface a real error rather than degrading silently.
       if (callerSpecifiedModel) {
-        return [primary, primary, primary];
+        return [
+          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
+          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
+          { model: primary, timeoutMs: OVERRIDE_PER_ATTEMPT_TIMEOUT_MS },
+        ];
       }
-      return ['claude-sonnet-4-6', 'claude-sonnet-4-6', 'claude-sonnet-4-6'];
+      // forceRegenerate: skip the impatient 30s/60s rungs — user already waited once.
+      const ladder = forceRegenerate ? REGEN_TIMEOUT_LADDER_MS : AUTO_TIMEOUT_LADDER_MS;
+      return ladder.map((timeoutMs) => ({ model: 'claude-sonnet-4-6', timeoutMs }));
     };
     const chain = buildFallbackChain(modelOverride);
+    // Single fallback timeout used by error reporting / log lines (longest rung).
+    const PER_ATTEMPT_TIMEOUT_MS = chain[chain.length - 1]?.timeoutMs ?? 90_000;
     const failureReasons: Array<{ model: string; reason: string }> = [];
     let actualModelUsed = modelOverride;
     let fallbackCount = 0;
