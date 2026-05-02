@@ -6884,6 +6884,7 @@ export type Database = {
           created_at: string
           cross_section_check_performed: boolean
           decision_count: number | null
+          detail_tier: string | null
           detected_content_type: string | null
           duration_seconds: number | null
           extracted_action_count: number | null
@@ -6908,6 +6909,7 @@ export type Database = {
           created_at?: string
           cross_section_check_performed?: boolean
           decision_count?: number | null
+          detail_tier?: string | null
           detected_content_type?: string | null
           duration_seconds?: number | null
           extracted_action_count?: number | null
@@ -6932,6 +6934,7 @@ export type Database = {
           created_at?: string
           cross_section_check_performed?: boolean
           decision_count?: number | null
+          detail_tier?: string | null
           detected_content_type?: string | null
           duration_seconds?: number | null
           extracted_action_count?: number | null

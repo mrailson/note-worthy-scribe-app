@@ -1,0 +1,1 @@
+ALTER TABLE public.meeting_generation_log ADD COLUMN IF NOT EXISTS detail_tier TEXT;

@@ -251,6 +251,19 @@ serve(async (req) => {
       premiumPin,
       forceGenerate = false,
     } = requestBody;
+    // detailTier is the user-facing output-length selector (Concise/Standard/Detailed).
+    // It is independent of the legacy `detailLevel` parameter and only injects a
+    // length directive into the system prompt. Default: 'standard' = no directive.
+    const ALLOWED_DETAIL_TIERS = ['concise', 'standard', 'detailed'] as const;
+    type DetailTier = typeof ALLOWED_DETAIL_TIERS[number];
+    const rawDetailTier = typeof requestBody.detailTier === 'string' ? requestBody.detailTier.toLowerCase() : 'standard';
+    const detailTier: DetailTier = (ALLOWED_DETAIL_TIERS as readonly string[]).includes(rawDetailTier)
+      ? (rawDetailTier as DetailTier)
+      : 'standard';
+    // Suffix model identifier so docx footer reads e.g. "claude-sonnet-4-6 (detailed)".
+    // Standard tier is the historical baseline so we don't add a suffix for it.
+    const stampModelWithTier = (model: string | null | undefined): string =>
+      detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
     // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
     // operational setting (system_settings) so admins can flip Flash↔Pro instantly
     // via /admin/llm-diagnostics without a redeploy. Falls back to 'gemini-3-flash'
@@ -538,7 +551,7 @@ serve(async (req) => {
                 notes_style_3: consolidatedResult.content,
                 notes_generation_status: 'completed',
                 primary_transcript_source: 'consolidated',
-                notes_model_used: modelOverride || 'consolidated',
+                notes_model_used: stampModelWithTier(modelOverride || 'consolidated'),
               })
               .eq('id', meetingId);
             
@@ -965,6 +978,7 @@ serve(async (req) => {
             transcript_word_count: wordCount,
             duration_seconds: meetingDurationSeconds,
             transcript_snippet: fullTranscript.slice(0, 200),
+            detail_tier: detailTier,
           });
         } catch (logErr) {
           console.warn('⚠️ Failed to log insufficient-content event:', logErr);
@@ -1657,7 +1671,13 @@ NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC re
 
 ═══════════════════════════════════════════════════════════════════════════════
 
-${selectedNoteTypeInstruction}
+${detailTier === 'concise' ? `OUTPUT LENGTH DIRECTIVE — CONCISE TIER
+Target 600-900 words total. Limit each section to 2-3 sentences. Prefer bullets over prose. Skip operational texture, anecdotes and context unless materially relevant to a decision or action. Decisions, actions, figures and named risks must still be preserved verbatim — only narrative density is reduced.
+
+` : detailTier === 'detailed' ? `OUTPUT LENGTH DIRECTIVE — DETAILED TIER
+Target 2,000-3,500 words total. Use full prose with operational texture, specific figures, and named anecdotes that illustrate concerns. Add sub-points where they add clarity. Preserve attributed quotes-as-paraphrase, quantitative grumbles, and the substance of debate. Do not pad — every additional sentence must add either a fact, an attribution, a figure, or operational context.
+
+` : ''}${selectedNoteTypeInstruction}
 
 ${selectedDetailInstruction}
 
@@ -2356,6 +2376,7 @@ ${cleanedTranscript}`;
                 generation_ms: Date.now() - attemptStart,
                 failure_reasons: null,
                 fallback_reason: isSameModelRetry ? 'same_model_retry' : null,
+                detail_tier: detailTier,
               });
             } catch (logErr) {
               console.warn('⚠️ Failed to log override-path attempt (non-blocking):', logErr);
@@ -2382,6 +2403,7 @@ ${cleanedTranscript}`;
                 generation_ms: Date.now() - attemptStart,
                 failure_reasons: [{ model: attemptModel, reason, status: attemptStatus }],
                 fallback_reason: isSameModelRetry ? 'same_model_retry_failed' : attemptStatus,
+                detail_tier: detailTier,
               });
             } catch (logErr) {
               console.warn('⚠️ Failed to log override-path attempt failure (non-blocking):', logErr);
@@ -2492,7 +2514,7 @@ ${cleanedTranscript}`;
               await supabase.from('meetings').update({
                 notes_style_3: friendlyMessage,
                 notes_generation_status: 'insufficient_content',
-                notes_model_used: actualModelUsed,
+                notes_model_used: stampModelWithTier(actualModelUsed),
                 word_count: wordCount,
                 updated_at: new Date().toISOString(),
               }).eq('id', meetingId);
@@ -2517,6 +2539,7 @@ ${cleanedTranscript}`;
                 transcript_word_count: wordCount,
                 duration_seconds: meetingDurationSeconds,
                 transcript_snippet: fullTranscript.slice(0, 200),
+                detail_tier: detailTier,
               });
             } catch (logErr) {
               console.warn('⚠️ Failed to log LLM refusal:', logErr);
@@ -2556,6 +2579,7 @@ ${cleanedTranscript}`;
         pro_elapsed_ms: proElapsedMs,
         pro_error_message: proErrorMessage,
         fallback_reason: fallbackReason,
+        detail_tier: detailTier,
       });
     } catch (logErr) {
       console.warn('⚠️ Failed to write generation log (non-blocking):', logErr);
@@ -2808,7 +2832,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notes_style_3: generatedNotes,
         notes_generation_status: 'completed',
         primary_transcript_source: normaliseTranscriptSourceForMeeting(actualTranscriptSource),
-        notes_model_used: actualModelUsed,
+        notes_model_used: stampModelWithTier(actualModelUsed),
       })
       .eq('id', meetingId);
 
@@ -3137,7 +3161,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         word_count: wordCount,
         overview: aiOverview || null,
         title: generatedTitle,
-        notes_model_used: actualModelUsed,
+        notes_model_used: stampModelWithTier(actualModelUsed),
       })
       .eq('id', meetingId);
 

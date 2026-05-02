@@ -116,6 +116,7 @@ import { PatientBanner } from "@/components/PatientBanner";
 import { getDemoPatientForMeeting } from "@/data/demoPatients";
 import { DemoMeetingCard } from "@/components/meeting-history/DemoMeetingCard";
 import { resolveMeetingModel, modelOverrideField } from "@/utils/resolveMeetingModel";
+import { DetailTierSelector, getSessionDetailTier } from "@/components/meeting/DetailTierSelector";
 
 
 interface Meeting {
@@ -1723,13 +1724,15 @@ export const MeetingHistoryList = ({
             // Resolution lives in src/utils/resolveMeetingModel.ts (single source of truth).
             const effectiveModel = resolveMeetingModel(modelOverride);
             const isPremium = effectiveModel === 'gemini-2.5-flash';
-            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel || '(server default: Gemini 3.1 Pro)');
+            const detailTier = getSessionDetailTier();
+            console.log('🚀 Invoking auto-generate-meeting-notes for meeting:', meetingId, 'with model:', effectiveModel || '(server default: Gemini 3.1 Pro)', 'detail tier:', detailTier);
             const { data, error: standardError } = await supabase.functions.invoke(
               'auto-generate-meeting-notes',
               { body: {
                   meetingId,
                   forceRegenerate: true,
                   ...modelOverrideField(modelOverride),
+                  detailTier,
                   skipQc: localStorage.getItem('meeting-qc-enabled') !== 'true',
                   ...(isPremium ? { premiumPin: PREMIUM_REGEN_PIN } : {}),
                 } }
@@ -3048,6 +3051,19 @@ export const MeetingHistoryList = ({
                         <FileDown className="h-4 w-4 mr-2" />
                         Download Meeting Notes (Word)
                       </DropdownMenuItem>
+
+                      {/* Output detail tier — applies to the regenerate options below. Per-session only. */}
+                      <div
+                        className="flex items-center justify-between gap-2 px-2 py-1.5 border-y bg-muted/20"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <span className="text-[11px] text-muted-foreground">
+                          Output detail
+                        </span>
+                        <DetailTierSelector />
+                      </div>
+
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
