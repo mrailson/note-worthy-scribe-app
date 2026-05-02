@@ -116,6 +116,7 @@ import { PatientBanner } from "@/components/PatientBanner";
 import { getDemoPatientForMeeting } from "@/data/demoPatients";
 import { DemoMeetingCard } from "@/components/meeting-history/DemoMeetingCard";
 import { resolveMeetingModel, modelOverrideField } from "@/utils/resolveMeetingModel";
+import { DetailTierSelector, getSessionDetailTier } from "@/components/meeting/DetailTierSelector";
 
 
 interface Meeting {
