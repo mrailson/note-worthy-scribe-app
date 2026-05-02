@@ -23,7 +23,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 // ─────────────────────────────────────────────────────────────────────────
 const DEFAULT_GENERATION_MODEL = 'claude-sonnet-4-6';
 const DEFAULT_DETAIL_TIER = 'standard' as const;
-const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3.1-pro'];
+// Locked to Sonnet 4.6 only (May 2026 policy). All other providers removed.
+const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6'];
 
 // Large transcript cleaning functions
 function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string[] {
@@ -2178,25 +2179,13 @@ ${cleanedTranscript}`;
       // Caller-specified models are audit comparisons: do not substitute another model.
       // Allow ONE same-model retry to absorb transient network blips (timeout / 5xx / 429).
       // The catch block below decides whether the retry actually fires based on error class.
+      // Sonnet-only policy (May 2026): no cross-provider fallback. Three
+      // Sonnet attempts with the existing per-attempt timeout / backoff.
+      // If all three fail, surface a real error rather than degrading silently.
       if (callerSpecifiedModel) {
-        return [primary, primary];
+        return [primary, primary, primary];
       }
-      // First-pass auto-default: when MEETING_PRIMARY_MODEL is Sonnet (current
-      // operational policy), behave like an override — Sonnet retry only, no
-      // silent substitution to a different provider. Quality has been validated
-      // for Sonnet at standard tier; Flash/Pro fabricate, so falling back to
-      // them on transient Sonnet errors would degrade output without the user
-      // knowing. A permanent Sonnet failure must surface as a real error.
-      if (primary === 'claude-sonnet-4-6') {
-        return ['claude-sonnet-4-6', 'claude-sonnet-4-6'];
-      }
-      if (primary === 'gemini-3-flash') {
-        return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
-      }
-      if (primary === 'gemini-3.1-pro' || primary === 'gemini-3.1-pro-preview') {
-        return ['gemini-3.1-pro', 'gemini-3-flash', 'gemini-2.5-pro', 'gpt-5'];
-      }
-      return [primary];
+      return ['claude-sonnet-4-6', 'claude-sonnet-4-6', 'claude-sonnet-4-6'];
     };
     const chain = buildFallbackChain(modelOverride);
     const failureReasons: Array<{ model: string; reason: string }> = [];
@@ -2768,7 +2757,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-sonnet-4-6',
           max_tokens: 4096,
           system: QC_SYSTEM_PROMPT,
           temperature: 0.1,
@@ -2827,7 +2816,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         failed_count: parsed.failed_count,
         categories: parsed.categories,
         summary: parsed.summary,
-        model_used: 'claude-haiku-4-5',
+        model_used: 'claude-sonnet-4-6',
         ran_at: new Date().toISOString(),
       };
 
@@ -2838,7 +2827,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       qcResult = {
         status: 'error',
         error_message: qcError.message || 'Unknown QC error',
-        model_used: 'claude-haiku-4-5',
+        model_used: 'claude-sonnet-4-6',
         ran_at: new Date().toISOString(),
       };
     }
