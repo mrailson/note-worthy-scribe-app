@@ -2169,12 +2169,14 @@ ${cleanedTranscript}`;
     // were timing out before any model could stream. 90s gives Flash room to
     // complete and still leaves headroom for the fallback chain within Edge limits.
     // Sonnet-only policy (May 2026), v2 timeout ladder:
-    //   AUTO path (no caller modelOverride):           30s → 60s → 90s
+    //   TEMP DIAGNOSTIC path (2 May 2026):             single 90s Sonnet attempt
     //   FORCE-REGENERATE path (user clicked retry):    single 90s window
     //   OVERRIDE path (audit comparison):              180s × 3 same-model retries
     // Worst case wall time: 180s (auto) / 90s (regen) / 540s (override).
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
-    const AUTO_TIMEOUT_LADDER_MS = [30_000, 60_000, 90_000];
+    // TEMPORARY runtime-pressure experiment: skip 30s/60s rungs so the
+    // orchestrator only holds one Sonnet attempt before the GPT-5 rescue.
+    const AUTO_TIMEOUT_LADDER_MS = [90_000];
     const REGEN_TIMEOUT_LADDER_MS = [90_000];
     const buildFallbackChain = (primary: string): { model: string; timeoutMs: number }[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
@@ -2205,8 +2207,29 @@ ${cleanedTranscript}`;
     let proErrorMessage: string | null = null;
     let fallbackReason: string | null = null;
 
+    const formatMemoryMb = (bytes: number | undefined): number | null =>
+      typeof bytes === 'number' ? Math.round((bytes / 1024 / 1024) * 10) / 10 : null;
+    const logRuntimeMemory = (label: string, extra: Record<string, unknown> = {}) => {
+      try {
+        const usage = typeof Deno.memoryUsage === 'function' ? Deno.memoryUsage() : null;
+        console.log('🧮 RUNTIME_MEMORY ' + JSON.stringify({
+          label,
+          meeting_id: meetingId,
+          rss_mb: formatMemoryMb(usage?.rss),
+          heap_total_mb: formatMemoryMb(usage?.heapTotal),
+          heap_used_mb: formatMemoryMb(usage?.heapUsed),
+          external_mb: formatMemoryMb(usage?.external),
+          ...extra,
+        }));
+      } catch (memoryErr: any) {
+        console.warn('⚠️ RUNTIME_MEMORY unavailable:', memoryErr?.message || String(memoryErr));
+      }
+    };
+
     // Captured per-attempt diagnostics surfaced in the timeout log line.
     let lastAnthropicRequestId: string | null = null;
+    let lastGatewayRequestId: string | null = null;
+    let lastGatewayStatus: number | null = null;
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
     const runAttempt = async (modelKey: string, timeoutMs: number, attemptIdx: number): Promise<string> => {
       const attemptController = new AbortController();
