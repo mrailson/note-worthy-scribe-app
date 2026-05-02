@@ -195,7 +195,7 @@ GENERATE THE FOLLOWING SECTIONS (number them exactly as shown):
    Step 1: Clinician initiates recording within Notewell AI during patient consultation
    Step 2: Audio captured locally on device (encrypted at rest using AES-256)
    Step 3: Audio transmitted to transcription engines via TLS 1.3 encrypted connection
-   Step 4: Multi-engine transcription (Whisper, AssemblyAI, Deepgram, Gladia) processes audio in parallel
+   Step 4: Multi-engine transcription (Whisper, AssemblyAI, Deepgram) processes audio in parallel
    Step 5: Best-of-Three merge pipeline selects optimal transcription with hallucination detection (125+ pattern library)
    Step 6: Speaker diarisation identifies clinician vs patient speech
    Step 7: AI generates structured clinical note (SOAP format) from merged transcription
