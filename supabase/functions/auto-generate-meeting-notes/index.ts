@@ -2286,9 +2286,11 @@ ${cleanedTranscript}`;
     //   OVERRIDE path (audit comparison):              180s × 3 same-model retries
     // Worst case wall time: 180s (auto) / 90s (regen) / 540s (override).
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
-    // TEMPORARY runtime-pressure experiment: skip 30s/60s rungs so the
-    // orchestrator only holds one Sonnet attempt before the GPT-5 rescue.
-    const AUTO_TIMEOUT_LADDER_MS = [90_000];
+    // Restored 30/60/90 ladder (post payload-trigger investigation, May 2026).
+    // Streaming SSE means we capture response headers in <2s on healthy
+    // generations, so the 30s rung is useful again — most meetings complete
+    // on attempt 1; the 60s/90s rungs absorb intermittently slower responses.
+    const AUTO_TIMEOUT_LADDER_MS = [30_000, 60_000, 90_000];
     const REGEN_TIMEOUT_LADDER_MS = [90_000];
     const buildFallbackChain = (primary: string): { model: string; timeoutMs: number }[] => {
       // Caller-specified models are audit comparisons: do not substitute another model.
@@ -2384,7 +2386,12 @@ ${cleanedTranscript}`;
         let notes = '';
         if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
           const claudeModel = modelKey === 'sonnet-4.6' ? 'claude-sonnet-4-6' : modelKey;
-          console.log(`🧠 [attempt] Claude model: ${claudeModel} (timeout ${timeoutMs / 1000}s)`);
+          // Detailed tier may genuinely need 8k output; first-pass standard tier
+          // is capped at 4k after the May 2026 payload-trigger investigation —
+          // 8k worst-case generation routinely exceeded the 90s timeout window
+          // on transcripts in the 13k–20k input-token range.
+          const sonnetMaxTokens = detailTier === 'detailed' ? 8000 : 4000;
+          console.log(`🧠 [attempt] Claude model: ${claudeModel} (timeout ${timeoutMs / 1000}s, max_tokens=${sonnetMaxTokens}, stream=true)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
           response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2393,31 +2400,84 @@ ${cleanedTranscript}`;
               'Content-Type': 'application/json',
               'x-api-key': anthropicApiKey,
               'anthropic-version': '2023-06-01',
+              'accept': 'text/event-stream',
             },
             body: JSON.stringify({
               model: claudeModel,
-              max_tokens: 8000,
+              max_tokens: sonnetMaxTokens,
               system: systemPrompt,
               messages: [{ role: 'user', content: userPrompt }],
+              stream: true,
             }),
             signal: attemptController.signal,
           });
-          // Capture Anthropic request-id for support escalations even on failure paths below.
+          // Headers arrive within ~1–2s on healthy generations even when the body
+          // stream takes longer — capture request-id immediately for escalations.
           lastAnthropicRequestId = response.headers.get('request-id') || response.headers.get('x-request-id') || null;
           if (lastAnthropicRequestId) {
-            console.log(`🆔 anthropic_request_id=${lastAnthropicRequestId} (attempt ${attemptIdx + 1})`);
+            console.log(`🆔 anthropic_request_id=${lastAnthropicRequestId} (attempt ${attemptIdx + 1}) headers_received_ms=${Date.now() - attemptStartHr}`);
           }
           if (!response.ok) {
             responseTextBuffer = await response.text();
-            const errorData = responseTextBuffer;
-            throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
+            throw new Error(`Anthropic ${response.status}: ${responseTextBuffer.substring(0, 300)}`);
           }
-          responseTextBuffer = await response.text();
-          const data = JSON.parse(responseTextBuffer);
-          notes = data.content
-            ?.filter((block: any) => block.type === 'text')
-            ?.map((block: any) => block.text)
-            ?.join('\n') || '';
+          if (!response.body) {
+            throw new Error('Anthropic stream returned no body');
+          }
+          // Parse SSE stream: accumulate text from content_block_delta events,
+          // honour message_stop / message_delta(stop_reason), surface mid-stream errors.
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let sseBuffer = '';
+          let stopReason: string | null = null;
+          let streamError: string | null = null;
+          let messageStopSeen = false;
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            sseBuffer += decoder.decode(value, { stream: true });
+            // SSE frames are separated by blank lines (\n\n).
+            let sep: number;
+            while ((sep = sseBuffer.indexOf('\n\n')) !== -1) {
+              const frame = sseBuffer.slice(0, sep);
+              sseBuffer = sseBuffer.slice(sep + 2);
+              // Each frame: optional `event: <name>` line + `data: <json>` line(s).
+              let eventName: string | null = null;
+              const dataLines: string[] = [];
+              for (const rawLine of frame.split('\n')) {
+                const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+                if (line.startsWith('event:')) eventName = line.slice(6).trim();
+                else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+              }
+              if (dataLines.length === 0) continue;
+              const dataStr = dataLines.join('\n');
+              let payload: any;
+              try { payload = JSON.parse(dataStr); } catch { continue; }
+              const evt = eventName || payload?.type;
+              if (evt === 'content_block_delta') {
+                const delta = payload?.delta;
+                if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
+                  notes += delta.text;
+                }
+              } else if (evt === 'message_delta') {
+                if (payload?.delta?.stop_reason) stopReason = payload.delta.stop_reason;
+              } else if (evt === 'message_stop') {
+                messageStopSeen = true;
+              } else if (evt === 'error') {
+                streamError = payload?.error?.message || JSON.stringify(payload?.error || payload);
+              } else if (evt === 'ping' || evt === 'message_start' || evt === 'content_block_start' || evt === 'content_block_stop') {
+                // ignore
+              }
+            }
+          }
+          if (streamError) {
+            throw new Error(`Anthropic stream error: ${streamError}`);
+          }
+          if (!messageStopSeen && notes.length === 0) {
+            throw new Error('Anthropic stream closed without message_stop and no content received');
+          }
+          console.log(`✅ Sonnet stream complete: chars=${notes.length}, stop_reason=${stopReason || 'unknown'}, message_stop=${messageStopSeen}`);
         } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
