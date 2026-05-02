@@ -4128,7 +4128,11 @@ export const MeetingRecorder = ({
       
       addDebugLog('✅ Test recording started successfully');
       
-      // Start duration timer
+      // Start duration timer (clear any prior interval to prevent stacked ticks → fast clock)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       intervalRef.current = setInterval(() => {
         setDuration(prev => prev + 1);
       }, 1000);
@@ -4802,7 +4806,11 @@ export const MeetingRecorder = ({
         }
       }
 
-      // Start duration timer
+      // Start duration timer (clear any prior interval to prevent stacked ticks → fast clock)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       intervalRef.current = setInterval(() => {
         setDuration(prev => prev + 1);
       }, 1000);
