@@ -2201,10 +2201,6 @@ ${cleanedTranscript}`;
     let proErrorMessage: string | null = null;
     let fallbackReason: string | null = null;
 
-    // Helper: run a single model attempt. Returns notes string on success, throws on failure.
-    const runAttempt = async (modelKey: string): Promise<string> => {
-      // Single per-attempt timeout for all models. Flash returns in ~1–2s, so 30s
-      // is generous; Pro/2.5-pro/gpt-5 fallbacks share the same budget.
     // Captured per-attempt diagnostics surfaced in the timeout log line.
     let lastAnthropicRequestId: string | null = null;
     // Helper: run a single model attempt. Returns notes string on success, throws on failure.
