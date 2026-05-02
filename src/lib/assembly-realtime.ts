@@ -301,6 +301,18 @@ export class AssemblyRealtimeClient {
 
     // Arm pre-emptive session rotation to avoid AAI's ~60-min hard cap
     this.armSessionRotation();
+    this.startHeartbeat();
+    this.startNoFinalsWatchdog();
+    this.attachVisibilityHandler();
+
+    if (!this.sessionId) this.sessionId = `aai-${Date.now()}`;
+    logDiagnostic({
+      meeting_id: this.meetingId ?? null,
+      user_id: this.userId ?? null,
+      session_id: this.sessionId,
+      event_type: wasReconnecting ? "ws_reconnected" : "ws_open",
+      reconnect_attempt: this.reconnectAttempts,
+    });
   }
 
   private armSessionRotation() {
@@ -313,6 +325,74 @@ export class AssemblyRealtimeClient {
       // Force a clean WS close — onclose handler will trigger attemptReconnect
       try { this.ws?.close(1000, "session_rotate"); } catch {}
     }, SESSION_ROTATE_MS);
+  }
+
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      try {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ type: "ping" }));
+        }
+      } catch { /* ignore */ }
+    }, HEARTBEAT_MS);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
+  }
+
+  private startNoFinalsWatchdog() {
+    this.stopNoFinalsWatchdog();
+    this.lastFinalAt = Date.now();
+    this.noFinalsWatchdog = setInterval(() => {
+      if (this.manualStop) return;
+      const idle = Date.now() - this.lastFinalAt;
+      if (idle > NO_FINALS_WATCHDOG_MS && this.audioFramesSent > 0) {
+        console.warn(`🐕 No finals for ${(idle / 1000).toFixed(0)}s — forcing reconnect`);
+        logDiagnostic({
+          meeting_id: this.meetingId ?? null,
+          user_id: this.userId ?? null,
+          session_id: this.sessionId,
+          event_type: "watchdog_reconnect",
+          audio_frames_sent: this.audioFramesSent,
+          total_messages: this.totalMessageCount,
+          partial_count: this.partialCount,
+          final_count: this.endOfTurnCount,
+          details: { idle_ms: idle },
+        });
+        this.lastFinalAt = Date.now(); // reset to avoid loop
+        this.reconnectAttempts = 0;
+        this.isReconnecting = false;
+        try { this.ws?.close(4000, "watchdog_no_finals"); } catch {}
+      }
+    }, 15000);
+  }
+
+  private stopNoFinalsWatchdog() {
+    if (this.noFinalsWatchdog) { clearInterval(this.noFinalsWatchdog); this.noFinalsWatchdog = null; }
+  }
+
+  private attachVisibilityHandler() {
+    if (this.visibilityHandler || typeof document === "undefined") return;
+    this.visibilityHandler = () => {
+      if (document.visibilityState === "visible" && !this.manualStop) {
+        if (!this.ws || this.ws.readyState === WebSocket.CLOSED || this.ws.readyState === WebSocket.CLOSING) {
+          console.log("👁️ Tab visible again — WS dead, forcing reconnect");
+          this.reconnectAttempts = 0;
+          this.isReconnecting = false;
+          this.attemptReconnect();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", this.visibilityHandler);
+  }
+
+  private detachVisibilityHandler() {
+    if (this.visibilityHandler && typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.visibilityHandler);
+      this.visibilityHandler = undefined;
+    }
   }
 
   private async attemptReconnect() {
@@ -449,6 +529,8 @@ export class AssemblyRealtimeClient {
     this.cb.onReconnected?.();
     console.log("✅ AssemblyRealtimeClient: reconnected and sending audio");
     this.armSessionRotation();
+    this.startHeartbeat();
+    this.startNoFinalsWatchdog();
   }
 
   stop() {
@@ -469,6 +551,9 @@ export class AssemblyRealtimeClient {
     }
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
     if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
+    this.stopHeartbeat();
+    this.stopNoFinalsWatchdog();
+    this.detachVisibilityHandler();
 
     try {
       this.sending = false;
@@ -501,6 +586,8 @@ export class AssemblyRealtimeClient {
 
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
     if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
+    this.stopHeartbeat();
+    this.stopNoFinalsWatchdog();
 
     // Only clean up audio nodes (worklet/processor/context) — NOT the mic stream
     // if we don't own it, so the next client can reuse the same stream.
