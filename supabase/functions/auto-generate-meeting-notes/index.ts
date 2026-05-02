@@ -2,6 +2,29 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 
+// ─────────────────────────────────────────────────────────────────────────
+// SINGLE SOURCE OF TRUTH for first-pass meeting note generation.
+//
+// Every input path (live recording, mobile, file upload, transcript paste,
+// Plaud webhook, offline sync, mobile email, …) funnels into THIS edge
+// function with no caller-supplied modelOverride; the default chosen here
+// is therefore what users actually see on the first auto-generated note.
+//
+// To change the default, EITHER:
+//   (a) update the `MEETING_PRIMARY_MODEL` row in `system_settings`
+//       (instant, no redeploy — admin-flippable via /admin/llm-diagnostics), OR
+//   (b) edit the constant below and redeploy (used as the fallback when the
+//       DB row is missing or holds a value not in ALLOWED_PRIMARY_MODELS).
+//
+// Decided May 2026 after model comparison: Sonnet 4.6 at standard tier is
+// the only configuration that produces governance-grade output across the
+// full range of input transcripts. Gemini 3 Flash and Pro both fabricated
+// attendees / owners / deadlines on the IHO test corpus.
+// ─────────────────────────────────────────────────────────────────────────
+const DEFAULT_GENERATION_MODEL = 'claude-sonnet-4-6';
+const DEFAULT_DETAIL_TIER = 'standard' as const;
+const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3.1-pro'];
+
 // Large transcript cleaning functions
 function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string[] {
   if (text.length <= target) return [text];
