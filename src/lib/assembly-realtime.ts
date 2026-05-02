@@ -489,6 +489,7 @@ export class AssemblyRealtimeClient {
       try {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
+        this.lastFinalAt = Date.now();
         if (data?.type === "error") {
           const errMsg = String(data?.error || "AssemblyAI error");
           if (/closed\s*\(\d+\)/i.test(errMsg) && this.shouldReconnect) {
@@ -511,6 +512,8 @@ export class AssemblyRealtimeClient {
 
     this.ws!.onclose = (ev) => {
       this.sending = false;
+      this.stopHeartbeat();
+      this.stopNoFinalsWatchdog();
       if (!this.manualStop && this.shouldReconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         this.isReconnecting = false;
         this.attemptReconnect();
