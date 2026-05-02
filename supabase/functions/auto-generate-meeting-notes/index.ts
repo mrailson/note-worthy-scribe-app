@@ -2178,6 +2178,15 @@ ${cleanedTranscript}`;
       if (callerSpecifiedModel) {
         return [primary, primary];
       }
+      // First-pass auto-default: when MEETING_PRIMARY_MODEL is Sonnet (current
+      // operational policy), behave like an override — Sonnet retry only, no
+      // silent substitution to a different provider. Quality has been validated
+      // for Sonnet at standard tier; Flash/Pro fabricate, so falling back to
+      // them on transient Sonnet errors would degrade output without the user
+      // knowing. A permanent Sonnet failure must surface as a real error.
+      if (primary === 'claude-sonnet-4-6') {
+        return ['claude-sonnet-4-6', 'claude-sonnet-4-6'];
+      }
       if (primary === 'gemini-3-flash') {
         return ['gemini-3-flash', 'gemini-3.1-pro', 'gemini-2.5-pro', 'gpt-5'];
       }
