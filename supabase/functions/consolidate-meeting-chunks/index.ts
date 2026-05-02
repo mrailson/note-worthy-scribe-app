@@ -1012,7 +1012,7 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && (!gladiaChunksData || gladiaChunksData.length === 0)) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0)) {
       return new Response(JSON.stringify({
         success: false,
         message: 'No chunks found and no live transcript provided',
@@ -1020,13 +1020,12 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log(`📊 Found ${chunks?.length || 0} meeting_transcription_chunks + ${deepgramChunkCount} Deepgram + ${gladiaChunkCount} Gladia chunks to consolidate`);
+    console.log(`📊 Found ${chunks?.length || 0} meeting_transcription_chunks + ${deepgramChunkCount} Deepgram chunks to consolidate`);
 
     // Build RawChunks for Best-of-All merger
     const whisperRaw: RawChunk[] = [];
     const assemblyRaw: RawChunk[] = [];
     const deepgramRaw: RawChunk[] = [];
-    const gladiaRaw: RawChunk[] = [];
     const rejectedChunks: { chunkNumber: number; reason: string }[] = [];
 
     // Process meeting_transcription_chunks (Whisper + AssemblyAI)
@@ -1094,23 +1093,10 @@ serve(async (req) => {
       });
     }
 
-    // Process Gladia chunks
-    for (const glChunk of (gladiaChunksData || [])) {
-      const text = glChunk.transcription_text || '';
-      if (!text.trim()) continue;
-
-      gladiaRaw.push({
-        engine: 'gladia',
-        idx: glChunk.chunk_number,
-        text: text,
-        confidence: glChunk.confidence || undefined
-      });
-    }
-
-    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly, ${deepgramRaw.length} Deepgram, ${gladiaRaw.length} Gladia chunks`);
+    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly, ${deepgramRaw.length} Deepgram chunks`);
 
     // If all chunks were filtered, fall back to live transcript or existing
-    if (whisperRaw.length === 0 && assemblyRaw.length === 0 && deepgramRaw.length === 0 && gladiaRaw.length === 0) {
+    if (whisperRaw.length === 0 && assemblyRaw.length === 0 && deepgramRaw.length === 0) {
       if (liveTranscript && liveTranscript.length > 50 && !isTextHallucinated(liveTranscript)) {
         console.log('✅ All chunks filtered, using provided live transcript');
         const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
