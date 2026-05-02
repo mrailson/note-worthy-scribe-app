@@ -198,12 +198,12 @@ export const EditMeetingMetadataDialog = ({
       }
 
       // Apply update.
-      const updatePayload: Record<string, unknown> = {
+      const updatePayload = {
         title,
         meeting_format: meetingFormat,
         meeting_location: newLoc,
+        ...(newIso ? { start_time: newIso } : {}),
       };
-      if (newIso) updatePayload.start_time = newIso;
 
       const { error: updateError } = await supabase
         .from("meetings")

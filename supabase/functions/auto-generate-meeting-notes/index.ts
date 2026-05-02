@@ -273,6 +273,7 @@ serve(async (req) => {
       skipQc = false,
       premiumPin,
       forceGenerate = false,
+      forceSingleShot = false,
     } = requestBody;
     // detailTier is the user-facing output-length selector (Concise/Standard/Detailed).
     // It is independent of the legacy `detailLevel` parameter and only injects a
@@ -288,6 +289,19 @@ serve(async (req) => {
     // Standard tier is the historical baseline so we don't add a suffix for it.
     const stampModelWithTier = (model: string | null | undefined): string =>
       detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
+    // When the user explicitly requested a single-shot Sonnet pass via the
+    // "Regenerate with Sonnet" refine button, mark the saved model with a
+    // `+refined` suffix so the badge can display "Claude Sonnet 4.6 · refined"
+    // and downstream tooling can distinguish it from the default chunked path.
+    const stampModelForRefine = (model: string | null | undefined): string => {
+      const base = stampModelWithTier(model);
+      if (!requestBody.forceSingleShot) return base;
+      // Only mark as refined when we actually went through the single-shot
+      // path (i.e. chunked path didn't produce these notes). Adding the suffix
+      // to a Haiku-chunked output would be misleading.
+      if (typeof base === 'string' && base.includes('+chunked-haiku')) return base;
+      return `${base}+refined`;
+    };
     // Resolve operational primary model. Read MEETING_PRIMARY_MODEL from
     // system_settings so admins can flip the default instantly via
     // /admin/llm-diagnostics; fall back to DEFAULT_GENERATION_MODEL (top of file)
@@ -1791,10 +1805,12 @@ ${cleanedTranscript}`;
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
 
     // ============= CHUNKED MAP-REDUCE PATH (long transcripts only) =============
-    // Triggered for transcripts >7,000 chars on Claude path. Map step uses
-    // claude-haiku-4-5 in parallel; reduce step uses claude-sonnet-4-6.
-    // Single-shot path below remains the fallback if this errors out.
-    const CHUNK_THRESHOLD_CHARS = 50000;
+    // Triggered for transcripts >15,000 chars on Claude path (≈ 15 minutes of
+    // meeting audio). Map step uses claude-haiku-4-5 in parallel; reduce step
+    // uses claude-sonnet-4-6. Single-shot path below remains the fallback if
+    // this errors out, and the user can also explicitly bypass it via
+    // `forceSingleShot: true` (the "Regenerate with Sonnet" refine button).
+    const CHUNK_THRESHOLD_CHARS = 15000;
     const CHUNK_SIZE = 30000;
     const CHUNK_OVERLAP = 500;
     const CHUNK_CONCURRENCY = 1; // Sequential — Sonnet merge is expensive, no need to fan out
@@ -1804,11 +1820,17 @@ ${cleanedTranscript}`;
     let modelUsed = modelOverride;
 
     // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
-    // and Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
-    const useChunking = (
+    // Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
+    // The refine flow (`forceSingleShot`) explicitly skips chunking even on
+    // long transcripts so the user gets a clean independent Sonnet pass.
+    const useChunking = !forceSingleShot && (
       modelOverride.startsWith('claude-sonnet-') ||
       modelOverride.startsWith('claude-haiku-')
     ) && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS;
+
+    if (forceSingleShot) {
+      console.log(`✋ forceSingleShot=true — bypassing chunked path (transcript ${cleanedTranscript.length} chars)`);
+    }
 
     if (useChunking) {
       try {
@@ -2627,7 +2649,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         notes_style_3: generatedNotes,
         notes_generation_status: 'completed',
         primary_transcript_source: normaliseTranscriptSourceForMeeting(actualTranscriptSource),
-        notes_model_used: stampModelWithTier(actualModelUsed),
+        notes_model_used: stampModelForRefine(actualModelUsed),
       })
       .eq('id', meetingId);
 
@@ -2956,7 +2978,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         word_count: wordCount,
         overview: aiOverview || null,
         title: generatedTitle,
-        notes_model_used: stampModelWithTier(actualModelUsed),
+        notes_model_used: stampModelForRefine(actualModelUsed),
       })
       .eq('id', meetingId);
 
@@ -2976,6 +2998,23 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       }
     } else {
       console.log('✅ Meeting status updated to completed');
+    }
+
+    // Refine counter — bump on every successful single-shot Sonnet refine so we
+    // can monitor how often the chunked default isn't good enough.
+    if (forceSingleShot) {
+      try {
+        const { data: refRow } = await supabase
+          .from('meetings')
+          .select('refine_count')
+          .eq('id', meetingId)
+          .maybeSingle();
+        const next = ((refRow as any)?.refine_count ?? 0) + 1;
+        await supabase.from('meetings').update({ refine_count: next }).eq('id', meetingId);
+        console.log(`✨ refine_count incremented to ${next} for meeting ${meetingId}`);
+      } catch (refineErr: any) {
+        console.warn('⚠️ Failed to increment refine_count (non-blocking):', refineErr?.message);
+      }
     }
 
     // Also save overview to meeting_overviews table for consistency
