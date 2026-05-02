@@ -3,8 +3,7 @@ export type TranscriptionService =
   | 'deepgram'
   | 'amazon-transcribe'
   | 'google-cloud'
-  | 'whisper-batch'
-  | 'gladia';
+  | 'whisper-batch';
 
 export interface TranscriptionServiceInfo {
   id: TranscriptionService;
@@ -49,13 +48,6 @@ export const TRANSCRIPTION_SERVICES: TranscriptionServiceInfo[] = [
     name: 'Whisper (Batch)', 
     description: 'Highest accuracy, end of session', 
     type: 'batch', 
-    available: true 
-  },
-  { 
-    id: 'gladia', 
-    name: 'Gladia', 
-    description: 'Fast, multilingual, real-time streaming', 
-    type: 'realtime', 
     available: true 
   },
 ];

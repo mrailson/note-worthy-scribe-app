@@ -207,7 +207,7 @@ function postMergeDedup(segments: string[]): PostMergeDedupResult {
 
 // ============= BEST-OF-ALL MERGER (Deno-compatible, 3-engine) =============
 
-type Engine = 'assembly' | 'whisper' | 'deepgram' | 'gladia';
+type Engine = 'assembly' | 'whisper' | 'deepgram';
 
 interface RawChunk {
   engine: Engine;
@@ -268,7 +268,6 @@ function gapFillJaccard(candidateTokens: string[], whisperTokens: string[]): num
 
 function normaliseConfidence(engine: Engine, confidence?: number): number {
   if (engine === 'assembly') return 0.80;
-  if (engine === 'gladia') return 0.78;
   if (engine === 'deepgram') {
     if (confidence == null) return 0.75;
     if (confidence > 1) return Math.max(0, Math.min(1, confidence / 100));
@@ -392,13 +391,12 @@ function postProcessTranscript(s: string): string {
   return out;
 }
 
-function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgramRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG, gladiaRaw: RawChunk[] = []) {
+function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgramRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG) {
   const whisper = normaliseChunks(whisperRaw, cfg).sort((a, b) => a.idx - b.idx);
   const assembly = normaliseChunks(assemblyRaw, cfg).sort((a, b) => (a.startSec - b.startSec) || (a.idx - b.idx));
   const deepgram = normaliseChunks(deepgramRaw, cfg).sort((a, b) => a.idx - b.idx);
-  const gladia = normaliseChunks(gladiaRaw, cfg).sort((a, b) => a.idx - b.idx);
-  
-  const combined = [...assembly, ...deepgram, ...gladia, ...whisper].sort((a, b) => {
+
+  const combined = [...assembly, ...deepgram, ...whisper].sort((a, b) => {
     const t = a.startSec - b.startSec;
     if (t !== 0) return t;
     const tierDiff = getEngineTier(a.engine) - getEngineTier(b.engine);
@@ -990,24 +988,11 @@ serve(async (req) => {
       console.warn('⚠️ Failed to fetch Deepgram chunks:', deepgramError.message);
     }
 
-    // Fetch Gladia chunks from dedicated table
-    const { data: gladiaChunksData, error: gladiaError } = await supabase
-      .from('gladia_transcriptions')
-      .select('chunk_number, transcription_text, confidence, is_final')
-      .eq('meeting_id', meetingId)
-      .eq('is_final', true)
-      .order('chunk_number');
-
-    if (gladiaError) {
-      console.warn('⚠️ Failed to fetch Gladia chunks:', gladiaError.message);
-    }
-
     const deepgramChunkCount = deepgramChunksData?.length || 0;
-    const gladiaChunkCount = gladiaChunksData?.length || 0;
-    console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}, Gladia chunks fetched: ${gladiaChunkCount}`);
+    console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}`);
 
     // If no chunks AND we have a live transcript, save it and return
-    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && (!gladiaChunksData || gladiaChunksData.length === 0) && liveTranscript && liveTranscript.length > 50) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && liveTranscript && liveTranscript.length > 50) {
       console.log('✅ No chunks found, using provided live transcript');
       const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
       
@@ -1027,7 +1012,7 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && (!gladiaChunksData || gladiaChunksData.length === 0)) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0)) {
       return new Response(JSON.stringify({
         success: false,
         message: 'No chunks found and no live transcript provided',
@@ -1035,13 +1020,12 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log(`📊 Found ${chunks?.length || 0} meeting_transcription_chunks + ${deepgramChunkCount} Deepgram + ${gladiaChunkCount} Gladia chunks to consolidate`);
+    console.log(`📊 Found ${chunks?.length || 0} meeting_transcription_chunks + ${deepgramChunkCount} Deepgram chunks to consolidate`);
 
     // Build RawChunks for Best-of-All merger
     const whisperRaw: RawChunk[] = [];
     const assemblyRaw: RawChunk[] = [];
     const deepgramRaw: RawChunk[] = [];
-    const gladiaRaw: RawChunk[] = [];
     const rejectedChunks: { chunkNumber: number; reason: string }[] = [];
 
     // Process meeting_transcription_chunks (Whisper + AssemblyAI)
@@ -1109,23 +1093,10 @@ serve(async (req) => {
       });
     }
 
-    // Process Gladia chunks
-    for (const glChunk of (gladiaChunksData || [])) {
-      const text = glChunk.transcription_text || '';
-      if (!text.trim()) continue;
-
-      gladiaRaw.push({
-        engine: 'gladia',
-        idx: glChunk.chunk_number,
-        text: text,
-        confidence: glChunk.confidence || undefined
-      });
-    }
-
-    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly, ${deepgramRaw.length} Deepgram, ${gladiaRaw.length} Gladia chunks`);
+    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly, ${deepgramRaw.length} Deepgram chunks`);
 
     // If all chunks were filtered, fall back to live transcript or existing
-    if (whisperRaw.length === 0 && assemblyRaw.length === 0 && deepgramRaw.length === 0 && gladiaRaw.length === 0) {
+    if (whisperRaw.length === 0 && assemblyRaw.length === 0 && deepgramRaw.length === 0) {
       if (liveTranscript && liveTranscript.length > 50 && !isTextHallucinated(liveTranscript)) {
         console.log('✅ All chunks filtered, using provided live transcript');
         const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
@@ -1227,7 +1198,7 @@ serve(async (req) => {
 
     // ============= PERFORM BEST-OF-ALL 3-ENGINE MERGE =============
     const mergeStart = Date.now();
-    const mergeResult = mergeBestOfAll(whisperGoldChunks, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG, gladiaRaw);
+    const mergeResult = mergeBestOfAll(whisperGoldChunks, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG);
     const mergeDurationMs = Date.now() - mergeStart;
     
     console.log(`🔀 Best-of-All merge complete:`);

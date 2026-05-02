@@ -26,9 +26,6 @@ verify_jwt = false
 [functions.deepgram-streaming]
 verify_jwt = false
 
-[functions.gladia-streaming]
-verify_jwt = false
-
 [functions.assemblyai-transcription]
 verify_jwt = true
 
