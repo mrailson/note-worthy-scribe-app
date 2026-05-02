@@ -2978,7 +2978,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         word_count: wordCount,
         overview: aiOverview || null,
         title: generatedTitle,
-        notes_model_used: stampModelWithTier(actualModelUsed),
+        notes_model_used: stampModelForRefine(actualModelUsed),
       })
       .eq('id', meetingId);
 
@@ -2998,6 +2998,23 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       }
     } else {
       console.log('✅ Meeting status updated to completed');
+    }
+
+    // Refine counter — bump on every successful single-shot Sonnet refine so we
+    // can monitor how often the chunked default isn't good enough.
+    if (forceSingleShot) {
+      try {
+        const { data: refRow } = await supabase
+          .from('meetings')
+          .select('refine_count')
+          .eq('id', meetingId)
+          .maybeSingle();
+        const next = ((refRow as any)?.refine_count ?? 0) + 1;
+        await supabase.from('meetings').update({ refine_count: next }).eq('id', meetingId);
+        console.log(`✨ refine_count incremented to ${next} for meeting ${meetingId}`);
+      } catch (refineErr: any) {
+        console.warn('⚠️ Failed to increment refine_count (non-blocking):', refineErr?.message);
+      }
     }
 
     // Also save overview to meeting_overviews table for consistency
