@@ -276,25 +276,23 @@ serve(async (req) => {
     } = requestBody;
     // detailTier is the user-facing output-length selector (Concise/Standard/Detailed).
     // It is independent of the legacy `detailLevel` parameter and only injects a
-    // length directive into the system prompt. Default: 'standard' = no directive.
+    // length directive into the system prompt. Default: DEFAULT_DETAIL_TIER (standard).
     const ALLOWED_DETAIL_TIERS = ['concise', 'standard', 'detailed'] as const;
     type DetailTier = typeof ALLOWED_DETAIL_TIERS[number];
-    const rawDetailTier = typeof requestBody.detailTier === 'string' ? requestBody.detailTier.toLowerCase() : 'standard';
+    const rawDetailTier = typeof requestBody.detailTier === 'string' ? requestBody.detailTier.toLowerCase() : DEFAULT_DETAIL_TIER;
     const detailTier: DetailTier = (ALLOWED_DETAIL_TIERS as readonly string[]).includes(rawDetailTier)
       ? (rawDetailTier as DetailTier)
-      : 'standard';
+      : DEFAULT_DETAIL_TIER;
     console.log(`🎚️ [detailTier] received='${requestBody.detailTier}' → resolved='${detailTier}' (forceRegenerate=${forceRegenerate}, model=${requestBody.modelOverride ?? 'server-default'})`);
     // Suffix model identifier so docx footer reads e.g. "claude-sonnet-4-6 (detailed)".
     // Standard tier is the historical baseline so we don't add a suffix for it.
     const stampModelWithTier = (model: string | null | undefined): string =>
       detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
-    // modelOverride is mutable. Default is read from the MEETING_PRIMARY_MODEL
-    // operational setting (system_settings) so admins can flip Flash↔Pro instantly
-    // via /admin/llm-diagnostics without a redeploy. Falls back to 'gemini-3-flash'
-    // if the setting is missing or unreadable. Pro currently exhausts its token
-    // budget on internal reasoning before producing output (May 2026).
-    const ALLOWED_PRIMARY_MODELS = ['gemini-3-flash', 'gemini-3.1-pro'];
-    let configuredPrimaryModel = 'gemini-3-flash';
+    // Resolve operational primary model. Read MEETING_PRIMARY_MODEL from
+    // system_settings so admins can flip the default instantly via
+    // /admin/llm-diagnostics; fall back to DEFAULT_GENERATION_MODEL (top of file)
+    // if the row is missing or holds a value not in ALLOWED_PRIMARY_MODELS.
+    let configuredPrimaryModel: string = DEFAULT_GENERATION_MODEL;
     try {
       const { data: settingRow } = await supabase
         .from('system_settings')
@@ -307,9 +305,11 @@ serve(async (req) => {
         configuredPrimaryModel = candidate;
       }
     } catch (settingErr) {
-      console.warn('⚠️ Could not read MEETING_PRIMARY_MODEL setting, defaulting to gemini-3-flash:', settingErr);
+      console.warn(`⚠️ Could not read MEETING_PRIMARY_MODEL setting, defaulting to ${DEFAULT_GENERATION_MODEL}:`, settingErr);
     }
     let modelOverride: string = requestBody.modelOverride ?? configuredPrimaryModel;
+    const isFirstPassDefault = !requestBody.modelOverride;
+    console.log(`🧭 [model-resolution] firstPassDefault=${isFirstPassDefault} configured='${configuredPrimaryModel}' caller='${requestBody.modelOverride ?? '(none)'}' → final='${modelOverride}'`);
     meetingId = parsedMeetingId;
 
     // Server-side PIN gate for premium models. Pro is now the default and is
