@@ -7589,6 +7589,7 @@ export type Database = {
           notes_config: Json | null
           notes_email_sent_at: string | null
           notes_generation_status: string | null
+          notes_model_attempt: number
           notes_model_used: string | null
           notes_style_2: string | null
           notes_style_3: string | null
@@ -7664,6 +7665,7 @@ export type Database = {
           notes_config?: Json | null
           notes_email_sent_at?: string | null
           notes_generation_status?: string | null
+          notes_model_attempt?: number
           notes_model_used?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
@@ -7739,6 +7741,7 @@ export type Database = {
           notes_config?: Json | null
           notes_email_sent_at?: string | null
           notes_generation_status?: string | null
+          notes_model_attempt?: number
           notes_model_used?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
