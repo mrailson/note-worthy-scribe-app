@@ -197,31 +197,33 @@ ESSENTIAL RULES:
 Return ONLY the corrected complete transcription.`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Sonnet-only policy (May 2026): final validation switched from gpt-4o-mini
+    // to Claude Sonnet 4.6. The audio→text transcription steps above remain
+    // on OpenAI Whisper (Anthropic does not offer ASR).
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
+    if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a medical transcription expert. Return only the corrected transcription, no other text.' 
-          },
-          { role: 'user', content: validationPrompt }
-        ],
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: 'You are a medical transcription expert. Return only the corrected transcription, no other text.',
         temperature: 0.1,
-        max_tokens: 2000
-      })
+        messages: [{ role: 'user', content: validationPrompt }],
+      }),
     });
 
     if (response.ok) {
-      const gptResult = await response.json();
-      const finalText = gptResult.choices[0].message.content.trim();
-      
-      console.log("GPT-4 validated transcription:", finalText);
+      const claudeResult = await response.json();
+      const finalText = (claudeResult.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '').trim();
+
+      console.log("Sonnet 4.6 validated transcription:", finalText);
 
       // Final medical term verification
       const medicalValidation = validateMedicalTerms(finalText);
