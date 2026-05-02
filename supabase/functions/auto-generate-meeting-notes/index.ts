@@ -2403,6 +2403,7 @@ ${cleanedTranscript}`;
                 generation_ms: Date.now() - attemptStart,
                 failure_reasons: [{ model: attemptModel, reason, status: attemptStatus }],
                 fallback_reason: isSameModelRetry ? 'same_model_retry_failed' : attemptStatus,
+                detail_tier: detailTier,
               });
             } catch (logErr) {
               console.warn('⚠️ Failed to log override-path attempt failure (non-blocking):', logErr);
