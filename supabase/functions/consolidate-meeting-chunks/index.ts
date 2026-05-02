@@ -988,24 +988,11 @@ serve(async (req) => {
       console.warn('⚠️ Failed to fetch Deepgram chunks:', deepgramError.message);
     }
 
-    // Fetch Gladia chunks from dedicated table
-    const { data: gladiaChunksData, error: gladiaError } = await supabase
-      .from('gladia_transcriptions')
-      .select('chunk_number, transcription_text, confidence, is_final')
-      .eq('meeting_id', meetingId)
-      .eq('is_final', true)
-      .order('chunk_number');
-
-    if (gladiaError) {
-      console.warn('⚠️ Failed to fetch Gladia chunks:', gladiaError.message);
-    }
-
     const deepgramChunkCount = deepgramChunksData?.length || 0;
-    const gladiaChunkCount = gladiaChunksData?.length || 0;
-    console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}, Gladia chunks fetched: ${gladiaChunkCount}`);
+    console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}`);
 
     // If no chunks AND we have a live transcript, save it and return
-    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && (!gladiaChunksData || gladiaChunksData.length === 0) && liveTranscript && liveTranscript.length > 50) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && liveTranscript && liveTranscript.length > 50) {
       console.log('✅ No chunks found, using provided live transcript');
       const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
       
