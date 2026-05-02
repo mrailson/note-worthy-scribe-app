@@ -2509,8 +2509,47 @@ ${cleanedTranscript}`;
           }
         }
       }
+      // ─── EMERGENCY GPT-5 FALLBACK ────────────────────────────────────────
+      // Sonnet exhausted. Try ONE attempt against openai/gpt-5 via Lovable AI
+      // Gateway so the user gets notes even during an Anthropic-wide outage.
+      // Tagged distinctively so it's visible in the model badge / docx footer.
+      // Only fires on the auto-path (not override / not caller-specified models).
+      if ((!generatedNotes || generatedNotes.trim().length === 0) && !callerSpecifiedModel) {
+        // Read the kill-switch (default ON). If the row is missing, treat as enabled.
+        let emergencyEnabled = true;
+        try {
+          const { data: settingRow } = await supabase
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'MEETING_EMERGENCY_FALLBACK_ENABLED')
+            .maybeSingle();
+          if (settingRow && (settingRow as any).value === false) emergencyEnabled = false;
+          if (settingRow && (settingRow as any).value === 'false') emergencyEnabled = false;
+        } catch { /* table or row missing — keep default */ }
+
+        if (emergencyEnabled) {
+          console.warn('🚨 Sonnet exhausted — attempting GPT-5 emergency fallback (90s)');
+          try {
+            const fallbackNotes = await runAttempt('gpt-5', 90_000, chain.length);
+            if (fallbackNotes && fallbackNotes.trim().length > 0) {
+              generatedNotes = fallbackNotes;
+              actualModelUsed = 'gpt-5-emergency-fallback';
+              modelUsed = 'gpt-5-emergency-fallback';
+              fallbackCount = chain.length;
+              successfulAttemptNumber = 99; // sentinel for emergency fallback
+              console.warn('🆘 GPT-5 emergency fallback succeeded — notes recovered, but Anthropic is degraded.');
+            }
+          } catch (emergencyErr: any) {
+            console.error('❌ GPT-5 emergency fallback also failed:', emergencyErr?.message || String(emergencyErr));
+            failureReasons.push({ model: 'gpt-5-emergency-fallback', reason: emergencyErr?.message || 'unknown error' });
+          }
+        } else {
+          console.warn('⚠️ MEETING_EMERGENCY_FALLBACK_ENABLED=false — skipping GPT-5 fallback');
+        }
+      }
+
       if (!generatedNotes || generatedNotes.trim().length === 0) {
-        console.error('❌ All fallback attempts exhausted');
+        console.error('❌ All fallback attempts exhausted (incl. emergency fallback)');
         // Build a clearer error for caller-specified models so the toast can say
         // "Sonnet 4.6 failed after N attempts: <reason>".
         if (callerSpecifiedModel) {
@@ -2518,7 +2557,7 @@ ${cleanedTranscript}`;
           const lastReason = failureReasons[failureReasons.length - 1]?.reason || (lastError?.message ?? 'unknown error');
           throw new Error(`${modelOverride} failed after ${attempts} attempt${attempts === 1 ? '' : 's'}: ${lastReason}`);
         }
-        throw lastError || new Error('All AI generation attempts failed');
+        throw lastError || new Error('All AI generation attempts failed (Sonnet ×' + chain.length + ' + GPT-5 emergency)');
       }
 
       // Repair malformed "## Heading | col | col |" lines emitted by the AI by splitting
