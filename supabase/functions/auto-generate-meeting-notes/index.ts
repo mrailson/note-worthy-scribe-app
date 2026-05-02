@@ -1695,6 +1695,11 @@ CROSS-REFERENCE HANDLING:
 
 ${finalChecklist}`;
 
+    // Diagnostic: confirm the tier directive made it into the assembled prompt.
+    const tierMarkerPresent = systemPrompt.includes('OUTPUT LENGTH DIRECTIVE — CONCISE TIER')
+      || systemPrompt.includes('OUTPUT LENGTH DIRECTIVE — DETAILED TIER');
+    console.log(`🎚️ [detailTier] prompt-assembled tier='${detailTier}' directiveInPrompt=${tierMarkerPresent} promptLength=${systemPrompt.length}`);
+
     // Inject corrections list into prompt if we have any
     if (correctionsList.length > 0) {
       // Limit to top 50 most-used corrections to avoid prompt bloat
