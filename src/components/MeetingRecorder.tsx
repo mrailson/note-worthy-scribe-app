@@ -4128,14 +4128,17 @@ export const MeetingRecorder = ({
       
       addDebugLog('✅ Test recording started successfully');
       
-      // Start duration timer (clear any prior interval to prevent stacked ticks → fast clock)
+      // Start duration timer — wall-clock derived to immune from tab throttling and interval stacking
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      intervalRef.current = setInterval(() => {
-        setDuration(prev => prev + 1);
-      }, 1000);
+      {
+        const timerStartMs = Date.now();
+        intervalRef.current = setInterval(() => {
+          setDuration(Math.floor((Date.now() - timerStartMs) / 1000));
+        }, 1000);
+      }
 
       const successMessage = 'Test recording started with microphone!';
       showToast.success(successMessage, { section: 'meeting_manager' });
@@ -4806,14 +4809,17 @@ export const MeetingRecorder = ({
         }
       }
 
-      // Start duration timer (clear any prior interval to prevent stacked ticks → fast clock)
+      // Start duration timer — wall-clock derived to immune from tab throttling and interval stacking
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      intervalRef.current = setInterval(() => {
-        setDuration(prev => prev + 1);
-      }, 1000);
+      {
+        const timerStartMs = recordingStartTimeRef.current?.getTime() ?? Date.now();
+        intervalRef.current = setInterval(() => {
+          setDuration(Math.floor((Date.now() - timerStartMs) / 1000));
+        }, 1000);
+      }
 
       // Start transcript snippet monitoring
       startTranscriptSnippetMonitoring();
