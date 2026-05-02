@@ -8,7 +8,7 @@ import { AmazonTranscribeRealtimeTranscriber } from '@/utils/AmazonTranscribeRea
 import { GoogleCloudSpeechTranscriber } from '@/utils/GoogleCloudSpeechTranscriber';
 import { BrowserSpeechTranscriber } from '@/utils/BrowserSpeechTranscriber';
 import { WhisperBatchTranscriber } from '@/utils/WhisperBatchTranscriber';
-import { GladiaRealtimeTranscriber } from '@/utils/GladiaRealtimeTranscriber';
+
 
 // Unified interface that all transcribers implement
 export interface UnifiedTranscriber {
@@ -68,14 +68,8 @@ export function createTranscriber(
         onSummary
       );
 
-    case 'gladia':
-      return new GladiaRealtimeTranscriber(
-        onTranscription,
-        onError,
-        onStatusChange,
-        onSummary
-      );
-      
+
+
     default:
       console.warn(`Unknown service: ${service}, falling back to AssemblyAI`);
       return new AssemblyAIRealtimeTranscriber(
@@ -97,7 +91,6 @@ export function getServiceDisplayName(service: TranscriptionService): string {
     'amazon-transcribe': 'Amazon Transcribe',
     'google-cloud': 'Google Cloud Speech',
     'whisper-batch': 'Whisper (Batch)',
-    'gladia': 'Gladia',
   };
   return names[service] || service;
 }
