@@ -29,6 +29,18 @@ const MAX_RECONNECT_ATTEMPTS = 6;
 const RECONNECT_BACKOFF_MS = [2000, 4000, 8000, 16000, 30000, 30000];
 // AssemblyAI realtime sessions are capped at ~60 min; rotate at 55 min to avoid abrupt termination
 const SESSION_ROTATE_MS = 55 * 60 * 1000;
+// Keep-alive ping cadence — proxy forwards a silent PCM frame upstream
+const HEARTBEAT_MS = 25 * 1000;
+// If no final transcript received in this window, force reconnect
+const NO_FINALS_WATCHDOG_MS = 60 * 1000;
+
+// Lazy diagnostics logger — avoids hard dep at module load
+async function logDiagnostic(payload: Record<string, unknown>) {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await supabase.from("assemblyai_session_diagnostics" as any).insert(payload);
+  } catch { /* swallow — diagnostics must never break the pipeline */ }
+}
 
 export class AssemblyRealtimeClient {
   private ws?: WebSocket;
@@ -74,7 +86,22 @@ export class AssemblyRealtimeClient {
   // Pre-emptive session rotation (avoid AAI's ~60-min hard cap)
   private sessionRotateTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Heartbeat + watchdog state
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private noFinalsWatchdog: ReturnType<typeof setTimeout> | null = null;
+  private lastFinalAt: number = 0;
+  private sessionId: string = "";
+  private meetingId?: string;
+  private userId?: string;
+  private visibilityHandler?: () => void;
+
   constructor(private cb: Callbacks = {}) {}
+
+  /** Optional context for diagnostic logging. */
+  setDiagnosticContext(ctx: { meetingId?: string; userId?: string }) {
+    this.meetingId = ctx.meetingId;
+    this.userId = ctx.userId;
+  }
 
   /** Set keyterms before calling start(). */
   setKeyterms(terms: string[]) {
@@ -178,6 +205,7 @@ export class AssemblyRealtimeClient {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
         this.totalMessageCount++;
+        this.lastFinalAt = Date.now(); // any inbound message resets the watchdog
 
         if (data?.type === "error") {
           const errMsg = String(data?.error || "AssemblyAI error");
@@ -214,6 +242,22 @@ export class AssemblyRealtimeClient {
     this.ws!.onclose = (ev) => {
       console.log(`🔌 AssemblyRealtimeClient: proxy WS closed ${ev.code} ${ev.reason} (msgs: ${this.totalMessageCount}, finals: ${this.endOfTurnCount}, partials: ${this.partialCount}, audioFrames: ${this.audioFramesSent})`);
       this.sending = false;
+      this.stopHeartbeat();
+      this.stopNoFinalsWatchdog();
+
+      logDiagnostic({
+        meeting_id: this.meetingId ?? null,
+        user_id: this.userId ?? null,
+        session_id: this.sessionId,
+        event_type: "ws_close",
+        ws_close_code: ev.code,
+        ws_close_reason: ev.reason || null,
+        reconnect_attempt: this.reconnectAttempts,
+        audio_frames_sent: this.audioFramesSent,
+        total_messages: this.totalMessageCount,
+        partial_count: this.partialCount,
+        final_count: this.endOfTurnCount,
+      });
 
       if (!this.manualStop && this.shouldReconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         this.attemptReconnect();
@@ -258,6 +302,18 @@ export class AssemblyRealtimeClient {
 
     // Arm pre-emptive session rotation to avoid AAI's ~60-min hard cap
     this.armSessionRotation();
+    this.startHeartbeat();
+    this.startNoFinalsWatchdog();
+    this.attachVisibilityHandler();
+
+    if (!this.sessionId) this.sessionId = `aai-${Date.now()}`;
+    logDiagnostic({
+      meeting_id: this.meetingId ?? null,
+      user_id: this.userId ?? null,
+      session_id: this.sessionId,
+      event_type: wasReconnecting ? "ws_reconnected" : "ws_open",
+      reconnect_attempt: this.reconnectAttempts,
+    });
   }
 
   private armSessionRotation() {
@@ -270,6 +326,74 @@ export class AssemblyRealtimeClient {
       // Force a clean WS close — onclose handler will trigger attemptReconnect
       try { this.ws?.close(1000, "session_rotate"); } catch {}
     }, SESSION_ROTATE_MS);
+  }
+
+  private startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      try {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({ type: "ping" }));
+        }
+      } catch { /* ignore */ }
+    }, HEARTBEAT_MS);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
+  }
+
+  private startNoFinalsWatchdog() {
+    this.stopNoFinalsWatchdog();
+    this.lastFinalAt = Date.now();
+    this.noFinalsWatchdog = setInterval(() => {
+      if (this.manualStop) return;
+      const idle = Date.now() - this.lastFinalAt;
+      if (idle > NO_FINALS_WATCHDOG_MS && this.audioFramesSent > 0) {
+        console.warn(`🐕 No finals for ${(idle / 1000).toFixed(0)}s — forcing reconnect`);
+        logDiagnostic({
+          meeting_id: this.meetingId ?? null,
+          user_id: this.userId ?? null,
+          session_id: this.sessionId,
+          event_type: "watchdog_reconnect",
+          audio_frames_sent: this.audioFramesSent,
+          total_messages: this.totalMessageCount,
+          partial_count: this.partialCount,
+          final_count: this.endOfTurnCount,
+          details: { idle_ms: idle },
+        });
+        this.lastFinalAt = Date.now(); // reset to avoid loop
+        this.reconnectAttempts = 0;
+        this.isReconnecting = false;
+        try { this.ws?.close(4000, "watchdog_no_finals"); } catch {}
+      }
+    }, 15000);
+  }
+
+  private stopNoFinalsWatchdog() {
+    if (this.noFinalsWatchdog) { clearInterval(this.noFinalsWatchdog); this.noFinalsWatchdog = null; }
+  }
+
+  private attachVisibilityHandler() {
+    if (this.visibilityHandler || typeof document === "undefined") return;
+    this.visibilityHandler = () => {
+      if (document.visibilityState === "visible" && !this.manualStop) {
+        if (!this.ws || this.ws.readyState === WebSocket.CLOSED || this.ws.readyState === WebSocket.CLOSING) {
+          console.log("👁️ Tab visible again — WS dead, forcing reconnect");
+          this.reconnectAttempts = 0;
+          this.isReconnecting = false;
+          this.attemptReconnect();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", this.visibilityHandler);
+  }
+
+  private detachVisibilityHandler() {
+    if (this.visibilityHandler && typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.visibilityHandler);
+      this.visibilityHandler = undefined;
+    }
   }
 
   private async attemptReconnect() {
@@ -365,6 +489,7 @@ export class AssemblyRealtimeClient {
       try {
         const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
         const data = JSON.parse(raw);
+        this.lastFinalAt = Date.now();
         if (data?.type === "error") {
           const errMsg = String(data?.error || "AssemblyAI error");
           if (/closed\s*\(\d+\)/i.test(errMsg) && this.shouldReconnect) {
@@ -387,6 +512,8 @@ export class AssemblyRealtimeClient {
 
     this.ws!.onclose = (ev) => {
       this.sending = false;
+      this.stopHeartbeat();
+      this.stopNoFinalsWatchdog();
       if (!this.manualStop && this.shouldReconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         this.isReconnecting = false;
         this.attemptReconnect();
@@ -406,6 +533,8 @@ export class AssemblyRealtimeClient {
     this.cb.onReconnected?.();
     console.log("✅ AssemblyRealtimeClient: reconnected and sending audio");
     this.armSessionRotation();
+    this.startHeartbeat();
+    this.startNoFinalsWatchdog();
   }
 
   stop() {
@@ -426,6 +555,9 @@ export class AssemblyRealtimeClient {
     }
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
     if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
+    this.stopHeartbeat();
+    this.stopNoFinalsWatchdog();
+    this.detachVisibilityHandler();
 
     try {
       this.sending = false;
@@ -458,6 +590,8 @@ export class AssemblyRealtimeClient {
 
     if (this.turnCommitTimer) { clearTimeout(this.turnCommitTimer); this.turnCommitTimer = null; }
     if (this.sessionRotateTimer) { clearTimeout(this.sessionRotateTimer); this.sessionRotateTimer = null; }
+    this.stopHeartbeat();
+    this.stopNoFinalsWatchdog();
 
     // Only clean up audio nodes (worklet/processor/context) — NOT the mic stream
     // if we don't own it, so the next client can reuse the same stream.

@@ -225,6 +225,23 @@ Deno.serve(async (req: Request) => {
           }
           return;
         }
+
+        // Heartbeat ping — forward a silent PCM16 frame upstream to keep the
+        // AssemblyAI socket alive when the client is briefly idle.
+        if (message.type === 'ping') {
+          try {
+            // @ts-ignore
+            if (assemblySocket && assemblySocket.readyState === WebSocket.OPEN) {
+              // 100ms of silence at 16 kHz mono PCM16 = 1600 samples * 2 bytes
+              const silentFrame = new ArrayBuffer(3200);
+              // @ts-ignore
+              assemblySocket.send(silentFrame);
+            }
+          } catch (err) {
+            console.warn('⚠️ Heartbeat forward failed:', err);
+          }
+          return;
+        }
         
         if (message.type === 'terminate') {
           console.log('🔌 Received terminate signal');
