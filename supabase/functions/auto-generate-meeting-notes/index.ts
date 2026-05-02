@@ -2406,7 +2406,8 @@ ${cleanedTranscript}`;
             proElapsedMs = Date.now() - proStart;
           }
           if (!response.ok) {
-            const errorData = await response.text();
+            responseTextBuffer = await response.text();
+            const errorData = responseTextBuffer;
             if (isPro) proErrorMessage = `HTTP ${response.status}: ${errorData.substring(0, 500)}`;
             // 429 and 402 are user-facing — surface immediately rather than silently fall back.
             if (response.status === 429) throw new Error('RATE_LIMIT: Rate limit exceeded. Please wait a moment and try again.');
