@@ -81,7 +81,7 @@ import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
 import { TeamsAudioHint } from "@/components/meeting/TeamsAudioHint";
 import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
 import { useDeepgramRealtimePreview } from "@/hooks/useDeepgramRealtimePreview";
-import { useGladiaRealtimePreview } from "@/hooks/useGladiaRealtimePreview";
+
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
@@ -781,9 +781,6 @@ export const MeetingRecorder = ({
   // Deepgram real-time preview hook (runs alongside Whisper and AssemblyAI)
   const deepgramPreview = useDeepgramRealtimePreview();
 
-  // Gladia real-time preview hook (runs alongside other engines)
-  const gladiaPreview = useGladiaRealtimePreview();
-
   const countWords = useCallback((text: string) => {
     const t = (text ?? '').trim();
     if (!t) return 0;
@@ -797,12 +794,11 @@ export const MeetingRecorder = ({
     const assemblyWords = countWords(assemblyPreview.fullTranscript);
     const whisperWords = countWords(transcript);
     const deepgramWords = countWords(deepgramPreview.fullTranscript);
-    const gladiaWords = countWords(gladiaPreview.fullTranscript);
-    const effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords, gladiaWords);
+    const effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords);
 
     setWordCount(effectiveWords);
     onWordCountUpdate(effectiveWords);
-  }, [assemblyPreview.fullTranscript, transcript, deepgramPreview.fullTranscript, gladiaPreview.fullTranscript, onWordCountUpdate, countWords]);
+  }, [assemblyPreview.fullTranscript, transcript, deepgramPreview.fullTranscript, onWordCountUpdate, countWords]);
 
   // ============= WHISPER COST PROTECTION =============
   // Maximum recording duration (4 hours) to prevent runaway billing
@@ -937,9 +933,6 @@ export const MeetingRecorder = ({
     // Clear Deepgram live transcript state
     deepgramPreview.clearTranscript();
 
-    // Clear Gladia live transcript state
-    gladiaPreview.clearTranscript();
-    
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
@@ -4790,16 +4783,8 @@ export const MeetingRecorder = ({
         // Don't fail the recording - Whisper and AssemblyAI can continue
       }
 
-      // Start Gladia real-time preview
-      try {
-        console.log('🎤 Starting Gladia real-time preview...');
-        await gladiaPreview.startPreview(realMeetingId, assemblyAudioMixerRef.current?.mixedStream);
-        console.log('✅ Gladia real-time preview started');
-        addDebugLog('✅ Gladia: Recording started');
-      } catch (gladiaError) {
-        console.warn('⚠️ Gladia preview failed to start (other transcriptions will continue):', gladiaError);
-      }
-      
+
+
       if (backupEnabled && !isBackupActive) {
         try {
           const backupStream = assemblyAudioMixerRef.current?.mixedStream 
@@ -4920,12 +4905,10 @@ export const MeetingRecorder = ({
     // so word-count validation uses the real values
     const capturedAssemblyTranscript = assemblyPreview.fullTranscript || '';
     const capturedDeepgramTranscript = deepgramPreview.fullTranscript || '';
-    const capturedGladiaTranscript = gladiaPreview.fullTranscript || '';
     
     // Now clear real-time transcript buffers so they don't bleed into the next meeting
     assemblyPreview.clearTranscript();
     deepgramPreview.clearTranscript();
-    gladiaPreview.clearTranscript();
     
     // CROSSOVER PREVENTION: Capture and then remove sessionStorage meeting ID synchronously
     // Late-arriving callbacks can no longer read a stale meeting ID
@@ -4942,9 +4925,8 @@ export const MeetingRecorder = ({
     const assemblyWords = countWords(capturedAssemblyTranscript);
     const whisperWords = countWords(transcript);
     const deepgramWords = countWords(capturedDeepgramTranscript);
-    const gladiaWords = countWords(capturedGladiaTranscript);
-    let effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords, gladiaWords);
-    console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, deepgram: deepgramWords, gladia: gladiaWords, serverTriggered: isServerTriggered });
+    let effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords);
+    console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, deepgram: deepgramWords, serverTriggered: isServerTriggered });
     
     // CRITICAL: If client state shows low word count OR server triggered the stop,
     // query the database for actual word count AND duration - client state may be stale/empty
@@ -5070,9 +5052,8 @@ export const MeetingRecorder = ({
       // Stop Deepgram real-time preview
       deepgramPreview.stopPreview();
 
-      // Stop Gladia real-time preview
-      gladiaPreview.stopPreview();
-      
+
+
       // Cleanup AssemblyAI audio mixer
       cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
       assemblyAudioMixerRef.current = null;
@@ -5237,9 +5218,8 @@ export const MeetingRecorder = ({
     // Stop Deepgram real-time preview
     deepgramPreview.stopPreview();
 
-    // Stop Gladia real-time preview
-    gladiaPreview.stopPreview();
-    
+
+
     // Cleanup AssemblyAI audio mixer
     cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
     assemblyAudioMixerRef.current = null;
@@ -5473,7 +5453,7 @@ export const MeetingRecorder = ({
         { source: 'whisper-memory', text: inMemoryTranscript },
         { source: 'assemblyai-preview', text: assemblyTranscript },
         { source: 'deepgram-preview', text: deepgramTranscript },
-        { source: 'gladia-preview', text: (capturedGladiaTranscript || '').trim() },
+        
         { source: 'orphaned-ios-chunks', text: orphanedChunks },
       ].filter(c => c.text.length > 0);
       
@@ -6910,7 +6890,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             deepgramText={deepgramPreview.fullTranscript ? deepgramPreview.fullTranscript.trim().split(/\s+/).slice(-30).join(' ') : ''}
             whisperChunkText={transcript ? transcript.trim().split(/\s+/).slice(-50).join(' ') : ''}
             whisperChunkNum={chunkCounter}
-            gladiaText={gladiaPreview.fullTranscript ? gladiaPreview.fullTranscript.trim().split(/\s+/).slice(-30).join(' ') : ''}
+            
             activeTab={activeTab}
             onTabChange={setActiveTab}
             hasNewMeetings={meetings.some(m => isNewMeeting(m.created_at))}
