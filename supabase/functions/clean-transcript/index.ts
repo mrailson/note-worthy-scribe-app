@@ -16,8 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
     const { rawTranscript, meetingTitle } = await req.json();
@@ -69,37 +69,30 @@ Return a clean, well-formatted transcript with proper paragraphs and spacing.`;
 
 ${rawTranscript}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Use latest GPT-4 model for best results
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ],
-        temperature: 0.3, // Lower temperature for more consistent formatting
-        max_tokens: 16384 // Maximum output tokens
+        model: 'claude-sonnet-4-6',
+        max_tokens: 16384,
+        system: systemPrompt,
+        temperature: 0.2,
+        messages: [{ role: 'user', content: userPrompt }],
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      const errorText = await response.text();
+      console.error('Anthropic API error:', errorText);
+      throw new Error(`Anthropic API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const cleanedTranscript = data.choices[0].message.content;
+    const cleanedTranscript = (data.content?.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('') || '');
 
     console.log('Successfully cleaned transcript');
     console.log('🔍 Output transcript length:', cleanedTranscript.length);
