@@ -19,6 +19,8 @@ import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
 import { NotesGenerationBadges } from "@/components/meeting-notes/NotesGenerationBadges";
 import { ProcessingTimeBadges } from "@/components/meeting-notes/ProcessingTimeBadges";
 import { RecordingDeviceBadge } from "@/components/meeting-history/RecordingDeviceBadge";
+import { LlmModelBadge } from "@/components/meeting-history/LlmModelBadge";
+import { RegenerateWithSonnetButton } from "@/components/meeting-history/RegenerateWithSonnetButton";
 import { QualityReportSection } from "@/components/meeting-notes/QualityReportSection";
 import React, { useState, useEffect, useRef, Suspense, lazy, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
