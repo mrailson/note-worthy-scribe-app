@@ -2066,7 +2066,7 @@ ${cleanedTranscript}`;
     const AUTO_PER_ATTEMPT_TIMEOUT_MS = 90_000;
     // Detailed tier on long governance transcripts can push Sonnet/GPT past 90s.
     // 180s gives headroom; same-model retry still bounded so worst case ~6 minutes.
-    const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 180_000;
+    const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 300_000;
     const PER_ATTEMPT_TIMEOUT_MS = callerSpecifiedModel
       ? OVERRIDE_PER_ATTEMPT_TIMEOUT_MS
       : AUTO_PER_ATTEMPT_TIMEOUT_MS;
@@ -2134,7 +2134,7 @@ ${cleanedTranscript}`;
             },
             body: JSON.stringify({
               model: claudeModel,
-              max_tokens: 16000,
+              max_tokens: 32000,
               stream: true,
               system: systemPrompt,
               messages: [{ role: 'user', content: userPrompt }],
