@@ -596,7 +596,7 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div 
               className="whitespace-pre-wrap leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: note.content }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(note.content || '') }}
             />
           </div>
         )}
