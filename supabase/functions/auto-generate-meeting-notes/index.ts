@@ -1602,13 +1602,19 @@ ${discussionQualityRules}
 
 # DECISIONS REGISTER
 Categorise every decision using exactly one of these labels:
-- **RESOLVED** — formal vote took place (moved, seconded, carried). Use only when the transcript contains explicit voting language.
-- **AGREED** — clear consensus reached. Test: someone proposed a specific course of action AND either others endorsed it or the chair summarised it as the position with discussion moving on. Informal agreement counts.
-- **NOTED** — matter was discussed or reported on, no specific action agreed. Also use when an officer is informing the committee of a decision taken elsewhere.
+- RESOLVED — formal vote took place (moved, seconded, carried). Use only when the transcript contains explicit voting language.
+- AGREED — clear consensus reached. Test: someone proposed a specific course of action AND either others endorsed it or the chair summarised it as the position with discussion moving on. Informal agreement counts.
+- NOTED — matter was discussed or reported on, no specific action agreed. Also use when an officer is informing the committee of a decision taken elsewhere.
 
 If unsure between AGREED and NOTED, use NOTED. Never infer agreement from absence of disagreement.
 
-Format: - **[RESOLVED/AGREED/NOTED]** [What was decided — one line, with who/what/when if known]
+DECISION LINE FORMATTING (strict — downstream parsers depend on this):
+- Each decision is a single plain line with NO bullet marker, NO bold, NO markdown emphasis, and NO colon after the label.
+- Use exactly: \`LABEL — decision text\` where LABEL is one of RESOLVED, AGREED, NOTED and the separator is a single em-dash (—).
+- Do NOT wrap the label in asterisks. Do NOT write "AGREED:" or "**AGREED**" or "- **[AGREED]**". Just \`AGREED — decision text\`.
+
+Example:
+AGREED — phlebotomy capacity to be reviewed at the next operational meeting
 
 (If no decisions: "No formal decisions were recorded in this meeting")
 
