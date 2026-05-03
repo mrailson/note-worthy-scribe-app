@@ -22,7 +22,7 @@ CRITICAL — TOPIC PRESERVATION:
 
 Output structured markdown with these sections (omit only if genuinely empty):
 - Key Points (one bullet per distinct topic, each prefixed with the topic name)
-- Decisions (use prefixes RESOLVED / AGREED / NOTED in bold where applicable — list every decision in this chunk)
+- Decisions (each decision on its own plain line in the form \`LABEL — decision text\` where LABEL is one of RESOLVED, AGREED, NOTED. NO bullet, NO bold, NO colon. List every decision in this chunk.)
 - Actions ([Owner] – Action – Due date if mentioned — list every action in this chunk)
 - Risks/Issues
 Avoid preambles. Be concise per bullet but exhaustive in coverage.`;
@@ -85,6 +85,10 @@ Meeting date: ${meetingDate} (year = ${meetingYear}).
 Resolve all bare or relative dates (e.g. "1st May", "next month", "Friday") against the
 meeting date above, NOT against your training cutoff. NEVER write a year earlier than
 ${meetingYear} unless this chunk EXPLICITLY uses that earlier year.
+
+TEMPORAL FRAMING: events/deadlines BEFORE the meeting date are reported in past tense;
+events ON OR AFTER the meeting date remain in present/future tense. Resolve relative
+phrases ("last June", "this winter") to calendar references.
 ══════════════════════════════
 \n\n`
       : '';

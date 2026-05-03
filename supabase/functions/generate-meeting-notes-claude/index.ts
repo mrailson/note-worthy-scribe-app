@@ -292,9 +292,10 @@ These three categories are the ONLY permitted labels. Never use "ACCEPTED", "APP
 
 Every item in the decisions register MUST start with one of: "RESOLVED —", "AGREED —", or "NOTED —"
 
-Format each entry as:
-- **[RESOLVED/AGREED/NOTED]** [What was decided/noted — one line, specific, with rationale if stated]
-- If a decision was conditional (e.g., "subject to rate confirmation"), note the condition
+Format each entry as a single plain line — NO bullet marker, NO bold, NO markdown emphasis, NO colon after the label, exactly one em-dash:
+\`LABEL — what was decided/noted (one line, specific, with rationale if stated)\`
+Never write "**AGREED**", "AGREED:", "- **[AGREED]**", or wrap the label in brackets.
+- If a decision was conditional (e.g., "subject to rate confirmation"), note the condition.
 
 **OPEN ITEMS & RISKS**
 

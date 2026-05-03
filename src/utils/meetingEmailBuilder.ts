@@ -202,10 +202,11 @@ export const convertToStyledHTML = (text: string): string => {
       i++; continue;
     }
 
-    // Governance decision labels must remain visually clear in Outlook.
+    // Governance decision lines: plain "LABEL — text" — no bold, no colour, no bullet.
     const governanceMatch = line.match(/^[-•*]?\s*\*{0,2}(RESOLVED|AGREED|NOTED)\*{0,2}\s*[—:-]?\s*(.*)$/i);
     if (governanceMatch) {
-      html += `<p style="margin: 8px 0 8px 20px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a;"><strong style="color: #000000;">${governanceMatch[1].toUpperCase()}</strong>${governanceMatch[2] ? ` — ${stripInlineMarkdown(governanceMatch[2])}` : ''}</p>\n`;
+      const body = governanceMatch[2] ? ` — ${stripInlineMarkdown(governanceMatch[2])}` : '';
+      html += `<p style="margin: 8px 0 8px 20px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a;">${governanceMatch[1].toUpperCase()}${body}</p>\n`;
       i++; continue;
     }
 

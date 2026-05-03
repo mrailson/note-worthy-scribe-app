@@ -16,9 +16,9 @@ CASE AND EMPHASIS RULES (critical — violations break downstream rendering):
 - Write all prose in normal sentence case. NEVER write whole paragraphs, sentences, or multi-word phrases in ALL UPPERCASE.
 - Uppercase is permitted ONLY for: section heading words (e.g. "MEETING DETAILS"), the three decision-prefix keywords (RESOLVED, AGREED, NOTED), and proper nouns / abbreviations as they appear in source (NHS, ICB, GP, KGH, NHFT, OPIT, etc.).
 - Use markdown bold (**) sparingly and precisely. Bold ONLY:
-  • The decision-prefix keyword itself: \`**RESOLVED**\`, \`**AGREED**\`, \`**NOTED**\` — followed by a space, em-dash, then the decision text in plain (non-bold) sentence case.
   • The labels "Meeting Purpose:" and the column headers in the action items table.
-  Do NOT bold the dash, do NOT bold the decision body text, do NOT bold whole sentences or paragraphs.
+  Do NOT bold whole sentences or paragraphs.
+- Decision lines in the DECISIONS REGISTER are plain lines (no bullet, no bold, no colon after the label) — see the DECISIONS REGISTER section for the exact format.
 - Never put a bold open marker (\`**\`) immediately adjacent to a bold close marker (\`**\`) of the previous run. Always have at least a non-asterisk character between them.
 
 LINE BREAK RULES (critical):
@@ -72,9 +72,11 @@ Key Points
 
 # DECISIONS REGISTER
 
-- **NOTED** — <decision text in sentence case>
-- **AGREED** — <decision text in sentence case>
-- **RESOLVED** — <decision text in sentence case>
+NOTED — <decision text in sentence case>
+AGREED — <decision text in sentence case>
+RESOLVED — <decision text in sentence case>
+
+(Each decision is a single plain line. NO bullet marker, NO bold, NO markdown emphasis, NO colon after the label. Use exactly one em-dash between the LABEL and the decision text. Never write "**AGREED**", "AGREED:", or "- **[AGREED]**".)
 
 # OPEN ITEMS & RISKS
 
@@ -434,6 +436,14 @@ Resolve all relative or bare dates (e.g. "1st May", "next month", "Friday") agai
 meeting date, NOT against your training cutoff. NEVER write a year earlier than ${meetingYear}
 unless the source EXPLICITLY uses that earlier year. When a date is mentioned without a year,
 assume ${meetingYear}.
+
+TEMPORAL FRAMING — the meeting date is the temporal anchor:
+- Events, deadlines and actions dated BEFORE the meeting date are reported in past tense
+  ("recall letters were issued by 28 February 2026").
+- Events, deadlines and actions dated ON OR AFTER the meeting date remain in present/future
+  tense as appropriate.
+- Resolve relative dates ("last June", "this winter") to calendar references
+  ("June 2025", "winter 2025/26").
 ═══════════════════════════════════════════════════
 \n\n`
       : '';
