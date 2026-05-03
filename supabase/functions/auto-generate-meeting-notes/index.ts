@@ -926,6 +926,8 @@ serve(async (req) => {
     } catch (docsError) {
       console.warn('⚠️ Error processing meeting documents:', docsError);
     }
+    // Stage 2 — uploaded documents extracted (or skipped if none).
+    stamp('notes_documents_loaded_at');
 
     // Extract names and organizations from the join result
     interface AttendeeInfo {
