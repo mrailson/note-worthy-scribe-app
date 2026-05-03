@@ -264,17 +264,23 @@ export const SystemMonitoringDashboard: React.FC = () => {
             Manual System Check
           </CardTitle>
           <CardDescription>
-            Run an immediate system monitoring check to detect any issues
+            Run an immediate system monitoring check, or launch the end-to-end Pipeline Test for the meeting notes &amp; email path.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={runManualCheck} 
+        <CardContent className="flex flex-wrap gap-2">
+          <Button
+            onClick={runManualCheck}
             disabled={runningManualCheck}
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${runningManualCheck ? 'animate-spin' : ''}`} />
             {runningManualCheck ? 'Running Check...' : 'Run Manual Check'}
+          </Button>
+          <Button variant="outline" asChild className="gap-2">
+            <a href="/admin/pipeline-test">
+              <Activity className="h-4 w-4" />
+              Open Pipeline Test
+            </a>
           </Button>
         </CardContent>
       </Card>
