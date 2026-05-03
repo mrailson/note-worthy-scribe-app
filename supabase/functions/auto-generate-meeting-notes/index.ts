@@ -2054,7 +2054,7 @@ ${cleanedTranscript}`;
     };
     const chain = buildFallbackChain(modelOverride);
     const failureReasons: Array<{ model: string; reason: string }> = [];
-    let actualModelUsed = modelOverride;
+    // actualModelUsed already declared above (hoisted for chunked path).
     let fallbackCount = 0;
     // Diagnostic capture for Gemini Pro attempts (read by /admin/llm-diagnostics)
     let proStatusCode: number | null = null;
