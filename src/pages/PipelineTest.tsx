@@ -1219,8 +1219,17 @@ export default function PipelineTest() {
                     return (
                       <tr key={r.id} className="border-b last:border-b-0">
                         <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.started_at).toLocaleString()}</td>
-                        <td className="py-2 pr-4 capitalize">{r.test_size}</td>
-                        <td className="py-2 pr-4 text-xs">{modelLabel}</td>
+                        <td className="py-2 pr-4 capitalize">
+                          {r.test_size}
+                          {r.notes_path?.toLowerCase().startsWith('replay') ? null : null}
+                        </td>
+                        <td className="py-2 pr-4 text-xs">
+                          {modelLabel}
+                          {/* notes_path holds the original meeting title for replays via the
+                              orchestrator's title-generator; we tag visually using import_source
+                              instead by reading the meeting in a future enhancement. For now,
+                              the docx footer carries +filter:{tier} which is sufficient. */}
+                        </td>
                         <td className="py-2 pr-4">
                           <Badge
                             variant={
