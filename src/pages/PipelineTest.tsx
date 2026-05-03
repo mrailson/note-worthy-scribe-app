@@ -880,6 +880,72 @@ export default function PipelineTest() {
         </CardContent>
       </Card>
 
+      {/* Real Meeting Replay — re-run a previously recorded meeting through the
+          current pipeline config. Original notes/email are NOT touched. */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Real Meeting Replay</span>
+            <Button
+              variant="ghost" size="sm" className="h-7 px-2 text-xs"
+              onClick={() => loadReplayMeetings(replayLimit)}
+              disabled={replayLoading || isAnyRunning}
+            >
+              {replayLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+              {replayMeetings.length === 0 ? 'Load meetings' : 'Refresh'}
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Re-runs the saved transcript of one of your own meetings (≥45 min) through the
+            currently selected model and tier. The original meeting's notes are untouched and
+            no email is sent. Tagged <Badge variant="outline" className="text-[10px] ml-1">replay</Badge>
+            in Recent runs.
+          </p>
+          {replayMeetings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {replayLoading ? 'Loading…' : 'Click “Load meetings” to list your meetings ≥45 minutes with a saved transcript.'}
+            </p>
+          ) : (
+            <div className="space-y-1 max-h-96 overflow-y-auto">
+              {replayMeetings.map(m => {
+                const date = new Date(m.created_at).toLocaleDateString('en-GB');
+                const isReplaying = replayingId === m.id;
+                return (
+                  <div key={m.id} className="flex items-start justify-between gap-2 border rounded px-3 py-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{m.title ?? 'Untitled meeting'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {date} · {m.duration_minutes ?? '?'} min · {m.transcript_chars.toLocaleString()} chars
+                        {m.notes_model_used ? <> · original: <span className="font-mono">{m.notes_model_used}</span></> : null}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline" size="sm"
+                      disabled={isReplaying || isAnyRunning}
+                      onClick={() => replayMeeting(m)}
+                    >
+                      {isReplaying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+                      Replay
+                    </Button>
+                  </div>
+                );
+              })}
+              {replayMeetings.length >= replayLimit && (
+                <Button
+                  variant="ghost" size="sm" className="w-full"
+                  onClick={() => { const next = replayLimit + 50; setReplayLimit(next); loadReplayMeetings(next); }}
+                  disabled={replayLoading}
+                >
+                  Load more
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Queue panel */}
       <Card className="mb-6">
         <CardHeader>
