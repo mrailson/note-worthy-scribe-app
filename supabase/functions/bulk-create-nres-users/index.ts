@@ -85,27 +85,61 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // ---- AUTH GUARD: must be system_admin ----
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header", success: false }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Get the assigned_by user from request or use default
-    const { assigned_by } = await req.json().catch(() => ({ assigned_by: null }));
-    const assignedByUserId = assigned_by || "e3aea82f-451b-40fb-8681-2b579a92dc3a"; // Default admin
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(token);
+    if (callerError || !caller) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication token", success: false }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const { data: isAdmin, error: adminCheckError } = await supabaseAdmin.rpc("has_role", {
+      _user_id: caller.id,
+      _role: "system_admin",
+    });
+    if (adminCheckError || !isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: system_admin role required", success: false }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    // ---- /AUTH GUARD ----
+
+    const body = await req.json().catch(() => ({} as any));
+    const assignedByUserId: string = body?.assigned_by || caller.id;
+    // Password must be supplied per request — never hardcode credentials in source.
+    const requestedPassword: string | undefined = body?.password;
+    if (!requestedPassword || typeof requestedPassword !== "string" || requestedPassword.length < 12) {
+      return new Response(
+        JSON.stringify({ error: "A password (min 12 chars) must be supplied in the request body", success: false }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    const DEFAULT_PASSWORD = requestedPassword;
 
     const results: { success: string[]; failed: { email: string; error: string }[] } = {
       success: [],
       failed: []
     };
 
-    console.log(`Starting bulk creation of ${NRES_USERS.length} users with password: ${DEFAULT_PASSWORD}`);
+    console.log(`Starting bulk creation of ${NRES_USERS.length} users (password redacted)`);
+
 
     for (const user of NRES_USERS) {
       try {
