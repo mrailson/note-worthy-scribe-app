@@ -5508,18 +5508,10 @@ export const MeetingRecorder = ({
       sessionStorage.removeItem('orphanedIOSChunks');
     }
     
-    // Inject meeting metadata silently into transcript for AI processing
-    const meetingTypeLabel = meetingType === 'teams' ? 'MS Teams' : 
-                             meetingType === 'face-to-face' ? 'Face to Face' : 'Hybrid';
-    const metadataPrefix = `[MEETING METADATA]
-Meeting Type: ${meetingTypeLabel}
-${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocation}` : ''}
-[END METADATA]
-
-`;
-    
-    // Clean the final transcript and prepend metadata
-    let currentTranscript = (metadataPrefix + finalTranscript)
+    // Metadata auto-injection removed — was confusing the LLM and could
+    // surface unverified location strings. Meeting type/location now flow
+    // only via meeting_context (user-entered) or the meetings row itself.
+    let currentTranscript = finalTranscript
       .replace(/Thank you for watching\.?\s*/gi, '')
       .replace(/Thanks for watching\.?\s*/gi, '')
       .trim();
