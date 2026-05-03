@@ -164,6 +164,82 @@ export default function PipelineTest() {
     return () => clearInterval(interval);
   }, [activeRun?.id, activeRun?.status]);
 
+  async function loadReplayMeetings(limit = 50) {
+    setReplayLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // Fetch this user's own meetings ≥45 minutes that have transcript content.
+      // We then enrich with the actual transcript size from meeting_transcripts.
+      const { data: meetings, error } = await supabase
+        .from('meetings')
+        .select('id,title,created_at,duration_minutes,notes_model_used')
+        .eq('user_id', user.id)
+        .gte('duration_minutes', 45)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      const ids = (meetings ?? []).map(m => m.id);
+      let chars: Record<string, number> = {};
+      if (ids.length) {
+        const { data: tx } = await supabase
+          .from('meeting_transcripts')
+          .select('meeting_id,content')
+          .in('meeting_id', ids);
+        for (const row of (tx ?? []) as Array<{ meeting_id: string; content: string | null }>) {
+          chars[row.meeting_id] = (chars[row.meeting_id] ?? 0) + (row.content?.length ?? 0);
+        }
+      }
+      const enriched: ReplayMeeting[] = (meetings ?? [])
+        .map(m => ({ ...m, transcript_chars: chars[m.id] ?? 0 } as ReplayMeeting))
+        .filter(m => m.transcript_chars > 0);
+      setReplayMeetings(enriched);
+    } catch (err: any) {
+      toast({ title: 'Failed to load meetings', description: err.message, variant: 'destructive' });
+    } finally {
+      setReplayLoading(false);
+    }
+  }
+
+  async function replayMeeting(m: ReplayMeeting) {
+    setReplayingId(m.id);
+    try {
+      // Fetch the full transcript fresh — list view only stored aggregate length.
+      const { data: tx, error: txErr } = await supabase
+        .from('meeting_transcripts')
+        .select('content,timestamp_seconds')
+        .eq('meeting_id', m.id)
+        .order('timestamp_seconds', { ascending: true });
+      if (txErr) throw txErr;
+      const transcript = (tx ?? []).map(r => r.content ?? '').filter(Boolean).join('\n').trim();
+      if (!transcript) throw new Error('Original meeting has no transcript');
+      const words = transcript.split(/\s+/).filter(Boolean).length;
+      const size = classifySize(words);
+      const stamp = new Date().toLocaleString('en-GB');
+      await launchRun({
+        title: `Replay — “${m.title ?? 'Untitled'}” — ${stamp}`,
+        agenda: `Real Meeting Replay of ${m.id}`,
+        transcript,
+        durationMinutes: m.duration_minutes ?? Math.max(45, Math.round(words / 150)),
+        size,
+        model: selectedModel,
+        isCustom: true,
+        forceSingleShot,
+        tier: outputTier,
+        suppressEmail: true,
+        replayOf: { id: m.id, title: m.title ?? 'Untitled' },
+      });
+      toast({
+        title: 'Replay launched',
+        description: 'Original notes untouched · email suppressed',
+      });
+    } catch (err: any) {
+      toast({ title: 'Replay failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setReplayingId(null);
+    }
+  }
+
   async function refreshHistory() {
     const { data } = await supabase
       .from('pipeline_test_runs')
