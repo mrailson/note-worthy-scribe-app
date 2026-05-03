@@ -1303,6 +1303,30 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
       continue;
     }
     
+    // Governance decision line: plain "LABEL — text" — no bold colour, no bullet.
+    const governanceLineMatch = line.match(/^\s*(RESOLVED|AGREED|NOTED)\s+—\s+(.*)$/);
+    if (governanceLineMatch) {
+      const label = governanceLineMatch[1].toUpperCase();
+      const body = governanceLineMatch[2].replace(/\\\*/g, '').replace(/\*\*/g, '').trim();
+      elements.push(new Paragraph({
+        children: [
+          new TextRun({
+            text: `${label} — `,
+            bold: false,
+            size: FONTS.size.body,
+            color: NHS_COLORS.textGrey,
+            font: FONTS.default,
+          }),
+          ...parseInlineFormatting(body, TextRun),
+        ],
+        indent: { left: 360 },
+        spacing: { before: 40, after: 120 },
+      }));
+      previousWasHeading = false;
+      i++;
+      continue;
+    }
+
     // Regular paragraph
     const runs = parseInlineFormatting(line, TextRun);
     elements.push(new Paragraph({
