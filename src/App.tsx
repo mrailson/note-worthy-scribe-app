@@ -75,6 +75,7 @@ const AdminChunkRepair = lazy(() => import("./pages/AdminChunkRepair"));
 const LLMDiagnostics = lazy(() => import("./pages/LLMDiagnostics"));
 const PipelineTest = lazy(() => import("./pages/PipelineTest"));
 const PipelineTestRunner = lazy(() => import("./pages/PipelineTestRunner"));
+const PipelineCompare = lazy(() => import("./pages/PipelineCompare"));
 const ExecutiveOverview = lazy(() => import("./pages/ExecutiveOverview"));
 const LoadDemoTeamData = lazy(() => import("./pages/LoadDemoTeamData"));
 const DemoVideosPage = lazy(() => import("./pages/DemoVideosPage"));
