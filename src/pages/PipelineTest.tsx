@@ -259,7 +259,7 @@ export default function PipelineTest() {
 
     supabase.functions
       .invoke('auto-generate-meeting-notes', {
-        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model, forceSingleShot: spec.forceSingleShot === true },
+        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model, forceSingleShot: spec.forceSingleShot === true, tier: spec.tier },
       })
       .catch(err => {
         console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
