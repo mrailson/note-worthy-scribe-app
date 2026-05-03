@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2, Plus, X, Download } from 'lucide-react';
+import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2, Plus, X, Download, GitCompareArrows } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TEST_FIXTURES, type TestSize, getFixture } from '@/lib/pipelineTestFixtures';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -120,6 +122,8 @@ export default function PipelineTest() {
   const [replayingId, setReplayingId] = useState<string | null>(null);
   const [replayLimit, setReplayLimit] = useState(50);
   const [replayRunIds, setReplayRunIds] = useState<Set<string>>(new Set());
+  const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
+  const [comparePickerOpen, setComparePickerOpen] = useState<string | null>(null);
 
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
@@ -1152,6 +1156,24 @@ export default function PipelineTest() {
           <CardContent>
             <StageProgressList run={activeRun} />
             {activeRun.status === 'completed' && <SummaryStats run={activeRun} />}
+            {activeRun.status === 'completed' && replayRunIds.has(activeRun.id) && (
+              <div className="mt-3">
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setComparePickerOpen(activeRun.id)}
+                >
+                  <GitCompareArrows className="h-3.5 w-3.5 mr-1" /> Compare with another run
+                </Button>
+                {comparePickerOpen === activeRun.id && (
+                  <ComparePicker
+                    currentRunId={activeRun.id}
+                    history={history}
+                    replayRunIds={replayRunIds}
+                    onClose={() => setComparePickerOpen(null)}
+                  />
+                )}
+              </div>
+            )}
             {activeRun.error_message && (
               <div className="mt-3 text-sm text-destructive">{activeRun.error_message}</div>
             )}
@@ -1163,7 +1185,23 @@ export default function PipelineTest() {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-base">Recent runs ({filteredHistory.length})</CardTitle>
+            <CardTitle className="text-base flex items-center gap-3">
+              Recent runs ({filteredHistory.length})
+              <Button
+                size="sm" variant="outline" className="h-7 text-xs"
+                disabled={compareSelected.size !== 2}
+                title={compareSelected.size === 2 ? 'Open side-by-side comparison' : 'Tick exactly 2 runs to compare'}
+                asChild={compareSelected.size === 2}
+              >
+                {compareSelected.size === 2 ? (
+                  <Link to={`/admin/pipeline-compare?compare=${Array.from(compareSelected).join(',')}`}>
+                    <GitCompareArrows className="h-3.5 w-3.5 mr-1" /> Compare selected
+                  </Link>
+                ) : (
+                  <span><GitCompareArrows className="h-3.5 w-3.5 mr-1" /> Compare selected ({compareSelected.size}/2)</span>
+                )}
+              </Button>
+            </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={sizeFilter} onValueChange={setSizeFilter}>
                 <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Size" /></SelectTrigger>
@@ -1214,6 +1252,7 @@ export default function PipelineTest() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 pr-2 w-6"></th>
                     <th className="py-2 pr-4">Started</th>
                     <th className="py-2 pr-4">Size</th>
                     <th className="py-2 pr-4">Model</th>
@@ -1238,6 +1277,20 @@ export default function PipelineTest() {
                       ?? '—';
                     return (
                       <tr key={r.id} className="border-b last:border-b-0">
+                        <td className="py-2 pr-2 w-6">
+                          <Checkbox
+                            checked={compareSelected.has(r.id)}
+                            disabled={r.status !== 'completed' || (compareSelected.size >= 2 && !compareSelected.has(r.id))}
+                            onCheckedChange={(v) => {
+                              setCompareSelected(prev => {
+                                const next = new Set(prev);
+                                if (v) next.add(r.id); else next.delete(r.id);
+                                return next;
+                              });
+                            }}
+                            aria-label="Select for comparison"
+                          />
+                        </td>
                         <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.started_at).toLocaleString()}</td>
                         <td className="py-2 pr-4 capitalize">
                           <span className="inline-flex items-center gap-1">
@@ -1399,3 +1452,91 @@ function SummaryStats({ run }: { run: TestRun }) {
     </div>
   );
 }
+
+/**
+ * Picker shown under a completed Real Meeting Replay run that lets the user
+ * pick another completed replay of the *same* original meeting and jumps to
+ * the side-by-side compare view.
+ */
+function ComparePicker({
+  currentRunId,
+  history,
+  replayRunIds,
+  onClose,
+}: {
+  currentRunId: string;
+  history: TestRun[];
+  replayRunIds: Set<string>;
+  onClose: () => void;
+}) {
+  const [originalMeetingId, setOriginalMeetingId] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<Array<{ id: string; label: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Resolve the original_meeting_id of the current run.
+        const current = history.find(h => h.id === currentRunId);
+        if (!current?.meeting_id) { setLoading(false); return; }
+        const { data: m } = await supabase
+          .from('meetings')
+          .select('id,import_metadata')
+          .eq('id', current.meeting_id)
+          .maybeSingle();
+        const origId: string | null = (m as any)?.import_metadata?.original_meeting_id ?? null;
+        setOriginalMeetingId(origId);
+        if (!origId) { setLoading(false); return; }
+        // Find other completed replay runs for the same original meeting.
+        const otherReplays = history.filter(h =>
+          h.id !== currentRunId && h.status === 'completed' && replayRunIds.has(h.id) && h.meeting_id
+        );
+        const meetingIds = otherReplays.map(h => h.meeting_id!) ;
+        const { data: ms } = await supabase
+          .from('meetings')
+          .select('id,title,import_metadata')
+          .in('id', meetingIds);
+        const map: Record<string, any> = {};
+        for (const x of (ms ?? []) as any[]) map[x.id] = x;
+        const matches = otherReplays.filter(h =>
+          map[h.meeting_id!]?.import_metadata?.original_meeting_id === origId
+        ).map(h => ({
+          id: h.id,
+          label: `${MODELS.find(m => m.value === h.model_override)?.label ?? h.model_override ?? '?'} · ${new Date(h.started_at).toLocaleString('en-GB')}`,
+        }));
+        setCandidates(matches);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [currentRunId]);
+
+  return (
+    <div className="mt-2 border rounded p-3 bg-muted/30 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium">Pick another replay of the same meeting</div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
+      </div>
+      {loading ? (
+        <div className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Loading…</div>
+      ) : !originalMeetingId ? (
+        <div className="text-xs text-muted-foreground">This run is not a Real Meeting Replay — comparison picker is only available for replays.</div>
+      ) : candidates.length === 0 ? (
+        <div className="text-xs text-muted-foreground">No other completed replays found for this original meeting yet.</div>
+      ) : (
+        <div className="space-y-1">
+          {candidates.map(c => (
+            <Link
+              key={c.id}
+              to={`/admin/pipeline-compare?compare=${currentRunId},${c.id}`}
+              className="block text-xs px-2 py-1.5 rounded border hover:bg-muted"
+            >
+              {c.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
