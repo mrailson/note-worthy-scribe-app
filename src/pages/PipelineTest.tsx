@@ -1186,7 +1186,7 @@ export default function PipelineTest() {
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="text-base flex items-center gap-3">
-              Recent runs ({filteredHistory.length})
+              Recent runs ({filteredHistory.length}) · Total £{(filteredHistory.reduce((s, r) => s + (r.cost_usd_est != null ? Number(r.cost_usd_est) : 0), 0) * 0.79).toFixed(4)}
               <Button
                 size="sm" variant="outline" className="h-7 text-xs"
                 disabled={compareSelected.size !== 2}
@@ -1261,7 +1261,7 @@ export default function PipelineTest() {
                     <th className="py-2 pr-4">Total time</th>
                     <th className="py-2 pr-4">Notes gen</th>
                     <th className="py-2 pr-4">Tokens (in/out)</th>
-                    <th className="py-2 pr-4">Cost (USD)</th>
+                    <th className="py-2 pr-4">Cost (GBP)</th>
                     <th className="py-2 pr-4 w-10">Doc</th>
                     <th className="py-2 pr-2 w-8"></th>
                   </tr>
