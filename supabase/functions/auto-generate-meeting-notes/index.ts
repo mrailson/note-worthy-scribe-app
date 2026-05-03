@@ -2149,6 +2149,7 @@ ${cleanedTranscript}`;
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
           console.log('🧠 [attempt] OpenAI gpt-5.2 via gateway');
+          stamp('notes_request_dispatched_at');
           const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -2170,6 +2171,8 @@ ${cleanedTranscript}`;
             throw new Error(`Gateway gpt-5.2 ${response.status}: ${errorData.substring(0, 300)}`);
           }
           const data = await response.json();
+          stamp('notes_first_delta_at');
+          stamp('notes_stream_complete_at');
           notes = data.choices?.[0]?.message?.content || '';
           {
             const inTok = data.usage?.prompt_tokens ?? 0;
@@ -2183,6 +2186,7 @@ ${cleanedTranscript}`;
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
           console.log('🧠 [attempt] OpenAI gpt-5 via gateway');
+          stamp('notes_request_dispatched_at');
           const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -2204,6 +2208,8 @@ ${cleanedTranscript}`;
             throw new Error(`Gateway gpt-5 ${response.status}: ${errorData.substring(0, 300)}`);
           }
           const data = await response.json();
+          stamp('notes_first_delta_at');
+          stamp('notes_stream_complete_at');
           notes = data.choices?.[0]?.message?.content || '';
           {
             const inTok = data.usage?.prompt_tokens ?? 0;
@@ -2230,6 +2236,7 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
           const isPro = modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview';
           const proStart = isPro ? Date.now() : 0;
+          stamp('notes_request_dispatched_at');
           const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -2271,6 +2278,8 @@ ${cleanedTranscript}`;
             if (isPro) proErrorMessage = `Parse error: ${parseErr?.message || 'invalid JSON'}`;
             throw parseErr;
           }
+          stamp('notes_first_delta_at');
+          stamp('notes_stream_complete_at');
           notes = data.choices?.[0]?.message?.content || '';
           {
             // Map gateway model name back to MODEL_PRICING key (strip "google/" + "-preview").
