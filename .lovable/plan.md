@@ -1,51 +1,63 @@
-## Goal
+## Problem
 
-Surface the `LlmModelBadge` and `RegenerateWithSonnetButton` in the meeting notes view so the chunked-by-default architecture is end-to-end usable, then validate against meeting `0bc2717f`.
+On long meetings, two sections render as one giant clumped paragraph in the email body and the attached Word doc:
 
-Both components already exist and are wired to read `notes_model_used` directly from the DB. They just aren't placed in the UI yet.
+1. **Decisions Register** — every `AGREED — …` / `NOTED — …` / `RESOLVED — …` entry is run together on one line, instead of one entry per line.
+2. **Open Items & Risks** — risks separated by " - " inside one paragraph instead of as bullets.
 
-## Changes
+The blue section heading (`DECISIONS REGISTER`, `OPEN ITEMS & RISKS`, `ACTION ITEMS`) shows on some meetings and not others because the AI sometimes welds the heading onto the end of the previous paragraph, so the renderer never matches it as a standalone ALL-CAPS line. Also the first `AGREED:` in a clump is styled blue/bold but subsequent ones aren't, because they're treated as plain inline text.
 
-### 1. `src/components/FullPageNotesModal.tsx`
+This violates the project rule (memory: governance decisions register) that each entry must be on its own plain line as `LABEL — text`.
 
-In the `DialogTitle` row (around line 2936–2941), add the badge + refine button to the right-hand side of the title bar so they appear next to the meeting name whenever the notes modal is open.
+## Fix
+
+Add one shared pre-processor that runs before both the email HTML renderer and the Word renderer. It does four things:
+
+1. **Split governance entries onto their own lines.** Insert a newline before any `RESOLVED — `, `AGREED — `, `NOTED — ` token that appears mid-paragraph (i.e. is preceded by other text on the same line).
+2. **Split run-on risk/open-item paragraphs.** When a paragraph under `OPEN ITEMS & RISKS` contains repeated ` - ` separators, convert each segment into a bullet line.
+3. **Detach welded section headings.** Force a newline before `DECISIONS REGISTER`, `OPEN ITEMS & RISKS`, `ACTION ITEMS`, `OPEN ITEMS`, `RISKS`, `NEXT STEPS` whenever they appear after non-newline text.
+4. **Add breathing room** between governance entries in the rendered output (small `margin-bottom` in email, `spacing.after` in docx) so the block reads as a list, not a wall.
+
+## Files to change
+
+### `src/utils/meetingEmailBuilder.ts`
+- Add a new `splitClumpedSections(text)` helper at top of file.
+- Call it inside `convertToStyledHTML` immediately after `stripDuplicateBlocks`.
+- Bump the governance line `<p>` margin from `8px 0` to `10px 0 10px 20px` so consecutive entries breathe.
+- Keep the existing per-line governance match — once split, each entry will hit it cleanly.
+
+### `src/utils/generateProfessionalMeetingDocx.ts`
+- Import / inline the same `splitClumpedSections` helper.
+- Apply it to `cleanedContent` near line 1414 (just after `normaliseMeetingNotesFormatting`).
+- Add a governance-line branch in the parser loop (mirroring the email's `governanceMatch`) that renders `LABEL — text` as a plain indented paragraph with `spacing.after: 120` so each entry sits on its own line in the Word doc.
+
+### Shared helper logic (in both files, or a small new `src/utils/meeting/normaliseGovernanceLayout.ts` imported by both)
 
 ```text
-[Bot icon]  Meeting Title - Meeting Notes        [Claude Sonnet 4.6 · chunked]  [Regenerate with Sonnet]
+splitClumpedSections(text):
+  # 1. Detach welded section headings
+  text = text.replace(/(\S)[ \t]*(DECISIONS REGISTER|OPEN ITEMS(?: & RISKS)?|ACTION ITEMS|RISKS|NEXT STEPS)\b/g,
+                       "$1\n\n$2")
+  # 2. Split governance entries
+  text = text.replace(/([^\n])\s+(RESOLVED|AGREED|NOTED)\s+—\s+/g, "$1\n$2 — ")
+  # 3. Split run-on risk paragraphs:
+  #    inside any paragraph that follows OPEN ITEMS & RISKS and contains
+  #    two or more " - " markers, replace " - " with "\n- "
+  text = applyToOpenItemsBlock(text, para =>
+    (para.match(/ - /g)?.length ?? 0) >= 2
+      ? para.replace(/\s+-\s+/g, "\n- ")
+      : para
+  )
+  return text
 ```
 
-- Import `LlmModelBadge` and `RegenerateWithSonnetButton` from `src/components/meeting-history/`.
-- Render them inside the `DialogTitle` flex row, after the truncating title span, with `flex-shrink-0` so they don't get squashed.
-- Pass `meetingId={meeting.id}` to both.
-- For `RegenerateWithSonnetButton`, pass an `onRefined` callback that re-runs the existing notes refresh (re-fetch `notes_style_3` from the DB — the modal already has a realtime subscription on lines 908–911 plus the `notesUpdated` event handler, so a simple reload of `notes_style_3` is enough).
-- The button is self-hiding when `notes_model_used` doesn't include `+chunked-haiku`, so no extra conditional is needed.
+Creating the helper as its own module keeps the email and docx paths in lock-step and avoids drift.
 
-### 2. Mobile consideration
+## Result
 
-On the 402px viewport the title row will be tight. Wrap the right-hand cluster so on mobile the badge sits below the title:
+- Each `AGREED / NOTED / RESOLVED` entry sits on its own plain line, no bold colour, no bullet — matches the project rule.
+- `DECISIONS REGISTER`, `OPEN ITEMS & RISKS`, `ACTION ITEMS` always render as the blue uppercase heading because they always start a new line.
+- Risks list reads as bullets, not a wall of text.
+- Same layout in the email body and the attached Word doc, so before/after comparison in the Pipeline Test is consistent.
 
-```text
-flex items-center gap-2 flex-wrap
-```
-
-Keep the title span as `truncate min-w-0`, and the badge/button cluster as `flex-shrink-0 flex items-center gap-2 ml-auto`.
-
-### 3. Validation (after deploy)
-
-1. Open meeting `0bc2717f-35ae-4a43-bd77-8cc0a8fac66e` in the notes modal — confirm the badge reads "Claude Sonnet 4.6 · chunked" (it last regenerated on the chunked path).
-2. Click "Regenerate with Sonnet" — confirm:
-   - Status flips to `queued` → `generating` (spinner appears).
-   - Edge function runs with `forceSingleShot: true`.
-   - On completion, `notes_model_used` updates to `claude-sonnet-4-6+refined`, badge re-reads as "Claude Sonnet 4.6 · refined", refine button hides itself.
-   - `refine_count` on the meetings row increments.
-3. Trigger a fresh auto-generation on a short test meeting (<15k chars transcript) — confirm it skips chunking, badge reads plain "Claude Sonnet 4.6", refine button does NOT appear.
-
-## What's NOT in scope
-
-- No DB migration (the `refine_count` column was added in the previous step).
-- No edge function changes — `auto-generate-meeting-notes` already handles `forceSingleShot` and the `+refined` stamp.
-- No changes to `MobileNotesSheet` / `SafeModeNotesModal` in this pass — we'll add the same badge there in a follow-up only if you want the refine flow available on the mobile sheet too.
-
-## Files touched
-
-- `src/components/FullPageNotesModal.tsx` (header row only)
+No backend / edge function changes needed — this is purely renderer-side, so it fixes the email body and Word attachment for every existing meeting on the next send.
