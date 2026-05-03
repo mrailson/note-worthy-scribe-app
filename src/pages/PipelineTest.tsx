@@ -176,6 +176,7 @@ export default function PipelineTest() {
     model: string;
     isCustom: boolean;
     forceSingleShot?: boolean;
+    tier?: 'executive' | 'full' | 'verbatim';
   }
 
   function classifySize(words: number): TestSize {
