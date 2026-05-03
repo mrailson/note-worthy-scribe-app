@@ -5,6 +5,7 @@
  */
 
 import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
+import { normaliseGovernanceLayout } from "@/utils/meeting/normaliseGovernanceLayout";
 
 export interface MeetingEmailMeta {
   date?: string;
