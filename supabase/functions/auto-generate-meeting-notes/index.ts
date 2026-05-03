@@ -2249,7 +2249,10 @@ ${cleanedTranscript}`;
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
               ],
-              max_completion_tokens: 8000,
+              // GPT-5 is a reasoning model — reasoning tokens count against this
+              // budget, so 8000 frequently exhausted before any visible content
+              // was emitted. 32000 leaves ample room for hidden CoT plus notes.
+              max_completion_tokens: 32000,
             }),
             signal: attemptController.signal,
           });
