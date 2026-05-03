@@ -192,6 +192,10 @@ export const convertToStyledHTML = (text: string): string => {
         html += `<strong style="color: #2563EB;">${number}. ${heading}</strong>`;
         if (bodyText) html += ` <span style="color: #1a1a1a; font-weight: normal;">${bodyText}</span>`;
         html += `</p>\n`;
+      } else if (fullText.length > 80) {
+        // Long numbered line with no colon — model jammed a heading and body paragraph onto one line.
+        // Render as plain paragraph with only the number bolded so we don't blue-bold the whole body.
+        html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a;"><strong style="color: #2563EB;">${number}.</strong> ${fullText}</p>\n`;
       } else {
         html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
       }
