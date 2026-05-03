@@ -245,6 +245,33 @@ export default function PipelineTest() {
     }
   }
 
+  async function downloadOriginalNotes(m: ReplayMeeting) {
+    try {
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('title,notes_style_3')
+        .eq('id', m.id)
+        .maybeSingle();
+      if (error) throw error;
+      const notes = (data as any)?.notes_style_3 as string | null;
+      if (!notes) {
+        toast({ title: 'No saved notes', description: 'This meeting has no original notes to download.', variant: 'destructive' });
+        return;
+      }
+      const title = (data as any)?.title || m.title || 'Meeting notes';
+      const { generateCleanAIResponseBlob } = await import('@/utils/cleanWordExport');
+      const blob = await generateCleanAIResponseBlob(notes, title, { footerNote: 'Original notes — pre-replay baseline' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 60)}_original.docx`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast({ title: 'Download failed', description: err.message, variant: 'destructive' });
+    }
+  }
+
   async function refreshHistory() {
     const { data } = await supabase
       .from('pipeline_test_runs')
@@ -945,14 +972,24 @@ export default function PipelineTest() {
                         {m.notes_model_used ? <> · original: <span className="font-mono">{m.notes_model_used}</span></> : null}
                       </div>
                     </div>
-                    <Button
-                      variant="outline" size="sm"
-                      disabled={isReplaying || isAnyRunning}
-                      onClick={() => replayMeeting(m)}
-                    >
-                      {isReplaying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-                      Replay
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => downloadOriginalNotes(m)}
+                        title="Download original notes as Word doc for before/after comparison"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Original
+                      </Button>
+                      <Button
+                        variant="outline" size="sm"
+                        disabled={isReplaying || isAnyRunning}
+                        onClick={() => replayMeeting(m)}
+                      >
+                        {isReplaying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+                        Replay
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
