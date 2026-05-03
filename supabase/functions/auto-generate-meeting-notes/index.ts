@@ -3059,6 +3059,8 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     } catch (overviewError) {
       console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
     }
+    // Stage 8 — post-processing complete (action extraction + overview generation done).
+    stamp('notes_post_processing_complete_at');
 
     // Update meeting with completion status, word count, AI overview, and generated title
     const { error: statusUpdateError } = await supabase
