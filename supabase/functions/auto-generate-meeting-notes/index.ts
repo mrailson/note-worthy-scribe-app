@@ -2266,6 +2266,16 @@ ${cleanedTranscript}`;
             throw parseErr;
           }
           notes = data.choices?.[0]?.message?.content || '';
+          {
+            // Map gateway model name back to MODEL_PRICING key (strip "google/" + "-preview").
+            const pricingKey = geminiModel.replace(/^google\//, '').replace(/-preview$/, '');
+            const inTok = data.usage?.prompt_tokens ?? 0;
+            const outTok = data.usage?.completion_tokens ?? 0;
+            const cost = estimateCostUsd(pricingKey, inTok, outTok);
+            supabase.from('meetings').update({
+              notes_input_tokens: inTok, notes_output_tokens: outTok, notes_cost_usd_est: cost,
+            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+          }
         }
         if (!notes || notes.trim().length === 0) {
           throw new Error('AI returned empty content');
