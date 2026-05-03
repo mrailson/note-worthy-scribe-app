@@ -114,6 +114,9 @@ export const MeetingDetailsTabs = ({
   const handleGenerateNotes = async () => {
     try {
       setIsGenerating(true);
+      // Flip status locally immediately so the "running" banner appears
+      // without waiting for the realtime/DB round-trip.
+      setLocalGenerationStatus('queued');
 
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
