@@ -622,6 +622,20 @@ const Index = () => {
         {isMobile && user && !isIPhone && <Link to="/executive-overview" className="fixed bottom-32 right-4 z-40 flex items-center justify-center w-11 h-11 rounded-full bg-background border border-border shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95" aria-label="Executive Overview">
             <Building2 className="w-5 h-5 text-primary" />
           </Link>}
+
+        {/* Admin tools — mobile only, admin only */}
+        {isMobile && user && isSystemAdmin && (
+          <div className="md:hidden px-4 pb-24 pt-2">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Admin tools</div>
+            <Link
+              to="/admin/pipeline-tests"
+              className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm shadow-sm active:bg-muted"
+            >
+              <FlaskConical className="h-4 w-4 text-primary" />
+              <span>Pipeline Tests</span>
+            </Link>
+          </div>
+        )}
     </div>;
 };
 export default Index;
