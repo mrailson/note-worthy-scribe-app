@@ -293,7 +293,7 @@ export default function PipelineTest() {
           }).eq('id', runId);
           return;
         }
-        if (status === 'failed') return;
+        if (status === 'failed' || status === 'insufficient_content') return;
       }
 
       await new Promise(r => setTimeout(r, 2000));
