@@ -73,6 +73,7 @@ const EnhancedAccess = lazy(() => import("./pages/EnhancedAccess"));
 const AdminVideoUpload = lazy(() => import("./components/admin/AdminVideoUpload").then(m => ({ default: m.AdminVideoUpload })));
 const AdminChunkRepair = lazy(() => import("./pages/AdminChunkRepair"));
 const LLMDiagnostics = lazy(() => import("./pages/LLMDiagnostics"));
+const PipelineTest = lazy(() => import("./pages/PipelineTest"));
 const ExecutiveOverview = lazy(() => import("./pages/ExecutiveOverview"));
 const LoadDemoTeamData = lazy(() => import("./pages/LoadDemoTeamData"));
 const DemoVideosPage = lazy(() => import("./pages/DemoVideosPage"));
@@ -256,6 +257,7 @@ const App = () => {
                 <Route path="/admin/demo-video" element={<AdminVideoUpload />} />
                 <Route path="/admin/chunk-repair" element={<AdminChunkRepair />} />
                 <Route path="/admin/llm-diagnostics" element={<LLMDiagnostics />} />
+                <Route path="/admin/pipeline-test" element={<PipelineTest />} />
                 <Route path="/practice-admin" element={<PracticeAdmin />} />
                 <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
                 <Route path="/attendees" element={<Attendees />} />

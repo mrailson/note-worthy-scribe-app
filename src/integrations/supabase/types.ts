@@ -7588,6 +7588,7 @@ export type Database = {
           mixed_audio_url: string | null
           notes_config: Json | null
           notes_email_sent_at: string | null
+          notes_first_delta_at: string | null
           notes_generation_status: string | null
           notes_model_attempt: number
           notes_model_used: string | null
@@ -7665,6 +7666,7 @@ export type Database = {
           mixed_audio_url?: string | null
           notes_config?: Json | null
           notes_email_sent_at?: string | null
+          notes_first_delta_at?: string | null
           notes_generation_status?: string | null
           notes_model_attempt?: number
           notes_model_used?: string | null
@@ -7742,6 +7744,7 @@ export type Database = {
           mixed_audio_url?: string | null
           notes_config?: Json | null
           notes_email_sent_at?: string | null
+          notes_first_delta_at?: string | null
           notes_generation_status?: string | null
           notes_model_attempt?: number
           notes_model_used?: string | null
@@ -10052,6 +10055,101 @@ export type Database = {
             columns: ["practice_id"]
             isOneToOne: false
             referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_test_runs: {
+        Row: {
+          action_count: number | null
+          created_at: string
+          diagnostic_log: Json | null
+          email_recipient: string | null
+          email_sent_at: string | null
+          email_triggered_at: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          meeting_id: string | null
+          meeting_inserted_at: string | null
+          notes_chars: number | null
+          notes_completed_at: string | null
+          notes_first_delta_at: string | null
+          notes_invoked_at: string | null
+          notes_model_used: string | null
+          notes_path: string | null
+          notes_status_generating_at: string | null
+          started_at: string
+          status: string
+          summary_inserted_at: string | null
+          test_size: string
+          transcript_chars: number
+          transcript_inserted_at: string | null
+          transcript_words: number
+          user_id: string
+        }
+        Insert: {
+          action_count?: number | null
+          created_at?: string
+          diagnostic_log?: Json | null
+          email_recipient?: string | null
+          email_sent_at?: string | null
+          email_triggered_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          meeting_id?: string | null
+          meeting_inserted_at?: string | null
+          notes_chars?: number | null
+          notes_completed_at?: string | null
+          notes_first_delta_at?: string | null
+          notes_invoked_at?: string | null
+          notes_model_used?: string | null
+          notes_path?: string | null
+          notes_status_generating_at?: string | null
+          started_at?: string
+          status?: string
+          summary_inserted_at?: string | null
+          test_size: string
+          transcript_chars: number
+          transcript_inserted_at?: string | null
+          transcript_words: number
+          user_id: string
+        }
+        Update: {
+          action_count?: number | null
+          created_at?: string
+          diagnostic_log?: Json | null
+          email_recipient?: string | null
+          email_sent_at?: string | null
+          email_triggered_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          meeting_id?: string | null
+          meeting_inserted_at?: string | null
+          notes_chars?: number | null
+          notes_completed_at?: string | null
+          notes_first_delta_at?: string | null
+          notes_invoked_at?: string | null
+          notes_model_used?: string | null
+          notes_path?: string | null
+          notes_status_generating_at?: string | null
+          started_at?: string
+          status?: string
+          summary_inserted_at?: string | null
+          test_size?: string
+          transcript_chars?: number
+          transcript_inserted_at?: string | null
+          transcript_words?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_test_runs_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
         ]

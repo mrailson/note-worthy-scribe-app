@@ -2131,6 +2131,15 @@ ${cleanedTranscript}`;
         if (!notes || notes.trim().length === 0) {
           throw new Error('AI returned empty content');
         }
+        // Fire-and-forget: stamp first-token time on the meeting (used by /admin/pipeline-test
+        // and useful in production for slow-response diagnostics). Non-streaming providers
+        // approximate this as the moment the response body is fully received.
+        supabase
+          .from('meetings')
+          .update({ notes_first_delta_at: new Date().toISOString() })
+          .eq('id', meetingId)
+          .is('notes_first_delta_at', null)
+          .then(() => {}, () => {});
         return notes;
       } finally {
         clearTimeout(attemptTimeout);
