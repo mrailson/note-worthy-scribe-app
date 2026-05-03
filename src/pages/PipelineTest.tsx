@@ -225,7 +225,7 @@ export default function PipelineTest() {
     while (Date.now() - start < STAGE_TIMEOUT_MS) {
       const { data: meeting } = await supabase
         .from('meetings')
-        .select('notes_generation_status, notes_model_used, notes, updated_at')
+        .select('notes_generation_status, notes_model_used, notes_style_3, notes_first_delta_at, updated_at')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -236,8 +236,11 @@ export default function PipelineTest() {
         if (status === 'generating' && lastStatus !== 'generating') {
           updates.notes_status_generating_at = meeting.updated_at ?? new Date().toISOString();
         }
+        if (meeting.notes_first_delta_at) {
+          updates.notes_first_delta_at = meeting.notes_first_delta_at;
+        }
         if (status === 'completed') {
-          const notesChars = (meeting.notes ?? '').length;
+          const notesChars = (meeting.notes_style_3 ?? '').length;
           updates.notes_completed_at = meeting.updated_at ?? new Date().toISOString();
           updates.notes_model_used = meeting.notes_model_used;
           updates.notes_chars = notesChars;
