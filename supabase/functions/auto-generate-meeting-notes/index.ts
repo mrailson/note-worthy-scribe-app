@@ -2066,7 +2066,10 @@ ${cleanedTranscript}`;
                 if (eventType === 'content_block_delta') {
                   const delta = payload?.delta;
                   if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
-                    if (!firstDeltaWritten) {
+                    // Only stamp first-token on a delta that actually carries text.
+                    // Anthropic occasionally emits a zero-length text_delta right after
+                    // content_block_start, which would falsely register as <2ms TTFT.
+                    if (!firstDeltaWritten && delta.text.length > 0) {
                       firstDeltaWritten = true;
                       // Stage 6 — model time-to-first-token.
                       stamp('notes_first_delta_at');
