@@ -974,23 +974,15 @@ serve(async (req) => {
     // Prevents the LLM from hallucinating meeting content from very short or
     // non-meeting recordings (e.g. game-show audio, test recordings, brief
     // background noise). Bypassed when the caller passes forceGenerate: true.
-    const MIN_TRANSCRIPT_WORDS = 300;
-    const MIN_DURATION_SECONDS = 180;
-    const meetingDurationSeconds = meeting.duration_minutes != null
-      ? Math.round(Number(meeting.duration_minutes) * 60)
-      : null;
+    const MIN_TRANSCRIPT_WORDS = 100;
     if (!forceGenerate) {
       const transcriptTooShort = wordCount < MIN_TRANSCRIPT_WORDS;
-      const durationTooShort = meetingDurationSeconds != null && meetingDurationSeconds < MIN_DURATION_SECONDS;
-      if (transcriptTooShort || durationTooShort) {
-        const skipReason: 'transcript_too_short' | 'duration_too_short' | 'both_too_short' =
-          transcriptTooShort && durationTooShort ? 'both_too_short'
-            : transcriptTooShort ? 'transcript_too_short'
-            : 'duration_too_short';
+      if (transcriptTooShort) {
+        const skipReason: 'transcript_too_short' = 'transcript_too_short';
 
-        console.log(`⛔ Pipeline guard: insufficient content (${skipReason}) — words=${wordCount}, duration=${meetingDurationSeconds}s`);
+        console.log(`⛔ Pipeline guard: insufficient content (${skipReason}) — words=${wordCount}`);
 
-        const friendlyMessage = `# Recording too short for meeting notes\n\nThis recording is too short to generate meeting notes (${meetingDurationSeconds ?? '—'} seconds, ${wordCount} words). Meeting notes work best on recordings over 3 minutes with substantive discussion.\n\nIf this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Notewell AI declined to generate notes to avoid hallucinating content from a recording that does not appear to be a meeting.*`;
+        const friendlyMessage = `# Recording too short for meeting notes\n\nThis recording is too short to generate meeting notes (${wordCount} words). Meeting notes work best on substantive recordings of around 100 words or more.\n\nIf this recording is genuinely a meeting, please use the **Override and generate anyway** button on the meeting card, or contact support.\n\n---\n\n*Notewell AI declined to generate notes to avoid hallucinating content from a recording that does not appear to be a meeting.*`;
 
         try {
           await supabase.from('meeting_summaries').upsert({
@@ -1000,7 +992,6 @@ serve(async (req) => {
               status: 'insufficient_content',
               reason: skipReason,
               transcript_word_count: wordCount,
-              duration_seconds: meetingDurationSeconds,
               guard: 'pipeline',
             },
             ai_generated: false,
