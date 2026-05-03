@@ -1239,7 +1239,14 @@ export default function PipelineTest() {
                     return (
                       <tr key={r.id} className="border-b last:border-b-0">
                         <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.started_at).toLocaleString()}</td>
-                        <td className="py-2 pr-4 capitalize">{r.test_size}</td>
+                        <td className="py-2 pr-4 capitalize">
+                          <span className="inline-flex items-center gap-1">
+                            {r.test_size}
+                            {replayRunIds.has(r.id) && (
+                              <Badge variant="outline" className="text-[10px]">replay</Badge>
+                            )}
+                          </span>
+                        </td>
                         <td className="py-2 pr-4 text-xs">{modelLabel}</td>
                         <td className="py-2 pr-4">
                           <Badge
