@@ -178,8 +178,12 @@ export default function PipelineTest() {
       if (!user) return;
       // Fetch this user's own meetings ≥45 minutes that have transcript content,
       // plus J. Railson's meetings (she is the main test subject we are fixing).
-      const RAILSON_USER_ID = 'd240f0ba-2727-4c7f-aa3c-da4de0f0a033';
-      const userIds = Array.from(new Set([user.id, RAILSON_USER_ID]));
+      // Julia Railson has two accounts — include both so all her meetings appear.
+      const RAILSON_USER_IDS = [
+        'd240f0ba-2727-4c7f-aa3c-da4de0f0a033', // j.railson@nhs.net (profiles row)
+        'fcfad128-2a65-4fd0-8b15-5d990262172f', // j.railson@nhs.net (auth account that owns the LMC meetings)
+      ];
+      const userIds = Array.from(new Set([user.id, ...RAILSON_USER_IDS]));
       const { data: meetings, error } = await supabase
         .from('meetings')
         .select('id,title,created_at,duration_minutes,notes_model_used,user_id')
