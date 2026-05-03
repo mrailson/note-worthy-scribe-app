@@ -1692,6 +1692,14 @@ KNOWN CORRECTIONS — apply these and similar phonetic variations throughout:
 ${correctionsBlock}`;
     }
 
+    // Tier override — when Pipeline Test selects executive/full/verbatim, replace
+    // the assembled prompt entirely with the tier prompt. Date context is still
+    // injected as a header so temporal framing remains correct.
+    if (minuteTier) {
+      systemPrompt = `MEETING DATE CONTEXT: ${formattedDate} (year ${meetingYear}). Resolve all relative dates against this anchor; never use a year earlier than ${meetingYear} unless the transcript says so.\n\n${MINUTE_PROMPTS[minuteTier]}`;
+      console.log(`📐 [tier] systemPrompt replaced with '${minuteTier}' template (length=${systemPrompt.length})`);
+    }
+
     // Diagnostic
     const tierMarkerPresent = systemPrompt.includes('LENGTH: Concise tier')
       || systemPrompt.includes('LENGTH: Detailed tier');
