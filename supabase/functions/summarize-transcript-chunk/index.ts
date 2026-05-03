@@ -85,6 +85,10 @@ Meeting date: ${meetingDate} (year = ${meetingYear}).
 Resolve all bare or relative dates (e.g. "1st May", "next month", "Friday") against the
 meeting date above, NOT against your training cutoff. NEVER write a year earlier than
 ${meetingYear} unless this chunk EXPLICITLY uses that earlier year.
+
+TEMPORAL FRAMING: events/deadlines BEFORE the meeting date are reported in past tense;
+events ON OR AFTER the meeting date remain in present/future tense. Resolve relative
+phrases ("last June", "this winter") to calendar references.
 ══════════════════════════════
 \n\n`
       : '';
