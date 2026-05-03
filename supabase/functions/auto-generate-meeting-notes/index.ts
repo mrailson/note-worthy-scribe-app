@@ -2236,6 +2236,7 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Gemini model: ${geminiModel}`);
           const isPro = modelKey === 'gemini-3.1-pro' || modelKey === 'gemini-3.1-pro-preview';
           const proStart = isPro ? Date.now() : 0;
+          stamp('notes_request_dispatched_at');
           const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
             method: 'POST',
             headers: {
