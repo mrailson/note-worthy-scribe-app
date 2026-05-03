@@ -25,6 +25,29 @@ const DEFAULT_GENERATION_MODEL = 'claude-sonnet-4-6';
 const DEFAULT_DETAIL_TIER = 'standard' as const;
 const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3.1-pro'];
 
+// ─────────────────────────────────────────────────────────────────────────
+// Public list prices per 1M tokens (input / output) as of May 2026.
+// These are estimates — the Lovable AI Gateway may apply markup. Refine
+// from real billing data once we have a few weeks of test runs.
+// Keys must match the modelOverride / claudeModel string used at the
+// attempt site (NOT the gateway-prefixed "google/..." form).
+// ─────────────────────────────────────────────────────────────────────────
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'gpt-5':             { input: 5.00, output: 20.00 },
+  'gpt-5.2':           { input: 5.00, output: 20.00 },
+  'gemini-3.1-pro':    { input: 2.50, output: 10.00 },
+  'gemini-2.5-pro':    { input: 2.50, output: 10.00 },
+  'gemini-2.5-flash':  { input: 0.075, output: 0.30 },
+  'gemini-3-flash':    { input: 0.05,  output: 0.20 },
+};
+
+function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number | null {
+  const p = MODEL_PRICING[model];
+  if (!p) return null;
+  return (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
+}
+
 // Large transcript cleaning functions
 function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string[] {
   if (text.length <= target) return [text];
@@ -2052,6 +2075,8 @@ ${cleanedTranscript}`;
           let buffer = '';
           let firstDeltaWritten = false;
           let sawMessageStop = false;
+          let usageInputTokens = 0;
+          let usageOutputTokens = 0;
           try {
             while (true) {
               const { done, value } = await reader.read();
@@ -2070,7 +2095,15 @@ ${cleanedTranscript}`;
                 let payload: any;
                 try { payload = JSON.parse(dataLine); } catch { continue; }
                 const eventType = payload?.type;
-                if (eventType === 'content_block_delta') {
+                if (eventType === 'message_start') {
+                  // input_tokens are known up-front from the prompt.
+                  usageInputTokens = payload?.message?.usage?.input_tokens ?? 0;
+                } else if (eventType === 'message_delta') {
+                  // Anthropic streams the cumulative output_tokens here.
+                  if (payload?.usage?.output_tokens != null) {
+                    usageOutputTokens = payload.usage.output_tokens;
+                  }
+                } else if (eventType === 'content_block_delta') {
                   const delta = payload?.delta;
                   if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
                     // Only stamp first-token on a delta that actually carries text.
@@ -2096,7 +2129,16 @@ ${cleanedTranscript}`;
           }
           // Stage 7 — stream complete (pure model generation time).
           stamp('notes_stream_complete_at');
-          console.log(`✅ Sonnet stream complete: chars=${notes.length}, message_stop=${sawMessageStop}`);
+          console.log(`✅ Sonnet stream complete: chars=${notes.length}, message_stop=${sawMessageStop}, in=${usageInputTokens}, out=${usageOutputTokens}`);
+          // Persist token usage + estimated cost. Fire-and-forget — same pattern as stamp().
+          {
+            const cost = estimateCostUsd(claudeModel, usageInputTokens, usageOutputTokens);
+            supabase.from('meetings').update({
+              notes_input_tokens: usageInputTokens,
+              notes_output_tokens: usageOutputTokens,
+              notes_cost_usd_est: cost,
+            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+          }
         } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
@@ -2123,6 +2165,14 @@ ${cleanedTranscript}`;
           }
           const data = await response.json();
           notes = data.choices?.[0]?.message?.content || '';
+          {
+            const inTok = data.usage?.prompt_tokens ?? 0;
+            const outTok = data.usage?.completion_tokens ?? 0;
+            const cost = estimateCostUsd('gpt-5.2', inTok, outTok);
+            supabase.from('meetings').update({
+              notes_input_tokens: inTok, notes_output_tokens: outTok, notes_cost_usd_est: cost,
+            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+          }
         } else if (modelKey === 'gpt-5') {
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
@@ -2149,6 +2199,14 @@ ${cleanedTranscript}`;
           }
           const data = await response.json();
           notes = data.choices?.[0]?.message?.content || '';
+          {
+            const inTok = data.usage?.prompt_tokens ?? 0;
+            const outTok = data.usage?.completion_tokens ?? 0;
+            const cost = estimateCostUsd('gpt-5', inTok, outTok);
+            supabase.from('meetings').update({
+              notes_input_tokens: inTok, notes_output_tokens: outTok, notes_cost_usd_est: cost,
+            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+          }
         } else {
           // Gemini routing.
           //   'gemini-3.1-pro' / 'gemini-3.1-pro-preview' → google/gemini-3.1-pro-preview (default)
@@ -2208,6 +2266,16 @@ ${cleanedTranscript}`;
             throw parseErr;
           }
           notes = data.choices?.[0]?.message?.content || '';
+          {
+            // Map gateway model name back to MODEL_PRICING key (strip "google/" + "-preview").
+            const pricingKey = geminiModel.replace(/^google\//, '').replace(/-preview$/, '');
+            const inTok = data.usage?.prompt_tokens ?? 0;
+            const outTok = data.usage?.completion_tokens ?? 0;
+            const cost = estimateCostUsd(pricingKey, inTok, outTok);
+            supabase.from('meetings').update({
+              notes_input_tokens: inTok, notes_output_tokens: outTok, notes_cost_usd_est: cost,
+            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+          }
         }
         if (!notes || notes.trim().length === 0) {
           throw new Error('AI returned empty content');
