@@ -13,6 +13,7 @@ import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, 
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
 import { useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 
 interface AttachmentMeta {
   name: string;
