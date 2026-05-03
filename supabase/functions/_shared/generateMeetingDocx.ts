@@ -411,6 +411,12 @@ const parseContentToDocxElements = (content: string): any[] => {
         if (excludeIndices.size > 0) { headerCells = headerCells.filter((_, idx) => !excludeIndices.has(idx)); bodyRows = bodyRows.map(row => row.filter((_, idx) => !excludeIndices.has(idx))); }
         const colCount = headerCells.length;
         const colW = headerCells.map(() => Math.round(100 / colCount));
+        // Normalise body rows: pad short rows, truncate over-long rows so colW[ci] is always defined.
+        bodyRows = bodyRows.map(row => {
+          if (row.length === colCount) return row;
+          if (row.length > colCount) return row.slice(0, colCount);
+          return [...row, ...Array(colCount - row.length).fill('')];
+        });
 
         const table = new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
