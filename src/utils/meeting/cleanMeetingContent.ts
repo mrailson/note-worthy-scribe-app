@@ -373,8 +373,21 @@ export const normaliseMeetingNotesFormatting = (content: string): string => {
   );
 
   // Split governance labels when they have been appended to previous prose.
-  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+[—–-]/g, '$1\n- **$3** —');
-  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+/g, '$1\n- **$3** ');
+  // New format: plain "LABEL — text" line (no bullet, no bold).
+  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+[—–-]/g, '$1\n$3 —');
+  cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+/g, '$1\n$3 ');
+
+  // Strip leftover bullet + bold from existing decision lines:
+  // "- **AGREED** — text" → "AGREED — text"
+  cleaned = cleaned.replace(
+    /^\s*[-•*]\s*\*{0,2}\s*(RESOLVED|AGREED|NOTED|ACTION|DEFERRED|RECOMMENDED)\s*\*{0,2}\s*[—–-]\s*/gim,
+    '$1 — '
+  );
+  // Strip "AGREED:" → "AGREED —"
+  cleaned = cleaned.replace(
+    /^(\s*)(RESOLVED|AGREED|NOTED|ACTION|DEFERRED|RECOMMENDED):\s*/gim,
+    '$1$2 — '
+  );
 
   cleaned = normaliseLoosePipeRows(cleaned);
 
