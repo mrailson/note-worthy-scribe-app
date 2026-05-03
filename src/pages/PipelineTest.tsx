@@ -694,7 +694,30 @@ export default function PipelineTest() {
             </Select>
           </div>
 
-          {/* Force single-shot toggle — bypasses chunked path even on long fixtures.
+          {/* Output tier selector — picks the NHS PCN minute prompt template. */}
+          <div className="flex flex-col gap-2 max-w-md">
+            <label className="text-xs font-medium text-muted-foreground">Output tier</label>
+            <RadioGroup
+              value={outputTier}
+              onValueChange={(v) => setOutputTier(v as any)}
+              className="grid grid-cols-1 gap-1.5"
+            >
+              {[
+                { v: 'executive', label: 'Executive', hint: '~700 words — circulation copy' },
+                { v: 'full',      label: 'Full',      hint: '~1,800 words — governance record' },
+                { v: 'verbatim',  label: 'Verbatim',  hint: '~3,000+ words — defensible record (SEAs / complaints / Programme Board)' },
+              ].map(opt => (
+                <label key={opt.v} className="flex items-start gap-2 text-sm cursor-pointer">
+                  <RadioGroupItem value={opt.v} disabled={isAnyRunning} className="mt-0.5" />
+                  <span>
+                    <span className="font-medium">{opt.label}</span>
+                    <span className="text-xs text-muted-foreground"> — {opt.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+
               Mirrors the production "Regenerate with Sonnet" refine flow. */}
           <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer max-w-2xl">
             <input
