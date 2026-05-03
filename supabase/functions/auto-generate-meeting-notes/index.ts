@@ -2075,6 +2075,8 @@ ${cleanedTranscript}`;
           let buffer = '';
           let firstDeltaWritten = false;
           let sawMessageStop = false;
+          let usageInputTokens = 0;
+          let usageOutputTokens = 0;
           try {
             while (true) {
               const { done, value } = await reader.read();
@@ -2093,7 +2095,15 @@ ${cleanedTranscript}`;
                 let payload: any;
                 try { payload = JSON.parse(dataLine); } catch { continue; }
                 const eventType = payload?.type;
-                if (eventType === 'content_block_delta') {
+                if (eventType === 'message_start') {
+                  // input_tokens are known up-front from the prompt.
+                  usageInputTokens = payload?.message?.usage?.input_tokens ?? 0;
+                } else if (eventType === 'message_delta') {
+                  // Anthropic streams the cumulative output_tokens here.
+                  if (payload?.usage?.output_tokens != null) {
+                    usageOutputTokens = payload.usage.output_tokens;
+                  }
+                } else if (eventType === 'content_block_delta') {
                   const delta = payload?.delta;
                   if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
                     // Only stamp first-token on a delta that actually carries text.
@@ -2119,7 +2129,16 @@ ${cleanedTranscript}`;
           }
           // Stage 7 — stream complete (pure model generation time).
           stamp('notes_stream_complete_at');
-          console.log(`✅ Sonnet stream complete: chars=${notes.length}, message_stop=${sawMessageStop}`);
+          console.log(`✅ Sonnet stream complete: chars=${notes.length}, message_stop=${sawMessageStop}, in=${usageInputTokens}, out=${usageOutputTokens}`);
+          // Persist token usage + estimated cost. Fire-and-forget — same pattern as stamp().
+          {
+            const cost = estimateCostUsd(claudeModel, usageInputTokens, usageOutputTokens);
+            supabase.from('meetings').update({
+              notes_input_tokens: usageInputTokens,
+              notes_output_tokens: usageOutputTokens,
+              notes_cost_usd_est: cost,
+            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+          }
         } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
