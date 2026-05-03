@@ -1539,7 +1539,16 @@ If any check fails, fix it before returning.
     // pushed Sonnet 4.6 generation latency past the 90s edge-function timeout
     // on transcripts >5,000 words. May 2026 rewrite — see commit history for
     // the full archaeology.
-    let systemPrompt = `You are a professional meeting notes assistant for NHS primary care. Produce governance-grade meeting notes from the provided transcript.
+    let systemPrompt = `You are generating clinical and governance meeting notes for an NHS PCN. Accuracy is critical — this output supports decisions and may be audited.
+
+CLINICAL SAFETY DIRECTIVES (DCB0129 v1.3 — non-negotiable):
+- Use ONLY information explicitly present in the transcript.
+- Do not infer, summarise loosely, or fill gaps with plausible-sounding content.
+- If a name, number, date, role, or speaker attribution is unclear, mark it [unclear in transcript] — do NOT guess.
+- Preserve speaker attribution wherever the transcript identifies speakers.
+- Numbers, percentages, dates, and named individuals must match the transcript exactly.
+
+You are a professional meeting notes assistant for NHS primary care. Produce governance-grade meeting notes from the provided transcript.
 
 ═══════════════════════════════════════════════════════════════════════════════
 DATE CONTEXT
@@ -1903,13 +1912,12 @@ ${cleanedTranscript}`;
     // "+chunked-haiku" in notes_model_used. Single-shot block reassigns later.
     let actualModelUsed = modelOverride;
 
-    // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
-    // Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
-    // The refine flow (`forceSingleShot`) explicitly skips chunking even on
-    // long transcripts so the user gets a clean independent Sonnet pass.
+    // CLINICAL SAFETY (DCB0129 v1.3): Claude Sonnet 4.6 must process the full
+    // raw transcript in a single API call. The Haiku map-reduce pre-processing
+    // step is disabled for all Sonnet runs — chunked summarisation by Haiku
+    // was producing hallucinations and loss of speaker attribution. The model
+    // pipeline for notes generation is now Sonnet-only.
     const useChunking = !forceSingleShot && (
-      modelOverride.startsWith('claude-sonnet-') ||
-      modelOverride.startsWith('claude-haiku-') ||
       modelOverride === 'gpt-5.2' ||
       modelOverride === 'gpt-5'
     ) && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS;
@@ -2126,7 +2134,7 @@ ${cleanedTranscript}`;
             },
             body: JSON.stringify({
               model: claudeModel,
-              max_tokens: 8000,
+              max_tokens: 16000,
               stream: true,
               system: systemPrompt,
               messages: [{ role: 'user', content: userPrompt }],
