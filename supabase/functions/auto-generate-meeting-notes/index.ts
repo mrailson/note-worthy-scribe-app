@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
+import { MINUTE_PROMPTS, ALLOWED_TIERS, type MinuteTier } from '../_shared/minutePrompts.ts';
 
 // ─────────────────────────────────────────────────────────────────────────
 // SINGLE SOURCE OF TRUTH for first-pass meeting note generation.
@@ -309,10 +310,19 @@ serve(async (req) => {
       ? (rawDetailTier as DetailTier)
       : DEFAULT_DETAIL_TIER;
     console.log(`🎚️ [detailTier] received='${requestBody.detailTier}' → resolved='${detailTier}' (forceRegenerate=${forceRegenerate}, model=${requestBody.modelOverride ?? 'server-default'})`);
+    // Pipeline Test "Output tier" — when supplied, the entire system prompt is
+    // replaced with a tier-specific NHS PCN minute prompt (executive/full/verbatim).
+    // When undefined, default behaviour is unchanged.
+    const rawTier = typeof requestBody.tier === 'string' ? requestBody.tier.toLowerCase() : null;
+    const minuteTier: MinuteTier | null =
+      rawTier && (ALLOWED_TIERS as string[]).includes(rawTier) ? (rawTier as MinuteTier) : null;
+    if (minuteTier) console.log(`📐 [tier] minute output tier override = '${minuteTier}'`);
     // Suffix model identifier so docx footer reads e.g. "claude-sonnet-4-6 (detailed)".
     // Standard tier is the historical baseline so we don't add a suffix for it.
-    const stampModelWithTier = (model: string | null | undefined): string =>
-      detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
+    const stampModelWithTier = (model: string | null | undefined): string => {
+      const base = detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
+      return minuteTier ? `${base}+filter:${minuteTier}` : base;
+    };
     // When the user explicitly requested a single-shot Sonnet pass via the
     // "Regenerate with Sonnet" refine button, mark the saved model with a
     // `+refined` suffix so the badge can display "Claude Sonnet 4.6 · refined"
@@ -1680,6 +1690,14 @@ CROSS-REFERENCE HANDLING: If the transcript includes a "CROSS-REFERENCE" section
 
 KNOWN CORRECTIONS — apply these and similar phonetic variations throughout:
 ${correctionsBlock}`;
+    }
+
+    // Tier override — when Pipeline Test selects executive/full/verbatim, replace
+    // the assembled prompt entirely with the tier prompt. Date context is still
+    // injected as a header so temporal framing remains correct.
+    if (minuteTier) {
+      systemPrompt = `MEETING DATE CONTEXT: ${formattedDate} (year ${meetingYear}). Resolve all relative dates against this anchor; never use a year earlier than ${meetingYear} unless the transcript says so.\n\n${MINUTE_PROMPTS[minuteTier]}`;
+      console.log(`📐 [tier] systemPrompt replaced with '${minuteTier}' template (length=${systemPrompt.length})`);
     }
 
     // Diagnostic

@@ -12,6 +12,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 // Models the dropdown offers. The `value` is what the orchestrator's
 // modelOverride switch routes on (see auto-generate-meeting-notes/index.ts).
@@ -103,6 +104,7 @@ export default function PipelineTest() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-6');
   const [forceSingleShot, setForceSingleShot] = useState<boolean>(false);
+  const [outputTier, setOutputTier] = useState<'executive' | 'full' | 'verbatim'>('full');
 
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
@@ -175,6 +177,7 @@ export default function PipelineTest() {
     model: string;
     isCustom: boolean;
     forceSingleShot?: boolean;
+    tier?: 'executive' | 'full' | 'verbatim';
   }
 
   function classifySize(words: number): TestSize {
@@ -257,7 +260,7 @@ export default function PipelineTest() {
 
     supabase.functions
       .invoke('auto-generate-meeting-notes', {
-        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model, forceSingleShot: spec.forceSingleShot === true },
+        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model, forceSingleShot: spec.forceSingleShot === true, tier: spec.tier },
       })
       .catch(err => {
         console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
@@ -283,6 +286,7 @@ export default function PipelineTest() {
         model: selectedModel,
         isCustom: false,
         forceSingleShot,
+        tier: outputTier,
       });
       const modelLabel = MODELS.find(m => m.value === selectedModel)?.label ?? selectedModel;
       toast({ title: 'Test launched', description: `${size} test on ${modelLabel}. Polling for stages…` });
@@ -368,6 +372,7 @@ export default function PipelineTest() {
             title: fixture.title, agenda: fixture.agenda, transcript: fixture.transcript,
             durationMinutes: fixture.durationMinutes, size: item.size, model: item.model, isCustom: false,
             forceSingleShot: item.forceSingleShot === true,
+            tier: outputTier,
           });
         } else {
           const words = item.transcript.split(/\s+/).filter(Boolean).length;
@@ -376,6 +381,7 @@ export default function PipelineTest() {
             durationMinutes: item.durationMinutes, size: classifySize(words),
             model: item.model, isCustom: true,
             forceSingleShot: item.forceSingleShot === true,
+            tier: outputTier,
           });
         }
         if (runId) {
@@ -450,6 +456,7 @@ export default function PipelineTest() {
       await launchRun({
         title, agenda: 'Custom transcript', transcript: text,
         durationMinutes: duration, size, model: selectedModel, isCustom: true,
+        tier: outputTier,
       });
       toast({ title: 'Custom test launched', description: `${words.toLocaleString()} words → ${size} path` });
       setCustomText('');
@@ -685,6 +692,30 @@ export default function PipelineTest() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Output tier selector — picks the NHS PCN minute prompt template. */}
+          <div className="flex flex-col gap-2 max-w-md">
+            <label className="text-xs font-medium text-muted-foreground">Output tier</label>
+            <RadioGroup
+              value={outputTier}
+              onValueChange={(v) => setOutputTier(v as any)}
+              className="grid grid-cols-1 gap-1.5"
+            >
+              {[
+                { v: 'executive', label: 'Executive', hint: '~700 words — circulation copy' },
+                { v: 'full',      label: 'Full',      hint: '~1,800 words — governance record' },
+                { v: 'verbatim',  label: 'Verbatim',  hint: '~3,000+ words — defensible record (SEAs / complaints / Programme Board)' },
+              ].map(opt => (
+                <label key={opt.v} className="flex items-start gap-2 text-sm cursor-pointer">
+                  <RadioGroupItem value={opt.v} disabled={isAnyRunning} className="mt-0.5" />
+                  <span>
+                    <span className="font-medium">{opt.label}</span>
+                    <span className="text-xs text-muted-foreground"> — {opt.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </RadioGroup>
           </div>
 
           {/* Force single-shot toggle — bypasses chunked path even on long fixtures.
