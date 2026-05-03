@@ -2040,6 +2040,12 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Claude model: ${claudeModel} (streaming)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+          // Stage 5 — request dispatched. Stamp BEFORE awaiting fetch so the
+          // gap between this and `notes_first_delta_at` reflects true TTFT
+          // (network + Anthropic queue + first model token), not just SSE
+          // parsing time. Previously stamped post-await, which made TTFT
+          // appear as ~2ms because fetch only resolves when headers arrive.
+          stamp('notes_request_dispatched_at');
           const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -2057,8 +2063,6 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
-          // Stage 5 — request dispatched, headers received (covers TLS + Anthropic queue time).
-          stamp('notes_request_dispatched_at');
           if (!response.ok) {
             const errorData = await response.text();
             throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
