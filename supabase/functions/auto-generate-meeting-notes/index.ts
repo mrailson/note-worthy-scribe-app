@@ -1891,7 +1891,9 @@ ${cleanedTranscript}`;
     // long transcripts so the user gets a clean independent Sonnet pass.
     const useChunking = !forceSingleShot && (
       modelOverride.startsWith('claude-sonnet-') ||
-      modelOverride.startsWith('claude-haiku-')
+      modelOverride.startsWith('claude-haiku-') ||
+      modelOverride === 'gpt-5.2' ||
+      modelOverride === 'gpt-5'
     ) && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS;
 
     if (forceSingleShot) {
