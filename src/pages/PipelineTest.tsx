@@ -108,6 +108,23 @@ export default function PipelineTest() {
   const [modelFilter, setModelFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Queue
+  type QueueItem =
+    | { id: string; kind: 'fixture'; size: TestSize; model: string }
+    | { id: string; kind: 'custom'; model: string; transcript: string; title: string; durationMinutes: number };
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [queueRunning, setQueueRunning] = useState(false);
+  const [queueProgress, setQueueProgress] = useState<{ index: number; total: number; completed: number; failed: number } | null>(null);
+  const cancelQueueRef = useRef(false);
+
+  // Custom transcript
+  const [customTab, setCustomTab] = useState<'paste' | 'upload'>('paste');
+  const [customText, setCustomText] = useState('');
+  const [customTitle, setCustomTitle] = useState('');
+  const [customDuration, setCustomDuration] = useState<number | ''>('');
+  const [customLaunching, setCustomLaunching] = useState(false);
+  const [customExtracting, setCustomExtracting] = useState(false);
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
