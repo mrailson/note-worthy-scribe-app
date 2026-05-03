@@ -2012,7 +2012,7 @@ ${cleanedTranscript}`;
         let notes = '';
         if (modelKey.startsWith('claude-') || modelKey === 'sonnet-4.6') {
           const claudeModel = modelKey === 'sonnet-4.6' ? 'claude-sonnet-4-6' : modelKey;
-          console.log(`🧠 [attempt] Claude model: ${claudeModel}`);
+          console.log(`🧠 [attempt] Claude model: ${claudeModel} (streaming)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
           const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2021,24 +2021,77 @@ ${cleanedTranscript}`;
               'Content-Type': 'application/json',
               'x-api-key': anthropicApiKey,
               'anthropic-version': '2023-06-01',
+              'accept': 'text/event-stream',
             },
             body: JSON.stringify({
               model: claudeModel,
               max_tokens: 8000,
+              stream: true,
               system: systemPrompt,
               messages: [{ role: 'user', content: userPrompt }],
             }),
             signal: attemptController.signal,
           });
+          // Stage 5 — request dispatched, headers received (covers TLS + Anthropic queue time).
+          stamp('notes_request_dispatched_at');
           if (!response.ok) {
             const errorData = await response.text();
             throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
           }
-          const data = await response.json();
-          notes = data.content
-            ?.filter((block: any) => block.type === 'text')
-            ?.map((block: any) => block.text)
-            ?.join('\n') || '';
+          if (!response.body) {
+            throw new Error('Anthropic returned no response body for streaming request');
+          }
+          // SSE reader loop. Anthropic's streaming format emits lines like:
+          //   event: content_block_delta
+          //   data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}
+          // We accumulate text_delta chunks into `notes` and stamp first-token + stream-complete.
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let firstDeltaWritten = false;
+          let sawMessageStop = false;
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              // Process complete SSE events (separated by blank lines).
+              let sepIdx: number;
+              while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+                const rawEvent = buffer.slice(0, sepIdx);
+                buffer = buffer.slice(sepIdx + 2);
+                let dataLine = '';
+                for (const line of rawEvent.split('\n')) {
+                  if (line.startsWith('data:')) dataLine += line.slice(5).trim();
+                }
+                if (!dataLine) continue;
+                let payload: any;
+                try { payload = JSON.parse(dataLine); } catch { continue; }
+                const eventType = payload?.type;
+                if (eventType === 'content_block_delta') {
+                  const delta = payload?.delta;
+                  if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
+                    if (!firstDeltaWritten) {
+                      firstDeltaWritten = true;
+                      // Stage 6 — model time-to-first-token.
+                      stamp('notes_first_delta_at');
+                    }
+                    notes += delta.text;
+                  }
+                } else if (eventType === 'message_stop') {
+                  sawMessageStop = true;
+                } else if (eventType === 'error') {
+                  const errMsg = payload?.error?.message || JSON.stringify(payload?.error || payload);
+                  throw new Error(`Anthropic stream error: ${errMsg.substring(0, 300)}`);
+                }
+              }
+            }
+          } finally {
+            try { reader.releaseLock(); } catch { /* ignore */ }
+          }
+          // Stage 7 — stream complete (pure model generation time).
+          stamp('notes_stream_complete_at');
+          console.log(`✅ Sonnet stream complete: chars=${notes.length}, message_stop=${sawMessageStop}`);
         } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
           // as a third-provider option alongside Sonnet 4.6 and Gemini.
