@@ -1903,13 +1903,12 @@ ${cleanedTranscript}`;
     // "+chunked-haiku" in notes_model_used. Single-shot block reassigns later.
     let actualModelUsed = modelOverride;
 
-    // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
-    // Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
-    // The refine flow (`forceSingleShot`) explicitly skips chunking even on
-    // long transcripts so the user gets a clean independent Sonnet pass.
+    // CLINICAL SAFETY (DCB0129 v1.3): Claude Sonnet 4.6 must process the full
+    // raw transcript in a single API call. The Haiku map-reduce pre-processing
+    // step is disabled for all Sonnet runs — chunked summarisation by Haiku
+    // was producing hallucinations and loss of speaker attribution. The model
+    // pipeline for notes generation is now Sonnet-only.
     const useChunking = !forceSingleShot && (
-      modelOverride.startsWith('claude-sonnet-') ||
-      modelOverride.startsWith('claude-haiku-') ||
       modelOverride === 'gpt-5.2' ||
       modelOverride === 'gpt-5'
     ) && cleanedTranscript.length > CHUNK_THRESHOLD_CHARS;
