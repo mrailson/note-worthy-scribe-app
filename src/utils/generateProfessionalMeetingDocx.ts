@@ -1189,14 +1189,14 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
         .replace(/\\\*/g, '')
         .trim();
       
-      const isAgreed = label.toLowerCase() === 'agreed';
+      const isAgreed = false;
       
       const runs: any[] = [
         new TextRun({
           text: `${label}: `,
           bold: true,
           size: FONTS.size.body,
-          color: isAgreed ? NHS_COLORS.priorityHigh : NHS_COLORS.headingBlue,
+          color: NHS_COLORS.headingBlue,
           font: FONTS.default,
         }),
       ];
@@ -1205,7 +1205,7 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
         bodyText = bodyText.replace(/\*\*/g, '').replace(/\\\*/g, '').trim();
         runs.push(new TextRun({
           text: bodyText,
-          bold: isAgreed,
+          bold: false,
           size: FONTS.size.body,
           color: NHS_COLORS.textGrey,
           font: FONTS.default,

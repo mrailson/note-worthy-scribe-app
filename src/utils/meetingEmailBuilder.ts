@@ -151,12 +151,9 @@ export const convertToStyledHTML = (text: string): string => {
     if (subHeadingMatch) {
       const label = subHeadingMatch[1].trim();
       const bodyText = stripInlineMarkdown(subHeadingMatch[2] || '');
-      const isAgreed = label.toLowerCase() === 'agreed';
-      const labelColor = isAgreed ? '#DC2626' : '#2563EB';
-      const bodyWeight = isAgreed ? 'font-weight: 600;' : '';
       html += `<p style="margin: 4px 0 4px 24px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
-      html += `<strong style="color: ${labelColor};">${label}: </strong>`;
-      if (bodyText) html += `<span style="color: #1a1a1a; ${bodyWeight}">${bodyText}</span>`;
+      html += `<strong style="color: #2563EB;">${label}: </strong>`;
+      if (bodyText) html += `<span style="color: #1a1a1a;">${bodyText}</span>`;
       html += `</p>\n`;
       i++; continue;
     }
