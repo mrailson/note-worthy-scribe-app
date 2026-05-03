@@ -1897,6 +1897,7 @@ Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 ${contextInfo}
 
 Transcript:
+[Meeting started: ${formattedDate}${formattedStartTime ? ` at ${formattedStartTime}` : ''}]
 ${cleanedTranscript}`;
 
     console.log('🔧 Using selected model for manual regeneration:', modelOverride);
@@ -1951,8 +1952,11 @@ ${cleanedTranscript}`;
           while (true) {
             const i = cursor++;
             if (i >= chunks.length) break;
+            const chunkText = i === 0
+              ? `[Meeting started: ${formattedDate}${formattedStartTime ? ` at ${formattedStartTime}` : ''}]\n${chunks[i]}`
+              : chunks[i];
             const { data, error } = await supabase.functions.invoke('summarize-transcript-chunk', {
-              body: { text: chunks[i], meetingTitle: generatedTitle, chunkIndex: i, totalChunks: chunks.length, detailLevel: 'standard', meetingDate: formattedDate, meetingYear },
+              body: { text: chunkText, meetingTitle: generatedTitle, chunkIndex: i, totalChunks: chunks.length, detailLevel: 'standard', meetingDate: formattedDate, meetingYear },
             });
             if (error) {
               console.warn(`🧩 chunk ${i} invoke error: ${error.message ?? error}`);
