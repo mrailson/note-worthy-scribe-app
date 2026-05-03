@@ -1867,6 +1867,9 @@ ${cleanedTranscript}`;
     const notesGenStart = Date.now();
     let generatedNotes = '';
     let modelUsed = modelOverride;
+    // Hoisted: chunked path needs to stamp this so the test harness reports
+    // "+chunked-haiku" in notes_model_used. Single-shot block reassigns later.
+    let actualModelUsed = modelOverride;
 
     // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
     // Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
