@@ -106,6 +106,21 @@ export default function PipelineTest() {
   const [forceSingleShot, setForceSingleShot] = useState<boolean>(false);
   const [outputTier, setOutputTier] = useState<'executive' | 'full' | 'verbatim'>('full');
 
+  // Real Meeting Replay
+  interface ReplayMeeting {
+    id: string;
+    title: string | null;
+    created_at: string;
+    duration_minutes: number | null;
+    notes_model_used: string | null;
+    transcript_chars: number;
+  }
+  const [replayMeetings, setReplayMeetings] = useState<ReplayMeeting[]>([]);
+  const [replayLoading, setReplayLoading] = useState(false);
+  const [replayingId, setReplayingId] = useState<string | null>(null);
+  const [replayLimit, setReplayLimit] = useState(50);
+  const [replayRunIds, setReplayRunIds] = useState<Set<string>>(new Set());
+
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [modelFilter, setModelFilter] = useState<string>('all');
@@ -150,6 +165,82 @@ export default function PipelineTest() {
     return () => clearInterval(interval);
   }, [activeRun?.id, activeRun?.status]);
 
+  async function loadReplayMeetings(limit = 50) {
+    setReplayLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // Fetch this user's own meetings ≥45 minutes that have transcript content.
+      // We then enrich with the actual transcript size from meeting_transcripts.
+      const { data: meetings, error } = await supabase
+        .from('meetings')
+        .select('id,title,created_at,duration_minutes,notes_model_used')
+        .eq('user_id', user.id)
+        .gte('duration_minutes', 45)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      const ids = (meetings ?? []).map(m => m.id);
+      let chars: Record<string, number> = {};
+      if (ids.length) {
+        const { data: tx } = await supabase
+          .from('meeting_transcripts')
+          .select('meeting_id,content')
+          .in('meeting_id', ids);
+        for (const row of (tx ?? []) as Array<{ meeting_id: string; content: string | null }>) {
+          chars[row.meeting_id] = (chars[row.meeting_id] ?? 0) + (row.content?.length ?? 0);
+        }
+      }
+      const enriched: ReplayMeeting[] = (meetings ?? [])
+        .map(m => ({ ...m, transcript_chars: chars[m.id] ?? 0 } as ReplayMeeting))
+        .filter(m => m.transcript_chars > 0);
+      setReplayMeetings(enriched);
+    } catch (err: any) {
+      toast({ title: 'Failed to load meetings', description: err.message, variant: 'destructive' });
+    } finally {
+      setReplayLoading(false);
+    }
+  }
+
+  async function replayMeeting(m: ReplayMeeting) {
+    setReplayingId(m.id);
+    try {
+      // Fetch the full transcript fresh — list view only stored aggregate length.
+      const { data: tx, error: txErr } = await supabase
+        .from('meeting_transcripts')
+        .select('content,timestamp_seconds')
+        .eq('meeting_id', m.id)
+        .order('timestamp_seconds', { ascending: true });
+      if (txErr) throw txErr;
+      const transcript = (tx ?? []).map(r => r.content ?? '').filter(Boolean).join('\n').trim();
+      if (!transcript) throw new Error('Original meeting has no transcript');
+      const words = transcript.split(/\s+/).filter(Boolean).length;
+      const size = classifySize(words);
+      const stamp = new Date().toLocaleString('en-GB');
+      await launchRun({
+        title: `Replay — “${m.title ?? 'Untitled'}” — ${stamp}`,
+        agenda: `Real Meeting Replay of ${m.id}`,
+        transcript,
+        durationMinutes: m.duration_minutes ?? Math.max(45, Math.round(words / 150)),
+        size,
+        model: selectedModel,
+        isCustom: true,
+        forceSingleShot,
+        tier: outputTier,
+        suppressEmail: true,
+        replayOf: { id: m.id, title: m.title ?? 'Untitled' },
+      });
+      toast({
+        title: 'Replay launched',
+        description: 'Original notes untouched · email suppressed',
+      });
+    } catch (err: any) {
+      toast({ title: 'Replay failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setReplayingId(null);
+    }
+  }
+
   async function refreshHistory() {
     const { data } = await supabase
       .from('pipeline_test_runs')
@@ -157,6 +248,25 @@ export default function PipelineTest() {
       .order('started_at', { ascending: false })
       .limit(50);
     setHistory((data ?? []) as TestRun[]);
+    // Annotate which runs are Real Meeting Replays by checking import_source.
+    const meetingIds = (data ?? []).map((r: any) => r.meeting_id).filter(Boolean);
+    if (meetingIds.length) {
+      const { data: ms } = await supabase
+        .from('meetings')
+        .select('id,import_source')
+        .in('id', meetingIds);
+      const replays = new Set<string>();
+      const map: Record<string, string | null> = {};
+      for (const m of (ms ?? []) as Array<{ id: string; import_source: string | null }>) {
+        map[m.id] = m.import_source;
+      }
+      for (const r of (data ?? []) as any[]) {
+        if (r.meeting_id && map[r.meeting_id] === 'pipeline_test_replay') replays.add(r.id);
+      }
+      setReplayRunIds(replays);
+    } else {
+      setReplayRunIds(new Set());
+    }
   }
 
   async function fetchRun(id: string): Promise<TestRun | null> {
@@ -178,6 +288,8 @@ export default function PipelineTest() {
     isCustom: boolean;
     forceSingleShot?: boolean;
     tier?: 'executive' | 'full' | 'verbatim';
+    suppressEmail?: boolean;
+    replayOf?: { id: string; title: string };
   }
 
   function classifySize(words: number): TestSize {
@@ -211,21 +323,29 @@ export default function PipelineTest() {
       .single();
     if (runErr || !runRow) throw new Error(runErr?.message ?? 'Failed to create test run');
 
+    const meetingInsertPayload: any = {
+      user_id: user.id,
+      title: spec.title,
+      description: `[Pipeline test — ${spec.size}${spec.isCustom ? ' / custom' : ''}${spec.replayOf ? ' / replay' : ''}] ${spec.agenda}`,
+      meeting_type: 'general',
+      start_time: new Date().toISOString(),
+      end_time: new Date().toISOString(),
+      duration_minutes: spec.durationMinutes,
+      status: 'completed',
+      import_source: spec.replayOf ? 'pipeline_test_replay' : importSource,
+      meeting_format: 'face-to-face',
+      notes_generation_status: 'queued',
+    };
+    if (spec.replayOf) {
+      meetingInsertPayload.import_metadata = {
+        source: 'real-meeting-replay',
+        original_meeting_id: spec.replayOf.id,
+        original_meeting_title: spec.replayOf.title,
+      };
+    }
     const { data: meeting, error: meetingErr } = await supabase
       .from('meetings')
-      .insert({
-        user_id: user.id,
-        title: spec.title,
-        description: `[Pipeline test — ${spec.size}${spec.isCustom ? ' / custom' : ''}] ${spec.agenda}`,
-        meeting_type: 'general',
-        start_time: new Date().toISOString(),
-        end_time: new Date().toISOString(),
-        duration_minutes: spec.durationMinutes,
-        status: 'completed',
-        import_source: importSource,
-        meeting_format: 'face-to-face',
-        notes_generation_status: 'queued',
-      })
+      .insert(meetingInsertPayload)
       .select()
       .single();
     if (meetingErr || !meeting) throw new Error(`Meeting insert failed: ${meetingErr?.message}`);
@@ -260,7 +380,14 @@ export default function PipelineTest() {
 
     supabase.functions
       .invoke('auto-generate-meeting-notes', {
-        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model, forceSingleShot: spec.forceSingleShot === true, tier: spec.tier },
+        body: {
+          meetingId: meeting.id,
+          forceRegenerate: false,
+          modelOverride: spec.model,
+          forceSingleShot: spec.forceSingleShot === true,
+          tier: spec.tier,
+          suppressEmail: spec.suppressEmail === true,
+        },
       })
       .catch(err => {
         console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
@@ -773,6 +900,72 @@ export default function PipelineTest() {
         </CardContent>
       </Card>
 
+      {/* Real Meeting Replay — re-run a previously recorded meeting through the
+          current pipeline config. Original notes/email are NOT touched. */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Real Meeting Replay</span>
+            <Button
+              variant="ghost" size="sm" className="h-7 px-2 text-xs"
+              onClick={() => loadReplayMeetings(replayLimit)}
+              disabled={replayLoading || isAnyRunning}
+            >
+              {replayLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+              {replayMeetings.length === 0 ? 'Load meetings' : 'Refresh'}
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Re-runs the saved transcript of one of your own meetings (≥45 min) through the
+            currently selected model and tier. The original meeting's notes are untouched and
+            no email is sent. Tagged <Badge variant="outline" className="text-[10px] ml-1">replay</Badge>
+            in Recent runs.
+          </p>
+          {replayMeetings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {replayLoading ? 'Loading…' : 'Click “Load meetings” to list your meetings ≥45 minutes with a saved transcript.'}
+            </p>
+          ) : (
+            <div className="space-y-1 max-h-96 overflow-y-auto">
+              {replayMeetings.map(m => {
+                const date = new Date(m.created_at).toLocaleDateString('en-GB');
+                const isReplaying = replayingId === m.id;
+                return (
+                  <div key={m.id} className="flex items-start justify-between gap-2 border rounded px-3 py-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{m.title ?? 'Untitled meeting'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {date} · {m.duration_minutes ?? '?'} min · {m.transcript_chars.toLocaleString()} chars
+                        {m.notes_model_used ? <> · original: <span className="font-mono">{m.notes_model_used}</span></> : null}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline" size="sm"
+                      disabled={isReplaying || isAnyRunning}
+                      onClick={() => replayMeeting(m)}
+                    >
+                      {isReplaying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+                      Replay
+                    </Button>
+                  </div>
+                );
+              })}
+              {replayMeetings.length >= replayLimit && (
+                <Button
+                  variant="ghost" size="sm" className="w-full"
+                  onClick={() => { const next = replayLimit + 50; setReplayLimit(next); loadReplayMeetings(next); }}
+                  disabled={replayLoading}
+                >
+                  Load more
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Queue panel */}
       <Card className="mb-6">
         <CardHeader>
@@ -1046,7 +1239,14 @@ export default function PipelineTest() {
                     return (
                       <tr key={r.id} className="border-b last:border-b-0">
                         <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.started_at).toLocaleString()}</td>
-                        <td className="py-2 pr-4 capitalize">{r.test_size}</td>
+                        <td className="py-2 pr-4 capitalize">
+                          <span className="inline-flex items-center gap-1">
+                            {r.test_size}
+                            {replayRunIds.has(r.id) && (
+                              <Badge variant="outline" className="text-[10px]">replay</Badge>
+                            )}
+                          </span>
+                        </td>
                         <td className="py-2 pr-4 text-xs">{modelLabel}</td>
                         <td className="py-2 pr-4">
                           <Badge
