@@ -1931,14 +1931,14 @@ ${cleanedTranscript}`;
 
         console.log('🧩 All chunks summarised; invoking merge-meeting-minutes…');
         const { data: merged, error: mergeErr } = await supabase.functions.invoke('merge-meeting-minutes', {
-          body: { summaries, meetingTitle: generatedTitle, meetingDate: formattedDate, meetingTime: formattedStartTime, detailLevel: 'standard' },
+          body: { summaries, meetingTitle: generatedTitle, meetingDate: formattedDate, meetingTime: formattedStartTime, detailLevel: 'standard', modelOverride },
         });
         if (mergeErr) throw new Error(`merge-meeting-minutes failed: ${mergeErr.message ?? mergeErr}`);
         generatedNotes = merged?.meetingMinutes || '';
         if (!generatedNotes.trim()) throw new Error('merge step returned empty content');
         const mergeInputTokens = Number(merged?.usage?.input_tokens ?? 0);
         const mergeOutputTokens = Number(merged?.usage?.output_tokens ?? 0);
-        const mergeModel = String(merged?.usage?.model ?? merged?.model ?? 'claude-sonnet-4-6');
+        const mergeModel = String(merged?.usage?.model ?? merged?.model ?? modelOverride);
 
         modelUsed = `${modelOverride}+chunked-haiku`;
         actualModelUsed = modelUsed;
