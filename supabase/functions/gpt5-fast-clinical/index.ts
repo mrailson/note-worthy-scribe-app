@@ -269,6 +269,30 @@ async function performWebSearch(query: string): Promise<string> {
   }
 
   try {
+    // ---- AUTH GUARD ----
+    const __authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!__authHeader || !__authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+    {
+      const __token = __authHeader.replace("Bearer ", "");
+      const __supaUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const __supaAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+      const __vr = await fetch(`${__supaUrl}/auth/v1/user`, {
+        headers: { Authorization: `Bearer ${__token}`, apikey: __supaAnon },
+      });
+      if (!__vr.ok) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
+    }
+    // ---- /AUTH GUARD ----
+
     console.log(`[gpt5-fast-clinical] Performing web search for: "${query.substring(0, 50)}..."`);
     
     const searchResponse = await fetch('https://api.tavily.com/search', {

@@ -13,6 +13,7 @@ import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, 
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
 import { useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 
 interface AttachmentMeta {
   name: string;
@@ -440,7 +441,12 @@ export const InboundEmailLog = () => {
                 ) : selectedEmail.html_body ? (
                   <div
                     className="bg-muted/30 rounded-lg p-3 max-h-[300px] overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: selectedEmail.html_body }}
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(selectedEmail.html_body, {
+                        FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
+                        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'style'],
+                      }),
+                    }}
                   />
                 ) : (
                   <div className="bg-muted/30 rounded-lg p-3">

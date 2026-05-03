@@ -25,6 +25,24 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // ---- AUTH GUARD (token via query param for WebSocket) ----
+  try {
+    const url = new URL(req.url);
+    const token = url.searchParams.get("token") || (req.headers.get("Authorization") || "").replace("Bearer ", "");
+    if (!token) {
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+    const vr = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "" },
+    });
+    if (!vr.ok) {
+      return new Response("Invalid token", { status: 401, headers: corsHeaders });
+    }
+  } catch (_e) {
+    return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+  }
+  // ---- /AUTH GUARD ----
+
   try {
     console.log('🔌 Upgrading to WebSocket...');
     const { socket, response } = Deno.upgradeWebSocket(req);

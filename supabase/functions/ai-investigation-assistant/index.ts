@@ -18,6 +18,30 @@ serve(async (req) => {
   }
 
   try {
+    // ---- AUTH GUARD ----
+    const __authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!__authHeader || !__authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    {
+      const __token = __authHeader.replace("Bearer ", "");
+      const __supaUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const __supaAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+      const __vr = await fetch(`${__supaUrl}/auth/v1/user`, {
+        headers: { Authorization: `Bearer ${__token}`, apikey: __supaAnon },
+      });
+      if (!__vr.ok) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    // ---- /AUTH GUARD ----
+
     if (!lovableApiKey) {
       throw new Error('Lovable API key not configured');
     }

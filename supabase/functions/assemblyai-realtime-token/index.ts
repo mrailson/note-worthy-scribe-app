@@ -13,6 +13,25 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors(origin) });
 
   try {
+    // ---- AUTH GUARD ----
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: cors(origin),
+      });
+    }
+    {
+      const token = authHeader.replace("Bearer ", "");
+      const vr = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
+        headers: { Authorization: `Bearer ${token}`, apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "" },
+      });
+      if (!vr.ok) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401, headers: cors(origin),
+        });
+      }
+    }
+    // ---- /AUTH GUARD ----
     const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
     if (!AAI_KEY) {
       return new Response(JSON.stringify({ error: "Missing ASSEMBLYAI_API_KEY" }), {
