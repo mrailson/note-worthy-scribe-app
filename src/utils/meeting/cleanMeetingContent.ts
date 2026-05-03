@@ -354,6 +354,24 @@ export const normaliseMeetingNotesFormatting = (content: string): string => {
   // Split numbered agenda items that have been collapsed into one paragraph.
   cleaned = cleaned.replace(/([^\n])\s+(\d{1,2})\.\s+(?=[A-Z])/g, '$1\n\n$2. ');
 
+  // Strip duplicated bold-label artifacts produced by some chunked merges, e.g.
+  // "**AGREED:** **— content**" or "**AGREED: **** — content" → "AGREED — content"
+  // Pattern A: doubled bold around the label and an em-dash separator
+  cleaned = cleaned.replace(
+    /\*{2,}\s*(AGREED|NOTED|ACTION|RESOLVED|DEFERRED|RECOMMENDED)\s*:?\s*\*{2,}\s*[—–-]\s*/gi,
+    '$1 — '
+  );
+  // Pattern B: bold wrapping the entire decision line
+  cleaned = cleaned.replace(
+    /\*\*\s*(AGREED|NOTED|ACTION|RESOLVED|DEFERRED|RECOMMENDED)\s+[—–-]\s+([^\n*]+?)\s*\*\*/gi,
+    '$1 — $2'
+  );
+  // Pattern C: orphaned ** at start of decision lines
+  cleaned = cleaned.replace(
+    /^(\s*)\*\*(AGREED|NOTED|ACTION|RESOLVED|DEFERRED|RECOMMENDED)\b/gim,
+    '$1$2'
+  );
+
   // Split governance labels when they have been appended to previous prose.
   cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+[—–-]/g, '$1\n- **$3** —');
   cleaned = cleaned.replace(/([^\n])\s+(\*\*)?(RESOLVED|AGREED|NOTED)(\*\*)?\s+/g, '$1\n- **$3** ');
