@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2 } from 'lucide-react';
+import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2, Plus, X, Download } from 'lucide-react';
 import { TEST_FIXTURES, type TestSize, getFixture } from '@/lib/pipelineTestFixtures';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 
 // Models the dropdown offers. The `value` is what the orchestrator's
 // modelOverride switch routes on (see auto-generate-meeting-notes/index.ts).
@@ -79,6 +82,8 @@ interface TestRun {
   input_tokens: number | null;
   output_tokens: number | null;
   cost_usd_est: number | null;
+  docx_storage_path: string | null;
+  custom_test: boolean | null;
 }
 
 const STAGE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -102,6 +107,23 @@ export default function PipelineTest() {
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [modelFilter, setModelFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Queue
+  type QueueItem =
+    | { id: string; kind: 'fixture'; size: TestSize; model: string }
+    | { id: string; kind: 'custom'; model: string; transcript: string; title: string; durationMinutes: number };
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [queueRunning, setQueueRunning] = useState(false);
+  const [queueProgress, setQueueProgress] = useState<{ index: number; total: number; completed: number; failed: number } | null>(null);
+  const cancelQueueRef = useRef(false);
+
+  // Custom transcript
+  const [customTab, setCustomTab] = useState<'paste' | 'upload'>('paste');
+  const [customText, setCustomText] = useState('');
+  const [customTitle, setCustomTitle] = useState('');
+  const [customDuration, setCustomDuration] = useState<number | ''>('');
+  const [customLaunching, setCustomLaunching] = useState(false);
+  const [customExtracting, setCustomExtracting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -143,104 +165,320 @@ export default function PipelineTest() {
     return data as TestRun | null;
   }
 
+  interface RunSpec {
+    title: string;
+    agenda: string;
+    transcript: string;
+    durationMinutes: number;
+    size: TestSize;
+    model: string;
+    isCustom: boolean;
+  }
+
+  function classifySize(words: number): TestSize {
+    if (words < 500) return 'short';
+    if (words < 5000) return 'medium';
+    return 'long';
+  }
+
+  /** Launch a run. Returns the runId, or null on launch failure. */
+  async function launchRun(spec: RunSpec): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not signed in');
+
+    const transcriptWords = spec.transcript.split(/\s+/).filter(Boolean).length;
+    const transcriptChars = spec.transcript.length;
+    const importSource = spec.isCustom ? 'pipeline_test_custom' : 'pipeline_test';
+
+    const { data: runRow, error: runErr } = await supabase
+      .from('pipeline_test_runs')
+      .insert({
+        user_id: user.id,
+        test_size: spec.size,
+        model_override: spec.model,
+        transcript_chars: transcriptChars,
+        transcript_words: transcriptWords,
+        email_recipient: user.email,
+        status: 'running',
+        custom_test: spec.isCustom,
+      } as any)
+      .select()
+      .single();
+    if (runErr || !runRow) throw new Error(runErr?.message ?? 'Failed to create test run');
+
+    const { data: meeting, error: meetingErr } = await supabase
+      .from('meetings')
+      .insert({
+        user_id: user.id,
+        title: spec.title,
+        description: `[Pipeline test — ${spec.size}${spec.isCustom ? ' / custom' : ''}] ${spec.agenda}`,
+        meeting_type: 'general',
+        start_time: new Date().toISOString(),
+        end_time: new Date().toISOString(),
+        duration_minutes: spec.durationMinutes,
+        status: 'completed',
+        import_source: importSource,
+        meeting_format: 'face-to-face',
+        notes_generation_status: 'queued',
+      })
+      .select()
+      .single();
+    if (meetingErr || !meeting) throw new Error(`Meeting insert failed: ${meetingErr?.message}`);
+
+    const meetingInsertedAt = new Date().toISOString();
+    await supabase
+      .from('pipeline_test_runs')
+      .update({ meeting_id: meeting.id, meeting_inserted_at: meetingInsertedAt })
+      .eq('id', runRow.id);
+
+    const { error: transcriptErr } = await supabase
+      .from('meeting_transcripts')
+      .insert({
+        meeting_id: meeting.id,
+        content: spec.transcript,
+        speaker_name: 'Test',
+        timestamp_seconds: 0,
+      });
+    if (transcriptErr) throw new Error(`Transcript insert failed: ${transcriptErr.message}`);
+
+    const transcriptInsertedAt = new Date().toISOString();
+    await supabase
+      .from('pipeline_test_runs')
+      .update({ transcript_inserted_at: transcriptInsertedAt })
+      .eq('id', runRow.id);
+
+    const notesInvokedAt = new Date().toISOString();
+    await supabase
+      .from('pipeline_test_runs')
+      .update({ notes_invoked_at: notesInvokedAt })
+      .eq('id', runRow.id);
+
+    supabase.functions
+      .invoke('auto-generate-meeting-notes', {
+        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model },
+      })
+      .catch(err => {
+        console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
+      });
+
+    const refreshed = await fetchRun(runRow.id);
+    setActiveRun(refreshed);
+    await refreshHistory();
+    watchPipelineProgress(runRow.id, meeting.id, user.email ?? '');
+    return runRow.id;
+  }
+
   async function launchTest(size: TestSize) {
     setLaunching(size);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not signed in');
-
       const fixture = getFixture(size);
-      const transcriptWords = fixture.transcript.split(/\s+/).filter(Boolean).length;
-      const transcriptChars = fixture.transcript.length;
-
-      const { data: runRow, error: runErr } = await supabase
-        .from('pipeline_test_runs')
-        .insert({
-          user_id: user.id,
-          test_size: size,
-          model_override: selectedModel,
-          transcript_chars: transcriptChars,
-          transcript_words: transcriptWords,
-          email_recipient: user.email,
-          status: 'running',
-        })
-        .select()
-        .single();
-      if (runErr || !runRow) throw new Error(runErr?.message ?? 'Failed to create test run');
-
-      const { data: meeting, error: meetingErr } = await supabase
-        .from('meetings')
-        .insert({
-          user_id: user.id,
-          title: fixture.title,
-          description: `[Pipeline test — ${size}] ${fixture.agenda}`,
-          meeting_type: 'general',
-          start_time: new Date().toISOString(),
-          end_time: new Date().toISOString(),
-          duration_minutes: fixture.durationMinutes,
-          status: 'completed',
-          import_source: 'pipeline_test',
-          meeting_format: 'face-to-face',
-          notes_generation_status: 'queued',
-        })
-        .select()
-        .single();
-      if (meetingErr || !meeting) throw new Error(`Meeting insert failed: ${meetingErr?.message}`);
-
-      const meetingInsertedAt = new Date().toISOString();
-      await supabase
-        .from('pipeline_test_runs')
-        .update({ meeting_id: meeting.id, meeting_inserted_at: meetingInsertedAt })
-        .eq('id', runRow.id);
-
-      const { error: transcriptErr } = await supabase
-        .from('meeting_transcripts')
-        .insert({
-          meeting_id: meeting.id,
-          content: fixture.transcript,
-          speaker_name: 'Test',
-          timestamp_seconds: 0,
-        });
-      if (transcriptErr) throw new Error(`Transcript insert failed: ${transcriptErr.message}`);
-
-      const transcriptInsertedAt = new Date().toISOString();
-      await supabase
-        .from('pipeline_test_runs')
-        .update({ transcript_inserted_at: transcriptInsertedAt })
-        .eq('id', runRow.id);
-
-      const notesInvokedAt = new Date().toISOString();
-      await supabase
-        .from('pipeline_test_runs')
-        .update({ notes_invoked_at: notesInvokedAt })
-        .eq('id', runRow.id);
-
-      supabase.functions
-        .invoke('auto-generate-meeting-notes', {
-          body: {
-            meetingId: meeting.id,
-            forceRegenerate: false,
-            modelOverride: selectedModel,
-          },
-        })
-        .catch(err => {
-          console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
-        });
-
-      const refreshed = await fetchRun(runRow.id);
-      setActiveRun(refreshed);
-      await refreshHistory();
-
+      await launchRun({
+        title: fixture.title,
+        agenda: fixture.agenda,
+        transcript: fixture.transcript,
+        durationMinutes: fixture.durationMinutes,
+        size,
+        model: selectedModel,
+        isCustom: false,
+      });
       const modelLabel = MODELS.find(m => m.value === selectedModel)?.label ?? selectedModel;
       toast({ title: 'Test launched', description: `${size} test on ${modelLabel}. Polling for stages…` });
-
-      watchPipelineProgress(runRow.id, meeting.id, user.email ?? '');
     } catch (err: any) {
       toast({ title: 'Test failed to launch', description: err.message, variant: 'destructive' });
     } finally {
       setLaunching(null);
     }
   }
+
+  /** Wait until a run reaches a terminal status. */
+  async function waitForRun(runId: string, timeoutMs = STAGE_TIMEOUT_MS + 60_000): Promise<TestRun | null> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const r = await fetchRun(runId);
+      if (r && r.status !== 'running') return r;
+      await new Promise(res => setTimeout(res, 2500));
+    }
+    return await fetchRun(runId);
+  }
+
+  // ---------- Queue ----------
+  function addToQueue(item: Omit<Extract<QueueItem, { kind: 'fixture' }>, 'id'> | Omit<Extract<QueueItem, { kind: 'custom' }>, 'id'>) {
+    setQueue(q => [...q, { ...item, id: crypto.randomUUID() } as QueueItem]);
+  }
+  function removeFromQueue(id: string) {
+    setQueue(q => q.filter(item => item.id !== id));
+  }
+  function clearQueue() { setQueue([]); }
+
+  function estimateCost(model: string, size: TestSize): number {
+    const matches = history.filter(h =>
+      h.model_override === model && h.test_size === size && h.cost_usd_est != null
+    );
+    if (matches.length > 0) {
+      const avg = matches.reduce((s, h) => s + Number(h.cost_usd_est), 0) / matches.length;
+      return avg;
+    }
+    // Hardcoded fallback (rough)
+    const baseChars = size === 'short' ? 1500 : size === 'medium' ? 12000 : 38000;
+    const inTok = baseChars / 4;
+    const outTok = inTok * 0.3;
+    const rates: Record<string, [number, number]> = {
+      'claude-sonnet-4-6': [3, 15],
+      'gpt-5.2': [2.5, 10],
+      'gemini-3.1-pro': [2, 8],
+      'gemini-2.5-flash': [0.3, 1.2],
+      'gemini-3-flash': [0.2, 0.8],
+    };
+    const [inR, outR] = rates[model] ?? [2, 8];
+    return ((inTok / 1_000_000) * inR) + ((outTok / 1_000_000) * outR);
+  }
+
+  function estimateSeconds(size: TestSize): number {
+    return size === 'short' ? 30 : size === 'medium' ? 90 : 180;
+  }
+
+  const queueTotals = useMemo(() => {
+    let cost = 0; let secs = 0;
+    for (const item of queue) {
+      const size: TestSize = item.kind === 'fixture' ? item.size : classifySize(item.transcript.split(/\s+/).filter(Boolean).length);
+      cost += estimateCost(item.model, size);
+      secs += estimateSeconds(size);
+    }
+    return { cost, secs };
+  }, [queue, history]);
+
+  async function runQueue() {
+    if (queue.length === 0) return;
+    setQueueRunning(true);
+    cancelQueueRef.current = false;
+    let completed = 0; let failed = 0;
+    setQueueProgress({ index: 0, total: queue.length, completed, failed });
+    for (let i = 0; i < queue.length; i++) {
+      if (cancelQueueRef.current) break;
+      const item = queue[i];
+      setQueueProgress({ index: i, total: queue.length, completed, failed });
+      try {
+        let runId: string | null = null;
+        if (item.kind === 'fixture') {
+          const fixture = getFixture(item.size);
+          runId = await launchRun({
+            title: fixture.title, agenda: fixture.agenda, transcript: fixture.transcript,
+            durationMinutes: fixture.durationMinutes, size: item.size, model: item.model, isCustom: false,
+          });
+        } else {
+          const words = item.transcript.split(/\s+/).filter(Boolean).length;
+          runId = await launchRun({
+            title: item.title, agenda: 'Custom transcript', transcript: item.transcript,
+            durationMinutes: item.durationMinutes, size: classifySize(words),
+            model: item.model, isCustom: true,
+          });
+        }
+        if (runId) {
+          const finalRun = await waitForRun(runId);
+          if (finalRun?.status === 'completed') completed++; else failed++;
+        } else { failed++; }
+      } catch (err: any) {
+        console.error('Queue item failed:', err);
+        failed++;
+      }
+      setQueueProgress({ index: i + 1, total: queue.length, completed, failed });
+    }
+    setQueueRunning(false);
+    toast({
+      title: 'Queue complete',
+      description: `${completed} completed, ${failed} failed of ${queue.length} runs`,
+    });
+    setQueue([]);
+    setQueueProgress(null);
+  }
+
+  // ---------- Custom transcript ----------
+  async function handleCustomFileUpload(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Maximum 5MB.', variant: 'destructive' });
+      return;
+    }
+    setCustomExtracting(true);
+    try {
+      if (file.name.toLowerCase().endsWith('.txt')) {
+        const text = await file.text();
+        setCustomText(text);
+      } else {
+        // .docx via extract-document-text
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const { data, error } = await supabase.functions.invoke('extract-document-text', {
+          body: { fileName: file.name, fileBase64: base64, mimeType: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+        });
+        if (error) throw error;
+        const extracted = (data as any)?.text ?? (data as any)?.content ?? '';
+        if (!extracted) throw new Error('No text extracted from document');
+        setCustomText(extracted);
+      }
+      toast({ title: 'Transcript loaded', description: `${file.name}` });
+    } catch (err: any) {
+      toast({ title: 'Extraction failed', description: err.message ?? 'Try pasting instead.', variant: 'destructive' });
+    } finally {
+      setCustomExtracting(false);
+    }
+  }
+
+  async function launchCustom() {
+    const text = customText.trim();
+    if (!text) {
+      toast({ title: 'No transcript', description: 'Paste or upload a transcript first.', variant: 'destructive' });
+      return;
+    }
+    const words = text.split(/\s+/).filter(Boolean).length;
+    if (words < 100) {
+      toast({ title: 'Too short', description: 'Transcript needs at least 100 words.', variant: 'destructive' });
+      return;
+    }
+    setCustomLaunching(true);
+    try {
+      const size = classifySize(words);
+      const stamp = new Date().toLocaleString('en-GB');
+      const title = customTitle.trim() || `Custom test — ${stamp}`;
+      const duration = typeof customDuration === 'number' && customDuration > 0
+        ? customDuration
+        : Math.max(5, Math.round(words / 150));
+      await launchRun({
+        title, agenda: 'Custom transcript', transcript: text,
+        durationMinutes: duration, size, model: selectedModel, isCustom: true,
+      });
+      toast({ title: 'Custom test launched', description: `${words.toLocaleString()} words → ${size} path` });
+      setCustomText('');
+      setCustomTitle('');
+      setCustomDuration('');
+    } catch (err: any) {
+      toast({ title: 'Custom test failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setCustomLaunching(false);
+    }
+  }
+
+  async function downloadDocx(run: TestRun) {
+    if (!run.docx_storage_path) return;
+    try {
+      const { data, error } = await supabase.storage
+        .from('pipeline-test-artifacts')
+        .download(run.docx_storage_path);
+      if (error || !data) throw error ?? new Error('Download failed');
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      const modelLabel = MODELS.find(m => m.value === run.model_override)?.label ?? run.model_override ?? 'unknown';
+      const dateStamp = new Date(run.started_at).toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      a.download = `pipeline_${run.test_size}_${modelLabel.replace(/\s+/g, '_')}_${dateStamp}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast({ title: 'Download failed', description: err.message, variant: 'destructive' });
+    }
+  }
+
 
   async function watchPipelineProgress(runId: string, meetingId: string, _email: string) {
     const start = Date.now();
@@ -374,6 +612,9 @@ export default function PipelineTest() {
     const run = history.find(r => r.id === runId);
     if (!run) return;
     if (!confirm('Delete this test run? This cannot be undone.')) return;
+    if (run.docx_storage_path) {
+      await supabase.storage.from('pipeline-test-artifacts').remove([run.docx_storage_path]);
+    }
     if (run.meeting_id && confirm('Also delete the associated test meeting from Meeting History?')) {
       await supabase.from('meetings').delete().eq('id', run.meeting_id);
     }
@@ -389,6 +630,12 @@ export default function PipelineTest() {
     const meetingIds = filteredHistory
       .map(r => r.meeting_id)
       .filter((id): id is string => id !== null);
+    const docxPaths = filteredHistory
+      .map(r => r.docx_storage_path)
+      .filter((p): p is string => !!p);
+    if (docxPaths.length > 0) {
+      await supabase.storage.from('pipeline-test-artifacts').remove(docxPaths);
+    }
     if (meetingIds.length > 0 && confirm(`Also delete ${meetingIds.length} associated test meetings from Meeting History?`)) {
       await supabase.from('meetings').delete().in('id', meetingIds);
     }
@@ -397,7 +644,7 @@ export default function PipelineTest() {
     toast({ title: `${idsToDelete.length} runs deleted` });
   }
 
-  const isAnyRunning = activeRun?.status === 'running';
+  const isAnyRunning = (activeRun?.status === 'running') || queueRunning;
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
@@ -441,27 +688,201 @@ export default function PipelineTest() {
               const f = TEST_FIXTURES[size];
               const isLaunching = launching === size;
               return (
-                <Button
-                  key={size}
-                  variant="outline"
-                  className="h-auto py-4 flex flex-col items-start gap-2"
-                  disabled={isLaunching || isAnyRunning}
-                  onClick={() => launchTest(size)}
-                >
-                  <div className="flex items-center gap-2">
-                    {isLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                    <span className="font-medium capitalize">{size}</span>
+                <div key={size} className="border rounded-md p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium capitalize text-sm">{size}</span>
+                    <Button
+                      variant="ghost" size="sm" className="h-7 px-2 text-xs"
+                      disabled={isAnyRunning}
+                      onClick={() => addToQueue({ kind: 'fixture', size, model: selectedModel })}
+                      title="Add to queue"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Queue
+                    </Button>
                   </div>
-                  <div className="text-xs text-muted-foreground text-left">
+                  <div className="text-xs text-muted-foreground">
                     <div>{f.transcript.length.toLocaleString()} chars · ~{f.durationMinutes}min meeting</div>
                     <div className="mt-1">
                       Expected: {size === 'short' ? '<30s' : size === 'medium' ? '<60s' : '<90s'} ·{' '}
                       {f.transcript.length > 15000 ? 'chunked path' : 'single-shot'}
                     </div>
                   </div>
-                </Button>
+                  <Button
+                    variant="outline" size="sm"
+                    disabled={isLaunching || isAnyRunning}
+                    onClick={() => launchTest(size)}
+                  >
+                    {isLaunching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+                    Run now
+                  </Button>
+                </div>
               );
             })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Queue panel */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Queue ({queue.length})</span>
+            {queueProgress && (
+              <span className="text-xs font-normal text-muted-foreground">
+                Running {queueProgress.index + (queueRunning ? 1 : 0)} of {queueProgress.total} · ✓ {queueProgress.completed} · ✗ {queueProgress.failed}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {queue.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Queue is empty. Click <strong>Queue</strong> on a size above (or in the Custom panel below) to stage runs. They run sequentially.
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {queue.map((item, i) => {
+                const modelLabel = MODELS.find(m => m.value === item.model)?.label ?? item.model;
+                const sizeLabel = item.kind === 'fixture' ? item.size : 'custom';
+                const label = item.kind === 'custom' ? `“${item.title}”` : '';
+                return (
+                  <div key={item.id} className="flex items-center justify-between text-sm border rounded px-3 py-1.5">
+                    <span>
+                      <span className="text-muted-foreground mr-2">{i + 1}.</span>
+                      <span className="capitalize">{sizeLabel}</span>
+                      <span className="mx-2 text-muted-foreground">·</span>
+                      <span>{modelLabel}</span>
+                      {label && <span className="ml-2 text-xs text-muted-foreground truncate max-w-xs inline-block align-bottom">{label}</span>}
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                      disabled={queueRunning}
+                      onClick={() => removeFromQueue(item.id)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {queue.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {queue.length} runs queued · estimated cost ~${queueTotals.cost.toFixed(3)} · estimated time ~{Math.ceil(queueTotals.secs / 60)}m
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={runQueue} disabled={queue.length === 0 || isAnyRunning}>
+              {queueRunning ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              Run queue
+            </Button>
+            <Button variant="outline" onClick={clearQueue} disabled={queue.length === 0 || queueRunning}>
+              Clear queue
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom transcript */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">Custom transcript test</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Tabs value={customTab} onValueChange={(v) => setCustomTab(v as 'paste' | 'upload')}>
+            <TabsList>
+              <TabsTrigger value="paste">Paste text</TabsTrigger>
+              <TabsTrigger value="upload">Upload .docx / .txt</TabsTrigger>
+            </TabsList>
+            <TabsContent value="paste" className="space-y-2">
+              <Textarea
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder="Paste a meeting transcript here…"
+                className="min-h-[200px] font-mono text-xs"
+                disabled={isAnyRunning || customLaunching}
+              />
+            </TabsContent>
+            <TabsContent value="upload" className="space-y-2">
+              <Input
+                type="file"
+                accept=".docx,.txt"
+                disabled={customExtracting || isAnyRunning || customLaunching}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleCustomFileUpload(f);
+                  e.currentTarget.value = '';
+                }}
+              />
+              {customExtracting && (
+                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Extracting…
+                </div>
+              )}
+              {customText && (
+                <div className="text-xs text-muted-foreground">Loaded {customText.length.toLocaleString()} chars. Switch to Paste tab to edit.</div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {(() => {
+            const words = customText.trim() ? customText.trim().split(/\s+/).filter(Boolean).length : 0;
+            const chars = customText.length;
+            const size = classifySize(words);
+            return (
+              <div className="text-xs text-muted-foreground">
+                {chars.toLocaleString()} chars · {words.toLocaleString()} words ·{' '}
+                {words < 100 ? <span className="text-destructive">below 100-word minimum</span> : <span>auto-classify: <strong>{size}</strong> ({chars > 15000 ? 'chunked' : 'single-shot'} path)</span>}
+              </div>
+            );
+          })()}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Title</label>
+              <Input
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder={`Custom test — ${new Date().toLocaleString('en-GB')}`}
+                disabled={isAnyRunning || customLaunching}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Duration (minutes)</label>
+              <Input
+                type="number"
+                value={customDuration}
+                onChange={(e) => setCustomDuration(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="auto from word count"
+                disabled={isAnyRunning || customLaunching}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={launchCustom} disabled={isAnyRunning || customLaunching || !customText.trim()}>
+              {customLaunching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              Run with custom transcript
+            </Button>
+            <Button
+              variant="outline"
+              disabled={isAnyRunning || !customText.trim()}
+              onClick={() => {
+                const text = customText.trim();
+                if (!text) return;
+                const words = text.split(/\s+/).filter(Boolean).length;
+                if (words < 100) {
+                  toast({ title: 'Too short', description: 'Need at least 100 words.', variant: 'destructive' });
+                  return;
+                }
+                const stamp = new Date().toLocaleString('en-GB');
+                const title = customTitle.trim() || `Custom test — ${stamp}`;
+                const duration = typeof customDuration === 'number' && customDuration > 0
+                  ? customDuration : Math.max(5, Math.round(words / 150));
+                addToQueue({ kind: 'custom', model: selectedModel, transcript: text, title, durationMinutes: duration });
+                toast({ title: 'Added to queue' });
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add to queue
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -555,6 +976,7 @@ export default function PipelineTest() {
                     <th className="py-2 pr-4">Notes gen</th>
                     <th className="py-2 pr-4">Tokens (in/out)</th>
                     <th className="py-2 pr-4">Cost (USD)</th>
+                    <th className="py-2 pr-4 w-10">Doc</th>
                     <th className="py-2 pr-2 w-8"></th>
                   </tr>
                 </thead>
@@ -592,6 +1014,16 @@ export default function PipelineTest() {
                         </td>
                         <td className="py-2 pr-4 font-mono text-xs">
                           {r.cost_usd_est != null ? `$${Number(r.cost_usd_est).toFixed(4)}` : '—'}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {r.docx_storage_path ? (
+                            <Button variant="ghost" size="sm" onClick={() => downloadDocx(r)}
+                              className="h-7 w-7 p-0" title="Download Word doc">
+                              <Download className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </td>
                         <td className="py-2 pr-2">
                           <Button

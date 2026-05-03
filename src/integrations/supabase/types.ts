@@ -10094,7 +10094,9 @@ export type Database = {
           action_count: number | null
           cost_usd_est: number | null
           created_at: string
+          custom_test: boolean
           diagnostic_log: Json | null
+          docx_storage_path: string | null
           email_recipient: string | null
           email_sent_at: string | null
           email_triggered_at: string | null
@@ -10133,7 +10135,9 @@ export type Database = {
           action_count?: number | null
           cost_usd_est?: number | null
           created_at?: string
+          custom_test?: boolean
           diagnostic_log?: Json | null
+          docx_storage_path?: string | null
           email_recipient?: string | null
           email_sent_at?: string | null
           email_triggered_at?: string | null
@@ -10172,7 +10176,9 @@ export type Database = {
           action_count?: number | null
           cost_usd_est?: number | null
           created_at?: string
+          custom_test?: boolean
           diagnostic_log?: Json | null
+          docx_storage_path?: string | null
           email_recipient?: string | null
           email_sent_at?: string | null
           email_triggered_at?: string | null
