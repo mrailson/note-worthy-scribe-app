@@ -1888,6 +1888,8 @@ ${cleanedTranscript}`;
         console.log(`🧩 ${chunks.length} chunks; concurrency=${CHUNK_CONCURRENCY}`);
 
         const summaries: string[] = new Array(chunks.length);
+        let chunkInputTokens = 0;
+        let chunkOutputTokens = 0;
         let cursor = 0;
         const worker = async () => {
           while (true) {
@@ -1901,6 +1903,8 @@ ${cleanedTranscript}`;
               summaries[i] = `_[unsummarised excerpt — chunk ${i + 1}/${chunks.length}, reason: invoke error]_\n\n${chunks[i].slice(0, 1800)}`;
             } else {
               summaries[i] = data?.summary || `_[unsummarised excerpt — chunk ${i + 1}/${chunks.length}, reason: empty]_\n\n${chunks[i].slice(0, 1800)}`;
+              chunkInputTokens += Number(data?.usage?.input_tokens ?? 0);
+              chunkOutputTokens += Number(data?.usage?.output_tokens ?? 0);
             }
           }
         };
@@ -1913,8 +1917,36 @@ ${cleanedTranscript}`;
         if (mergeErr) throw new Error(`merge-meeting-minutes failed: ${mergeErr.message ?? mergeErr}`);
         generatedNotes = merged?.meetingMinutes || '';
         if (!generatedNotes.trim()) throw new Error('merge step returned empty content');
+        const mergeInputTokens = Number(merged?.usage?.input_tokens ?? 0);
+        const mergeOutputTokens = Number(merged?.usage?.output_tokens ?? 0);
+        const mergeModel = String(merged?.usage?.model ?? merged?.model ?? 'claude-sonnet-4-6');
+
         modelUsed = `${modelOverride}+chunked-haiku`;
-        console.log(`✅ Chunked path complete in ${Date.now() - notesGenStart}ms, ${generatedNotes.length} chars`);
+        actualModelUsed = modelUsed;
+
+        // Sum tokens across map (Haiku) + reduce (Sonnet/merge model) and persist
+        // alongside the cost estimate so the test harness shows real usage for
+        // chunked runs (previously only single-shot paths captured this).
+        const totalInputTokens = chunkInputTokens + mergeInputTokens;
+        const totalOutputTokens = chunkOutputTokens + mergeOutputTokens;
+        const haikuCost = estimateCostUsd('claude-haiku-4-5', chunkInputTokens, chunkOutputTokens) ?? 0;
+        const mergeCost = estimateCostUsd(mergeModel, mergeInputTokens, mergeOutputTokens) ?? 0;
+        const totalCost = haikuCost + mergeCost;
+
+        try {
+          const { error: usageErr } = await supabase.from('meetings').update({
+            notes_input_tokens: totalInputTokens,
+            notes_output_tokens: totalOutputTokens,
+            notes_cost_usd_est: totalCost,
+          }).eq('id', meetingId);
+          if (usageErr) console.warn('⚠️ chunked usage stamp failed:', usageErr.message);
+        } catch (stampErr: any) {
+          console.warn('⚠️ chunked usage stamp threw:', stampErr?.message);
+        }
+
+        console.log(`✅ Chunked path complete in ${Date.now() - notesGenStart}ms, ${generatedNotes.length} chars · ` +
+          `tokens: map=${chunkInputTokens}/${chunkOutputTokens} reduce=${mergeInputTokens}/${mergeOutputTokens} ` +
+          `total=${totalInputTokens}/${totalOutputTokens} cost=$${totalCost.toFixed(4)}`);
       } catch (chunkedErr: any) {
         console.warn(`⚠️ Chunked path failed (${chunkedErr.message}); falling through to single-shot.`);
         generatedNotes = '';
