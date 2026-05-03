@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2 } from 'lucide-react';
+import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2, Plus, X, Download, Upload } from 'lucide-react';
 import { TEST_FIXTURES, type TestSize, getFixture } from '@/lib/pipelineTestFixtures';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 
 // Models the dropdown offers. The `value` is what the orchestrator's
 // modelOverride switch routes on (see auto-generate-meeting-notes/index.ts).
