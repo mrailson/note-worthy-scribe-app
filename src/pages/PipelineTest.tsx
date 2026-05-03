@@ -1452,3 +1452,91 @@ function SummaryStats({ run }: { run: TestRun }) {
     </div>
   );
 }
+
+/**
+ * Picker shown under a completed Real Meeting Replay run that lets the user
+ * pick another completed replay of the *same* original meeting and jumps to
+ * the side-by-side compare view.
+ */
+function ComparePicker({
+  currentRunId,
+  history,
+  replayRunIds,
+  onClose,
+}: {
+  currentRunId: string;
+  history: TestRun[];
+  replayRunIds: Set<string>;
+  onClose: () => void;
+}) {
+  const [originalMeetingId, setOriginalMeetingId] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<Array<{ id: string; label: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // Resolve the original_meeting_id of the current run.
+        const current = history.find(h => h.id === currentRunId);
+        if (!current?.meeting_id) { setLoading(false); return; }
+        const { data: m } = await supabase
+          .from('meetings')
+          .select('id,import_metadata')
+          .eq('id', current.meeting_id)
+          .maybeSingle();
+        const origId: string | null = (m as any)?.import_metadata?.original_meeting_id ?? null;
+        setOriginalMeetingId(origId);
+        if (!origId) { setLoading(false); return; }
+        // Find other completed replay runs for the same original meeting.
+        const otherReplays = history.filter(h =>
+          h.id !== currentRunId && h.status === 'completed' && replayRunIds.has(h.id) && h.meeting_id
+        );
+        const meetingIds = otherReplays.map(h => h.meeting_id!) ;
+        const { data: ms } = await supabase
+          .from('meetings')
+          .select('id,title,import_metadata')
+          .in('id', meetingIds);
+        const map: Record<string, any> = {};
+        for (const x of (ms ?? []) as any[]) map[x.id] = x;
+        const matches = otherReplays.filter(h =>
+          map[h.meeting_id!]?.import_metadata?.original_meeting_id === origId
+        ).map(h => ({
+          id: h.id,
+          label: `${MODELS.find(m => m.value === h.model_override)?.label ?? h.model_override ?? '?'} · ${new Date(h.started_at).toLocaleString('en-GB')}`,
+        }));
+        setCandidates(matches);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [currentRunId]);
+
+  return (
+    <div className="mt-2 border rounded p-3 bg-muted/30 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium">Pick another replay of the same meeting</div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
+      </div>
+      {loading ? (
+        <div className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Loading…</div>
+      ) : !originalMeetingId ? (
+        <div className="text-xs text-muted-foreground">This run is not a Real Meeting Replay — comparison picker is only available for replays.</div>
+      ) : candidates.length === 0 ? (
+        <div className="text-xs text-muted-foreground">No other completed replays found for this original meeting yet.</div>
+      ) : (
+        <div className="space-y-1">
+          {candidates.map(c => (
+            <Link
+              key={c.id}
+              to={`/admin/pipeline-compare?compare=${currentRunId},${c.id}`}
+              className="block text-xs px-2 py-1.5 rounded border hover:bg-muted"
+            >
+              {c.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
