@@ -103,6 +103,7 @@ export default function PipelineTest() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-6');
   const [forceSingleShot, setForceSingleShot] = useState<boolean>(false);
+  const [outputTier, setOutputTier] = useState<'executive' | 'full' | 'verbatim'>('full');
 
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
