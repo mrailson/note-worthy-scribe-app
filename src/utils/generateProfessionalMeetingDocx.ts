@@ -2,6 +2,7 @@ import { saveAs } from "file-saver";
 import { NHS_COLORS, FONTS, buildNHSStyles, buildNumbering } from "./wordTheme";
 import { generateMeetingFilename } from "./meetingFilename";
 import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
+import { normaliseGovernanceLayout } from "@/utils/meeting/normaliseGovernanceLayout";
 
 // Decode HTML entities to plain characters for Word output
 const decodeHtmlEntities = (text: string): string => {
@@ -1302,6 +1303,30 @@ const parseContentToDocxElements = async (content: string, cleanTitle?: string) 
       continue;
     }
     
+    // Governance decision line: plain "LABEL — text" — no bold colour, no bullet.
+    const governanceLineMatch = line.match(/^\s*(RESOLVED|AGREED|NOTED)\s+—\s+(.*)$/);
+    if (governanceLineMatch) {
+      const label = governanceLineMatch[1].toUpperCase();
+      const body = governanceLineMatch[2].replace(/\\\*/g, '').replace(/\*\*/g, '').trim();
+      elements.push(new Paragraph({
+        children: [
+          new TextRun({
+            text: `${label} — `,
+            bold: false,
+            size: FONTS.size.body,
+            color: NHS_COLORS.textGrey,
+            font: FONTS.default,
+          }),
+          ...parseInlineFormatting(body, TextRun),
+        ],
+        indent: { left: 360 },
+        spacing: { before: 40, after: 120 },
+      }));
+      previousWasHeading = false;
+      i++;
+      continue;
+    }
+
     // Regular paragraph
     const runs = parseInlineFormatting(line, TextRun);
     elements.push(new Paragraph({
@@ -1411,7 +1436,7 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const { Document, Packer, Paragraph, TextRun } = await import("docx");
   
   // Clean and deduplicate content
-  let cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(options.content));
+  let cleanedContent = normaliseGovernanceLayout(normaliseMeetingNotesFormatting(stripTranscriptAndDetails(options.content)));
   cleanedContent = deduplicateActionItems(cleanedContent);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
   
@@ -1770,7 +1795,7 @@ export const generateProfessionalWordBlob = async (
   // (1) Clean content
   let cleanedContent: string;
   try {
-    cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(content));
+    cleanedContent = normaliseGovernanceLayout(normaliseMeetingNotesFormatting(stripTranscriptAndDetails(content)));
     cleanedContent = deduplicateActionItems(cleanedContent);
     cleanedContent = replaceFacilitatorWithUserName(cleanedContent, metadata.loggedUserName);
   } catch (err) {
@@ -1907,7 +1932,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   const { Document, Packer, Paragraph, TextRun } = await import("docx");
   
   // Clean content
-  let cleanedContent = normaliseMeetingNotesFormatting(stripTranscriptAndDetails(options.content));
+  let cleanedContent = normaliseGovernanceLayout(normaliseMeetingNotesFormatting(stripTranscriptAndDetails(options.content)));
   cleanedContent = deduplicateActionItems(cleanedContent);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
   
