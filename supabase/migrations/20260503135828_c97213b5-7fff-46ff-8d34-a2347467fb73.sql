@@ -1,0 +1,1 @@
+SELECT length(best_of_all_transcript) FROM meetings WHERE id='aaaaaaaa-bbbb-cccc-dddd-000000000301';
