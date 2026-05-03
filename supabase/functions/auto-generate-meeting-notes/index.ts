@@ -1897,6 +1897,7 @@ Duration: ${meeting.duration_minutes || 'Not specified'} minutes
 ${contextInfo}
 
 Transcript:
+[Meeting started: ${formattedDate}${formattedStartTime ? ` at ${formattedStartTime}` : ''}]
 ${cleanedTranscript}`;
 
     console.log('🔧 Using selected model for manual regeneration:', modelOverride);
