@@ -2165,7 +2165,14 @@ ${cleanedTranscript}`;
           }
           const data = await response.json();
           notes = data.choices?.[0]?.message?.content || '';
-        } else if (modelKey === 'gpt-5') {
+          {
+            const inTok = data.usage?.prompt_tokens ?? 0;
+            const outTok = data.usage?.completion_tokens ?? 0;
+            const cost = estimateCostUsd('gpt-5.2', inTok, outTok);
+            supabase.from('meetings').update({
+              notes_input_tokens: inTok, notes_output_tokens: outTok, notes_cost_usd_est: cost,
+            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+          }
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
           console.log('🧠 [attempt] OpenAI gpt-5 via gateway');
