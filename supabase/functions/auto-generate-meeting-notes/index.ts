@@ -2063,7 +2063,7 @@ ${cleanedTranscript}`;
     // Bumped 30s→90s: 14k-word governance transcripts on Flash + fallback chain
     // were timing out before any model could stream. 90s gives Flash room to
     // complete and still leaves headroom for the fallback chain within Edge limits.
-    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 90_000;
+    const AUTO_PER_ATTEMPT_TIMEOUT_MS = 360_000;
     // Detailed tier on long governance transcripts can push Sonnet/GPT past 90s.
     // 180s gives headroom; same-model retry still bounded so worst case ~6 minutes.
     const OVERRIDE_PER_ATTEMPT_TIMEOUT_MS = 300_000;
