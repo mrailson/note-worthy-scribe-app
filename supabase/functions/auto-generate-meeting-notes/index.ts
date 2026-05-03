@@ -2134,7 +2134,7 @@ ${cleanedTranscript}`;
             },
             body: JSON.stringify({
               model: claudeModel,
-              max_tokens: 8000,
+              max_tokens: 16000,
               stream: true,
               system: systemPrompt,
               messages: [{ role: 'user', content: userPrompt }],
