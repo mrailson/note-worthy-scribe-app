@@ -3065,7 +3065,10 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
     }
     // Stage 8 — post-processing complete (action extraction + overview generation done).
-    stamp('notes_post_processing_complete_at');
+    // Inlined into the awaited completion-status UPDATE below so it survives the
+    // edge function returning its response (the fire-and-forget stamp() helper was
+    // being killed before the row update landed, leaving the column NULL).
+    const postProcessingCompleteAt = new Date().toISOString();
 
     // Update meeting with completion status, word count, AI overview, and generated title
     const { error: statusUpdateError } = await supabase
@@ -3076,6 +3079,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         overview: aiOverview || null,
         title: generatedTitle,
         notes_model_used: stampModelForRefine(actualModelUsed),
+        notes_post_processing_complete_at: postProcessingCompleteAt,
       })
       .eq('id', meetingId);
 
