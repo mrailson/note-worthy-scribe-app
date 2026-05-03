@@ -3213,6 +3213,39 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       })
       .eq('meeting_id', meetingId);
 
+    // ── Auto-send email with Word doc attachment (server-side, non-blocking) ──
+    // Mirrors generate-meeting-notes-claude so the Regenerate action in
+    // meeting history triggers the same post-generation email as a fresh
+    // recording. Wrapped in try/catch — email failure must not fail the run.
+    try {
+      const { data: meetingRow } = await supabase
+        .from('meetings')
+        .select('user_id')
+        .eq('id', meetingId)
+        .maybeSingle();
+
+      if (meetingRow?.user_id) {
+        const { data: userData } = await supabase.auth.admin.getUserById(meetingRow.user_id);
+        const userEmail = userData?.user?.email;
+
+        if (userEmail) {
+          console.log(`📧 Triggering post-regenerate email to ${userEmail} for meeting ${meetingId}`);
+          const { error: emailErr } = await supabase.functions.invoke('send-meeting-email-resend', {
+            body: { meetingId, recipientEmail: userEmail },
+          });
+          if (emailErr) {
+            console.warn('⚠️ Email send failed (notes still saved):', emailErr.message || emailErr);
+          } else {
+            console.log('✅ Meeting notes email sent successfully');
+          }
+        } else {
+          console.warn('⚠️ No email found for user — skipping email send');
+        }
+      }
+    } catch (emailError: any) {
+      console.warn('⚠️ Email trigger failed (non-blocking):', emailError?.message || emailError);
+    }
+
     console.log('🎉 Successfully generated and saved meeting notes');
 
     return new Response(
