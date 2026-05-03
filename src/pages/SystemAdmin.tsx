@@ -4628,7 +4628,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                             <div className="min-w-0 space-y-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="truncate text-sm font-medium">{meeting.title}</p>
-                                <Badge variant="outline">{meeting.status}</Badge>
+                                <Badge variant={recoveringMeetingId === meeting.id ? 'default' : 'outline'}>
+                                  {recoveringMeetingId === meeting.id ? 'running' : meeting.status}
+                                </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">
                                 {meeting.user_email || meeting.user_name || 'Unknown user'} · Started {new Date(meeting.created_at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
