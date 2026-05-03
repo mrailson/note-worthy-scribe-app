@@ -975,6 +975,10 @@ serve(async (req) => {
     // non-meeting recordings (e.g. game-show audio, test recordings, brief
     // background noise). Bypassed when the caller passes forceGenerate: true.
     const MIN_TRANSCRIPT_WORDS = 100;
+    // Still computed for diagnostic logging in the LLM-refusal path below.
+    const meetingDurationSeconds = meeting.duration_minutes != null
+      ? Math.round(Number(meeting.duration_minutes) * 60)
+      : null;
     if (!forceGenerate) {
       const transcriptTooShort = wordCount < MIN_TRANSCRIPT_WORDS;
       if (transcriptTooShort) {
