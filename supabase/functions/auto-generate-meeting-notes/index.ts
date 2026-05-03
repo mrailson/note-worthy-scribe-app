@@ -34,6 +34,7 @@ const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3
 // ─────────────────────────────────────────────────────────────────────────
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'claude-haiku-4-5':  { input: 1.00, output: 5.00 },
   'gpt-5':             { input: 5.00, output: 20.00 },
   'gpt-5.2':           { input: 5.00, output: 20.00 },
   'gemini-3.1-pro':    { input: 2.50, output: 10.00 },
