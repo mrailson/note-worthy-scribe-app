@@ -44,7 +44,14 @@ interface TestRun {
   transcript_inserted_at: string | null;
   notes_invoked_at: string | null;
   notes_status_generating_at: string | null;
+  notes_meeting_loaded_at: string | null;
+  notes_documents_loaded_at: string | null;
+  notes_title_generated_at: string | null;
+  notes_prompt_assembled_at: string | null;
+  notes_request_dispatched_at: string | null;
   notes_first_delta_at: string | null;
+  notes_stream_complete_at: string | null;
+  notes_post_processing_complete_at: string | null;
   notes_completed_at: string | null;
   summary_inserted_at: string | null;
   email_triggered_at: string | null;
