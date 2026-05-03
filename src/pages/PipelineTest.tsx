@@ -598,7 +598,6 @@ export default function PipelineTest() {
                             variant="ghost"
                             size="sm"
                             onClick={() => deleteRun(r.id)}
-                            disabled={r.status === 'running'}
                             className="h-7 w-7 p-0"
                             title="Delete this run"
                           >
