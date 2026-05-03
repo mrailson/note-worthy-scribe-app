@@ -317,7 +317,30 @@ export default function PipelineTest() {
             }).eq('id', runId);
           }
 
-          await new Promise(r => setTimeout(r, 30_000));
+          // Keep polling for ~15s so late-arriving stamps (post_processing_complete,
+          // tokens, cost) — written by the orchestrator AFTER it flips status to
+          // 'completed' — get mirrored across to pipeline_test_runs.
+          for (let i = 0; i < 8; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            const { data: late } = await supabase
+              .from('meetings')
+              .select('notes_post_processing_complete_at, notes_input_tokens, notes_output_tokens, notes_cost_usd_est')
+              .eq('id', meetingId)
+              .maybeSingle();
+            if (late) {
+              const lateUpdates: Record<string, any> = {};
+              if (late.notes_post_processing_complete_at) lateUpdates.notes_post_processing_complete_at = late.notes_post_processing_complete_at;
+              if (late.notes_input_tokens != null) lateUpdates.input_tokens = late.notes_input_tokens;
+              if (late.notes_output_tokens != null) lateUpdates.output_tokens = late.notes_output_tokens;
+              if (late.notes_cost_usd_est != null) lateUpdates.cost_usd_est = late.notes_cost_usd_est;
+              if (Object.keys(lateUpdates).length > 0) {
+                await supabase.from('pipeline_test_runs').update(lateUpdates).eq('id', runId);
+              }
+              if (late.notes_post_processing_complete_at && late.notes_input_tokens != null) break;
+            }
+          }
+
+          await new Promise(r => setTimeout(r, 15_000));
           const finishedAt = new Date().toISOString();
           await supabase.from('pipeline_test_runs').update({
             email_sent_at: finishedAt,
