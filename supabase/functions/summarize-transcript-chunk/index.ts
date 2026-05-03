@@ -13,12 +13,19 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are an expert NHS meeting secretary producing a partial chunk summary for later merging.
 British English. Professional, factual, neutral. Filter out banter, personal anecdotes, humour, off-topic remarks.
 Keep substantive content only. Preserve names, decisions, actions, dates, numbers verbatim where present.
-Output structured markdown with these sections (omit empty ones):
-- Key Points
-- Decisions (use prefixes RESOLVED / AGREED / NOTED in bold where applicable)
-- Actions ([Owner] – Action – Due date if mentioned)
+
+CRITICAL — TOPIC PRESERVATION:
+- This chunk will be merged with other chunks. The merge step depends on you naming EVERY distinct topic discussed in this chunk.
+- For each substantive agenda item / topic in the chunk, emit a clearly labelled bullet under Key Points (e.g. "ARRS workforce reallocation: …", "QOF recovery plan: …").
+- Do NOT collapse multiple topics into one generic bullet. Do NOT drop a topic because it seems minor.
+- Capture every decision and every action verbatim — never summarise them away.
+
+Output structured markdown with these sections (omit only if genuinely empty):
+- Key Points (one bullet per distinct topic, each prefixed with the topic name)
+- Decisions (use prefixes RESOLVED / AGREED / NOTED in bold where applicable — list every decision in this chunk)
+- Actions ([Owner] – Action – Due date if mentioned — list every action in this chunk)
 - Risks/Issues
-Avoid preambles. Keep concise — this is one chunk, not the full minutes.`;
+Avoid preambles. Be concise per bullet but exhaustive in coverage.`;
 
 async function callClaude(model: string, systemPrompt: string, userPrompt: string, signal: AbortSignal) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -30,7 +37,7 @@ async function callClaude(model: string, systemPrompt: string, userPrompt: strin
     },
     body: JSON.stringify({
       model,
-      max_tokens: 2000,
+      max_tokens: 3500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     }),

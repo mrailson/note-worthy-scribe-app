@@ -102,6 +102,7 @@ export default function PipelineTest() {
   const [launching, setLaunching] = useState<TestSize | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-6');
+  const [forceSingleShot, setForceSingleShot] = useState<boolean>(false);
 
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
@@ -110,8 +111,8 @@ export default function PipelineTest() {
 
   // Queue
   type QueueItem =
-    | { id: string; kind: 'fixture'; size: TestSize; model: string }
-    | { id: string; kind: 'custom'; model: string; transcript: string; title: string; durationMinutes: number };
+    | { id: string; kind: 'fixture'; size: TestSize; model: string; forceSingleShot?: boolean }
+    | { id: string; kind: 'custom'; model: string; transcript: string; title: string; durationMinutes: number; forceSingleShot?: boolean };
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [queueRunning, setQueueRunning] = useState(false);
   const [queueProgress, setQueueProgress] = useState<{ index: number; total: number; completed: number; failed: number } | null>(null);
@@ -173,6 +174,7 @@ export default function PipelineTest() {
     size: TestSize;
     model: string;
     isCustom: boolean;
+    forceSingleShot?: boolean;
   }
 
   function classifySize(words: number): TestSize {
@@ -255,7 +257,7 @@ export default function PipelineTest() {
 
     supabase.functions
       .invoke('auto-generate-meeting-notes', {
-        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model },
+        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model, forceSingleShot: spec.forceSingleShot === true },
       })
       .catch(err => {
         console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
@@ -280,6 +282,7 @@ export default function PipelineTest() {
         size,
         model: selectedModel,
         isCustom: false,
+        forceSingleShot,
       });
       const modelLabel = MODELS.find(m => m.value === selectedModel)?.label ?? selectedModel;
       toast({ title: 'Test launched', description: `${size} test on ${modelLabel}. Polling for stages…` });
@@ -364,6 +367,7 @@ export default function PipelineTest() {
           runId = await launchRun({
             title: fixture.title, agenda: fixture.agenda, transcript: fixture.transcript,
             durationMinutes: fixture.durationMinutes, size: item.size, model: item.model, isCustom: false,
+            forceSingleShot: item.forceSingleShot === true,
           });
         } else {
           const words = item.transcript.split(/\s+/).filter(Boolean).length;
@@ -371,6 +375,7 @@ export default function PipelineTest() {
             title: item.title, agenda: 'Custom transcript', transcript: item.transcript,
             durationMinutes: item.durationMinutes, size: classifySize(words),
             model: item.model, isCustom: true,
+            forceSingleShot: item.forceSingleShot === true,
           });
         }
         if (runId) {
@@ -682,6 +687,21 @@ export default function PipelineTest() {
             </Select>
           </div>
 
+          {/* Force single-shot toggle — bypasses chunked path even on long fixtures.
+              Mirrors the production "Regenerate with Sonnet" refine flow. */}
+          <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer max-w-2xl">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={forceSingleShot}
+              onChange={e => setForceSingleShot(e.target.checked)}
+              disabled={isAnyRunning}
+            />
+            <span>
+              <span className="font-medium text-foreground">Force single-shot</span> — skip the chunked map-reduce path on long Claude runs and send the full transcript in one prompt. Slower and pricier, but preserves all topics. Equivalent to the production "Regenerate with Sonnet" button.
+            </span>
+          </label>
+
           {/* Size buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {(['short', 'medium', 'long'] as TestSize[]).map(size => {
@@ -694,7 +714,7 @@ export default function PipelineTest() {
                     <Button
                       variant="ghost" size="sm" className="h-7 px-2 text-xs"
                       disabled={isAnyRunning}
-                      onClick={() => addToQueue({ kind: 'fixture', size, model: selectedModel })}
+                      onClick={() => addToQueue({ kind: 'fixture', size, model: selectedModel, forceSingleShot })}
                       title="Add to queue"
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" /> Queue
@@ -752,6 +772,9 @@ export default function PipelineTest() {
                       <span className="capitalize">{sizeLabel}</span>
                       <span className="mx-2 text-muted-foreground">·</span>
                       <span>{modelLabel}</span>
+                      {item.forceSingleShot && (
+                        <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">single-shot</span>
+                      )}
                       {label && <span className="ml-2 text-xs text-muted-foreground truncate max-w-xs inline-block align-bottom">{label}</span>}
                     </span>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
@@ -877,7 +900,7 @@ export default function PipelineTest() {
                 const title = customTitle.trim() || `Custom test — ${stamp}`;
                 const duration = typeof customDuration === 'number' && customDuration > 0
                   ? customDuration : Math.max(5, Math.round(words / 150));
-                addToQueue({ kind: 'custom', model: selectedModel, transcript: text, title, durationMinutes: duration });
+                addToQueue({ kind: 'custom', model: selectedModel, transcript: text, title, durationMinutes: duration, forceSingleShot });
                 toast({ title: 'Added to queue' });
               }}
             >
