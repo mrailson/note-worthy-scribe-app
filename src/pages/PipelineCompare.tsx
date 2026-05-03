@@ -234,8 +234,8 @@ function MetricsBlock({ run }: { run: FullRun }) {
       <div className="text-muted-foreground">Time to first token</div><div className="font-mono">{formatMs(ttftMs)}</div>
       <div className="text-muted-foreground">Tokens in/out</div>
       <div className="font-mono">{run.run.input_tokens?.toLocaleString() ?? '—'} / {run.run.output_tokens?.toLocaleString() ?? '—'}</div>
-      <div className="text-muted-foreground">Cost (USD)</div>
-      <div className="font-mono">{run.run.cost_usd_est != null ? `$${Number(run.run.cost_usd_est).toFixed(4)}` : '—'}</div>
+      <div className="text-muted-foreground">Cost (GBP)</div>
+      <div className="font-mono">{run.run.cost_usd_est != null ? `£${(Number(run.run.cost_usd_est) * 0.79).toFixed(4)}` : '—'}</div>
       <div className="text-muted-foreground">Output chars</div>
       <div className="font-mono">{run.notes.length.toLocaleString()}</div>
     </div>
@@ -332,9 +332,9 @@ export default function PipelineCompare() {
           <MetricRow label="Time to first token" a={ttftA}  b={ttftB}  lowerIsBetter fmt={(n) => formatMs(Math.round(n))} />
           <MetricRow label="Input tokens"        a={a.run.input_tokens}  b={b.run.input_tokens}  lowerIsBetter fmt={(n) => Math.round(n).toLocaleString()} />
           <MetricRow label="Output tokens"       a={a.run.output_tokens} b={b.run.output_tokens} lowerIsBetter={false} fmt={(n) => Math.round(n).toLocaleString()} />
-          <MetricRow label="Cost (USD)"          a={a.run.cost_usd_est != null ? Number(a.run.cost_usd_est) : null}
-                                                  b={b.run.cost_usd_est != null ? Number(b.run.cost_usd_est) : null}
-                                                  lowerIsBetter fmt={(n) => `$${n.toFixed(4)}`} />
+          <MetricRow label="Cost (GBP)"          a={a.run.cost_usd_est != null ? Number(a.run.cost_usd_est) * 0.79 : null}
+                                                  b={b.run.cost_usd_est != null ? Number(b.run.cost_usd_est) * 0.79 : null}
+                                                  lowerIsBetter fmt={(n) => `£${n.toFixed(4)}`} />
           <MetricRow label="Output chars"        a={a.notes.length} b={b.notes.length} lowerIsBetter={false} fmt={(n) => Math.round(n).toLocaleString()} />
         </CardContent>
       </Card>
