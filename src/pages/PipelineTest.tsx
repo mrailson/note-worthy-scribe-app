@@ -106,6 +106,20 @@ export default function PipelineTest() {
   const [forceSingleShot, setForceSingleShot] = useState<boolean>(false);
   const [outputTier, setOutputTier] = useState<'executive' | 'full' | 'verbatim'>('full');
 
+  // Real Meeting Replay
+  interface ReplayMeeting {
+    id: string;
+    title: string | null;
+    created_at: string;
+    duration_minutes: number | null;
+    notes_model_used: string | null;
+    transcript_chars: number;
+  }
+  const [replayMeetings, setReplayMeetings] = useState<ReplayMeeting[]>([]);
+  const [replayLoading, setReplayLoading] = useState(false);
+  const [replayingId, setReplayingId] = useState<string | null>(null);
+  const [replayLimit, setReplayLimit] = useState(50);
+
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
   const [modelFilter, setModelFilter] = useState<string>('all');
