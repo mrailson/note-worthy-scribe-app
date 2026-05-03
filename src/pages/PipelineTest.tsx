@@ -102,6 +102,7 @@ export default function PipelineTest() {
   const [launching, setLaunching] = useState<TestSize | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-6');
+  const [forceSingleShot, setForceSingleShot] = useState<boolean>(false);
 
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
@@ -110,8 +111,8 @@ export default function PipelineTest() {
 
   // Queue
   type QueueItem =
-    | { id: string; kind: 'fixture'; size: TestSize; model: string }
-    | { id: string; kind: 'custom'; model: string; transcript: string; title: string; durationMinutes: number };
+    | { id: string; kind: 'fixture'; size: TestSize; model: string; forceSingleShot?: boolean }
+    | { id: string; kind: 'custom'; model: string; transcript: string; title: string; durationMinutes: number; forceSingleShot?: boolean };
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [queueRunning, setQueueRunning] = useState(false);
   const [queueProgress, setQueueProgress] = useState<{ index: number; total: number; completed: number; failed: number } | null>(null);
@@ -173,6 +174,7 @@ export default function PipelineTest() {
     size: TestSize;
     model: string;
     isCustom: boolean;
+    forceSingleShot?: boolean;
   }
 
   function classifySize(words: number): TestSize {
@@ -255,7 +257,7 @@ export default function PipelineTest() {
 
     supabase.functions
       .invoke('auto-generate-meeting-notes', {
-        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model },
+        body: { meetingId: meeting.id, forceRegenerate: false, modelOverride: spec.model, forceSingleShot: spec.forceSingleShot === true },
       })
       .catch(err => {
         console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
@@ -280,6 +282,7 @@ export default function PipelineTest() {
         size,
         model: selectedModel,
         isCustom: false,
+        forceSingleShot,
       });
       const modelLabel = MODELS.find(m => m.value === selectedModel)?.label ?? selectedModel;
       toast({ title: 'Test launched', description: `${size} test on ${modelLabel}. Polling for stages…` });
@@ -364,6 +367,7 @@ export default function PipelineTest() {
           runId = await launchRun({
             title: fixture.title, agenda: fixture.agenda, transcript: fixture.transcript,
             durationMinutes: fixture.durationMinutes, size: item.size, model: item.model, isCustom: false,
+            forceSingleShot: item.forceSingleShot === true,
           });
         } else {
           const words = item.transcript.split(/\s+/).filter(Boolean).length;
@@ -371,6 +375,7 @@ export default function PipelineTest() {
             title: item.title, agenda: 'Custom transcript', transcript: item.transcript,
             durationMinutes: item.durationMinutes, size: classifySize(words),
             model: item.model, isCustom: true,
+            forceSingleShot: item.forceSingleShot === true,
           });
         }
         if (runId) {
