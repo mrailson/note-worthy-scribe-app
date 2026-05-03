@@ -25,6 +25,29 @@ const DEFAULT_GENERATION_MODEL = 'claude-sonnet-4-6';
 const DEFAULT_DETAIL_TIER = 'standard' as const;
 const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3.1-pro'];
 
+// ─────────────────────────────────────────────────────────────────────────
+// Public list prices per 1M tokens (input / output) as of May 2026.
+// These are estimates — the Lovable AI Gateway may apply markup. Refine
+// from real billing data once we have a few weeks of test runs.
+// Keys must match the modelOverride / claudeModel string used at the
+// attempt site (NOT the gateway-prefixed "google/..." form).
+// ─────────────────────────────────────────────────────────────────────────
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'gpt-5':             { input: 5.00, output: 20.00 },
+  'gpt-5.2':           { input: 5.00, output: 20.00 },
+  'gemini-3.1-pro':    { input: 2.50, output: 10.00 },
+  'gemini-2.5-pro':    { input: 2.50, output: 10.00 },
+  'gemini-2.5-flash':  { input: 0.075, output: 0.30 },
+  'gemini-3-flash':    { input: 0.05,  output: 0.20 },
+};
+
+function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number | null {
+  const p = MODEL_PRICING[model];
+  if (!p) return null;
+  return (inputTokens * p.input + outputTokens * p.output) / 1_000_000;
+}
+
 // Large transcript cleaning functions
 function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string[] {
   if (text.length <= target) return [text];
