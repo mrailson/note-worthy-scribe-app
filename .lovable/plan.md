@@ -1,12 +1,13 @@
-## Expand Sonnet 4.6 capacity for long meetings
+## Stop ancient meetings cluttering the Stuck Meeting Check
 
-Edit `supabase/functions/auto-generate-meeting-notes/index.ts`:
+**Two changes:**
 
-1. **Line 2069** — `OVERRIDE_PER_ATTEMPT_TIMEOUT_MS`: `180_000` → `300_000` (5 min per attempt for manual Regenerate Notes; auto path stays 90s).
-2. **Line 2137** — Anthropic `max_tokens`: `16000` → `32000` (Sonnet 4.6 supports up to 64k output; prevents truncation on long detailed minutes).
+### 1. UI cap — only show last 7 days
+`src/pages/SystemAdmin.tsx` `fetchStuckMeetings` (line 619-625): add `.gte('created_at', sevenDaysAgo)` so the panel only flags actionable recent stalls.
 
-The existing log line at 2433 reads the constant dynamically, so it'll print `300s` automatically. No DB or schema changes.
+### 2. One-off DB sweep — mark anything >24h stale as failed
+Run an UPDATE migration that sets `status='failed'` (and `notes_generation_status='failed'` where queued/generating) on every meeting with `updated_at < now() - interval '24 hours'` that's still in `recording`, `processing`, `transcribing`, `pending_transcription`, `queued`, or `generating`. This clears the existing backlog and stops them surfacing anywhere else in the app.
 
-Then update `mem://index.md` core rule to reflect: auto path 90s, override path 300s, max_tokens 32k.
+No schema change — just one data-update migration plus the small UI tweak.
 
 Approve to apply.

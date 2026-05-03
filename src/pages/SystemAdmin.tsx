@@ -617,10 +617,14 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     setLoadingStuckMeetings(true);
     try {
       const now = Date.now();
+      // Only consider meetings from the last 7 days — older rows are historical
+      // noise (the >24h-stale sweep already marks them failed).
+      const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data: meetings, error: meetingsError } = await supabase
         .from('meetings')
         .select('id, title, status, user_id, created_at, updated_at, notes_generation_status, word_count, whisper_transcript_text')
         .or('status.eq.recording,status.eq.processing,status.eq.transcribing,status.eq.pending_transcription,notes_generation_status.eq.queued,notes_generation_status.eq.generating')
+        .gte('created_at', sevenDaysAgo)
         .order('updated_at', { ascending: true })
         .limit(75);
 
