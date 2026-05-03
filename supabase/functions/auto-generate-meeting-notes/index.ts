@@ -734,8 +734,15 @@ serve(async (req) => {
         actualTranscriptSource = 'best_of_all';
       } else {
         // best_of_all not ready yet — wait briefly in case consolidation is still running
-        console.log('⏳ best_of_all not found, waiting 5s for consolidation to complete...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        // Skip the 5s consolidation-wait for pipeline-test meetings — they synthesise
+        // their transcript up-front and will never have best_of_all populated, so the
+        // wait is pure dead time on every test run.
+        if (meeting.import_source === 'pipeline_test') {
+          console.log('⏩ pipeline_test meeting — skipping best_of_all consolidation wait');
+        } else {
+          console.log('⏳ best_of_all not found, waiting 5s for consolidation to complete...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
         
         // Retry once
         const { data: boaRetry } = await supabase
@@ -975,6 +982,10 @@ serve(async (req) => {
     // non-meeting recordings (e.g. game-show audio, test recordings, brief
     // background noise). Bypassed when the caller passes forceGenerate: true.
     const MIN_TRANSCRIPT_WORDS = 100;
+    // Still computed for diagnostic logging in the LLM-refusal path below.
+    const meetingDurationSeconds = meeting.duration_minutes != null
+      ? Math.round(Number(meeting.duration_minutes) * 60)
+      : null;
     if (!forceGenerate) {
       const transcriptTooShort = wordCount < MIN_TRANSCRIPT_WORDS;
       if (transcriptTooShort) {
@@ -2062,7 +2073,10 @@ ${cleanedTranscript}`;
                 if (eventType === 'content_block_delta') {
                   const delta = payload?.delta;
                   if (delta?.type === 'text_delta' && typeof delta.text === 'string') {
-                    if (!firstDeltaWritten) {
+                    // Only stamp first-token on a delta that actually carries text.
+                    // Anthropic occasionally emits a zero-length text_delta right after
+                    // content_block_start, which would falsely register as <2ms TTFT.
+                    if (!firstDeltaWritten && delta.text.length > 0) {
                       firstDeltaWritten = true;
                       // Stage 6 — model time-to-first-token.
                       stamp('notes_first_delta_at');
@@ -3051,7 +3065,10 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
     }
     // Stage 8 — post-processing complete (action extraction + overview generation done).
-    stamp('notes_post_processing_complete_at');
+    // Inlined into the awaited completion-status UPDATE below so it survives the
+    // edge function returning its response (the fire-and-forget stamp() helper was
+    // being killed before the row update landed, leaving the column NULL).
+    const postProcessingCompleteAt = new Date().toISOString();
 
     // Update meeting with completion status, word count, AI overview, and generated title
     const { error: statusUpdateError } = await supabase
@@ -3062,6 +3079,7 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
         overview: aiOverview || null,
         title: generatedTitle,
         notes_model_used: stampModelForRefine(actualModelUsed),
+        notes_post_processing_complete_at: postProcessingCompleteAt,
       })
       .eq('id', meetingId);
 
