@@ -3313,8 +3313,13 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
       console.log('📭 suppressEmail=true — skipping deliver-mobile-meeting-email');
     } else try {
       console.log(`📧 Triggering deliver-mobile-meeting-email for meeting ${meetingId}`);
-      // Reset idempotency stamp so a forced regenerate re-sends the email.
-      await supabase.from('meetings').update({ notes_email_sent_at: null }).eq('id', meetingId);
+      // Only clear the idempotency stamp on an explicit forced regenerate.
+      // Clearing it unconditionally caused duplicate emails when the pipeline
+      // was invoked twice for the same meeting (e.g. recorder fire-and-forget
+      // + queue cron pickup, or a second click on "Generate Meeting Notes").
+      if (requestBody.forceRegenerate === true) {
+        await supabase.from('meetings').update({ notes_email_sent_at: null }).eq('id', meetingId);
+      }
       const { error: emailErr } = await supabase.functions.invoke('deliver-mobile-meeting-email', {
         body: { meetingId },
       });
