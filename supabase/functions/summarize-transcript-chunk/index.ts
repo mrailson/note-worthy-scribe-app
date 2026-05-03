@@ -22,7 +22,7 @@ CRITICAL — TOPIC PRESERVATION:
 
 Output structured markdown with these sections (omit only if genuinely empty):
 - Key Points (one bullet per distinct topic, each prefixed with the topic name)
-- Decisions (use prefixes RESOLVED / AGREED / NOTED in bold where applicable — list every decision in this chunk)
+- Decisions (each decision on its own plain line in the form \`LABEL — decision text\` where LABEL is one of RESOLVED, AGREED, NOTED. NO bullet, NO bold, NO colon. List every decision in this chunk.)
 - Actions ([Owner] – Action – Due date if mentioned — list every action in this chunk)
 - Risks/Issues
 Avoid preambles. Be concise per bullet but exhaustive in coverage.`;
