@@ -718,6 +718,7 @@ export default function PipelineTest() {
             </RadioGroup>
           </div>
 
+          {/* Force single-shot toggle — bypasses chunked path even on long fixtures.
               Mirrors the production "Regenerate with Sonnet" refine flow. */}
           <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer max-w-2xl">
             <input
