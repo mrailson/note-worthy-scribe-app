@@ -1167,7 +1167,23 @@ export default function PipelineTest() {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-base">Recent runs ({filteredHistory.length})</CardTitle>
+            <CardTitle className="text-base flex items-center gap-3">
+              Recent runs ({filteredHistory.length})
+              <Button
+                size="sm" variant="outline" className="h-7 text-xs"
+                disabled={compareSelected.size !== 2}
+                title={compareSelected.size === 2 ? 'Open side-by-side comparison' : 'Tick exactly 2 runs to compare'}
+                asChild={compareSelected.size === 2}
+              >
+                {compareSelected.size === 2 ? (
+                  <Link to={`/admin/pipeline-compare?compare=${Array.from(compareSelected).join(',')}`}>
+                    <GitCompareArrows className="h-3.5 w-3.5 mr-1" /> Compare selected
+                  </Link>
+                ) : (
+                  <span><GitCompareArrows className="h-3.5 w-3.5 mr-1" /> Compare selected ({compareSelected.size}/2)</span>
+                )}
+              </Button>
+            </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={sizeFilter} onValueChange={setSizeFilter}>
                 <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Size" /></SelectTrigger>
