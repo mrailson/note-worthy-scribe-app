@@ -116,6 +116,8 @@ export default function PipelineTest() {
     duration_minutes: number | null;
     notes_model_used: string | null;
     transcript_chars: number;
+    user_id?: string | null;
+    owner_name?: string | null;
   }
   const [replayMeetings, setReplayMeetings] = useState<ReplayMeeting[]>([]);
   const [replayLoading, setReplayLoading] = useState(false);
@@ -197,8 +199,24 @@ export default function PipelineTest() {
           chars[row.meeting_id] = (chars[row.meeting_id] ?? 0) + (row.content?.length ?? 0);
         }
       }
+      // Look up owner names from profiles for the user_ids on these meetings.
+      const ownerIds = Array.from(new Set((meetings ?? []).map(m => (m as any).user_id).filter(Boolean)));
+      const owners: Record<string, string> = {};
+      if (ownerIds.length) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id,full_name,email')
+          .in('id', ownerIds);
+        for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>) {
+          owners[p.id] = p.full_name?.trim() || p.email || 'Unknown';
+        }
+      }
       const enriched: ReplayMeeting[] = (meetings ?? [])
-        .map(m => ({ ...m, transcript_chars: chars[m.id] ?? 0 } as ReplayMeeting))
+        .map(m => ({
+          ...m,
+          transcript_chars: chars[m.id] ?? 0,
+          owner_name: owners[(m as any).user_id] ?? null,
+        } as ReplayMeeting))
         .filter(m => m.transcript_chars > 0);
       setReplayMeetings(enriched);
     } catch (err: any) {
@@ -970,6 +988,7 @@ export default function PipelineTest() {
                     <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">{m.title ?? 'Untitled meeting'}</div>
                       <div className="text-xs text-muted-foreground">
+                        {m.owner_name ? <><span className="font-medium text-foreground">{m.owner_name}</span> · </> : null}
                         {date} · {m.duration_minutes ?? '?'} min · {m.transcript_chars.toLocaleString()} chars
                         {m.notes_model_used ? <> · original: <span className="font-mono">{m.notes_model_used}</span></> : null}
                       </div>
