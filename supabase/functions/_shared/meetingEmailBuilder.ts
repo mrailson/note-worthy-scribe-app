@@ -155,7 +155,10 @@ export const convertToStyledHTML = (text: string): string => {
       const numberMatch = line.match(/^(\d+)\.\s/);
       const number = numberMatch ? numberMatch[1] : '';
       const colonIndex = fullText.indexOf(':');
-      if (colonIndex !== -1) {
+      // Only treat colon as heading/body separator when it's near the start —
+      // otherwise long merged chunked-path items get their entire first sentence
+      // bolded blue (the colon often appears deep inside the body text).
+      if (colonIndex !== -1 && colonIndex <= 80) {
         const heading = stripInlineMarkdown(fullText.substring(0, colonIndex + 1));
         const bodyText = stripInlineMarkdown(fullText.substring(colonIndex + 1).trim());
         html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
