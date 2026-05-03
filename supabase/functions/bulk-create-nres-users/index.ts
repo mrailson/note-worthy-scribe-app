@@ -77,7 +77,7 @@ const NRES_USERS: UserToCreate[] = [
   { email: "russell.rolph@voluntaryimpact.org.uk", name: "Russell Rolph", organization: "Voluntary Impact", practice_id: PRACTICE_IDS.OAK_LANE },
 ];
 
-const DEFAULT_PASSWORD = "Letmein1!";
+// Password must be passed per request; no hardcoded default.
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
