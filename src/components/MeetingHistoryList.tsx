@@ -3097,7 +3097,7 @@ export const MeetingHistoryList = ({
                       })()}
                         {processingMeetings[meeting.id]?.isProcessing
                           ? getProcessingButtonText(processingMeetings[meeting.id])
-                          : 'Regenerate Notes (Sonnet 4.6 — full pipeline)'}
+                          : 'Regenerate Notes (Sonnet 4.6 — full pipeline + auto-email)'}
                       </DropdownMenuItem>
 
 
