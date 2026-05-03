@@ -16,9 +16,9 @@ CASE AND EMPHASIS RULES (critical — violations break downstream rendering):
 - Write all prose in normal sentence case. NEVER write whole paragraphs, sentences, or multi-word phrases in ALL UPPERCASE.
 - Uppercase is permitted ONLY for: section heading words (e.g. "MEETING DETAILS"), the three decision-prefix keywords (RESOLVED, AGREED, NOTED), and proper nouns / abbreviations as they appear in source (NHS, ICB, GP, KGH, NHFT, OPIT, etc.).
 - Use markdown bold (**) sparingly and precisely. Bold ONLY:
-  • The decision-prefix keyword itself: \`**RESOLVED**\`, \`**AGREED**\`, \`**NOTED**\` — followed by a space, em-dash, then the decision text in plain (non-bold) sentence case.
   • The labels "Meeting Purpose:" and the column headers in the action items table.
-  Do NOT bold the dash, do NOT bold the decision body text, do NOT bold whole sentences or paragraphs.
+  Do NOT bold whole sentences or paragraphs.
+- Decision lines in the DECISIONS REGISTER are plain lines (no bullet, no bold, no colon after the label) — see the DECISIONS REGISTER section for the exact format.
 - Never put a bold open marker (\`**\`) immediately adjacent to a bold close marker (\`**\`) of the previous run. Always have at least a non-asterisk character between them.
 
 LINE BREAK RULES (critical):
