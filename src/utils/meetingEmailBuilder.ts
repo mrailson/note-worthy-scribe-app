@@ -37,7 +37,7 @@ export const stripDuplicateBlocks = (text: string): string => {
 
 /** Convert markdown notes content to styled HTML for email body */
 export const convertToStyledHTML = (text: string): string => {
-  const cleanedText = normaliseMeetingNotesFormatting(stripDuplicateBlocks(text));
+  const cleanedText = normaliseGovernanceLayout(normaliseMeetingNotesFormatting(stripDuplicateBlocks(text)));
   let processedText = cleanedText
     .replace(/\\\*/g, '')
     .replace(/\*{3,}/g, '**')
