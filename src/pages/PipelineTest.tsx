@@ -231,12 +231,12 @@ export default function PipelineTest() {
         isCustom: true,
         forceSingleShot,
         tier: outputTier,
-        suppressEmail: true,
+        suppressEmail: false,
         replayOf: { id: m.id, title: m.title ?? 'Untitled' },
       });
       toast({
         title: 'Replay launched',
-        description: 'Original notes untouched · email suppressed',
+        description: 'Original notes untouched · replay output will be emailed to you',
       });
     } catch (err: any) {
       toast({ title: 'Replay failed', description: err.message, variant: 'destructive' });
