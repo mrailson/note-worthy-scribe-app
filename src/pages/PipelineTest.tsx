@@ -82,6 +82,8 @@ interface TestRun {
   input_tokens: number | null;
   output_tokens: number | null;
   cost_usd_est: number | null;
+  docx_storage_path: string | null;
+  custom_test: boolean | null;
 }
 
 const STAGE_TIMEOUT_MS = 10 * 60 * 1000;
