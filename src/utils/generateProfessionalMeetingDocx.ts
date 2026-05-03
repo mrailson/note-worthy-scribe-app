@@ -2,6 +2,7 @@ import { saveAs } from "file-saver";
 import { NHS_COLORS, FONTS, buildNHSStyles, buildNumbering } from "./wordTheme";
 import { generateMeetingFilename } from "./meetingFilename";
 import { normaliseMeetingNotesFormatting } from "@/utils/meeting/cleanMeetingContent";
+import { normaliseGovernanceLayout } from "@/utils/meeting/normaliseGovernanceLayout";
 
 // Decode HTML entities to plain characters for Word output
 const decodeHtmlEntities = (text: string): string => {
