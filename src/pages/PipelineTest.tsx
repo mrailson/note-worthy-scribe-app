@@ -174,12 +174,14 @@ export default function PipelineTest() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      // Fetch this user's own meetings ≥45 minutes that have transcript content.
-      // We then enrich with the actual transcript size from meeting_transcripts.
+      // Fetch this user's own meetings ≥45 minutes that have transcript content,
+      // plus J. Railson's meetings (she is the main test subject we are fixing).
+      const RAILSON_USER_ID = 'd240f0ba-2727-4c7f-aa3c-da4de0f0a033';
+      const userIds = Array.from(new Set([user.id, RAILSON_USER_ID]));
       const { data: meetings, error } = await supabase
         .from('meetings')
-        .select('id,title,created_at,duration_minutes,notes_model_used')
-        .eq('user_id', user.id)
+        .select('id,title,created_at,duration_minutes,notes_model_used,user_id')
+        .in('user_id', userIds)
         .gte('duration_minutes', 45)
         .order('created_at', { ascending: false })
         .limit(limit);
