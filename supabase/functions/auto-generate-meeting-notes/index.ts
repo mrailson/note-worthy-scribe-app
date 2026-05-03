@@ -2134,14 +2134,16 @@ ${cleanedTranscript}`;
           // Stage 7 — stream complete (pure model generation time).
           stamp('notes_stream_complete_at');
           console.log(`✅ Sonnet stream complete: chars=${notes.length}, message_stop=${sawMessageStop}, in=${usageInputTokens}, out=${usageOutputTokens}`);
-          // Persist token usage + estimated cost. Fire-and-forget — same pattern as stamp().
+          // Persist token usage + estimated cost. Awaited so the row is durable
+          // before the orchestrator returns and the pipeline-test watcher reads it.
           {
             const cost = estimateCostUsd(claudeModel, usageInputTokens, usageOutputTokens);
-            supabase.from('meetings').update({
+            const { error: usageErr } = await supabase.from('meetings').update({
               notes_input_tokens: usageInputTokens,
               notes_output_tokens: usageOutputTokens,
               notes_cost_usd_est: cost,
-            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+            }).eq('id', meetingId);
+            if (usageErr) console.warn('⚠️ usage stamp failed:', usageErr.message);
           }
         } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
