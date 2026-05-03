@@ -1785,6 +1785,17 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
       } else if (titleResult?.title) {
         generatedTitle = titleResult.title;
         console.log('✅ Generated title:', generatedTitle);
+        // Persist the title immediately so the meeting card shows a meaningful
+        // name even if notes generation fails downstream. Without this, a failed
+        // run leaves the card with the placeholder "Meeting 28 Apr 19:23" title.
+        try {
+          await supabase
+            .from('meetings')
+            .update({ title: generatedTitle })
+            .eq('id', meetingId);
+        } catch (persistErr: any) {
+          console.warn('⚠️ Could not persist generated title early:', persistErr?.message);
+        }
       }
     } catch (titleError) {
       console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
@@ -3374,6 +3385,32 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
             updated_at: new Date().toISOString()
           })
           .eq('id', meetingId);
+
+        // Best-effort overview from transcript so the card isn't empty even
+        // when notes generation fails. Non-blocking — any error is swallowed.
+        try {
+          const { data: m } = await supabase
+            .from('meetings')
+            .select('overview, title, best_of_all_transcript, assembly_transcript_text, whisper_transcript_text, live_transcript_text')
+            .eq('id', meetingId)
+            .maybeSingle();
+          const transcript = (m as any)?.best_of_all_transcript
+            || (m as any)?.assembly_transcript_text
+            || (m as any)?.whisper_transcript_text
+            || (m as any)?.live_transcript_text
+            || '';
+          if (!(m as any)?.overview && transcript && transcript.length > 200) {
+            const { data: ov } = await supabase.functions.invoke('generate-meeting-overview', {
+              body: { meetingId, meetingTitle: (m as any)?.title, transcript: transcript.slice(0, 60000) }
+            });
+            if ((ov as any)?.overview) {
+              await supabase.from('meetings').update({ overview: (ov as any).overview }).eq('id', meetingId);
+              console.log('✅ Fallback overview saved despite notes failure');
+            }
+          }
+        } catch (ovErr: any) {
+          console.warn('⚠️ Fallback overview failed:', ovErr?.message);
+        }
 
         await supabase
           .from('meeting_notes_queue')
