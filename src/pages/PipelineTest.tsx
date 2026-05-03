@@ -772,6 +772,9 @@ export default function PipelineTest() {
                       <span className="capitalize">{sizeLabel}</span>
                       <span className="mx-2 text-muted-foreground">·</span>
                       <span>{modelLabel}</span>
+                      {item.forceSingleShot && (
+                        <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">single-shot</span>
+                      )}
                       {label && <span className="ml-2 text-xs text-muted-foreground truncate max-w-xs inline-block align-bottom">{label}</span>}
                     </span>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
