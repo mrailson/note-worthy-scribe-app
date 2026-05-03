@@ -1785,6 +1785,17 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
       } else if (titleResult?.title) {
         generatedTitle = titleResult.title;
         console.log('✅ Generated title:', generatedTitle);
+        // Persist the title immediately so the meeting card shows a meaningful
+        // name even if notes generation fails downstream. Without this, a failed
+        // run leaves the card with the placeholder "Meeting 28 Apr 19:23" title.
+        try {
+          await supabase
+            .from('meetings')
+            .update({ title: generatedTitle })
+            .eq('id', meetingId);
+        } catch (persistErr: any) {
+          console.warn('⚠️ Could not persist generated title early:', persistErr?.message);
+        }
       }
     } catch (titleError) {
       console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
