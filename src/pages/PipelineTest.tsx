@@ -251,6 +251,13 @@ export default function PipelineTest() {
           updates.error_message = 'notes_generation_status=failed';
           updates.finished_at = new Date().toISOString();
         }
+        if (status === 'insufficient_content') {
+          // Pipeline guard rejected the transcript as too short / not a real meeting.
+          // Treat as failed for test reporting so the row doesn't sit "in progress" forever.
+          updates.status = 'failed';
+          updates.error_message = 'insufficient_content: transcript rejected by pipeline guard (likely <300 words or non-meeting content)';
+          updates.finished_at = new Date().toISOString();
+        }
 
         if (Object.keys(updates).length > 0) {
           await supabase.from('pipeline_test_runs').update(updates).eq('id', runId);
