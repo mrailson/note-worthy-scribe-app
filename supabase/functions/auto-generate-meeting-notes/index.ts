@@ -2040,6 +2040,12 @@ ${cleanedTranscript}`;
           console.log(`🧠 [attempt] Claude model: ${claudeModel} (streaming)`);
           const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY') || Deno.env.get('CLAUDE_API_KEY');
           if (!anthropicApiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+          // Stage 5 — request dispatched. Stamp BEFORE awaiting fetch so the
+          // gap between this and `notes_first_delta_at` reflects true TTFT
+          // (network + Anthropic queue + first model token), not just SSE
+          // parsing time. Previously stamped post-await, which made TTFT
+          // appear as ~2ms because fetch only resolves when headers arrive.
+          stamp('notes_request_dispatched_at');
           const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -2057,8 +2063,6 @@ ${cleanedTranscript}`;
             }),
             signal: attemptController.signal,
           });
-          // Stage 5 — request dispatched, headers received (covers TLS + Anthropic queue time).
-          stamp('notes_request_dispatched_at');
           if (!response.ok) {
             const errorData = await response.text();
             throw new Error(`Anthropic ${response.status}: ${errorData.substring(0, 300)}`);
@@ -2130,14 +2134,16 @@ ${cleanedTranscript}`;
           // Stage 7 — stream complete (pure model generation time).
           stamp('notes_stream_complete_at');
           console.log(`✅ Sonnet stream complete: chars=${notes.length}, message_stop=${sawMessageStop}, in=${usageInputTokens}, out=${usageOutputTokens}`);
-          // Persist token usage + estimated cost. Fire-and-forget — same pattern as stamp().
+          // Persist token usage + estimated cost. Awaited so the row is durable
+          // before the orchestrator returns and the pipeline-test watcher reads it.
           {
             const cost = estimateCostUsd(claudeModel, usageInputTokens, usageOutputTokens);
-            supabase.from('meetings').update({
+            const { error: usageErr } = await supabase.from('meetings').update({
               notes_input_tokens: usageInputTokens,
               notes_output_tokens: usageOutputTokens,
               notes_cost_usd_est: cost,
-            }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
+            }).eq('id', meetingId);
+            if (usageErr) console.warn('⚠️ usage stamp failed:', usageErr.message);
           }
         } else if (modelKey === 'gpt-5.2' || modelKey === 'openai-flagship') {
           // OpenAI GPT-5.2 — current flagship on the Lovable AI Gateway, used
