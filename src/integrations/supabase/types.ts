@@ -7587,13 +7587,16 @@ export type Database = {
           merge_decision_log: Json | null
           mixed_audio_url: string | null
           notes_config: Json | null
+          notes_cost_usd_est: number | null
           notes_documents_loaded_at: string | null
           notes_email_sent_at: string | null
           notes_first_delta_at: string | null
           notes_generation_status: string | null
+          notes_input_tokens: number | null
           notes_meeting_loaded_at: string | null
           notes_model_attempt: number
           notes_model_used: string | null
+          notes_output_tokens: number | null
           notes_post_processing_complete_at: string | null
           notes_prompt_assembled_at: string | null
           notes_request_dispatched_at: string | null
@@ -7672,13 +7675,16 @@ export type Database = {
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
           notes_config?: Json | null
+          notes_cost_usd_est?: number | null
           notes_documents_loaded_at?: string | null
           notes_email_sent_at?: string | null
           notes_first_delta_at?: string | null
           notes_generation_status?: string | null
+          notes_input_tokens?: number | null
           notes_meeting_loaded_at?: string | null
           notes_model_attempt?: number
           notes_model_used?: string | null
+          notes_output_tokens?: number | null
           notes_post_processing_complete_at?: string | null
           notes_prompt_assembled_at?: string | null
           notes_request_dispatched_at?: string | null
@@ -7757,13 +7763,16 @@ export type Database = {
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
           notes_config?: Json | null
+          notes_cost_usd_est?: number | null
           notes_documents_loaded_at?: string | null
           notes_email_sent_at?: string | null
           notes_first_delta_at?: string | null
           notes_generation_status?: string | null
+          notes_input_tokens?: number | null
           notes_meeting_loaded_at?: string | null
           notes_model_attempt?: number
           notes_model_used?: string | null
+          notes_output_tokens?: number | null
           notes_post_processing_complete_at?: string | null
           notes_prompt_assembled_at?: string | null
           notes_request_dispatched_at?: string | null
@@ -10083,6 +10092,7 @@ export type Database = {
       pipeline_test_runs: {
         Row: {
           action_count: number | null
+          cost_usd_est: number | null
           created_at: string
           diagnostic_log: Json | null
           email_recipient: string | null
@@ -10091,8 +10101,10 @@ export type Database = {
           error_message: string | null
           finished_at: string | null
           id: string
+          input_tokens: number | null
           meeting_id: string | null
           meeting_inserted_at: string | null
+          model_override: string | null
           notes_chars: number | null
           notes_completed_at: string | null
           notes_documents_loaded_at: string | null
@@ -10107,6 +10119,7 @@ export type Database = {
           notes_status_generating_at: string | null
           notes_stream_complete_at: string | null
           notes_title_generated_at: string | null
+          output_tokens: number | null
           started_at: string
           status: string
           summary_inserted_at: string | null
@@ -10118,6 +10131,7 @@ export type Database = {
         }
         Insert: {
           action_count?: number | null
+          cost_usd_est?: number | null
           created_at?: string
           diagnostic_log?: Json | null
           email_recipient?: string | null
@@ -10126,8 +10140,10 @@ export type Database = {
           error_message?: string | null
           finished_at?: string | null
           id?: string
+          input_tokens?: number | null
           meeting_id?: string | null
           meeting_inserted_at?: string | null
+          model_override?: string | null
           notes_chars?: number | null
           notes_completed_at?: string | null
           notes_documents_loaded_at?: string | null
@@ -10142,6 +10158,7 @@ export type Database = {
           notes_status_generating_at?: string | null
           notes_stream_complete_at?: string | null
           notes_title_generated_at?: string | null
+          output_tokens?: number | null
           started_at?: string
           status?: string
           summary_inserted_at?: string | null
@@ -10153,6 +10170,7 @@ export type Database = {
         }
         Update: {
           action_count?: number | null
+          cost_usd_est?: number | null
           created_at?: string
           diagnostic_log?: Json | null
           email_recipient?: string | null
@@ -10161,8 +10179,10 @@ export type Database = {
           error_message?: string | null
           finished_at?: string | null
           id?: string
+          input_tokens?: number | null
           meeting_id?: string | null
           meeting_inserted_at?: string | null
+          model_override?: string | null
           notes_chars?: number | null
           notes_completed_at?: string | null
           notes_documents_loaded_at?: string | null
@@ -10177,6 +10197,7 @@ export type Database = {
           notes_status_generating_at?: string | null
           notes_stream_complete_at?: string | null
           notes_title_generated_at?: string | null
+          output_tokens?: number | null
           started_at?: string
           status?: string
           summary_inserted_at?: string | null
