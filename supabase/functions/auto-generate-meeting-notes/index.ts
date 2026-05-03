@@ -2173,6 +2173,7 @@ ${cleanedTranscript}`;
               notes_input_tokens: inTok, notes_output_tokens: outTok, notes_cost_usd_est: cost,
             }).eq('id', meetingId).then(() => {}, (e: any) => console.warn('⚠️ usage stamp failed:', e?.message));
           }
+        } else if (modelKey === 'gpt-5') {
           // OpenAI provider via Lovable AI Gateway — different-provider fallback
           // protects against Google-wide outages.
           console.log('🧠 [attempt] OpenAI gpt-5 via gateway');
