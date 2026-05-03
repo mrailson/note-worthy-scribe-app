@@ -1234,6 +1234,7 @@ export default function PipelineTest() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 pr-2 w-6"></th>
                     <th className="py-2 pr-4">Started</th>
                     <th className="py-2 pr-4">Size</th>
                     <th className="py-2 pr-4">Model</th>
