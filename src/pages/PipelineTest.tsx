@@ -213,21 +213,29 @@ export default function PipelineTest() {
       .single();
     if (runErr || !runRow) throw new Error(runErr?.message ?? 'Failed to create test run');
 
+    const meetingInsertPayload: any = {
+      user_id: user.id,
+      title: spec.title,
+      description: `[Pipeline test — ${spec.size}${spec.isCustom ? ' / custom' : ''}${spec.replayOf ? ' / replay' : ''}] ${spec.agenda}`,
+      meeting_type: 'general',
+      start_time: new Date().toISOString(),
+      end_time: new Date().toISOString(),
+      duration_minutes: spec.durationMinutes,
+      status: 'completed',
+      import_source: spec.replayOf ? 'pipeline_test_replay' : importSource,
+      meeting_format: 'face-to-face',
+      notes_generation_status: 'queued',
+    };
+    if (spec.replayOf) {
+      meetingInsertPayload.import_metadata = {
+        source: 'real-meeting-replay',
+        original_meeting_id: spec.replayOf.id,
+        original_meeting_title: spec.replayOf.title,
+      };
+    }
     const { data: meeting, error: meetingErr } = await supabase
       .from('meetings')
-      .insert({
-        user_id: user.id,
-        title: spec.title,
-        description: `[Pipeline test — ${spec.size}${spec.isCustom ? ' / custom' : ''}] ${spec.agenda}`,
-        meeting_type: 'general',
-        start_time: new Date().toISOString(),
-        end_time: new Date().toISOString(),
-        duration_minutes: spec.durationMinutes,
-        status: 'completed',
-        import_source: importSource,
-        meeting_format: 'face-to-face',
-        notes_generation_status: 'queued',
-      })
+      .insert(meetingInsertPayload)
       .select()
       .single();
     if (meetingErr || !meeting) throw new Error(`Meeting insert failed: ${meetingErr?.message}`);
