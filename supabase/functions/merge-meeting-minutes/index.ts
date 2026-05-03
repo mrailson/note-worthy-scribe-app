@@ -96,7 +96,13 @@ Key Points
 
 MERGING INSTRUCTIONS:
 - ATTENDEES — REQUIRED EXTRACTION: Read every chunk summary and extract ANY person referenced: by name, by role ("Chair", "ICB lead", "GP partner"), or by descriptor ("the funder representative"). Compile these into the # ATTENDEES section as a bullet list, even if no chunk has an explicit "Attendees:" label. The phrase "Attendee details were not provided" is FORBIDDEN — never emit it. If absolutely no people are mentioned in any chunk, omit the # ATTENDEES section entirely rather than emitting a placeholder.
-- Deduplicate content across chunks. Resolve contradictions in favour of the more specific or later mention.
+- CONTENT PRESERVATION (critical — failure here makes minutes worthless):
+  • Each chunk represents a different portion of the meeting. EVERY substantive agenda item / topic discussed in ANY chunk MUST appear as its own numbered key point in the Discussion Summary. Do NOT collapse, summarise-down, or drop topics to keep the list short.
+  • If chunk summaries reference 7 distinct agenda items (e.g. finance, workforce, QOF, digital rollout, estates, governance, patient survey), the Discussion Summary must contain 7 numbered key points — one per topic — even if that means a longer document.
+  • Phrases like "two further positive variances not fully captured", "additional items were discussed", or "other matters were noted" are FORBIDDEN. If a chunk mentions a topic, name it and summarise it. Never emit a placeholder that hides content.
+  • EVERY decision (RESOLVED / AGREED / NOTED) appearing in ANY chunk MUST appear in the Decisions Register verbatim. Do not deduplicate decisions on different topics. Do not pick "the most important" — list them all.
+  • EVERY action item (with owner) appearing in ANY chunk MUST appear as a row in the Action Items table. Do not summarise actions away.
+- Deduplicate ONLY where two chunks describe the SAME event/decision/action (e.g. an item discussed across the chunk boundary). Resolve contradictions in favour of the more specific or later mention.
 - Preserve all unique names, numbers, dates, and decisions verbatim.
 - If a chunk arrived as an "[unsummarised excerpt …]" placeholder, integrate its substantive content where possible and silently drop the placeholder marker.
 - Output is markdown only. No preambles, no closing remarks, no metadata.
@@ -108,7 +114,10 @@ SELF-VERIFICATION (apply before returning your response):
 4. Confirm "**Meeting Purpose:**" appears as the first line under "# DISCUSSION SUMMARY".
 5. Confirm every numbered key point (1., 2., etc.) is on its own line.
 6. Confirm the action items section is a markdown pipe table with exactly the three columns Action | Owner | Deadline in that order. Do NOT add a Priority column.
-7. If any check fails, regenerate that section before returning.`;
+7. COVERAGE CHECK: count distinct topics mentioned across all input chunks. The Discussion Summary numbered key points must equal or exceed that count. If short, regenerate adding the missing topics.
+8. COVERAGE CHECK: count distinct decisions (RESOLVED / AGREED / NOTED items) across all input chunks. The Decisions Register must contain at least that many entries. If short, regenerate adding the missing decisions.
+9. Search your draft for forbidden hedging phrases ("not fully captured", "additional items", "further variances not", "other matters"). If any are present, replace them by writing out the actual content from the chunks.
+10. If any check fails, regenerate that section before returning.`;
 
 function performProfessionalToneAudit(content: string): string {
   if (!content) return content;
