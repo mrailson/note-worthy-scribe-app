@@ -976,6 +976,7 @@ export default function PipelineTest() {
                     <th className="py-2 pr-4">Notes gen</th>
                     <th className="py-2 pr-4">Tokens (in/out)</th>
                     <th className="py-2 pr-4">Cost (USD)</th>
+                    <th className="py-2 pr-4 w-10">Doc</th>
                     <th className="py-2 pr-2 w-8"></th>
                   </tr>
                 </thead>
