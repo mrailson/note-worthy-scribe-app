@@ -3068,7 +3068,7 @@ export const MeetingHistoryList = ({
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          handleProcessClick(meeting);
+                          handleProcessClick(meeting, 'sonnet-4.6');
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
                         className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
@@ -3079,73 +3079,9 @@ export const MeetingHistoryList = ({
                           const shouldSpin = processing?.isProcessing && processing.currentStage !== 'complete';
                           return <IconComponent className={`h-4 w-4 mr-2 ${shouldSpin ? 'animate-spin' : ''}`} />;
                       })()}
-                        {getProcessingButtonText(processingMeetings[meeting.id])}
-                      </DropdownMenuItem>
-
-                      {/* Gemini 3 Flash — fast, lower-quality alternative for quick re-runs */}
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          const ok = window.confirm(
-                            'Regenerate with Gemini 3 Flash?\n\n' +
-                            'Faster generation (~25 seconds) but slightly lower extraction quality ' +
-                            'than the default. Useful for quick re-runs.\n\n' +
-                            'Use Flash?'
-                          );
-                          if (ok) {
-                            handleProcessClick(meeting, 'gemini-3-flash');
-                          }
-                        }}
-                        disabled={processingMeetings[meeting.id]?.isProcessing}
-                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
-                      >
-                        <Zap className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Gemini 3 Flash (fast)'}
-                      </DropdownMenuItem>
-
-                      {/* Claude Sonnet 4.6 — alternative perspective for cross-checking */}
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          const ok = window.confirm(
-                            'Regenerate with Claude Sonnet 4.6?\n\n' +
-                            "Anthropic's model — provides a different perspective on the same " +
-                            'transcript. Useful for cross-checking action item extraction.\n\n' +
-                            'Use Sonnet?'
-                          );
-                          if (ok) {
-                            handleProcessClick(meeting, 'sonnet-4.6');
-                          }
-                        }}
-                        disabled={processingMeetings[meeting.id]?.isProcessing}
-                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with Sonnet 4.6 (alternative)'}
-                      </DropdownMenuItem>
-
-                      {/* OpenAI GPT-5.2 — third-provider option for cross-checking */}
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          const ok = window.confirm(
-                            'Regenerate with OpenAI GPT-5.2?\n\n' +
-                            "OpenAI's current flagship model — provides a third-provider perspective " +
-                            'alongside Gemini and Sonnet for side-by-side comparison.\n\n' +
-                            'Use GPT-5.2?'
-                          );
-                          if (ok) {
-                            handleProcessClick(meeting, 'gpt-5.2');
-                          }
-                        }}
-                        disabled={processingMeetings[meeting.id]?.isProcessing}
-                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
-                      >
-                        <Brain className="h-4 w-4 mr-2" />
-                        {processingMeetings[meeting.id]?.isProcessing ? 'Processing...' : 'Regenerate with GPT-5.2 (OpenAI)'}
+                        {processingMeetings[meeting.id]?.isProcessing
+                          ? getProcessingButtonText(processingMeetings[meeting.id])
+                          : 'Regenerate Notes (Sonnet 4.6 — full pipeline)'}
                       </DropdownMenuItem>
 
 
