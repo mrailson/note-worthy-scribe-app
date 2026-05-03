@@ -714,7 +714,7 @@ export default function PipelineTest() {
                     <Button
                       variant="ghost" size="sm" className="h-7 px-2 text-xs"
                       disabled={isAnyRunning}
-                      onClick={() => addToQueue({ kind: 'fixture', size, model: selectedModel })}
+                      onClick={() => addToQueue({ kind: 'fixture', size, model: selectedModel, forceSingleShot })}
                       title="Add to queue"
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" /> Queue
@@ -897,7 +897,7 @@ export default function PipelineTest() {
                 const title = customTitle.trim() || `Custom test — ${stamp}`;
                 const duration = typeof customDuration === 'number' && customDuration > 0
                   ? customDuration : Math.max(5, Math.round(words / 150));
-                addToQueue({ kind: 'custom', model: selectedModel, transcript: text, title, durationMinutes: duration });
+                addToQueue({ kind: 'custom', model: selectedModel, transcript: text, title, durationMinutes: duration, forceSingleShot });
                 toast({ title: 'Added to queue' });
               }}
             >
