@@ -1156,6 +1156,24 @@ export default function PipelineTest() {
           <CardContent>
             <StageProgressList run={activeRun} />
             {activeRun.status === 'completed' && <SummaryStats run={activeRun} />}
+            {activeRun.status === 'completed' && replayRunIds.has(activeRun.id) && (
+              <div className="mt-3">
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => setComparePickerOpen(activeRun.id)}
+                >
+                  <GitCompareArrows className="h-3.5 w-3.5 mr-1" /> Compare with another run
+                </Button>
+                {comparePickerOpen === activeRun.id && (
+                  <ComparePicker
+                    currentRunId={activeRun.id}
+                    history={history}
+                    replayRunIds={replayRunIds}
+                    onClose={() => setComparePickerOpen(null)}
+                  />
+                )}
+              </div>
+            )}
             {activeRun.error_message && (
               <div className="mt-3 text-sm text-destructive">{activeRun.error_message}</div>
             )}
