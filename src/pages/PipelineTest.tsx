@@ -1259,6 +1259,20 @@ export default function PipelineTest() {
                       ?? '—';
                     return (
                       <tr key={r.id} className="border-b last:border-b-0">
+                        <td className="py-2 pr-2 w-6">
+                          <Checkbox
+                            checked={compareSelected.has(r.id)}
+                            disabled={r.status !== 'completed' || (compareSelected.size >= 2 && !compareSelected.has(r.id))}
+                            onCheckedChange={(v) => {
+                              setCompareSelected(prev => {
+                                const next = new Set(prev);
+                                if (v) next.add(r.id); else next.delete(r.id);
+                                return next;
+                              });
+                            }}
+                            aria-label="Select for comparison"
+                          />
+                        </td>
                         <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.started_at).toLocaleString()}</td>
                         <td className="py-2 pr-4 capitalize">
                           <span className="inline-flex items-center gap-1">
