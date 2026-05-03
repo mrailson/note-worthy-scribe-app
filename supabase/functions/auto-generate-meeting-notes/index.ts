@@ -34,6 +34,7 @@ const ALLOWED_PRIMARY_MODELS = ['claude-sonnet-4-6', 'gemini-3-flash', 'gemini-3
 // ─────────────────────────────────────────────────────────────────────────
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   'claude-sonnet-4-6': { input: 3.00, output: 15.00 },
+  'claude-haiku-4-5':  { input: 1.00, output: 5.00 },
   'gpt-5':             { input: 5.00, output: 20.00 },
   'gpt-5.2':           { input: 5.00, output: 20.00 },
   'gemini-3.1-pro':    { input: 2.50, output: 10.00 },
@@ -1866,6 +1867,9 @@ ${cleanedTranscript}`;
     const notesGenStart = Date.now();
     let generatedNotes = '';
     let modelUsed = modelOverride;
+    // Hoisted: chunked path needs to stamp this so the test harness reports
+    // "+chunked-haiku" in notes_model_used. Single-shot block reassigns later.
+    let actualModelUsed = modelOverride;
 
     // Chunking is only used for Sonnet/Haiku Claude models. Gemini 3.1 Pro and
     // Gemini 2.5 Flash (1M context) handle long transcripts single-shot.
@@ -1887,6 +1891,8 @@ ${cleanedTranscript}`;
         console.log(`🧩 ${chunks.length} chunks; concurrency=${CHUNK_CONCURRENCY}`);
 
         const summaries: string[] = new Array(chunks.length);
+        let chunkInputTokens = 0;
+        let chunkOutputTokens = 0;
         let cursor = 0;
         const worker = async () => {
           while (true) {
@@ -1900,6 +1906,8 @@ ${cleanedTranscript}`;
               summaries[i] = `_[unsummarised excerpt — chunk ${i + 1}/${chunks.length}, reason: invoke error]_\n\n${chunks[i].slice(0, 1800)}`;
             } else {
               summaries[i] = data?.summary || `_[unsummarised excerpt — chunk ${i + 1}/${chunks.length}, reason: empty]_\n\n${chunks[i].slice(0, 1800)}`;
+              chunkInputTokens += Number(data?.usage?.input_tokens ?? 0);
+              chunkOutputTokens += Number(data?.usage?.output_tokens ?? 0);
             }
           }
         };
@@ -1912,8 +1920,36 @@ ${cleanedTranscript}`;
         if (mergeErr) throw new Error(`merge-meeting-minutes failed: ${mergeErr.message ?? mergeErr}`);
         generatedNotes = merged?.meetingMinutes || '';
         if (!generatedNotes.trim()) throw new Error('merge step returned empty content');
+        const mergeInputTokens = Number(merged?.usage?.input_tokens ?? 0);
+        const mergeOutputTokens = Number(merged?.usage?.output_tokens ?? 0);
+        const mergeModel = String(merged?.usage?.model ?? merged?.model ?? 'claude-sonnet-4-6');
+
         modelUsed = `${modelOverride}+chunked-haiku`;
-        console.log(`✅ Chunked path complete in ${Date.now() - notesGenStart}ms, ${generatedNotes.length} chars`);
+        actualModelUsed = modelUsed;
+
+        // Sum tokens across map (Haiku) + reduce (Sonnet/merge model) and persist
+        // alongside the cost estimate so the test harness shows real usage for
+        // chunked runs (previously only single-shot paths captured this).
+        const totalInputTokens = chunkInputTokens + mergeInputTokens;
+        const totalOutputTokens = chunkOutputTokens + mergeOutputTokens;
+        const haikuCost = estimateCostUsd('claude-haiku-4-5', chunkInputTokens, chunkOutputTokens) ?? 0;
+        const mergeCost = estimateCostUsd(mergeModel, mergeInputTokens, mergeOutputTokens) ?? 0;
+        const totalCost = haikuCost + mergeCost;
+
+        try {
+          const { error: usageErr } = await supabase.from('meetings').update({
+            notes_input_tokens: totalInputTokens,
+            notes_output_tokens: totalOutputTokens,
+            notes_cost_usd_est: totalCost,
+          }).eq('id', meetingId);
+          if (usageErr) console.warn('⚠️ chunked usage stamp failed:', usageErr.message);
+        } catch (stampErr: any) {
+          console.warn('⚠️ chunked usage stamp threw:', stampErr?.message);
+        }
+
+        console.log(`✅ Chunked path complete in ${Date.now() - notesGenStart}ms, ${generatedNotes.length} chars · ` +
+          `tokens: map=${chunkInputTokens}/${chunkOutputTokens} reduce=${mergeInputTokens}/${mergeOutputTokens} ` +
+          `total=${totalInputTokens}/${totalOutputTokens} cost=$${totalCost.toFixed(4)}`);
       } catch (chunkedErr: any) {
         console.warn(`⚠️ Chunked path failed (${chunkedErr.message}); falling through to single-shot.`);
         generatedNotes = '';
@@ -2018,7 +2054,7 @@ ${cleanedTranscript}`;
     };
     const chain = buildFallbackChain(modelOverride);
     const failureReasons: Array<{ model: string; reason: string }> = [];
-    let actualModelUsed = modelOverride;
+    // actualModelUsed already declared above (hoisted for chunked path).
     let fallbackCount = 0;
     // Diagnostic capture for Gemini Pro attempts (read by /admin/llm-diagnostics)
     let proStatusCode: number | null = null;

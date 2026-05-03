@@ -480,7 +480,15 @@ ${joined}`;
     meetingMinutes = performProfessionalToneAudit(meetingMinutes);
     meetingMinutes = normaliseMergeOutput(meetingMinutes);
 
-    return new Response(JSON.stringify({ meetingMinutes, model: modelToUse, chunksMerged: summaries.length }), {
+    const inputTokens = data.usage?.input_tokens ?? 0;
+    const outputTokens = data.usage?.output_tokens ?? 0;
+
+    return new Response(JSON.stringify({
+      meetingMinutes,
+      model: modelToUse,
+      chunksMerged: summaries.length,
+      usage: { input_tokens: inputTokens, output_tokens: outputTokens, model: modelToUse },
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {

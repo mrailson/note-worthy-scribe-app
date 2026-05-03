@@ -45,7 +45,9 @@ async function callClaude(model: string, systemPrompt: string, userPrompt: strin
     .filter((b: any) => b.type === 'text')
     .map((b: any) => b.text)
     .join('\n');
-  return text || '';
+  const inputTokens = data.usage?.input_tokens ?? 0;
+  const outputTokens = data.usage?.output_tokens ?? 0;
+  return { text: text || '', inputTokens, outputTokens };
 }
 
 serve(async (req) => {
@@ -95,13 +97,18 @@ ${text}
     let summary = '';
     let usedFallback = false;
     let lastError: string | null = null;
+    let inputTokens = 0;
+    let outputTokens = 0;
 
     for (let attempt = 1; attempt <= 1; attempt++) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 30000);
       try {
-        summary = await callClaude('claude-haiku-4-5', SYSTEM_PROMPT, userPrompt, controller.signal);
+        const result = await callClaude('claude-haiku-4-5', SYSTEM_PROMPT, userPrompt, controller.signal);
         clearTimeout(timer);
+        summary = result.text;
+        inputTokens = result.inputTokens;
+        outputTokens = result.outputTokens;
         if (summary.trim()) break;
         lastError = 'empty response';
       } catch (e: any) {
@@ -118,7 +125,11 @@ ${text}
       console.error(`[summarize-transcript-chunk] chunk ${chunkIndex} fell back to excerpt placeholder: ${lastError}`);
     }
 
-    return new Response(JSON.stringify({ chunkIndex, totalChunks, summary, usedFallback, error: usedFallback ? lastError : null }), {
+    return new Response(JSON.stringify({
+      chunkIndex, totalChunks, summary, usedFallback,
+      error: usedFallback ? lastError : null,
+      usage: { input_tokens: inputTokens, output_tokens: outputTokens, model: 'claude-haiku-4-5' },
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
