@@ -988,6 +988,7 @@ export default function PipelineTest() {
                     <div className="min-w-0 flex-1">
                       <div className="font-medium truncate">{m.title ?? 'Untitled meeting'}</div>
                       <div className="text-xs text-muted-foreground">
+                        {m.owner_name ? <><span className="font-medium text-foreground">{m.owner_name}</span> · </> : null}
                         {date} · {m.duration_minutes ?? '?'} min · {m.transcript_chars.toLocaleString()} chars
                         {m.notes_model_used ? <> · original: <span className="font-mono">{m.notes_model_used}</span></> : null}
                       </div>
