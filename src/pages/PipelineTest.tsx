@@ -1017,7 +1017,7 @@ export default function PipelineTest() {
           )}
           {queue.length > 0 && (
             <div className="text-xs text-muted-foreground">
-              {queue.length} runs queued · estimated cost ~${queueTotals.cost.toFixed(3)} · estimated time ~{Math.ceil(queueTotals.secs / 60)}m
+              {queue.length} runs queued · estimated cost ~£{(queueTotals.cost * 0.79).toFixed(3)} · estimated time ~{Math.ceil(queueTotals.secs / 60)}m
             </div>
           )}
           <div className="flex gap-2">
@@ -1320,7 +1320,7 @@ export default function PipelineTest() {
                             : '—'}
                         </td>
                         <td className="py-2 pr-4 font-mono text-xs">
-                          {r.cost_usd_est != null ? `$${Number(r.cost_usd_est).toFixed(4)}` : '—'}
+                          {r.cost_usd_est != null ? `£${(Number(r.cost_usd_est) * 0.79).toFixed(4)}` : '—'}
                         </td>
                         <td className="py-2 pr-4">
                           {r.docx_storage_path ? (
@@ -1446,7 +1446,7 @@ function SummaryStats({ run }: { run: TestRun }) {
       <div>
         <div className="text-muted-foreground text-xs">Estimated cost</div>
         <div className="font-mono">
-          {run.cost_usd_est != null ? `$${Number(run.cost_usd_est).toFixed(4)}` : '—'}
+          {run.cost_usd_est != null ? `£${(Number(run.cost_usd_est) * 0.79).toFixed(4)}` : '—'}
         </div>
       </div>
     </div>
