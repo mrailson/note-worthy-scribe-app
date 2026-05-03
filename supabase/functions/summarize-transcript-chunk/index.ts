@@ -45,7 +45,9 @@ async function callClaude(model: string, systemPrompt: string, userPrompt: strin
     .filter((b: any) => b.type === 'text')
     .map((b: any) => b.text)
     .join('\n');
-  return text || '';
+  const inputTokens = data.usage?.input_tokens ?? 0;
+  const outputTokens = data.usage?.output_tokens ?? 0;
+  return { text: text || '', inputTokens, outputTokens };
 }
 
 serve(async (req) => {
