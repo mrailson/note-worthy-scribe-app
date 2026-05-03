@@ -371,6 +371,7 @@ export default function PipelineTest() {
             title: fixture.title, agenda: fixture.agenda, transcript: fixture.transcript,
             durationMinutes: fixture.durationMinutes, size: item.size, model: item.model, isCustom: false,
             forceSingleShot: item.forceSingleShot === true,
+            tier: outputTier,
           });
         } else {
           const words = item.transcript.split(/\s+/).filter(Boolean).length;
@@ -379,6 +380,7 @@ export default function PipelineTest() {
             durationMinutes: item.durationMinutes, size: classifySize(words),
             model: item.model, isCustom: true,
             forceSingleShot: item.forceSingleShot === true,
+            tier: outputTier,
           });
         }
         if (runId) {
