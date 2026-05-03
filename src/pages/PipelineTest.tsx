@@ -248,6 +248,25 @@ export default function PipelineTest() {
       .order('started_at', { ascending: false })
       .limit(50);
     setHistory((data ?? []) as TestRun[]);
+    // Annotate which runs are Real Meeting Replays by checking import_source.
+    const meetingIds = (data ?? []).map((r: any) => r.meeting_id).filter(Boolean);
+    if (meetingIds.length) {
+      const { data: ms } = await supabase
+        .from('meetings')
+        .select('id,import_source')
+        .in('id', meetingIds);
+      const replays = new Set<string>();
+      const map: Record<string, string | null> = {};
+      for (const m of (ms ?? []) as Array<{ id: string; import_source: string | null }>) {
+        map[m.id] = m.import_source;
+      }
+      for (const r of (data ?? []) as any[]) {
+        if (r.meeting_id && map[r.meeting_id] === 'pipeline_test_replay') replays.add(r.id);
+      }
+      setReplayRunIds(replays);
+    } else {
+      setReplayRunIds(new Set());
+    }
   }
 
   async function fetchRun(id: string): Promise<TestRun | null> {
