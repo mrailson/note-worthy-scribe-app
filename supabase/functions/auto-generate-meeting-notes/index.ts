@@ -965,6 +965,8 @@ serve(async (req) => {
     // Calculate word count for the meeting
     const wordCount = fullTranscript.split(/\s+/).filter(word => word.length > 0).length;
     console.log('📊 Word count:', wordCount);
+    // Stage 1 — meeting + transcript loaded.
+    stamp('notes_meeting_loaded_at');
 
     // ─── PIPELINE GUARD: minimum-content check ────────────────────────────
     // Prevents the LLM from hallucinating meeting content from very short or
