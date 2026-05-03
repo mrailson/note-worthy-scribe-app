@@ -302,7 +302,7 @@ export default function PipelineTest() {
   }
 
   // ---------- Queue ----------
-  function addToQueue(item: Omit<QueueItem, 'id'>) {
+  function addToQueue(item: Omit<Extract<QueueItem, { kind: 'fixture' }>, 'id'> | Omit<Extract<QueueItem, { kind: 'custom' }>, 'id'>) {
     setQueue(q => [...q, { ...item, id: crypto.randomUUID() } as QueueItem]);
   }
   function removeFromQueue(id: string) {
