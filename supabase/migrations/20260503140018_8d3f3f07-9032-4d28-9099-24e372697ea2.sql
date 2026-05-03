@@ -1,0 +1,1 @@
+UPDATE meetings SET title='Pipeline Test (Long, GPT-5 single-shot) — manual', best_of_all_transcript=(SELECT m.best_of_all_transcript FROM meetings m WHERE m.id='aaaaaaaa-bbbb-cccc-dddd-000000000301') WHERE id='aaaaaaaa-bbbb-cccc-dddd-000000000301';
