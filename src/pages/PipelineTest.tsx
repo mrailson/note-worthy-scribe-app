@@ -687,6 +687,21 @@ export default function PipelineTest() {
             </Select>
           </div>
 
+          {/* Force single-shot toggle — bypasses chunked path even on long fixtures.
+              Mirrors the production "Regenerate with Sonnet" refine flow. */}
+          <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer max-w-2xl">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={forceSingleShot}
+              onChange={e => setForceSingleShot(e.target.checked)}
+              disabled={isAnyRunning}
+            />
+            <span>
+              <span className="font-medium text-foreground">Force single-shot</span> — skip the chunked map-reduce path on long Claude runs and send the full transcript in one prompt. Slower and pricier, but preserves all topics. Equivalent to the production "Regenerate with Sonnet" button.
+            </span>
+          </label>
+
           {/* Size buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {(['short', 'medium', 'long'] as TestSize[]).map(size => {
