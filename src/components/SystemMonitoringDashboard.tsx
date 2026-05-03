@@ -277,7 +277,7 @@ export const SystemMonitoringDashboard: React.FC = () => {
             {runningManualCheck ? 'Running Check...' : 'Run Manual Check'}
           </Button>
           <Button variant="outline" asChild className="gap-2">
-            <a href="/admin/pipeline-test">
+            <a href="/admin/pipeline-test" target="_blank" rel="noopener noreferrer">
               <Activity className="h-4 w-4" />
               Open Pipeline Test
             </a>
