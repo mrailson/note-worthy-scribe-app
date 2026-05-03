@@ -204,7 +204,7 @@ export const convertToStyledHTML = (text: string): string => {
     const governanceMatch = line.match(/^[-•*]?\s*\*{0,2}(RESOLVED|AGREED|NOTED)\*{0,2}\s*[—:-]?\s*(.*)$/i);
     if (governanceMatch) {
       const body = governanceMatch[2] ? ` — ${stripInlineMarkdown(governanceMatch[2])}` : '';
-      html += `<p style="margin: 8px 0 8px 20px; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a;">${governanceMatch[1].toUpperCase()}${body}</p>\n`;
+      html += `<p style="margin: 6px 0 6px 20px; line-height: 1.55; font-family: Arial, sans-serif; font-size: 14px; color: #1a1a1a;"><strong style="font-weight: 600;">${governanceMatch[1].toUpperCase()}</strong>${body}</p>\n`;
       i++; continue;
     }
 
