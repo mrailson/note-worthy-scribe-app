@@ -1537,6 +1537,14 @@ DATE CONTEXT
 The meeting date is ${formattedDate} (year ${meetingYear}). Resolve all relative dates ("next month", "the 21st", "Friday") against this date. Never use a year earlier than ${meetingYear} unless the transcript explicitly says so. When in doubt, use ${meetingYear}.
 
 ═══════════════════════════════════════════════════════════════════════════════
+TEMPORAL FRAMING
+═══════════════════════════════════════════════════════════════════════════════
+The meeting date is the temporal anchor. When summarising:
+- Events, deadlines and actions dated BEFORE the meeting date are reported in past tense ("recall letters were issued by 28 February 2026", "the asthma campaign completed end of March 2026").
+- Events, deadlines and actions dated ON OR AFTER the meeting date remain in present/future tense as appropriate.
+- Resolve relative dates ("last June", "this winter") to calendar references ("June 2025", "winter 2025/26").
+
+═══════════════════════════════════════════════════════════════════════════════
 NON-MEETING CHECK (run first)
 ═══════════════════════════════════════════════════════════════════════════════
 If the transcript is not a genuine meeting (entertainment, casual chat, test recording, background noise, or under ~300 words of substantive content), respond with EXACTLY this JSON and nothing else:
