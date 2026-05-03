@@ -7587,15 +7587,22 @@ export type Database = {
           merge_decision_log: Json | null
           mixed_audio_url: string | null
           notes_config: Json | null
+          notes_documents_loaded_at: string | null
           notes_email_sent_at: string | null
           notes_first_delta_at: string | null
           notes_generation_status: string | null
+          notes_meeting_loaded_at: string | null
           notes_model_attempt: number
           notes_model_used: string | null
+          notes_post_processing_complete_at: string | null
+          notes_prompt_assembled_at: string | null
+          notes_request_dispatched_at: string | null
+          notes_stream_complete_at: string | null
           notes_style_2: string | null
           notes_style_3: string | null
           notes_style_4: string | null
           notes_style_5: string | null
+          notes_title_generated_at: string | null
           overview: string | null
           participants: string[] | null
           practice_id: string | null
@@ -7665,15 +7672,22 @@ export type Database = {
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
           notes_config?: Json | null
+          notes_documents_loaded_at?: string | null
           notes_email_sent_at?: string | null
           notes_first_delta_at?: string | null
           notes_generation_status?: string | null
+          notes_meeting_loaded_at?: string | null
           notes_model_attempt?: number
           notes_model_used?: string | null
+          notes_post_processing_complete_at?: string | null
+          notes_prompt_assembled_at?: string | null
+          notes_request_dispatched_at?: string | null
+          notes_stream_complete_at?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
           notes_style_4?: string | null
           notes_style_5?: string | null
+          notes_title_generated_at?: string | null
           overview?: string | null
           participants?: string[] | null
           practice_id?: string | null
@@ -7743,15 +7757,22 @@ export type Database = {
           merge_decision_log?: Json | null
           mixed_audio_url?: string | null
           notes_config?: Json | null
+          notes_documents_loaded_at?: string | null
           notes_email_sent_at?: string | null
           notes_first_delta_at?: string | null
           notes_generation_status?: string | null
+          notes_meeting_loaded_at?: string | null
           notes_model_attempt?: number
           notes_model_used?: string | null
+          notes_post_processing_complete_at?: string | null
+          notes_prompt_assembled_at?: string | null
+          notes_request_dispatched_at?: string | null
+          notes_stream_complete_at?: string | null
           notes_style_2?: string | null
           notes_style_3?: string | null
           notes_style_4?: string | null
           notes_style_5?: string | null
+          notes_title_generated_at?: string | null
           overview?: string | null
           participants?: string[] | null
           practice_id?: string | null
@@ -10074,11 +10095,18 @@ export type Database = {
           meeting_inserted_at: string | null
           notes_chars: number | null
           notes_completed_at: string | null
+          notes_documents_loaded_at: string | null
           notes_first_delta_at: string | null
           notes_invoked_at: string | null
+          notes_meeting_loaded_at: string | null
           notes_model_used: string | null
           notes_path: string | null
+          notes_post_processing_complete_at: string | null
+          notes_prompt_assembled_at: string | null
+          notes_request_dispatched_at: string | null
           notes_status_generating_at: string | null
+          notes_stream_complete_at: string | null
+          notes_title_generated_at: string | null
           started_at: string
           status: string
           summary_inserted_at: string | null
@@ -10102,11 +10130,18 @@ export type Database = {
           meeting_inserted_at?: string | null
           notes_chars?: number | null
           notes_completed_at?: string | null
+          notes_documents_loaded_at?: string | null
           notes_first_delta_at?: string | null
           notes_invoked_at?: string | null
+          notes_meeting_loaded_at?: string | null
           notes_model_used?: string | null
           notes_path?: string | null
+          notes_post_processing_complete_at?: string | null
+          notes_prompt_assembled_at?: string | null
+          notes_request_dispatched_at?: string | null
           notes_status_generating_at?: string | null
+          notes_stream_complete_at?: string | null
+          notes_title_generated_at?: string | null
           started_at?: string
           status?: string
           summary_inserted_at?: string | null
@@ -10130,11 +10165,18 @@ export type Database = {
           meeting_inserted_at?: string | null
           notes_chars?: number | null
           notes_completed_at?: string | null
+          notes_documents_loaded_at?: string | null
           notes_first_delta_at?: string | null
           notes_invoked_at?: string | null
+          notes_meeting_loaded_at?: string | null
           notes_model_used?: string | null
           notes_path?: string | null
+          notes_post_processing_complete_at?: string | null
+          notes_prompt_assembled_at?: string | null
+          notes_request_dispatched_at?: string | null
           notes_status_generating_at?: string | null
+          notes_stream_complete_at?: string | null
+          notes_title_generated_at?: string | null
           started_at?: string
           status?: string
           summary_inserted_at?: string | null

@@ -8,16 +8,27 @@ import { Loader2, Play, Mail, FileText, CheckCircle2, XCircle, Clock } from 'luc
 import { TEST_FIXTURES, type TestSize, getFixture } from '@/lib/pipelineTestFixtures';
 
 // Stage labels in display order. Each maps to a column in pipeline_test_runs.
+// `indent: 1` rows are sub-stages of the preceding top-level stage and are
+// rendered indented + with a "+delta-from-previous" timing.
 const STAGES = [
-  { key: 'meeting_inserted_at',         label: 'Meeting created',         icon: FileText },
-  { key: 'transcript_inserted_at',      label: 'Transcript saved',        icon: FileText },
-  { key: 'notes_invoked_at',            label: 'Notes function invoked',  icon: Play },
-  { key: 'notes_status_generating_at',  label: 'Generation started',      icon: Loader2 },
-  { key: 'notes_first_delta_at',        label: 'First model output',      icon: Loader2 },
-  { key: 'notes_completed_at',          label: 'Notes saved',             icon: CheckCircle2 },
-  { key: 'summary_inserted_at',         label: 'Summary inserted',        icon: CheckCircle2 },
-  { key: 'email_triggered_at',          label: 'Email triggered',         icon: Mail },
-  { key: 'email_sent_at',               label: 'Email sent',              icon: Mail },
+  { key: 'meeting_inserted_at',              label: 'Meeting created',             icon: FileText,     indent: 0 },
+  { key: 'transcript_inserted_at',           label: 'Transcript saved',            icon: FileText,     indent: 0 },
+  { key: 'notes_invoked_at',                 label: 'Notes function invoked',      icon: Play,         indent: 0 },
+  { key: 'notes_status_generating_at',       label: 'Generation started',          icon: Loader2,      indent: 0 },
+  // Sub-stages — indented under "Generation started", show delta from previous sub-stage
+  { key: 'notes_meeting_loaded_at',          label: 'Meeting + transcript loaded', icon: FileText,     indent: 1 },
+  { key: 'notes_documents_loaded_at',        label: 'Documents extracted',         icon: FileText,     indent: 1 },
+  { key: 'notes_title_generated_at',         label: 'Title generated',             icon: FileText,     indent: 1 },
+  { key: 'notes_prompt_assembled_at',        label: 'Prompt assembled',            icon: FileText,     indent: 1 },
+  { key: 'notes_request_dispatched_at',      label: 'Anthropic headers received',  icon: Play,         indent: 1 },
+  { key: 'notes_first_delta_at',             label: 'First model token',           icon: Play,         indent: 1 },
+  { key: 'notes_stream_complete_at',         label: 'Stream complete',             icon: CheckCircle2, indent: 1 },
+  { key: 'notes_post_processing_complete_at',label: 'Post-processing complete',    icon: CheckCircle2, indent: 1 },
+  // Main stages resume
+  { key: 'notes_completed_at',               label: 'Notes saved',                 icon: CheckCircle2, indent: 0 },
+  { key: 'summary_inserted_at',              label: 'Summary inserted',            icon: CheckCircle2, indent: 0 },
+  { key: 'email_triggered_at',               label: 'Email triggered',             icon: Mail,         indent: 0 },
+  { key: 'email_sent_at',                    label: 'Email sent',                  icon: Mail,         indent: 0 },
 ] as const;
 
 type Stage = typeof STAGES[number];
@@ -33,7 +44,14 @@ interface TestRun {
   transcript_inserted_at: string | null;
   notes_invoked_at: string | null;
   notes_status_generating_at: string | null;
+  notes_meeting_loaded_at: string | null;
+  notes_documents_loaded_at: string | null;
+  notes_title_generated_at: string | null;
+  notes_prompt_assembled_at: string | null;
+  notes_request_dispatched_at: string | null;
   notes_first_delta_at: string | null;
+  notes_stream_complete_at: string | null;
+  notes_post_processing_complete_at: string | null;
   notes_completed_at: string | null;
   summary_inserted_at: string | null;
   email_triggered_at: string | null;
@@ -225,7 +243,13 @@ export default function PipelineTest() {
     while (Date.now() - start < STAGE_TIMEOUT_MS) {
       const { data: meeting } = await supabase
         .from('meetings')
-        .select('notes_generation_status, notes_model_used, notes_style_3, notes_first_delta_at, updated_at')
+        .select(`
+          notes_generation_status, notes_model_used, notes_style_3, updated_at,
+          notes_meeting_loaded_at, notes_documents_loaded_at,
+          notes_title_generated_at, notes_prompt_assembled_at,
+          notes_request_dispatched_at, notes_first_delta_at,
+          notes_stream_complete_at, notes_post_processing_complete_at
+        `)
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -236,8 +260,16 @@ export default function PipelineTest() {
         if (status === 'generating' && lastStatus !== 'generating') {
           updates.notes_status_generating_at = meeting.updated_at ?? new Date().toISOString();
         }
-        if (meeting.notes_first_delta_at) {
-          updates.notes_first_delta_at = meeting.notes_first_delta_at;
+        // Mirror any sub-stage timestamps that have populated since last poll.
+        const subStageColumns = [
+          'notes_meeting_loaded_at', 'notes_documents_loaded_at',
+          'notes_title_generated_at', 'notes_prompt_assembled_at',
+          'notes_request_dispatched_at', 'notes_first_delta_at',
+          'notes_stream_complete_at', 'notes_post_processing_complete_at',
+        ] as const;
+        for (const col of subStageColumns) {
+          const v = (meeting as Record<string, any>)[col];
+          if (v) updates[col] = v;
         }
         if (status === 'completed') {
           const notesChars = (meeting.notes_style_3 ?? '').length;
@@ -435,22 +467,36 @@ export default function PipelineTest() {
 
 function StageProgressList({ run }: { run: TestRun }) {
   const stagesWithDeltas = useMemo(() => {
+    // For top-level stages: delta from started_at (absolute time-into-run).
+    // For sub-stages (indent === 1): delta from the previous reached timestamp,
+    // making the per-stage cost obvious at a glance.
+    let prevReachedTs: string | null = run.started_at;
     return STAGES.map(stage => {
-      const delta = deltaSinceStart(run, stage.key as keyof TestRun);
-      return { ...stage, delta };
+      const ts = run[stage.key as keyof TestRun] as string | null;
+      let delta: number | null = null;
+      if (typeof ts === 'string') {
+        if (stage.indent === 1 && prevReachedTs) {
+          delta = new Date(ts).getTime() - new Date(prevReachedTs).getTime();
+        } else {
+          delta = new Date(ts).getTime() - new Date(run.started_at).getTime();
+        }
+        prevReachedTs = ts;
+      }
+      return { ...stage, delta, reached: typeof ts === 'string' };
     });
   }, [run]);
 
   return (
     <div className="space-y-2">
-      {stagesWithDeltas.map(stage => {
-        const Icon = stage.icon;
-        const reached = stage.delta !== null;
-        const isCurrent = !reached && stagesWithDeltas.findIndex(s => s.delta === null) === STAGES.findIndex(s => s.key === stage.key);
+      {stagesWithDeltas.map((stage, idx) => {
+        const reached = stage.reached;
+        const isCurrent = !reached && stagesWithDeltas.findIndex(s => !s.reached) === idx;
         return (
           <div
             key={stage.key}
             className={`flex items-center justify-between p-2 rounded ${
+              stage.indent === 1 ? 'ml-8 text-xs' : ''
+            } ${
               reached ? 'bg-muted/40' : isCurrent ? 'bg-primary/5' : 'opacity-50'
             }`}
           >
@@ -462,9 +508,11 @@ function StageProgressList({ run }: { run: TestRun }) {
               ) : (
                 <Clock className="h-4 w-4 text-muted-foreground" />
               )}
-              <span className="text-sm">{stage.label}</span>
+              <span className={stage.indent === 1 ? 'text-xs' : 'text-sm'}>{stage.label}</span>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">{formatMs(stage.delta)}</span>
+            <span className="text-sm font-mono text-muted-foreground">
+              {stage.indent === 1 && stage.delta !== null ? '+' : ''}{formatMs(stage.delta)}
+            </span>
           </div>
         );
       })}
