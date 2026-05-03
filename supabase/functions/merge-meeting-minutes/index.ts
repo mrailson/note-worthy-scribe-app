@@ -72,9 +72,11 @@ Key Points
 
 # DECISIONS REGISTER
 
-- **NOTED** — <decision text in sentence case>
-- **AGREED** — <decision text in sentence case>
-- **RESOLVED** — <decision text in sentence case>
+NOTED — <decision text in sentence case>
+AGREED — <decision text in sentence case>
+RESOLVED — <decision text in sentence case>
+
+(Each decision is a single plain line. NO bullet marker, NO bold, NO markdown emphasis, NO colon after the label. Use exactly one em-dash between the LABEL and the decision text. Never write "**AGREED**", "AGREED:", or "- **[AGREED]**".)
 
 # OPEN ITEMS & RISKS
 
