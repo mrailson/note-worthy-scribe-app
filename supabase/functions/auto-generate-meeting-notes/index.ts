@@ -345,6 +345,21 @@ serve(async (req) => {
       throw new Error('Meeting ID is required');
     }
 
+    // ============================================================================
+    // Pipeline test sub-stage timing — fire-and-forget timestamp writer.
+    // Each call updates a single TIMESTAMPTZ column on the meetings row without
+    // awaiting, so it never blocks the orchestrator's main path. The watcher in
+    // /admin/pipeline-test mirrors these onto pipeline_test_runs for analysis.
+    // Errors are swallowed (logged) — instrumentation must never break generation.
+    // ============================================================================
+    const stamp = (column: string) => {
+      supabase
+        .from('meetings')
+        .update({ [column]: new Date().toISOString() })
+        .eq('id', meetingId)
+        .then(() => {}, (err: any) => console.warn(`⚠️ stamp(${column}) failed:`, err?.message));
+    };
+
     // Add retry logic for race conditions - wait a moment for the meeting to be fully committed
     let meeting;
     let retryCount = 0;
