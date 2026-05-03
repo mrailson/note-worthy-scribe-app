@@ -1197,8 +1197,8 @@ serve(async (req) => {
 
           if (userEmail) {
             console.log(`📧 Triggering email to ${userEmail} for meeting ${meetingId}`);
-            const { error: emailErr } = await sb.functions.invoke('send-meeting-email-resend', {
-              body: { meetingId, recipientEmail: userEmail },
+            const { error: emailErr } = await sb.functions.invoke('deliver-mobile-meeting-email', {
+              body: { meetingId },
             });
             if (emailErr) {
               console.warn('⚠️ Email send failed (notes still saved):', emailErr.message || emailErr);
