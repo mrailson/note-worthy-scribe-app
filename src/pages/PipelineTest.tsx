@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2, Plus, X, Download } from 'lucide-react';
+import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2, Plus, X, Download, GitCompareArrows } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TEST_FIXTURES, type TestSize, getFixture } from '@/lib/pipelineTestFixtures';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
