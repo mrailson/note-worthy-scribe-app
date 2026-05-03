@@ -453,6 +453,7 @@ export default function PipelineTest() {
       await launchRun({
         title, agenda: 'Custom transcript', transcript: text,
         durationMinutes: duration, size, model: selectedModel, isCustom: true,
+        tier: outputTier,
       });
       toast({ title: 'Custom test launched', description: `${words.toLocaleString()} words → ${size} path` });
       setCustomText('');
