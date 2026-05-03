@@ -310,10 +310,19 @@ serve(async (req) => {
       ? (rawDetailTier as DetailTier)
       : DEFAULT_DETAIL_TIER;
     console.log(`🎚️ [detailTier] received='${requestBody.detailTier}' → resolved='${detailTier}' (forceRegenerate=${forceRegenerate}, model=${requestBody.modelOverride ?? 'server-default'})`);
+    // Pipeline Test "Output tier" — when supplied, the entire system prompt is
+    // replaced with a tier-specific NHS PCN minute prompt (executive/full/verbatim).
+    // When undefined, default behaviour is unchanged.
+    const rawTier = typeof requestBody.tier === 'string' ? requestBody.tier.toLowerCase() : null;
+    const minuteTier: MinuteTier | null =
+      rawTier && (ALLOWED_TIERS as string[]).includes(rawTier) ? (rawTier as MinuteTier) : null;
+    if (minuteTier) console.log(`📐 [tier] minute output tier override = '${minuteTier}'`);
     // Suffix model identifier so docx footer reads e.g. "claude-sonnet-4-6 (detailed)".
     // Standard tier is the historical baseline so we don't add a suffix for it.
-    const stampModelWithTier = (model: string | null | undefined): string =>
-      detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
+    const stampModelWithTier = (model: string | null | undefined): string => {
+      const base = detailTier === 'standard' || !model ? (model || 'unknown') : `${model} (${detailTier})`;
+      return minuteTier ? `${base}+filter:${minuteTier}` : base;
+    };
     // When the user explicitly requested a single-shot Sonnet pass via the
     // "Regenerate with Sonnet" refine button, mark the saved model with a
     // `+refined` suffix so the badge can display "Claude Sonnet 4.6 · refined"
