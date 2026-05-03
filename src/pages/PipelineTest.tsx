@@ -972,14 +972,24 @@ export default function PipelineTest() {
                         {m.notes_model_used ? <> · original: <span className="font-mono">{m.notes_model_used}</span></> : null}
                       </div>
                     </div>
-                    <Button
-                      variant="outline" size="sm"
-                      disabled={isReplaying || isAnyRunning}
-                      onClick={() => replayMeeting(m)}
-                    >
-                      {isReplaying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-                      Replay
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="ghost" size="sm"
+                        onClick={() => downloadOriginalNotes(m)}
+                        title="Download original notes as Word doc for before/after comparison"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Original
+                      </Button>
+                      <Button
+                        variant="outline" size="sm"
+                        disabled={isReplaying || isAnyRunning}
+                        onClick={() => replayMeeting(m)}
+                      >
+                        {isReplaying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+                        Replay
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
