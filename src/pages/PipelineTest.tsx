@@ -467,22 +467,36 @@ export default function PipelineTest() {
 
 function StageProgressList({ run }: { run: TestRun }) {
   const stagesWithDeltas = useMemo(() => {
+    // For top-level stages: delta from started_at (absolute time-into-run).
+    // For sub-stages (indent === 1): delta from the previous reached timestamp,
+    // making the per-stage cost obvious at a glance.
+    let prevReachedTs: string | null = run.started_at;
     return STAGES.map(stage => {
-      const delta = deltaSinceStart(run, stage.key as keyof TestRun);
-      return { ...stage, delta };
+      const ts = run[stage.key as keyof TestRun] as string | null;
+      let delta: number | null = null;
+      if (typeof ts === 'string') {
+        if (stage.indent === 1 && prevReachedTs) {
+          delta = new Date(ts).getTime() - new Date(prevReachedTs).getTime();
+        } else {
+          delta = new Date(ts).getTime() - new Date(run.started_at).getTime();
+        }
+        prevReachedTs = ts;
+      }
+      return { ...stage, delta, reached: typeof ts === 'string' };
     });
   }, [run]);
 
   return (
     <div className="space-y-2">
-      {stagesWithDeltas.map(stage => {
-        const Icon = stage.icon;
-        const reached = stage.delta !== null;
-        const isCurrent = !reached && stagesWithDeltas.findIndex(s => s.delta === null) === STAGES.findIndex(s => s.key === stage.key);
+      {stagesWithDeltas.map((stage, idx) => {
+        const reached = stage.reached;
+        const isCurrent = !reached && stagesWithDeltas.findIndex(s => !s.reached) === idx;
         return (
           <div
             key={stage.key}
             className={`flex items-center justify-between p-2 rounded ${
+              stage.indent === 1 ? 'ml-8 text-xs' : ''
+            } ${
               reached ? 'bg-muted/40' : isCurrent ? 'bg-primary/5' : 'opacity-50'
             }`}
           >
@@ -494,9 +508,11 @@ function StageProgressList({ run }: { run: TestRun }) {
               ) : (
                 <Clock className="h-4 w-4 text-muted-foreground" />
               )}
-              <span className="text-sm">{stage.label}</span>
+              <span className={stage.indent === 1 ? 'text-xs' : 'text-sm'}>{stage.label}</span>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">{formatMs(stage.delta)}</span>
+            <span className="text-sm font-mono text-muted-foreground">
+              {stage.indent === 1 && stage.delta !== null ? '+' : ''}{formatMs(stage.delta)}
+            </span>
           </div>
         );
       })}
