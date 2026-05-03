@@ -296,6 +296,39 @@ Deno.serve(async (req: Request) => {
       };
 
       console.log("📎 Word attachment generated for mobile meeting email");
+
+      // Archive DOCX for pipeline test runs (non-critical)
+      if (meeting.import_source && (meeting.import_source as string).startsWith("pipeline_test") && wordAttachment) {
+        try {
+          const docxBuffer = Uint8Array.from(atob(wordAttachment.content), (c) => c.charCodeAt(0));
+          const { data: runRow } = await supabase
+            .from("pipeline_test_runs")
+            .select("id, user_id")
+            .eq("meeting_id", meetingId)
+            .maybeSingle();
+
+          if (runRow) {
+            const path = `${runRow.user_id}/${runRow.id}.docx`;
+            const { error: uploadErr } = await supabase.storage
+              .from("pipeline-test-artifacts")
+              .upload(path, docxBuffer, {
+                contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                upsert: true,
+              });
+            if (!uploadErr) {
+              await supabase
+                .from("pipeline_test_runs")
+                .update({ docx_storage_path: path })
+                .eq("id", runRow.id);
+              console.log(`📎 Archived DOCX to ${path}`);
+            } else {
+              console.warn("⚠️ DOCX archive upload failed (non-critical):", uploadErr);
+            }
+          }
+        } catch (archiveErr) {
+          console.warn("⚠️ DOCX archive failed (non-critical):", archiveErr);
+        }
+      }
     } catch (docErr) {
       console.warn("⚠️ Word attachment generation failed (non-critical):", docErr);
       // Continue without attachment — email body is more important
