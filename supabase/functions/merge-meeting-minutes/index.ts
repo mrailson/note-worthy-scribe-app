@@ -405,16 +405,17 @@ serve(async (req) => {
   }
 
   try {
-    if (!anthropicApiKey) {
+    const { summaries, meetingTitle, meetingDate, meetingTime, detailLevel = 'standard', modelOverride } = await req.json();
+    const modelToUse = modelOverride || 'claude-sonnet-4-6';
+    const isOpenAI = modelToUse === 'gpt-5.2' || modelToUse === 'gpt-5' || modelToUse === 'gpt-5-mini';
+    const isOpus47 = typeof modelToUse === 'string' && modelToUse.startsWith('claude-opus-4-7');
+
+    if (!isOpenAI && !anthropicApiKey) {
       return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    const { summaries, meetingTitle, meetingDate, meetingTime, detailLevel = 'standard', modelOverride } = await req.json();
-    const modelToUse = modelOverride || 'claude-sonnet-4-6';
-    const isOpus47 = typeof modelToUse === 'string' && modelToUse.startsWith('claude-opus-4-7');
 
     if (!Array.isArray(summaries) || summaries.length === 0) {
       return new Response(JSON.stringify({ error: 'Missing summaries[]' }), {
@@ -425,25 +426,13 @@ serve(async (req) => {
 
     const joined = summaries.map((s, i) => `--- Chunk ${i + 1} ---\n${s}`).join("\n\n");
 
-    // Date guard — prepended so it appears BEFORE the system prompt's structural rules.
-    // Prevents year-hallucination when transcript uses bare/relative dates ("1st May").
     const meetingYearMatch = (meetingDate || '').match(/\b(20\d{2})\b/);
     const meetingYear = meetingYearMatch ? meetingYearMatch[1] : '';
     const dateGuard = meetingYear
       ? `═══ CRITICAL DATE HANDLING — APPLY THROUGHOUT ═══
 Meeting date: ${meetingDate} (year = ${meetingYear}).
-Resolve all relative or bare dates (e.g. "1st May", "next month", "Friday") against this
-meeting date, NOT against your training cutoff. NEVER write a year earlier than ${meetingYear}
-unless the source EXPLICITLY uses that earlier year. When a date is mentioned without a year,
-assume ${meetingYear}.
-
-TEMPORAL FRAMING — the meeting date is the temporal anchor:
-- Events, deadlines and actions dated BEFORE the meeting date are reported in past tense
-  ("recall letters were issued by 28 February 2026").
-- Events, deadlines and actions dated ON OR AFTER the meeting date remain in present/future
-  tense as appropriate.
-- Resolve relative dates ("last June", "this winter") to calendar references
-  ("June 2025", "winter 2025/26").
+Resolve all relative or bare dates against this meeting date. NEVER write a year earlier than ${meetingYear}
+unless the source EXPLICITLY uses that earlier year.
 ═══════════════════════════════════════════════════
 \n\n`
       : '';
@@ -456,51 +445,84 @@ Merge the following partial summaries into polished final minutes following all 
 
 ${joined}`;
 
-    // 90s wall-clock — well within edge function budget; reduce step is text-only
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 90000);
+    const timer = setTimeout(() => controller.abort(), 120000);
 
-    let response: Response;
+    let meetingMinutes = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+
     try {
-      response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicApiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: modelToUse,
-          max_tokens: 12000,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
-        signal: controller.signal,
-      });
+      if (isOpenAI) {
+        const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+        if (!lovableApiKey) throw new Error('LOVABLE_API_KEY not configured');
+        const gatewayModel = `openai/${modelToUse}`;
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: gatewayModel,
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: userPrompt },
+            ],
+            max_completion_tokens: 16000,
+          }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const errText = await response.text();
+          console.error(`Gateway ${gatewayModel} merge error:`, response.status, errText);
+          return new Response(JSON.stringify({ error: 'Gateway error', status: response.status, details: errText.slice(0, 500) }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const data = await response.json();
+        meetingMinutes = data.choices?.[0]?.message?.content || '';
+        inputTokens = data.usage?.prompt_tokens ?? 0;
+        outputTokens = data.usage?.completion_tokens ?? 0;
+      } else {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicApiKey!,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: modelToUse,
+            max_tokens: 12000,
+            system: SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: userPrompt }],
+          }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const errText = await response.text();
+          console.error('Anthropic merge error:', response.status, errText);
+          return new Response(JSON.stringify({ error: 'Anthropic error', status: response.status, details: errText.slice(0, 500) }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const data = await response.json();
+        meetingMinutes = (data.content || [])
+          .filter((b: any) => b.type === 'text')
+          .map((b: any) => b.text)
+          .join('\n');
+        inputTokens = data.usage?.input_tokens ?? 0;
+        outputTokens = data.usage?.output_tokens ?? 0;
+      }
     } finally {
       clearTimeout(timer);
     }
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Anthropic merge error:', response.status, errText);
-      return new Response(JSON.stringify({ error: 'Anthropic error', status: response.status, details: errText.slice(0, 500) }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const data = await response.json();
-    let meetingMinutes = (data.content || [])
-      .filter((b: any) => b.type === 'text')
-      .map((b: any) => b.text)
-      .join('\n');
-
     meetingMinutes = performProfessionalToneAudit(meetingMinutes);
     meetingMinutes = normaliseMergeOutput(meetingMinutes);
-
-    const inputTokens = data.usage?.input_tokens ?? 0;
-    const outputTokens = data.usage?.output_tokens ?? 0;
 
     return new Response(JSON.stringify({
       meetingMinutes,
@@ -512,7 +534,7 @@ ${joined}`;
     });
   } catch (error: any) {
     if (error?.name === 'AbortError') {
-      console.error('merge-meeting-minutes timed out after 90s');
+      console.error('merge-meeting-minutes timed out');
       return new Response(JSON.stringify({ error: 'Merge step timed out' }), {
         status: 504,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
