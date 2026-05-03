@@ -461,7 +461,7 @@ ${joined}`;
         },
         body: JSON.stringify({
           model: modelToUse,
-          max_tokens: 8000,
+          max_tokens: 12000,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: userPrompt }],
         }),
