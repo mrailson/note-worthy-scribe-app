@@ -1824,6 +1824,8 @@ ${cleanedTranscript}`;
     console.log('🔧 Using selected model for manual regeneration:', modelOverride);
     console.log('📊 System prompt length:', systemPrompt.length, 'chars');
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
+    // Stage 4 — system + user prompts fully assembled, ready to call the model.
+    stamp('notes_prompt_assembled_at');
 
     // ============= CHUNKED MAP-REDUCE PATH (long transcripts only) =============
     // Triggered for transcripts >15,000 chars on Claude path (≈ 15 minutes of
