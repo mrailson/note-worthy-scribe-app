@@ -120,6 +120,8 @@ export default function PipelineTest() {
   const [replayingId, setReplayingId] = useState<string | null>(null);
   const [replayLimit, setReplayLimit] = useState(50);
   const [replayRunIds, setReplayRunIds] = useState<Set<string>>(new Set());
+  const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
+  const [comparePickerOpen, setComparePickerOpen] = useState<string | null>(null);
 
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
