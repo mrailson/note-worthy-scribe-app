@@ -178,6 +178,8 @@ export default function PipelineTest() {
     isCustom: boolean;
     forceSingleShot?: boolean;
     tier?: 'executive' | 'full' | 'verbatim';
+    suppressEmail?: boolean;
+    replayOf?: { id: string; title: string };
   }
 
   function classifySize(words: number): TestSize {
