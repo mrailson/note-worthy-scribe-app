@@ -8,16 +8,27 @@ import { Loader2, Play, Mail, FileText, CheckCircle2, XCircle, Clock } from 'luc
 import { TEST_FIXTURES, type TestSize, getFixture } from '@/lib/pipelineTestFixtures';
 
 // Stage labels in display order. Each maps to a column in pipeline_test_runs.
+// `indent: 1` rows are sub-stages of the preceding top-level stage and are
+// rendered indented + with a "+delta-from-previous" timing.
 const STAGES = [
-  { key: 'meeting_inserted_at',         label: 'Meeting created',         icon: FileText },
-  { key: 'transcript_inserted_at',      label: 'Transcript saved',        icon: FileText },
-  { key: 'notes_invoked_at',            label: 'Notes function invoked',  icon: Play },
-  { key: 'notes_status_generating_at',  label: 'Generation started',      icon: Loader2 },
-  { key: 'notes_first_delta_at',        label: 'First model output',      icon: Loader2 },
-  { key: 'notes_completed_at',          label: 'Notes saved',             icon: CheckCircle2 },
-  { key: 'summary_inserted_at',         label: 'Summary inserted',        icon: CheckCircle2 },
-  { key: 'email_triggered_at',          label: 'Email triggered',         icon: Mail },
-  { key: 'email_sent_at',               label: 'Email sent',              icon: Mail },
+  { key: 'meeting_inserted_at',              label: 'Meeting created',             icon: FileText,     indent: 0 },
+  { key: 'transcript_inserted_at',           label: 'Transcript saved',            icon: FileText,     indent: 0 },
+  { key: 'notes_invoked_at',                 label: 'Notes function invoked',      icon: Play,         indent: 0 },
+  { key: 'notes_status_generating_at',       label: 'Generation started',          icon: Loader2,      indent: 0 },
+  // Sub-stages — indented under "Generation started", show delta from previous sub-stage
+  { key: 'notes_meeting_loaded_at',          label: 'Meeting + transcript loaded', icon: FileText,     indent: 1 },
+  { key: 'notes_documents_loaded_at',        label: 'Documents extracted',         icon: FileText,     indent: 1 },
+  { key: 'notes_title_generated_at',         label: 'Title generated',             icon: FileText,     indent: 1 },
+  { key: 'notes_prompt_assembled_at',        label: 'Prompt assembled',            icon: FileText,     indent: 1 },
+  { key: 'notes_request_dispatched_at',      label: 'Anthropic headers received',  icon: Play,         indent: 1 },
+  { key: 'notes_first_delta_at',             label: 'First model token',           icon: Play,         indent: 1 },
+  { key: 'notes_stream_complete_at',         label: 'Stream complete',             icon: CheckCircle2, indent: 1 },
+  { key: 'notes_post_processing_complete_at',label: 'Post-processing complete',    icon: CheckCircle2, indent: 1 },
+  // Main stages resume
+  { key: 'notes_completed_at',               label: 'Notes saved',                 icon: CheckCircle2, indent: 0 },
+  { key: 'summary_inserted_at',              label: 'Summary inserted',            icon: CheckCircle2, indent: 0 },
+  { key: 'email_triggered_at',               label: 'Email triggered',             icon: Mail,         indent: 0 },
+  { key: 'email_sent_at',                    label: 'Email sent',                  icon: Mail,         indent: 0 },
 ] as const;
 
 type Stage = typeof STAGES[number];
