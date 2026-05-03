@@ -116,6 +116,8 @@ export default function PipelineTest() {
     duration_minutes: number | null;
     notes_model_used: string | null;
     transcript_chars: number;
+    user_id?: string | null;
+    owner_name?: string | null;
   }
   const [replayMeetings, setReplayMeetings] = useState<ReplayMeeting[]>([]);
   const [replayLoading, setReplayLoading] = useState(false);
