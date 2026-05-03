@@ -119,6 +119,7 @@ export default function PipelineTest() {
   const [replayLoading, setReplayLoading] = useState(false);
   const [replayingId, setReplayingId] = useState<string | null>(null);
   const [replayLimit, setReplayLimit] = useState(50);
+  const [replayRunIds, setReplayRunIds] = useState<Set<string>>(new Set());
 
   // Filters
   const [sizeFilter, setSizeFilter] = useState<string>('all');
