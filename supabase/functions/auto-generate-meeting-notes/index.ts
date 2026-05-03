@@ -2278,6 +2278,8 @@ ${cleanedTranscript}`;
             if (isPro) proErrorMessage = `Parse error: ${parseErr?.message || 'invalid JSON'}`;
             throw parseErr;
           }
+          stamp('notes_first_delta_at');
+          stamp('notes_stream_complete_at');
           notes = data.choices?.[0]?.message?.content || '';
           {
             // Map gateway model name back to MODEL_PRICING key (strip "google/" + "-preview").
