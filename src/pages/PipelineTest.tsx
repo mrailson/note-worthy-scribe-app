@@ -285,6 +285,7 @@ export default function PipelineTest() {
         model: selectedModel,
         isCustom: false,
         forceSingleShot,
+        tier: outputTier,
       });
       const modelLabel = MODELS.find(m => m.value === selectedModel)?.label ?? selectedModel;
       toast({ title: 'Test launched', description: `${size} test on ${modelLabel}. Polling for stages…` });
