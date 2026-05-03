@@ -4,18 +4,32 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Play, Mail, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Loader2, Play, Mail, FileText, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import { TEST_FIXTURES, type TestSize, getFixture } from '@/lib/pipelineTestFixtures';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
-// Stage labels in display order. Each maps to a column in pipeline_test_runs.
-// `indent: 1` rows are sub-stages of the preceding top-level stage and are
-// rendered indented + with a "+delta-from-previous" timing.
+// Models the dropdown offers. The `value` is what the orchestrator's
+// modelOverride switch routes on (see auto-generate-meeting-notes/index.ts).
+const MODELS = [
+  { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', provider: 'Anthropic',
+    note: 'Current default — quality baseline' },
+  { value: 'gpt-5.2',           label: 'GPT-5.2',           provider: 'OpenAI',
+    note: 'Flagship comparison' },
+  { value: 'gemini-3.1-pro',    label: 'Gemini 3.1 Pro',    provider: 'Google',
+    note: 'Google flagship' },
+  { value: 'gemini-2.5-flash',  label: 'Gemini 2.5 Flash',  provider: 'Google',
+    note: 'Fast, cheap, 1M context' },
+  { value: 'gemini-3-flash',    label: 'Gemini 3 Flash',    provider: 'Google',
+    note: 'Newest, cheapest' },
+] as const;
+
 const STAGES = [
   { key: 'meeting_inserted_at',              label: 'Meeting created',             icon: FileText,     indent: 0 },
   { key: 'transcript_inserted_at',           label: 'Transcript saved',            icon: FileText,     indent: 0 },
   { key: 'notes_invoked_at',                 label: 'Notes function invoked',      icon: Play,         indent: 0 },
   { key: 'notes_status_generating_at',       label: 'Generation started',          icon: Loader2,      indent: 0 },
-  // Sub-stages — indented under "Generation started", show delta from previous sub-stage
   { key: 'notes_meeting_loaded_at',          label: 'Meeting + transcript loaded', icon: FileText,     indent: 1 },
   { key: 'notes_documents_loaded_at',        label: 'Documents extracted',         icon: FileText,     indent: 1 },
   { key: 'notes_title_generated_at',         label: 'Title generated',             icon: FileText,     indent: 1 },
@@ -24,14 +38,11 @@ const STAGES = [
   { key: 'notes_first_delta_at',             label: 'First model token',           icon: Play,         indent: 1 },
   { key: 'notes_stream_complete_at',         label: 'Stream complete',             icon: CheckCircle2, indent: 1 },
   { key: 'notes_post_processing_complete_at',label: 'Post-processing complete',    icon: CheckCircle2, indent: 1 },
-  // Main stages resume
   { key: 'notes_completed_at',               label: 'Notes saved',                 icon: CheckCircle2, indent: 0 },
   { key: 'summary_inserted_at',              label: 'Summary inserted',            icon: CheckCircle2, indent: 0 },
   { key: 'email_triggered_at',               label: 'Email triggered',             icon: Mail,         indent: 0 },
   { key: 'email_sent_at',                    label: 'Email sent',                  icon: Mail,         indent: 0 },
 ] as const;
-
-type Stage = typeof STAGES[number];
 
 interface TestRun {
   id: string;
@@ -64,9 +75,13 @@ interface TestRun {
   action_count: number | null;
   email_recipient: string | null;
   error_message: string | null;
+  model_override: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd_est: number | null;
 }
 
-const STAGE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes — long meetings can run 2-3 mins
+const STAGE_TIMEOUT_MS = 10 * 60 * 1000;
 
 function formatMs(ms: number | null): string {
   if (ms === null || isNaN(ms)) return '—';
@@ -75,20 +90,19 @@ function formatMs(ms: number | null): string {
   return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`;
 }
 
-function deltaSinceStart(run: TestRun, key: keyof TestRun): number | null {
-  const ts = run[key];
-  if (typeof ts !== 'string') return null;
-  return new Date(ts).getTime() - new Date(run.started_at).getTime();
-}
-
 export default function PipelineTest() {
   const { toast } = useToast();
   const [activeRun, setActiveRun] = useState<TestRun | null>(null);
   const [history, setHistory] = useState<TestRun[]>([]);
   const [launching, setLaunching] = useState<TestSize | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-6');
 
-  // Fetch user email + history on mount
+  // Filters
+  const [sizeFilter, setSizeFilter] = useState<string>('all');
+  const [modelFilter, setModelFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -97,7 +111,6 @@ export default function PipelineTest() {
     })();
   }, []);
 
-  // Poll active run every 2 seconds while it's running
   useEffect(() => {
     if (!activeRun || activeRun.status !== 'running') return;
     const interval = setInterval(async () => {
@@ -117,7 +130,7 @@ export default function PipelineTest() {
       .from('pipeline_test_runs')
       .select('*')
       .order('started_at', { ascending: false })
-      .limit(20);
+      .limit(50);
     setHistory((data ?? []) as TestRun[]);
   }
 
@@ -140,12 +153,12 @@ export default function PipelineTest() {
       const transcriptWords = fixture.transcript.split(/\s+/).filter(Boolean).length;
       const transcriptChars = fixture.transcript.length;
 
-      // 1. Create the test run record
       const { data: runRow, error: runErr } = await supabase
         .from('pipeline_test_runs')
         .insert({
           user_id: user.id,
           test_size: size,
+          model_override: selectedModel,
           transcript_chars: transcriptChars,
           transcript_words: transcriptWords,
           email_recipient: user.email,
@@ -155,8 +168,6 @@ export default function PipelineTest() {
         .single();
       if (runErr || !runRow) throw new Error(runErr?.message ?? 'Failed to create test run');
 
-      // 2. Insert the synthetic meeting (with import_source = 'pipeline_test'
-      //    so the email trigger fires AND it's filterable in history).
       const { data: meeting, error: meetingErr } = await supabase
         .from('meetings')
         .insert({
@@ -182,7 +193,6 @@ export default function PipelineTest() {
         .update({ meeting_id: meeting.id, meeting_inserted_at: meetingInsertedAt })
         .eq('id', runRow.id);
 
-      // 3. Insert the transcript
       const { error: transcriptErr } = await supabase
         .from('meeting_transcripts')
         .insert({
@@ -199,7 +209,6 @@ export default function PipelineTest() {
         .update({ transcript_inserted_at: transcriptInsertedAt })
         .eq('id', runRow.id);
 
-      // 4. Invoke auto-generate-meeting-notes (fire-and-forget, same pattern as production)
       const notesInvokedAt = new Date().toISOString();
       await supabase
         .from('pipeline_test_runs')
@@ -208,22 +217,23 @@ export default function PipelineTest() {
 
       supabase.functions
         .invoke('auto-generate-meeting-notes', {
-          body: { meetingId: meeting.id, forceRegenerate: false },
+          body: {
+            meetingId: meeting.id,
+            forceRegenerate: false,
+            modelOverride: selectedModel,
+          },
         })
         .catch(err => {
-          // Client-side timeout is expected on long meetings — server keeps running
           console.warn('auto-generate-meeting-notes client timeout (expected for long):', err?.message);
         });
 
-      // Set active run to start polling
       const refreshed = await fetchRun(runRow.id);
       setActiveRun(refreshed);
       await refreshHistory();
 
-      toast({ title: 'Test launched', description: `${size} pipeline test running. Polling for stages…` });
+      const modelLabel = MODELS.find(m => m.value === selectedModel)?.label ?? selectedModel;
+      toast({ title: 'Test launched', description: `${size} test on ${modelLabel}. Polling for stages…` });
 
-      // Background watcher: poll meetings table for status changes and write
-      // them into the test run row. This is what populates the stage timestamps.
       watchPipelineProgress(runRow.id, meeting.id, user.email ?? '');
     } catch (err: any) {
       toast({ title: 'Test failed to launch', description: err.message, variant: 'destructive' });
@@ -232,11 +242,7 @@ export default function PipelineTest() {
     }
   }
 
-  // Watcher polls the meetings, meeting_summaries, and (where exposed) edge
-  // function logs, writing observed stage timestamps onto the test run row.
-  // Runs independently of the UI poll so timestamps are accurate even if the
-  // user navigates away.
-  async function watchPipelineProgress(runId: string, meetingId: string, email: string) {
+  async function watchPipelineProgress(runId: string, meetingId: string, _email: string) {
     const start = Date.now();
     let lastStatus: string | null = null;
 
@@ -245,6 +251,7 @@ export default function PipelineTest() {
         .from('meetings')
         .select(`
           notes_generation_status, notes_model_used, notes_style_3, updated_at,
+          notes_input_tokens, notes_output_tokens, notes_cost_usd_est,
           notes_meeting_loaded_at, notes_documents_loaded_at,
           notes_title_generated_at, notes_prompt_assembled_at,
           notes_request_dispatched_at, notes_first_delta_at,
@@ -260,7 +267,6 @@ export default function PipelineTest() {
         if (status === 'generating' && lastStatus !== 'generating') {
           updates.notes_status_generating_at = meeting.updated_at ?? new Date().toISOString();
         }
-        // Mirror any sub-stage timestamps that have populated since last poll.
         const subStageColumns = [
           'notes_meeting_loaded_at', 'notes_documents_loaded_at',
           'notes_title_generated_at', 'notes_prompt_assembled_at',
@@ -277,6 +283,10 @@ export default function PipelineTest() {
           updates.notes_model_used = meeting.notes_model_used;
           updates.notes_chars = notesChars;
           updates.notes_path = (meeting.notes_model_used ?? '').includes('+chunked-haiku') ? 'chunked' : 'single-shot';
+          // Pull token + cost from the meeting row.
+          if (meeting.notes_input_tokens != null) updates.input_tokens = meeting.notes_input_tokens;
+          if (meeting.notes_output_tokens != null) updates.output_tokens = meeting.notes_output_tokens;
+          if (meeting.notes_cost_usd_est != null) updates.cost_usd_est = meeting.notes_cost_usd_est;
         }
         if (status === 'failed') {
           updates.status = 'failed';
@@ -284,10 +294,8 @@ export default function PipelineTest() {
           updates.finished_at = new Date().toISOString();
         }
         if (status === 'insufficient_content') {
-          // Pipeline guard rejected the transcript as too short / not a real meeting.
-          // Treat as failed for test reporting so the row doesn't sit "in progress" forever.
           updates.status = 'failed';
-          updates.error_message = 'insufficient_content: transcript rejected by pipeline guard (likely <300 words or non-meeting content)';
+          updates.error_message = 'insufficient_content: transcript rejected by pipeline guard (likely <100 words or non-meeting content)';
           updates.finished_at = new Date().toISOString();
         }
 
@@ -297,7 +305,6 @@ export default function PipelineTest() {
         lastStatus = status;
 
         if (status === 'completed') {
-          // Watch for meeting_summaries insert (triggers email)
           const { data: summary } = await supabase
             .from('meeting_summaries')
             .select('created_at')
@@ -306,16 +313,10 @@ export default function PipelineTest() {
           if (summary) {
             await supabase.from('pipeline_test_runs').update({
               summary_inserted_at: summary.created_at,
-              // Email trigger fires synchronously in pg_net from the summary insert.
-              // We can't directly observe pg_net dispatch time from the client, so
-              // approximate with the summary insert time + small delta.
               email_triggered_at: summary.created_at,
             }).eq('id', runId);
           }
 
-          // Mark email_sent_at by checking deliver-mobile-meeting-email logs via a separate
-          // view. Until that exists, mark done after a 30s grace window — long enough
-          // for typical email send to complete.
           await new Promise(r => setTimeout(r, 30_000));
           const finishedAt = new Date().toISOString();
           await supabase.from('pipeline_test_runs').update({
@@ -331,13 +332,49 @@ export default function PipelineTest() {
       await new Promise(r => setTimeout(r, 2000));
     }
 
-    // Timed out
     await supabase.from('pipeline_test_runs').update({
       status: 'timeout',
       error_message: `Watcher timed out after ${STAGE_TIMEOUT_MS / 60_000} minutes`,
       finished_at: new Date().toISOString(),
     }).eq('id', runId);
   }
+
+  const filteredHistory = useMemo(() => {
+    return history.filter(r =>
+      (sizeFilter === 'all' || r.test_size === sizeFilter) &&
+      (modelFilter === 'all' || r.model_override === modelFilter) &&
+      (statusFilter === 'all' || r.status === statusFilter)
+    );
+  }, [history, sizeFilter, modelFilter, statusFilter]);
+
+  async function deleteRun(runId: string) {
+    const run = history.find(r => r.id === runId);
+    if (!run) return;
+    if (!confirm('Delete this test run? This cannot be undone.')) return;
+    if (run.meeting_id && confirm('Also delete the associated test meeting from Meeting History?')) {
+      await supabase.from('meetings').delete().eq('id', run.meeting_id);
+    }
+    await supabase.from('pipeline_test_runs').delete().eq('id', runId);
+    await refreshHistory();
+    toast({ title: 'Run deleted' });
+  }
+
+  async function deleteFiltered() {
+    if (filteredHistory.length === 0) return;
+    if (!confirm(`Delete all ${filteredHistory.length} filtered runs? This cannot be undone.`)) return;
+    const idsToDelete = filteredHistory.map(r => r.id);
+    const meetingIds = filteredHistory
+      .map(r => r.meeting_id)
+      .filter((id): id is string => id !== null);
+    if (meetingIds.length > 0 && confirm(`Also delete ${meetingIds.length} associated test meetings from Meeting History?`)) {
+      await supabase.from('meetings').delete().in('id', meetingIds);
+    }
+    await supabase.from('pipeline_test_runs').delete().in('id', idsToDelete);
+    await refreshHistory();
+    toast({ title: `${idsToDelete.length} runs deleted` });
+  }
+
+  const isAnyRunning = activeRun?.status === 'running';
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
@@ -354,12 +391,32 @@ export default function PipelineTest() {
         <CardHeader>
           <CardTitle className="text-base">Run a test</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Model selector */}
+          <div className="flex flex-col gap-2 max-w-md">
+            <label className="text-xs font-medium text-muted-foreground">Model</label>
+            <Select value={selectedModel} onValueChange={setSelectedModel} disabled={isAnyRunning}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODELS.map(m => (
+                  <SelectItem key={m.value} value={m.value}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{m.label}</span>
+                      <span className="text-xs text-muted-foreground">{m.provider} · {m.note}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Size buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {(['short', 'medium', 'long'] as TestSize[]).map(size => {
               const f = TEST_FIXTURES[size];
               const isLaunching = launching === size;
-              const isAnyRunning = activeRun?.status === 'running';
               return (
                 <Button
                   key={size}
@@ -394,6 +451,11 @@ export default function PipelineTest() {
               <Loader2 className={`h-4 w-4 ${activeRun.status === 'running' ? 'animate-spin' : ''}`} />
               {activeRun.status === 'running' ? 'Running' : activeRun.status === 'completed' ? 'Completed' : 'Stopped'} —{' '}
               {activeRun.test_size} test
+              {activeRun.model_override && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {MODELS.find(m => m.value === activeRun.model_override)?.label ?? activeRun.model_override}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -409,11 +471,53 @@ export default function PipelineTest() {
       {/* History */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent runs</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-base">Recent runs ({filteredHistory.length})</CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Size" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sizes</SelectItem>
+                  <SelectItem value="short">Short</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="long">Long</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={modelFilter} onValueChange={setModelFilter}>
+                <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Model" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All models</SelectItem>
+                  {MODELS.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="running">Running</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="timeout">Timeout</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={deleteFiltered}
+                disabled={filteredHistory.length === 0}
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete filtered
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No test runs yet.</p>
+          {filteredHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No test runs match the current filters.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -421,23 +525,30 @@ export default function PipelineTest() {
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="py-2 pr-4">Started</th>
                     <th className="py-2 pr-4">Size</th>
+                    <th className="py-2 pr-4">Model</th>
                     <th className="py-2 pr-4">Status</th>
                     <th className="py-2 pr-4">Path</th>
                     <th className="py-2 pr-4">Total time</th>
                     <th className="py-2 pr-4">Notes gen</th>
-                    <th className="py-2 pr-4">Model</th>
+                    <th className="py-2 pr-4">Tokens (in/out)</th>
+                    <th className="py-2 pr-4">Cost (USD)</th>
+                    <th className="py-2 pr-2 w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map(r => {
+                  {filteredHistory.map(r => {
                     const total = r.finished_at ? new Date(r.finished_at).getTime() - new Date(r.started_at).getTime() : null;
                     const notesGen = r.notes_completed_at && r.notes_invoked_at
                       ? new Date(r.notes_completed_at).getTime() - new Date(r.notes_invoked_at).getTime()
                       : null;
+                    const modelLabel = MODELS.find(m => m.value === r.model_override)?.label
+                      ?? r.model_override
+                      ?? '—';
                     return (
                       <tr key={r.id} className="border-b last:border-b-0">
-                        <td className="py-2 pr-4">{new Date(r.started_at).toLocaleString()}</td>
+                        <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.started_at).toLocaleString()}</td>
                         <td className="py-2 pr-4 capitalize">{r.test_size}</td>
+                        <td className="py-2 pr-4 text-xs">{modelLabel}</td>
                         <td className="py-2 pr-4">
                           <Badge
                             variant={
@@ -451,7 +562,26 @@ export default function PipelineTest() {
                         <td className="py-2 pr-4">{r.notes_path ?? '—'}</td>
                         <td className="py-2 pr-4 font-mono">{formatMs(total)}</td>
                         <td className="py-2 pr-4 font-mono">{formatMs(notesGen)}</td>
-                        <td className="py-2 pr-4 text-xs">{r.notes_model_used ?? '—'}</td>
+                        <td className="py-2 pr-4 font-mono text-xs">
+                          {r.input_tokens != null && r.output_tokens != null
+                            ? `${r.input_tokens.toLocaleString()} / ${r.output_tokens.toLocaleString()}`
+                            : '—'}
+                        </td>
+                        <td className="py-2 pr-4 font-mono text-xs">
+                          {r.cost_usd_est != null ? `$${Number(r.cost_usd_est).toFixed(4)}` : '—'}
+                        </td>
+                        <td className="py-2 pr-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteRun(r.id)}
+                            disabled={r.status === 'running'}
+                            className="h-7 w-7 p-0"
+                            title="Delete this run"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -467,9 +597,6 @@ export default function PipelineTest() {
 
 function StageProgressList({ run }: { run: TestRun }) {
   const stagesWithDeltas = useMemo(() => {
-    // For top-level stages: delta from started_at (absolute time-into-run).
-    // For sub-stages (indent === 1): delta from the previous reached timestamp,
-    // making the per-stage cost obvious at a glance.
     let prevReachedTs: string | null = run.started_at;
     return STAGES.map(stage => {
       const ts = run[stage.key as keyof TestRun] as string | null;
@@ -546,6 +673,20 @@ function SummaryStats({ run }: { run: TestRun }) {
       <div>
         <div className="text-muted-foreground text-xs">Notes output</div>
         <div className="font-mono">{run.notes_chars?.toLocaleString() ?? '—'} chars</div>
+      </div>
+      <div>
+        <div className="text-muted-foreground text-xs">Tokens (in / out)</div>
+        <div className="font-mono">
+          {run.input_tokens != null && run.output_tokens != null
+            ? `${run.input_tokens.toLocaleString()} / ${run.output_tokens.toLocaleString()}`
+            : '—'}
+        </div>
+      </div>
+      <div>
+        <div className="text-muted-foreground text-xs">Estimated cost</div>
+        <div className="font-mono">
+          {run.cost_usd_est != null ? `$${Number(run.cost_usd_est).toFixed(4)}` : '—'}
+        </div>
       </div>
     </div>
   );
