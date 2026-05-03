@@ -688,27 +688,201 @@ export default function PipelineTest() {
               const f = TEST_FIXTURES[size];
               const isLaunching = launching === size;
               return (
-                <Button
-                  key={size}
-                  variant="outline"
-                  className="h-auto py-4 flex flex-col items-start gap-2"
-                  disabled={isLaunching || isAnyRunning}
-                  onClick={() => launchTest(size)}
-                >
-                  <div className="flex items-center gap-2">
-                    {isLaunching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                    <span className="font-medium capitalize">{size}</span>
+                <div key={size} className="border rounded-md p-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium capitalize text-sm">{size}</span>
+                    <Button
+                      variant="ghost" size="sm" className="h-7 px-2 text-xs"
+                      disabled={isAnyRunning}
+                      onClick={() => addToQueue({ kind: 'fixture', size, model: selectedModel })}
+                      title="Add to queue"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Queue
+                    </Button>
                   </div>
-                  <div className="text-xs text-muted-foreground text-left">
+                  <div className="text-xs text-muted-foreground">
                     <div>{f.transcript.length.toLocaleString()} chars · ~{f.durationMinutes}min meeting</div>
                     <div className="mt-1">
                       Expected: {size === 'short' ? '<30s' : size === 'medium' ? '<60s' : '<90s'} ·{' '}
                       {f.transcript.length > 15000 ? 'chunked path' : 'single-shot'}
                     </div>
                   </div>
-                </Button>
+                  <Button
+                    variant="outline" size="sm"
+                    disabled={isLaunching || isAnyRunning}
+                    onClick={() => launchTest(size)}
+                  >
+                    {isLaunching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+                    Run now
+                  </Button>
+                </div>
               );
             })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Queue panel */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Queue ({queue.length})</span>
+            {queueProgress && (
+              <span className="text-xs font-normal text-muted-foreground">
+                Running {queueProgress.index + (queueRunning ? 1 : 0)} of {queueProgress.total} · ✓ {queueProgress.completed} · ✗ {queueProgress.failed}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {queue.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Queue is empty. Click <strong>Queue</strong> on a size above (or in the Custom panel below) to stage runs. They run sequentially.
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {queue.map((item, i) => {
+                const modelLabel = MODELS.find(m => m.value === item.model)?.label ?? item.model;
+                const sizeLabel = item.kind === 'fixture' ? item.size : 'custom';
+                const label = item.kind === 'custom' ? `“${item.title}”` : '';
+                return (
+                  <div key={item.id} className="flex items-center justify-between text-sm border rounded px-3 py-1.5">
+                    <span>
+                      <span className="text-muted-foreground mr-2">{i + 1}.</span>
+                      <span className="capitalize">{sizeLabel}</span>
+                      <span className="mx-2 text-muted-foreground">·</span>
+                      <span>{modelLabel}</span>
+                      {label && <span className="ml-2 text-xs text-muted-foreground truncate max-w-xs inline-block align-bottom">{label}</span>}
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0"
+                      disabled={queueRunning}
+                      onClick={() => removeFromQueue(item.id)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {queue.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {queue.length} runs queued · estimated cost ~${queueTotals.cost.toFixed(3)} · estimated time ~{Math.ceil(queueTotals.secs / 60)}m
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button onClick={runQueue} disabled={queue.length === 0 || isAnyRunning}>
+              {queueRunning ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              Run queue
+            </Button>
+            <Button variant="outline" onClick={clearQueue} disabled={queue.length === 0 || queueRunning}>
+              Clear queue
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom transcript */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">Custom transcript test</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Tabs value={customTab} onValueChange={(v) => setCustomTab(v as 'paste' | 'upload')}>
+            <TabsList>
+              <TabsTrigger value="paste">Paste text</TabsTrigger>
+              <TabsTrigger value="upload">Upload .docx / .txt</TabsTrigger>
+            </TabsList>
+            <TabsContent value="paste" className="space-y-2">
+              <Textarea
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder="Paste a meeting transcript here…"
+                className="min-h-[200px] font-mono text-xs"
+                disabled={isAnyRunning || customLaunching}
+              />
+            </TabsContent>
+            <TabsContent value="upload" className="space-y-2">
+              <Input
+                type="file"
+                accept=".docx,.txt"
+                disabled={customExtracting || isAnyRunning || customLaunching}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleCustomFileUpload(f);
+                  e.currentTarget.value = '';
+                }}
+              />
+              {customExtracting && (
+                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Extracting…
+                </div>
+              )}
+              {customText && (
+                <div className="text-xs text-muted-foreground">Loaded {customText.length.toLocaleString()} chars. Switch to Paste tab to edit.</div>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          {(() => {
+            const words = customText.trim() ? customText.trim().split(/\s+/).filter(Boolean).length : 0;
+            const chars = customText.length;
+            const size = classifySize(words);
+            return (
+              <div className="text-xs text-muted-foreground">
+                {chars.toLocaleString()} chars · {words.toLocaleString()} words ·{' '}
+                {words < 100 ? <span className="text-destructive">below 100-word minimum</span> : <span>auto-classify: <strong>{size}</strong> ({chars > 15000 ? 'chunked' : 'single-shot'} path)</span>}
+              </div>
+            );
+          })()}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Title</label>
+              <Input
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                placeholder={`Custom test — ${new Date().toLocaleString('en-GB')}`}
+                disabled={isAnyRunning || customLaunching}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Duration (minutes)</label>
+              <Input
+                type="number"
+                value={customDuration}
+                onChange={(e) => setCustomDuration(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="auto from word count"
+                disabled={isAnyRunning || customLaunching}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={launchCustom} disabled={isAnyRunning || customLaunching || !customText.trim()}>
+              {customLaunching ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              Run with custom transcript
+            </Button>
+            <Button
+              variant="outline"
+              disabled={isAnyRunning || !customText.trim()}
+              onClick={() => {
+                const text = customText.trim();
+                if (!text) return;
+                const words = text.split(/\s+/).filter(Boolean).length;
+                if (words < 100) {
+                  toast({ title: 'Too short', description: 'Need at least 100 words.', variant: 'destructive' });
+                  return;
+                }
+                const stamp = new Date().toLocaleString('en-GB');
+                const title = customTitle.trim() || `Custom test — ${stamp}`;
+                const duration = typeof customDuration === 'number' && customDuration > 0
+                  ? customDuration : Math.max(5, Math.round(words / 150));
+                addToQueue({ kind: 'custom', model: selectedModel, transcript: text, title, durationMinutes: duration });
+                toast({ title: 'Added to queue' });
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add to queue
+            </Button>
           </div>
         </CardContent>
       </Card>
