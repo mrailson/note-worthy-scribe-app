@@ -612,6 +612,9 @@ export default function PipelineTest() {
     const run = history.find(r => r.id === runId);
     if (!run) return;
     if (!confirm('Delete this test run? This cannot be undone.')) return;
+    if (run.docx_storage_path) {
+      await supabase.storage.from('pipeline-test-artifacts').remove([run.docx_storage_path]);
+    }
     if (run.meeting_id && confirm('Also delete the associated test meeting from Meeting History?')) {
       await supabase.from('meetings').delete().eq('id', run.meeting_id);
     }
@@ -627,6 +630,12 @@ export default function PipelineTest() {
     const meetingIds = filteredHistory
       .map(r => r.meeting_id)
       .filter((id): id is string => id !== null);
+    const docxPaths = filteredHistory
+      .map(r => r.docx_storage_path)
+      .filter((p): p is string => !!p);
+    if (docxPaths.length > 0) {
+      await supabase.storage.from('pipeline-test-artifacts').remove(docxPaths);
+    }
     if (meetingIds.length > 0 && confirm(`Also delete ${meetingIds.length} associated test meetings from Meeting History?`)) {
       await supabase.from('meetings').delete().in('id', meetingIds);
     }
@@ -635,7 +644,7 @@ export default function PipelineTest() {
     toast({ title: `${idsToDelete.length} runs deleted` });
   }
 
-  const isAnyRunning = activeRun?.status === 'running';
+  const isAnyRunning = (activeRun?.status === 'running') || queueRunning;
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
