@@ -734,8 +734,15 @@ serve(async (req) => {
         actualTranscriptSource = 'best_of_all';
       } else {
         // best_of_all not ready yet — wait briefly in case consolidation is still running
-        console.log('⏳ best_of_all not found, waiting 5s for consolidation to complete...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        // Skip the 5s consolidation-wait for pipeline-test meetings — they synthesise
+        // their transcript up-front and will never have best_of_all populated, so the
+        // wait is pure dead time on every test run.
+        if (meeting.import_source === 'pipeline_test') {
+          console.log('⏩ pipeline_test meeting — skipping best_of_all consolidation wait');
+        } else {
+          console.log('⏳ best_of_all not found, waiting 5s for consolidation to complete...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
         
         // Retry once
         const { data: boaRetry } = await supabase
