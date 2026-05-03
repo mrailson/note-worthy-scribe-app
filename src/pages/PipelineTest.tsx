@@ -1015,6 +1015,16 @@ export default function PipelineTest() {
                         <td className="py-2 pr-4 font-mono text-xs">
                           {r.cost_usd_est != null ? `$${Number(r.cost_usd_est).toFixed(4)}` : '—'}
                         </td>
+                        <td className="py-2 pr-4">
+                          {r.docx_storage_path ? (
+                            <Button variant="ghost" size="sm" onClick={() => downloadDocx(r)}
+                              className="h-7 w-7 p-0" title="Download Word doc">
+                              <Download className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
                         <td className="py-2 pr-2">
                           <Button
                             variant="ghost"
