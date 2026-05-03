@@ -2333,25 +2333,6 @@ export const MeetingHistoryList = ({
                         <>
                           <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{applyText(meeting.title)}</h3>
                           <NewMeetingBadge createdAt={meeting.created_at} />
-                          {isSuspectStartTime(meeting.start_time) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditMetadataMeeting({
-                                  id: meeting.id,
-                                  title: meeting.title,
-                                  start_time: meeting.start_time,
-                                  meeting_format: meeting.meeting_format ?? null,
-                                  meeting_location: (meeting as any).meeting_location ?? null,
-                                });
-                              }}
-                              className="flex items-center gap-1 text-[10px] uppercase tracking-wide font-medium px-1.5 py-0.5 rounded border border-amber-400 text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 transition-colors"
-                              title="Stored start time looks like a scheduled value — click to verify"
-                            >
-                              <AlertCircle className="h-3 w-3" />
-                              Verify time
-                            </button>
-                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
