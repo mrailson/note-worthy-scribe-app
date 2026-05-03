@@ -243,7 +243,13 @@ export default function PipelineTest() {
     while (Date.now() - start < STAGE_TIMEOUT_MS) {
       const { data: meeting } = await supabase
         .from('meetings')
-        .select('notes_generation_status, notes_model_used, notes_style_3, notes_first_delta_at, updated_at')
+        .select(`
+          notes_generation_status, notes_model_used, notes_style_3, updated_at,
+          notes_meeting_loaded_at, notes_documents_loaded_at,
+          notes_title_generated_at, notes_prompt_assembled_at,
+          notes_request_dispatched_at, notes_first_delta_at,
+          notes_stream_complete_at, notes_post_processing_complete_at
+        `)
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -254,8 +260,16 @@ export default function PipelineTest() {
         if (status === 'generating' && lastStatus !== 'generating') {
           updates.notes_status_generating_at = meeting.updated_at ?? new Date().toISOString();
         }
-        if (meeting.notes_first_delta_at) {
-          updates.notes_first_delta_at = meeting.notes_first_delta_at;
+        // Mirror any sub-stage timestamps that have populated since last poll.
+        const subStageColumns = [
+          'notes_meeting_loaded_at', 'notes_documents_loaded_at',
+          'notes_title_generated_at', 'notes_prompt_assembled_at',
+          'notes_request_dispatched_at', 'notes_first_delta_at',
+          'notes_stream_complete_at', 'notes_post_processing_complete_at',
+        ] as const;
+        for (const col of subStageColumns) {
+          const v = (meeting as Record<string, any>)[col];
+          if (v) updates[col] = v;
         }
         if (status === 'completed') {
           const notesChars = (meeting.notes_style_3 ?? '').length;
