@@ -20,12 +20,13 @@ import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { showToast } from "@/utils/toastWrapper";
 import { ImportedTranscript } from "@/utils/FileImporter";
-import { Building2, ExternalLink, MessageSquare, FileText, Play, Newspaper } from "lucide-react";
+import { Building2, ExternalLink, MessageSquare, FileText, Play, Newspaper, FlaskConical } from "lucide-react";
 const Index = () => {
   const {
     user,
     loading,
-    hasModuleAccess
+    hasModuleAccess,
+    isSystemAdmin
   } = useAuth();
   const isMobile = useIsMobile();
   const isIPhone = useIsIPhone();
