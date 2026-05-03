@@ -3299,7 +3299,11 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
     // Mirrors generate-meeting-notes-claude so the Regenerate action in
     // meeting history triggers the same post-generation email as a fresh
     // recording. Wrapped in try/catch — email failure must not fail the run.
-    try {
+    // `suppressEmail` is set by the Pipeline Test "Real Meeting Replay" mode so
+    // a replay run never re-emails the user with duplicate notes.
+    if (requestBody.suppressEmail === true) {
+      console.log('📭 suppressEmail=true — skipping deliver-mobile-meeting-email');
+    } else try {
       console.log(`📧 Triggering deliver-mobile-meeting-email for meeting ${meetingId}`);
       // Reset idempotency stamp so a forced regenerate re-sends the email.
       await supabase.from('meetings').update({ notes_email_sent_at: null }).eq('id', meetingId);
