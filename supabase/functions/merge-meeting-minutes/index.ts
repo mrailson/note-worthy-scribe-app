@@ -436,6 +436,14 @@ Resolve all relative or bare dates (e.g. "1st May", "next month", "Friday") agai
 meeting date, NOT against your training cutoff. NEVER write a year earlier than ${meetingYear}
 unless the source EXPLICITLY uses that earlier year. When a date is mentioned without a year,
 assume ${meetingYear}.
+
+TEMPORAL FRAMING — the meeting date is the temporal anchor:
+- Events, deadlines and actions dated BEFORE the meeting date are reported in past tense
+  ("recall letters were issued by 28 February 2026").
+- Events, deadlines and actions dated ON OR AFTER the meeting date remain in present/future
+  tense as appropriate.
+- Resolve relative dates ("last June", "this winter") to calendar references
+  ("June 2025", "winter 2025/26").
 ═══════════════════════════════════════════════════
 \n\n`
       : '';
