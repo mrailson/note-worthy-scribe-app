@@ -142,7 +142,24 @@ export const MeetingDetailsTabs = ({
       // Safety net: ensure meeting title is descriptive even if notes were skipped
       ensureMeetingTitle(meetingId).catch(err => console.warn('⚠️ Title safety net failed:', err));
 
-      toast.success('Note generation started! This may take a few moments.');
+      // Re-sync local status from DB. If the edge function skipped because
+      // notes already existed (status stays 'completed'), this clears the
+      // optimistic 'queued' banner so the UI doesn't hang forever.
+      const { data: refreshed } = await supabase
+        .from('meetings')
+        .select('notes_generation_status, overview')
+        .eq('id', meetingId)
+        .maybeSingle();
+
+      if (refreshed?.notes_generation_status) {
+        setLocalGenerationStatus(refreshed.notes_generation_status);
+      }
+      if (refreshed?.notes_generation_status === 'completed') {
+        if (refreshed.overview) onOverviewChange(refreshed.overview);
+        toast.info('Notes already generated for this meeting.');
+      } else {
+        toast.success('Note generation started! This may take a few moments.');
+      }
     } catch (error: any) {
       console.error('Error generating notes:', error);
       toast.error(`Failed to generate notes: ${error.message || 'Unknown error'}`);
