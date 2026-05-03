@@ -1722,6 +1722,8 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
     } catch (titleError) {
       console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
     }
+    // Stage 3 — title generation complete (success or skipped).
+    stamp('notes_title_generated_at');
 
     // Format start time in UK local time (BST/GMT) so the label tracks the actual timezone.
     // CRITICAL: Only mark these as authoritative if the meeting record actually has an
