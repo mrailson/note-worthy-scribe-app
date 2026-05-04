@@ -1019,6 +1019,20 @@ export default function PipelineTest() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <Select
+                        value={replayTiers[m.id] ?? outputTier}
+                        onValueChange={(v) => setReplayTiers(prev => ({ ...prev, [m.id]: v as 'executive' | 'full' | 'verbatim' }))}
+                        disabled={isReplaying || isAnyRunning}
+                      >
+                        <SelectTrigger className="h-8 w-[110px] text-xs" title="Output size for this replay">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="executive">Executive</SelectItem>
+                          <SelectItem value="full">Full</SelectItem>
+                          <SelectItem value="verbatim">Verbatim</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Button
                         variant="ghost" size="sm"
                         onClick={() => downloadOriginalNotes(m)}
@@ -1030,7 +1044,7 @@ export default function PipelineTest() {
                       <Button
                         variant="outline" size="sm"
                         disabled={isReplaying || isAnyRunning}
-                        onClick={() => replayMeeting(m)}
+                        onClick={() => replayMeeting(m, replayTiers[m.id] ?? outputTier)}
                       >
                         {isReplaying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
                         Replay
