@@ -66,7 +66,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
       const { data, error } = await supabase
         .from('meetings')
-        .select('notes_generation_status, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count')
+        .select('notes_generation_status, notes_email_sent_at, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -85,6 +85,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       if (data) {
         // Set transcript length
         setTranscriptLength(data.word_count || 0);
+        setEmailSent(Boolean(data.notes_email_sent_at));
         
         // Fetch full notes from meeting_summaries table (the AI-generated notes)
         let fullNotes = '';
@@ -168,52 +169,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     };
   }, [meetingId, isOpen]);
 
-  // Auto-send email when notes are ready via the server-side dispatcher.
-  // The server owns the idempotency lock (notes_email_sent_at), so this cannot
-  // race with auto-generate-meeting-notes and produce duplicate emails.
-  useEffect(() => {
-    if (notesStatus !== 'completed' || !meetingData || !user?.email || emailSentRef.current) {
-      return;
-    }
-
-    const sendAutoEmail = async () => {
-      emailSentRef.current = true;
-      setEmailSent(true);
-
-      try {
-        console.log('📧 Requesting idempotent meeting notes email dispatch...');
-        const { data, error } = await supabase.functions.invoke('deliver-mobile-meeting-email', {
-          body: { meetingId }
-        });
-
-        if (error) {
-          console.error('Auto-email dispatch error:', error);
-          emailSentRef.current = false;
-          setEmailSent(false);
-          return;
-        }
-
-        if (data?.sent || data?.skipped) {
-          console.log('✅ Auto-email handled:', data);
-        } else {
-          console.error('Auto-email dispatch returned unexpected response:', data);
-          emailSentRef.current = false;
-          setEmailSent(false);
-        }
-      } catch (error) {
-        console.error('Error dispatching auto-email:', error);
-        emailSentRef.current = false;
-        setEmailSent(false);
-      }
-    };
-
-    sendAutoEmail();
-  }, [notesStatus, meetingData, user?.email, meetingId]);
-
-  // Reset email sent state when modal closes or meeting changes
+  // Reset displayed email state when modal closes or meeting changes.
   useEffect(() => {
     if (!isOpen) {
-      emailSentRef.current = false;
       setEmailSent(false);
     }
   }, [isOpen, meetingId]);
