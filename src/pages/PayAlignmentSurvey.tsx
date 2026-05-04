@@ -98,7 +98,7 @@ export default function PayAlignmentSurvey() {
         </div>
         <div>
           <p className="font-serif text-lg leading-tight text-stone-900">NRES SDA Workforce Alignment</p>
-          <p className="text-xs text-stone-500">Brackley & Towcester PCN · Northamptonshire Rural East &amp; South</p>
+          <p className="text-xs text-stone-500">Northamptonshire Rural East &amp; South · NMoC SDA Pilot</p>
         </div>
       </div>
     </header>
