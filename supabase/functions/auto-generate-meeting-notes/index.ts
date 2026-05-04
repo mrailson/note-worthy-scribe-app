@@ -459,15 +459,25 @@ serve(async (req) => {
       );
     }
 
-    // Check if notes already exist and we're not forcing regeneration
+    // Check if notes already exist and we're not forcing regeneration.
+    // IMPORTANT: refusal/insufficient-content stubs (ai_generated=false or
+    // generation_metadata.status='insufficient_content') must NOT block a
+    // re-run — otherwise a one-off LLM refusal permanently locks the meeting
+    // out of normal regeneration.
     if (!forceRegenerate) {
       const { data: existingSummary } = await supabase
         .from('meeting_summaries')
-        .select('id')
+        .select('id, ai_generated, generation_metadata')
         .eq('meeting_id', meetingId)
-        .single();
+        .maybeSingle();
 
-      if (existingSummary) {
+      const isRefusalStub = !!existingSummary && (
+        existingSummary.ai_generated === false ||
+        (existingSummary.generation_metadata as any)?.status === 'insufficient_content' ||
+        (existingSummary.generation_metadata as any)?.reason === 'llm_refused_non_meeting'
+      );
+
+      if (existingSummary && !isRefusalStub) {
         console.log('📝 Notes already exist for meeting, skipping generation');
 
         // Even when skipping notes, ensure the meeting has a descriptive title
@@ -515,6 +525,8 @@ serve(async (req) => {
           JSON.stringify({ message: 'Notes already exist', skipped: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      } else if (existingSummary && isRefusalStub) {
+        console.log('♻️ Refusal/insufficient-content stub detected — re-running generation');
       }
     }
 
