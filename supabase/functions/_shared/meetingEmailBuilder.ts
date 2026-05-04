@@ -195,16 +195,27 @@ export const buildProfessionalMeetingEmail = (
   title: string,
   meetingMeta?: MeetingEmailMeta
 ): string => {
-  // When we render the Executive Summary as a coloured callout above,
-  // strip the duplicate EXECUTIVE SUMMARY section from the inline notes
-  // so it doesn't appear twice in the email body.
+  // Strip sections that are already conveyed elsewhere (Executive Summary
+  // appears as a coloured callout above; Decision Register, Open Items,
+  // Action Items and Next Meeting are available in the attached Word doc).
   let bodyContent = content;
-  if (meetingMeta?.overview) {
-    bodyContent = bodyContent.replace(
-      /(^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*EXECUTIVE SUMMARY\s*(?:\*\*)?\s*\n[\s\S]*?(?=\n\s*(?:#{1,6}\s*)?(?:\*\*)?\s*[A-Z][A-Z0-9 ,&/()'-]{2,}\s*(?:\*\*)?\s*\n|\n\s*#{1,6}\s|$)/i,
-      '\n'
+  const stripSection = (heading: string) => {
+    const re = new RegExp(
+      `(^|\\n)\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?\\s*${heading}\\s*(?:\\*\\*)?\\s*\\n[\\s\\S]*?(?=\\n\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?\\s*[A-Z][A-Z0-9 ,&/()'-]{2,}\\s*(?:\\*\\*)?\\s*\\n|\\n\\s*#{1,6}\\s|$)`,
+      'i'
     );
+    bodyContent = bodyContent.replace(re, '\n');
+  };
+  if (meetingMeta?.overview) {
+    stripSection('EXECUTIVE SUMMARY');
   }
+  stripSection('DECISION REGISTER');
+  stripSection('DECISIONS');
+  stripSection('OPEN ITEMS(?: & RISKS| AND RISKS)?');
+  stripSection('OPEN ITEMS & RISKS');
+  stripSection('ACTION ITEMS');
+  stripSection('ACTIONS');
+  stripSection('NEXT MEETING');
   const formattedNotes = convertToStyledHTML(bodyContent);
 
   // Derive first name for greeting (fallback to bare "Hi,")
