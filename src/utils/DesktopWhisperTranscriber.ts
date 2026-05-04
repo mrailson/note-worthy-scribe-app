@@ -1344,8 +1344,11 @@ export class DesktopWhisperTranscriber {
   async stopTranscription(): Promise<void> {
     console.log('🛑 Stopping desktop Whisper transcription...');
     
-    // CRITICAL: Set stopped flag FIRST to prevent late DB writes from bleeding into next meeting
-    this.stopped = true;
+    // Note: this.stopped is intentionally NOT set here. It is set later,
+    // after the final processAudioChunks call, so that the final audio
+    // chunk's DB write is allowed to complete. The flag's purpose is
+    // crossover prevention into the NEXT meeting, which cannot happen
+    // until stopTranscription() returns.
     
     // CRITICAL: Set isRecording to false FIRST to prevent race conditions
     // This ensures no new chunks are started while we process the final one
