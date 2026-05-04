@@ -560,6 +560,14 @@ serve(async (req) => {
             repeatsRemoved = collapsed.repeatsRemoved;
           }
         }
+        // ── Apply UK spelling normalisation (text/srt/vtt) ──
+        if (resolvedFormat === 'text' && cleanedText) {
+          const before = cleanedText;
+          cleanedText = applyUKSpellings(cleanedText);
+          if (before !== cleanedText) {
+            console.log(`🇬🇧 [${requestId}] Applied UK spelling normalisation (text)`);
+          }
+        }
         console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${cleanedText.slice(0, 100)}…`);
         return new Response(
           JSON.stringify({
