@@ -231,7 +231,16 @@ export const buildProfessionalMeetingEmail = (
   title: string,
   meetingMeta?: MeetingEmailMeta
 ): string => {
-  const formattedNotes = convertToStyledHTML(content);
+  // When the Executive Summary is rendered as a coloured callout above,
+  // strip the duplicate EXECUTIVE SUMMARY section from the inline notes.
+  let bodyContent = content;
+  if (meetingMeta?.overview) {
+    bodyContent = bodyContent.replace(
+      /(^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*EXECUTIVE SUMMARY\s*(?:\*\*)?\s*\n[\s\S]*?(?=\n\s*(?:#{1,6}\s*)?(?:\*\*)?\s*[A-Z][A-Z0-9 ,&/()'-]{2,}\s*(?:\*\*)?\s*\n|\n\s*#{1,6}\s|$)/i,
+      '\n'
+    );
+  }
+  const formattedNotes = convertToStyledHTML(bodyContent);
 
   // Derive first name for greeting (fallback to bare "Hi,")
   const firstName = (senderName || '').trim().split(/\s+/)[0] || '';
