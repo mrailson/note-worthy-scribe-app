@@ -693,6 +693,37 @@ serve(async (req) => {
 
     if (updateErr) throw new Error(`Meeting update failed: ${updateErr.message}`);
 
+    // ============ Best-of-All consolidation (graceful degradation) ============
+    // Runs BoA over Whisper + Deepgram chunks (mobile path has no AssemblyAI).
+    // If consolidation fails or times out we PROCEED with Whisper-only —
+    // a mobile user cannot re-record, so notes MUST always be generated.
+    // auto-generate-meeting-notes already prefers best_of_all_transcript when
+    // present and falls back to whisper_transcript_text automatically.
+    try {
+      const boaCtrl = new AbortController();
+      const boaTimeout = setTimeout(() => boaCtrl.abort(), 90_000);
+      const boaResp = await fetch(`${supabaseUrl}/functions/v1/consolidate-meeting-chunks`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+          apikey: serviceKey,
+        },
+        body: JSON.stringify({ meetingId }),
+        signal: boaCtrl.signal,
+      });
+      clearTimeout(boaTimeout);
+      if (!boaResp.ok) {
+        const boaErr = await boaResp.text().catch(() => "");
+        console.warn(`⚠️ BoA consolidation returned ${boaResp.status} for ${meetingId}, proceeding with Whisper-only fallback: ${boaErr.slice(0, 200)}`);
+      } else {
+        await boaResp.text();
+        console.log(`✅ BoA consolidation complete for ${meetingId}`);
+      }
+    } catch (boaErr) {
+      console.warn(`⚠️ BoA consolidation failed for ${meetingId} (${boaErr instanceof Error ? boaErr.message : String(boaErr)}), proceeding with Whisper-only fallback`);
+    }
+
     const genResp = await fetch(`${supabaseUrl}/functions/v1/auto-generate-meeting-notes`, {
       method: "POST",
       headers: {
