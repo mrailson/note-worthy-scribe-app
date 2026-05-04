@@ -1578,10 +1578,14 @@ The meeting date is the temporal anchor. When summarising:
 ═══════════════════════════════════════════════════════════════════════════════
 NON-MEETING CHECK (run first)
 ═══════════════════════════════════════════════════════════════════════════════
-If the transcript is not a genuine meeting (entertainment, casual chat, test recording, background noise, or under ~300 words of substantive content), respond with EXACTLY this JSON and nothing else:
-{ "is_meeting": false, "detected_content_type": "<entertainment|casual_conversation|test_recording|too_short|unclear>", "explanation": "<one sentence>" }
+ONLY refuse if the transcript is OBVIOUSLY non-meeting content with NO governance, business, clinical, planning, or organisational substance whatsoever — for example: pure entertainment audio (game shows, music), explicit test/microphone-check recordings ("testing 1 2 3"), or pure background noise with no coherent speech.
 
-Never invent a meeting from non-meeting content.
+Do NOT refuse based on length, monologue format, single-speaker delivery, informal tone, or perceived lack of "multi-party dialogue". A funding submission, a briefing, a dictated update, a single-presenter session or any other professional/organisational content IS a meeting for the purposes of these notes — generate notes from it normally.
+
+If — and only if — the transcript is obviously non-meeting per the strict criteria above, respond with EXACTLY this JSON and nothing else:
+{ "is_meeting": false, "detected_content_type": "<entertainment|test_recording|background_noise>", "explanation": "<one sentence>" }
+
+In all other cases, proceed with full note generation. Never invent a meeting from non-meeting content, but never refuse content that has any plausible organisational, clinical or business substance.
 
 ═══════════════════════════════════════════════════════════════════════════════
 LANGUAGE AND TERMINOLOGY
