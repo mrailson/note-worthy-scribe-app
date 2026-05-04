@@ -564,6 +564,51 @@ serve(async (req) => {
       }
 
       console.log(`✅ Chunk ${source.chunkNumber} saved (${wordCount} words)`);
+
+      // ============ Fire-and-forget Deepgram batch transcription ============
+      // Runs alongside Whisper so Best-of-All has a second engine on the mobile
+      // path. MUST NEVER block Whisper write or downstream notes generation.
+      (async () => {
+        const dgStart = Date.now();
+        try {
+          const dgResp = await fetch(`${supabaseUrl}/functions/v1/standalone-deepgram`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+              apikey: serviceKey,
+            },
+            body: JSON.stringify({ storagePath: source.storagePath, bucket: source.bucket }),
+          });
+          const dgElapsed = Date.now() - dgStart;
+          if (!dgResp.ok) {
+            const errText = await dgResp.text().catch(() => "");
+            console.warn(`[DG-Mobile] meeting=${meetingId} chunk=${source.chunkNumber} duration=${source.durationSec ?? "n/a"}s response_ms=${dgElapsed} status=${dgResp.status} FAILED: ${errText.slice(0, 200)}`);
+            return;
+          }
+          const dgJson = await dgResp.json();
+          const dgText = (dgJson?.text || "").trim();
+          const dgWordCount = dgText ? dgText.split(/\s+/).filter(Boolean).length : 0;
+
+          console.log(`[DG-Mobile] meeting=${meetingId} chunk=${source.chunkNumber} duration=${source.durationSec ?? "n/a"}s response_ms=${dgElapsed} words=${dgWordCount}`);
+
+          if (!dgText) return;
+
+          await supabase.from("deepgram_transcriptions").insert({
+            meeting_id: meetingId,
+            user_id: meeting.user_id,
+            session_id: sessionId,
+            chunk_number: source.chunkNumber,
+            transcription_text: dgText,
+            confidence: typeof dgJson?.confidence === "number" ? dgJson.confidence : null,
+            is_final: true,
+            word_count: dgWordCount,
+          });
+        } catch (dgErr) {
+          const dgElapsed = Date.now() - dgStart;
+          console.warn(`[DG-Mobile] meeting=${meetingId} chunk=${source.chunkNumber} duration=${source.durationSec ?? "n/a"}s response_ms=${dgElapsed} EXCEPTION: ${dgErr instanceof Error ? dgErr.message : String(dgErr)}`);
+        }
+      })();
     }
 
     const nextChunk = numericChunkIndex + 1;
