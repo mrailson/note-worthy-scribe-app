@@ -48,16 +48,22 @@ serve(async (req) => {
     }
     {
       const __token = __authHeader.replace("Bearer ", "");
-      const __supaUrl = Deno.env.get("SUPABASE_URL") ?? "";
-      const __supaAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-      const __vr = await fetch(`${__supaUrl}/auth/v1/user`, {
-        headers: { Authorization: `Bearer ${__token}`, apikey: __supaAnon },
-      });
-      if (!__vr.ok) {
-        return new Response(JSON.stringify({ error: "Invalid token" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const __serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      // Allow service-role calls (e.g. mobile offline path via transcribe-offline-meeting)
+      if (__serviceKey && __token === __serviceKey) {
+        // trusted internal caller — skip user JWT validation
+      } else {
+        const __supaUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const __supaAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+        const __vr = await fetch(`${__supaUrl}/auth/v1/user`, {
+          headers: { Authorization: `Bearer ${__token}`, apikey: __supaAnon },
         });
+        if (!__vr.ok) {
+          return new Response(JSON.stringify({ error: "Invalid token" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
     // ---- /AUTH GUARD ----
