@@ -13431,6 +13431,7 @@ export type Database = {
           section_key_points: boolean
           section_next_meeting: boolean
           section_open_items: boolean
+          transcription_engine: string
           updated_at: string | null
           user_id: string
         }
@@ -13461,6 +13462,7 @@ export type Database = {
           section_key_points?: boolean
           section_next_meeting?: boolean
           section_open_items?: boolean
+          transcription_engine?: string
           updated_at?: string | null
           user_id: string
         }
@@ -13491,6 +13493,7 @@ export type Database = {
           section_key_points?: boolean
           section_next_meeting?: boolean
           section_open_items?: boolean
+          transcription_engine?: string
           updated_at?: string | null
           user_id?: string
         }
