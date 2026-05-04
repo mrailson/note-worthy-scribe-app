@@ -1,5 +1,6 @@
 import { createPcmStream } from '@/lib/audio/pcm16';
 import { WebSocketReconnectManager } from '@/lib/audio/WebSocketReconnectManager';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TranscriptData {
   text: string;
@@ -36,9 +37,17 @@ export class DeepgramRealtimeTranscriber {
     
     try {
       this.onStatusChange('Connecting...');
-      
-      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`;
-      console.log('📡 Connecting to Deepgram WebSocket at:', wsUrl);
+
+      // Edge function requires the user's Supabase access token via ?token=…
+      // (browsers can't set Authorization headers on WebSocket connections).
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Not authenticated — please sign in again before recording.');
+      }
+
+      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming?token=${encodeURIComponent(accessToken)}`;
+      console.log('📡 Connecting to Deepgram WebSocket proxy');
 
       this.manager = new WebSocketReconnectManager({
         label: 'Deepgram',

@@ -237,9 +237,18 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
           pcmStreamRef.current = null;
         }
 
-        // Connect to Deepgram streaming WebSocket
-        const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`;
-        console.log('📡 Deepgram: Reconnecting to WebSocket:', wsUrl);
+        // Connect to Deepgram streaming WebSocket — token in query string
+        // because browsers can't set Authorization headers on WebSockets.
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) {
+          console.error('❌ Deepgram: No access token for reconnect');
+          setStatus('error');
+          setError('Not authenticated — please sign in again.');
+          return;
+        }
+        const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming?token=${encodeURIComponent(accessToken)}`;
+        console.log('📡 Deepgram: Reconnecting to WebSocket');
 
         wsRef.current = new WebSocket(wsUrl);
         wsRef.current.binaryType = 'arraybuffer';
@@ -394,9 +403,18 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
         console.log('🎤 Deepgram: Resuming preview (preserving transcript)');
       }
 
-      // Connect to Deepgram streaming WebSocket
-      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`;
-      console.log('📡 Deepgram: Connecting to WebSocket:', wsUrl);
+      // Connect to Deepgram streaming WebSocket — token in query string
+      // because browsers can't set Authorization headers on WebSockets.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        console.error('❌ Deepgram: No access token');
+        setStatus('error');
+        setError('Not authenticated — please sign in again.');
+        return;
+      }
+      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming?token=${encodeURIComponent(accessToken)}`;
+      console.log('📡 Deepgram: Connecting to WebSocket');
 
       wsRef.current = new WebSocket(wsUrl);
       wsRef.current.binaryType = 'arraybuffer';
