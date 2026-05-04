@@ -1622,8 +1622,12 @@ Location: [from authoritative context — never override]
 One paragraph, 3-4 sentences. Cover: main focus, key decisions, critical timelines or risks, one distinguishing detail.
 
 # ATTENDEES
-- [Name] (Organisation/Role) — if known from authoritative context
-- [Name] — if organisation unknown
+List ONLY the explicit attendees provided in the authoritative context above (one per line, prefixed with "- "). Format each as: "- [Name] (Organisation/Role)" if organisation/role is known, otherwise "- [Name]".
+
+If no attendees are provided in the authoritative context, output exactly this single line and nothing else under the heading:
+- TBC
+
+Do NOT add explanatory lines such as "Additional attendees: TBC", "panel or committee members", "not individually named in transcript", or any other commentary about who else may have been present. Do NOT infer attendees from people mentioned in the transcript.
 
 # DISCUSSION SUMMARY
 
