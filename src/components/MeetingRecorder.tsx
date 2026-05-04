@@ -7821,11 +7821,8 @@ export const MeetingRecorder = ({
                         <DropdownMenuItem onClick={() => setFoldersDialogOpen(true)}>
                           <Folder className="h-4 w-4 mr-2" />Manage Folders
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTeamsImportOpen(true)}>
-                          <Video className="h-4 w-4 mr-2" />Load Teams Transcript
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setAudioImportOpen(true)}>
-                          <Upload className="h-4 w-4 mr-2" />Import Audio Recording(s)
+                          <Upload className="h-4 w-4 mr-2" />Create New Meeting from Audio/Transcript
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
                           <Sparkles className="h-4 w-4 mr-2" />Demonstration Meeting
