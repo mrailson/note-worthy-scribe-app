@@ -1344,8 +1344,11 @@ export class DesktopWhisperTranscriber {
   async stopTranscription(): Promise<void> {
     console.log('🛑 Stopping desktop Whisper transcription...');
     
-    // CRITICAL: Set stopped flag FIRST to prevent late DB writes from bleeding into next meeting
-    this.stopped = true;
+    // Note: this.stopped is intentionally NOT set here. It is set later,
+    // after the final processAudioChunks call, so that the final audio
+    // chunk's DB write is allowed to complete. The flag's purpose is
+    // crossover prevention into the NEXT meeting, which cannot happen
+    // until stopTranscription() returns.
     
     // CRITICAL: Set isRecording to false FIRST to prevent race conditions
     // This ensures no new chunks are started while we process the final one
@@ -1413,7 +1416,9 @@ export class DesktopWhisperTranscriber {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // Force process any remaining audio chunks and wait for completion
+    // Force process any remaining audio chunks and wait for completion.
+    // IMPORTANT: this.stopped is still false here, so processAudioChunks
+    // is allowed to write the final chunk's transcript to the DB.
     console.log(`🔍 DEBUG: Checking for remaining chunks - audioChunks.length: ${this.audioChunks.length}`);
     if (this.audioChunks.length > 0) {
       // Increment chunk count BEFORE processing to ensure unique numbering
@@ -1427,6 +1432,12 @@ export class DesktopWhisperTranscriber {
     } else {
       console.log('🔍 DEBUG: No remaining audio chunks to process');
     }
+
+    // Now set the stopped flag — final processing is complete, so any
+    // further callbacks really are stale and should be dropped to prevent
+    // crossover into the next meeting.
+    this.stopped = true;
+    console.log('🛑 Transcriber stopped flag set (final chunk DB write completed)');
 
     // Wait for any pending database operations to complete
     console.log('🔍 DEBUG: Waiting for pending database operations...');
