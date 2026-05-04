@@ -1610,21 +1610,9 @@ export const MeetingHistoryList = ({
       toast.success('✓ Notes regenerated');
     }
 
-    // Auto-email refreshed notes after a Sonnet 4.6 regenerate
-    if (modelOverride === 'sonnet-4.6') {
-      try {
-        // Refetch the meeting so the email uses the freshly regenerated notes
-        const { data: refreshed } = await supabase
-          .from('meetings')
-          .select('*')
-          .eq('id', meetingId)
-          .maybeSingle();
-        await handleEmailMinutesClick((refreshed as Meeting) || meeting);
-      } catch (emailErr) {
-        console.error('Auto-email after Sonnet 4.6 regenerate failed:', emailErr);
-        toast.error('Notes regenerated, but auto-email failed — use Email Meeting Notes to retry.');
-      }
-    }
+    // Auto-email for regeneration is handled server-side by
+    // auto-generate-meeting-notes → deliver-mobile-meeting-email.
+    // Do not send a second client-side email here.
 
     // Generate audio overview at the end
     try {
