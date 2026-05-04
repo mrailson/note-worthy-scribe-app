@@ -616,6 +616,24 @@ serve(async (req) => {
         }
       }
 
+      // ── Apply UK spelling normalisation (JSON / verbose_json) ──
+      // Final pass: deterministically convert any US spellings Whisper
+      // produced despite UK priming. Runs on both top-level text and every
+      // segment so segment.text stays consistent with the merged text.
+      if (finalText) {
+        const before = finalText;
+        finalText = applyUKSpellings(finalText);
+        if (before !== finalText) {
+          console.log(`🇬🇧 [${requestId}] Applied UK spelling normalisation`);
+        }
+      }
+      if (Array.isArray(segments) && segments.length > 0) {
+        segments = segments.map((seg: any) => ({
+          ...seg,
+          text: applyUKSpellings(seg.text || '')
+        }));
+      }
+
       if (!finalText && firstChunkLikely) {
         console.warn(`⚠️ [${requestId}] First chunk returned empty transcript from OpenAI`, {
           ...diagnostics,
