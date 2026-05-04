@@ -68,18 +68,7 @@ export const MeetingProgressBadges: React.FC<MeetingProgressBadgesProps> = ({ me
 
   return (
     <div className={cn('flex flex-wrap gap-1', className)}>
-      {/* 1. Uploaded */}
-      {hasAudio ? (
-        <span className={cn(badgeBase, styles.uploaded)}>
-          <Check size={10} strokeWidth={3} /> Uploaded
-        </span>
-      ) : (
-        <span className={cn(badgeBase, styles.pending)}>
-          <MoreHorizontal size={10} /> Upload
-        </span>
-      )}
-
-      {/* 2. Word count / Transcription */}
+      {/* Word count / Transcription */}
       {isFailed ? (
         <span className={cn(badgeBase, styles.failed)}>
           <X size={10} strokeWidth={3} /> Failed
@@ -91,21 +80,6 @@ export const MeetingProgressBadges: React.FC<MeetingProgressBadgesProps> = ({ me
       ) : (
         <span className={cn(badgeBase, styles.pending)}>
           <MoreHorizontal size={10} /> Transcribe
-        </span>
-      )}
-
-      {/* Email Sent */}
-      {hasEmail ? (
-        <span className={cn(badgeBase, styles.green)}>
-          <Check size={10} strokeWidth={3} /> Email
-        </span>
-      ) : hasNotes ? (
-        <span className={cn(badgeBase, styles.pending)}>
-          <MoreHorizontal size={10} /> Email
-        </span>
-      ) : (
-        <span className={cn(badgeBase, styles.disabled)}>
-          — No Email
         </span>
       )}
     </div>
