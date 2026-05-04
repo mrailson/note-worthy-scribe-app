@@ -1364,6 +1364,9 @@ const MeetingHistory = () => {
         // Access raw data before any TypeScript transformation
         const rawData = meeting as unknown as Record<string, unknown>;
         const extractedFolderId = rawData.folder_id;
+        // PostgREST returns embedded child rows as an array even for 1:1 joins
+        const moRaw = (meeting as any).meeting_overviews;
+        const mo = Array.isArray(moRaw) ? moRaw[0] : moRaw;
         
         // Build object with folder_id EXPLICITLY at the end (after spread)
         const enriched = {
@@ -1374,10 +1377,10 @@ const MeetingHistory = () => {
           meeting_summary: meeting.notes_style_3 || null,
           document_count: documentCounts[meeting.id] || 0,
           documents: [],
-          overview: meeting.meeting_overviews?.overview || null,
-          audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
-          audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
-          audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
+          overview: mo?.overview || null,
+          audio_overview_url: mo?.audio_overview_url || null,
+          audio_overview_text: mo?.audio_overview_text || null,
+          audio_overview_duration: mo?.audio_overview_duration || null,
           // CRITICAL: folder_id MUST be last to override any undefined from spread
           folder_id: (extractedFolderId as string | null) ?? null
         };
