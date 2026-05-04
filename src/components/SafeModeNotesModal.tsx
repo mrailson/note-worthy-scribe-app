@@ -1580,17 +1580,43 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // function so the downloaded Word document is byte-identical to
       // the one attached to the meeting completion email.
       if (activeTab === 'notes' && meeting?.id) {
-        const { data, error } = await supabase.functions.invoke('export-docx', {
-          body: { markdown: content, title, meetingId: meeting.id },
-        });
-        if (error) throw error;
+        // Call export-docx via direct fetch so we get the raw .docx bytes
+        // intact. supabase.functions.invoke can mis-parse binary responses
+        // (yielding a JSON object that then gets wrapped into a corrupt
+        // Blob), which is why the downloaded file failed to open.
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        if (!accessToken) {
+          throw new Error('Not authenticated');
+        }
 
-        // The edge function returns the raw .docx bytes
-        const blob = data instanceof Blob
-          ? data
-          : new Blob([data as ArrayBuffer], {
-              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            });
+        const SUPABASE_URL = 'https://dphcnbricafkbtizkoal.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs';
+
+        const resp = await fetch(`${SUPABASE_URL}/functions/v1/export-docx`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ markdown: content, title, meetingId: meeting.id }),
+        });
+
+        if (!resp.ok) {
+          let msg = `export-docx failed (${resp.status})`;
+          try {
+            const errJson = await resp.json();
+            if (errJson?.error) msg = errJson.error;
+          } catch { /* not json */ }
+          throw new Error(msg);
+        }
+
+        const arrayBuffer = await resp.arrayBuffer();
+        const blob = new Blob([arrayBuffer], {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+
         const safeTitle = title.replace(/[^a-z0-9\-_ ]+/gi, '-').trim() || 'meeting-notes';
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
