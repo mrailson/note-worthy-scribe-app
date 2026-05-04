@@ -124,6 +124,7 @@ export default function PipelineTest() {
   const [replayingId, setReplayingId] = useState<string | null>(null);
   const [replayLimit, setReplayLimit] = useState(50);
   const [replayRunIds, setReplayRunIds] = useState<Set<string>>(new Set());
+  const [replayTiers, setReplayTiers] = useState<Record<string, 'executive' | 'full' | 'verbatim'>>({});
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
   const [comparePickerOpen, setComparePickerOpen] = useState<string | null>(null);
 
