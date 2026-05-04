@@ -13286,6 +13286,10 @@ export type Database = {
       }
       transcription_pilot_runs: {
         Row: {
+          assemblyai_cost_usd: number | null
+          assemblyai_error: string | null
+          assemblyai_latency_ms: number | null
+          assemblyai_text: string | null
           audio_duration_seconds: number | null
           audio_mime_type: string | null
           audio_size_bytes: number | null
@@ -13309,6 +13313,10 @@ export type Database = {
           whisper1_text: string | null
         }
         Insert: {
+          assemblyai_cost_usd?: number | null
+          assemblyai_error?: string | null
+          assemblyai_latency_ms?: number | null
+          assemblyai_text?: string | null
           audio_duration_seconds?: number | null
           audio_mime_type?: string | null
           audio_size_bytes?: number | null
@@ -13332,6 +13340,10 @@ export type Database = {
           whisper1_text?: string | null
         }
         Update: {
+          assemblyai_cost_usd?: number | null
+          assemblyai_error?: string | null
+          assemblyai_latency_ms?: number | null
+          assemblyai_text?: string | null
           audio_duration_seconds?: number | null
           audio_mime_type?: string | null
           audio_size_bytes?: number | null
