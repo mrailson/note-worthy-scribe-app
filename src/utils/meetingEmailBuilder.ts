@@ -235,6 +235,20 @@ export const buildProfessionalMeetingEmail = (
   // appears as a coloured callout above; Decision Register, Open Items,
   // Action Items and Next Meeting are available in the attached Word doc).
   let bodyContent = content;
+
+  // If the caller didn't supply meeting.overview, lift the EXECUTIVE SUMMARY
+  // block out of the notes so we can render it as the blue callout (matches
+  // the desktop email styling on every code path, including mobile).
+  let derivedOverview: string | undefined;
+  if (!meetingMeta?.overview) {
+    const exec = content.match(
+      /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*EXECUTIVE\s+SUMMARY\s*(?:\*\*)?\s*\n([\s\S]*?)(?=\n\s*(?:#{1,6}\s*)?(?:\*\*)?\s*[A-Z][A-Z0-9 ,&/()'-]{2,}\s*(?:\*\*)?\s*\n|\n\s*#{1,6}\s|$)/i
+    );
+    if (exec && exec[1] && exec[1].trim().length > 0) {
+      derivedOverview = exec[1].trim();
+    }
+  }
+
   const stripSection = (heading: string) => {
     const re = new RegExp(
       `(^|\\n)\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?\\s*${heading}\\s*(?:\\*\\*)?\\s*\\n[\\s\\S]*?(?=\\n\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?\\s*[A-Z][A-Z0-9 ,&/()'-]{2,}\\s*(?:\\*\\*)?\\s*\\n|\\n\\s*#{1,6}\\s|$)`,
@@ -242,7 +256,7 @@ export const buildProfessionalMeetingEmail = (
     );
     bodyContent = bodyContent.replace(re, '\n');
   };
-  if (meetingMeta?.overview) {
+  if (meetingMeta?.overview || derivedOverview) {
     stripSection('EXECUTIVE SUMMARY');
   }
   stripSection('DECISION REGISTER');
@@ -253,6 +267,8 @@ export const buildProfessionalMeetingEmail = (
   stripSection('ACTIONS');
   stripSection('NEXT MEETING');
   const formattedNotes = convertToStyledHTML(bodyContent);
+
+  const effectiveOverview = meetingMeta?.overview || derivedOverview;
 
   // Derive first name for greeting (fallback to bare "Hi,")
   const firstName = (senderName || '').trim().split(/\s+/)[0] || '';
