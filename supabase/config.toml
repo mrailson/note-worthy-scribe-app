@@ -38,6 +38,9 @@ verify_jwt = true
 [functions.deepgram-realtime]
 verify_jwt = true
 
+[functions.pilot-transcribe]
+verify_jwt = true
+
 [functions.speech-to-text]
 verify_jwt = true
 
