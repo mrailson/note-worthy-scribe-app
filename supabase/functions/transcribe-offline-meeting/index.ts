@@ -701,9 +701,9 @@ serve(async (req) => {
 
     if (fetchErr) throw new Error(`Failed to fetch chunks: ${fetchErr.message}`);
 
-    const stitchedChunks = dedupeChunkRows((allChunks || []) as ChunkRow[]);
-    const fullTranscript = stitchChunkTexts(stitchedChunks);
-    const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+    let stitchedChunks = dedupeChunkRows((allChunks || []) as ChunkRow[]);
+    let fullTranscript = stitchChunkTexts(stitchedChunks);
+    let wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
 
     if (!fullTranscript || wordCount === 0) {
       // Could be a sibling-invocation race — retry once after a brief pause
@@ -718,25 +718,23 @@ serve(async (req) => {
         .eq("transcriber_type", "whisper")
         .order("chunk_number", { ascending: true })
         .order("created_at", { ascending: false });
-      const retryStitched = dedupeChunkRows((retryChunks || []) as ChunkRow[]);
-      const retryTranscript = stitchChunkTexts(retryStitched);
-      const retryWords = retryTranscript.split(/\s+/).filter(Boolean).length;
-      if (retryTranscript && retryWords > 0) {
-        console.log(`✅ Retry recovered ${retryWords} words for ${meetingId}`);
-        // Use the recovered transcript by reassigning via shadowing below.
-        // (We mutate the local refs by returning the response from a helper inline.)
-        return await finaliseMeetingTranscript(meetingId, sessionId, retryTranscript, retryWords, retryStitched.length, totalChunks);
+      stitchedChunks = dedupeChunkRows((retryChunks || []) as ChunkRow[]);
+      fullTranscript = stitchChunkTexts(stitchedChunks);
+      wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+      if (fullTranscript && wordCount > 0) {
+        console.log(`✅ Retry recovered ${wordCount} words for ${meetingId}`);
+      } else {
+        // Genuine empty — likely sibling concurrent run already finalised. Bail
+        // softly instead of throwing (which would mark the meeting as failed).
+        console.warn(`⚠️ Stitched still empty for ${meetingId} after retry — assuming sibling worker handled it`);
+        return new Response(JSON.stringify({
+          success: true,
+          status: "empty_after_retry_assumed_sibling",
+          meetingId,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      // Genuine empty — likely sibling concurrent run already finalised. Bail
-      // softly instead of throwing (which would mark the meeting as failed).
-      console.warn(`⚠️ Stitched still empty for ${meetingId} after retry — assuming sibling worker handled it`);
-      return new Response(JSON.stringify({
-        success: true,
-        status: "empty_after_retry_assumed_sibling",
-        meetingId,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     if (wordCount < 100) {
