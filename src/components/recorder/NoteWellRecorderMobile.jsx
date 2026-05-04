@@ -1174,7 +1174,10 @@ export default function NoteWellRecorder() {
   const [syncProgress,  setSyncProgress]  = useState(null);
   const [bitrate,       setBitrate]       = useState(getSavedBitrate());
   const [activeStream,  setActiveStream]  = useState(null);  // MediaStream for waveform
-  const [liveEngine,    setLiveEngine]    = useState("assemblyai"); // assemblyai|deepgram|browser-speech
+  // Mobile default: Deepgram live (more resilient on cellular/lock-screen than AssemblyAI).
+  // Whisper chunked always runs in parallel via the recorder, giving 2-engine BoA.
+  // AssemblyAI is selectable but kept off-by-default on mobile due to socket drop-outs.
+  const [liveEngine,    setLiveEngine]    = useState("deepgram"); // assemblyai|deepgram|browser-speech
   const [liveTranscript, setLiveTranscript] = useState("");
   const [liveWordCount, setLiveWordCount] = useState(0);
   const [liveExpanded,  setLiveExpanded]  = useState(false);
