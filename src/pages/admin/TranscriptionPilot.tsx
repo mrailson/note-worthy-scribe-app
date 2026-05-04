@@ -40,12 +40,13 @@ const DEFAULT_PROMPT =
   "Common terms: PCN, ICB, CQC, GP, ANP, ACP, ARRS, GMS, MoU, DPIA, neighbourhood, " +
   "workstream, safeguarding, dispensing, enhanced access, social prescribing.";
 
-type ModelId = "whisper-1" | "gpt-4o-transcribe" | "gpt-4o-mini-transcribe";
+type ModelId = "whisper-1" | "gpt-4o-transcribe" | "gpt-4o-mini-transcribe" | "assemblyai";
 
 const MODELS: { id: ModelId; label: string; pricePerMinute: number }[] = [
   { id: "whisper-1", label: "whisper-1", pricePerMinute: 0.006 },
   { id: "gpt-4o-transcribe", label: "gpt-4o-transcribe", pricePerMinute: 0.006 },
   { id: "gpt-4o-mini-transcribe", label: "gpt-4o-mini-transcribe", pricePerMinute: 0.003 },
+  { id: "assemblyai", label: "assemblyai (best)", pricePerMinute: 0.0062 },
 ];
 
 type ResultState = {
@@ -76,6 +77,10 @@ type PilotRun = {
   gpt4o_mini_latency_ms: number | null;
   gpt4o_mini_cost_usd: number | null;
   gpt4o_mini_error: string | null;
+  assemblyai_text: string | null;
+  assemblyai_latency_ms: number | null;
+  assemblyai_cost_usd: number | null;
+  assemblyai_error: string | null;
   notes: string | null;
 };
 
@@ -166,6 +171,7 @@ export default function TranscriptionPilot() {
     "whisper-1": { status: "idle" },
     "gpt-4o-transcribe": { status: "idle" },
     "gpt-4o-mini-transcribe": { status: "idle" },
+    "assemblyai": { status: "idle" },
   });
   const [running, setRunning] = useState(false);
 
@@ -277,6 +283,7 @@ export default function TranscriptionPilot() {
       "whisper-1": { status: "idle" },
       "gpt-4o-transcribe": { status: "idle" },
       "gpt-4o-mini-transcribe": { status: "idle" },
+      "assemblyai": { status: "idle" },
     });
   }
 
@@ -304,6 +311,7 @@ export default function TranscriptionPilot() {
       "whisper-1": { status: "running" },
       "gpt-4o-transcribe": { status: "running" },
       "gpt-4o-mini-transcribe": { status: "running" },
+      "assemblyai": { status: "running" },
     });
 
     const callOne = async (model: ModelId): Promise<ResultState> => {
@@ -337,7 +345,7 @@ export default function TranscriptionPilot() {
       }
     };
 
-    const [w1, g4o, g4oMini] = await Promise.all([
+    const [w1, g4o, g4oMini, aai] = await Promise.all([
       callOne("whisper-1").then((r) => {
         setResults((prev) => ({ ...prev, "whisper-1": r }));
         return r;
@@ -348,6 +356,10 @@ export default function TranscriptionPilot() {
       }),
       callOne("gpt-4o-mini-transcribe").then((r) => {
         setResults((prev) => ({ ...prev, "gpt-4o-mini-transcribe": r }));
+        return r;
+      }),
+      callOne("assemblyai").then((r) => {
+        setResults((prev) => ({ ...prev, "assemblyai": r }));
         return r;
       }),
     ]);
@@ -377,7 +389,11 @@ export default function TranscriptionPilot() {
           gpt4o_mini_latency_ms: g4oMini.latencyMs ?? null,
           gpt4o_mini_cost_usd: cost(0.003),
           gpt4o_mini_error: g4oMini.error || null,
-        });
+          assemblyai_text: aai.text || null,
+          assemblyai_latency_ms: aai.latencyMs ?? null,
+          assemblyai_cost_usd: cost(0.0062),
+          assemblyai_error: aai.error || null,
+        } as any);
         queryClient.invalidateQueries({ queryKey: ["transcription-pilot-runs"] });
       }
     } catch (err) {
@@ -385,7 +401,7 @@ export default function TranscriptionPilot() {
     }
 
     setRunning(false);
-    toast({ title: "Pilot run complete", description: "All three models finished." });
+    toast({ title: "Pilot run complete", description: "All four models finished." });
   }
 
   // ── Result-derived helpers ──────────────────────────────────────────────
@@ -398,7 +414,7 @@ export default function TranscriptionPilot() {
 
   // ── Word export ────────────────────────────────────────────────────────
   async function exportWord() {
-    const cellWidth = 4800; // landscape ≈ 14400 content
+    const cellWidth = 3600; // landscape ≈ 14400 content / 4 cols
     const headerCell = (text: string) =>
       new TableCell({
         width: { size: cellWidth, type: WidthType.DXA },
@@ -445,8 +461,8 @@ export default function TranscriptionPilot() {
     const borders = { top: border, bottom: border, left: border, right: border };
 
     const table = new Table({
-      width: { size: cellWidth * 3, type: WidthType.DXA },
-      columnWidths: [cellWidth, cellWidth, cellWidth],
+      width: { size: cellWidth * 4, type: WidthType.DXA },
+      columnWidths: [cellWidth, cellWidth, cellWidth, cellWidth],
       rows: [
         new TableRow({
           tableHeader: true,
@@ -556,9 +572,9 @@ export default function TranscriptionPilot() {
           </Link>
         </div>
         <p className="text-muted-foreground text-sm mt-1">
-          Compare <strong>whisper-1</strong>, <strong>gpt-4o-transcribe</strong> and{" "}
-          <strong>gpt-4o-mini-transcribe</strong> side-by-side on the same audio. Pure model
-          output — no UK normaliser, no hallucination filtering.
+          Compare <strong>whisper-1</strong>, <strong>gpt-4o-transcribe</strong>,{" "}
+          <strong>gpt-4o-mini-transcribe</strong> and <strong>assemblyai</strong> side-by-side
+          on the same audio. Pure model output — no UK normaliser, no hallucination filtering.
         </p>
       </div>
 
@@ -662,14 +678,14 @@ export default function TranscriptionPilot() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Transcribing…
               </>
             ) : (
-              "Transcribe with all three models"
+              "Transcribe with all four models"
             )}
           </Button>
         </CardContent>
       </Card>
 
       {/* Results */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {MODELS.map((m) => {
           const r = results[m.id];
           return (
@@ -779,11 +795,12 @@ export default function TranscriptionPilot() {
                     </div>
 
                     {open && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border-t bg-muted/10">
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 p-3 border-t bg-muted/10">
                         {[
                           { label: "whisper-1", text: run.whisper1_text, lat: run.whisper1_latency_ms, err: run.whisper1_error },
                           { label: "gpt-4o-transcribe", text: run.gpt4o_text, lat: run.gpt4o_latency_ms, err: run.gpt4o_error },
                           { label: "gpt-4o-mini-transcribe", text: run.gpt4o_mini_text, lat: run.gpt4o_mini_latency_ms, err: run.gpt4o_mini_error },
+                          { label: "assemblyai", text: run.assemblyai_text, lat: run.assemblyai_latency_ms, err: run.assemblyai_error },
                         ].map((col) => (
                           <div key={col.label} className="space-y-1">
                             <div className="text-xs font-mono font-semibold">{col.label}</div>
