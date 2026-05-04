@@ -25,6 +25,7 @@ const DEFAULTS: MeetingPreferences = {
   preferred_mic_device_id: null,
   preferred_mic_label: null,
   notes_length: 'standard',
+  transcription_engine: 'whisper-1',
   section_exec_summary: true,
   section_key_points: true,
   section_decisions: true,
