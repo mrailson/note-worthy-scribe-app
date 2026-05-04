@@ -83,6 +83,7 @@ Deno.serve(async (req: Request) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
   let requestedMeetingId: string | null = null;
+  let emailLockClaimed = false;
 
   try {
     const { meetingId } = await req.json();
@@ -133,6 +134,7 @@ Deno.serve(async (req: Request) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    emailLockClaimed = true;
 
     // 2. Look up user email from auth.users (service role)
     const { data: authUser, error: authErr } = await supabase.auth.admin.getUserById(meeting.user_id);
@@ -383,7 +385,7 @@ Deno.serve(async (req: Request) => {
   } catch (error: any) {
     console.error("❌ deliver-mobile-meeting-email error:", error);
     try {
-      if (requestedMeetingId) {
+      if (requestedMeetingId && emailLockClaimed) {
         await supabase.from("meetings").update({ notes_email_sent_at: null }).eq("id", requestedMeetingId);
       }
     } catch (unlockErr) {
