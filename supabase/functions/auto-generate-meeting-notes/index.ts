@@ -3299,12 +3299,17 @@ Set overall to "fail" if ANY category fails. Score is your estimate of overall n
 
     // Also save overview to meeting_overviews table for consistency
     try {
-      await supabase
+      const { error: ovUpsertErr } = await supabase
         .from('meeting_overviews')
         .upsert({
           meeting_id: meetingId,
           overview: aiOverview || ''
-        });
+        }, { onConflict: 'meeting_id' });
+      if (ovUpsertErr) {
+        console.warn('⚠️ meeting_overviews upsert error:', ovUpsertErr.message);
+      } else {
+        console.log('✅ meeting_overviews upserted');
+      }
     } catch (overviewSaveErr) {
       console.warn('⚠️ Failed to save to meeting_overviews:', overviewSaveErr);
     }
