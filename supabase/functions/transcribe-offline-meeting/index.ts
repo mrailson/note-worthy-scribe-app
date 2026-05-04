@@ -371,16 +371,65 @@ serve(async (req) => {
     const totalChunks = chunkSources.length;
     const sessionId = `offline-retranscribe-${meetingId}`;
 
+    // ============ Concurrent-invocation guard (chunk 0) ============
+    // Mobile clients sometimes fire this endpoint 2–3× in quick succession
+    // (network retry / async upload race). Without a lock the duplicate
+    // invocations DELETE each other's chunk rows and race on Whisper, then
+    // one sibling fails "Stitched empty" and flips the meeting to FAILED.
+    // We use the meetings row as a soft lock: if another worker took the
+    // lock within the last 60s, we bail with 200 — never an error.
     if (numericChunkIndex === 0) {
+      const { data: lockRow } = await supabase
+        .from("meetings")
+        .select("notes_generation_status, updated_at")
+        .eq("id", meetingId)
+        .maybeSingle();
+
+      const ageSec = lockRow?.updated_at
+        ? (Date.now() - new Date(lockRow.updated_at).getTime()) / 1000
+        : Number.POSITIVE_INFINITY;
+      const inFlight = lockRow?.notes_generation_status === "transcribing" && ageSec < 60;
+
+      if (inFlight) {
+        console.log(`🔒 Another worker is already transcribing meeting ${meetingId} (age=${ageSec.toFixed(1)}s) — skipping duplicate invocation`);
+        return new Response(JSON.stringify({
+          success: true,
+          status: "already_in_flight",
+          meetingId,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       await supabase.from("meetings").update({
         notes_generation_status: "transcribing",
       }).eq("id", meetingId);
 
-      await supabase.from("meeting_transcription_chunks")
-        .delete()
+      // Only wipe chunk rows if NONE are currently mid-process or completed
+      // with content (avoids destroying a sibling worker's good output).
+      const { data: existingRows } = await supabase
+        .from("meeting_transcription_chunks")
+        .select("id, validation_status, word_count, created_at")
         .eq("meeting_id", meetingId)
         .eq("session_id", sessionId)
         .eq("transcriber_type", "whisper");
+
+      const hasLiveWork = (existingRows || []).some((r) => {
+        const isProcessingFresh = r.validation_status === "processing" &&
+          (Date.now() - new Date(r.created_at).getTime()) / 1000 < STALE_PROCESSING_MINUTES * 60;
+        const hasContent = (r.word_count || 0) > 0 && r.validation_status === "validated";
+        return isProcessingFresh || hasContent;
+      });
+
+      if (!hasLiveWork) {
+        await supabase.from("meeting_transcription_chunks")
+          .delete()
+          .eq("meeting_id", meetingId)
+          .eq("session_id", sessionId)
+          .eq("transcriber_type", "whisper");
+      } else {
+        console.log(`♻️ Preserving ${existingRows?.length || 0} existing chunk rows for ${meetingId} (live work detected)`);
+      }
     }
 
     const source = chunkSources[numericChunkIndex];
@@ -652,12 +701,40 @@ serve(async (req) => {
 
     if (fetchErr) throw new Error(`Failed to fetch chunks: ${fetchErr.message}`);
 
-    const stitchedChunks = dedupeChunkRows((allChunks || []) as ChunkRow[]);
-    const fullTranscript = stitchChunkTexts(stitchedChunks);
-    const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+    let stitchedChunks = dedupeChunkRows((allChunks || []) as ChunkRow[]);
+    let fullTranscript = stitchChunkTexts(stitchedChunks);
+    let wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
 
     if (!fullTranscript || wordCount === 0) {
-      throw new Error("Stitched transcript was empty despite chunks existing");
+      // Could be a sibling-invocation race — retry once after a brief pause
+      // before declaring the meeting failed. A mobile user cannot re-record.
+      console.warn(`⚠️ Stitched transcript empty on first read for ${meetingId} — retrying after 3s in case of sibling write delay`);
+      await new Promise((r) => setTimeout(r, 3000));
+      const { data: retryChunks } = await supabase
+        .from("meeting_transcription_chunks")
+        .select("chunk_number, transcription_text, start_time, end_time, created_at, word_count, validation_status")
+        .eq("meeting_id", meetingId)
+        .eq("session_id", sessionId)
+        .eq("transcriber_type", "whisper")
+        .order("chunk_number", { ascending: true })
+        .order("created_at", { ascending: false });
+      stitchedChunks = dedupeChunkRows((retryChunks || []) as ChunkRow[]);
+      fullTranscript = stitchChunkTexts(stitchedChunks);
+      wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
+      if (fullTranscript && wordCount > 0) {
+        console.log(`✅ Retry recovered ${wordCount} words for ${meetingId}`);
+      } else {
+        // Genuine empty — likely sibling concurrent run already finalised. Bail
+        // softly instead of throwing (which would mark the meeting as failed).
+        console.warn(`⚠️ Stitched still empty for ${meetingId} after retry — assuming sibling worker handled it`);
+        return new Response(JSON.stringify({
+          success: true,
+          status: "empty_after_retry_assumed_sibling",
+          meetingId,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     if (wordCount < 100) {
