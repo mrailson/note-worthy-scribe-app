@@ -1374,32 +1374,43 @@ export class DesktopWhisperTranscriber {
       this.transcriptionTimeout = null;
     }
 
-    // Stop recording and wait for final ondataavailable event using promise
+    // Stop recording and wait for final ondataavailable + processAudioChunks
+    // to complete. The original 5s Promise.race timeout was the truncation
+    // root cause: a typical 60-90s final audio chunk takes 5-10s for OpenAI
+    // Whisper to transcribe (sometimes more on retry), so a 5s race always
+    // lost. We now allow up to 60s, which comfortably covers a normal final
+    // chunk plus one network retry, and still bounds the total stop time.
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       console.log('🔄 Stopping final recording chunk...');
       
-      // Create a promise that resolves when onstop fires
+      // Create a promise that resolves only after the original onstop
+      // handler has finished its async work (i.e. processAudioChunks has
+      // returned, meaning the final transcript callback has fired).
       const stopPromise = new Promise<void>((resolve) => {
         const originalOnStop = this.mediaRecorder!.onstop;
         this.mediaRecorder!.onstop = async (event) => {
-          // Call original handler first (processes the chunks)
-          if (originalOnStop && typeof originalOnStop === 'function') {
-            await (originalOnStop as (ev: Event) => Promise<void>)(event);
+          try {
+            if (originalOnStop && typeof originalOnStop === 'function') {
+              await (originalOnStop as (ev: Event) => Promise<void>)(event);
+            }
+          } finally {
+            resolve();
           }
-          resolve();
         };
       });
       
       this.mediaRecorder.stop();
       
-      // Wait for onstop to complete (with timeout safety)
+      // Wait up to 60s for final chunk to be transcribed and stored.
+      // This is bounded so a hung OpenAI call cannot freeze the UI forever.
       await Promise.race([
         stopPromise,
-        new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
+        new Promise(resolve => setTimeout(resolve, 60000))
       ]);
       
-      // Additional wait for final ondataavailable processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Brief settle-time for any subsequent state writes triggered by
+      // the final transcription callback.
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     // Force process any remaining audio chunks and wait for completion

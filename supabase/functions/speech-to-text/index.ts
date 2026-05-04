@@ -315,7 +315,7 @@ serve(async (req) => {
     }
 
     // ── Default base64 branch (unchanged) ──
-    const { audio, mimeType, fileName, language } = body;
+    const { audio, mimeType, fileName, language, prompt: callerPrompt } = body;
 
     if (!audio) {
       console.error(`❌ [${requestId}] No audio data provided`);
@@ -384,13 +384,21 @@ serve(async (req) => {
     formData.append('response_format', 'verbose_json');
     formData.append('temperature', '0');
 
-    // Build language-appropriate prompt
+    // Build language-appropriate prompt. Server-side default covers clinical
+    // GP context. If the caller supplies its own prompt (e.g. a meeting
+    // recorder passing meeting title and attendee names) it is PREPENDED to
+    // the default, so caller context lands in the most heavily-weighted
+    // position in Whisper's 224-token effective window while the clinical
+    // terms remain available behind it.
     let whisperPrompt: string;
-
     if (transcriptionLanguage === 'en') {
-      whisperPrompt = `UK GP consultation. NHS primary care.
+      const defaultUkPrompt = `UK English NHS conversation. British spellings throughout.
 
-Clinical terms: SNOMED, NICE guidelines, BNF, QoF, QOF, DES, ICS, PCN, hypertension, hyperlipidaemia, hypothyroidism, diabetes mellitus, type 2 diabetes, ischaemic heart disease, IHD, COPD, chronic obstructive pulmonary disease, asthma, chronic kidney disease, CKD, atrial fibrillation, AF, angina, myocardial infarction, heart failure, osteoarthritis, rheumatoid arthritis, fibromyalgia, depression, anxiety, insomnia.
+UK spellings: judgement, organisation, organise, recognise, programme, behaviour, neighbourhood, centre, colour, favour, litre, metre, practise, haemoglobin, haematology, paediatric, paediatrics, orthopaedic, oedema, coeliac, diarrhoea, anaemia, oesophagus, faeces.
+
+NHS primary care context: PCN, primary care network, ICB, integrated care board, ICS, integrated care system, CQC, NICE, BNF, QoF, QOF, DES, LES, ARRS, GMS, MoU, DPIA, DTAC, NRES, neighbourhood team, workstream, safeguarding, dispensing, enhanced access, social prescribing, clinical pharmacist, controlled drugs.
+
+Clinical terms: SNOMED, hypertension, hyperlipidaemia, hypothyroidism, diabetes mellitus, type 2 diabetes, ischaemic heart disease, IHD, COPD, chronic obstructive pulmonary disease, asthma, chronic kidney disease, CKD, atrial fibrillation, AF, angina, myocardial infarction, heart failure, osteoarthritis, rheumatoid arthritis, fibromyalgia, depression, anxiety, insomnia.
 
 Medications: metformin, gliclazide, ramipril, lisinopril, amlodipine, atorvastatin, simvastatin, omeprazole, lansoprazole, levothyroxine, bisoprolol, doxazosin, bendroflumethiazide, amoxicillin, flucloxacillin, co-amoxiclav, clarithromycin, doxycycline, prednisolone, salbutamol, Ventolin, Seretide, tiotropium, apixaban, rivaroxaban, warfarin, clopidogrel, aspirin.
 
@@ -398,15 +406,19 @@ Tests: FBC, full blood count, U&Es, urea and electrolytes, LFTs, liver function 
 
 GP systems: SystmOne, EMIS, EMIS Web, eConsult, AccuRx, Docman, TeamNet, Ardens.
 
-UK spellings: haemoglobin, haematology, paediatric, paediatrics, orthopaedic, oedema, coeliac, diarrhoea, anaemia, oesophagus, faeces, colour, favour, organise, practise, centre, litre, metre, behaviour, favour.
-
 Abbreviations: F2F, face to face, T/C, telephone consultation, DNA, did not attend, DNW, FU, follow up, follow-up, Rx, prescription, Hx, history, PMH, past medical history, DH, drug history, SH, social history, FH, family history, O/E, on examination, SOAP, NAD, nothing abnormal detected, TBC, to be confirmed, TCI, to come in, OOH, out of hours, A&E, GP, HCA, healthcare assistant, ANP, advanced nurse practitioner.
 
 Examination terms: auscultation, palpation, percussion, bilateral, unilateral, tenderness, guarding, rebound, crepitations, crackles, wheeze, rhonchi, oedema, erythema, pallor, cyanosis, jaundice, clubbing.`;
+
+      // Caller may supply meeting/consultation context (names, agenda, prior
+      // chunk tail). Prepend it so it sits in Whisper's most-attended region.
+      const callerPart = (typeof callerPrompt === 'string' && callerPrompt.trim().length > 0)
+        ? callerPrompt.trim() + ' '
+        : '';
+      whisperPrompt = callerPart + defaultUkPrompt;
     } else {
       whisperPrompt = `Healthcare conversation. Medical consultation. Patient speaking.`;
     }
-
     formData.append('prompt', whisperPrompt);
 
     console.log(`📡 [${requestId}] Sending to OpenAI Whisper API…`);
