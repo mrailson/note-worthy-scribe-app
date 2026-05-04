@@ -810,6 +810,7 @@ export default function TranscriptionPilot() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
