@@ -82,9 +82,11 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+  let requestedMeetingId: string | null = null;
 
   try {
     const { meetingId } = await req.json();
+    requestedMeetingId = typeof meetingId === "string" ? meetingId : null;
 
     if (!meetingId || typeof meetingId !== "string") {
       return new Response(
@@ -381,12 +383,8 @@ Deno.serve(async (req: Request) => {
   } catch (error: any) {
     console.error("❌ deliver-mobile-meeting-email error:", error);
     try {
-      const body = await req.clone().json().catch(() => null);
-      if (body?.meetingId) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        const supabase = createClient(supabaseUrl, serviceRoleKey);
-        await supabase.from("meetings").update({ notes_email_sent_at: null }).eq("id", body.meetingId);
+      if (requestedMeetingId) {
+        await supabase.from("meetings").update({ notes_email_sent_at: null }).eq("id", requestedMeetingId);
       }
     } catch (unlockErr) {
       console.warn("⚠️ Could not clear email lock after failure:", unlockErr);
