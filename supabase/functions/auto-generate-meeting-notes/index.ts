@@ -525,6 +525,8 @@ serve(async (req) => {
           JSON.stringify({ message: 'Notes already exist', skipped: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      } else if (existingSummary && isRefusalStub) {
+        console.log('♻️ Refusal/insufficient-content stub detected — re-running generation');
       }
     }
 
