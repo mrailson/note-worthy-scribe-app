@@ -144,7 +144,14 @@ export const CompactMeetingList = ({
               <div className="flex items-center gap-2 min-w-0 flex-col sm:flex-row sm:items-center items-start">
                 <div className="flex items-center gap-2 min-w-0">
                   <FormatIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="font-medium truncate">{meeting.title}</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="font-medium text-sm leading-snug break-words line-clamp-2 cursor-help" title={meeting.title}>
+                        {meeting.title}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-md">{meeting.title}</TooltipContent>
+                  </Tooltip>
                   <NewMeetingBadge createdAt={meeting.created_at} />
                 </div>
                 <MeetingProgressBadges meeting={meeting} className="shrink-0" />
