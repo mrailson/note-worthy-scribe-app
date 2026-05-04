@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from "@/utils/toastWrapper";
-import { useAuth } from '@/contexts/AuthContext';
 
 interface PostMeetingActionsModalProps {
   isOpen: boolean;
@@ -32,12 +31,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   onStartNewMeeting,
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error'>('generating');
   const [meetingData, setMeetingData] = useState<any>(null);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
   const [emailSent, setEmailSent] = useState(false);
-  const emailSentRef = useRef(false); // Prevent duplicate sends
 
   // Format number in K style (e.g., 4200 -> 4.2K)
   const formatNumberK = (num: number): string => {
