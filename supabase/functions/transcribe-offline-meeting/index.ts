@@ -371,16 +371,65 @@ serve(async (req) => {
     const totalChunks = chunkSources.length;
     const sessionId = `offline-retranscribe-${meetingId}`;
 
+    // ============ Concurrent-invocation guard (chunk 0) ============
+    // Mobile clients sometimes fire this endpoint 2–3× in quick succession
+    // (network retry / async upload race). Without a lock the duplicate
+    // invocations DELETE each other's chunk rows and race on Whisper, then
+    // one sibling fails "Stitched empty" and flips the meeting to FAILED.
+    // We use the meetings row as a soft lock: if another worker took the
+    // lock within the last 60s, we bail with 200 — never an error.
     if (numericChunkIndex === 0) {
+      const { data: lockRow } = await supabase
+        .from("meetings")
+        .select("notes_generation_status, updated_at")
+        .eq("id", meetingId)
+        .maybeSingle();
+
+      const ageSec = lockRow?.updated_at
+        ? (Date.now() - new Date(lockRow.updated_at).getTime()) / 1000
+        : Number.POSITIVE_INFINITY;
+      const inFlight = lockRow?.notes_generation_status === "transcribing" && ageSec < 60;
+
+      if (inFlight) {
+        console.log(`🔒 Another worker is already transcribing meeting ${meetingId} (age=${ageSec.toFixed(1)}s) — skipping duplicate invocation`);
+        return new Response(JSON.stringify({
+          success: true,
+          status: "already_in_flight",
+          meetingId,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       await supabase.from("meetings").update({
         notes_generation_status: "transcribing",
       }).eq("id", meetingId);
 
-      await supabase.from("meeting_transcription_chunks")
-        .delete()
+      // Only wipe chunk rows if NONE are currently mid-process or completed
+      // with content (avoids destroying a sibling worker's good output).
+      const { data: existingRows } = await supabase
+        .from("meeting_transcription_chunks")
+        .select("id, validation_status, word_count, created_at")
         .eq("meeting_id", meetingId)
         .eq("session_id", sessionId)
         .eq("transcriber_type", "whisper");
+
+      const hasLiveWork = (existingRows || []).some((r) => {
+        const isProcessingFresh = r.validation_status === "processing" &&
+          (Date.now() - new Date(r.created_at).getTime()) / 1000 < STALE_PROCESSING_MINUTES * 60;
+        const hasContent = (r.word_count || 0) > 0 && r.validation_status === "validated";
+        return isProcessingFresh || hasContent;
+      });
+
+      if (!hasLiveWork) {
+        await supabase.from("meeting_transcription_chunks")
+          .delete()
+          .eq("meeting_id", meetingId)
+          .eq("session_id", sessionId)
+          .eq("transcriber_type", "whisper");
+      } else {
+        console.log(`♻️ Preserving ${existingRows?.length || 0} existing chunk rows for ${meetingId} (live work detected)`);
+      }
     }
 
     const source = chunkSources[numericChunkIndex];
