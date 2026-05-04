@@ -6193,7 +6193,7 @@ export const MeetingRecorder = ({
     
     setLoadingHistory(true);
     try {
-      // Query meetings directly - RLS policies ensure proper access control
+      // Query meetings directly - filter by user_id (defence in depth on top of RLS)
       const { data: meetingsData, error } = await supabase
         .from('meetings')
         .select(`
