@@ -305,6 +305,119 @@ function collapseLoopsInText(text: string) {
 
 // ── Main handler ────────────────────────────────────────────────────────────
 
+// ── UK English spelling normaliser ─────────────────────────────────────────
+// Post-processes Whisper output to enforce British English spellings,
+// regardless of how strongly the model's training prior pulls toward US
+// spellings on any given word. Applied before the response is returned,
+// so callers always receive UK-spelled text. Word-boundary regex,
+// case-preserving (Organization → Organisation, ORGANIZATION → ORGANISATION).
+//
+// Tier 1: -ise/-ize, -our, -re, judgment family. Always swap.
+// Tier 2: medical/clinical UK spellings (anaemia, oedema, paediatric...). Always swap.
+// Tier 3 (deliberately omitted): practice/practise, program/programme,
+//   meter/metre, tire/tyre, license/licence — verb/noun ambiguity, would
+//   regress correct English. Leave alone.
+const UK_SPELLINGS: ReadonlyArray<[string, string]> = [
+  // -ise / -ize family
+  ['organize', 'organise'], ['organized', 'organised'], ['organizing', 'organising'],
+  ['organizes', 'organises'], ['organization', 'organisation'],
+  ['organizations', 'organisations'], ['organizational', 'organisational'],
+  ['recognize', 'recognise'], ['recognized', 'recognised'],
+  ['recognizing', 'recognising'], ['recognizes', 'recognises'],
+  ['realize', 'realise'], ['realized', 'realised'],
+  ['realizing', 'realising'], ['realizes', 'realises'],
+  ['apologize', 'apologise'], ['apologized', 'apologised'], ['apologizing', 'apologising'],
+  ['analyze', 'analyse'], ['analyzed', 'analysed'], ['analyzing', 'analysing'],
+  ['prioritize', 'prioritise'], ['prioritized', 'prioritised'], ['prioritizing', 'prioritising'],
+  ['utilize', 'utilise'], ['utilized', 'utilised'],
+  ['minimize', 'minimise'], ['minimized', 'minimised'],
+  ['maximize', 'maximise'], ['maximized', 'maximised'],
+  ['authorize', 'authorise'], ['authorized', 'authorised'],
+  ['characterize', 'characterise'],
+  ['specialize', 'specialise'], ['specialized', 'specialised'],
+  ['standardize', 'standardise'], ['summarize', 'summarise'],
+  // -our family
+  ['color', 'colour'], ['colors', 'colours'], ['colored', 'coloured'], ['coloring', 'colouring'],
+  ['behavior', 'behaviour'], ['behaviors', 'behaviours'], ['behavioral', 'behavioural'],
+  ['favor', 'favour'], ['favors', 'favours'], ['favored', 'favoured'],
+  ['favoring', 'favouring'], ['favorite', 'favourite'], ['favorites', 'favourites'],
+  ['honor', 'honour'], ['honors', 'honours'], ['honored', 'honoured'],
+  ['humor', 'humour'], ['humored', 'humoured'],
+  ['labor', 'labour'], ['labors', 'labours'], ['labored', 'laboured'],
+  ['neighbor', 'neighbour'], ['neighbors', 'neighbours'],
+  ['neighborhood', 'neighbourhood'], ['neighborhoods', 'neighbourhoods'],
+  ['rumor', 'rumour'], ['rumors', 'rumours'],
+  ['flavor', 'flavour'], ['flavors', 'flavours'], ['flavored', 'flavoured'],
+  // -re family
+  ['center', 'centre'], ['centers', 'centres'], ['centered', 'centred'], ['centering', 'centring'],
+  ['fiber', 'fibre'], ['fibers', 'fibres'],
+  ['liter', 'litre'], ['liters', 'litres'],
+  ['theater', 'theatre'], ['theaters', 'theatres'],
+  // judgment family
+  ['judgment', 'judgement'], ['judgments', 'judgements'], ['judgmental', 'judgemental'],
+  ['acknowledgment', 'acknowledgement'], ['acknowledgments', 'acknowledgements'],
+  // misc Tier 1
+  ['aluminum', 'aluminium'], ['gray', 'grey'],
+  ['plow', 'plough'], ['mold', 'mould'], ['molded', 'moulded'],
+  // medical / clinical (Tier 2)
+  ['anemia', 'anaemia'], ['anemic', 'anaemic'],
+  ['anesthesia', 'anaesthesia'], ['anesthetic', 'anaesthetic'],
+  ['anesthetist', 'anaesthetist'], ['anesthetize', 'anaesthetise'],
+  ['celiac', 'coeliac'],
+  ['diarrhea', 'diarrhoea'],
+  ['edema', 'oedema'],
+  ['esophagus', 'oesophagus'], ['esophageal', 'oesophageal'],
+  ['estrogen', 'oestrogen'],
+  ['feces', 'faeces'], ['fecal', 'faecal'],
+  ['fetus', 'foetus'], ['fetal', 'foetal'],
+  ['hemoglobin', 'haemoglobin'],
+  ['hematology', 'haematology'], ['hematologist', 'haematologist'],
+  ['hematoma', 'haematoma'], ['hemorrhage', 'haemorrhage'],
+  ['hemorrhoids', 'haemorrhoids'],
+  ['leukemia', 'leukaemia'],
+  ['orthopedic', 'orthopaedic'],
+  ['pediatric', 'paediatric'], ['pediatrics', 'paediatrics'],
+  ['pediatrician', 'paediatrician'],
+  ['tumor', 'tumour'], ['tumors', 'tumours'],
+  // -ence family
+  ['pretense', 'pretence'], ['defense', 'defence'],
+  // doubled-l UK spellings
+  ['fulfill', 'fulfil'], ['fulfillment', 'fulfilment'],
+  ['instill', 'instil'],
+  ['enrollment', 'enrolment'], ['enroll', 'enrol'],
+  ['skillful', 'skilful'], ['willful', 'wilful'],
+  ['traveler', 'traveller'], ['travelers', 'travellers'],
+  ['traveling', 'travelling'], ['traveled', 'travelled'],
+  ['modeling', 'modelling'], ['modeled', 'modelled'],
+  ['labeling', 'labelling'], ['labeled', 'labelled'],
+];
+const UK_SPELLINGS_MAP: ReadonlyMap<string, string> = new Map(UK_SPELLINGS);
+const UK_SPELLINGS_REGEX = new RegExp(
+  '\\b(' + UK_SPELLINGS.map(([from]) => from).join('|') + ')\\b',
+  'gi'
+);
+function applyUKSpellings(text: string): string {
+  if (!text) return text;
+  return text.replace(UK_SPELLINGS_REGEX, (match) => {
+    const replacement = UK_SPELLINGS_MAP.get(match.toLowerCase());
+    if (!replacement) return match;
+    if (match === match.toUpperCase()) return replacement.toUpperCase();
+    if (match[0] === match[0].toUpperCase()) {
+      return replacement[0].toUpperCase() + replacement.slice(1);
+    }
+    return replacement;
+  });
+}
+
+// Default British NHS fallback prompt — used when the caller does not
+// supply its own prompt. Mirrors the fallback used in speech-to-text.
+const DEFAULT_FALLBACK_PROMPT =
+  'British English NHS primary care meeting transcript. ' +
+  'Use UK spellings: judgement, organisation, recognise, programme, behaviour. ' +
+  'Common terms: PCN, ICB, CQC, GP, ANP, ACP, ARRS, GMS, MoU, DPIA, ' +
+  'neighbourhood, workstream, safeguarding, dispensing, enhanced access, ' +
+  'social prescribing.';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -415,9 +528,14 @@ serve(async (req) => {
     formData.append('no_speech_threshold', '0.6');
     formData.append('logprob_threshold', '-1.0');
 
-    if (whisperPrompt) {
-      formData.append('prompt', whisperPrompt);
-    }
+    // Use caller-supplied prompt if non-empty, otherwise fall back to the
+    // British NHS default. Same pattern as speech-to-text — guarantees that
+    // every offline transcription benefits from UK English priming, even
+    // when the caller forgot to supply context.
+    const effectivePrompt = (typeof whisperPrompt === 'string' && whisperPrompt.trim().length > 0)
+      ? whisperPrompt
+      : DEFAULT_FALLBACK_PROMPT;
+    formData.append('prompt', effectivePrompt);
 
     console.log(`🤖 [${requestId}] Using model=${model}, format=${resolvedFormat}, temperature=${temperature}, condition_on_previous_text=false, compression_ratio_threshold=2.4, no_speech_threshold=0.6, prompt=${whisperPrompt ? 'yes (' + whisperPrompt.length + ' chars)' : 'none'}`);
 
@@ -440,6 +558,14 @@ serve(async (req) => {
             cleanedText = collapsed.text;
             loopsCollapsed = collapsed.loopsCollapsed;
             repeatsRemoved = collapsed.repeatsRemoved;
+          }
+        }
+        // ── Apply UK spelling normalisation (text/srt/vtt) ──
+        if (resolvedFormat === 'text' && cleanedText) {
+          const before = cleanedText;
+          cleanedText = applyUKSpellings(cleanedText);
+          if (before !== cleanedText) {
+            console.log(`🇬🇧 [${requestId}] Applied UK spelling normalisation (text)`);
           }
         }
         console.log(`✅ [${requestId}] Whisper ${resolvedFormat} result: ${cleanedText.slice(0, 100)}…`);
@@ -488,6 +614,24 @@ serve(async (req) => {
             repeatsRemoved = collapsed.repeatsRemoved;
           }
         }
+      }
+
+      // ── Apply UK spelling normalisation (JSON / verbose_json) ──
+      // Final pass: deterministically convert any US spellings Whisper
+      // produced despite UK priming. Runs on both top-level text and every
+      // segment so segment.text stays consistent with the merged text.
+      if (finalText) {
+        const before = finalText;
+        finalText = applyUKSpellings(finalText);
+        if (before !== finalText) {
+          console.log(`🇬🇧 [${requestId}] Applied UK spelling normalisation`);
+        }
+      }
+      if (Array.isArray(segments) && segments.length > 0) {
+        segments = segments.map((seg: any) => ({
+          ...seg,
+          text: applyUKSpellings(seg.text || '')
+        }));
       }
 
       if (!finalText && firstChunkLikely) {

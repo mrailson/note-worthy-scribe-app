@@ -1216,26 +1216,35 @@ export class iPhoneWhisperTranscriber {
 
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       console.log('🔄 Stopping MediaRecorder...');
-      
+      // Mirror of online Patch A: the previous 3s Promise.race timeout was
+      // shorter than a typical Whisper call on a 90s final chunk (which
+      // takes 5-10s plus any retry), so the closing audio was lost. We now
+      // allow up to 30s for the final ondataavailable + downstream chunk
+      // processing to complete. Bounded so a hung API cannot freeze the UI.
       const stopPromise = new Promise<void>((resolve) => {
         const recorder = this.mediaRecorder!;
         const originalOnStop = recorder.onstop;
         recorder.onstop = (event) => {
-          if (originalOnStop && typeof originalOnStop === 'function') {
-            originalOnStop.call(recorder, event);
+          try {
+            if (originalOnStop && typeof originalOnStop === 'function') {
+              originalOnStop.call(recorder, event);
+            }
+          } finally {
+            resolve();
           }
-          resolve();
         };
       });
-      
+
       this.mediaRecorder.stop();
-      
+
       await Promise.race([
         stopPromise,
-        new Promise(resolve => setTimeout(resolve, 3000))
+        new Promise(resolve => setTimeout(resolve, 30000))
       ]);
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Brief settle-time for state writes triggered by the final
+      // transcription callback. Reduced from 1s now the race is realistic.
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Process final chunks
       if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {

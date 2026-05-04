@@ -390,7 +390,18 @@ serve(async (req) => {
       .replace(/\d{4}/g, "")
       .replace(/\s{2,}/g, " ")
       .trim();
-    const prompt = `NHS primary care meeting transcript.${safeTitle ? ` Meeting: ${safeTitle}.` : ""}`;
+    // Strong UK NHS prompt — same content profile as speech-to-text. The
+    // meeting title (where present) is placed at the END of the prompt
+    // because Whisper conditions most heavily on the final ~224 tokens of
+    // the prompt window.
+    const prompt = [
+      'British English NHS primary care meeting transcript. ' +
+      'Use UK spellings: judgement, organisation, recognise, programme, behaviour, neighbourhood, centre. ' +
+      'Common terms: PCN, ICB, CQC, EMIS, SystmOne, GP, ANP, ACP, ARRS, GMS, DES, LES, ' +
+      'MoU, DPIA, DTAC, NRES, neighbourhood team, workstream, safeguarding, dispensing, ' +
+      'enhanced access, social prescribing, clinical pharmacist.',
+      safeTitle ? `Meeting: ${safeTitle}.` : null,
+    ].filter(Boolean).join(' ');
 
     const placeholderPayload = {
       meeting_id: meetingId,
