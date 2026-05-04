@@ -282,6 +282,12 @@ export const SystemMonitoringDashboard: React.FC = () => {
               Open Pipeline Test
             </a>
           </Button>
+          <Button variant="outline" asChild className="gap-2">
+            <a href="/admin/transcription-pilot" target="_blank" rel="noopener noreferrer">
+              <Activity className="h-4 w-4" />
+              Open Transcription Pilot
+            </a>
+          </Button>
         </CardContent>
       </Card>
 
