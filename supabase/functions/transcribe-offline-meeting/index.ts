@@ -564,6 +564,51 @@ serve(async (req) => {
       }
 
       console.log(`✅ Chunk ${source.chunkNumber} saved (${wordCount} words)`);
+
+      // ============ Fire-and-forget Deepgram batch transcription ============
+      // Runs alongside Whisper so Best-of-All has a second engine on the mobile
+      // path. MUST NEVER block Whisper write or downstream notes generation.
+      (async () => {
+        const dgStart = Date.now();
+        try {
+          const dgResp = await fetch(`${supabaseUrl}/functions/v1/standalone-deepgram`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+              apikey: serviceKey,
+            },
+            body: JSON.stringify({ storagePath: source.storagePath, bucket: source.bucket }),
+          });
+          const dgElapsed = Date.now() - dgStart;
+          if (!dgResp.ok) {
+            const errText = await dgResp.text().catch(() => "");
+            console.warn(`[DG-Mobile] meeting=${meetingId} chunk=${source.chunkNumber} duration=${source.durationSec ?? "n/a"}s response_ms=${dgElapsed} status=${dgResp.status} FAILED: ${errText.slice(0, 200)}`);
+            return;
+          }
+          const dgJson = await dgResp.json();
+          const dgText = (dgJson?.text || "").trim();
+          const dgWordCount = dgText ? dgText.split(/\s+/).filter(Boolean).length : 0;
+
+          console.log(`[DG-Mobile] meeting=${meetingId} chunk=${source.chunkNumber} duration=${source.durationSec ?? "n/a"}s response_ms=${dgElapsed} words=${dgWordCount}`);
+
+          if (!dgText) return;
+
+          await supabase.from("deepgram_transcriptions").insert({
+            meeting_id: meetingId,
+            user_id: meeting.user_id,
+            session_id: sessionId,
+            chunk_number: source.chunkNumber,
+            transcription_text: dgText,
+            confidence: typeof dgJson?.confidence === "number" ? dgJson.confidence : null,
+            is_final: true,
+            word_count: dgWordCount,
+          });
+        } catch (dgErr) {
+          const dgElapsed = Date.now() - dgStart;
+          console.warn(`[DG-Mobile] meeting=${meetingId} chunk=${source.chunkNumber} duration=${source.durationSec ?? "n/a"}s response_ms=${dgElapsed} EXCEPTION: ${dgErr instanceof Error ? dgErr.message : String(dgErr)}`);
+        }
+      })();
     }
 
     const nextChunk = numericChunkIndex + 1;
@@ -647,6 +692,37 @@ serve(async (req) => {
       .eq("id", meetingId);
 
     if (updateErr) throw new Error(`Meeting update failed: ${updateErr.message}`);
+
+    // ============ Best-of-All consolidation (graceful degradation) ============
+    // Runs BoA over Whisper + Deepgram chunks (mobile path has no AssemblyAI).
+    // If consolidation fails or times out we PROCEED with Whisper-only —
+    // a mobile user cannot re-record, so notes MUST always be generated.
+    // auto-generate-meeting-notes already prefers best_of_all_transcript when
+    // present and falls back to whisper_transcript_text automatically.
+    try {
+      const boaCtrl = new AbortController();
+      const boaTimeout = setTimeout(() => boaCtrl.abort(), 90_000);
+      const boaResp = await fetch(`${supabaseUrl}/functions/v1/consolidate-meeting-chunks`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+          apikey: serviceKey,
+        },
+        body: JSON.stringify({ meetingId }),
+        signal: boaCtrl.signal,
+      });
+      clearTimeout(boaTimeout);
+      if (!boaResp.ok) {
+        const boaErr = await boaResp.text().catch(() => "");
+        console.warn(`⚠️ BoA consolidation returned ${boaResp.status} for ${meetingId}, proceeding with Whisper-only fallback: ${boaErr.slice(0, 200)}`);
+      } else {
+        await boaResp.text();
+        console.log(`✅ BoA consolidation complete for ${meetingId}`);
+      }
+    } catch (boaErr) {
+      console.warn(`⚠️ BoA consolidation failed for ${meetingId} (${boaErr instanceof Error ? boaErr.message : String(boaErr)}), proceeding with Whisper-only fallback`);
+    }
 
     const genResp = await fetch(`${supabaseUrl}/functions/v1/auto-generate-meeting-notes`, {
       method: "POST",
