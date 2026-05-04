@@ -143,6 +143,10 @@ export function useMeetingPreferences() {
     update({ notes_length: length });
   }, [update]);
 
+  const setTranscriptionEngine = useCallback((engine: TranscriptionEngine) => {
+    update({ transcription_engine: engine });
+  }, [update]);
+
   const toggleSection = useCallback((key: SectionKey) => {
     setPrefs(prev => {
       const next = { ...prev, [key]: !prev[key] };
@@ -175,6 +179,7 @@ export function useMeetingPreferences() {
     setAudioMode,
     setMicDevice,
     setNotesLength,
+    setTranscriptionEngine,
     toggleSection,
     update,
     getSectionsConfig,
