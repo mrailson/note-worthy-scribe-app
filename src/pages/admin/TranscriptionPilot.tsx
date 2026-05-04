@@ -19,6 +19,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -544,12 +545,14 @@ export default function TranscriptionPilot() {
 
   // ──────────────────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto p-6 max-w-7xl space-y-6">
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="container mx-auto p-6 max-w-7xl space-y-6">
       <div>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-2xl font-semibold">Transcription Model Pilot</h1>
-          <Link to="/" className="text-sm text-primary hover:underline">
-            ← Back to Notewell
+          <Link to="/admin" className="text-sm text-primary hover:underline">
+            ← Back to Admin
           </Link>
         </div>
         <p className="text-muted-foreground text-sm mt-1">
