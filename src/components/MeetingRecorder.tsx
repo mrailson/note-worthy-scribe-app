@@ -6193,7 +6193,7 @@ export const MeetingRecorder = ({
     
     setLoadingHistory(true);
     try {
-      // Query meetings directly - RLS policies ensure proper access control
+      // Query meetings directly - filter by user_id (defence in depth on top of RLS)
       const { data: meetingsData, error } = await supabase
         .from('meetings')
         .select(`
@@ -6224,6 +6224,7 @@ export const MeetingRecorder = ({
             audio_overview_duration
           )
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -6270,25 +6271,31 @@ export const MeetingRecorder = ({
       setTotalTranscriptWords(totalWords);
 
       // Build enriched objects without fetching heavy transcript contents
-      const meetingsWithCounts = (meetingsData || []).map((meeting: any) => ({
-        ...meeting,
-        transcript_count: transcriptCounts[meeting.id] || 0,
-        summary_exists: !!summaryExists[meeting.id],
-        meeting_summary: meeting.notes_style_3 || null,
-        overview: meeting.meeting_overviews?.overview || null,
-        audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
-        audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
-        audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
-        word_count: meeting.word_count || 0,
-        document_count: documentCounts[meeting.id] || 0,
-        documents: [],
-        access_type: 'owner',
-        access_level: 'full',
-        shared_by: null,
-        shared_at: null,
-        share_message: null,
-        share_id: null
-      }));
+      const meetingsWithCounts = (meetingsData || []).map((meeting: any) => {
+        // PostgREST returns embedded child rows as an array even for 1:1 joins
+        const ov = Array.isArray(meeting.meeting_overviews)
+          ? meeting.meeting_overviews[0]
+          : meeting.meeting_overviews;
+        return {
+          ...meeting,
+          transcript_count: transcriptCounts[meeting.id] || 0,
+          summary_exists: !!summaryExists[meeting.id],
+          meeting_summary: meeting.notes_style_3 || null,
+          overview: ov?.overview || null,
+          audio_overview_url: ov?.audio_overview_url || null,
+          audio_overview_text: ov?.audio_overview_text || null,
+          audio_overview_duration: ov?.audio_overview_duration || null,
+          word_count: meeting.word_count || 0,
+          document_count: documentCounts[meeting.id] || 0,
+          documents: [],
+          access_type: 'owner',
+          access_level: 'full',
+          shared_by: null,
+          shared_at: null,
+          share_message: null,
+          share_id: null
+        };
+      });
 
       setMeetings(meetingsWithCounts);
     } catch (error) {
