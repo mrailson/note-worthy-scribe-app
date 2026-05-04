@@ -621,9 +621,29 @@ export default function TranscriptionPilot() {
 
           {audioBlob && (
             <div className="mt-4 p-3 rounded border bg-muted/30 space-y-2">
-              <div className="text-sm">
-                <strong>{audioName}</strong> · {fmtBytes(audioBlob.size)} ·{" "}
-                {fmtSeconds(audioDuration)} · {audioBlob.type || "unknown type"}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="text-sm">
+                  <strong>{audioName}</strong> · {fmtBytes(audioBlob.size)} ·{" "}
+                  {fmtSeconds(audioDuration)} · {audioBlob.type || "unknown type"}
+                </div>
+                {audioUrl && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = audioUrl;
+                      a.download = audioName || `pilot-audio-${Date.now()}.webm`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download audio
+                  </Button>
+                )}
               </div>
               {audioUrl && <audio src={audioUrl} controls className="w-full" />}
             </div>
