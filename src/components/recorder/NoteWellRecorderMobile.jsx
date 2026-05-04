@@ -3068,7 +3068,7 @@ export default function NoteWellRecorder() {
                     {/* Engine selector */}
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                       <div style={{display:"flex",gap:4}}>
-                        {["assemblyai","deepgram"].map(eng => (
+                        {["deepgram","assemblyai"].map(eng => (
                           <button key={eng} onClick={() => {
                             if (liveEngine !== eng) {
                               stopLiveTranscription();
