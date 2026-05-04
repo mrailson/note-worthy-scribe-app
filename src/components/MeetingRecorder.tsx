@@ -6224,6 +6224,7 @@ export const MeetingRecorder = ({
             audio_overview_duration
           )
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
