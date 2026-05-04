@@ -5,15 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useToast } from '@/hooks/use-toast';
 
-const PRACTICES = [
-  'The Parks Practice',
-  'Bugbrooke Medical Practice',
-  'Brackley Medical Centre',
-  'Towcester Medical Centre',
-  'Denton Medical Practice',
-  'Saxon Spires Practice',
-  'Roade Medical Centre',
-];
+import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
+
+const PRACTICES = NRES_PRACTICE_KEYS
+  .filter(k => k !== 'bt_pcn')
+  .map(k => NRES_PRACTICES[k]);
 
 const ROLES = [
   { id: 'anp',       name: 'Advanced Nurse Practitioner',     short: 'ANP',  band: 'Band 8a', ceiling: 60411 },
