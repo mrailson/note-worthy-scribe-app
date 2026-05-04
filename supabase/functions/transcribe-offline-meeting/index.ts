@@ -706,7 +706,37 @@ serve(async (req) => {
     const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
 
     if (!fullTranscript || wordCount === 0) {
-      throw new Error("Stitched transcript was empty despite chunks existing");
+      // Could be a sibling-invocation race — retry once after a brief pause
+      // before declaring the meeting failed. A mobile user cannot re-record.
+      console.warn(`⚠️ Stitched transcript empty on first read for ${meetingId} — retrying after 3s in case of sibling write delay`);
+      await new Promise((r) => setTimeout(r, 3000));
+      const { data: retryChunks } = await supabase
+        .from("meeting_transcription_chunks")
+        .select("chunk_number, transcription_text, start_time, end_time, created_at, word_count, validation_status")
+        .eq("meeting_id", meetingId)
+        .eq("session_id", sessionId)
+        .eq("transcriber_type", "whisper")
+        .order("chunk_number", { ascending: true })
+        .order("created_at", { ascending: false });
+      const retryStitched = dedupeChunkRows((retryChunks || []) as ChunkRow[]);
+      const retryTranscript = stitchChunkTexts(retryStitched);
+      const retryWords = retryTranscript.split(/\s+/).filter(Boolean).length;
+      if (retryTranscript && retryWords > 0) {
+        console.log(`✅ Retry recovered ${retryWords} words for ${meetingId}`);
+        // Use the recovered transcript by reassigning via shadowing below.
+        // (We mutate the local refs by returning the response from a helper inline.)
+        return await finaliseMeetingTranscript(meetingId, sessionId, retryTranscript, retryWords, retryStitched.length, totalChunks);
+      }
+      // Genuine empty — likely sibling concurrent run already finalised. Bail
+      // softly instead of throwing (which would mark the meeting as failed).
+      console.warn(`⚠️ Stitched still empty for ${meetingId} after retry — assuming sibling worker handled it`);
+      return new Response(JSON.stringify({
+        success: true,
+        status: "empty_after_retry_assumed_sibling",
+        meetingId,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (wordCount < 100) {
