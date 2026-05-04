@@ -355,8 +355,20 @@ export default function PipelineTest() {
 
   /** Launch a run. Returns the runId, or null on launch failure. */
   async function launchRun(spec: RunSpec): Promise<string | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not signed in');
+    // Prefer getSession() — it returns the cached/restored session synchronously
+    // from storage, while getUser() makes a network call that can race with
+    // the supabase client's initial session restore on first page load and
+    // briefly return null even when the user is signed in.
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      // Fallback: explicit network check in case storage is empty but the
+      // refresh token is still valid server-side.
+      const { data: { user: fetchedUser } } = await supabase.auth.getUser();
+      if (!fetchedUser) throw new Error('Not signed in');
+      session = { ...(session as any), user: fetchedUser } as any;
+    }
+    const user = session!.user;
+
 
     const transcriptWords = spec.transcript.split(/\s+/).filter(Boolean).length;
     const transcriptChars = spec.transcript.length;
@@ -843,7 +855,15 @@ export default function PipelineTest() {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Pipeline Test</h1>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <h1 className="text-2xl font-semibold">Pipeline Test</h1>
+          <Link
+            to="/"
+            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+          >
+            ← Back to Notewell
+          </Link>
+        </div>
         <p className="text-muted-foreground text-sm mt-1">
           End-to-end test of the recording → transcript → notes → email pipeline using synthetic meetings of varying sizes.
           Test emails will be sent to <strong>{userEmail || '(your account email)'}</strong>.
