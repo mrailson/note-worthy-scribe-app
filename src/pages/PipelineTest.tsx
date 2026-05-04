@@ -355,8 +355,20 @@ export default function PipelineTest() {
 
   /** Launch a run. Returns the runId, or null on launch failure. */
   async function launchRun(spec: RunSpec): Promise<string | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not signed in');
+    // Prefer getSession() — it returns the cached/restored session synchronously
+    // from storage, while getUser() makes a network call that can race with
+    // the supabase client's initial session restore on first page load and
+    // briefly return null even when the user is signed in.
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      // Fallback: explicit network check in case storage is empty but the
+      // refresh token is still valid server-side.
+      const { data: { user: fetchedUser } } = await supabase.auth.getUser();
+      if (!fetchedUser) throw new Error('Not signed in');
+      session = { ...(session as any), user: fetchedUser } as any;
+    }
+    const user = session!.user;
+
 
     const transcriptWords = spec.transcript.split(/\s+/).filter(Boolean).length;
     const transcriptChars = spec.transcript.length;
