@@ -40,12 +40,13 @@ const DEFAULT_PROMPT =
   "Common terms: PCN, ICB, CQC, GP, ANP, ACP, ARRS, GMS, MoU, DPIA, neighbourhood, " +
   "workstream, safeguarding, dispensing, enhanced access, social prescribing.";
 
-type ModelId = "whisper-1" | "gpt-4o-transcribe" | "gpt-4o-mini-transcribe";
+type ModelId = "whisper-1" | "gpt-4o-transcribe" | "gpt-4o-mini-transcribe" | "assemblyai";
 
 const MODELS: { id: ModelId; label: string; pricePerMinute: number }[] = [
   { id: "whisper-1", label: "whisper-1", pricePerMinute: 0.006 },
   { id: "gpt-4o-transcribe", label: "gpt-4o-transcribe", pricePerMinute: 0.006 },
   { id: "gpt-4o-mini-transcribe", label: "gpt-4o-mini-transcribe", pricePerMinute: 0.003 },
+  { id: "assemblyai", label: "assemblyai (best)", pricePerMinute: 0.0062 },
 ];
 
 type ResultState = {
@@ -76,6 +77,10 @@ type PilotRun = {
   gpt4o_mini_latency_ms: number | null;
   gpt4o_mini_cost_usd: number | null;
   gpt4o_mini_error: string | null;
+  assemblyai_text: string | null;
+  assemblyai_latency_ms: number | null;
+  assemblyai_cost_usd: number | null;
+  assemblyai_error: string | null;
   notes: string | null;
 };
 
@@ -166,6 +171,7 @@ export default function TranscriptionPilot() {
     "whisper-1": { status: "idle" },
     "gpt-4o-transcribe": { status: "idle" },
     "gpt-4o-mini-transcribe": { status: "idle" },
+    "assemblyai": { status: "idle" },
   });
   const [running, setRunning] = useState(false);
 
@@ -277,6 +283,7 @@ export default function TranscriptionPilot() {
       "whisper-1": { status: "idle" },
       "gpt-4o-transcribe": { status: "idle" },
       "gpt-4o-mini-transcribe": { status: "idle" },
+      "assemblyai": { status: "idle" },
     });
   }
 
@@ -304,6 +311,7 @@ export default function TranscriptionPilot() {
       "whisper-1": { status: "running" },
       "gpt-4o-transcribe": { status: "running" },
       "gpt-4o-mini-transcribe": { status: "running" },
+      "assemblyai": { status: "running" },
     });
 
     const callOne = async (model: ModelId): Promise<ResultState> => {
@@ -337,7 +345,7 @@ export default function TranscriptionPilot() {
       }
     };
 
-    const [w1, g4o, g4oMini] = await Promise.all([
+    const [w1, g4o, g4oMini, aai] = await Promise.all([
       callOne("whisper-1").then((r) => {
         setResults((prev) => ({ ...prev, "whisper-1": r }));
         return r;
@@ -348,6 +356,10 @@ export default function TranscriptionPilot() {
       }),
       callOne("gpt-4o-mini-transcribe").then((r) => {
         setResults((prev) => ({ ...prev, "gpt-4o-mini-transcribe": r }));
+        return r;
+      }),
+      callOne("assemblyai").then((r) => {
+        setResults((prev) => ({ ...prev, "assemblyai": r }));
         return r;
       }),
     ]);
@@ -377,7 +389,11 @@ export default function TranscriptionPilot() {
           gpt4o_mini_latency_ms: g4oMini.latencyMs ?? null,
           gpt4o_mini_cost_usd: cost(0.003),
           gpt4o_mini_error: g4oMini.error || null,
-        });
+          assemblyai_text: aai.text || null,
+          assemblyai_latency_ms: aai.latencyMs ?? null,
+          assemblyai_cost_usd: cost(0.0062),
+          assemblyai_error: aai.error || null,
+        } as any);
         queryClient.invalidateQueries({ queryKey: ["transcription-pilot-runs"] });
       }
     } catch (err) {
@@ -385,7 +401,7 @@ export default function TranscriptionPilot() {
     }
 
     setRunning(false);
-    toast({ title: "Pilot run complete", description: "All three models finished." });
+    toast({ title: "Pilot run complete", description: "All four models finished." });
   }
 
   // ── Result-derived helpers ──────────────────────────────────────────────
