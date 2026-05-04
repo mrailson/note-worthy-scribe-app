@@ -2,16 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowRight, Check, ShieldCheck, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 
-const PRACTICES = [
-  'The Parks Practice',
-  'Bugbrooke Medical Practice',
-  'Brackley Medical Centre',
-  'Towcester Medical Centre',
-  'Denton Medical Practice',
-  'Saxon Spires Practice',
-  'Roade Medical Centre',
-];
+const PRACTICES = NRES_PRACTICE_KEYS
+  .filter(k => k !== 'bt_pcn')
+  .map(k => NRES_PRACTICES[k]);
 
 const ROLES = [
   { id: 'anp',       name: 'Advanced Nurse Practitioner',     band: 'Band 8a', ceiling: 60411 },
