@@ -265,8 +265,8 @@ export const buildProfessionalMeetingEmail = (
 
   // Build overview section
   let overviewHTML = '';
-  if (meetingMeta?.overview) {
-    const overviewText = meetingMeta.overview.replace(/\*\*/g, '').replace(/\\\*/g, '');
+  if (effectiveOverview) {
+    const overviewText = effectiveOverview.replace(/\*\*/g, '').replace(/\\\*/g, '');
     const parts = overviewText.split('\n').filter((l: string) => l.trim());
     const paragraph = parts.filter((l: string) => !l.trim().startsWith('•')).join(' ').trim();
     const bullets = parts.filter((l: string) => l.trim().startsWith('•'));
