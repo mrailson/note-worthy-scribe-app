@@ -64,6 +64,8 @@ const SurveyBuilder = lazy(() => import("./pages/SurveyBuilder"));
 const SurveyResults = lazy(() => import("./pages/SurveyResults"));
 const PublicSurvey = lazy(() => import("./pages/PublicSurvey"));
 const AdminConsolidate = lazy(() => import("./pages/AdminConsolidate").then(m => ({ default: m.AdminConsolidate })));
+const PayAlignmentSurvey = lazy(() => import("./pages/PayAlignmentSurvey"));
+const PayAlignmentAdmin = lazy(() => import("./pages/PayAlignmentAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const VoiceTest = lazy(() => import("./pages/VoiceTest"));
 const ResetPassword = lazy(() => import("./components/ResetPassword").then(m => ({ default: m.ResetPassword })));
@@ -397,6 +399,8 @@ const App = () => {
                 <Route path="/feedback/results" element={<FeedbackResults />} />
                 <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
                 <Route path="/admin/consolidate" element={<AdminConsolidate />} />
+                <Route path="/admin/pay-alignment" element={<PayAlignmentAdmin />} />
+                <Route path="/survey/pay-alignment/:token" element={<PayAlignmentSurvey />} />
                 <Route path="/turkey2025" element={<Turkey2025 />} />
                 <Route path="/buyback-explainer" element={<BuyBackExplainer />} />
                 <Route path="/gp-contract" element={
