@@ -9758,6 +9758,80 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_pay_alignment_responses: {
+        Row: {
+          client_hash: string | null
+          comments: Json | null
+          id: string
+          is_anonymous: boolean
+          practice: string | null
+          responses: Json
+          risk_flag: string | null
+          submitted_at: string
+          survey_id: string
+        }
+        Insert: {
+          client_hash?: string | null
+          comments?: Json | null
+          id?: string
+          is_anonymous: boolean
+          practice?: string | null
+          responses: Json
+          risk_flag?: string | null
+          submitted_at?: string
+          survey_id: string
+        }
+        Update: {
+          client_hash?: string | null
+          comments?: Json | null
+          id?: string
+          is_anonymous?: boolean
+          practice?: string | null
+          responses?: Json
+          risk_flag?: string | null
+          submitted_at?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nres_pay_alignment_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "nres_pay_alignment_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nres_pay_alignment_surveys: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          token: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          token: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          token?: string
+        }
+        Relationships: []
+      }
       nres_recruitment_audit: {
         Row: {
           action: string
