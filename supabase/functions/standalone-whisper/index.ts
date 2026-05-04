@@ -528,9 +528,14 @@ serve(async (req) => {
     formData.append('no_speech_threshold', '0.6');
     formData.append('logprob_threshold', '-1.0');
 
-    if (whisperPrompt) {
-      formData.append('prompt', whisperPrompt);
-    }
+    // Use caller-supplied prompt if non-empty, otherwise fall back to the
+    // British NHS default. Same pattern as speech-to-text — guarantees that
+    // every offline transcription benefits from UK English priming, even
+    // when the caller forgot to supply context.
+    const effectivePrompt = (typeof whisperPrompt === 'string' && whisperPrompt.trim().length > 0)
+      ? whisperPrompt
+      : DEFAULT_FALLBACK_PROMPT;
+    formData.append('prompt', effectivePrompt);
 
     console.log(`🤖 [${requestId}] Using model=${model}, format=${resolvedFormat}, temperature=${temperature}, condition_on_previous_text=false, compression_ratio_threshold=2.4, no_speech_threshold=0.6, prompt=${whisperPrompt ? 'yes (' + whisperPrompt.length + ' chars)' : 'none'}`);
 
