@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export type TranscriptionEngine = 'whisper-1' | 'gpt-4o-transcribe';
+
 export interface MeetingPreferences {
   audio_mode: 'mic_only' | 'mic_system';
   preferred_mic_device_id: string | null;
   preferred_mic_label: string | null;
   notes_length: 'concise' | 'standard' | 'detailed';
+  transcription_engine: TranscriptionEngine;
   section_exec_summary: boolean;
   section_key_points: boolean;
   section_decisions: boolean;
