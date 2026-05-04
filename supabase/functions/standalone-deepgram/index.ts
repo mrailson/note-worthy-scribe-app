@@ -67,21 +67,11 @@ serve(async (req) => {
       throw new Error('Deepgram API key not configured');
     }
 
-    const { audio, mimeType } = await req.json();
-    
-    if (!audio) {
-      throw new Error('No audio data provided');
+    const { audio, mimeType, storagePath, bucket } = await req.json();
+
+    if (!audio && !storagePath) {
+      throw new Error('No audio data or storagePath provided');
     }
-
-    // Convert base64 to binary
-    const binaryAudio = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
-    const fileSizeKB = (binaryAudio.length / 1024).toFixed(1);
-
-    // Detect content type from magic bytes, with caller override
-    const detectedMime = detectMimeType(binaryAudio);
-    const contentType = (typeof mimeType === 'string' && mimeType.trim()) ? mimeType : detectedMime;
-
-    console.log(`[Standalone-Deepgram] Audio: ${fileSizeKB}KB, detected=${detectedMime}, using=${contentType}`);
 
     // Build Deepgram URL
     const dgParams = new URLSearchParams({
@@ -93,31 +83,111 @@ serve(async (req) => {
     });
     const dgUrl = `https://api.deepgram.com/v1/listen?${dgParams.toString()}`;
 
-    // 120-second timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120_000);
+    // ============ URL-based path (mobile offline / large files) ============
+    let response: Response;
+    let fileSizeKB = '0';
+    let contentType = 'application/json';
+    let usedUrlPath = false;
     const startMs = Date.now();
 
-    let response: Response;
-    try {
-      response = await fetch(dgUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${deepgramApiKey}`,
-          'Content-Type': contentType,
-        },
-        body: binaryAudio,
-        signal: controller.signal,
-      });
-    } catch (fetchErr: any) {
-      clearTimeout(timeoutId);
-      if (fetchErr.name === 'AbortError') {
-        console.error(`❌ Deepgram API timed out after 120s (${fileSizeKB}KB)`);
-        throw new Error(`Deepgram API timeout (${fileSizeKB}KB) exceeded 120s`);
+    if (storagePath) {
+      usedUrlPath = true;
+      const supaUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const targetBucket = (typeof bucket === 'string' && bucket.trim()) ? bucket : 'meeting-audio';
+
+      const makeSignedUrl = async (): Promise<string> => {
+        const r = await fetch(
+          `${supaUrl}/storage/v1/object/sign/${targetBucket}/${storagePath}`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expiresIn: 3600 }),
+          }
+        );
+        if (!r.ok) throw new Error(`Signed URL failed ${r.status}: ${await r.text()}`);
+        const j = await r.json();
+        return `${supaUrl}/storage/v1${j.signedURL || j.signedUrl}`;
+      };
+
+      const callDeepgramWithUrl = async (audioUrl: string) => {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 120_000);
+        try {
+          return await fetch(dgUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Token ${deepgramApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: audioUrl }),
+            signal: ctrl.signal,
+          });
+        } finally {
+          clearTimeout(tid);
+        }
+      };
+
+      console.log(`[Standalone-Deepgram] URL-mode: storagePath=${storagePath}, bucket=${targetBucket}`);
+
+      try {
+        const signedUrl1 = await makeSignedUrl();
+        response = await callDeepgramWithUrl(signedUrl1);
+        if (!response.ok && (response.status >= 500 || response.status === 408 || response.status === 403)) {
+          // Retry once with a fresh signed URL (in case URL expired silently)
+          const errBody = await response.text().catch(() => '');
+          console.warn(`[Standalone-Deepgram] First attempt ${response.status}: ${errBody.slice(0, 200)} — retrying with fresh signed URL`);
+          const signedUrl2 = await makeSignedUrl();
+          response = await callDeepgramWithUrl(signedUrl2);
+        }
+      } catch (fetchErr: any) {
+        if (fetchErr.name === 'AbortError') {
+          console.warn(`[Standalone-Deepgram] First attempt timed out — retrying once with fresh signed URL`);
+          try {
+            const signedUrl2 = await makeSignedUrl();
+            response = await callDeepgramWithUrl(signedUrl2);
+          } catch (retryErr: any) {
+            if (retryErr.name === 'AbortError') {
+              throw new Error('Deepgram API timeout (URL mode) exceeded 120s on both attempts');
+            }
+            throw retryErr;
+          }
+        } else {
+          throw fetchErr;
+        }
       }
-      throw fetchErr;
+    } else {
+      // ============ Legacy base64 path (live web recordings, GP Scribe) ============
+      const binaryAudio = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+      fileSizeKB = (binaryAudio.length / 1024).toFixed(1);
+      const detectedMime = detectMimeType(binaryAudio);
+      contentType = (typeof mimeType === 'string' && mimeType.trim()) ? mimeType : detectedMime;
+
+      console.log(`[Standalone-Deepgram] Audio: ${fileSizeKB}KB, detected=${detectedMime}, using=${contentType}`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120_000);
+
+      try {
+        response = await fetch(dgUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${deepgramApiKey}`,
+            'Content-Type': contentType,
+          },
+          body: binaryAudio,
+          signal: controller.signal,
+        });
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        if (fetchErr.name === 'AbortError') {
+          console.error(`❌ Deepgram API timed out after 120s (${fileSizeKB}KB)`);
+          throw new Error(`Deepgram API timeout (${fileSizeKB}KB) exceeded 120s`);
+        }
+        throw fetchErr;
+      }
+      clearTimeout(timeoutId);
     }
-    clearTimeout(timeoutId);
 
     const elapsedMs = Date.now() - startMs;
 
