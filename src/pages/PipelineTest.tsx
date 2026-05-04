@@ -231,7 +231,7 @@ export default function PipelineTest() {
     }
   }
 
-  async function replayMeeting(m: ReplayMeeting) {
+  async function replayMeeting(m: ReplayMeeting, tierOverride?: 'executive' | 'full' | 'verbatim') {
     setReplayingId(m.id);
     try {
       // Fetch the full transcript fresh — list view only stored aggregate length.
