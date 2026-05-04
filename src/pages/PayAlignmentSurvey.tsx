@@ -2,16 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowRight, Check, ShieldCheck, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 
-const PRACTICES = [
-  'The Parks Practice',
-  'Bugbrooke Medical Practice',
-  'Brackley Medical Centre',
-  'Towcester Medical Centre',
-  'Denton Medical Practice',
-  'Saxon Spires Practice',
-  'Roade Medical Centre',
-];
+const PRACTICES = NRES_PRACTICE_KEYS
+  .filter(k => k !== 'bt_pcn')
+  .map(k => NRES_PRACTICES[k]);
 
 const ROLES = [
   { id: 'anp',       name: 'Advanced Nurse Practitioner',     band: 'Band 8a', ceiling: 60411 },
@@ -103,7 +98,7 @@ export default function PayAlignmentSurvey() {
         </div>
         <div>
           <p className="font-serif text-lg leading-tight text-stone-900">NRES SDA Workforce Alignment</p>
-          <p className="text-xs text-stone-500">Brackley & Towcester PCN · Northamptonshire Rural East &amp; South</p>
+          <p className="text-xs text-stone-500">Northamptonshire Rural East &amp; South · NMoC SDA Pilot</p>
         </div>
       </div>
     </header>
@@ -175,7 +170,7 @@ export default function PayAlignmentSurvey() {
             <p className="font-medium mb-1.5">Your data, your control</p>
             <ul className="space-y-1 text-emerald-900">
               <li>· You choose whether to identify your practice or submit fully anonymously.</li>
-              <li>· If identified, only Malcolm Railson and Amanda Palin see your individual response.</li>
+              <li>· If identified, only Malcolm Railson and Amanda Taylor see your individual response.</li>
               <li>· The PM group and Programme Board see aggregated counts only ("4 of 7 practices…").</li>
               <li>· No salary figures are requested or stored.</li>
               <li>· Takes 2 minutes. Four roles, one position per role.</li>
@@ -196,7 +191,7 @@ export default function PayAlignmentSurvey() {
             >
               <p className="font-medium text-sm leading-tight">Identify my practice</p>
               <p className={`text-xs mt-1 leading-snug ${identifyMode === 'identify' ? 'text-stone-300' : 'text-stone-500'}`}>
-                Only Malcolm and Amanda see which practice responded. Helps us follow up if anything needs clarifying.
+                Only Malcolm Railson (Digital & Estates Lead) and Amanda Taylor (Managerial Lead) see which practice responded. Helps us follow up if anything needs clarifying.
               </p>
             </button>
             <button
@@ -209,7 +204,7 @@ export default function PayAlignmentSurvey() {
             >
               <p className="font-medium text-sm leading-tight">Submit fully anonymously</p>
               <p className={`text-xs mt-1 leading-snug ${identifyMode === 'anonymous' ? 'text-stone-300' : 'text-stone-500'}`}>
-                No practice name attached. Even Malcolm and Amanda won't know which practice responded.
+                No practice name attached. Even Malcolm Railson (Digital & Estates Lead) and Amanda Taylor (Managerial Lead) won't know which practice responded.
               </p>
             </button>
           </div>
