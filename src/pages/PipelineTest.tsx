@@ -855,7 +855,15 @@ export default function PipelineTest() {
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Pipeline Test</h1>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <h1 className="text-2xl font-semibold">Pipeline Test</h1>
+          <Link
+            to="/"
+            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+          >
+            ← Back to Notewell
+          </Link>
+        </div>
         <p className="text-muted-foreground text-sm mt-1">
           End-to-end test of the recording → transcript → notes → email pipeline using synthetic meetings of varying sizes.
           Test emails will be sent to <strong>{userEmail || '(your account email)'}</strong>.
