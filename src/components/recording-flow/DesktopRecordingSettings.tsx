@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Settings, Mic, Monitor, FileText, List, AlertTriangle, Info, Loader2 } from 'lucide-react';
+import { Settings, Mic, Monitor, FileText, List, AlertTriangle, Info, Loader2, Sparkles } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -115,11 +115,12 @@ export const DesktopRecordingSettings: React.FC<DesktopRecordingSettingsProps> =
   onOpenChange,
 }) => {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const { prefs, loading, setAudioMode, setMicDevice, setNotesLength, toggleSection } = useMeetingPreferences();
+  const { prefs, loading, setAudioMode, setMicDevice, setNotesLength, setTranscriptionEngine, toggleSection } = useMeetingPreferences();
 
   const selectedMic = prefs.preferred_mic_device_id || 'default';
   const audioMode = prefs.audio_mode;
   const notesLength = prefs.notes_length;
+  const transcriptionEngine = prefs.transcription_engine;
 
   const mic = useMicTest(selectedMic);
 
