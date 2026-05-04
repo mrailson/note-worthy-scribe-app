@@ -2570,6 +2570,36 @@ ${cleanedTranscript}`;
         '$1\n\n$2'
       );
 
+      // Strip orphan/empty markdown heading lines (e.g. a lone "#" or "##" with
+      // no heading text) — these render as a stray "#" character in Word.
+      generatedNotes = generatedNotes.replace(/^\s*#{1,6}\s*$/gm, '');
+
+      // Normalise canonical section headings to level-1 so the Word renderer
+      // produces a consistent visual hierarchy. The model sometimes emits
+      // "## Action Items" or "## Decisions Register" which breaks layout.
+      const SECTION_HEADING_NORMALISATIONS: Array<[RegExp, string]> = [
+        [/^#{1,6}\s*action\s+items?\s*:?\s*$/gim, '# ACTION ITEMS'],
+        [/^#{1,6}\s*decisions?\s+register\s*:?\s*$/gim, '# DECISIONS REGISTER'],
+        [/^#{1,6}\s*open\s+items?\s*(?:&|and)\s*risks?\s*:?\s*$/gim, '# OPEN ITEMS & RISKS'],
+        [/^#{1,6}\s*next\s+meeting\s*:?\s*$/gim, '# NEXT MEETING'],
+        [/^#{1,6}\s*attendees?\s*:?\s*$/gim, '# ATTENDEES'],
+        [/^#{1,6}\s*executive\s+summary\s*:?\s*$/gim, '# EXECUTIVE SUMMARY'],
+        [/^#{1,6}\s*discussion\s+summary\s*:?\s*$/gim, '# DISCUSSION SUMMARY'],
+        [/^#{1,6}\s*meeting\s+details\s*:?\s*$/gim, '# MEETING DETAILS'],
+      ];
+      for (const [re, replacement] of SECTION_HEADING_NORMALISATIONS) {
+        generatedNotes = generatedNotes.replace(re, replacement);
+      }
+
+      // Strip "Additional attendees: TBC …" commentary appended under ATTENDEES.
+      generatedNotes = generatedNotes.replace(
+        /^[\-*]?\s*Additional attendees?\s*:.*$/gim,
+        ''
+      );
+
+      // Collapse blank gaps created by the strips above.
+      generatedNotes = generatedNotes.replace(/\n{3,}/g, '\n\n');
+
       generatedNotes = stripExtractionReasoningTrace(generatedNotes);
       collectExtractionDiagnostics(generatedNotes);
 
