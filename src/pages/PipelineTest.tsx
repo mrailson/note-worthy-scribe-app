@@ -255,7 +255,7 @@ export default function PipelineTest() {
         model: selectedModel,
         isCustom: true,
         forceSingleShot,
-        tier: outputTier,
+        tier: tierOverride ?? outputTier,
         suppressEmail: false,
         replayOf: { id: m.id, title: m.title ?? 'Untitled' },
       });
