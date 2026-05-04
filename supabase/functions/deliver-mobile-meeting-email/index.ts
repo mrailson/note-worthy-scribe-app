@@ -111,11 +111,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Idempotency: skip if already sent
-    if (meeting.notes_email_sent_at) {
-      console.log(`⏭️ Email already sent at ${meeting.notes_email_sent_at}, skipping`);
+    // Idempotency/race guard: atomically claim the send before doing any slow
+    // work. Without this, two concurrent regenerate paths can both read NULL
+    // and send identical emails before either writes notes_email_sent_at.
+    const lockTime = new Date().toISOString();
+    const { data: claimedMeeting, error: claimErr } = await supabase
+      .from("meetings")
+      .update({ notes_email_sent_at: lockTime })
+      .eq("id", meetingId)
+      .is("notes_email_sent_at", null)
+      .select("id")
+      .maybeSingle();
+
+    if (claimErr) throw claimErr;
+    if (!claimedMeeting) {
+      console.log(`⏭️ Email already sent or in progress for meeting ${meetingId}, skipping`);
       return new Response(
-        JSON.stringify({ skipped: true, reason: "already_sent" }),
+        JSON.stringify({ skipped: true, reason: "already_sent_or_in_progress" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -357,11 +369,8 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Email send returned failure: ${emailResult.error || "unknown"}`);
     }
 
-    // 9. Mark as sent (idempotency)
-    await supabase
-      .from("meetings")
-      .update({ notes_email_sent_at: new Date().toISOString() })
-      .eq("id", meetingId);
+    // 9. Keep the pre-send idempotency stamp in place. It acts as both the
+    // send timestamp and the duplicate-send lock for concurrent invocations.
 
     console.log(`✅ Mobile meeting email delivered to ${userEmail}`);
 
@@ -371,6 +380,17 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("❌ deliver-mobile-meeting-email error:", error);
+    try {
+      const body = await req.clone().json().catch(() => null);
+      if (body?.meetingId) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, serviceRoleKey);
+        await supabase.from("meetings").update({ notes_email_sent_at: null }).eq("id", body.meetingId);
+      }
+    } catch (unlockErr) {
+      console.warn("⚠️ Could not clear email lock after failure:", unlockErr);
+    }
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
