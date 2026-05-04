@@ -11,6 +11,15 @@ const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 const MODEL = "whisper-1";
 const MAX_BYTES = 4_000_000; // ~4MB max chunk size (90s chunks)
 
+// Fallback prompt used when the caller sends an empty prompt. Primes
+// Whisper toward UK English so locale does not drift to en-US.
+const DEFAULT_FALLBACK_PROMPT =
+  'British English NHS primary care meeting transcript. ' +
+  'Use UK spellings: judgement, organisation, recognise, programme, behaviour. ' +
+  'Common terms: PCN, ICB, CQC, GP, ANP, ACP, ARRS, GMS, MoU, DPIA, ' +
+  'neighbourhood, workstream, safeguarding, dispensing, enhanced access, ' +
+  'social prescribing.';
+
 function sleep(ms: number) {
   return new Promise(r => setTimeout(r, ms));
 }
@@ -247,25 +256,21 @@ serve(async (req) => {
 
     console.log(`📡 [${requestId}] Forwarding to OpenAI: ${preprocessed.bytes.length}B as ${forwardMime} (.${fileExtension}), preprocessed=${preprocessed.preprocessed}`);
 
-    // Build a NEW FormData payload for OpenAI
+    // Build a NEW FormData payload for OpenAI.
+    // Only parameters actually accepted by /v1/audio/transcriptions are sent —
+    // self-hosted Whisper params (beam_size, no_repeat_ngram_size,
+    // compression_ratio_threshold, logprob_threshold, no_speech_threshold,
+    // hallucination_silence_threshold, condition_on_previous_text) are silently
+    // ignored by the OpenAI API and have been removed.
     const fd = new FormData();
     fd.append("file", new File([preprocessed.bytes], `chunk_${chunkIndex}.${fileExtension}`, { type: forwardMime }));
     fd.append("model", MODEL);
     fd.append("response_format", "verbose_json");
-    // Whisper decode settings (Option A – 90s chunks)
-    fd.append("temperature", "0");                         // Reduces creative drift
-    // Anti-hallucination: false prevents Whisper from feeding its own previous (possibly looped)
-    // output back into the decoder, which is the primary cause of the "phrase repeated 24x" failure mode.
-    fd.append("condition_on_previous_text", "false");
-    fd.append("no_speech_threshold", "0.6");               // Hallucination silence gate
-    // Extended decode params (used by self-hosted Whisper; ignored by OpenAI API)
-    fd.append("beam_size", "5");
-    fd.append("no_repeat_ngram_size", "3");                // Stops local looping
-    fd.append("compression_ratio_threshold", "2.4");       // Catches runaway repetition
-    fd.append("logprob_threshold", "-1.0");
-    fd.append("hallucination_silence_threshold", "0.6");   // Avoids filler hallucinations
-    fd.append("prompt", prompt || "");
+    fd.append("temperature", "0");                         // Whisper's main lever against creative drift / hallucination
     fd.append("language", language || "en");
+    // Use caller-supplied prompt if non-empty, otherwise the UK NHS fallback.
+    const effectivePrompt = (prompt && prompt.trim().length > 0) ? prompt : DEFAULT_FALLBACK_PROMPT;
+    fd.append("prompt", effectivePrompt);
 
     const idem = crypto.randomUUID();
 
