@@ -62,16 +62,19 @@ export function useMeetingPreferences() {
       try {
         const { data } = await supabase
           .from('user_document_settings')
-          .select('audio_mode, preferred_mic_device_id, preferred_mic_label, notes_length, section_exec_summary, section_key_points, section_decisions, section_actions, section_open_items, section_attendees, section_next_meeting, section_full_transcript')
+          .select('audio_mode, preferred_mic_device_id, preferred_mic_label, notes_length, transcription_engine, section_exec_summary, section_key_points, section_decisions, section_actions, section_open_items, section_attendees, section_next_meeting, section_full_transcript')
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (data) {
+          const engineRaw = (data as any).transcription_engine;
+          const engine: TranscriptionEngine = engineRaw === 'gpt-4o-transcribe' ? 'gpt-4o-transcribe' : 'whisper-1';
           setPrefs({
             audio_mode: (data as any).audio_mode || 'mic_only',
             preferred_mic_device_id: (data as any).preferred_mic_device_id || null,
             preferred_mic_label: (data as any).preferred_mic_label || null,
             notes_length: (data as any).notes_length || 'standard',
+            transcription_engine: engine,
             section_exec_summary: (data as any).section_exec_summary ?? true,
             section_key_points: (data as any).section_key_points ?? true,
             section_decisions: (data as any).section_decisions ?? true,
@@ -103,6 +106,7 @@ export function useMeetingPreferences() {
           preferred_mic_device_id: updated.preferred_mic_device_id,
           preferred_mic_label: updated.preferred_mic_label,
           notes_length: updated.notes_length,
+          transcription_engine: updated.transcription_engine,
           section_exec_summary: updated.section_exec_summary,
           section_key_points: updated.section_key_points,
           section_decisions: updated.section_decisions,
