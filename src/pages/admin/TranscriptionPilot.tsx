@@ -414,7 +414,7 @@ export default function TranscriptionPilot() {
 
   // ── Word export ────────────────────────────────────────────────────────
   async function exportWord() {
-    const cellWidth = 4800; // landscape ≈ 14400 content
+    const cellWidth = 3600; // landscape ≈ 14400 content / 4 cols
     const headerCell = (text: string) =>
       new TableCell({
         width: { size: cellWidth, type: WidthType.DXA },
@@ -461,8 +461,8 @@ export default function TranscriptionPilot() {
     const borders = { top: border, bottom: border, left: border, right: border };
 
     const table = new Table({
-      width: { size: cellWidth * 3, type: WidthType.DXA },
-      columnWidths: [cellWidth, cellWidth, cellWidth],
+      width: { size: cellWidth * 4, type: WidthType.DXA },
+      columnWidths: [cellWidth, cellWidth, cellWidth, cellWidth],
       rows: [
         new TableRow({
           tableHeader: true,
@@ -572,9 +572,9 @@ export default function TranscriptionPilot() {
           </Link>
         </div>
         <p className="text-muted-foreground text-sm mt-1">
-          Compare <strong>whisper-1</strong>, <strong>gpt-4o-transcribe</strong> and{" "}
-          <strong>gpt-4o-mini-transcribe</strong> side-by-side on the same audio. Pure model
-          output — no UK normaliser, no hallucination filtering.
+          Compare <strong>whisper-1</strong>, <strong>gpt-4o-transcribe</strong>,{" "}
+          <strong>gpt-4o-mini-transcribe</strong> and <strong>assemblyai</strong> side-by-side
+          on the same audio. Pure model output — no UK normaliser, no hallucination filtering.
         </p>
       </div>
 
@@ -678,14 +678,14 @@ export default function TranscriptionPilot() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Transcribing…
               </>
             ) : (
-              "Transcribe with all three models"
+              "Transcribe with all four models"
             )}
           </Button>
         </CardContent>
       </Card>
 
       {/* Results */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {MODELS.map((m) => {
           const r = results[m.id];
           return (
@@ -795,11 +795,12 @@ export default function TranscriptionPilot() {
                     </div>
 
                     {open && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border-t bg-muted/10">
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 p-3 border-t bg-muted/10">
                         {[
                           { label: "whisper-1", text: run.whisper1_text, lat: run.whisper1_latency_ms, err: run.whisper1_error },
                           { label: "gpt-4o-transcribe", text: run.gpt4o_text, lat: run.gpt4o_latency_ms, err: run.gpt4o_error },
                           { label: "gpt-4o-mini-transcribe", text: run.gpt4o_mini_text, lat: run.gpt4o_mini_latency_ms, err: run.gpt4o_mini_error },
+                          { label: "assemblyai", text: run.assemblyai_text, lat: run.assemblyai_latency_ms, err: run.assemblyai_error },
                         ].map((col) => (
                           <div key={col.label} className="space-y-1">
                             <div className="text-xs font-mono font-semibold">{col.label}</div>
