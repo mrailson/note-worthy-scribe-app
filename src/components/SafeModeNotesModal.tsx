@@ -1565,37 +1565,64 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   // Download as Word - use professional NHS-style formatting
   // Uses the raw notes content so the Word generator can handle section parsing
   const handleDownloadWord = async () => {
-    // Use raw notesContent for Word export - the Word generator handles section parsing properly
-    // This ensures Key Points and other sections are preserved correctly
-    // For transcript exports, prefer Best of All when that tab is active
-    const content = activeTab === 'notes' 
-      ? notesContent 
-      : (transcriptSubTab === 'best_of_all' && bestOfAllTranscript 
-          ? bestOfAllTranscript 
+    // Use raw notesContent for Word export so the DOCX matches the
+    // version emailed automatically at the end of the meeting.
+    // For transcript exports, prefer Best of All when that tab is active.
+    const content = activeTab === 'notes'
+      ? notesContent
+      : (transcriptSubTab === 'best_of_all' && bestOfAllTranscript
+          ? bestOfAllTranscript
           : transcript);
     const title = meeting?.title || 'Meeting Notes';
 
     try {
-      // Build parsed details to match modal view exactly
+      // For the Notes tab, route through the shared export-docx edge
+      // function so the downloaded Word document is byte-identical to
+      // the one attached to the meeting completion email.
+      if (activeTab === 'notes' && meeting?.id) {
+        const { data, error } = await supabase.functions.invoke('export-docx', {
+          body: { markdown: content, title, meetingId: meeting.id },
+        });
+        if (error) throw error;
+
+        // The edge function returns the raw .docx bytes
+        const blob = data instanceof Blob
+          ? data
+          : new Blob([data as ArrayBuffer], {
+              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            });
+        const safeTitle = title.replace(/[^a-z0-9\-_ ]+/gi, '-').trim() || 'meeting-notes';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${safeTitle}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success('Downloaded successfully');
+        return;
+      }
+
+      // Transcript / fallback path — keep the existing local generator
       const parsedDetails: ParsedMeetingDetailsInput = {
         title: meetingDetails?.title,
         date: meetingDetails?.date,
         time: meetingDetails?.time,
         location: meetingDetails?.location,
         venue: meetingType === 'teams' ? undefined : (meetingLocation || undefined),
-        attendees: attendees.length > 0 
+        attendees: attendees.length > 0
           ? attendees.map(a => a.name).join(', ')
           : undefined,
       };
-      
-      // Fetch fresh action items from database to ensure exports match the live Actions tab
+
       const { data: dbActionItems } = await supabase
         .from('meeting_action_items')
         .select('*')
         .eq('meeting_id', meeting?.id)
         .order('sort_order', { ascending: true });
 
-      // Convert database action items to the format expected by Word generator
       const parsedActionItemsForWord: ParsedActionItemInput[] = (dbActionItems || []).map(item => ({
         action: item.action_text,
         owner: item.assignee_name || 'TBC',
@@ -1604,12 +1631,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         status: (item.status as 'Open' | 'In Progress' | 'Completed') || 'Open',
         isCompleted: item.status === 'Completed',
       }));
-      
-      // Use the professional document generator with pre-parsed data
-      // Pass visibility settings so hidden sections are excluded from Word export
+
       await generateProfessionalWordFromContent(
-        content, 
-        title, 
+        content,
+        title,
         activeTab === 'notes' ? parsedDetails : undefined,
         activeTab === 'notes' ? parsedActionItemsForWord : undefined,
         activeTab === 'notes' ? notesViewSettings.settings.visibleSections : undefined
