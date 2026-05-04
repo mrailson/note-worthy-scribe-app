@@ -1,5 +1,6 @@
 import { createPcmStream } from '@/lib/audio/pcm16';
 import { WebSocketReconnectManager } from '@/lib/audio/WebSocketReconnectManager';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TranscriptData {
   text: string;
