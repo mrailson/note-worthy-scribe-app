@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from "@/utils/toastWrapper";
-import { useAuth } from '@/contexts/AuthContext';
 
 interface PostMeetingActionsModalProps {
   isOpen: boolean;
@@ -32,13 +31,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   onStartNewMeeting,
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error'>('generating');
-  const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
   const [emailSent, setEmailSent] = useState(false);
-  const emailSentRef = useRef(false); // Prevent duplicate sends
 
   // Format number in K style (e.g., 4200 -> 4.2K)
   const formatNumberK = (num: number): string => {
@@ -56,7 +52,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       // Handle test meeting IDs - simulate completed notes
       if (meetingId.startsWith('test-meeting-id-')) {
         setNotesStatus('completed');
-        setMeetingNotes('This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.');
         setMeetingData({
           title: meetingTitle,
           startTime: new Date().toISOString(),
@@ -71,7 +66,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
       const { data, error } = await supabase
         .from('meetings')
-        .select('notes_generation_status, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count')
+        .select('notes_generation_status, notes_email_sent_at, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -90,6 +85,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       if (data) {
         // Set transcript length
         setTranscriptLength(data.word_count || 0);
+        setEmailSent(Boolean(data.notes_email_sent_at));
         
         // Fetch full notes from meeting_summaries table (the AI-generated notes)
         let fullNotes = '';
@@ -119,7 +115,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         
         if (data.notes_generation_status === 'completed') {
           setNotesStatus('completed');
-          setMeetingNotes(fullNotes);
         } else if (data.notes_generation_status === 'error' || data.notes_generation_status === 'failed') {
           setNotesStatus('error');
         } else {
@@ -174,303 +169,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     };
   }, [meetingId, isOpen]);
 
-  // Auto-send email when notes are ready
-  useEffect(() => {
-    if (notesStatus !== 'completed' || !meetingData || !user?.email || emailSentRef.current) {
-      return;
-    }
-
-    const sendAutoEmail = async () => {
-      // Prevent duplicate sends
-      emailSentRef.current = true;
-      setEmailSent(true);
-
-      try {
-        console.log('📧 Auto-sending meeting notes email...');
-        
-        // FETCH FRESH NOTES FROM DATABASE to avoid stale React state
-        console.log('📧 Fetching fresh notes from database...');
-        const { data: freshSummary } = await supabase
-          .from('meeting_summaries')
-          .select('summary')
-          .eq('meeting_id', meetingId)
-          .maybeSingle();
-        
-        const freshNotes = freshSummary?.summary || '';
-        
-        if (!freshNotes.trim()) {
-          console.warn('⚠️ No notes available for auto-email, skipping send');
-          emailSentRef.current = false;
-          setEmailSent(false);
-          return;
-        }
-        
-        console.log('✅ Fresh notes fetched:', freshNotes.length, 'chars');
-        
-        // Fetch fresh meeting metadata
-        const { data: freshMeeting } = await supabase
-          .from('meetings')
-          .select('title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count')
-          .eq('id', meetingId)
-          .maybeSingle();
-
-        // If the title is still a generic placeholder, wait briefly for the AI title
-        // generator to finish committing, then refetch. If still generic, call
-        // generate-meeting-title manually as a final fallback.
-        const GENERIC_EXACT_TITLES = new Set([
-          'meeting',
-          'general meeting',
-          'new meeting',
-          'untitled meeting',
-          'untitled',
-          'mobile recording',
-          'general discussion',
-          'general update',
-          'team meeting',
-          'weekly meeting',
-          'monthly meeting',
-        ]);
-
-        const GENERIC_TITLE_PATTERNS: RegExp[] = [
-          /^Meeting \d{1,2} \w{3} \d{1,2}:\d{2}$/i,           // "Meeting 20 Apr 18:50"
-          /^Mobile Recording\b/i,                              // "Mobile Recording 20 Apr"
-          /^Meeting\s*-\s*\w{3},/i,                            // "Meeting - Thu, 30th April 2026 (9:27 am)"
-          /^Meeting\s*-\s*\w+day/i,                            // "Meeting - Monday..."
-          /^Meeting\s*-\s*\d{1,2}(st|nd|rd|th)/i,              // "Meeting - 14th..."
-          /^Meeting\s+\d+$/i,                                  // "Meeting 1"
-          /^Imported Meeting\s*-/i,                            // "Imported Meeting - 30/04/2026"
-        ];
-
-        const isGenericMeetingTitle = (t: string | null | undefined): boolean => {
-          if (!t) return true;
-          const trimmed = t.trim();
-          if (GENERIC_EXACT_TITLES.has(trimmed.toLowerCase())) return true;
-          return GENERIC_TITLE_PATTERNS.some(p => p.test(trimmed));
-        };
-
-        let resolvedMeeting = freshMeeting;
-        const waitMs = [3000, 5000, 8000];
-        for (const wait of waitMs) {
-          if (!isGenericMeetingTitle(resolvedMeeting?.title)) break;
-          console.log(`⏳ Title still generic ("${resolvedMeeting?.title}") — waiting ${wait}ms for AI title…`);
-          await new Promise(r => setTimeout(r, wait));
-          const { data: refreshed } = await supabase
-            .from('meetings')
-            .select('title, start_time, duration_minutes, participants, meeting_format, meeting_location, overview, word_count')
-            .eq('id', meetingId)
-            .maybeSingle();
-          if (refreshed) resolvedMeeting = refreshed;
-        }
-
-        // If the title is still generic after the wait, ask generate-meeting-title to retry directly
-        if (isGenericMeetingTitle(resolvedMeeting?.title)) {
-          try {
-            const { data: titleResult } = await supabase.functions.invoke<{ title?: string }>(
-              'generate-meeting-title',
-              { body: { meetingId, currentTitle: resolvedMeeting?.title || 'Meeting' } }
-            );
-            const newTitle = titleResult?.title?.trim();
-            if (newTitle && !isGenericMeetingTitle(newTitle)) {
-              await supabase.from('meetings').update({ title: newTitle }).eq('id', meetingId);
-              resolvedMeeting = { ...(resolvedMeeting || {}), title: newTitle } as typeof resolvedMeeting;
-              console.log(`✅ Generated fallback title for post-meeting send: "${newTitle}"`);
-            }
-          } catch (e) {
-            console.warn('⚠️ Fallback title generation failed:', e);
-          }
-        }
-
-        const freshMeetingData = {
-          title: resolvedMeeting?.title || meetingTitle,
-          startTime: freshMeeting?.start_time,
-          duration: freshMeeting?.duration_minutes,
-          participants: freshMeeting?.participants || [],
-          content: freshNotes,
-          format: freshMeeting?.meeting_format,
-          location: freshMeeting?.meeting_location,
-          overview: freshMeeting?.overview,
-          wordCount: freshMeeting?.word_count,
-        };
-        
-        // Get user's full name from profile
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('email', user.email)
-          .single();
-        
-        const senderName = profileData?.full_name || user.email?.split('@')[0] || 'Notewell AI';
-        
-        // Format the meeting date for subject
-        const meetingDate = freshMeetingData.startTime 
-          ? new Date(freshMeetingData.startTime).toLocaleDateString('en-GB', { 
-              day: 'numeric', 
-              month: 'long', 
-              year: 'numeric' 
-            })
-          : new Date().toLocaleDateString('en-GB', { 
-              day: 'numeric', 
-              month: 'long', 
-              year: 'numeric' 
-            });
-        
-        const subject = `Notewell AI | ${freshMeetingData.title} — ${meetingDate}`;
-        
-        // Generate Word document attachment FIRST so the email body can reflect attachment status
-        let wordAttachment = null;
-        try {
-          const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
-          
-          const cleanTitle = freshMeetingData.title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
-          
-          // Build parsed details from meeting metadata
-          const parsedDetails = {
-            title: cleanTitle,
-            date: meetingDate || undefined,
-            time: freshMeetingData.startTime 
-              ? new Date(freshMeetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
-              : undefined,
-            location: freshMeetingData.format || freshMeetingData.location || undefined,
-            attendees: Array.isArray(freshMeetingData.participants) && freshMeetingData.participants.length > 0
-              ? freshMeetingData.participants.join(', ')
-              : undefined,
-          };
-          
-          // Fetch action items for this meeting
-          let parsedActionItems: any[] = [];
-          try {
-            const { data: actionItemsData } = await supabase
-              .from('meeting_action_items')
-              .select('action_text, assignee_name, due_date, priority, status')
-              .eq('meeting_id', meetingId);
-            
-            if (actionItemsData && actionItemsData.length > 0) {
-              parsedActionItems = actionItemsData.map((item: any) => ({
-                action: item.action_text,
-                owner: item.assignee_name || 'Unassigned',
-                deadline: item.due_date || undefined,
-                priority: item.priority || 'medium',
-                status: item.status === 'completed' ? 'Completed' as const : item.status === 'in_progress' ? 'In Progress' as const : 'Open' as const,
-                isCompleted: item.status === 'completed',
-              }));
-            }
-          } catch (aiErr) {
-            console.warn('Could not fetch action items for Word attachment:', aiErr);
-          }
-          
-          // Generate the professional Word blob
-          const blob = await generateProfessionalWordBlob(freshMeetingData.content, cleanTitle, parsedDetails, parsedActionItems);
-          
-          // Convert blob to base64
-          const base64Content = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const result = reader.result as string;
-              if (result) {
-                resolve(result.split(',')[1]);
-              } else {
-                reject(new Error('FileReader returned empty result'));
-              }
-            };
-            reader.onerror = () => reject(new Error('FileReader error'));
-            reader.readAsDataURL(blob);
-          });
-          
-          const { generateMeetingFilename } = await import('@/utils/meetingFilename');
-          const attachmentFilename = generateMeetingFilename(
-            freshMeetingData.title,
-            freshMeetingData.startTime ? new Date(freshMeetingData.startTime) : new Date(),
-            'docx'
-          );
-          
-          wordAttachment = {
-            content: base64Content,
-            filename: attachmentFilename,
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          };
-          console.log('📎 Professional Word attachment generated:', attachmentFilename, `(${Math.round(base64Content.length / 1024)}KB base64)`);
-        } catch (docError) {
-          console.error('❌ Word document generation failed for auto-email:', docError);
-          // Fallback: try professional generator without parsed data
-          try {
-            const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
-            const blob = await generateProfessionalWordBlob(freshMeetingData.content, freshMeetingData.title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim(), undefined, []);
-            const reader = new FileReader();
-            const base64Promise = new Promise<string>((resolve) => {
-              reader.onloadend = () => {
-                const base64 = (reader.result as string).split(',')[1];
-                resolve(base64);
-              };
-            });
-            reader.readAsDataURL(blob);
-            const base64Content = await base64Promise;
-            wordAttachment = {
-              content: base64Content,
-              filename: `meeting_notes.docx`,
-              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            };
-            console.log('📎 Word attachment generated via professional fallback');
-          } catch (fallbackError) {
-            console.error('All Word generation attempts failed:', fallbackError);
-            showToast.warning('Email sent without Word attachment — open the meeting from history and click "Email Meeting Notes" to retry.', { duration: 8000 });
-          }
-        }
-        
-        // Convert notes content to styled HTML using shared professional builder
-        const { buildProfessionalMeetingEmail } = await import('@/utils/meetingEmailBuilder');
-        const htmlContent = buildProfessionalMeetingEmail(
-          freshMeetingData.content,
-          senderName,
-          freshMeetingData.title,
-          {
-            date: meetingDate,
-            time: freshMeetingData.startTime 
-              ? new Date(freshMeetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT'
-              : undefined,
-            duration: freshMeetingData.duration,
-            format: freshMeetingData.format,
-            location: freshMeetingData.location,
-            overview: freshMeetingData.overview,
-            wordCount: freshMeetingData.wordCount,
-            attendees: Array.isArray(freshMeetingData.participants) ? freshMeetingData.participants : [],
-            hasAttachment: wordAttachment !== null,
-          }
-        );
-        
-        // Send email via Resend edge function
-        const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
-          body: {
-            to_email: user.email,
-            cc_emails: [],
-            subject,
-            html_content: htmlContent,
-            from_name: senderName,
-            word_attachment: wordAttachment
-          }
-        });
-        
-        if (error) {
-          console.error('Auto-email sending error:', error);
-          return;
-        }
-        
-        if (data?.success) {
-          console.log('✅ Auto-email sent successfully to:', user.email);
-        } else {
-          console.error('Auto-email failed:', data);
-        }
-      } catch (error) {
-        console.error('Error sending auto-email:', error);
-      }
-    };
-
-    sendAutoEmail();
-  }, [notesStatus, meetingData, user?.email, meetingNotes, meetingTitle]);
-
-  // Reset email sent state when modal closes or meeting changes
+  // Reset displayed email state when modal closes or meeting changes.
   useEffect(() => {
     if (!isOpen) {
-      emailSentRef.current = false;
       setEmailSent(false);
     }
   }, [isOpen, meetingId]);
