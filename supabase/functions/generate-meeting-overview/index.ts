@@ -53,6 +53,11 @@ serve(async (req) => {
     let content = meetingNotes || transcript;
     console.log('📄 Content length:', content.length);
 
+    // Initialize Supabase client early so guards below can use it
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     // ── Short-content guard: prevent hallucination on minimal content ──
     const overviewWordCount = content.trim().split(/\s+/).filter(Boolean).length;
     console.log(`📏 Content word count: ${overviewWordCount}`);
@@ -75,11 +80,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    // Initialize Supabase client and fetch meeting context
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Add retry logic for race conditions - wait for meeting to exist
     let meeting;
