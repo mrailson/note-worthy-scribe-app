@@ -34,7 +34,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const navigate = useNavigate();
   const { user } = useAuth();
   const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error'>('generating');
-  const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
   const [emailSent, setEmailSent] = useState(false);
@@ -56,7 +55,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       // Handle test meeting IDs - simulate completed notes
       if (meetingId.startsWith('test-meeting-id-')) {
         setNotesStatus('completed');
-        setMeetingNotes('This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.');
         setMeetingData({
           title: meetingTitle,
           startTime: new Date().toISOString(),
@@ -119,7 +117,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         
         if (data.notes_generation_status === 'completed') {
           setNotesStatus('completed');
-          setMeetingNotes(fullNotes);
         } else if (data.notes_generation_status === 'error' || data.notes_generation_status === 'failed') {
           setNotesStatus('error');
         } else {
@@ -214,7 +211,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     };
 
     sendAutoEmail();
-  }, [notesStatus, meetingData, user?.email, meetingNotes, meetingTitle]);
+  }, [notesStatus, meetingData, user?.email, meetingId]);
 
   // Reset email sent state when modal closes or meeting changes
   useEffect(() => {
