@@ -13284,6 +13284,78 @@ export type Database = {
           },
         ]
       }
+      transcription_pilot_runs: {
+        Row: {
+          audio_duration_seconds: number | null
+          audio_mime_type: string | null
+          audio_size_bytes: number | null
+          created_at: string
+          gpt4o_cost_usd: number | null
+          gpt4o_error: string | null
+          gpt4o_latency_ms: number | null
+          gpt4o_mini_cost_usd: number | null
+          gpt4o_mini_error: string | null
+          gpt4o_mini_latency_ms: number | null
+          gpt4o_mini_text: string | null
+          gpt4o_text: string | null
+          id: string
+          label: string | null
+          notes: string | null
+          prompt_used: string | null
+          user_id: string
+          whisper1_cost_usd: number | null
+          whisper1_error: string | null
+          whisper1_latency_ms: number | null
+          whisper1_text: string | null
+        }
+        Insert: {
+          audio_duration_seconds?: number | null
+          audio_mime_type?: string | null
+          audio_size_bytes?: number | null
+          created_at?: string
+          gpt4o_cost_usd?: number | null
+          gpt4o_error?: string | null
+          gpt4o_latency_ms?: number | null
+          gpt4o_mini_cost_usd?: number | null
+          gpt4o_mini_error?: string | null
+          gpt4o_mini_latency_ms?: number | null
+          gpt4o_mini_text?: string | null
+          gpt4o_text?: string | null
+          id?: string
+          label?: string | null
+          notes?: string | null
+          prompt_used?: string | null
+          user_id: string
+          whisper1_cost_usd?: number | null
+          whisper1_error?: string | null
+          whisper1_latency_ms?: number | null
+          whisper1_text?: string | null
+        }
+        Update: {
+          audio_duration_seconds?: number | null
+          audio_mime_type?: string | null
+          audio_size_bytes?: number | null
+          created_at?: string
+          gpt4o_cost_usd?: number | null
+          gpt4o_error?: string | null
+          gpt4o_latency_ms?: number | null
+          gpt4o_mini_cost_usd?: number | null
+          gpt4o_mini_error?: string | null
+          gpt4o_mini_latency_ms?: number | null
+          gpt4o_mini_text?: string | null
+          gpt4o_text?: string | null
+          id?: string
+          label?: string | null
+          notes?: string | null
+          prompt_used?: string | null
+          user_id?: string
+          whisper1_cost_usd?: number | null
+          whisper1_error?: string | null
+          whisper1_latency_ms?: number | null
+          whisper1_text?: string | null
+        }
+        Relationships: []
+      }
       translation_documents: {
         Row: {
           clinical_verification: Json | null
