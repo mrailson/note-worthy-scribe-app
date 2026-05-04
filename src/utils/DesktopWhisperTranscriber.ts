@@ -225,18 +225,38 @@ export class DesktopWhisperTranscriber {
       this.transcriptionTimeout = null;
     }
     
-    // Stop and restart the recorder to trigger ondataavailable
+    // Stop and restart the recorder to trigger ondataavailable.
+    // Same pattern as handleChunkTick: hook into onstop for minimal gap.
+    // Note: this path does NOT reset lastSpeechTime, because flush is
+    // silence-triggered — we want to preserve when speech last happened.
     if (this.mediaRecorder?.state === 'recording' && this.isRecording) {
-      this.mediaRecorder.stop();
+      const recorder = this.mediaRecorder;
+      const originalOnStop = recorder.onstop;
       
-      // Restart recording after brief pause
-      setTimeout(() => {
+      recorder.onstop = async (event: Event) => {
+        recorder.onstop = originalOnStop;
+        
         if (this.mediaRecorder && this.isRecording) {
-          this.chunkStartTime = Date.now();
-          this.mediaRecorder.start();
-          this.scheduleNextChunk();
+          try {
+            this.chunkStartTime = Date.now();
+            // Intentionally not resetting lastSpeechTime here
+            this.mediaRecorder.start();
+            this.scheduleNextChunk();
+          } catch (e) {
+            console.error('🔄 MediaRecorder restart failed in silence flush:', e);
+          }
         }
-      }, 100);
+        
+        if (originalOnStop && typeof originalOnStop === 'function') {
+          try {
+            await (originalOnStop as (ev: Event) => Promise<void>)(event);
+          } catch (e) {
+            console.error('🔄 Original silence-flush onstop handler failed:', e);
+          }
+        }
+      };
+      
+      recorder.stop();
     }
   }
   
@@ -603,17 +623,42 @@ export class DesktopWhisperTranscriber {
   
   private handleChunkTick(): void {
     if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
-      this.mediaRecorder.stop();
+      // Hook into onstop to restart with minimal gap. The original onstop
+      // handler (which uploads the chunk to OpenAI) is preserved and
+      // invoked AFTER restart, so the upload no longer blocks recording.
+      const recorder = this.mediaRecorder;
+      const originalOnStop = recorder.onstop;
       
-      // Start new recording immediately after a brief pause
-      setTimeout(() => {
+      recorder.onstop = async (event: Event) => {
+        // Restore the original handler immediately so future stops behave normally
+        recorder.onstop = originalOnStop;
+        
+        // Restart now — at this point state is 'inactive' so start() is safe.
+        // This is the gap-minimisation: instead of a fixed 100ms wait, we
+        // resume as soon as the stop sequence has finalised the buffer.
         if (this.mediaRecorder && this.isRecording) {
-          this.chunkStartTime = Date.now(); // Reset chunk start time
-          this.lastSpeechTime = Date.now(); // Reset speech time
-          this.mediaRecorder.start();
-          this.scheduleNextChunk();
+          try {
+            this.chunkStartTime = Date.now();
+            this.lastSpeechTime = Date.now();
+            this.mediaRecorder.start();
+            this.scheduleNextChunk();
+          } catch (e) {
+            console.error('🔄 MediaRecorder restart failed in chunk tick:', e);
+          }
         }
-      }, 100);
+        
+        // Now run the original onstop body (uploads the just-finalised
+        // chunk to OpenAI). Runs in background — does not delay recording.
+        if (originalOnStop && typeof originalOnStop === 'function') {
+          try {
+            await (originalOnStop as (ev: Event) => Promise<void>)(event);
+          } catch (e) {
+            console.error('🔄 Original chunk-tick onstop handler failed:', e);
+          }
+        }
+      };
+      
+      recorder.stop();
     }
   }
   
