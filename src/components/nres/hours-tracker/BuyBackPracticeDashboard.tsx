@@ -2562,6 +2562,7 @@ export function ClaimsViewSwitcher({
   onResubmit,
   onUpdateClaimNotes,
   onDeleteClaim,
+  onContinueDraft,
   saving,
   // Director-mode extensions (all optional, off by default)
   directorMode = false,
@@ -2583,6 +2584,7 @@ export function ClaimsViewSwitcher({
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   onDeleteClaim?: (id: string) => Promise<void>;
+  onContinueDraft?: (claim: BuyBackClaim) => void;
   saving?: boolean;
   directorMode?: boolean;
   practiceFilter?: string;
@@ -2837,6 +2839,7 @@ export function ClaimsViewSwitcher({
               onResubmit={onResubmit}
               onUpdateClaimNotes={onUpdateClaimNotes}
               onDeleteClaim={onDeleteClaim}
+              onContinueDraft={onContinueDraft}
               showPracticeName={directorMode}
               saving={saving}
             />
@@ -3130,7 +3133,7 @@ function PracticeEvidenceSection({ claimId, staffLines }: { claimId: string; sta
   );
 }
 
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, showPracticeName, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, onContinueDraft, showPracticeName, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
@@ -3138,6 +3141,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   onDeleteClaim?: (id: string) => Promise<void>;
+  onContinueDraft?: (claim: BuyBackClaim) => void;
   showPracticeName?: boolean;
   saving?: boolean;
 }) {
@@ -3599,6 +3603,20 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                 <Send style={{ width: 14, height: 14 }} />
                 Submit Claim
               </button>
+              {onContinueDraft && (
+                <button
+                  onClick={() => onContinueDraft(claim)}
+                  title="Open the full claim editor for this draft so you can carry on where you left off"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                    borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <ChevronDown style={{ width: 14, height: 14, transform: 'rotate(-90deg)' }} />
+                  Continue in claim editor
+                </button>
+              )}
               {onDeleteClaim && (
                 <button
                   onClick={async () => {
@@ -3712,6 +3730,7 @@ export function BuyBackPracticeDashboard({
   const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const claimsRef = React.useRef<HTMLDivElement>(null);
+  const rosterRef = React.useRef<HTMLDivElement>(null);
 
   const practiceName = getPracticeName(practiceKey);
   const practiceCode = NRES_ODS_CODES[practiceKey] || '—';
@@ -3807,6 +3826,24 @@ export function BuyBackPracticeDashboard({
     setActiveClaimKey(prev => prev === key ? null : key);
   };
 
+  const handleContinueDraft = (claim: BuyBackClaim) => {
+    const dets = (claim.staff_details || []) as any[];
+    const first = dets[0];
+    if (!first) return;
+    // Find the matching staff/management roster entry
+    const allRosterMembers = [...buybackStaff, ...gpLocumStaff, ...newSdaStaff, ...managementStaff];
+    const member = allRosterMembers.find(m =>
+      m.staff_name === first.staff_name && m.staff_role === first.staff_role
+    );
+    if (!member) {
+      window.alert('Could not locate this staff member in the roster — they may have been removed.');
+      return;
+    }
+    const monthKey = claim.claim_month.slice(0, 7) + '-01';
+    setActiveClaimKey(`${member.id}_${monthKey}`);
+    setTimeout(() => rosterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
+
   // Claims history — all non-draft claims
   const historyClaims = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
@@ -3884,7 +3921,7 @@ export function BuyBackPracticeDashboard({
       </div>
 
       {/* Staff Roster */}
-      <div style={{
+      <div ref={rosterRef} style={{
         background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb',
         padding: '20px 20px 14px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: 20,
       }}>
@@ -3940,6 +3977,7 @@ export function BuyBackPracticeDashboard({
           onResubmit={onResubmit}
           onUpdateClaimNotes={onUpdateClaimNotes}
           onDeleteClaim={onDeleteClaim}
+          onContinueDraft={handleContinueDraft}
           saving={savingClaim}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
