@@ -503,14 +503,23 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         User Settings
                       </DropdownMenuItem>
                     )}
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/training-videos')}
-                       className="cursor-pointer py-3"
-                     >
-                       <Video className="h-4 w-4 mr-2" />
-                       Training Videos
-                     </DropdownMenuItem>
-                     {/* CSO Report - Only show if user has CSO governance access */}
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/training-videos')}
+                        className="cursor-pointer py-3"
+                      >
+                        <Video className="h-4 w-4 mr-2" />
+                        Training Videos
+                      </DropdownMenuItem>
+                      {isServiceVisible('nres') && (
+                        <DropdownMenuItem
+                          onClick={() => navigate('/nres/time-tracker')}
+                          className="cursor-pointer py-3 text-emerald-700"
+                        >
+                          <Clock className="h-4 w-4 mr-2" />
+                          NRES Time Tracker
+                        </DropdownMenuItem>
+                      )}
+                      {/* CSO Report - Only show if user has CSO governance access */}
                      {hasModuleAccess('cso_governance_access') && (
                        <DropdownMenuItem 
                          onClick={() => navigate('/cso-report')}
