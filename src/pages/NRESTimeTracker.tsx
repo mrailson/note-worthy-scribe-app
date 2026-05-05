@@ -374,22 +374,118 @@ const NRESTimeTracker = () => {
         {/* Date strip */}
         <Card className="rounded-xl border-2 border-slate-200">
           <CardContent className="p-3">
-            <div className="text-xs font-medium text-slate-500 mb-2">DATE</div>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {dateStrip.map(d => {
-                const active = isSameDay(d, selectedDate);
-                return (
-                  <button key={d.toISOString()} onClick={() => setSelectedDate(d)}
-                    className={`shrink-0 rounded-lg px-3 py-2 text-center min-w-[64px] border-2 transition ${
-                      active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
-                    }`}>
-                    <div className={`text-[10px] uppercase font-medium ${active ? 'text-emerald-100' : 'text-slate-500'}`}>{dayLabel(d)}</div>
-                    <div className="text-lg font-bold leading-none">{format(d, 'd')}</div>
-                    <div className={`text-[10px] ${active ? 'text-emerald-100' : 'text-slate-500'}`}>{format(d, 'MMM')}</div>
-                  </button>
-                );
-              })}
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-medium text-slate-500">
+                {showMonth ? `MONTH — ${format(monthDays.anchor, 'MMMM yyyy')}` : 'DATE'}
+              </div>
+              <div className="flex items-center gap-1">
+                {showMonth ? (
+                  <>
+                    <button
+                      onClick={() => setMonthOffset(o => o + 1)}
+                      title="Previous month"
+                      className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                      <ChevronLeft className="w-3 h-3" /> Prev month
+                    </button>
+                    {monthOffset > 0 && (
+                      <button
+                        onClick={() => setMonthOffset(o => Math.max(0, o - 1))}
+                        title="Next month"
+                        className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                        Next <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setShowMonth(false); setMonthOffset(0); }}
+                      title="Days view"
+                      className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                      <CalendarDays className="w-3 h-3" /> Days
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setDateReversed(r => !r)}
+                      title={dateReversed ? 'Today first' : 'Today last'}
+                      className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                      <ArrowLeftRight className="w-3 h-3" /> Reverse
+                    </button>
+                    <button
+                      onClick={() => setWeekOffset(o => o + 1)}
+                      title="Previous 10 days"
+                      className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                      <ChevronLeft className="w-3 h-3" /> Prev
+                    </button>
+                    {weekOffset > 0 && (
+                      <button
+                        onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
+                        title="Next 10 days"
+                        className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                        Next <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowMonth(true)}
+                      title="Month view"
+                      className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                      <CalendarRange className="w-3 h-3" /> Month
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
+
+            {showMonth ? (
+              <div>
+                <div className="grid grid-cols-7 gap-1 mb-1">
+                  {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                    <div key={d} className="text-[10px] uppercase text-slate-400 text-center font-medium">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: monthDays.leadingBlanks }).map((_, i) => (
+                    <div key={`b${i}`} />
+                  ))}
+                  {monthDays.days.map(d => {
+                    const active = isSameDay(d, selectedDate);
+                    const isToday = isSameDay(d, new Date());
+                    const isFuture = d.getTime() > new Date().setHours(23,59,59,999);
+                    return (
+                      <button
+                        key={d.toISOString()}
+                        disabled={isFuture}
+                        onClick={() => setSelectedDate(d)}
+                        className={`rounded-lg py-2 text-center border-2 transition ${
+                          active
+                            ? 'bg-emerald-600 border-emerald-700 text-white'
+                            : isToday
+                              ? 'bg-white border-emerald-500 text-slate-800'
+                              : 'bg-white border-slate-200 text-slate-700'
+                        } ${isFuture ? 'opacity-30 cursor-not-allowed' : 'hover:border-emerald-400'}`}>
+                        <div className="text-sm font-bold leading-none">{format(d, 'd')}</div>
+                        <div className={`text-[9px] mt-0.5 ${active ? 'text-emerald-100' : 'text-slate-400'}`}>{format(d, 'EEE')}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                {dateStrip.map(d => {
+                  const active = isSameDay(d, selectedDate);
+                  return (
+                    <button key={d.toISOString()} onClick={() => setSelectedDate(d)}
+                      className={`shrink-0 rounded-lg px-3 py-2 text-center min-w-[64px] border-2 transition ${
+                        active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
+                      }`}>
+                      <div className={`text-[10px] uppercase font-medium ${active ? 'text-emerald-100' : 'text-slate-500'}`}>{dayLabel(d)}</div>
+                      <div className="text-lg font-bold leading-none">{format(d, 'd')}</div>
+                      <div className={`text-[10px] ${active ? 'text-emerald-100' : 'text-slate-500'}`}>{format(d, 'MMM')}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
