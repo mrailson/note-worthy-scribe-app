@@ -30,7 +30,7 @@ const DEFAULT_ACTIVITIES = [
   'Strategy & Planning',
 ];
 
-const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180];
+const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240];
 
 interface Activity { id: string; label: string; is_default: boolean; sort_order: number; }
 interface Entry {
@@ -114,8 +114,8 @@ const NRESTimeTracker = () => {
   const handleSave = async () => {
     if (!user?.id || !selectedActivity) return;
     if (selectedDate > new Date()) { toast.error('Date cannot be in the future'); return; }
-    if (selectedDuration < 5 || selectedDuration > 180 || selectedDuration % 5 !== 0) {
-      toast.error('Duration must be between 5 and 180 minutes'); return;
+    if (selectedDuration < 5 || selectedDuration > 240 || selectedDuration % 5 !== 0) {
+      toast.error('Duration must be between 5 and 240 minutes'); return;
     }
     setSaving(true);
     try {
@@ -453,13 +453,13 @@ const DurationPicker = ({ selectedDuration, setSelectedDuration }: { selectedDur
         <div className="px-1 pt-1">
           <Slider
             min={5}
-            max={180}
+            max={240}
             step={5}
             value={[selectedDuration]}
             onValueChange={(v) => setSelectedDuration(v[0])}
           />
           <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-            <span>5m</span><span>1h</span><span>2h</span><span>3h</span>
+            <span>5m</span><span>1h</span><span>2h</span><span>3h</span><span>4h</span>
           </div>
         </div>
       </CardContent>
