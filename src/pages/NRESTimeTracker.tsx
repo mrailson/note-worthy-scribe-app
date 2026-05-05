@@ -375,8 +375,18 @@ const NRESTimeTracker = () => {
         <Card className="rounded-xl border-2 border-slate-200">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-medium text-slate-500">
-                {showMonth ? `MONTH — ${format(monthDays.anchor, 'MMMM yyyy')}` : 'DATE'}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-500">
+                  {showMonth ? `MONTH — ${format(monthDays.anchor, 'MMMM yyyy')}` : 'DATE'}
+                </span>
+                {!showMonth && (
+                  <button
+                    onClick={() => setDateReversed(r => !r)}
+                    title={dateReversed ? 'Today first' : 'Today last'}
+                    className="text-xs flex items-center gap-1 px-2 py-0.5 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
+                    <ArrowLeftRight className="w-3 h-3" /> Reverse
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 {showMonth ? (
