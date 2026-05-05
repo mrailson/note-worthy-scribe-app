@@ -20,7 +20,7 @@ const SNO_EVIDENCE_CHECKLIST: Record<'buyback' | 'new_sda' | 'management' | 'gp_
   ],
   new_sda: [
     'Contract of employment',
-    'Job description',
+    'Job description (if applicable)',
     'Start date evidence (offer letter or payroll record)',
     'Signed timesheet, rota screenshot or clinical-system slot-type report for the claim month (whichever you prefer)',
     'Clinical system slot type screenshot showing SDA slots',
