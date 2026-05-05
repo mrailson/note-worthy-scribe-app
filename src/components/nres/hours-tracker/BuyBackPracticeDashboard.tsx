@@ -2274,13 +2274,15 @@ export function StaffRosterSection({
               />
             </div>}
             {category === 'gp_locum' && (
-              <div style={{ flex: '0 1 80px', minWidth: 70 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Session rate £</div>
+              <div style={{ flex: '0 1 90px', minWidth: 80 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>
+                  {addAllocType === 'hours' ? 'Hourly rate £' : addAllocType === 'daily' ? 'Daily rate £' : 'Session rate £'}
+                </div>
                 <input
                   type="number"
                   value={addHourlyRate}
                   onChange={(e) => setAddHourlyRate(e.target.value)}
-                  placeholder="e.g. 375"
+                  placeholder={addAllocType === 'hours' ? 'e.g. 90' : addAllocType === 'daily' ? 'e.g. 750' : 'e.g. 375'}
                   style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
                 />
               </div>
