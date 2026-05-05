@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfoTooltip } from '@/components/nres/InfoTooltip';
-import { ChevronDown, ChevronRight, BookOpen, CheckCircle2, Printer } from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, CheckCircle2, Printer, Download } from 'lucide-react';
 import type { RateSettings } from '@/hooks/useNRESBuyBackRateSettings';
 import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 
@@ -251,9 +251,133 @@ function EvidenceTab() {
 
   if (loading) return <p className="text-sm text-muted-foreground py-4">Loading evidence config…</p>;
 
+  // Legend cell
+  const L = ({ v }: { v: 'R' | 'O' | '–' | '?' | '✓' }) => {
+    const map: Record<string, string> = {
+      R: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 font-bold',
+      O: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 font-semibold',
+      '–': 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+      '?': 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200 font-semibold',
+      '✓': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200 font-bold',
+    };
+    return <span className={`inline-block min-w-[26px] text-center px-1.5 py-0.5 rounded text-[11px] ${map[v]}`}>{v}</span>;
+  };
+
+  const invoiceRows: { item: string; gpl: any; nsd: any; bb: any; mgmt: any; meet: any }[] = [
+    { item: 'Name (or unique identifier)', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'Role', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'GL category (GP / ANP / non-clinical etc.)', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'Date(s) worked', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'Hours worked (e.g. 9am–6pm, 8.5 hrs)', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'Sessions claimed', gpl: 'R', nsd: '–', bb: 'R', mgmt: '–', meet: '–' },
+    { item: 'Rate being claimed', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'Practice bank details', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'Practice ODS code & invoice sequence (auto)', gpl: 'R', nsd: 'R', bb: 'R', mgmt: 'R', meet: 'R' },
+    { item: 'Meeting title / purpose', gpl: '–', nsd: '–', bb: '–', mgmt: '–', meet: 'R' },
+  ];
+
+  const evidenceRows: { item: string; gpl: any; nsd: any; bb: any; mgmt: any; meet: any }[] = [
+    { item: 'Signed timesheet / rota screenshot', gpl: 'R', nsd: 'R', bb: 'R', mgmt: '–', meet: '–' },
+    { item: 'Locum invoice (locum to practice)', gpl: 'R', nsd: '–', bb: '–', mgmt: '–', meet: '–' },
+    { item: 'GMC number', gpl: 'R', nsd: 'O', bb: '–', mgmt: '–', meet: '–' },
+    { item: 'Indemnity confirmation', gpl: '?', nsd: '–', bb: '–', mgmt: '–', meet: '–' },
+    { item: 'Contract of employment', gpl: '–', nsd: 'R', bb: '–', mgmt: '–', meet: '–' },
+    { item: 'Job description', gpl: '–', nsd: 'R', bb: '–', mgmt: '–', meet: '–' },
+    { item: 'Start date evidence (offer letter / payroll)', gpl: '–', nsd: 'R', bb: '–', mgmt: '–', meet: '–' },
+    { item: 'Existing contract (redacted as needed)', gpl: '–', nsd: '–', bb: 'R', mgmt: '–', meet: '–' },
+    { item: 'Pay slip extract (redaction policy applies)', gpl: '–', nsd: '–', bb: '?', mgmt: '–', meet: '–' },
+    { item: 'Part B substantiation (rota / SDA slot evidence)', gpl: '–', nsd: '–', bb: 'R', mgmt: '–', meet: '–' },
+    { item: 'Clinical system slot type screenshot (SDA slots)', gpl: 'R', nsd: 'R', bb: 'R', mgmt: '–', meet: '–' },
+    { item: 'Meeting agenda / minutes / attendance list', gpl: '–', nsd: '–', bb: '–', mgmt: 'O', meet: 'R' },
+    { item: 'NRES management activity log / hours summary', gpl: '–', nsd: '–', bb: '–', mgmt: 'R', meet: '–' },
+  ];
+
+  const MatrixTable = ({ rows, firstCol }: { rows: typeof invoiceRows; firstCol: string }) => (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/60">
+          <tr>
+            <th className="text-left p-2 font-semibold">{firstCol}</th>
+            <th className="p-2 font-semibold text-center">GP Locum</th>
+            <th className="p-2 font-semibold text-center">New SDA</th>
+            <th className="p-2 font-semibold text-center">Buy-Back</th>
+            <th className="p-2 font-semibold text-center">NRES Mgmt</th>
+            <th className="p-2 font-semibold text-center">Meeting Att.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-t">
+              <td className="p-2">{r.item}</td>
+              <td className="p-2 text-center"><L v={r.gpl} /></td>
+              <td className="p-2 text-center"><L v={r.nsd} /></td>
+              <td className="p-2 text-center"><L v={r.bb} /></td>
+              <td className="p-2 text-center"><L v={r.mgmt} /></td>
+              <td className="p-2 text-center"><L v={r.meet} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="space-y-4 text-sm">
-      <p className="text-muted-foreground">Evidence requirements are configured by programme admin and may be updated. Current requirements:</p>
+      {/* SNO-approved evidence matrix */}
+      <CalloutBox type="green">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <p className="font-semibold mb-0.5">✅ SNO-Approved Evidence Requirements (v1.0)</p>
+            <p className="text-xs">Agreed with Andrew Moore (PML / SNO) — sign-off matrix governing every claim type. Download the source document below.</p>
+          </div>
+          <Button asChild size="sm" variant="outline" className="gap-1 text-xs shrink-0">
+            <a href="/documents/SDA_Claims_Evidence_Requirements_v1.0.docx" download>
+              <Download className="w-3.5 h-3.5" /> Download Word doc
+            </a>
+          </Button>
+        </div>
+        <div className="mt-3 flex items-center gap-2 flex-wrap text-[11px]">
+          <span className="font-semibold mr-1">Legend:</span>
+          <span className="flex items-center gap-1"><L v="R" /> Required</span>
+          <span className="flex items-center gap-1"><L v="O" /> Optional</span>
+          <span className="flex items-center gap-1"><L v="–" /> Not applicable</span>
+          <span className="flex items-center gap-1"><L v="?" /> Decision pending</span>
+        </div>
+      </CalloutBox>
+
+      <div>
+        <h3 className="font-semibold text-[#003087] mb-1">Table 1 — Data items shown on the invoice</h3>
+        <p className="text-xs text-muted-foreground mb-2">
+          Captured by the NRES Verifier role and rendered as line-level detail on the invoice PDF sent to PML finance (SAGE Intact ready).
+        </p>
+        <MatrixTable rows={invoiceRows} firstCol="Data item on invoice" />
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-[#003087] mb-1">Table 2 — Supporting evidence uploaded to Notewell</h3>
+        <p className="text-xs text-muted-foreground mb-2">
+          Audit trail attached to each claim. Visible to the SNO during approval and forwarded with the invoice email to PML finance for archive.
+        </p>
+        <MatrixTable rows={evidenceRows} firstCol="Supporting evidence in Notewell" />
+      </div>
+
+      <CalloutBox type="amber">
+        <p className="font-semibold mb-1">📝 Open items pending SNO confirmation</p>
+        <ul className="list-disc list-inside space-y-0.5 text-xs">
+          <li><strong>Q1 — Indemnity confirmation:</strong> standard for all GP locum claims, or only off-agency?</li>
+          <li><strong>Q2 — Buy-Back pay slip:</strong> required in addition to existing contract, or contract sufficient?</li>
+          <li><strong>Q3 — Redaction policy:</strong> NI number, home address and bank details may be redacted; name/identifier retained.</li>
+          <li><strong>Q4 — Buy-Back Part B:</strong> rota screenshot sufficient, or written narrative also required?</li>
+          <li><strong>Q5 — NRES Management:</strong> monthly hours summary vs activity-level detail.</li>
+          <li><strong>Q6 — Meeting Attendance:</strong> date + title + duration vs full minutes/attendance list.</li>
+          <li><strong>Q7 — Other claim types:</strong> any further categories (training backfill, project work) to configure now.</li>
+        </ul>
+      </CalloutBox>
+
+      <div className="pt-2 border-t">
+        <h3 className="font-semibold text-[#003087] mb-1">Live evidence configuration</h3>
+        <p className="text-muted-foreground text-xs mb-2">As configured in the system today (programme admin can update):</p>
+      </div>
 
       <CalloutBox type="blue">
         <p className="font-semibold mb-2">🔄 Buy-Back Staff — Evidence Checklist</p>
