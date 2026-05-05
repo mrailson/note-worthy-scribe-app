@@ -474,7 +474,7 @@ const NRESTimeTracker = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <DateStripScroller>
                 {dateStrip.map(d => {
                   const active = isSameDay(d, selectedDate);
                   return (
@@ -488,7 +488,7 @@ const NRESTimeTracker = () => {
                     </button>
                   );
                 })}
-              </div>
+              </DateStripScroller>
             )}
           </CardContent>
         </Card>
@@ -751,6 +751,57 @@ const DurationPicker = ({ selectedDuration, setSelectedDuration }: { selectedDur
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+/** Horizontal scroller that shows a slider only when content overflows. */
+const DateStripScroller = ({ children }: { children: React.ReactNode }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState(false);
+  const [maxScroll, setMaxScroll] = useState(0);
+  const [scrollPos, setScrollPos] = useState(0);
+
+  const recalc = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setMaxScroll(max);
+    setOverflow(max > 4);
+    setScrollPos(el.scrollLeft);
+  }, []);
+
+  useEffect(() => {
+    recalc();
+    const el = scrollRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(recalc);
+    ro.observe(el);
+    Array.from(el.children).forEach(c => ro.observe(c as Element));
+    return () => ro.disconnect();
+  }, [recalc, children]);
+
+  return (
+    <div className="space-y-2">
+      <div
+        ref={scrollRef}
+        onScroll={e => setScrollPos((e.target as HTMLDivElement).scrollLeft)}
+        className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {children}
+      </div>
+      {overflow && (
+        <input
+          type="range"
+          min={0}
+          max={maxScroll}
+          value={scrollPos}
+          onChange={e => {
+            const v = Number(e.target.value);
+            if (scrollRef.current) scrollRef.current.scrollLeft = v;
+          }}
+          className="w-full h-1 accent-emerald-600 cursor-pointer"
+          aria-label="Scroll dates" />
+      )}
+    </div>
   );
 };
 
