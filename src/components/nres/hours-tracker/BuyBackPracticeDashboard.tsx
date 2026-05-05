@@ -3921,7 +3921,7 @@ export function BuyBackPracticeDashboard({
       </div>
 
       {/* Staff Roster */}
-      <div style={{
+      <div ref={rosterRef} style={{
         background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb',
         padding: '20px 20px 14px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', marginBottom: 20,
       }}>
