@@ -381,7 +381,7 @@ const NRESTimeTracker = () => {
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-600" /> NRES Time Tracker
           </h1>
-          <p className="text-sm text-slate-500">Quick entry for monthly claims</p>
+          
         </div>
 
         {/* Summary cards */}
