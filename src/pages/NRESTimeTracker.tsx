@@ -390,7 +390,7 @@ const NRESTimeTracker = () => {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Card className="rounded-xl border-2 border-slate-200">
             <CardContent className="p-4">
               <div className="text-xs uppercase tracking-wide text-slate-500">This Week</div>
@@ -401,6 +401,14 @@ const NRESTimeTracker = () => {
             <CardContent className="p-4">
               <div className="text-xs uppercase tracking-wide text-emerald-100">This Month</div>
               <div className="text-2xl font-bold mt-1">{formatDuration(monthTotal)}</div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-xl border-2 border-slate-200 bg-slate-50">
+            <CardContent className="p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-500">
+                Last Month · {format(subMonths(new Date(), 1), 'MMM')}
+              </div>
+              <div className="text-2xl font-bold text-slate-700 mt-1">{formatDuration(lastMonthTotal)}</div>
             </CardContent>
           </Card>
         </div>
