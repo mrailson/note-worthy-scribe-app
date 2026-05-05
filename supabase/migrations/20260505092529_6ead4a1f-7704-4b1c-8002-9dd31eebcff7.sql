@@ -1,0 +1,1 @@
+DELETE FROM public.nres_pay_alignment_responses WHERE survey_id = 'a2a9c46d-c21f-4826-a090-02c51edd6270';
