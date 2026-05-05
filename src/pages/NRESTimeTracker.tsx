@@ -128,6 +128,7 @@ const NRESTimeTracker = () => {
     try {
       let { data: acts, error: aErr } = await (supabase as any)
         .from('nres_user_activities').select('*')
+        .eq('user_id', user.id)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true });
       if (aErr) throw aErr;
