@@ -536,48 +536,62 @@ const NRESTimeTracker = () => {
         <Card className="rounded-xl border-2 border-slate-200">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-medium text-slate-500">ACTIVITY</div>
-              <button onClick={() => setManageMode(m => !m)}
-                className="text-xs text-emerald-700 inline-flex items-center gap-1">
-                <Settings2 className="w-3 h-3" /> {manageMode ? 'Done' : 'Manage'}
+              <button
+                type="button"
+                onClick={() => setActivityOpen(o => !o)}
+                className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+              >
+                {activityOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                ACTIVITY
+                {!activityOpen && selectedActivity && (
+                  <span className="ml-2 text-emerald-700 normal-case">· {selectedActivity}</span>
+                )}
               </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {activities.map(a => {
-                const active = selectedActivity === a.label;
-                return (
-                  <div key={a.id} className="relative">
-                    <button onClick={() => !manageMode && setSelectedActivity(a.label)}
-                      className={`w-full rounded-lg px-3 py-2 text-left text-sm border-2 transition ${
-                        active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
-                      }`}>
-                      {a.label}
-                    </button>
-                    {manageMode && (
-                      <button onClick={() => handleDeleteActivity(a.id)}
-                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow">
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              {!showAddActivity ? (
-                <button onClick={() => setShowAddActivity(true)}
-                  className="rounded-lg px-3 py-2 text-sm border-2 border-dashed border-slate-300 text-slate-500 hover:bg-slate-100 inline-flex items-center justify-center gap-1">
-                  <Plus className="w-4 h-4" /> Add activity
+              {activityOpen && (
+                <button onClick={() => setManageMode(m => !m)}
+                  className="text-xs text-emerald-700 inline-flex items-center gap-1">
+                  <Settings2 className="w-3 h-3" /> {manageMode ? 'Done' : 'Manage'}
                 </button>
-              ) : (
-                <div className="col-span-2 flex gap-2">
-                  <Input autoFocus value={newActivityLabel}
-                    onChange={e => setNewActivityLabel(e.target.value)}
-                    placeholder="New activity label" maxLength={80}
-                    onKeyDown={e => e.key === 'Enter' && handleAddActivity()} />
-                  <Button onClick={handleAddActivity} className="bg-emerald-600 hover:bg-emerald-700">Add</Button>
-                  <Button variant="outline" onClick={() => { setShowAddActivity(false); setNewActivityLabel(''); }}>Cancel</Button>
-                </div>
               )}
             </div>
+            {activityOpen && (
+              <div className="grid grid-cols-2 gap-2">
+                {activities.map(a => {
+                  const active = selectedActivity === a.label;
+                  return (
+                    <div key={a.id} className="relative">
+                      <button onClick={() => !manageMode && setSelectedActivity(a.label)}
+                        className={`w-full rounded-lg px-3 py-2 text-left text-sm border-2 transition ${
+                          active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
+                        }`}>
+                        {a.label}
+                      </button>
+                      {manageMode && (
+                        <button onClick={() => handleDeleteActivity(a.id)}
+                          className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow">
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {!showAddActivity ? (
+                  <button onClick={() => setShowAddActivity(true)}
+                    className="rounded-lg px-3 py-2 text-sm border-2 border-dashed border-slate-300 text-slate-500 hover:bg-slate-100 inline-flex items-center justify-center gap-1">
+                    <Plus className="w-4 h-4" /> Add activity
+                  </button>
+                ) : (
+                  <div className="col-span-2 flex gap-2">
+                    <Input autoFocus value={newActivityLabel}
+                      onChange={e => setNewActivityLabel(e.target.value)}
+                      placeholder="New activity label" maxLength={80}
+                      onKeyDown={e => e.key === 'Enter' && handleAddActivity()} />
+                    <Button onClick={handleAddActivity} className="bg-emerald-600 hover:bg-emerald-700">Add</Button>
+                    <Button variant="outline" onClick={() => { setShowAddActivity(false); setNewActivityLabel(''); }}>Cancel</Button>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
