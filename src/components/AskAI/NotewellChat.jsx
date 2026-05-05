@@ -1545,18 +1545,25 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources, latestMe
       max_tokens: 4096,
       systemPrompt,
       latestMessage: latestMessage || "",
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.files?.length
-          ? [
-              ...m.files.map(f => ({
-                type: f.mediaType?.includes("image") ? "image" : "document",
-                source: { type: "base64", media_type: f.mediaType, data: f.data },
-              })),
-              { type: "text", text: m.content },
-            ]
-          : m.content,
-      })),
+      messages: messages.map(m => {
+        if (!m.files?.length) return { role: m.role, content: m.content };
+        const blocks = [];
+        const textParts = [];
+        for (const f of m.files) {
+          const isImage = f.mediaType?.includes("image");
+          const isPdf = f.mediaType === "application/pdf";
+          if (isImage) {
+            blocks.push({ type: "image", source: { type: "base64", media_type: f.mediaType, data: f.data } });
+          } else if (isPdf) {
+            blocks.push({ type: "document", source: { type: "base64", media_type: f.mediaType, data: f.data } });
+          } else if (f.extractedText) {
+            textParts.push(`--- Attached file: ${f.name} ---\n${f.extractedText}\n--- End of ${f.name} ---`);
+          }
+        }
+        const combined = [textParts.join("\n\n"), m.content].filter(Boolean).join("\n\n");
+        blocks.push({ type: "text", text: combined });
+        return { role: m.role, content: blocks };
+      }),
     }),
   });
 
@@ -1776,7 +1783,45 @@ export default function NotewellChat({ user, onNavigateHome }) {
 
   const handleFiles=useCallback(async(nf)=>{
     setFileError(null);const valid=[];
-    for(const f of nf){if(!ALLOWED_TYPES.includes(f.type)){setFileError(`"${f.name}" — unsupported type.`);continue;}if(f.size>10485760){setFileError(`"${f.name}" exceeds 10 MB.`);continue;}if(files.length+valid.length>=5){setFileError("Max 5 files per message.");break;}valid.push({name:f.name,mediaType:f.type,size:f.size,data:await readBase64(f)});}
+    for(const f of nf){
+      if(!ALLOWED_TYPES.includes(f.type)){setFileError(`"${f.name}" — unsupported type.`);continue;}
+      if(f.size>10485760){setFileError(`"${f.name}" exceeds 10 MB.`);continue;}
+      if(files.length+valid.length>=5){setFileError("Max 5 files per message.");break;}
+      const data=await readBase64(f);
+      // Anthropic only accepts images and PDFs as native attachments. For Word/Excel/PowerPoint/CSV/TXT
+      // we extract the text up-front via the extract-document-text edge function and pass it as inline
+      // text. This avoids "Anthropic API error: 400 — unsupported document media type".
+      const isImage=IMAGE_TYPES.has(f.type);
+      const isPdf=f.type==="application/pdf";
+      let extractedText=null;
+      if(!isImage&&!isPdf){
+        let fileType=null;
+        if(f.type.includes("word")||f.type==="application/msword")fileType="word";
+        else if(f.type.includes("sheet")||f.type==="application/vnd.ms-excel")fileType="excel";
+        else if(f.type.includes("presentation"))fileType="powerpoint";
+        else if(f.type==="text/plain"||f.type==="text/csv")fileType="text";
+        try{
+          if(fileType==="text"){
+            extractedText=atob(data);
+          }else if(fileType){
+            const{data:res,error}=await supabase.functions.invoke("extract-document-text",{
+              body:{fileType,fileName:f.name,dataUrl:`data:${f.type};base64,${data}`}
+            });
+            if(error)throw error;
+            extractedText=res?.extractedText||"";
+          }
+        }catch(err){
+          console.error("Document text extraction failed",err);
+          setFileError(`Could not read "${f.name}". Please convert to PDF and re-attach.`);
+          continue;
+        }
+        if(!extractedText||!extractedText.trim()){
+          setFileError(`"${f.name}" appears empty or unreadable. Please convert to PDF and re-attach.`);
+          continue;
+        }
+      }
+      valid.push({name:f.name,mediaType:f.type,size:f.size,data,extractedText});
+    }
     setFiles(p=>[...p,...valid]);
   },[files]);
 
