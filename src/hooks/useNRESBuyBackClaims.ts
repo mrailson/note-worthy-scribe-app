@@ -8,6 +8,7 @@ import { sendBuyBackEmail, type BuyBackEmailData } from '@/utils/buybackEmailSer
 import { generateInvoiceNumber } from '@/utils/invoiceNumberGenerator';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { getPracticeName } from '@/data/nresPractices';
+import { getBuybackPracticeRecipients } from './useNRESBuyBackPracticeEmailRecipients';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackStaffMember } from './useNRESBuyBackStaff';
 
