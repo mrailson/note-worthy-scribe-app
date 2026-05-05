@@ -1047,6 +1047,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           onGuideOpen={onGuideOpen}
           onSettingsOpen={onSettingsOpen}
           showSettings={showSettings}
+          onRefresh={() => { refetchClaims(); toast.success('Refreshed'); }}
         />
       </div>
     );

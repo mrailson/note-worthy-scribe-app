@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Eye, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark, HelpCircle, Settings } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, AlertTriangle, CheckCircle2, XCircle, Lock, Landmark, HelpCircle, Settings, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPracticeName, NRES_PRACTICE_BANK_DETAILS, NRES_ODS_CODES, NRES_PRACTICES, NRES_PRACTICE_KEYS } from '@/data/nresPractices';
 import type { NRESPracticeKey } from '@/data/nresPractices';
@@ -44,6 +44,7 @@ interface BuyBackPMLDashboardProps {
   onGuideOpen?: () => void;
   onSettingsOpen?: () => void;
   showSettings?: boolean;
+  onRefresh?: () => void;
 }
 
 // --- Mapped status: internal 'verified' → display 'awaiting_review' for Director ---
@@ -1386,6 +1387,7 @@ export function BuyBackPMLDashboard({
   onGuideOpen,
   onSettingsOpen,
   showSettings,
+  onRefresh,
 }: BuyBackPMLDashboardProps) {
   const [view, setView] = useState<PMLView>(defaultView || (isPMLFinance ? 'finance' : 'director'));
   const sessionKey = `nres-pml-statusFilter-${view}`;
@@ -1617,6 +1619,11 @@ export function BuyBackPMLDashboard({
             {showSettings && onSettingsOpen && (
               <button onClick={onSettingsOpen} title="Access Settings" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280' }}>
                 <Settings style={{ width: 14, height: 14 }} />
+              </button>
+            )}
+            {onRefresh && (
+              <button onClick={onRefresh} title="Refresh view" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid #e5e7eb', background: 'transparent', cursor: 'pointer', color: '#6b7280' }}>
+                <RefreshCw style={{ width: 14, height: 14 }} />
               </button>
             )}
           </div>
