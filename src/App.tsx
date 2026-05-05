@@ -107,6 +107,7 @@ const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
 const PublicPlanningStudio = lazy(() => import("./pages/PublicPlanningStudio"));
 const NRESPlanningStudio = lazy(() => import("./pages/NRESPlanningStudio"));
+const NRESTimeTracker = lazy(() => import("./pages/NRESTimeTracker"));
 const NRESPopulationRisk = lazy(() => import("./pages/NRESPopulationRisk"));
 const NRESPopulationRiskMethodology = lazy(() => import("./pages/NRESPopulationRiskMethodology"));
 
