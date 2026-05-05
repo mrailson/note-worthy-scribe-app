@@ -536,16 +536,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          CSO Report
                        </DropdownMenuItem>
                      )}
-                      {/* Document Sign-Off - Only show if user has access or is system admin */}
-                      {(isSystemAdmin || isPracticeManager || hasModuleAccess('document_signoff_access')) && (
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/document-approval')}
-                          className="cursor-pointer py-3"
-                        >
-                          <FileSignature className="h-4 w-4 mr-2" />
-                          Document Sign-Off
-                        </DropdownMenuItem>
-                      )}
+                       {/* Document Sign-Off - Only show if user has the module enabled (system admin always sees) */}
+                       {(isSystemAdmin || hasModuleAccess('document_signoff_access')) && (
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/document-approval')}
+                           className="cursor-pointer py-3"
+                         >
+                           <FileSignature className="h-4 w-4 mr-2" />
+                           Document Sign-Off
+                         </DropdownMenuItem>
+                       )}
                      
                      {/* Show Organisation Management for practice_manager, pcn_manager, or system admin */}
                      {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
