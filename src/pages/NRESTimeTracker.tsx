@@ -12,6 +12,7 @@ import { Clock, ChevronLeft, Trash2, Plus, X, Download, Settings2 } from 'lucide
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Slider } from '@/components/ui/slider';
 import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -29,7 +30,7 @@ const DEFAULT_ACTIVITIES = [
   'Strategy & Planning',
 ];
 
-const DURATION_OPTIONS = [30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180];
+const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180];
 
 interface Activity { id: string; label: string; is_default: boolean; sort_order: number; }
 interface Entry {
@@ -113,8 +114,8 @@ const NRESTimeTracker = () => {
   const handleSave = async () => {
     if (!user?.id || !selectedActivity) return;
     if (selectedDate > new Date()) { toast.error('Date cannot be in the future'); return; }
-    if (selectedDuration < 30 || selectedDuration > 180 || selectedDuration % 15 !== 0) {
-      toast.error('Duration must be between 30 and 180 minutes'); return;
+    if (selectedDuration < 5 || selectedDuration > 180 || selectedDuration % 5 !== 0) {
+      toast.error('Duration must be between 5 and 180 minutes'); return;
     }
     setSaving(true);
     try {
@@ -357,8 +358,11 @@ const NRESTimeTracker = () => {
 
         {/* Duration */}
         <Card className="rounded-xl border-2 border-slate-200">
-          <CardContent className="p-3">
-            <div className="text-xs font-medium text-slate-500 mb-2">DURATION</div>
+          <CardContent className="p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-medium text-slate-500">DURATION</div>
+              <div className="text-sm font-semibold text-emerald-700">{formatDuration(selectedDuration)}</div>
+            </div>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
               {DURATION_OPTIONS.map(m => {
                 const active = selectedDuration === m;
@@ -371,6 +375,18 @@ const NRESTimeTracker = () => {
                   </button>
                 );
               })}
+            </div>
+            <div className="px-1 pt-1">
+              <Slider
+                min={5}
+                max={180}
+                step={5}
+                value={[selectedDuration]}
+                onValueChange={(v) => setSelectedDuration(v[0])}
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>5m</span><span>1h</span><span>2h</span><span>3h</span>
+              </div>
             </div>
           </CardContent>
         </Card>
