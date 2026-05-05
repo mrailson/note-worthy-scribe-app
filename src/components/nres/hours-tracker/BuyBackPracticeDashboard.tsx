@@ -3603,20 +3603,6 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                 <Send style={{ width: 14, height: 14 }} />
                 Submit Claim
               </button>
-              {onContinueDraft && (
-                <button
-                  onClick={() => onContinueDraft(claim)}
-                  title="Open the full claim editor for this draft so you can carry on where you left off"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
-                    borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8',
-                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
-                  <ChevronDown style={{ width: 14, height: 14, transform: 'rotate(-90deg)' }} />
-                  Continue in claim editor
-                </button>
-              )}
               {onDeleteClaim && (
                 <button
                   onClick={async () => {
