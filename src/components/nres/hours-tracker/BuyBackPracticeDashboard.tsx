@@ -3599,6 +3599,33 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                 <Send style={{ width: 14, height: 14 }} />
                 Submit Claim
               </button>
+              {onDeleteClaim && (
+                <button
+                  onClick={async () => {
+                    const confirmed = window.confirm(
+                      'Are you sure you want to delete this draft claim?\n\nAll claim data and any uploaded supporting evidence will be permanently deleted.\n\nThis action cannot be undone.'
+                    );
+                    if (!confirmed) return;
+                    setDeletingClaim(true);
+                    try {
+                      await onDeleteClaim(claim.id);
+                    } finally {
+                      setDeletingClaim(false);
+                    }
+                  }}
+                  disabled={saving || deletingClaim}
+                  title="Delete this draft claim"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px',
+                    borderRadius: 8, border: '1px solid #fecaca', background: '#fff', color: '#dc2626',
+                    fontSize: 13, fontWeight: 600, cursor: (saving || deletingClaim) ? 'not-allowed' : 'pointer',
+                    opacity: (saving || deletingClaim) ? 0.6 : 1,
+                  }}
+                >
+                  <Trash2 style={{ width: 14, height: 14 }} />
+                  {deletingClaim ? 'Deleting…' : 'Delete Draft'}
+                </button>
+              )}
             </div>
           )}
 
