@@ -1150,16 +1150,6 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                 >
                   ✓ Verify all submitted ({statusCounts.submitted})
                 </button>
-                <button
-                  className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={statusCounts.verified === 0}
-                  onClick={() => {
-                    setBulkOpen(false);
-                    practiceFilteredClaims.filter(c => c.status === 'verified').forEach(c => approveClaim(c.id));
-                    toast.success(`Approving ${statusCounts.verified} verified claim${statusCounts.verified !== 1 ? 's' : ''}…`);
-                  }}
-                >
-                  ✓ Approve all verified ({statusCounts.verified})
                 </button>
                 <button
                   className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
