@@ -198,6 +198,7 @@ const NRESTimeTracker = () => {
       setEntries(prev => [newEntry, ...prev]);
       toast.success(`Logged ${formatDuration(selectedDuration)} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
       setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
+      if (draftKey) localStorage.removeItem(draftKey);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
     } finally { setSaving(false); }
