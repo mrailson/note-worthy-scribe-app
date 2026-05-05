@@ -2010,10 +2010,16 @@ function StaffActions({
           onClick={async () => {
             if (onUpdateStaff) {
               setSaving(true);
+              // Cap non-locum allocations at 1.0 WTE / 37.5 hrs per week
+              let valNum = Number(editAllocValue) || member.allocation_value;
+              if (category !== 'gp_locum') {
+                if (editAllocType === 'wte' && valNum > 1) valNum = 1;
+                if (editAllocType === 'hours' && valNum > 37.5) valNum = 37.5;
+              }
               await onUpdateStaff(member.id, {
                 staff_role: editRole,
                 allocation_type: editAllocType as any,
-                allocation_value: Number(editAllocValue) || member.allocation_value,
+                allocation_value: valNum,
               });
               setSaving(false);
             }
