@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { format, addDays, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -357,39 +357,7 @@ const NRESTimeTracker = () => {
         </Card>
 
         {/* Duration */}
-        <Card className="rounded-xl border-2 border-slate-200">
-          <CardContent className="p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-medium text-slate-500">DURATION</div>
-              <div className="text-sm font-semibold text-emerald-700">{formatDuration(selectedDuration)}</div>
-            </div>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {DURATION_OPTIONS.map(m => {
-                const active = selectedDuration === m;
-                return (
-                  <button key={m} onClick={() => setSelectedDuration(m)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium border-2 transition ${
-                      active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
-                    }`}>
-                    {formatDuration(m)}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="px-1 pt-1">
-              <Slider
-                min={5}
-                max={180}
-                step={5}
-                value={[selectedDuration]}
-                onValueChange={(v) => setSelectedDuration(v[0])}
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                <span>5m</span><span>1h</span><span>2h</span><span>3h</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <DurationPicker selectedDuration={selectedDuration} setSelectedDuration={setSelectedDuration} />
 
         {/* Notes */}
         <Card className="rounded-xl border-2 border-slate-200">
@@ -453,3 +421,49 @@ const NRESTimeTracker = () => {
 };
 
 export default NRESTimeTracker;
+
+const DurationPicker = ({ selectedDuration, setSelectedDuration }: { selectedDuration: number; setSelectedDuration: (n: number) => void }) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const idx = DURATION_OPTIONS.indexOf(selectedDuration);
+  // pick visible range: prefer current as middle, show ±2
+  const safeIdx = idx >= 0 ? idx : DURATION_OPTIONS.findIndex(o => o >= selectedDuration);
+  const start = Math.max(0, Math.min(DURATION_OPTIONS.length - 5, (safeIdx < 0 ? 0 : safeIdx) - 2));
+  const visible = DURATION_OPTIONS.slice(start, start + 5);
+
+  return (
+    <Card className="rounded-xl border-2 border-slate-200">
+      <CardContent className="p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-medium text-slate-500">DURATION</div>
+          <div className="text-sm font-semibold text-emerald-700">{formatDuration(selectedDuration)}</div>
+        </div>
+        <div ref={scrollRef} className="flex gap-2 justify-center pb-1">
+          {visible.map(m => {
+            const active = selectedDuration === m;
+            return (
+              <button key={m} onClick={() => setSelectedDuration(m)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium border-2 transition ${
+                  active ? 'bg-emerald-600 border-emerald-700 text-white scale-110' : 'bg-white border-slate-200 text-slate-700'
+                }`}>
+                {formatDuration(m)}
+              </button>
+            );
+          })}
+        </div>
+        <div className="px-1 pt-1">
+          <Slider
+            min={5}
+            max={180}
+            step={5}
+            value={[selectedDuration]}
+            onValueChange={(v) => setSelectedDuration(v[0])}
+          />
+          <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+            <span>5m</span><span>1h</span><span>2h</span><span>3h</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
