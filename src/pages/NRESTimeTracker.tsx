@@ -723,7 +723,9 @@ const NRESTimeTracker = () => {
             >
               {recentOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               Recent entries
-              <span className="text-xs font-normal text-slate-500">({recentEntries.length})</span>
+              <span className="text-xs font-normal text-slate-500">
+                ({recentEntries.length} {recentEntries.length === 1 ? 'entry' : 'entries'}){!recentOpen && ' — click to expand'}
+              </span>
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
