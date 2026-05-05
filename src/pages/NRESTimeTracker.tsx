@@ -189,6 +189,37 @@ const NRESTimeTracker = () => {
     return { weekTotal: w, monthTotal: m };
   }, [entries]);
 
+  // Note suggestions: recent unique (last 5) then most-frequent (not already shown)
+  const noteSuggestions = useMemo(() => {
+    const cleanedAll = entries
+      .map(e => (e.notes || '').trim())
+      .filter(Boolean);
+    if (cleanedAll.length === 0) return [] as string[];
+
+    const recent: string[] = [];
+    const seen = new Set<string>();
+    for (const n of cleanedAll) {
+      const key = n.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); recent.push(n); }
+      if (recent.length >= 5) break;
+    }
+
+    const freq = new Map<string, { label: string; count: number }>();
+    for (const n of cleanedAll) {
+      const key = n.toLowerCase();
+      const existing = freq.get(key);
+      if (existing) existing.count += 1;
+      else freq.set(key, { label: n, count: 1 });
+    }
+    const top = Array.from(freq.values())
+      .filter(x => x.count >= 2 && !seen.has(x.label.toLowerCase()))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map(x => x.label);
+
+    return [...recent, ...top].slice(0, 10);
+  }, [entries]);
+
   const handleSave = async () => {
     if (!user?.id || !selectedActivity) return;
     if (selectedDate > new Date()) { toast.error('Date cannot be in the future'); return; }
@@ -577,6 +608,20 @@ const NRESTimeTracker = () => {
                 }}
               />
             </div>
+            {noteSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {noteSuggestions.map((s, i) => (
+                  <button
+                    key={`${i}-${s}`}
+                    type="button"
+                    onClick={() => setNotes(s)}
+                    title={s}
+                    className="text-[11px] px-2 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 max-w-[220px] truncate">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             <Input
               value={notes}
               onChange={e => setNotes(e.target.value)}
