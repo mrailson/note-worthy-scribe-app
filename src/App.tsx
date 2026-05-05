@@ -217,6 +217,11 @@ const App = () => {
                     <NRESPlanningStudio />
                   </ProtectedRoute>
                 } />
+                <Route path="/nres/time-tracker" element={
+                  <ProtectedRoute requiredService="nres">
+                    <NRESTimeTracker />
+                  </ProtectedRoute>
+                } />
                 <Route path="/enn" element={
                   <ProtectedRoute requiredService="enn">
                     <ENNDashboard />
