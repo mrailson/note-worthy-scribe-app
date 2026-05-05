@@ -372,11 +372,19 @@ export async function sendBuyBackEmail(
       recipients = await getApproverEmails(data.practiceKey);
       break;
     case 'submission_confirmation':
-    case 'claim_verified':
     case 'claim_approved':
     case 'claim_rejected':
       recipients = [data.submitterEmail];
       break;
+    case 'claim_verified': {
+      // Notify the submitter AND the SNO/PML approver(s) who need to act next
+      const approvers = await getApproverEmails(data.practiceKey);
+      const set = new Set<string>();
+      if (data.submitterEmail) set.add(data.submitterEmail.toLowerCase());
+      approvers.forEach(e => e && set.add(e.toLowerCase()));
+      recipients = Array.from(set);
+      break;
+    }
     case 'verification_confirmation':
     case 'approval_confirmation':
     case 'rejection_confirmation':
