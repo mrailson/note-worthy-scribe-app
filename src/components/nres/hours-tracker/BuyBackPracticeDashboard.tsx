@@ -471,10 +471,26 @@ function InlineClaimPanel({
     });
   }, [locumMaxAmount]);
 
+  // Allocation override toggle (lets the user re-cast WTE ↔ hrs/wk in the
+  // claim modal without altering the saved staff record). Capped at 1.0 WTE
+  // / 37.5 hrs/wk for non-locum claims.
+  const [overrideAllocType, setOverrideAllocType] = useState<'wte' | 'hours' | null>(null);
+  const [overrideAllocValue, setOverrideAllocValue] = useState<number>(staffMember.allocation_value || 0);
+  // Reset override when underlying staff record changes
+  useEffect(() => {
+    setOverrideAllocType(null);
+    setOverrideAllocValue(staffMember.allocation_value || 0);
+  }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value]);
+
+  const effectiveStaff = useMemo(() => {
+    if (!overrideAllocType) return staffMember;
+    return { ...staffMember, allocation_type: overrideAllocType, allocation_value: overrideAllocValue } as BuyBackStaffMember;
+  }, [staffMember, overrideAllocType, overrideAllocValue]);
+
   const calculatedAmount = useMemo(() => {
     if (!rateParams) return 0;
-    return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeks);
-  }, [staffMember, monthDate, rateParams, holidayWeeks]);
+    return calculateStaffMonthlyAmount(effectiveStaff, monthDate, effectiveStaff.start_date, rateParams, holidayWeeks);
+  }, [effectiveStaff, monthDate, rateParams, holidayWeeks]);
 
   // Sync to calculatedAmount whenever it changes
   useEffect(() => {
@@ -535,9 +551,9 @@ function InlineClaimPanel({
 
   const getCalcBreakdown = () => {
     if (!rateParams) return null;
-    const role = staffMember.staff_role;
-    const allocType = staffMember.allocation_type;
-    const allocValue = staffMember.allocation_value;
+    const role = effectiveStaff.staff_role;
+    const allocType = effectiveStaff.allocation_type;
+    const allocValue = effectiveStaff.allocation_value;
     const roleConfig = rateParams.getRoleConfig?.(role);
     const annualRate = rateParams.getRoleAnnualRate?.(role) ?? 0;
     const includesOnCosts = roleConfig?.includes_on_costs !== false;
@@ -1001,6 +1017,90 @@ function InlineClaimPanel({
                     </div>
                   </div>
 
+                  {/* Allocation override toggle — non-locum, non-meeting, non-management.
+                      Lets the user re-cast WTE ↔ Hours/wk for this claim only. */}
+                  {!isLocum && !isMeeting && !isManagement && staffMember.staff_role !== 'NRES Management' && (
+                    (staffMember.allocation_type === 'wte' || staffMember.allocation_type === 'hours') && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                        padding: '8px 12px', marginBottom: 10,
+                        background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7,
+                      }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Claim as</span>
+                        <div style={{ display: 'inline-flex', borderRadius: 6, overflow: 'hidden', border: '1px solid #bfdbfe' }}>
+                          {(['wte', 'hours'] as const).map(t => {
+                            const active = (overrideAllocType ?? staffMember.allocation_type) === t;
+                            return (
+                              <button
+                                key={t}
+                                onClick={() => {
+                                  // Convert current value into the new unit
+                                  const currentType = overrideAllocType ?? staffMember.allocation_type;
+                                  const currentVal = overrideAllocValue;
+                                  let newVal = currentVal;
+                                  if (currentType !== t) {
+                                    if (t === 'hours') newVal = +(currentVal * 37.5).toFixed(2);
+                                    else newVal = +(currentVal / 37.5).toFixed(4);
+                                  }
+                                  const cap = t === 'wte' ? 1 : 37.5;
+                                  if (newVal > cap) newVal = cap;
+                                  setOverrideAllocType(t);
+                                  setOverrideAllocValue(newVal);
+                                }}
+                                style={{
+                                  padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                                  background: active ? '#1e40af' : '#fff',
+                                  color: active ? '#fff' : '#1e40af',
+                                  border: 'none', cursor: 'pointer',
+                                }}
+                              >
+                                {t === 'wte' ? 'WTE' : 'Hours/wk'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          max={(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 1 : 37.5}
+                          step={(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 0.01 : 0.5}
+                          value={overrideAllocValue}
+                          onChange={e => {
+                            const raw = Number(e.target.value);
+                            const t = overrideAllocType ?? staffMember.allocation_type;
+                            const cap = t === 'wte' ? 1 : 37.5;
+                            const v = Math.max(0, Math.min(raw, cap));
+                            setOverrideAllocType(t as 'wte' | 'hours');
+                            setOverrideAllocValue(v);
+                          }}
+                          style={{
+                            width: 80, padding: '5px 8px', borderRadius: 6,
+                            border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600,
+                            textAlign: 'right', outline: 'none', background: '#fff',
+                          }}
+                        />
+                        <span style={{ fontSize: 11, color: '#1e40af' }}>
+                          {(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 'Max 1.0 WTE' : 'Max 37.5 hrs/wk'}
+                        </span>
+                        {overrideAllocType && (
+                          <button
+                            onClick={() => {
+                              setOverrideAllocType(null);
+                              setOverrideAllocValue(staffMember.allocation_value || 0);
+                            }}
+                            style={{
+                              marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
+                              border: '1px solid #bfdbfe', background: '#fff', color: '#1e40af',
+                              fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                            }}
+                          >
+                            Reset to {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  )}
+
                   {/* Management breakdown (existing rich rows) */}
                   {(staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') && (rateParams?.rawWorkingWeeksInMonth || rateParams?.workingWeeksInMonth) && staffMember.hourly_rate ? (() => {
                     const rawWw = rateParams.rawWorkingWeeksInMonth ?? rateParams.workingWeeksInMonth!;
@@ -1141,7 +1241,7 @@ function InlineClaimPanel({
                           ? (standardClaimedAmount > 0 ? standardClaimedAmount : calculatedAmount)
                           : calculatedAmount;
                         const holWeeks = (staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') ? holidayWeeks : 0;
-                        const result = await onCreateClaim(monthDate, staffMember, amountToUse, holWeeks);
+                        const result = await onCreateClaim(monthDate, effectiveStaff, amountToUse, holWeeks);
                         if (result) setLocalClaim(result);
                       } finally {
                         setCreating(false);
