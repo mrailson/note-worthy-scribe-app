@@ -415,12 +415,6 @@ const NRESTimeTracker = () => {
                 ) : (
                   <>
                     <button
-                      onClick={() => setDateReversed(r => !r)}
-                      title={dateReversed ? 'Today first' : 'Today last'}
-                      className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
-                      <ArrowLeftRight className="w-3 h-3" /> Reverse
-                    </button>
-                    <button
                       onClick={() => setWeekOffset(o => o + 1)}
                       title="Previous 7 days"
                       className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
