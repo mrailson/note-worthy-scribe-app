@@ -2115,7 +2115,7 @@ export function StaffRosterSection({
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [addName, setAddName] = useState('');
-  const [addRole, setAddRole] = useState('');
+  const [addRole, setAddRole] = useState(category === 'gp_locum' ? 'GP Locum' : '');
   const [addAllocType, setAddAllocType] = useState<'sessions'|'wte'|'hours'|'daily'>('sessions');
   const [addAllocValue, setAddAllocValue] = useState('');
   const [addHourlyRate, setAddHourlyRate] = useState('');
