@@ -474,7 +474,7 @@ const NRESTimeTracker = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <DateStripScroller>
                 {dateStrip.map(d => {
                   const active = isSameDay(d, selectedDate);
                   return (
@@ -488,7 +488,7 @@ const NRESTimeTracker = () => {
                     </button>
                   );
                 })}
-              </div>
+              </DateStripScroller>
             )}
           </CardContent>
         </Card>
