@@ -337,30 +337,57 @@ const NRESTimeTracker = () => {
   };
 
   // Exports — current month
-  const monthEntries = useMemo(() => {
-    const ms = startOfMonth(new Date()); const me = endOfMonth(new Date());
-    return entries.filter(e => {
-      const d = parseISO(e.entry_date); return d >= ms && d <= me;
+  type ExportRange = 'this-month' | 'last-month' | 'all-time';
+
+  const getRangeData = (range: ExportRange) => {
+    const now = new Date();
+    let start: Date | null = null;
+    let end: Date | null = null;
+    let label = '';
+    let fileTag = '';
+    if (range === 'this-month') {
+      start = startOfMonth(now); end = endOfMonth(now);
+      label = format(now, 'MMMM yyyy');
+      fileTag = format(now, 'yyyy-MM');
+    } else if (range === 'last-month') {
+      const lm = subMonths(now, 1);
+      start = startOfMonth(lm); end = endOfMonth(lm);
+      label = format(lm, 'MMMM yyyy');
+      fileTag = format(lm, 'yyyy-MM');
+    } else {
+      label = 'All time';
+      fileTag = 'all-time';
+    }
+    const filtered = entries.filter(e => {
+      if (!start || !end) return true;
+      const d = parseISO(e.entry_date);
+      return d >= start && d <= end;
     }).slice().sort((a, b) => a.entry_date.localeCompare(b.entry_date));
-  }, [entries]);
+    const fileBase = `nres-time-${fileTag}-${user?.email || 'user'}`;
+    return { entries: filtered, label, fileBase };
+  };
 
-  const monthLabel = format(new Date(), 'yyyy-MM');
-  const fileBase = `nres-time-${monthLabel}-${user?.email || 'user'}`;
-
-  const exportCSV = () => {
+  const exportCSV = (range: ExportRange) => {
+    const { entries: rangeEntries, label, fileBase } = getRangeData(range);
     const rows: string[][] = [['Date', 'Day', 'Activity', 'Duration (mins)', 'Duration (hh:mm)', 'Notes']];
     let total = 0;
-    const byAct: Record<string, number> = {};
-    for (const e of monthEntries) {
+    const byAct: Record<string, { mins: number; count: number }> = {};
+    for (const e of rangeEntries) {
       const d = parseISO(e.entry_date);
       rows.push([e.entry_date, format(d, 'EEE'), e.activity, String(e.minutes), formatDuration(e.minutes), (e.notes || '').replace(/"/g, '""')]);
       total += e.minutes;
-      byAct[e.activity] = (byAct[e.activity] || 0) + e.minutes;
+      if (!byAct[e.activity]) byAct[e.activity] = { mins: 0, count: 0 };
+      byAct[e.activity].mins += e.minutes;
+      byAct[e.activity].count += 1;
     }
-    rows.push(['', '', '', 'Total', String(total), formatDuration(total), '']);
-    rows.push(['', '', '', 'Activities:', '', '', '']);
-    for (const [act, mins] of Object.entries(byAct)) {
-      rows.push(['', '', act, String(mins), formatDuration(mins), '', '']);
+    rows.push([]);
+    rows.push(['', '', `Range: ${label}`, '', '', '']);
+    rows.push(['', '', 'Total entries', String(rangeEntries.length), '', '']);
+    rows.push(['', '', 'Total time', String(total), formatDuration(total), '']);
+    rows.push([]);
+    rows.push(['Activity breakdown', 'Entries', 'Minutes', 'Duration (hh:mm)', '', '']);
+    for (const [act, v] of Object.entries(byAct)) {
+      rows.push([act, String(v.count), String(v.mins), formatDuration(v.mins), '', '']);
     }
     const csv = rows.map(r => r.map(c => /[",\n]/.test(c) ? `"${c}"` : c).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -369,34 +396,56 @@ const NRESTimeTracker = () => {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
-  const exportPDF = () => {
+  const exportPDF = (range: ExportRange = 'this-month') => {
+    const { entries: rangeEntries, label, fileBase } = getRangeData(range);
     const doc = new jsPDF();
-    const monthStr = format(new Date(), 'MMMM yyyy');
     doc.setFontSize(16);
-    doc.text(`NRES Time Recording — ${monthStr}`, 14, 18);
+    doc.text(`NRES Time Recording — ${label}`, 14, 18);
     doc.setFontSize(10);
     doc.text(`${user?.email || ''}`, 14, 26);
     doc.text(`Generated: ${format(new Date(), 'd MMM yyyy HH:mm')}`, 14, 32);
 
-    const total = monthEntries.reduce((s, e) => s + e.minutes, 0);
-    const byAct: Record<string, number> = {};
-    monthEntries.forEach(e => { byAct[e.activity] = (byAct[e.activity] || 0) + e.minutes; });
+    const total = rangeEntries.reduce((s, e) => s + e.minutes, 0);
+    const byAct: Record<string, { mins: number; count: number }> = {};
+    rangeEntries.forEach(e => {
+      if (!byAct[e.activity]) byAct[e.activity] = { mins: 0, count: 0 };
+      byAct[e.activity].mins += e.minutes;
+      byAct[e.activity].count += 1;
+    });
+
+    doc.setFontSize(11);
+    doc.text(`Total entries: ${rangeEntries.length}    Total time: ${formatDuration(total)}`, 14, 40);
 
     autoTable(doc, {
-      startY: 40,
-      head: [['Activity', 'Total time', '% of month']],
-      body: Object.entries(byAct).map(([a, m]) => [
-        a, formatDuration(m), total ? `${((m / total) * 100).toFixed(1)}%` : '0%',
-      ]),
+      startY: 46,
+      head: [['Activity', 'Entries', 'Total time', '% of total']],
+      body: [
+        ...Object.entries(byAct).map(([a, v]) => [
+          a, String(v.count), formatDuration(v.mins), total ? `${((v.mins / total) * 100).toFixed(1)}%` : '0%',
+        ]),
+        [
+          { content: 'Total', styles: { fontStyle: 'bold' as const } },
+          { content: String(rangeEntries.length), styles: { fontStyle: 'bold' as const } },
+          { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
+          { content: '100%', styles: { fontStyle: 'bold' as const } },
+        ],
+      ],
       headStyles: { fillColor: [5, 150, 105] },
     });
 
     autoTable(doc, {
       head: [['Date', 'Activity', 'Duration', 'Notes']],
-      body: monthEntries.map(e => [
-        format(parseISO(e.entry_date), 'dd/MM/yyyy'),
-        e.activity, formatDuration(e.minutes), e.notes || '',
-      ]),
+      body: [
+        ...rangeEntries.map(e => [
+          format(parseISO(e.entry_date), 'dd/MM/yyyy'),
+          e.activity, formatDuration(e.minutes), e.notes || '',
+        ]),
+        [
+          { content: `Total entries: ${rangeEntries.length}`, colSpan: 2, styles: { fontStyle: 'bold' as const } },
+          { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
+          { content: '', styles: {} },
+        ],
+      ],
       headStyles: { fillColor: [5, 150, 105] },
     });
 
