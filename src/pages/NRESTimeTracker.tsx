@@ -63,6 +63,12 @@ const NRESTimeTracker = () => {
   const pendingInputRef = useRef<HTMLInputElement | null>(null);
   const [activityOpen, setActivityOpen] = useState(true);
   const [recentOpen, setRecentOpen] = useState(true);
+  const [editEntry, setEditEntry] = useState<Entry | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editActivity, setEditActivity] = useState('');
+  const [editMinutes, setEditMinutes] = useState(60);
+  const [editNotes, setEditNotes] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
