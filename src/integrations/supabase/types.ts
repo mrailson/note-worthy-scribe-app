@@ -9246,6 +9246,48 @@ export type Database = {
           },
         ]
       }
+      nres_buyback_practice_email_recipients: {
+        Row: {
+          contact_name: string
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          is_active: boolean
+          practice_key: string
+          receive_approval: boolean
+          receive_invoice: boolean
+          receive_payment_confirmation: boolean
+          updated_at: string
+        }
+        Insert: {
+          contact_name: string
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          is_active?: boolean
+          practice_key: string
+          receive_approval?: boolean
+          receive_invoice?: boolean
+          receive_payment_confirmation?: boolean
+          updated_at?: string
+        }
+        Update: {
+          contact_name?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean
+          practice_key?: string
+          receive_approval?: boolean
+          receive_invoice?: boolean
+          receive_payment_confirmation?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nres_buyback_rate_settings: {
         Row: {
           allow_invoice_email_when_suppressed: boolean
