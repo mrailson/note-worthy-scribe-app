@@ -1107,7 +1107,10 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewerName: emailConfig.currentUserName,
           reviewNotes: notes,
         };
-        sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
+        const extraApprovalRecipients = emailConfig.emailTestingMode
+          ? []
+          : await getBuybackPracticeRecipients(claim.practice_key, 'approval');
+        sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled, extraApprovalRecipients).catch(console.error);
         // approval_confirmation email removed — not needed
       }
     } catch (error) {
