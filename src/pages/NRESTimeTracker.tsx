@@ -19,6 +19,7 @@ import { TimeEntryAttachmentsModal } from '@/components/nres/time-tracker/TimeEn
 import { useTimeEntryAttachmentCounts, useNRESTimeEntryAttachments } from '@/hooks/useNRESTimeEntryAttachments';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+  DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { formatDuration } from '@/utils/formatDuration';
