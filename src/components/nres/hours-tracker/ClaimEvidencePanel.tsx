@@ -13,7 +13,7 @@ import { EvidenceViewerModal } from './EvidenceViewerModal';
 const SNO_EVIDENCE_CHECKLIST: Record<'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed', string[]> = {
   buyback: [
     'Existing contract of employment (redacted as needed)',
-    'Signed timesheet or rota screenshot for the claim month',
+    'Signed timesheet, rota screenshot or clinical-system slot-type report for the claim month (whichever you prefer)',
     'Clinical system slot type screenshot showing SDA slots',
     'Part B (LTC) substantiation — rota / SDA slot evidence proving backfill',
     'Pay slip extract may be requested (redaction policy applies)',
@@ -22,13 +22,13 @@ const SNO_EVIDENCE_CHECKLIST: Record<'buyback' | 'new_sda' | 'management' | 'gp_
     'Contract of employment',
     'Job description',
     'Start date evidence (offer letter or payroll record)',
-    'Signed timesheet or rota screenshot for the claim month',
+    'Signed timesheet, rota screenshot or clinical-system slot-type report for the claim month (whichever you prefer)',
     'Clinical system slot type screenshot showing SDA slots',
     'GMC number (optional, where applicable)',
   ],
   gp_locum: [
     'Locum invoice from the locum to the practice',
-    'Signed timesheet or rota screenshot showing dates and sessions worked',
+    'Signed timesheet, rota screenshot or clinical-system slot-type report showing dates and sessions worked (whichever you prefer)',
     'Clinical system slot type screenshot showing SDA slots',
     'GMC number',
     'Indemnity confirmation (where requested by the SNO)',
