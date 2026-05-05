@@ -237,7 +237,7 @@ const NRESTimeTracker = () => {
   const handleDeleteActivity = async (id: string) => {
     try {
       const { error } = await (supabase as any)
-        .from('nres_user_activities').delete().eq('id', id);
+        .from('nres_user_activities').delete().eq('id', id).eq('user_id', user!.id);
       if (error) throw error;
       setActivities(prev => prev.filter(a => a.id !== id));
     } catch { toast.error('Failed to delete'); }
