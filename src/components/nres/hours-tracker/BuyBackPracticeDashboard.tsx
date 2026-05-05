@@ -2289,7 +2289,14 @@ export function StaffRosterSection({
               </select>
             </div>}
             {!isAddingMeeting && <div style={{ flex: '0 1 70px', minWidth: 60 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>Value</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4, marginBottom: 3 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#6b7280' }}>Value</span>
+                {category !== 'gp_locum' && (addAllocType === 'wte' || addAllocType === 'hours') && (
+                  <span style={{ fontSize: 10, color: '#9ca3af' }}>
+                    Max {addAllocType === 'wte' ? '1.0 WTE' : '37.5 hrs/wk'}
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
                 value={addAllocValue}
@@ -2298,11 +2305,6 @@ export function StaffRosterSection({
                 placeholder="e.g. 4"
                 style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
               />
-              {category !== 'gp_locum' && (addAllocType === 'wte' || addAllocType === 'hours') && (
-                <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>
-                  Max {addAllocType === 'wte' ? '1.0 WTE' : '37.5 hrs/wk'}
-                </div>
-              )}
             </div>}
             {/* GP Locum rates are governed by master settings (£375/session = £90/hr) — no per-staff rate input needed */}
             <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)} style={{
