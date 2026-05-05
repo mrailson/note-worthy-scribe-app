@@ -54,6 +54,9 @@ const NRESTimeTracker = () => {
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [newActivityLabel, setNewActivityLabel] = useState('');
   const [saving, setSaving] = useState(false);
+  const [attachmentEntry, setAttachmentEntry] = useState<Entry | null>(null);
+  const recentEntries = entries.slice(0, 50);
+  const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
   // Last 10 days
   const dateStrip = useMemo(() => {
