@@ -34,7 +34,7 @@ export const NRES_ODS_CODES: Record<string, string> = {
 
 export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
   parks: 'The Parks Medical Practice, Alcester Road, Stratford Road, Towcester, NN12 6BX',
-  brackley: 'Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
+  brackley: 'Brackley Medical Centre, Wellington Road, Brackley, NN13 6QZ',
   springfield: 'Springfield Surgery, Horsefair, Towcester, NN12 6BT',
   towcester: 'Towcester Medical Centre, Richmond Road, Towcester, NN12 6EX',
   bugbrooke: 'Bugbrooke Medical Practice, Levitts Road, Bugbrooke, Northampton, NN7 3QN',
