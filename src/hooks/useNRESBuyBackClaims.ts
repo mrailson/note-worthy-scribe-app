@@ -882,8 +882,12 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
               : pmlFinanceEmail;
-            const bccList = ['amanda.palin2@nhs.net', 'malcolm.railson@nhs.net']
-              .filter(email => email.toLowerCase() !== invoiceRecipient.toLowerCase());
+            const extraInvoiceRecipients = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? []
+              : await getBuybackPracticeRecipients(practiceKey, 'invoice');
+            const bccList = [...['amanda.palin2@nhs.net', 'malcolm.railson@nhs.net'], ...extraInvoiceRecipients]
+              .filter((email, idx, arr) => email.toLowerCase() !== invoiceRecipient.toLowerCase()
+                && arr.findIndex(e => e.toLowerCase() === email.toLowerCase()) === idx);
             const invoiceBcc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail) ? [] : bccList;
 
             const { data: evidenceRows, error: evidenceError } = await supabase
