@@ -543,8 +543,11 @@ const NRESTimeTracker = () => {
               >
                 {activityOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                 ACTIVITY
-                {!activityOpen && selectedActivity && (
-                  <span className="ml-2 text-emerald-700 normal-case">· {selectedActivity}</span>
+                {!activityOpen && (
+                  <span className="ml-2 normal-case text-slate-600">
+                    · {activities.length} {activities.length === 1 ? 'activity' : 'activities'} — click to expand
+                    {selectedActivity && <span className="ml-1 text-emerald-700">(selected: {selectedActivity})</span>}
+                  </span>
                 )}
               </button>
               {activityOpen && (
