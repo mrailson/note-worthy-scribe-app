@@ -377,19 +377,6 @@ const NRESTimeTracker = () => {
     <div className="min-h-screen bg-slate-50">
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate('/nres');
-            }}
-            className="text-sm text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
-          >
-            <ChevronLeft className="w-4 h-4" /> Back to NRES
-          </button>
-        </div>
-
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-600" /> NRES Time Tracker
