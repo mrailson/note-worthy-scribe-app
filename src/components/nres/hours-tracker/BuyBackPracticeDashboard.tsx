@@ -2138,11 +2138,17 @@ export function StaffRosterSection({
     if (!addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)) return;
     setAddSaving(true);
     try {
+      // Cap non-locum allocations at 1.0 WTE / 37.5 hrs per week
+      let allocVal = isAddingMeeting ? 0 : Number(addAllocValue);
+      if (!isAddingMeeting && addCategory !== 'gp_locum') {
+        if (addAllocType === 'wte' && allocVal > 1) allocVal = 1;
+        if (addAllocType === 'hours' && allocVal > 37.5) allocVal = 37.5;
+      }
       await onAddStaff?.({
         staff_name: addName.trim(),
         staff_role: addRole,
         allocation_type: isAddingMeeting ? 'hours' : addAllocType,
-        allocation_value: isAddingMeeting ? 0 : Number(addAllocValue),
+        allocation_value: allocVal,
         hourly_rate: isAddingMeeting ? selectedMeetingRole.rate : Number(addHourlyRate) || 0,
         is_active: true,
         staff_category: addCategory as any,
