@@ -2285,6 +2285,9 @@ export function StaffRosterSection({
                   placeholder={addAllocType === 'hours' ? 'e.g. 90' : addAllocType === 'daily' ? 'e.g. 750' : 'e.g. 375'}
                   style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
                 />
+                <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3, lineHeight: 1.3 }}>
+                  Max £375/session<br />Max £90/hr (= £375 ÷ 4h 10m)
+                </div>
               </div>
             )}
             <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)} style={{
