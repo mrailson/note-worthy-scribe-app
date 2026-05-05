@@ -3826,6 +3826,24 @@ export function BuyBackPracticeDashboard({
     setActiveClaimKey(prev => prev === key ? null : key);
   };
 
+  const handleContinueDraft = (claim: BuyBackClaim) => {
+    const dets = (claim.staff_details || []) as any[];
+    const first = dets[0];
+    if (!first) return;
+    // Find the matching staff/management roster entry
+    const allRosterMembers = [...buybackStaff, ...gpLocumStaff, ...newSdaStaff, ...managementStaff];
+    const member = allRosterMembers.find(m =>
+      m.staff_name === first.staff_name && m.staff_role === first.staff_role
+    );
+    if (!member) {
+      window.alert('Could not locate this staff member in the roster — they may have been removed.');
+      return;
+    }
+    const monthKey = claim.claim_month.slice(0, 7) + '-01';
+    setActiveClaimKey(`${member.id}_${monthKey}`);
+    setTimeout(() => rosterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
+
   // Claims history — all non-draft claims
   const historyClaims = useMemo(() => {
     const order: Record<string, number> = { queried: 0, draft: 1, submitted: 2, verified: 3, approved: 4, invoiced: 5, paid: 6, rejected: 7 };
