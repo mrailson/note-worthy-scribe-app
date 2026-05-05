@@ -7,8 +7,11 @@ import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Trash2, Plus, X, Download, Settings2, Paperclip, ArrowLeftRight, CalendarDays, CalendarRange } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Trash2, Plus, X, Download, Settings2, Paperclip, ArrowLeftRight, CalendarDays, CalendarRange, Pencil } from 'lucide-react';
 import { TimeEntryAttachmentsModal } from '@/components/nres/time-tracker/TimeEntryAttachmentsModal';
 import { useTimeEntryAttachmentCounts, useNRESTimeEntryAttachments } from '@/hooks/useNRESTimeEntryAttachments';
 import {
@@ -60,6 +63,12 @@ const NRESTimeTracker = () => {
   const pendingInputRef = useRef<HTMLInputElement | null>(null);
   const [activityOpen, setActivityOpen] = useState(true);
   const [recentOpen, setRecentOpen] = useState(true);
+  const [editEntry, setEditEntry] = useState<Entry | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editActivity, setEditActivity] = useState('');
+  const [editMinutes, setEditMinutes] = useState(60);
+  const [editNotes, setEditNotes] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
@@ -265,6 +274,36 @@ const NRESTimeTracker = () => {
     } catch (e: any) { toast.error('Delete failed'); }
   };
 
+  const openEditEntry = (e: Entry) => {
+    setEditEntry(e);
+    setEditDate(e.entry_date);
+    setEditActivity(e.activity);
+    setEditMinutes(e.minutes);
+    setEditNotes(e.notes || '');
+  };
+
+  const saveEditEntry = async () => {
+    if (!editEntry) return;
+    if (!editActivity.trim()) { toast.error('Activity required'); return; }
+    if (editMinutes < 5 || editMinutes > 6000) { toast.error('Duration must be 5–6000 minutes'); return; }
+    setEditSaving(true);
+    try {
+      const updates = {
+        entry_date: editDate,
+        activity: editActivity.trim(),
+        minutes: editMinutes,
+        notes: editNotes.trim() || null,
+      };
+      const { data, error } = await (supabase as any)
+        .from('nres_time_entries').update(updates).eq('id', editEntry.id).select().single();
+      if (error) throw error;
+      setEntries(prev => prev.map(e => e.id === editEntry.id ? { ...e, ...(data || updates) } : e));
+      toast.success('Entry updated');
+      setEditEntry(null);
+    } catch (e: any) {
+      console.error(e); toast.error(e?.message || 'Update failed');
+    } finally { setEditSaving(false); }
+  };
   const handleAddActivity = async () => {
     const label = newActivityLabel.trim();
     if (!user?.id) return;
@@ -767,6 +806,13 @@ const NRESTimeTracker = () => {
                           <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
                         )}
                       </button>
+                      <button
+                        onClick={() => openEditEntry(e)}
+                        title="Edit entry"
+                        className="text-slate-400 hover:text-emerald-700 hover:bg-slate-100 p-1.5 rounded-md shrink-0"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                       <button onClick={() => handleDeleteEntry(e.id)} className="text-slate-400 hover:text-red-600 shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -785,6 +831,79 @@ const NRESTimeTracker = () => {
         entryLabel={attachmentEntry ? `${attachmentEntry.activity} · ${format(parseISO(attachmentEntry.entry_date), 'EEE d MMM')}` : undefined}
         onClose={() => { setAttachmentEntry(null); refreshCounts(); }}
       />
+
+      <Dialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-800">
+              <Pencil className="w-4 h-4 text-emerald-600" /> Edit entry
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="edit-date" className="text-xs">Date</Label>
+              <Input id="edit-date" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-activity" className="text-xs">Activity</Label>
+              <select
+                id="edit-activity"
+                value={activities.some(a => a.label === editActivity) ? editActivity : '__custom'}
+                onChange={(e) => {
+                  if (e.target.value !== '__custom') setEditActivity(e.target.value);
+                }}
+                className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                {activities.map(a => <option key={a.id} value={a.label}>{a.label}</option>)}
+                {!activities.some(a => a.label === editActivity) && (
+                  <option value="__custom">{editActivity} (custom)</option>
+                )}
+              </select>
+              <Input
+                value={editActivity}
+                onChange={e => setEditActivity(e.target.value)}
+                placeholder="Or type a custom activity"
+                className="mt-1"
+                maxLength={120}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-mins" className="text-xs">
+                Duration · {formatDuration(editMinutes)} ({editMinutes} min)
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="edit-mins"
+                  type="number"
+                  min={5}
+                  max={6000}
+                  step={5}
+                  value={editMinutes}
+                  onChange={e => setEditMinutes(Number(e.target.value) || 0)}
+                  className="w-28"
+                />
+                <span className="text-xs text-slate-500">minutes</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-notes" className="text-xs">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                rows={3}
+                value={editNotes}
+                onChange={e => setEditNotes(e.target.value)}
+                placeholder="Optional notes"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditEntry(null)} disabled={editSaving}>Cancel</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={saveEditEntry} disabled={editSaving}>
+              {editSaving ? 'Saving…' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
