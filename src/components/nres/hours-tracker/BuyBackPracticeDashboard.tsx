@@ -2290,9 +2290,6 @@ export function StaffRosterSection({
                 </div>
               </div>
             )}
-            {/* Spacer to keep button alignment */}
-            {false && (
-              <div>
             <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)} style={{
               padding: '7px 16px', borderRadius: 7, border: 'none', background: accent,
               color: '#fff', fontSize: 12, fontWeight: 600, cursor: addSaving ? 'not-allowed' : 'pointer',
