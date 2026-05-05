@@ -551,9 +551,9 @@ function InlineClaimPanel({
 
   const getCalcBreakdown = () => {
     if (!rateParams) return null;
-    const role = staffMember.staff_role;
-    const allocType = staffMember.allocation_type;
-    const allocValue = staffMember.allocation_value;
+    const role = effectiveStaff.staff_role;
+    const allocType = effectiveStaff.allocation_type;
+    const allocValue = effectiveStaff.allocation_value;
     const roleConfig = rateParams.getRoleConfig?.(role);
     const annualRate = rateParams.getRoleAnnualRate?.(role) ?? 0;
     const includesOnCosts = roleConfig?.includes_on_costs !== false;
