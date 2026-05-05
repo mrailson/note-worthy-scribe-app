@@ -3130,7 +3130,7 @@ function PracticeEvidenceSection({ claimId, staffLines }: { claimId: string; sta
   );
 }
 
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, showPracticeName, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, onContinueDraft, showPracticeName, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
@@ -3138,6 +3138,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   onDeleteClaim?: (id: string) => Promise<void>;
+  onContinueDraft?: (claim: BuyBackClaim) => void;
   showPracticeName?: boolean;
   saving?: boolean;
 }) {
