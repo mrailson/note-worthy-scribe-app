@@ -1545,18 +1545,25 @@ async function callClaude(messages, systemPrompt, onChunk, onKbSources, latestMe
       max_tokens: 4096,
       systemPrompt,
       latestMessage: latestMessage || "",
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.files?.length
-          ? [
-              ...m.files.map(f => ({
-                type: f.mediaType?.includes("image") ? "image" : "document",
-                source: { type: "base64", media_type: f.mediaType, data: f.data },
-              })),
-              { type: "text", text: m.content },
-            ]
-          : m.content,
-      })),
+      messages: messages.map(m => {
+        if (!m.files?.length) return { role: m.role, content: m.content };
+        const blocks = [];
+        const textParts = [];
+        for (const f of m.files) {
+          const isImage = f.mediaType?.includes("image");
+          const isPdf = f.mediaType === "application/pdf";
+          if (isImage) {
+            blocks.push({ type: "image", source: { type: "base64", media_type: f.mediaType, data: f.data } });
+          } else if (isPdf) {
+            blocks.push({ type: "document", source: { type: "base64", media_type: f.mediaType, data: f.data } });
+          } else if (f.extractedText) {
+            textParts.push(`--- Attached file: ${f.name} ---\n${f.extractedText}\n--- End of ${f.name} ---`);
+          }
+        }
+        const combined = [textParts.join("\n\n"), m.content].filter(Boolean).join("\n\n");
+        blocks.push({ type: "text", text: combined });
+        return { role: m.role, content: blocks };
+      }),
     }),
   });
 
