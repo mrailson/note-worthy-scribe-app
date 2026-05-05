@@ -517,7 +517,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         <Video className="h-4 w-4 mr-2" />
                         Training Videos
                       </DropdownMenuItem>
-                      {isServiceVisible('nres') && (
+                      {isServiceVisible('nres') && (isSystemAdmin || hasServiceAccess('nres')) && (
                         <DropdownMenuItem
                           onClick={() => navigate('/nres/time-tracker')}
                           className="cursor-pointer py-3 text-emerald-700"
