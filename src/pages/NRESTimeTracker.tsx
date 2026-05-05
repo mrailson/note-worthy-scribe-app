@@ -358,8 +358,11 @@ const NRESTimeTracker = () => {
 
         {/* Duration */}
         <Card className="rounded-xl border-2 border-slate-200">
-          <CardContent className="p-3">
-            <div className="text-xs font-medium text-slate-500 mb-2">DURATION</div>
+          <CardContent className="p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-medium text-slate-500">DURATION</div>
+              <div className="text-sm font-semibold text-emerald-700">{formatDuration(selectedDuration)}</div>
+            </div>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
               {DURATION_OPTIONS.map(m => {
                 const active = selectedDuration === m;
@@ -372,6 +375,18 @@ const NRESTimeTracker = () => {
                   </button>
                 );
               })}
+            </div>
+            <div className="px-1 pt-1">
+              <Slider
+                min={5}
+                max={180}
+                step={5}
+                value={[selectedDuration]}
+                onValueChange={(v) => setSelectedDuration(v[0])}
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>5m</span><span>1h</span><span>2h</span><span>3h</span>
+              </div>
             </div>
           </CardContent>
         </Card>
