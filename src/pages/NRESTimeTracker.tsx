@@ -20,7 +20,6 @@ import { useTimeEntryAttachmentCounts, useNRESTimeEntryAttachments } from '@/hoo
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-} from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
