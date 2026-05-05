@@ -638,7 +638,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </Button>
                     </DrawerClose>
 
-                    {user && isServiceVisible('nres') && (
+                    {user && isServiceVisible('nres') && (isSystemAdmin || hasServiceAccess('nres')) && (
                       <DrawerClose asChild>
                         <Button
                           variant="ghost"
