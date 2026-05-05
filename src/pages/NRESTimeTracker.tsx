@@ -799,26 +799,34 @@ const NRESTimeTracker = () => {
                         </div>
                       </div>
                       <div className="text-sm font-semibold text-emerald-700 shrink-0">{formatDuration(e.minutes)}</div>
-                      <button
-                        onClick={() => setAttachmentEntry(e)}
-                        title="Attachments"
-                        className={`relative shrink-0 p-1.5 rounded-md transition ${count > 0 ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 hover:text-emerald-700 hover:bg-slate-100'}`}
-                      >
-                        <Paperclip className="w-4 h-4" />
-                        {count > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => openEditEntry(e)}
-                        title="Edit entry"
-                        className="text-slate-400 hover:text-emerald-700 hover:bg-slate-100 p-1.5 rounded-md shrink-0"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDeleteEntry(e.id)} className="text-slate-400 hover:text-red-600 shrink-0">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            title="More actions"
+                            className="relative shrink-0 p-1.5 rounded-md text-slate-400 hover:text-emerald-700 hover:bg-slate-100 transition"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                            {count > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
+                            )}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem onClick={() => setAttachmentEntry(e)}>
+                            <Paperclip className="w-4 h-4 mr-2" />
+                            Attachments{count > 0 ? ` (${count})` : ''}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditEntry(e)}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit entry
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleDeleteEntry(e.id)} className="text-red-600 focus:text-red-600">
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </li>
                   );
                 })}
