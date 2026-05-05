@@ -61,6 +61,61 @@ const NRESTimeTracker = () => {
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
+  const draftKey = user?.id ? `nres-time-draft:${user.id}` : null;
+  const draftLoadedRef = useRef(false);
+
+  // Restore draft once user is known
+  useEffect(() => {
+    if (!draftKey || draftLoadedRef.current) return;
+    draftLoadedRef.current = true;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.selectedDate) setSelectedDate(new Date(d.selectedDate));
+      if (d.selectedActivity) setSelectedActivity(d.selectedActivity);
+      if (typeof d.selectedDuration === 'number') setSelectedDuration(d.selectedDuration);
+      if (typeof d.notes === 'string') setNotes(d.notes);
+      if (Array.isArray(d.pendingFiles) && d.pendingFiles.length) {
+        const restored: File[] = d.pendingFiles.map((f: any) => {
+          const bin = atob(f.data);
+          const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          return new File([arr], f.name, { type: f.type });
+        });
+        setPendingFiles(restored);
+      }
+    } catch (e) { console.warn('draft restore failed', e); }
+  }, [draftKey]);
+
+  // Persist draft as it changes
+  useEffect(() => {
+    if (!draftKey || !draftLoadedRef.current) return;
+    const hasContent = selectedActivity || notes.trim() || pendingFiles.length > 0;
+    if (!hasContent) { localStorage.removeItem(draftKey); return; }
+    const writeDraft = async () => {
+      try {
+        const filesPayload: any[] = [];
+        let total = 0;
+        for (const f of pendingFiles) {
+          if (total + f.size > 3_500_000) break; // ~3.5MB cap
+          const buf = await f.arrayBuffer();
+          let bin = '';
+          const bytes = new Uint8Array(buf);
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          filesPayload.push({ name: f.name, type: f.type, data: btoa(bin) });
+          total += f.size;
+        }
+        localStorage.setItem(draftKey, JSON.stringify({
+          selectedDate: selectedDate.toISOString(),
+          selectedActivity, selectedDuration, notes,
+          pendingFiles: filesPayload,
+        }));
+      } catch (e) { console.warn('draft save failed', e); }
+    };
+    writeDraft();
+  }, [draftKey, selectedDate, selectedActivity, selectedDuration, notes, pendingFiles]);
+
   // Last 10 days
   const dateStrip = useMemo(() => {
     const today = new Date();
