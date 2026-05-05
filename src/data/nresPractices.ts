@@ -40,7 +40,7 @@ export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
   bugbrooke: 'Bugbrooke Medical Practice, Levitts Road, Bugbrooke, Northampton, NN7 3QN',
   brook: 'Brook Health Centre, Stratford Road, Roade, Northampton, NN7 2NT',
   denton: 'Denton Village Surgery, Orchard Lane, Denton, Northampton, NN7 1HT',
-  bt_pcn: 'Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
+  bt_pcn: 'Brackley Medical Centre, Wellington Road, Brackley, NN13 6QZ',
 };
 
 export interface NRESPracticeContact {
