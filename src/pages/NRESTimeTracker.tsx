@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { format, addDays, startOfMonth, endOfMonth, isSameDay, parseISO, subMonths, eachDayOfInterval, getDay } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +42,7 @@ interface Entry {
 
 const NRESTimeTracker = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -377,9 +378,16 @@ const NRESTimeTracker = () => {
       <Header />
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         <div className="flex items-center justify-between">
-          <Link to="/nres" className="text-sm text-slate-600 hover:text-slate-900 inline-flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) navigate(-1);
+              else navigate('/nres');
+            }}
+            className="text-sm text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+          >
             <ChevronLeft className="w-4 h-4" /> Back to NRES
-          </Link>
+          </button>
         </div>
 
         <div>
