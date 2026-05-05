@@ -133,9 +133,16 @@ const NRESTimeTracker = () => {
         minutes: selectedDuration, notes: notes.trim() || null,
       }).select().single();
       if (error) throw error;
-      setEntries(prev => [data, ...prev]);
-      toast.success(`Logged ${formatDuration(selectedDuration)} for ${format(selectedDate, 'd MMM')}`);
-      setSelectedActivity(''); setNotes(''); setSelectedDuration(60);
+      const newEntry = data as Entry;
+      // Upload any pending attachments to the freshly-created entry
+      if (pendingFiles.length > 0) {
+        for (const f of pendingFiles) {
+          await uploadStandalone(f, newEntry.id);
+        }
+      }
+      setEntries(prev => [newEntry, ...prev]);
+      toast.success(`Logged ${formatDuration(selectedDuration)} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
+      setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
     } finally { setSaving(false); }
