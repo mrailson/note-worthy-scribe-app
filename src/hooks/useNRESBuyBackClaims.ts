@@ -455,7 +455,7 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
       if (error) throw error;
       setClaims(prev => [data as BuyBackClaim, ...prev]);
-      toast.success('Claim created');
+      toast.success('Draft Claim Created');
       return data;
     } catch (error) {
       console.error('Error creating buyback claim:', error);
