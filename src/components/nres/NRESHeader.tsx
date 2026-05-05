@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SDAFeedbackModal } from "@/components/sda/SDAFeedbackModal";
-import { Home, Grid3X3, ChevronDown, Stars, Circle, MessageSquareWarning, User, LogOut } from "lucide-react";
+import { Home, Grid3X3, ChevronDown, Stars, Circle, MessageSquareWarning, User, LogOut, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
