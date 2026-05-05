@@ -622,6 +622,19 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </Button>
                     </DrawerClose>
 
+                    {user && isServiceVisible('nres') && (
+                      <DrawerClose asChild>
+                        <Button
+                          variant="ghost"
+                          className="justify-start font-medium text-emerald-700"
+                          onClick={() => navigate('/nres/time-tracker')}
+                        >
+                          <Clock className="h-4 w-4 mr-2" />
+                          NRES Time Tracker
+                        </Button>
+                      </DrawerClose>
+                    )}
+
 
                     {!user && (
                       <>
