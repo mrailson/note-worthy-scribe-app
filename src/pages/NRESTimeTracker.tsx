@@ -11,7 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Trash2, Plus, X, Download, Settings2, Paperclip, ArrowLeftRight, CalendarDays, CalendarRange, Pencil } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Trash2, Plus, X, Download, Settings2, Paperclip, ArrowLeftRight, CalendarDays, CalendarRange, Pencil, FileText, Activity as ActivityIcon, Timer } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { TimeEntryAttachmentsModal } from '@/components/nres/time-tracker/TimeEntryAttachmentsModal';
 import { useTimeEntryAttachmentCounts, useNRESTimeEntryAttachments } from '@/hooks/useNRESTimeEntryAttachments';
 import {
@@ -833,72 +836,158 @@ const NRESTimeTracker = () => {
       />
 
       <Dialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-slate-800">
-              <Pencil className="w-4 h-4 text-emerald-600" /> Edit entry
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+            <DialogTitle className="flex items-center gap-2 text-slate-800 text-lg">
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600">
+                <Pencil className="w-4 h-4" />
+              </span>
+              Edit entry
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="edit-date" className="text-xs">Date</Label>
-              <Input id="edit-date" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="edit-activity" className="text-xs">Activity</Label>
-              <select
-                id="edit-activity"
-                value={activities.some(a => a.label === editActivity) ? editActivity : '__custom'}
-                onChange={(e) => {
-                  if (e.target.value !== '__custom') setEditActivity(e.target.value);
-                }}
-                className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
-              >
-                {activities.map(a => <option key={a.id} value={a.label}>{a.label}</option>)}
-                {!activities.some(a => a.label === editActivity) && (
-                  <option value="__custom">{editActivity} (custom)</option>
+
+          <div className="px-6 py-5 space-y-4">
+            {/* Date */}
+            <Card className="rounded-xl border-2 border-slate-200">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <CalendarDays className="w-3.5 h-3.5" /> DATE
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex flex-col items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-2 text-emerald-800 hover:bg-emerald-100 transition"
+                    >
+                      <span className="text-[10px] font-semibold uppercase tracking-wider">
+                        {editDate ? format(parseISO(editDate), 'EEE') : '—'}
+                      </span>
+                      <span className="text-2xl font-bold leading-none">
+                        {editDate ? format(parseISO(editDate), 'd') : '—'}
+                      </span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider">
+                        {editDate ? format(parseISO(editDate), 'MMM') : ''}
+                      </span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={editDate ? parseISO(editDate) : undefined}
+                      onSelect={(d) => d && setEditDate(format(d, 'yyyy-MM-dd'))}
+                      initialFocus
+                      className={cn('p-3 pointer-events-auto')}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </CardContent>
+            </Card>
+
+            {/* Activity */}
+            <Card className="rounded-xl border-2 border-slate-200">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <ActivityIcon className="w-3.5 h-3.5" /> ACTIVITY
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {activities.map(a => {
+                    const active = editActivity === a.label;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => setEditActivity(a.label)}
+                        className={cn(
+                          'rounded-full px-4 py-2 text-sm font-medium border-2 text-left transition',
+                          active
+                            ? 'bg-emerald-600 border-emerald-700 text-white'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-400'
+                        )}
+                      >
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!activities.some(a => a.label === editActivity) && editActivity && (
+                  <div className="text-xs text-slate-500 pt-1">
+                    Custom: <span className="font-medium text-slate-700">{editActivity}</span>
+                  </div>
                 )}
-              </select>
-              <Input
-                value={editActivity}
-                onChange={e => setEditActivity(e.target.value)}
-                placeholder="Or type a custom activity"
-                className="mt-1"
-                maxLength={120}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="edit-mins" className="text-xs">
-                Duration · {formatDuration(editMinutes)} ({editMinutes} min)
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="edit-mins"
-                  type="number"
-                  min={5}
-                  max={6000}
-                  step={5}
-                  value={editMinutes}
-                  onChange={e => setEditMinutes(Number(e.target.value) || 0)}
-                  className="w-28"
+              </CardContent>
+            </Card>
+
+            {/* Duration */}
+            <Card className="rounded-xl border-2 border-slate-200">
+              <CardContent className="p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                    <Timer className="w-3.5 h-3.5" /> DURATION
+                  </div>
+                  <div className="text-lg font-semibold text-emerald-700">{formatDuration(editMinutes)}</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[30, 45, 60, 75, 90].map(m => {
+                    const active = editMinutes === m;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setEditMinutes(m)}
+                        className={cn(
+                          'rounded-full px-4 py-2 text-sm font-medium border-2 transition',
+                          active
+                            ? 'bg-emerald-600 border-emerald-700 text-white'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-400'
+                        )}
+                      >
+                        {formatDuration(m)}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="px-1 pt-1">
+                  <Slider
+                    min={5}
+                    max={240}
+                    step={5}
+                    value={[Math.min(240, Math.max(5, editMinutes))]}
+                    onValueChange={(v) => setEditMinutes(v[0])}
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>5m</span><span>1h</span><span>2h</span><span>3h</span><span>4h</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notes */}
+            <Card className="rounded-xl border-2 border-slate-200">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <FileText className="w-3.5 h-3.5" /> NOTES
+                </div>
+                <Textarea
+                  id="edit-notes"
+                  rows={4}
+                  value={editNotes}
+                  onChange={e => setEditNotes(e.target.value)}
+                  placeholder="Add any context, decisions, or follow-ups…"
+                  className="rounded-lg border-slate-200 focus-visible:ring-emerald-500 focus-visible:ring-2 focus-visible:ring-offset-0"
                 />
-                <span className="text-xs text-slate-500">minutes</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="edit-notes" className="text-xs">Notes</Label>
-              <Textarea
-                id="edit-notes"
-                rows={3}
-                value={editNotes}
-                onChange={e => setEditNotes(e.target.value)}
-                placeholder="Optional notes"
-              />
-            </div>
+              </CardContent>
+            </Card>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditEntry(null)} disabled={editSaving}>Cancel</Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={saveEditEntry} disabled={editSaving}>
+
+          <DialogFooter className="px-6 py-4 border-t border-slate-100 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setEditEntry(null)} disabled={editSaving}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={saveEditEntry}
+              disabled={editSaving}
+            >
               {editSaving ? 'Saving…' : 'Save changes'}
             </Button>
           </DialogFooter>
