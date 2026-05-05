@@ -608,6 +608,20 @@ const NRESTimeTracker = () => {
                 }}
               />
             </div>
+            {noteSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {noteSuggestions.map((s, i) => (
+                  <button
+                    key={`${i}-${s}`}
+                    type="button"
+                    onClick={() => setNotes(s)}
+                    title={s}
+                    className="text-[11px] px-2 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 max-w-[220px] truncate">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             <Input
               value={notes}
               onChange={e => setNotes(e.target.value)}
