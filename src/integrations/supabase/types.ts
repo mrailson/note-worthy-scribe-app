@@ -9952,6 +9952,66 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_time_entries: {
+        Row: {
+          activity: string
+          created_at: string
+          entry_date: string
+          id: string
+          minutes: number
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity: string
+          created_at?: string
+          entry_date: string
+          id?: string
+          minutes: number
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity?: string
+          created_at?: string
+          entry_date?: string
+          id?: string
+          minutes?: number
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nres_user_activities: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       nres_user_settings: {
         Row: {
           created_at: string
