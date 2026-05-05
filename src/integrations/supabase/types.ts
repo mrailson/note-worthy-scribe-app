@@ -9985,6 +9985,47 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_time_entry_attachments: {
+        Row: {
+          entry_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          entry_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          entry_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nres_time_entry_attachments_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "nres_time_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nres_user_activities: {
         Row: {
           created_at: string
