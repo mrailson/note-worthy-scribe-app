@@ -408,22 +408,26 @@ export function StaffLineEvidence({
                 <Info className="w-3.5 h-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right" align="start" className="max-w-sm p-3 text-xs">
+            <TooltipContent side="right" align="start" className="max-w-md p-3 text-xs">
               <div className="space-y-2">
-                <p className="font-semibold text-sm">{staffClaimTypeLabel} evidence required</p>
-                {tooltipRows.length > 0 ? (
-                  <ul className="space-y-1.5">
-                    {tooltipRows.map(row => (
-                      <li key={row.id}>
-                        <span className="font-medium">{row.evidence_type === 'other_supporting' ? 'Supporting Evidence' : row.label}</span>
-                        {row.is_mandatory && <span className="ml-1 text-destructive">Required</span>}
-                        {row.description && <span className="block text-muted-foreground">{row.description}</span>}
-                      </li>
+                <p className="font-semibold text-sm">{staffClaimTypeLabel} — what the SNO expects</p>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Supporting evidence (upload here)</p>
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                    {SNO_EVIDENCE_CHECKLIST[staffCategory].map((item, i) => (
+                      <li key={i}>{item}</li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-muted-foreground">Evidence requirements are loading. Add any relevant supporting documents requested for this claim.</p>
-                )}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Captured automatically on the invoice</p>
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside text-muted-foreground">
+                    {SNO_INVOICE_DATA_ITEMS.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">Source: SDA Claims Evidence Requirements v1.0 — agreed with Andrew Moore (PML/SNO).</p>
               </div>
             </TooltipContent>
           </Tooltip>
