@@ -42,6 +42,7 @@ interface Entry {
 
 const NRESTimeTracker = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
