@@ -970,7 +970,8 @@ function InlineClaimPanel({
                       if (!onCreateLocumClaim || creating || locumSessions <= 0 || locumClaimAmount <= 0) return;
                       setCreating(true);
                       try {
-                        const result = await onCreateLocumClaim(monthDate, staffMember, locumSessions, locumClaimAmount);
+                        const enrichedStaff = { ...staffMember, entry_unit: locumUnit, entered_value: locumUnit === 'sessions' ? locumSessions : Number(locumHoursValue.toFixed(2)) };
+                        const result = await onCreateLocumClaim(monthDate, enrichedStaff, locumSessions, locumClaimAmount);
                         if (result) setLocalClaim(result);
                       } finally {
                         setCreating(false);
