@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Clock, ChevronLeft, Trash2, Plus, X, Download, Settings2 } from 'lucide-react';
+import { Clock, ChevronLeft, Trash2, Plus, X, Download, Settings2, Paperclip } from 'lucide-react';
+import { TimeEntryAttachmentsModal } from '@/components/nres/time-tracker/TimeEntryAttachmentsModal';
+import { useTimeEntryAttachmentCounts } from '@/hooks/useNRESTimeEntryAttachments';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -52,6 +54,9 @@ const NRESTimeTracker = () => {
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [newActivityLabel, setNewActivityLabel] = useState('');
   const [saving, setSaving] = useState(false);
+  const [attachmentEntry, setAttachmentEntry] = useState<Entry | null>(null);
+  const recentEntries = entries.slice(0, 50);
+  const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
   // Last 10 days
   const dateStrip = useMemo(() => {
@@ -398,24 +403,44 @@ const NRESTimeTracker = () => {
               <div className="p-4 text-sm text-slate-500">No entries yet.</div>
             )}
             <ul className="divide-y divide-slate-100">
-              {entries.slice(0, 50).map(e => (
-                <li key={e.id} className="flex items-center gap-3 p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-900 truncate">{e.activity}</div>
-                    <div className="text-xs text-slate-500 truncate">
-                      {format(parseISO(e.entry_date), 'EEE d MMM')}{e.notes ? ` · ${e.notes}` : ''}
+              {recentEntries.map(e => {
+                const count = attachmentCounts[e.id] || 0;
+                return (
+                  <li key={e.id} className="flex items-center gap-3 p-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-slate-900 truncate">{e.activity}</div>
+                      <div className="text-xs text-slate-500 truncate">
+                        {format(parseISO(e.entry_date), 'EEE d MMM')}{e.notes ? ` · ${e.notes}` : ''}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-sm font-semibold text-emerald-700 shrink-0">{formatDuration(e.minutes)}</div>
-                  <button onClick={() => handleDeleteEntry(e.id)} className="text-slate-400 hover:text-red-600 shrink-0">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </li>
-              ))}
+                    <div className="text-sm font-semibold text-emerald-700 shrink-0">{formatDuration(e.minutes)}</div>
+                    <button
+                      onClick={() => setAttachmentEntry(e)}
+                      title="Attachments"
+                      className={`relative shrink-0 p-1.5 rounded-md transition ${count > 0 ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 hover:text-emerald-700 hover:bg-slate-100'}`}
+                    >
+                      <Paperclip className="w-4 h-4" />
+                      {count > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
+                      )}
+                    </button>
+                    <button onClick={() => handleDeleteEntry(e.id)} className="text-slate-400 hover:text-red-600 shrink-0">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </CardContent>
         </Card>
       </div>
+
+      <TimeEntryAttachmentsModal
+        open={!!attachmentEntry}
+        entryId={attachmentEntry?.id || null}
+        entryLabel={attachmentEntry ? `${attachmentEntry.activity} · ${format(parseISO(attachmentEntry.entry_date), 'EEE d MMM')}` : undefined}
+        onClose={() => { setAttachmentEntry(null); refreshCounts(); }}
+      />
     </div>
   );
 };
