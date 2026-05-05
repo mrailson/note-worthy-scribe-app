@@ -399,14 +399,14 @@ const NRESTimeTracker = () => {
           </Card>
           <Card className="rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white">
             <CardContent className="p-4">
-              <div className="text-xs uppercase tracking-wide text-emerald-100">This Month</div>
+              <div className="text-xs uppercase tracking-wide text-emerald-100">This Month · {format(new Date(), 'MMMM yyyy')}</div>
               <div className="text-2xl font-bold mt-1">{formatDuration(monthTotal)}</div>
             </CardContent>
           </Card>
           <Card className="rounded-xl border-2 border-slate-200 bg-slate-50">
             <CardContent className="p-4">
               <div className="text-xs uppercase tracking-wide text-slate-500">
-                Last Month · {format(subMonths(new Date(), 1), 'MMM')}
+                Last Month · {format(subMonths(new Date(), 1), 'MMMM yyyy')}
               </div>
               <div className="text-2xl font-bold text-slate-700 mt-1">{formatDuration(lastMonthTotal)}</div>
             </CardContent>
