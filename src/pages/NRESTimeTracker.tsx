@@ -30,7 +30,7 @@ const DEFAULT_ACTIVITIES = [
   'Strategy & Planning',
 ];
 
-const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180];
+const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240];
 
 interface Activity { id: string; label: string; is_default: boolean; sort_order: number; }
 interface Entry {
