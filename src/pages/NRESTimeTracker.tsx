@@ -116,11 +116,25 @@ const NRESTimeTracker = () => {
     writeDraft();
   }, [draftKey, selectedDate, selectedActivity, selectedDuration, notes, pendingFiles]);
 
-  // Last 10 days
+  // Date strip controls
+  const [dateReversed, setDateReversed] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = last 10 days, 1 = previous 10, etc.
+  const [showMonth, setShowMonth] = useState(false);
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, 1 = previous
+
   const dateStrip = useMemo(() => {
     const today = new Date();
-    return Array.from({ length: 10 }, (_, i) => addDays(today, -i));
-  }, []);
+    const start = addDays(today, -10 * weekOffset);
+    const days = Array.from({ length: 10 }, (_, i) => addDays(start, -i));
+    return dateReversed ? [...days].reverse() : days;
+  }, [dateReversed, weekOffset]);
+
+  const monthDays = useMemo(() => {
+    const anchor = subMonths(new Date(), monthOffset);
+    const start = startOfMonth(anchor);
+    const end = endOfMonth(anchor);
+    return { anchor, days: eachDayOfInterval({ start, end }), leadingBlanks: (getDay(start) + 6) % 7 };
+  }, [monthOffset]);
 
   const loadAll = useCallback(async () => {
     if (!user?.id) return;
