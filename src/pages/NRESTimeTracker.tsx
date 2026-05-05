@@ -806,6 +806,13 @@ const NRESTimeTracker = () => {
                           <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
                         )}
                       </button>
+                      <button
+                        onClick={() => openEditEntry(e)}
+                        title="Edit entry"
+                        className="text-slate-400 hover:text-emerald-700 hover:bg-slate-100 p-1.5 rounded-md shrink-0"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                       <button onClick={() => handleDeleteEntry(e.id)} className="text-slate-400 hover:text-red-600 shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
