@@ -107,6 +107,7 @@ const NotebookStudio = lazy(() => import("./pages/NotebookStudio"));
 const AIShowcasePage = lazy(() => import("./pages/AIShowcasePage"));
 const PublicPlanningStudio = lazy(() => import("./pages/PublicPlanningStudio"));
 const NRESPlanningStudio = lazy(() => import("./pages/NRESPlanningStudio"));
+const NRESTimeTracker = lazy(() => import("./pages/NRESTimeTracker"));
 const NRESPopulationRisk = lazy(() => import("./pages/NRESPopulationRisk"));
 const NRESPopulationRiskMethodology = lazy(() => import("./pages/NRESPopulationRiskMethodology"));
 
@@ -214,6 +215,11 @@ const App = () => {
                 <Route path="/nres/nhc-planning" element={
                   <ProtectedRoute requiredService="nres">
                     <NRESPlanningStudio />
+                  </ProtectedRoute>
+                } />
+                <Route path="/nres/time-tracker" element={
+                  <ProtectedRoute requiredService="nres">
+                    <NRESTimeTracker />
                   </ProtectedRoute>
                 } />
                 <Route path="/enn" element={

@@ -93,6 +93,12 @@ const NRESDashboard = () => {
 
             {/* Sub-page links */}
             <div className="flex justify-end gap-2 flex-wrap">
+              <Link to="/nres/time-tracker">
+                <Button variant="outline" size="sm">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Time Tracker
+                </Button>
+              </Link>
               <Link to="/nres/population-risk">
                 <Button variant="outline" size="sm">
                   <Activity className="w-4 h-4 mr-2" />
