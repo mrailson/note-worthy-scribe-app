@@ -1179,57 +1179,8 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
                 >
                   ⬇ Export current filter to Excel
                 </button>
-                {isSuperAdmin && (
-                  <>
-                    <Separator className="my-1" />
-                    <button
-                      className="w-full text-left px-3 py-2 text-sm rounded text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      disabled={resetting}
-                      onClick={() => { setBulkOpen(false); setResetConfirmOpen(true); }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span>
-                        Delete all test invoices &amp; claims
-                        <span className="block text-[11px] text-muted-foreground font-normal">
-                          Resets buy-back, GP locum &amp; meeting attendance for fresh testing
-                        </span>
-                      </span>
-                    </button>
-                  </>
-                )}
               </PopoverContent>
             </Popover>
-
-            {/* Reset confirmation — super-admin only */}
-            <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete all test invoices &amp; claims?</AlertDialogTitle>
-                  <AlertDialogDescription asChild>
-                    <div className="space-y-2 text-sm">
-                      <p>This will permanently delete every row in:</p>
-                      <ul className="list-disc pl-5 text-foreground">
-                        <li><strong>{claims?.length ?? 0}</strong> buy-back / GP locum claim{(claims?.length ?? 0) === 1 ? '' : 's'} (incl. invoices)</li>
-                        <li>All NRES management &amp; meeting-attendance entries</li>
-                        <li>All NRES hours entries</li>
-                      </ul>
-                      <p>Generated invoice PDFs in storage will also be removed. Each practice will return to a clean &ldquo;ready for new claims&rdquo; state.</p>
-                      <p className="text-destructive font-medium">This cannot be undone — use only on the test environment.</p>
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={resetting}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={(e) => { e.preventDefault(); handleResetAllTestData(); }}
-                    disabled={resetting}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {resetting ? 'Resetting…' : 'Yes, delete everything'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
 
             <button
               onClick={() => { setImportOpen(true); toast.info('Use the Spreadsheet view to bulk-edit, or contact your admin for CSV import.'); }}
