@@ -58,6 +58,8 @@ const NRESTimeTracker = () => {
   const [attachmentEntry, setAttachmentEntry] = useState<Entry | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const pendingInputRef = useRef<HTMLInputElement | null>(null);
+  const [activityOpen, setActivityOpen] = useState(true);
+  const [recentOpen, setRecentOpen] = useState(true);
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
