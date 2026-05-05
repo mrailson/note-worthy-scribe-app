@@ -825,8 +825,22 @@ const NRESTimeTracker = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={exportCSV}>Export CSV (this month)</DropdownMenuItem>
-                <DropdownMenuItem onClick={exportPDF}>Export PDF (this month)</DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Export CSV</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => exportCSV('this-month')}>This month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportCSV('last-month')}>Last month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportCSV('all-time')}>All time</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Export PDF</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => exportPDF('this-month')}>This month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('last-month')}>Last month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('all-time')}>All time</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
