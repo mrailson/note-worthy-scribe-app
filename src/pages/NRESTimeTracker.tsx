@@ -12,6 +12,7 @@ import { Clock, ChevronLeft, Trash2, Plus, X, Download, Settings2 } from 'lucide
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Slider } from '@/components/ui/slider';
 import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
