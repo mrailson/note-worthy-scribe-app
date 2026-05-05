@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { ChevronDown, ChevronRight, Eye, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText, Download } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
@@ -2009,13 +2010,19 @@ function StaffActions({
         <button
           onClick={async () => {
             if (onUpdateStaff) {
-              setSaving(true);
-              // Cap non-locum allocations at 1.0 WTE / 37.5 hrs per week
-              let valNum = Number(editAllocValue) || member.allocation_value;
+              const valNum = Number(editAllocValue) || member.allocation_value;
+              // Reject non-locum allocations above 1.0 WTE / 37.5 hrs per week
               if (category !== 'gp_locum') {
-                if (editAllocType === 'wte' && valNum > 1) valNum = 1;
-                if (editAllocType === 'hours' && valNum > 37.5) valNum = 37.5;
+                if (editAllocType === 'wte' && valNum > 1) {
+                  toast.error('Maximum allocation is 1.0 WTE');
+                  return;
+                }
+                if (editAllocType === 'hours' && valNum > 37.5) {
+                  toast.error('Maximum allocation is 37.5 hours per week');
+                  return;
+                }
               }
+              setSaving(true);
               await onUpdateStaff(member.id, {
                 staff_role: editRole,
                 allocation_type: editAllocType as any,
@@ -2136,14 +2143,20 @@ export function StaffRosterSection({
 
   const handleAddStaff = async () => {
     if (!addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)) return;
+    // Reject non-locum allocations above 1.0 WTE / 37.5 hrs per week
+    const allocVal = isAddingMeeting ? 0 : Number(addAllocValue);
+    if (!isAddingMeeting && addCategory !== 'gp_locum') {
+      if (addAllocType === 'wte' && allocVal > 1) {
+        toast.error('Maximum allocation is 1.0 WTE');
+        return;
+      }
+      if (addAllocType === 'hours' && allocVal > 37.5) {
+        toast.error('Maximum allocation is 37.5 hours per week');
+        return;
+      }
+    }
     setAddSaving(true);
     try {
-      // Cap non-locum allocations at 1.0 WTE / 37.5 hrs per week
-      let allocVal = isAddingMeeting ? 0 : Number(addAllocValue);
-      if (!isAddingMeeting && addCategory !== 'gp_locum') {
-        if (addAllocType === 'wte' && allocVal > 1) allocVal = 1;
-        if (addAllocType === 'hours' && allocVal > 37.5) allocVal = 37.5;
-      }
       await onAddStaff?.({
         staff_name: addName.trim(),
         staff_role: addRole,
