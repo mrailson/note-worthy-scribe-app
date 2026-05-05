@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Clock, ChevronLeft, ChevronRight, Trash2, Plus, X, Download, Settings2, Paperclip, ArrowLeftRight, CalendarDays, CalendarRange } from 'lucide-react';
+import { Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Trash2, Plus, X, Download, Settings2, Paperclip, ArrowLeftRight, CalendarDays, CalendarRange } from 'lucide-react';
 import { TimeEntryAttachmentsModal } from '@/components/nres/time-tracker/TimeEntryAttachmentsModal';
 import { useTimeEntryAttachmentCounts, useNRESTimeEntryAttachments } from '@/hooks/useNRESTimeEntryAttachments';
 import {
@@ -58,6 +58,8 @@ const NRESTimeTracker = () => {
   const [attachmentEntry, setAttachmentEntry] = useState<Entry | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const pendingInputRef = useRef<HTMLInputElement | null>(null);
+  const [activityOpen, setActivityOpen] = useState(true);
+  const [recentOpen, setRecentOpen] = useState(true);
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
@@ -534,48 +536,62 @@ const NRESTimeTracker = () => {
         <Card className="rounded-xl border-2 border-slate-200">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-medium text-slate-500">ACTIVITY</div>
-              <button onClick={() => setManageMode(m => !m)}
-                className="text-xs text-emerald-700 inline-flex items-center gap-1">
-                <Settings2 className="w-3 h-3" /> {manageMode ? 'Done' : 'Manage'}
+              <button
+                type="button"
+                onClick={() => setActivityOpen(o => !o)}
+                className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+              >
+                {activityOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                ACTIVITY
+                {!activityOpen && selectedActivity && (
+                  <span className="ml-2 text-emerald-700 normal-case">· {selectedActivity}</span>
+                )}
               </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {activities.map(a => {
-                const active = selectedActivity === a.label;
-                return (
-                  <div key={a.id} className="relative">
-                    <button onClick={() => !manageMode && setSelectedActivity(a.label)}
-                      className={`w-full rounded-lg px-3 py-2 text-left text-sm border-2 transition ${
-                        active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
-                      }`}>
-                      {a.label}
-                    </button>
-                    {manageMode && (
-                      <button onClick={() => handleDeleteActivity(a.id)}
-                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow">
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              {!showAddActivity ? (
-                <button onClick={() => setShowAddActivity(true)}
-                  className="rounded-lg px-3 py-2 text-sm border-2 border-dashed border-slate-300 text-slate-500 hover:bg-slate-100 inline-flex items-center justify-center gap-1">
-                  <Plus className="w-4 h-4" /> Add activity
+              {activityOpen && (
+                <button onClick={() => setManageMode(m => !m)}
+                  className="text-xs text-emerald-700 inline-flex items-center gap-1">
+                  <Settings2 className="w-3 h-3" /> {manageMode ? 'Done' : 'Manage'}
                 </button>
-              ) : (
-                <div className="col-span-2 flex gap-2">
-                  <Input autoFocus value={newActivityLabel}
-                    onChange={e => setNewActivityLabel(e.target.value)}
-                    placeholder="New activity label" maxLength={80}
-                    onKeyDown={e => e.key === 'Enter' && handleAddActivity()} />
-                  <Button onClick={handleAddActivity} className="bg-emerald-600 hover:bg-emerald-700">Add</Button>
-                  <Button variant="outline" onClick={() => { setShowAddActivity(false); setNewActivityLabel(''); }}>Cancel</Button>
-                </div>
               )}
             </div>
+            {activityOpen && (
+              <div className="grid grid-cols-2 gap-2">
+                {activities.map(a => {
+                  const active = selectedActivity === a.label;
+                  return (
+                    <div key={a.id} className="relative">
+                      <button onClick={() => !manageMode && setSelectedActivity(a.label)}
+                        className={`w-full rounded-lg px-3 py-2 text-left text-sm border-2 transition ${
+                          active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
+                        }`}>
+                        {a.label}
+                      </button>
+                      {manageMode && (
+                        <button onClick={() => handleDeleteActivity(a.id)}
+                          className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow">
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {!showAddActivity ? (
+                  <button onClick={() => setShowAddActivity(true)}
+                    className="rounded-lg px-3 py-2 text-sm border-2 border-dashed border-slate-300 text-slate-500 hover:bg-slate-100 inline-flex items-center justify-center gap-1">
+                    <Plus className="w-4 h-4" /> Add activity
+                  </button>
+                ) : (
+                  <div className="col-span-2 flex gap-2">
+                    <Input autoFocus value={newActivityLabel}
+                      onChange={e => setNewActivityLabel(e.target.value)}
+                      placeholder="New activity label" maxLength={80}
+                      onKeyDown={e => e.key === 'Enter' && handleAddActivity()} />
+                    <Button onClick={handleAddActivity} className="bg-emerald-600 hover:bg-emerald-700">Add</Button>
+                    <Button variant="outline" onClick={() => { setShowAddActivity(false); setNewActivityLabel(''); }}>Cancel</Button>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -697,7 +713,15 @@ const NRESTimeTracker = () => {
         {/* Recent entries */}
         <Card className="rounded-xl border-2 border-slate-200">
           <CardHeader className="flex-row items-center justify-between space-y-0 p-3 pb-2">
-            <CardTitle className="text-sm font-semibold text-slate-700">Recent entries</CardTitle>
+            <button
+              type="button"
+              onClick={() => setRecentOpen(o => !o)}
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900"
+            >
+              {recentOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              Recent entries
+              <span className="text-xs font-normal text-slate-500">({recentEntries.length})</span>
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8">
@@ -710,41 +734,43 @@ const NRESTimeTracker = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
-          <CardContent className="p-0">
-            {loading && <div className="p-4 text-sm text-slate-500">Loading…</div>}
-            {!loading && entries.length === 0 && (
-              <div className="p-4 text-sm text-slate-500">No entries yet.</div>
-            )}
-            <ul className="divide-y divide-slate-100">
-              {recentEntries.map(e => {
-                const count = attachmentCounts[e.id] || 0;
-                return (
-                  <li key={e.id} className="flex items-center gap-3 p-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-slate-900 truncate">{e.activity}</div>
-                      <div className="text-xs text-slate-500 truncate">
-                        {format(parseISO(e.entry_date), 'EEE d MMM')}{e.notes ? ` · ${e.notes}` : ''}
+          {recentOpen && (
+            <CardContent className="p-0">
+              {loading && <div className="p-4 text-sm text-slate-500">Loading…</div>}
+              {!loading && entries.length === 0 && (
+                <div className="p-4 text-sm text-slate-500">No entries yet.</div>
+              )}
+              <ul className="divide-y divide-slate-100">
+                {recentEntries.map(e => {
+                  const count = attachmentCounts[e.id] || 0;
+                  return (
+                    <li key={e.id} className="flex items-center gap-3 p-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-slate-900 truncate">{e.activity}</div>
+                        <div className="text-xs text-slate-500 truncate">
+                          {format(parseISO(e.entry_date), 'EEE d MMM')}{e.notes ? ` · ${e.notes}` : ''}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-sm font-semibold text-emerald-700 shrink-0">{formatDuration(e.minutes)}</div>
-                    <button
-                      onClick={() => setAttachmentEntry(e)}
-                      title="Attachments"
-                      className={`relative shrink-0 p-1.5 rounded-md transition ${count > 0 ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 hover:text-emerald-700 hover:bg-slate-100'}`}
-                    >
-                      <Paperclip className="w-4 h-4" />
-                      {count > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
-                      )}
-                    </button>
-                    <button onClick={() => handleDeleteEntry(e.id)} className="text-slate-400 hover:text-red-600 shrink-0">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </CardContent>
+                      <div className="text-sm font-semibold text-emerald-700 shrink-0">{formatDuration(e.minutes)}</div>
+                      <button
+                        onClick={() => setAttachmentEntry(e)}
+                        title="Attachments"
+                        className={`relative shrink-0 p-1.5 rounded-md transition ${count > 0 ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-slate-400 hover:text-emerald-700 hover:bg-slate-100'}`}
+                      >
+                        <Paperclip className="w-4 h-4" />
+                        {count > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{count}</span>
+                        )}
+                      </button>
+                      <button onClick={() => handleDeleteEntry(e.id)} className="text-slate-400 hover:text-red-600 shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          )}
         </Card>
       </div>
 
