@@ -1,0 +1,2 @@
+ALTER TABLE public.nres_time_entries DROP CONSTRAINT IF EXISTS nres_time_entries_minutes_check;
+ALTER TABLE public.nres_time_entries ADD CONSTRAINT nres_time_entries_minutes_check CHECK (minutes >= 5 AND (minutes % 5) = 0 AND minutes <= 240);
