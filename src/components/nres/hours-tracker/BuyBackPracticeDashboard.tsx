@@ -3977,6 +3977,7 @@ export function BuyBackPracticeDashboard({
           onResubmit={onResubmit}
           onUpdateClaimNotes={onUpdateClaimNotes}
           onDeleteClaim={onDeleteClaim}
+          onContinueDraft={handleContinueDraft}
           saving={savingClaim}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
