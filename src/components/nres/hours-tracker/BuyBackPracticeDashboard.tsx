@@ -2010,10 +2010,16 @@ function StaffActions({
           onClick={async () => {
             if (onUpdateStaff) {
               setSaving(true);
+              // Cap non-locum allocations at 1.0 WTE / 37.5 hrs per week
+              let valNum = Number(editAllocValue) || member.allocation_value;
+              if (category !== 'gp_locum') {
+                if (editAllocType === 'wte' && valNum > 1) valNum = 1;
+                if (editAllocType === 'hours' && valNum > 37.5) valNum = 37.5;
+              }
               await onUpdateStaff(member.id, {
                 staff_role: editRole,
                 allocation_type: editAllocType as any,
-                allocation_value: Number(editAllocValue) || member.allocation_value,
+                allocation_value: valNum,
               });
               setSaving(false);
             }
@@ -2132,11 +2138,17 @@ export function StaffRosterSection({
     if (!addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)) return;
     setAddSaving(true);
     try {
+      // Cap non-locum allocations at 1.0 WTE / 37.5 hrs per week
+      let allocVal = isAddingMeeting ? 0 : Number(addAllocValue);
+      if (!isAddingMeeting && addCategory !== 'gp_locum') {
+        if (addAllocType === 'wte' && allocVal > 1) allocVal = 1;
+        if (addAllocType === 'hours' && allocVal > 37.5) allocVal = 37.5;
+      }
       await onAddStaff?.({
         staff_name: addName.trim(),
         staff_role: addRole,
         allocation_type: isAddingMeeting ? 'hours' : addAllocType,
-        allocation_value: isAddingMeeting ? 0 : Number(addAllocValue),
+        allocation_value: allocVal,
         hourly_rate: isAddingMeeting ? selectedMeetingRole.rate : Number(addHourlyRate) || 0,
         is_active: true,
         staff_category: addCategory as any,
@@ -2269,9 +2281,15 @@ export function StaffRosterSection({
                 type="number"
                 value={addAllocValue}
                 onChange={(e) => setAddAllocValue(e.target.value)}
+                max={category !== 'gp_locum' ? (addAllocType === 'wte' ? 1 : addAllocType === 'hours' ? 37.5 : undefined) : undefined}
                 placeholder="e.g. 4"
                 style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
               />
+              {category !== 'gp_locum' && (addAllocType === 'wte' || addAllocType === 'hours') && (
+                <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3 }}>
+                  Max {addAllocType === 'wte' ? '1.0 WTE' : '37.5 hrs/wk'}
+                </div>
+              )}
             </div>}
             {/* GP Locum rates are governed by master settings (£375/session = £90/hr) — no per-staff rate input needed */}
             <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)} style={{
