@@ -2839,6 +2839,7 @@ export function ClaimsViewSwitcher({
               onResubmit={onResubmit}
               onUpdateClaimNotes={onUpdateClaimNotes}
               onDeleteClaim={onDeleteClaim}
+              onContinueDraft={onContinueDraft}
               showPracticeName={directorMode}
               saving={saving}
             />
