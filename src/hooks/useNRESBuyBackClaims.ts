@@ -8,6 +8,7 @@ import { sendBuyBackEmail, type BuyBackEmailData } from '@/utils/buybackEmailSer
 import { generateInvoiceNumber } from '@/utils/invoiceNumberGenerator';
 import { generateInvoicePdf } from '@/utils/invoicePdfGenerator';
 import { getPracticeName } from '@/data/nresPractices';
+import { getBuybackPracticeRecipients } from './useNRESBuyBackPracticeEmailRecipients';
 import type { NRESPracticeKey } from '@/data/nresPractices';
 import type { BuyBackStaffMember } from './useNRESBuyBackStaff';
 
@@ -881,8 +882,12 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
               : pmlFinanceEmail;
-            const bccList = ['amanda.palin2@nhs.net', 'malcolm.railson@nhs.net']
-              .filter(email => email.toLowerCase() !== invoiceRecipient.toLowerCase());
+            const extraInvoiceRecipients = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? []
+              : await getBuybackPracticeRecipients(practiceKey, 'invoice');
+            const bccList = [...['amanda.palin2@nhs.net', 'malcolm.railson@nhs.net'], ...extraInvoiceRecipients]
+              .filter((email, idx, arr) => email.toLowerCase() !== invoiceRecipient.toLowerCase()
+                && arr.findIndex(e => e.toLowerCase() === email.toLowerCase()) === idx);
             const invoiceBcc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail) ? [] : bccList;
 
             const { data: evidenceRows, error: evidenceError } = await supabase
@@ -1102,7 +1107,10 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           reviewerName: emailConfig.currentUserName,
           reviewNotes: notes,
         };
-        sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled).catch(console.error);
+        const extraApprovalRecipients = emailConfig.emailTestingMode
+          ? []
+          : await getBuybackPracticeRecipients(claim.practice_key, 'approval');
+        sendBuyBackEmail('claim_approved', emailData, emailConfig.emailTestingMode, emailConfig.currentUserEmail, emailConfig.emailSendingDisabled, extraApprovalRecipients).catch(console.error);
         // approval_confirmation email removed — not needed
       }
     } catch (error) {
@@ -1381,9 +1389,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : '';
             })();
 
+            const extraPaymentRecipients = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? []
+              : (practiceKey ? await getBuybackPracticeRecipients(practiceKey, 'payment') : []);
             const ccList = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? []
-              : ['amanda.palin2@nhs.net'];
+              : Array.from(new Set([...['amanda.palin2@nhs.net'], ...extraPaymentRecipients]
+                  .filter(e => e.toLowerCase() !== recipient.toLowerCase())));
 
             // Derive claim type label from staff categories
             const paidStaffDetails = (updatedClaim?.staff_details as any[]) || [];

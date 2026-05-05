@@ -15,6 +15,7 @@ import { useNRESEvidenceConfig } from '@/hooks/useNRESEvidenceConfig';
 import { StaffLineEvidence, useStaffLineEvidenceComplete } from './ClaimEvidencePanel';
 import type { MeetingLogEntry } from '@/hooks/useNRESMeetingLog';
 import { getSDAClaimGLCode } from '@/utils/glCodes';
+import { PracticeEmailRecipientsPanel } from './PracticeEmailRecipientsPanel';
 
 const HOURS_PER_SESSION = 25 / 6;
 
@@ -4089,6 +4090,13 @@ export function BuyBackPracticeDashboard({
         <KpiCard label="Paid" value={counts.paid || 0} sub={fmtShort(totals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" onClick={() => { setStatusFilter(statusFilter === 'paid' ? null : 'paid'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'paid'} />
         <KpiCard label="Queried" value={queriedCount} sub={fmtShort(totals.queried)} accent={queriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" onClick={() => { setStatusFilter(statusFilter === 'queried' ? null : 'queried'); setTimeout(() => claimsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} active={statusFilter === 'queried'} />
       </div>
+
+      {/* Per-practice notification recipients */}
+      <PracticeEmailRecipientsPanel
+        practiceKey={practiceKey}
+        practiceName={practiceName || practiceKey}
+        canEdit={true}
+      />
 
       {/* Staff Roster */}
       <div ref={rosterRef} style={{

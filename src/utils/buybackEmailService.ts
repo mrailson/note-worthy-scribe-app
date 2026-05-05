@@ -357,6 +357,7 @@ export async function sendBuyBackEmail(
   testingMode: boolean,
   overrideEmail?: string,
   sendingDisabled?: boolean,
+  extraRecipients?: string[],
 ): Promise<void> {
   if (sendingDisabled) {
     console.log(`[Email suppressed] ${type} — sending disabled for high-volume testing`);
@@ -394,6 +395,11 @@ export async function sendBuyBackEmail(
 
   if (testingMode && overrideEmail) {
     recipients = recipients.length > 0 ? [overrideEmail] : [];
+  } else if (extraRecipients && extraRecipients.length > 0) {
+    // Merge extra practice-configured recipients (deduplicated, case-insensitive)
+    const set = new Set(recipients.filter(Boolean).map(e => e.toLowerCase()));
+    extraRecipients.forEach(e => e && set.add(e.toLowerCase()));
+    recipients = Array.from(set);
   }
 
   // Send to each recipient
