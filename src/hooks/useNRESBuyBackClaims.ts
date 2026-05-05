@@ -877,11 +877,11 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
             if (emailConfig?.emailSendingDisabled && !emailConfig?.allowInvoiceWhenSuppressed) {
               console.log('[Email suppressed] Invoice email — sending disabled for high-volume testing');
             } else {
-            const pmlFinanceEmail = 'amanda.palin2@nhs.net';
+            const pmlFinanceEmail = 'pml.finance@nhs.net';
             const invoiceRecipient = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? emailConfig.currentUserEmail
               : pmlFinanceEmail;
-            const bccList = ['malcolm.railson@nhs.net', 'amanda.palin2@nhs.net']
+            const bccList = ['amanda.palin2@nhs.net', 'malcolm.railson@nhs.net']
               .filter(email => email.toLowerCase() !== invoiceRecipient.toLowerCase());
             const invoiceBcc = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail) ? [] : bccList;
 
