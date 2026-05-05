@@ -9,6 +9,50 @@ import { SmartUploadZone } from './SmartUploadZone';
 import { generateEvidenceSummaryFallback } from '@/utils/evidenceAiSummary';
 import { EvidenceViewerModal } from './EvidenceViewerModal';
 
+/** SNO-approved evidence checklist per claim type (v1.0 — Andrew Moore, PML/SNO, 29 Apr 2026). */
+const SNO_EVIDENCE_CHECKLIST: Record<'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed', string[]> = {
+  buyback: [
+    'Existing contract of employment (redacted as needed)',
+    'Signed timesheet or rota screenshot for the claim month',
+    'Clinical system slot type screenshot showing SDA slots',
+    'Part B (LTC) substantiation — rota / SDA slot evidence proving backfill',
+    'Pay slip extract may be requested (redaction policy applies)',
+  ],
+  new_sda: [
+    'Contract of employment',
+    'Job description',
+    'Start date evidence (offer letter or payroll record)',
+    'Signed timesheet or rota screenshot for the claim month',
+    'Clinical system slot type screenshot showing SDA slots',
+    'GMC number (optional, where applicable)',
+  ],
+  gp_locum: [
+    'Locum invoice from the locum to the practice',
+    'Signed timesheet or rota screenshot showing dates and sessions worked',
+    'Clinical system slot type screenshot showing SDA slots',
+    'GMC number',
+    'Indemnity confirmation (where requested by the SNO)',
+  ],
+  management: [
+    'NRES management activity log / monthly hours summary',
+    'Meeting agenda, minutes or attendance list (optional, supporting)',
+  ],
+  mixed: [
+    'Provide the evidence that applies to each category included in this claim.',
+    'Buy-Back lines need contract + Part B substantiation.',
+    'New SDA lines need contract, JD and start date evidence.',
+    'GP Locum lines need locum invoice and GMC number.',
+  ],
+};
+
+/** Universal data items captured by the NRES Verifier and printed on the invoice. */
+const SNO_INVOICE_DATA_ITEMS = [
+  'Name (or unique identifier), role and GL category',
+  'Date(s) and hours worked',
+  'Sessions claimed (where applicable) and rate being claimed',
+  'Practice bank details, ODS code and invoice sequence (auto)',
+];
+
 interface ClaimEvidencePanelProps {
   claimId: string;
   claimCategory: 'buyback' | 'new_sda' | 'management' | 'gp_locum' | 'mixed';
@@ -86,22 +130,26 @@ export function ClaimEvidencePanel({ claimId, claimCategory, canEdit, sharedEvid
                 <Info className="w-3.5 h-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right" align="start" className="max-w-sm p-3 text-xs">
+            <TooltipContent side="right" align="start" className="max-w-md p-3 text-xs">
               <div className="space-y-2">
-                <p className="font-semibold text-sm">{claimTypeLabel} evidence required</p>
-                {tooltipRows.length > 0 ? (
-                  <ul className="space-y-1.5">
-                    {tooltipRows.map(row => (
-                      <li key={row.id}>
-                        <span className="font-medium">{row.label}</span>
-                        {row.is_mandatory && <span className="ml-1 text-destructive">Required</span>}
-                        {row.description && <span className="block text-muted-foreground">{row.description}</span>}
-                      </li>
+                <p className="font-semibold text-sm">{claimTypeLabel} — what the SNO expects</p>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Supporting evidence (upload here)</p>
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                    {SNO_EVIDENCE_CHECKLIST[claimCategory].map((item, i) => (
+                      <li key={i}>{item}</li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-muted-foreground">Evidence requirements are loading. Add any relevant supporting documents requested for this claim.</p>
-                )}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Captured automatically on the invoice</p>
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside text-muted-foreground">
+                    {SNO_INVOICE_DATA_ITEMS.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">Source: SDA Claims Evidence Requirements v1.0 — agreed with Andrew Moore (PML/SNO).</p>
               </div>
             </TooltipContent>
           </Tooltip>
@@ -360,22 +408,26 @@ export function StaffLineEvidence({
                 <Info className="w-3.5 h-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right" align="start" className="max-w-sm p-3 text-xs">
+            <TooltipContent side="right" align="start" className="max-w-md p-3 text-xs">
               <div className="space-y-2">
-                <p className="font-semibold text-sm">{staffClaimTypeLabel} evidence required</p>
-                {tooltipRows.length > 0 ? (
-                  <ul className="space-y-1.5">
-                    {tooltipRows.map(row => (
-                      <li key={row.id}>
-                        <span className="font-medium">{row.evidence_type === 'other_supporting' ? 'Supporting Evidence' : row.label}</span>
-                        {row.is_mandatory && <span className="ml-1 text-destructive">Required</span>}
-                        {row.description && <span className="block text-muted-foreground">{row.description}</span>}
-                      </li>
+                <p className="font-semibold text-sm">{staffClaimTypeLabel} — what the SNO expects</p>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Supporting evidence (upload here)</p>
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                    {SNO_EVIDENCE_CHECKLIST[staffCategory].map((item, i) => (
+                      <li key={i}>{item}</li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-muted-foreground">Evidence requirements are loading. Add any relevant supporting documents requested for this claim.</p>
-                )}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Captured automatically on the invoice</p>
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside text-muted-foreground">
+                    {SNO_INVOICE_DATA_ITEMS.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">Source: SDA Claims Evidence Requirements v1.0 — agreed with Andrew Moore (PML/SNO).</p>
               </div>
             </TooltipContent>
           </Tooltip>
