@@ -419,7 +419,7 @@ const NRESTimeTracker = () => {
                     {weekOffset > 0 && (
                       <button
                         onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
-                        title="Next 10 days"
+                        title="Next 7 days"
                         className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-700">
                         Next <ChevronRight className="w-3 h-3" />
                       </button>
