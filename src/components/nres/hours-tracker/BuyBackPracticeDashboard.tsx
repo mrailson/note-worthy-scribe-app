@@ -449,8 +449,19 @@ function InlineClaimPanel({
   const [locumSessions, setLocumSessions] = useState<number>(configuredSessions);
   const [locumClaimAmount, setLocumClaimAmount] = useState<number>(0);
   const [deletingDraft, setDeletingDraft] = useState(false);
+  const [locumUnit, setLocumUnit] = useState<'sessions' | 'hours'>('sessions');
 
   const locumMaxAmount = useMemo(() => locumSessions * sessionRate, [locumSessions, sessionRate]);
+  const hourlyRateFromSession = useMemo(() => sessionRate / HOURS_PER_SESSION, [sessionRate]);
+  const locumHoursValue = useMemo(() => locumSessions * HOURS_PER_SESSION, [locumSessions]);
+  const formatHoursMins = (h: number) => {
+    const totalMins = Math.round(h * 60);
+    const hh = Math.floor(totalMins / 60);
+    const mm = totalMins % 60;
+    if (hh && mm) return `${hh}h ${mm}m`;
+    if (hh) return `${hh}h`;
+    return `${mm}m`;
+  };
 
   useEffect(() => {
     setLocumClaimAmount(prev => {
@@ -818,30 +829,72 @@ function InlineClaimPanel({
               {isLocum ? (
                 /* ── Locum: sessions + amount entry ── */
                 <div>
-                  {/* Step 1: Actual sessions */}
+                  {/* Step 1: Actual sessions or hours */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
-                      Step 1 — Actual sessions worked this month
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                        Step 1 — Actual locum work this month
+                      </div>
+                      <div style={{ display: 'inline-flex', background: '#f3f4f6', borderRadius: 6, padding: 2, border: '1px solid #e5e7eb' }}>
+                        {(['sessions', 'hours'] as const).map(u => (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => setLocumUnit(u)}
+                            style={{
+                              padding: '4px 12px', borderRadius: 4, border: 'none', cursor: 'pointer',
+                              fontSize: 11, fontWeight: 600, textTransform: 'capitalize',
+                              background: locumUnit === u ? '#fff' : 'transparent',
+                              color: locumUnit === u ? '#111827' : '#6b7280',
+                              boxShadow: locumUnit === u ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                            }}
+                          >
+                            {u}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', padding: '10px 14px', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={locumSessions}
-                          onChange={e => setLocumSessions(Math.max(0, Number(e.target.value)))}
-                          style={{
-                            width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db',
-                            fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        />
-                        <span style={{ fontSize: 13, color: '#6b7280' }}>sessions</span>
+                        {locumUnit === 'sessions' ? (
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={locumSessions}
+                            onChange={e => setLocumSessions(Math.max(0, Number(e.target.value)))}
+                            style={{
+                              width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db',
+                              fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          />
+                        ) : (
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.25"
+                            value={Number(locumHoursValue.toFixed(2))}
+                            onChange={e => {
+                              const hrs = Math.max(0, Number(e.target.value));
+                              setLocumSessions(hrs / HOURS_PER_SESSION);
+                            }}
+                            style={{
+                              width: 84, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db',
+                              fontSize: 18, fontWeight: 700, textAlign: 'center', outline: 'none',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          />
+                        )}
+                        <span style={{ fontSize: 13, color: '#6b7280' }}>{locumUnit}</span>
                         {sessionRate > 0 && (
                           <>
                             <span style={{ fontSize: 12, color: '#9ca3af' }}>×</span>
-                            <span style={{ fontSize: 13, color: '#6b7280' }}>{fmtGBP(sessionRate)}/session</span>
+                            <span style={{ fontSize: 13, color: '#6b7280' }}>
+                              {locumUnit === 'sessions'
+                                ? `${fmtGBP(sessionRate)}/session`
+                                : `${fmtGBP(hourlyRateFromSession)}/hour`}
+                            </span>
                             <span style={{ fontSize: 12, color: '#9ca3af' }}>=</span>
                             <span style={{ fontSize: 16, fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
                               max {fmtGBP(locumMaxAmount)}
@@ -849,11 +902,19 @@ function InlineClaimPanel({
                           </>
                         )}
                       </div>
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                        {locumUnit === 'sessions'
+                          ? `(= ${formatHoursMins(locumHoursValue)} equivalent)`
+                          : `(= ${locumSessions.toFixed(2)} sessions equivalent)`}
+                      </span>
                       {configuredSessions > 0 && locumSessions !== configuredSessions && (
                         <span style={{ fontSize: 11, color: '#9ca3af' }}>
                           (configured: {configuredSessions} sess/mo)
                         </span>
                       )}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
+                      1 session = 4h 10m. The maximum claimable is the same whether you enter sessions or hours.
                     </div>
                   </div>
                   {/* Step 2: Actual claim amount */}
@@ -909,7 +970,8 @@ function InlineClaimPanel({
                       if (!onCreateLocumClaim || creating || locumSessions <= 0 || locumClaimAmount <= 0) return;
                       setCreating(true);
                       try {
-                        const result = await onCreateLocumClaim(monthDate, staffMember, locumSessions, locumClaimAmount);
+                        const enrichedStaff = { ...staffMember, entry_unit: locumUnit, entered_value: locumUnit === 'sessions' ? locumSessions : Number(locumHoursValue.toFixed(2)) };
+                        const result = await onCreateLocumClaim(monthDate, enrichedStaff, locumSessions, locumClaimAmount);
                         if (result) setLocalClaim(result);
                       } finally {
                         setCreating(false);

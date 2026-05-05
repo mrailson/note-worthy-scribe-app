@@ -1,64 +1,58 @@
-## What's happening
 
-You (`malcolm.railson@nhs.net`) are a `system_admin`. The meetings list on the recorder page is showing meetings owned by other users — `j.railson`, `beth.wilson22`, `leann.farrell1`, `tom.howseman` — which is a privacy breach.
+## Goal
 
-Two compounding problems:
+On the GP Locum claim creation card (Practice dashboard → SDA Claims → "Claim" on a locum row), let the user choose whether to enter their work for the month in **sessions** or **hours**. The monetary cap stays exactly the same — sessions are still the master unit, with one session defined as 4h 10m (25/6 hours), so £375/session ↔ £90/hour equivalent.
 
-### 1. Database RLS lets system admins read every user's meetings
+## What the user will see
 
-The `meetings` table has these SELECT policies (all PERMISSIVE, so they OR together):
+Step 1 — "Actual locum work this month" gains a small unit toggle:
 
-```text
-meetings_select_authenticated → user_id = auth.uid() OR shared_with me
-meetings_select_system_admin   → is_system_admin(auth.uid())   ← reads ALL meetings
+```
+[ Sessions | Hours ]   [  3  ] sessions  × £375.00/session  =  max £1,125.00
+                       (= 12h 30m equivalent)
 ```
 
-Because you have the `system_admin` role, the second policy returns every meeting in the database, including other users'. Other users don't have this role, which is why they only see their own — exactly what you observed.
+If "Hours" is chosen:
 
-### 2. The recorder's "My meetings" query has no user filter
+```
+[ Sessions | Hours ]   [ 12.5 ] hours    × £90.00/hour     =  max £1,125.00
+                       (= 3.00 sessions equivalent)
+```
 
-`src/components/MeetingRecorder.tsx` → `loadMeetingHistory()` queries `meetings` with no `.eq('user_id', user.id)` filter and just relies on RLS. With the admin policy above, that returns the whole table.
+- Hourly rate is derived from the configured session rate: `sessionRate ÷ (25/6)`.
+- The max claimable, the £ entry box (Step 2) and the "Use max" button behave identically — the cap is the same money either way.
+- The small "configured: N sess/mo" hint stays, shown in whichever unit is active.
 
-The other entry point (`src/pages/MeetingHistory.tsx`) does filter by `user_id`, so it isn't affected — which matches the screenshots showing the leak only on the recorder's "My meetings" tab.
+## Behaviour rules
 
-## Fix
+- Default unit = **Sessions** (preserves current behaviour for everyone).
+- Switching unit converts the current value (sessions ↔ hours) so the £ max doesn't jump.
+- Increments: sessions step `0.5`, hours step `0.25`.
+- Hours displayed in British format hours + minutes only (e.g. "4h 10m"), per project rule.
+- On "Create Draft":
+  - If unit is Hours, the entered hours are converted to fractional sessions (`hours ÷ 25/6`) before being passed to `onCreateLocumClaim`. This keeps all downstream code (claim storage, PDF invoice, GL codes, verifier/PML dashboards, max-claimable formula) completely unchanged — sessions remain the canonical stored value.
+  - The chosen entry unit and the original entered value are also written into the staff detail line as `entry_unit: 'sessions' | 'hours'` and `entered_value` so the claim card / invoice can show "Claimed as 12h 30m" alongside the equivalent sessions for transparency.
 
-### A. Tighten RLS on `meetings` (migration)
+## Files to change
 
-Drop the broad `meetings_select_system_admin` policy so a logged-in user — admin or not — can only ever see:
-- meetings they own (`user_id = auth.uid()`), or
-- meetings explicitly shared with them via `meeting_shares`.
+1. `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx`
+   - In the locum claim block (around lines 449–460, 815–929):
+     - Add `locumUnit` state and a derived `hourlyRate = sessionRate / HOURS_PER_SESSION`.
+     - Add a compact pill toggle above the number input.
+     - Bind input value/step/label to the active unit; show the equivalent in the other unit underneath.
+     - On Create Draft, if unit = hours convert to sessions before calling `onCreateLocumClaim`, and pass through the entry unit/value via a new optional 4th-arg shape (or extend the staff member object).
 
-Admin tooling that genuinely needs cross-user visibility (e.g. the audio backup search admin page) already uses dedicated server-side paths and won't be affected by removing this client-facing read.
+2. `src/components/nres/hours-tracker/BuyBackClaimsTab.tsx` (lines ~945–957)
+   - Extend the `onCreateLocumClaim` wrapper to accept and forward `entryUnit` + `enteredValue`, attaching them to the modified staff line so they persist on the claim's `staff_details`.
 
-Apply the same tightening to the related child tables that currently mirror the admin-wide pattern, so an admin can't pull other people's notes/transcripts/overviews either:
-- `meeting_overviews`
-- `meeting_summaries`
-- `meeting_transcripts`
-- `meeting_documents`
-- any other `meeting_*` child table whose SELECT policy uses `is_system_admin`
+3. `src/utils/buybackMaxClaimable.ts`
+   - In the `gp_locum` branch of `formatMaxClaimableInfo`, when the staff line has `entry_unit === 'hours'`, render the formula as `12h 30m × £90.00/hr = £1,125.00` instead of sessions, so the verifier/PML and invoice views reflect what the practice actually entered. Sessions branch stays as today.
 
-(Each will be reviewed and only the admin-wide SELECT policy dropped; the owner/shared policies stay.)
+4. `src/utils/buybackMaxClaimable.ts` — extend `formatLocumHours` (already converts sessions→hours) is reused; no change needed beyond the above.
 
-### B. Defence in depth in client code
-
-In `src/components/MeetingRecorder.tsx` `loadMeetingHistory()`, add `.eq('user_id', user.id)` to the meetings query so even if RLS is ever loosened again, the recorder UI cannot show another user's meetings.
-
-### C. Fix the "Generate Meeting Notes" prompt regression (same area)
-
-The recent embed of `meeting_overviews(...)` in `src/pages/MeetingHistory.tsx` and `src/components/MeetingRecorder.tsx` is read as `meeting.meeting_overviews?.overview`, but PostgREST returns the embedded child as an **array**, so `.overview` is always `undefined`. Result: every card shows "Transcript available — notes haven't been generated yet" and "No overview available", even when an overview exists in the DB.
-
-Fix by reading the first element (`meeting.meeting_overviews?.[0]?.overview`) and falling back to the legacy `meetings.overview` column if present, in both files.
-
-## Verification
-
-After deploy:
-1. Log in as `malcolm.railson@nhs.net` → "My meetings" should only list meetings where `user_id = your id` (plus anything explicitly shared with you).
-2. The 4 leaked meetings (Cambridge Community House, Bungalow Centre, UKRI Dementia, Investigation into Unaccounted Private Work) should disappear from your list.
-3. Existing overview text should re-appear on the cards instead of the amber "Generate Meeting Notes" prompt.
-4. Run the Supabase security linter to confirm no new issues.
+No DB migration: `staff_details` is a JSONB column, so the two new keys can be added without schema changes.
 
 ## Out of scope
 
-- No changes to how other users' meetings are stored — only to who can read them.
-- No changes to the audio backup admin page or any server-side admin tooling.
+- Verifier and PML dashboards continue to use sessions for max-claimable maths; they will simply display the entered-as unit when present (read-only).
+- Configuration UI (Edit Staff / Add Staff) stays sessions-only — the toggle is a per-claim entry preference, not a config change.

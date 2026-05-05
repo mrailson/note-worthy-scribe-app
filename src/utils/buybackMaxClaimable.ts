@@ -37,10 +37,23 @@ export function formatMaxClaimableInfo(staff: any): MaxClaimableInfo {
         formula: `${allocValue} day${allocValue !== 1 ? 's' : ''} × £750 = £${(calculatedAmount || allocValue * 750).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
       };
     }
-    // sessions (default for locum)
+    // sessions (default for locum) — display as hours if practice entered in hours
+    const sessionMax = calculatedAmount || allocValue * 375;
+    if (staff.entry_unit === 'hours') {
+      const hrs = staff.entered_value ?? (allocValue * (25 / 6));
+      const hourlyRate = sessionMax / Math.max(allocValue, 0.0001) / (25 / 6);
+      const totalMins = Math.round(hrs * 60);
+      const hh = Math.floor(totalMins / 60);
+      const mm = totalMins % 60;
+      const hrsLabel = hh && mm ? `${hh}h ${mm}m` : hh ? `${hh}h` : `${mm}m`;
+      return {
+        maxAmount: sessionMax,
+        formula: `${hrsLabel} × £${hourlyRate.toLocaleString('en-GB', { minimumFractionDigits: 2 })}/hr = £${sessionMax.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+      };
+    }
     return {
-      maxAmount: calculatedAmount || allocValue * 375,
-      formula: `${allocValue} session${allocValue !== 1 ? 's' : ''} × £375 = £${(calculatedAmount || allocValue * 375).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+      maxAmount: sessionMax,
+      formula: `${allocValue} session${allocValue !== 1 ? 's' : ''} × £375 = £${sessionMax.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
     };
   }
 
