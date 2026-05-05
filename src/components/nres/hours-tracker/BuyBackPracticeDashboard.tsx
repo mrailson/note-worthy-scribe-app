@@ -2562,6 +2562,7 @@ export function ClaimsViewSwitcher({
   onResubmit,
   onUpdateClaimNotes,
   onDeleteClaim,
+  onContinueDraft,
   saving,
   // Director-mode extensions (all optional, off by default)
   directorMode = false,
@@ -2583,6 +2584,7 @@ export function ClaimsViewSwitcher({
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   onDeleteClaim?: (id: string) => Promise<void>;
+  onContinueDraft?: (claim: BuyBackClaim) => void;
   saving?: boolean;
   directorMode?: boolean;
   practiceFilter?: string;
