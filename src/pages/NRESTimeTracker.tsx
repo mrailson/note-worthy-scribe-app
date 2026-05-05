@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Clock, ChevronLeft, Trash2, Plus, X, Download, Settings2, Paperclip } from 'lucide-react';
 import { TimeEntryAttachmentsModal } from '@/components/nres/time-tracker/TimeEntryAttachmentsModal';
-import { useTimeEntryAttachmentCounts } from '@/hooks/useNRESTimeEntryAttachments';
+import { useTimeEntryAttachmentCounts, useNRESTimeEntryAttachments } from '@/hooks/useNRESTimeEntryAttachments';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -55,6 +55,9 @@ const NRESTimeTracker = () => {
   const [newActivityLabel, setNewActivityLabel] = useState('');
   const [saving, setSaving] = useState(false);
   const [attachmentEntry, setAttachmentEntry] = useState<Entry | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const pendingInputRef = useRef<HTMLInputElement | null>(null);
+  const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
@@ -130,9 +133,16 @@ const NRESTimeTracker = () => {
         minutes: selectedDuration, notes: notes.trim() || null,
       }).select().single();
       if (error) throw error;
-      setEntries(prev => [data, ...prev]);
-      toast.success(`Logged ${formatDuration(selectedDuration)} for ${format(selectedDate, 'd MMM')}`);
-      setSelectedActivity(''); setNotes(''); setSelectedDuration(60);
+      const newEntry = data as Entry;
+      // Upload any pending attachments to the freshly-created entry
+      if (pendingFiles.length > 0) {
+        for (const f of pendingFiles) {
+          await uploadStandalone(f, newEntry.id);
+        }
+      }
+      setEntries(prev => [newEntry, ...prev]);
+      toast.success(`Logged ${formatDuration(selectedDuration)} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
+      setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
     } finally { setSaving(false); }
@@ -364,12 +374,93 @@ const NRESTimeTracker = () => {
         {/* Duration */}
         <DurationPicker selectedDuration={selectedDuration} setSelectedDuration={setSelectedDuration} />
 
-        {/* Notes */}
+        {/* Notes & attachments */}
         <Card className="rounded-xl border-2 border-slate-200">
-          <CardContent className="p-3 space-y-2">
-            <div className="text-xs font-medium text-slate-500">NOTES (OPTIONAL)</div>
-            <Input value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="e.g. v6 MoU review with Mark Gray" />
+          <CardContent
+            className="p-3 space-y-2"
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.files?.length) {
+                setPendingFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+              }
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-medium text-slate-500">NOTES & ATTACHMENTS (OPTIONAL)</div>
+              <button
+                type="button"
+                onClick={() => pendingInputRef.current?.click()}
+                className="text-[11px] text-emerald-700 font-medium hover:underline flex items-center gap-1"
+              >
+                <Paperclip className="w-3 h-3" /> Attach
+              </button>
+              <input
+                ref={pendingInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.length) setPendingFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+            <Input
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              onPaste={(e) => {
+                const items = e.clipboardData?.items;
+                if (!items) return;
+                const pasted: File[] = [];
+                for (let i = 0; i < items.length; i++) {
+                  const it = items[i];
+                  if (it.kind === 'file') {
+                    const f = it.getAsFile();
+                    if (f) {
+                      const ext = (f.type.split('/')[1] || 'png');
+                      const named = f.name && f.name !== 'image.png'
+                        ? f
+                        : new File([f], `screenshot-${new Date().toISOString().replace(/[:.]/g,'-')}.${ext}`, { type: f.type });
+                      pasted.push(named);
+                    }
+                  }
+                }
+                if (pasted.length > 0) {
+                  e.preventDefault();
+                  setPendingFiles(prev => [...prev, ...pasted]);
+                  toast.success(`Attached ${pasted.length} file${pasted.length > 1 ? 's' : ''} from clipboard`);
+                }
+              }}
+              placeholder="e.g. v6 MoU review with Mark Gray (Ctrl+V to paste a screenshot)"
+            />
+            {pendingFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {pendingFiles.map((f, i) => {
+                  const isImg = f.type.startsWith('image/');
+                  return (
+                    <div key={i} className="relative group rounded-md border border-slate-200 bg-slate-50 p-1 flex items-center gap-2 max-w-[180px]">
+                      {isImg ? (
+                        <img src={URL.createObjectURL(f)} alt={f.name} className="w-10 h-10 object-cover rounded" />
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-semibold">
+                          {(f.name.split('.').pop() || '?').slice(0, 4).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="text-[11px] text-slate-600 truncate">{f.name}</div>
+                      <button
+                        type="button"
+                        onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full w-4 h-4 flex items-center justify-center text-slate-500 hover:text-red-600"
+                        title="Remove"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
