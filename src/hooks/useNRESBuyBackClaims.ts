@@ -1386,9 +1386,13 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
               return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : '';
             })();
 
+            const extraPaymentRecipients = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
+              ? []
+              : (practiceKey ? await getBuybackPracticeRecipients(practiceKey, 'payment') : []);
             const ccList = (emailConfig?.emailTestingMode && emailConfig?.currentUserEmail)
               ? []
-              : ['amanda.palin2@nhs.net'];
+              : Array.from(new Set([...['amanda.palin2@nhs.net'], ...extraPaymentRecipients]
+                  .filter(e => e.toLowerCase() !== recipient.toLowerCase())));
 
             // Derive claim type label from staff categories
             const paidStaffDetails = (updatedClaim?.staff_details as any[]) || [];
