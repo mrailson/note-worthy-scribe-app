@@ -118,14 +118,14 @@ const NRESTimeTracker = () => {
 
   // Date strip controls
   const [dateReversed, setDateReversed] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0); // 0 = last 10 days, 1 = previous 10, etc.
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = last 7 days, 1 = previous 7, etc.
   const [showMonth, setShowMonth] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, 1 = previous
 
   const dateStrip = useMemo(() => {
     const today = new Date();
-    const start = addDays(today, -10 * weekOffset);
-    const days = Array.from({ length: 10 }, (_, i) => addDays(start, -i));
+    const start = addDays(today, -7 * weekOffset);
+    const days = Array.from({ length: 7 }, (_, i) => addDays(start, -i));
     return dateReversed ? [...days].reverse() : days;
   }, [dateReversed, weekOffset]);
 
