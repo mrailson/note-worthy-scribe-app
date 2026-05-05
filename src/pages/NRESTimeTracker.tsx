@@ -274,6 +274,36 @@ const NRESTimeTracker = () => {
     } catch (e: any) { toast.error('Delete failed'); }
   };
 
+  const openEditEntry = (e: Entry) => {
+    setEditEntry(e);
+    setEditDate(e.entry_date);
+    setEditActivity(e.activity);
+    setEditMinutes(e.minutes);
+    setEditNotes(e.notes || '');
+  };
+
+  const saveEditEntry = async () => {
+    if (!editEntry) return;
+    if (!editActivity.trim()) { toast.error('Activity required'); return; }
+    if (editMinutes < 5 || editMinutes > 6000) { toast.error('Duration must be 5–6000 minutes'); return; }
+    setEditSaving(true);
+    try {
+      const updates = {
+        entry_date: editDate,
+        activity: editActivity.trim(),
+        minutes: editMinutes,
+        notes: editNotes.trim() || null,
+      };
+      const { data, error } = await (supabase as any)
+        .from('nres_time_entries').update(updates).eq('id', editEntry.id).select().single();
+      if (error) throw error;
+      setEntries(prev => prev.map(e => e.id === editEntry.id ? { ...e, ...(data || updates) } : e));
+      toast.success('Entry updated');
+      setEditEntry(null);
+    } catch (e: any) {
+      console.error(e); toast.error(e?.message || 'Update failed');
+    } finally { setEditSaving(false); }
+  };
   const handleAddActivity = async () => {
     const label = newActivityLabel.trim();
     if (!user?.id) return;
