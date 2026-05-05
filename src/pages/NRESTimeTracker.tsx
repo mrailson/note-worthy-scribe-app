@@ -175,18 +175,21 @@ const NRESTimeTracker = () => {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   // Totals
-  const { weekTotal, monthTotal } = useMemo(() => {
+  const { weekTotal, monthTotal, lastMonthTotal } = useMemo(() => {
     const now = new Date();
     const dayOfWeek = (now.getDay() + 6) % 7; // Mon=0
     const weekStart = new Date(now); weekStart.setDate(now.getDate() - dayOfWeek); weekStart.setHours(0,0,0,0);
     const monthStart = startOfMonth(now);
-    let w = 0, m = 0;
+    const lastMonthStart = startOfMonth(subMonths(now, 1));
+    const lastMonthEnd = endOfMonth(subMonths(now, 1));
+    let w = 0, m = 0, lm = 0;
     for (const e of entries) {
       const d = parseISO(e.entry_date);
       if (d >= monthStart) m += e.minutes;
       if (d >= weekStart) w += e.minutes;
+      if (d >= lastMonthStart && d <= lastMonthEnd) lm += e.minutes;
     }
-    return { weekTotal: w, monthTotal: m };
+    return { weekTotal: w, monthTotal: m, lastMonthTotal: lm };
   }, [entries]);
 
   // Note suggestions: recent unique (last 5) then most-frequent (not already shown)
