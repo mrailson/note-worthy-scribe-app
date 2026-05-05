@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SDAFeedbackModal } from "@/components/sda/SDAFeedbackModal";
-import { Home, Grid3X3, ChevronDown, Stars, Circle, MessageSquareWarning, User, LogOut } from "lucide-react";
+import { Home, Grid3X3, ChevronDown, Stars, Circle, MessageSquareWarning, User, LogOut, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -110,6 +110,12 @@ export const NRESHeader = ({ activeTab }: NRESHeaderProps) => {
                 {hasServiceAccess('nres') && (
                   <DropdownMenuItem onClick={() => navigate('/NRESDashboard')} className="cursor-pointer py-2">
                     NRES Dashboard
+                  </DropdownMenuItem>
+                )}
+                {hasServiceAccess('nres') && (
+                  <DropdownMenuItem onClick={() => navigate('/nres/time-tracker')} className="cursor-pointer py-2 text-emerald-700">
+                    <Clock className="h-3.5 w-3.5 mr-2" />
+                    NRES Time Tracker
                   </DropdownMenuItem>
                 )}
                 {hasServiceAccess('nres') && (
