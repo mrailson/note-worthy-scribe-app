@@ -3730,6 +3730,7 @@ export function BuyBackPracticeDashboard({
   const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const claimsRef = React.useRef<HTMLDivElement>(null);
+  const rosterRef = React.useRef<HTMLDivElement>(null);
 
   const practiceName = getPracticeName(practiceKey);
   const practiceCode = NRES_ODS_CODES[practiceKey] || '—';
