@@ -831,6 +831,79 @@ const NRESTimeTracker = () => {
         entryLabel={attachmentEntry ? `${attachmentEntry.activity} · ${format(parseISO(attachmentEntry.entry_date), 'EEE d MMM')}` : undefined}
         onClose={() => { setAttachmentEntry(null); refreshCounts(); }}
       />
+
+      <Dialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-800">
+              <Pencil className="w-4 h-4 text-emerald-600" /> Edit entry
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="edit-date" className="text-xs">Date</Label>
+              <Input id="edit-date" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-activity" className="text-xs">Activity</Label>
+              <select
+                id="edit-activity"
+                value={activities.some(a => a.label === editActivity) ? editActivity : '__custom'}
+                onChange={(e) => {
+                  if (e.target.value !== '__custom') setEditActivity(e.target.value);
+                }}
+                className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                {activities.map(a => <option key={a.id} value={a.label}>{a.label}</option>)}
+                {!activities.some(a => a.label === editActivity) && (
+                  <option value="__custom">{editActivity} (custom)</option>
+                )}
+              </select>
+              <Input
+                value={editActivity}
+                onChange={e => setEditActivity(e.target.value)}
+                placeholder="Or type a custom activity"
+                className="mt-1"
+                maxLength={120}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-mins" className="text-xs">
+                Duration · {formatDuration(editMinutes)} ({editMinutes} min)
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="edit-mins"
+                  type="number"
+                  min={5}
+                  max={6000}
+                  step={5}
+                  value={editMinutes}
+                  onChange={e => setEditMinutes(Number(e.target.value) || 0)}
+                  className="w-28"
+                />
+                <span className="text-xs text-slate-500">minutes</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-notes" className="text-xs">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                rows={3}
+                value={editNotes}
+                onChange={e => setEditNotes(e.target.value)}
+                placeholder="Optional notes"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditEntry(null)} disabled={editSaving}>Cancel</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={saveEditEntry} disabled={editSaving}>
+              {editSaving ? 'Saving…' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
