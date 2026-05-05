@@ -155,10 +155,13 @@ export const MeetingUsageReport = () => {
     return todaysMeetings.filter(m => m.user_id === userId);
   };
 
-  // Format time for display (HH:mm)
+  // Format time for display (HH:mm) — use UTC to match stored meeting times
   const formatTime = (dateStr: string) => {
     try {
-      return format(new Date(dateStr), 'HH:mm');
+      const d = new Date(dateStr);
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
     } catch {
       return '--:--';
     }
