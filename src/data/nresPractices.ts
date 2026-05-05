@@ -34,13 +34,13 @@ export const NRES_ODS_CODES: Record<string, string> = {
 
 export const NRES_PRACTICE_ADDRESSES: Record<NRESPracticeKey, string> = {
   parks: 'The Parks Medical Practice, Alcester Road, Stratford Road, Towcester, NN12 6BX',
-  brackley: 'Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
+  brackley: 'Brackley Medical Centre, Wellington Road, Brackley, NN13 6QZ',
   springfield: 'Springfield Surgery, Horsefair, Towcester, NN12 6BT',
   towcester: 'Towcester Medical Centre, Richmond Road, Towcester, NN12 6EX',
   bugbrooke: 'Bugbrooke Medical Practice, Levitts Road, Bugbrooke, Northampton, NN7 3QN',
   brook: 'Brook Health Centre, Stratford Road, Roade, Northampton, NN7 2NT',
   denton: 'Denton Village Surgery, Orchard Lane, Denton, Northampton, NN7 1HT',
-  bt_pcn: 'Brackley Medical Centre, Halse Road, Brackley, NN13 6EQ',
+  bt_pcn: 'Brackley Medical Centre, Wellington Road, Brackley, NN13 6QZ',
 };
 
 export interface NRESPracticeContact {
