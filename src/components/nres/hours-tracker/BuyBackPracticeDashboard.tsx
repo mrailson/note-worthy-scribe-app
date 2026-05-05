@@ -2273,23 +2273,7 @@ export function StaffRosterSection({
                 style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
               />
             </div>}
-            {category === 'gp_locum' && (
-              <div style={{ flex: '0 1 90px', minWidth: 80 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>
-                  {addAllocType === 'hours' ? 'Hourly rate £' : addAllocType === 'daily' ? 'Daily rate £' : 'Session rate £'}
-                </div>
-                <input
-                  type="number"
-                  value={addHourlyRate}
-                  onChange={(e) => setAddHourlyRate(e.target.value)}
-                  placeholder={addAllocType === 'hours' ? 'e.g. 90' : addAllocType === 'daily' ? 'e.g. 750' : 'e.g. 375'}
-                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, outline: 'none', textAlign: 'right' }}
-                />
-                <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 3, lineHeight: 1.3 }}>
-                  Max £375/session<br />Max £90/hr (= £375 ÷ 4h 10m)
-                </div>
-              </div>
-            )}
+            {/* GP Locum rates are governed by master settings (£375/session = £90/hr) — no per-staff rate input needed */}
             <button onClick={handleAddStaff} disabled={addSaving || !addName.trim() || !addRole || (!isAddingMeeting && !addAllocValue)} style={{
               padding: '7px 16px', borderRadius: 7, border: 'none', background: accent,
               color: '#fff', fontSize: 12, fontWeight: 600, cursor: addSaving ? 'not-allowed' : 'pointer',
