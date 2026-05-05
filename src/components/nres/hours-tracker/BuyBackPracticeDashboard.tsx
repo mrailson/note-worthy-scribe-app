@@ -449,8 +449,19 @@ function InlineClaimPanel({
   const [locumSessions, setLocumSessions] = useState<number>(configuredSessions);
   const [locumClaimAmount, setLocumClaimAmount] = useState<number>(0);
   const [deletingDraft, setDeletingDraft] = useState(false);
+  const [locumUnit, setLocumUnit] = useState<'sessions' | 'hours'>('sessions');
 
   const locumMaxAmount = useMemo(() => locumSessions * sessionRate, [locumSessions, sessionRate]);
+  const hourlyRateFromSession = useMemo(() => sessionRate / HOURS_PER_SESSION, [sessionRate]);
+  const locumHoursValue = useMemo(() => locumSessions * HOURS_PER_SESSION, [locumSessions]);
+  const formatHoursMins = (h: number) => {
+    const totalMins = Math.round(h * 60);
+    const hh = Math.floor(totalMins / 60);
+    const mm = totalMins % 60;
+    if (hh && mm) return `${hh}h ${mm}m`;
+    if (hh) return `${hh}h`;
+    return `${mm}m`;
+  };
 
   useEffect(() => {
     setLocumClaimAmount(prev => {
