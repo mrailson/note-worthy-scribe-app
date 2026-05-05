@@ -471,10 +471,26 @@ function InlineClaimPanel({
     });
   }, [locumMaxAmount]);
 
+  // Allocation override toggle (lets the user re-cast WTE ↔ hrs/wk in the
+  // claim modal without altering the saved staff record). Capped at 1.0 WTE
+  // / 37.5 hrs/wk for non-locum claims.
+  const [overrideAllocType, setOverrideAllocType] = useState<'wte' | 'hours' | null>(null);
+  const [overrideAllocValue, setOverrideAllocValue] = useState<number>(staffMember.allocation_value || 0);
+  // Reset override when underlying staff record changes
+  useEffect(() => {
+    setOverrideAllocType(null);
+    setOverrideAllocValue(staffMember.allocation_value || 0);
+  }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value]);
+
+  const effectiveStaff = useMemo(() => {
+    if (!overrideAllocType) return staffMember;
+    return { ...staffMember, allocation_type: overrideAllocType, allocation_value: overrideAllocValue } as BuyBackStaffMember;
+  }, [staffMember, overrideAllocType, overrideAllocValue]);
+
   const calculatedAmount = useMemo(() => {
     if (!rateParams) return 0;
-    return calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeks);
-  }, [staffMember, monthDate, rateParams, holidayWeeks]);
+    return calculateStaffMonthlyAmount(effectiveStaff, monthDate, effectiveStaff.start_date, rateParams, holidayWeeks);
+  }, [effectiveStaff, monthDate, rateParams, holidayWeeks]);
 
   // Sync to calculatedAmount whenever it changes
   useEffect(() => {
