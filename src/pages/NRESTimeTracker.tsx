@@ -85,6 +85,16 @@ const NRESTimeTracker = () => {
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const notesBaseRef = useRef('');
   const finalSegmentsRef = useRef<string>('');
+  const notesElRef = useRef<HTMLTextAreaElement | null>(null);
+  const autoGrowNotes = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = notesElRef.current;
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+      el.scrollTop = el.scrollHeight;
+    });
+  }, []);
 
   const stopMic = useCallback(() => {
     try { recognitionRef.current?.stopRecognition(); } catch {}
