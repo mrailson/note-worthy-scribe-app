@@ -2217,6 +2217,12 @@ export function StaffRosterSection({
   canAddOnBehalf?: boolean; managementRoles?: ManagementRoleConfig[];
 }) {
   const accent = CATEGORY_COLORS[category] || '#6b7280';
+  const { getConfigForCategory: getEvidenceConfigForCategory } = useNRESEvidenceConfig();
+  const evidenceRequirements = useMemo(() => {
+    const cat = category === 'meeting' ? 'management' : category;
+    if (!['buyback', 'new_sda', 'gp_locum', 'management'].includes(cat)) return [];
+    return getEvidenceConfigForCategory(cat as any);
+  }, [category, getEvidenceConfigForCategory]);
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
