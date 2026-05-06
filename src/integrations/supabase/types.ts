@@ -15213,12 +15213,20 @@ export type Database = {
       get_todays_meetings_details: {
         Args: never
         Returns: {
+          assembly_words: number
+          best_of_all_words: number
+          device_browser: string
+          device_type: string
           duration_minutes: number
           end_time: string
           id: string
+          import_source: string
+          live_words: number
+          primary_transcript_source: string
           start_time: string
           title: string
           user_id: string
+          whisper_words: number
           word_count: number
         }[]
       }
