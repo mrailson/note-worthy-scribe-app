@@ -80,57 +80,72 @@ const NRESTimeTracker = () => {
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
-  // Discreet voice-to-text for notes (AssemblyAI realtime)
+  // Discreet voice-to-text for notes (native Web Speech API for instant real-time)
   const [micRecording, setMicRecording] = useState(false);
-  const [micConnecting, setMicConnecting] = useState(false);
-  const micClientRef = useRef<AssemblyRealtimeClient | null>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const notesBaseRef = useRef('');
-  const partialRef = useRef('');
+  const finalSegmentsRef = useRef<string>('');
 
   const stopMic = useCallback(() => {
-    try { micClientRef.current?.stop(); } catch {}
-    micClientRef.current = null;
+    try { recognitionRef.current?.stopRecognition(); } catch {}
+    recognitionRef.current = null;
     setMicRecording(false);
-    setMicConnecting(false);
   }, []);
 
   const startMic = useCallback(async () => {
-    if (micRecording || micConnecting) return;
-    setMicConnecting(true);
-    notesBaseRef.current = notes;
-    partialRef.current = '';
+    if (micRecording) return;
+
+    // Capability check
+    const supported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+    if (!supported) {
+      toast.error('Voice input requires Chrome or Edge');
+      return;
+    }
+
+    notesBaseRef.current = notes ? notes.replace(/\s+$/, '') : '';
+    finalSegmentsRef.current = '';
+
+    const rec = new BrowserSpeechRecognition(
+      ({ text, isFinal }) => {
+        if (isFinal) {
+          // Append final segment permanently
+          finalSegmentsRef.current = (finalSegmentsRef.current + ' ' + text).replace(/\s+/g, ' ').trim();
+          const base = notesBaseRef.current;
+          const merged = (base ? base + ' ' : '') + finalSegmentsRef.current;
+          setNotes(merged);
+        } else {
+          // Live interim — show base + finals so far + interim
+          const base = notesBaseRef.current;
+          const finals = finalSegmentsRef.current;
+          const live = [base, finals, text].filter(Boolean).join(' ').replace(/\s+/g, ' ');
+          setNotes(live);
+        }
+      },
+      (err) => {
+        console.error('Speech error:', err);
+        if (err && !/no-speech|aborted/i.test(err)) {
+          toast.error(err);
+        }
+        stopMic();
+      },
+      (status) => {
+        if (status === 'listening') setMicRecording(true);
+        if (status === 'stopped' || status === 'ended') setMicRecording(false);
+      }
+    );
+
+    recognitionRef.current = rec;
+    setMicRecording(true);
     try {
-      const client = new AssemblyRealtimeClient({
-        onOpen: () => { setMicRecording(true); setMicConnecting(false); },
-        onPartial: (text) => {
-          partialRef.current = text;
-          const base = notesBaseRef.current;
-          setNotes(base ? `${base} ${text}` : text);
-        },
-        onFinal: (text) => {
-          const base = notesBaseRef.current;
-          const next = base ? `${base} ${text}`.trim() : text.trim();
-          notesBaseRef.current = next;
-          partialRef.current = '';
-          setNotes(next);
-        },
-        onError: (err) => {
-          console.error('Mic STT error:', err);
-          toast.error('Voice input error');
-          stopMic();
-        },
-        onClose: () => { setMicRecording(false); setMicConnecting(false); },
-      });
-      micClientRef.current = client;
-      await client.start();
+      await rec.startRecognition();
     } catch (err) {
       console.error('Failed to start voice input:', err);
-      toast.error('Could not access microphone');
+      toast.error('Could not start voice input');
       stopMic();
     }
-  }, [notes, micRecording, micConnecting, stopMic]);
+  }, [notes, micRecording, stopMic]);
 
-  useEffect(() => () => { try { micClientRef.current?.stop(); } catch {} }, []);
+  useEffect(() => () => { try { recognitionRef.current?.stopRecognition(); } catch {} }, []);
 
 
   const draftKey = user?.id ? `nres-time-draft:${user.id}` : null;
