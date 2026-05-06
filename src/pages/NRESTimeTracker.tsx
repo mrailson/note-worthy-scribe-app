@@ -123,12 +123,14 @@ const NRESTimeTracker = () => {
           const base = notesBaseRef.current;
           const merged = (base ? base + ' ' : '') + finalSegmentsRef.current;
           setNotes(merged);
+          autoGrowNotes();
         } else {
           // Live interim — show base + finals so far + interim
           const base = notesBaseRef.current;
           const finals = finalSegmentsRef.current;
           const live = [base, finals, text].filter(Boolean).join(' ').replace(/\s+/g, ' ');
           setNotes(live);
+          autoGrowNotes();
         }
       },
       (err) => {
