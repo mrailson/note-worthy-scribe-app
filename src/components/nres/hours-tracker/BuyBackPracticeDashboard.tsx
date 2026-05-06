@@ -4173,6 +4173,8 @@ export function BuyBackPracticeDashboard({
       fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
       maxWidth: 1000, margin: '0 auto', padding: '28px 16px',
       color: '#111827',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh',
     }}>
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' as const, gap: 12 }}>
