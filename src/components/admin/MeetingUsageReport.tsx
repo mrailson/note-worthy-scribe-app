@@ -29,7 +29,42 @@ interface TodaysMeeting {
   end_time: string;
   duration_minutes: number;
   word_count: number;
+  import_source?: string | null;
+  device_browser?: string | null;
+  device_type?: string | null;
+  primary_transcript_source?: string | null;
+  assembly_words?: number | null;
+  whisper_words?: number | null;
+  live_words?: number | null;
+  best_of_all_words?: number | null;
 }
+
+const formatRecordingMethod = (m: TodaysMeeting): string => {
+  if (m.import_source === 'mobile_live') return 'Mobile (Live)';
+  if (m.import_source === 'mobile_offline') return 'Mobile (Offline)';
+  if (m.import_source === 'plaud') return 'Plaud';
+  if (m.import_source && m.import_source !== 'desktop') {
+    return m.import_source.replace(/_/g, ' ');
+  }
+  const browser = m.device_browser || 'Unknown';
+  const isDesktop = (m.device_type || '').includes('desktop');
+  const isMobile = (m.device_type || '').includes('mobile');
+  const platform = isDesktop ? 'Desktop' : isMobile ? 'Mobile' : '';
+  return platform ? `${browser} (${platform})` : browser;
+};
+
+const getEngineList = (m: TodaysMeeting): Array<{ key: string; label: string; words: number; isPrimary: boolean }> => {
+  const primary = (m.primary_transcript_source || '').toLowerCase();
+  const engines = [
+    { key: 'best_of_all', label: 'Best-of-all', words: m.best_of_all_words || 0 },
+    { key: 'assembly',    label: 'Assembly',    words: m.assembly_words || 0 },
+    { key: 'whisper',     label: 'Whisper',     words: m.whisper_words || 0 },
+    { key: 'live',        label: 'Live',        words: m.live_words || 0 },
+  ];
+  return engines
+    .filter(e => e.words > 0)
+    .map(e => ({ ...e, isPrimary: primary.includes(e.key) || (primary === 'consolidated' && e.key === 'best_of_all') }));
+};
 
 type SortField = 'user' | 'last_24h' | 'last_7d' | 'last_30d' | 'all_time' | 'deleted' | 'avg_duration' | 'total_time' | 'cost';
 type SortDirection = 'asc' | 'desc';
@@ -512,7 +547,9 @@ export const MeetingUsageReport = () => {
                               <div className="space-y-2">
                                 <h4 className="text-sm font-semibold">Today's Meetings</h4>
                                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                                  {getUserTodaysMeetings(user.user_id).map((meeting) => (
+                                  {getUserTodaysMeetings(user.user_id).map((meeting) => {
+                                    const engines = getEngineList(meeting);
+                                    return (
                                     <div key={meeting.id} className="text-xs border-b pb-2 last:border-0">
                                       <p className="font-medium truncate">{meeting.title || 'Untitled Meeting'}</p>
                                       <div className="flex justify-between text-muted-foreground mt-1">
@@ -523,8 +560,26 @@ export const MeetingUsageReport = () => {
                                         <span>Duration: {formatDuration(meeting.duration_minutes || (meeting.start_time && meeting.end_time ? Math.round((new Date(meeting.end_time).getTime() - new Date(meeting.start_time).getTime()) / 60000) : 0))}</span>
                                         <span>Words: {formatNumber(meeting.word_count || 0)}</span>
                                       </div>
+                                      <div className="flex gap-1 text-muted-foreground mt-1">
+                                        <span className="font-medium text-foreground">Method:</span>
+                                        <span>{formatRecordingMethod(meeting)}</span>
+                                      </div>
+                                      {engines.length > 0 && (
+                                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
+                                          <span className="font-medium text-foreground">Engines:</span>
+                                          {engines.map((e, i) => (
+                                            <span
+                                              key={e.key}
+                                              className={e.isPrimary ? 'text-green-700 font-medium' : 'text-muted-foreground'}
+                                            >
+                                              {e.label} {formatNumber(e.words)}{i < engines.length - 1 ? ' ·' : ''}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
-                                  ))}
+                                    );
+                                  })}
                                   {getUserTodaysMeetings(user.user_id).length === 0 && (
                                     <p className="text-xs text-muted-foreground">No meeting details available</p>
                                   )}
