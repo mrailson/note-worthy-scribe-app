@@ -568,16 +568,31 @@ const NRESTimeTracker = () => {
     return format(d, 'EEE');
   };
 
+  const { isVerifier } = useIsNRESVerifier();
+  const [topTab, setTopTab] = useState<'mine' | 'manager'>('mine');
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        <div>
+      <div className={cn('mx-auto px-4 py-4 space-y-4', topTab === 'manager' ? 'max-w-7xl' : 'max-w-2xl')}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-600" /> NRES Time Tracker
           </h1>
-          
+          {isVerifier && (
+            <Tabs value={topTab} onValueChange={(v) => setTopTab(v as 'mine' | 'manager')}>
+              <TabsList>
+                <TabsTrigger value="mine">My time</TabsTrigger>
+                <TabsTrigger value="manager"><Users className="w-3.5 h-3.5 mr-1.5" />Manager view</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
         </div>
+
+        {topTab === 'manager' && isVerifier ? (
+          <NRESTimeManagerView />
+        ) : (
+        <>
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-3">
