@@ -26,8 +26,11 @@ import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import nresLogoUrl from '@/assets/nres-logo.png';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff, Users } from 'lucide-react';
 import { BrowserSpeechRecognition } from '@/utils/BrowserSpeechRecognition';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useIsNRESVerifier } from '@/hooks/useIsNRESVerifier';
+import { NRESTimeManagerView } from '@/components/nres/time-tracker/NRESTimeManagerView';
 
 const DEFAULT_ACTIVITIES = [
   'Programme Board / Governance',
