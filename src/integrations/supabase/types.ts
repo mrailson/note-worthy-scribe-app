@@ -9998,34 +9998,48 @@ export type Database = {
         Row: {
           activity: string
           created_at: string
+          entered_by: string | null
           entry_date: string
           id: string
           minutes: number
           notes: string | null
+          practice_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           activity: string
           created_at?: string
+          entered_by?: string | null
           entry_date: string
           id?: string
           minutes: number
           notes?: string | null
+          practice_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           activity?: string
           created_at?: string
+          entered_by?: string | null
           entry_date?: string
           id?: string
           minutes?: number
           notes?: string | null
+          practice_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nres_time_entries_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nres_time_entry_attachments: {
         Row: {
@@ -10067,6 +10081,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      nres_time_entry_audit: {
+        Row: {
+          action: string
+          edited_at: string
+          edited_by: string
+          entry_id: string
+          id: string
+          new_values: Json | null
+          previous_values: Json | null
+          subject_user_id: string
+        }
+        Insert: {
+          action: string
+          edited_at?: string
+          edited_by: string
+          entry_id: string
+          id?: string
+          new_values?: Json | null
+          previous_values?: Json | null
+          subject_user_id: string
+        }
+        Update: {
+          action?: string
+          edited_at?: string
+          edited_by?: string
+          entry_id?: string
+          id?: string
+          new_values?: Json | null
+          previous_values?: Json | null
+          subject_user_id?: string
+        }
+        Relationships: []
+      }
+      nres_time_targets: {
+        Row: {
+          created_at: string
+          id: string
+          period: string
+          role: string | null
+          target_hours: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period: string
+          role?: string | null
+          target_hours: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period?: string
+          role?: string | null
+          target_hours?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       nres_user_activities: {
         Row: {
@@ -11672,6 +11749,7 @@ export type Database = {
           email_signature: string | null
           full_name: string
           id: string
+          is_verifier: boolean
           last_login: string | null
           letter_signature: string | null
           meeting_retention_policy: string | null
@@ -11699,6 +11777,7 @@ export type Database = {
           email_signature?: string | null
           full_name: string
           id?: string
+          is_verifier?: boolean
           last_login?: string | null
           letter_signature?: string | null
           meeting_retention_policy?: string | null
@@ -11726,6 +11805,7 @@ export type Database = {
           email_signature?: string | null
           full_name?: string
           id?: string
+          is_verifier?: boolean
           last_login?: string | null
           letter_signature?: string | null
           meeting_retention_policy?: string | null
@@ -15290,6 +15370,7 @@ export type Database = {
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
       is_nres_claims_admin: { Args: never; Returns: boolean }
+      is_nres_verifier: { Args: { _uid: string }; Returns: boolean }
       is_pcn_manager: { Args: { _user_id?: string }; Returns: boolean }
       is_pcn_manager_for_practice: {
         Args: { _practice_id: string; _user_id: string }
