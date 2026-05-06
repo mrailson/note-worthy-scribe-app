@@ -460,9 +460,9 @@ const Index = () => {
                           <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
                           <span className="text-[10px] text-muted-foreground">May 2026</span>
                         </div>
-                        <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">GMS Amendment Directions 2026 — Practice Briefing</h4>
+                        <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">Primary Care Contracts 2026/27 — PCN & Practice Briefing</h4>
                         <p className="text-sm text-muted-foreground">
-                          Plain-English briefing on the GMS Amendment Directions 2026, what's changing for practices, and the actions to take ahead of go-live.
+                          Combined plain-English briefing covering both the updated PCN Network Contract DES and the GMS Amendment Directions 2026 — what's changing, key dates, and the actions practices and PCNs need to take ahead of go-live.
                         </p>
                         <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
                           Read briefing <ExternalLink className="h-3 w-3" />
