@@ -135,8 +135,22 @@ export function NRESTimeManagerView() {
       // Only NRES-assigned users
       setUsers(profilesAll.filter(p => nresIds.has(p.user_id)));
       // Only entries belonging to NRES-assigned users
-      setEntries(((eRes.data || []) as any[]).filter(e => nresIds.has(e.user_id)) as any);
-      setPractices(((prRes.data || []) as any) as Practice[]);
+      const nresEntries = ((eRes.data || []) as any[]).filter(e => nresIds.has(e.user_id));
+      setEntries(nresEntries as any);
+
+      // Only show practices linked to NRES users (via user_roles) or referenced by NRES entries
+      const practiceIdSet = new Set<string>();
+      nresEntries.forEach((e: any) => { if (e.practice_id) practiceIdSet.add(e.practice_id); });
+      const nresUserIds = Array.from(nresIds) as string[];
+      if (nresUserIds.length > 0) {
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('practice_id')
+          .in('user_id', nresUserIds);
+        (rolesData || []).forEach((r: any) => { if (r.practice_id) practiceIdSet.add(r.practice_id); });
+      }
+      const allPractices = ((prRes.data || []) as any) as Practice[];
+      setPractices(allPractices.filter(p => practiceIdSet.has(p.id)));
       setTargets(((tRes.data || []) as any) as Target[]);
     } catch (e: any) {
       console.error(e);
