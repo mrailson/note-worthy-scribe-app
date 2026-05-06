@@ -2286,24 +2286,24 @@ function EvidenceTooltip({ accent, title, category }: { accent: string; title: s
           role="tooltip"
           style={{
             position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 1000,
-            width: 380, padding: '12px 14px', background: '#111827', color: '#fff',
-            borderRadius: 8, fontSize: 11, lineHeight: 1.5,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.18)', pointerEvents: 'none',
+            width: 380, padding: '12px 14px', background: '#ffffff', color: '#111827',
+            border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 11, lineHeight: 1.5,
+            boxShadow: '0 8px 24px rgba(15,23,42,0.12)', pointerEvents: 'none',
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: '#fde68a' }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: accent }}>
             {title} — Claim requirements
           </div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#a7f3d0', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#047857', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: 4 }}>
             On the invoice
           </div>
           {spec.invoiceData.map((item, i) => (
             <div key={i} style={{ marginBottom: 3, display: 'flex', gap: 6 }}>
-              <span style={{ color: '#a7f3d0', flexShrink: 0 }}>✓</span>
-              <span style={{ color: '#e5e7eb' }}>{item}</span>
+              <span style={{ color: '#059669', flexShrink: 0 }}>✓</span>
+              <span style={{ color: '#374151' }}>{item}</span>
             </div>
           ))}
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#fde68a', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginTop: 10, marginBottom: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#b45309', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginTop: 10, marginBottom: 4 }}>
             Supporting evidence (uploaded)
           </div>
           {spec.evidence.map((r, i) => (
@@ -2311,10 +2311,10 @@ function EvidenceTooltip({ accent, title, category }: { accent: string; title: s
               <span title={statusLabel(r.status)} style={{ color: statusColor(r.status), flexShrink: 0, fontWeight: 700, minWidth: 12 }}>
                 {r.status}
               </span>
-              <span style={{ color: '#e5e7eb' }}>{r.label}</span>
+              <span style={{ color: '#374151' }}>{r.label}</span>
             </div>
           ))}
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #374151', fontSize: 10, color: '#9ca3af' }}>
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontSize: 10, color: '#6b7280' }}>
             R = Required · O = Optional · ? = Decision pending
           </div>
         </span>
@@ -4173,8 +4173,6 @@ export function BuyBackPracticeDashboard({
       fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
       maxWidth: 1000, margin: '0 auto', padding: '28px 16px',
       color: '#111827',
-      backgroundColor: '#f8fafc',
-      minHeight: '100vh',
     }}>
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' as const, gap: 12 }}>
