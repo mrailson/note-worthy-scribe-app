@@ -446,12 +446,26 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
       </Card>
 
       {/* Sub-tabs */}
-      <Tabs defaultValue="by-user">
-        <TabsList>
-          <TabsTrigger value="by-user">By user</TabsTrigger>
-          <TabsTrigger value="by-activity">By activity</TabsTrigger>
-          <TabsTrigger value="by-practice">By practice</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
+      <Tabs defaultValue="by-user" className="mt-2">
+        <TabsList
+          className="h-auto w-full justify-start gap-0 rounded-none bg-transparent p-0 mb-[18px] flex-wrap"
+          style={{ boxShadow: 'inset 0 -0.5px 0 hsl(var(--border))' }}
+        >
+          {([
+            { v: 'by-user', label: 'By user', Icon: Users },
+            { v: 'by-activity', label: 'By activity', Icon: ListChecks },
+            { v: 'by-practice', label: 'By practice', Icon: Building2 },
+            { v: 'trends', label: 'Trends', Icon: TrendingUp },
+          ]).map(({ v, label, Icon }) => (
+            <TabsTrigger
+              key={v}
+              value={v}
+              className="group relative gap-1.5 rounded-none border-0 border-b-2 border-transparent bg-transparent px-3.5 py-2.5 text-[14px] font-normal text-[#5F5E5A] shadow-none transition-colors hover:text-[#1a1a1a] data-[state=active]:border-b-[#1D9E75] data-[state=active]:bg-transparent data-[state=active]:text-[#1a1a1a] data-[state=active]:font-medium data-[state=active]:shadow-none"
+            >
+              <Icon className="w-[15px] h-[15px]" />
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="by-user" className="space-y-3">
