@@ -398,9 +398,23 @@ const NRESTimeTracker = () => {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
-  const exportPDF = (range: ExportRange = 'this-month') => {
+  const exportPDF = async (range: ExportRange = 'this-month') => {
     const { entries: rangeEntries, label, fileBase } = getRangeData(range);
     const doc = new jsPDF();
+
+    // NRES logo (top right)
+    try {
+      const res = await fetch(nresLogoUrl);
+      const blob = await res.blob();
+      const dataUrl: string = await new Promise((resolve) => {
+        const r = new FileReader();
+        r.onloadend = () => resolve(r.result as string);
+        r.readAsDataURL(blob);
+      });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.addImage(dataUrl, 'PNG', pageWidth - 14 - 28, 10, 28, 18);
+    } catch {}
+
     doc.setFontSize(16);
     doc.text(`NRES Time Recording — ${label}`, 14, 18);
     doc.setFontSize(10);
