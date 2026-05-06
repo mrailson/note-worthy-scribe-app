@@ -857,15 +857,13 @@ const NRESTimeTracker = () => {
               <button
                 type="button"
                 onClick={micRecording ? stopMic : startMic}
-                disabled={micConnecting}
                 title={micRecording ? 'Stop voice input' : 'Dictate notes'}
                 aria-label={micRecording ? 'Stop voice input' : 'Dictate notes'}
                 className={cn(
                   'absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-300',
                   micRecording
                     ? 'bg-red-500 text-white shadow-[0_0_0_4px_rgba(239,68,68,0.18)] animate-pulse'
-                    : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50',
-                  micConnecting && 'opacity-60'
+                    : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
                 )}
               >
                 {micRecording ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
