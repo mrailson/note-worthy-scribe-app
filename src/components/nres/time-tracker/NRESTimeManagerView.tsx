@@ -145,9 +145,10 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
 
       // Restrict practices to the canonical NRES neighbourhood (by ODS code)
       const { NRES_ODS_CODES } = await import('@/data/nresPractices');
-      const nresOds = new Set(Object.values(NRES_ODS_CODES));
+      const extraOds = ['PML001', 'NICB001', 'K85999'];
+      const allowedOds = new Set<string>([...Object.values(NRES_ODS_CODES), ...extraOds]);
       const allPractices = ((prRes.data || []) as any[]) as (Practice & { practice_code?: string })[];
-      setPractices(allPractices.filter(p => p.practice_code && nresOds.has(p.practice_code)));
+      setPractices(allPractices.filter(p => p.practice_code && allowedOds.has(p.practice_code)));
       setTargets(((tRes.data || []) as any) as Target[]);
     } catch (e: any) {
       console.error(e);
