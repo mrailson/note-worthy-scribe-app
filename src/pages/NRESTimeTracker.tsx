@@ -155,7 +155,7 @@ const NRESTimeTracker = () => {
       toast.error('Could not start voice input');
       stopMic();
     }
-  }, [notes, micRecording, stopMic]);
+  }, [notes, micRecording, stopMic, autoGrowNotes]);
 
   useEffect(() => () => { try { recognitionRef.current?.stopRecognition(); } catch {} }, []);
 
