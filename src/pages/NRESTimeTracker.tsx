@@ -80,6 +80,59 @@ const NRESTimeTracker = () => {
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
+  // Discreet voice-to-text for notes (AssemblyAI realtime)
+  const [micRecording, setMicRecording] = useState(false);
+  const [micConnecting, setMicConnecting] = useState(false);
+  const micClientRef = useRef<AssemblyRealtimeClient | null>(null);
+  const notesBaseRef = useRef('');
+  const partialRef = useRef('');
+
+  const stopMic = useCallback(() => {
+    try { micClientRef.current?.stop(); } catch {}
+    micClientRef.current = null;
+    setMicRecording(false);
+    setMicConnecting(false);
+  }, []);
+
+  const startMic = useCallback(async () => {
+    if (micRecording || micConnecting) return;
+    setMicConnecting(true);
+    notesBaseRef.current = notes;
+    partialRef.current = '';
+    try {
+      const client = new AssemblyRealtimeClient({
+        onOpen: () => { setMicRecording(true); setMicConnecting(false); },
+        onPartial: (text) => {
+          partialRef.current = text;
+          const base = notesBaseRef.current;
+          setNotes(base ? `${base} ${text}` : text);
+        },
+        onFinal: (text) => {
+          const base = notesBaseRef.current;
+          const next = base ? `${base} ${text}`.trim() : text.trim();
+          notesBaseRef.current = next;
+          partialRef.current = '';
+          setNotes(next);
+        },
+        onError: (err) => {
+          console.error('Mic STT error:', err);
+          toast.error('Voice input error');
+          stopMic();
+        },
+        onClose: () => { setMicRecording(false); setMicConnecting(false); },
+      });
+      micClientRef.current = client;
+      await client.start();
+    } catch (err) {
+      console.error('Failed to start voice input:', err);
+      toast.error('Could not access microphone');
+      stopMic();
+    }
+  }, [notes, micRecording, micConnecting, stopMic]);
+
+  useEffect(() => () => { try { micClientRef.current?.stop(); } catch {} }, []);
+
+
   const draftKey = user?.id ? `nres-time-draft:${user.id}` : null;
   const draftLoadedRef = useRef(false);
 
