@@ -29,7 +29,42 @@ interface TodaysMeeting {
   end_time: string;
   duration_minutes: number;
   word_count: number;
+  import_source?: string | null;
+  device_browser?: string | null;
+  device_type?: string | null;
+  primary_transcript_source?: string | null;
+  assembly_words?: number | null;
+  whisper_words?: number | null;
+  live_words?: number | null;
+  best_of_all_words?: number | null;
 }
+
+const formatRecordingMethod = (m: TodaysMeeting): string => {
+  if (m.import_source === 'mobile_live') return 'Mobile (Live)';
+  if (m.import_source === 'mobile_offline') return 'Mobile (Offline)';
+  if (m.import_source === 'plaud') return 'Plaud';
+  if (m.import_source && m.import_source !== 'desktop') {
+    return m.import_source.replace(/_/g, ' ');
+  }
+  const browser = m.device_browser || 'Unknown';
+  const isDesktop = (m.device_type || '').includes('desktop');
+  const isMobile = (m.device_type || '').includes('mobile');
+  const platform = isDesktop ? 'Desktop' : isMobile ? 'Mobile' : '';
+  return platform ? `${browser} (${platform})` : browser;
+};
+
+const getEngineList = (m: TodaysMeeting): Array<{ key: string; label: string; words: number; isPrimary: boolean }> => {
+  const primary = (m.primary_transcript_source || '').toLowerCase();
+  const engines = [
+    { key: 'best_of_all', label: 'Best-of-all', words: m.best_of_all_words || 0 },
+    { key: 'assembly',    label: 'Assembly',    words: m.assembly_words || 0 },
+    { key: 'whisper',     label: 'Whisper',     words: m.whisper_words || 0 },
+    { key: 'live',        label: 'Live',        words: m.live_words || 0 },
+  ];
+  return engines
+    .filter(e => e.words > 0)
+    .map(e => ({ ...e, isPrimary: primary.includes(e.key) || (primary === 'consolidated' && e.key === 'best_of_all') }));
+};
 
 type SortField = 'user' | 'last_24h' | 'last_7d' | 'last_30d' | 'all_time' | 'deleted' | 'avg_duration' | 'total_time' | 'cost';
 type SortDirection = 'asc' | 'desc';
