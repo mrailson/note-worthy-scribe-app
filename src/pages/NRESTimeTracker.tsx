@@ -1069,7 +1069,7 @@ const NRESTimeTracker = () => {
             </CardContent>
           )}
         </Card>
-        </>
+        </div>
         )}
       </div>
 
