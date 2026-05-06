@@ -26,6 +26,8 @@ import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import nresLogoUrl from '@/assets/nres-logo.png';
+import { Mic, MicOff } from 'lucide-react';
+import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
 
 const DEFAULT_ACTIVITIES = [
   'Programme Board / Governance',
