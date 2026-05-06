@@ -2438,12 +2438,8 @@ export function StaffRosterSection({
           }}>
             {staffList.length}
           </span>
-          {evidenceRequirements.length > 0 && (
-            <EvidenceTooltip
-              accent={accent}
-              title={title}
-              requirements={evidenceRequirements}
-            />
+          {SECTION_EVIDENCE[category] && (
+            <EvidenceTooltip accent={accent} title={title} category={category} />
           )}
           {!sectionOpen && staffList.length > 0 && (
             <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 4, maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
