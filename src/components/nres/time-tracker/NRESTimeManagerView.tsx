@@ -16,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
-import { Users, Download, ChevronRight, Search, Plus, Trash2, Pencil, AlertTriangle } from 'lucide-react';
+import { Users, Download, ChevronRight, Search, Plus, Trash2, Pencil, AlertTriangle, ListChecks, Building2, TrendingUp } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, eachWeekOfInterval, addWeeks } from 'date-fns';
 import { toast } from 'sonner';
 import { formatDuration } from '@/utils/formatDuration';
