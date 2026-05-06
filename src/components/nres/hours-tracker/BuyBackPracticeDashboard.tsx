@@ -2190,8 +2190,89 @@ function StaffActions({
 }
 
 
-function EvidenceTooltip({ accent, title, requirements }: { accent: string; title: string; requirements: { id: string; label: string; description: string | null; is_mandatory: boolean }[] }) {
+// Evidence requirements per claim type — sourced from
+// SDA_Claims_Evidence_Requirements_v1.0 (Andrew Moore / PML sign-off matrix, 29 Apr 2026).
+// R = Required, O = Optional, ? = Decision pending.
+const SECTION_EVIDENCE: Record<string, {
+  invoiceData: string[];
+  evidence: { label: string; status: 'R' | 'O' | '?' }[];
+  notes?: string;
+}> = {
+  gp_locum: {
+    invoiceData: [
+      'Name (or unique identifier)',
+      'Role & GL category (GP / ANP / non-clinical)',
+      'Date(s) worked & hours (e.g. 9am–6pm, 8.5 hrs)',
+      'Sessions claimed & rate',
+      'Practice bank details + ODS code & invoice sequence',
+    ],
+    evidence: [
+      { label: 'Signed timesheet / rota screenshot', status: 'R' },
+      { label: 'Locum invoice (locum to practice)', status: 'R' },
+      { label: 'GMC number', status: 'R' },
+      { label: 'Indemnity confirmation', status: '?' },
+      { label: 'Clinical system slot type screenshot (SDA slots)', status: 'R' },
+    ],
+  },
+  new_sda: {
+    invoiceData: [
+      'Name, role & GL category',
+      'Date(s) worked, hours & rate claimed',
+      'Practice bank details + ODS code & invoice sequence',
+    ],
+    evidence: [
+      { label: 'Signed timesheet / rota screenshot', status: 'R' },
+      { label: 'Contract of employment', status: 'R' },
+      { label: 'Job description', status: 'R' },
+      { label: 'Start date evidence (offer letter / payroll)', status: 'R' },
+      { label: 'GMC number', status: 'O' },
+      { label: 'Clinical system slot type screenshot (SDA slots)', status: 'R' },
+    ],
+  },
+  buyback: {
+    invoiceData: [
+      'Name, role & GL category',
+      'Date(s) worked, hours, sessions & rate claimed',
+      'Practice bank details + ODS code & invoice sequence',
+    ],
+    evidence: [
+      { label: 'Signed timesheet / rota screenshot', status: 'R' },
+      { label: 'Existing contract (redacted as needed)', status: 'R' },
+      { label: 'Pay slip extract (redaction OK)', status: '?' },
+      { label: 'Part B substantiation (rota / SDA slot evidence)', status: 'R' },
+      { label: 'Clinical system slot type screenshot (SDA slots)', status: 'R' },
+    ],
+  },
+  management: {
+    invoiceData: [
+      'Name, role & GL category',
+      'Date(s) worked, hours & rate claimed',
+      'Practice bank details + ODS code & invoice sequence',
+    ],
+    evidence: [
+      { label: 'NRES management activity log / hours summary', status: 'R' },
+      { label: 'Meeting agenda / minutes / attendance list', status: 'O' },
+    ],
+  },
+  meeting: {
+    invoiceData: [
+      'Name, role & GL category',
+      'Meeting title / purpose',
+      'Date, hours worked & rate (£100/hr GP, £50/hr PM)',
+      'Practice bank details + ODS code & invoice sequence',
+    ],
+    evidence: [
+      { label: 'Meeting agenda / minutes / attendance list', status: 'R' },
+    ],
+  },
+};
+
+function EvidenceTooltip({ accent, title, category }: { accent: string; title: string; category: string }) {
   const [open, setOpen] = useState(false);
+  const spec = SECTION_EVIDENCE[category];
+  if (!spec) return null;
+  const statusColor = (s: 'R' | 'O' | '?') => s === 'R' ? '#fca5a5' : s === 'O' ? '#fcd34d' : '#93c5fd';
+  const statusLabel = (s: 'R' | 'O' | '?') => s === 'R' ? 'Required' : s === 'O' ? 'Optional' : 'Decision pending';
   return (
     <span
       onClick={(e) => e.stopPropagation()}
@@ -2205,31 +2286,43 @@ function EvidenceTooltip({ accent, title, requirements }: { accent: string; titl
           role="tooltip"
           style={{
             position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 1000,
-            width: 340, padding: '10px 12px', background: '#111827', color: '#fff',
-            borderRadius: 8, fontSize: 11, lineHeight: 1.45,
+            width: 380, padding: '12px 14px', background: '#111827', color: '#fff',
+            borderRadius: 8, fontSize: 11, lineHeight: 1.5,
             boxShadow: '0 6px 20px rgba(0,0,0,0.18)', pointerEvents: 'none',
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 11, letterSpacing: '0.02em', textTransform: 'uppercase' as const, color: '#fde68a' }}>
-            {title} — Evidence requirements
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: '#fde68a' }}>
+            {title} — Claim requirements
           </div>
-          {requirements.map(r => (
-            <div key={r.id} style={{ marginBottom: 6, display: 'flex', gap: 6 }}>
-              <span style={{ color: r.is_mandatory ? '#fca5a5' : '#9ca3af', flexShrink: 0, fontWeight: 700 }}>
-                {r.is_mandatory ? '●' : '○'}
-              </span>
-              <span>
-                <strong style={{ color: '#fff' }}>{r.label}</strong>
-                {r.is_mandatory && <span style={{ color: '#fca5a5', marginLeft: 4 }}>(required)</span>}
-                {r.description && <div style={{ color: '#d1d5db', marginTop: 1 }}>{r.description}</div>}
-              </span>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#a7f3d0', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: 4 }}>
+            On the invoice
+          </div>
+          {spec.invoiceData.map((item, i) => (
+            <div key={i} style={{ marginBottom: 3, display: 'flex', gap: 6 }}>
+              <span style={{ color: '#a7f3d0', flexShrink: 0 }}>✓</span>
+              <span style={{ color: '#e5e7eb' }}>{item}</span>
             </div>
           ))}
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#fde68a', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginTop: 10, marginBottom: 4 }}>
+            Supporting evidence (uploaded)
+          </div>
+          {spec.evidence.map((r, i) => (
+            <div key={i} style={{ marginBottom: 3, display: 'flex', gap: 6 }}>
+              <span title={statusLabel(r.status)} style={{ color: statusColor(r.status), flexShrink: 0, fontWeight: 700, minWidth: 12 }}>
+                {r.status}
+              </span>
+              <span style={{ color: '#e5e7eb' }}>{r.label}</span>
+            </div>
+          ))}
+          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #374151', fontSize: 10, color: '#9ca3af' }}>
+            R = Required · O = Optional · ? = Decision pending
+          </div>
         </span>
       )}
     </span>
   );
 }
+
 
 export function StaffRosterSection({
   title, category, staffList, claims, claimMonths, onClickClaim, activeClaimKey,
