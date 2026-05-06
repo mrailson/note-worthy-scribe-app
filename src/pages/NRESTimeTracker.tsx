@@ -572,28 +572,56 @@ const NRESTimeTracker = () => {
   const { isVerifier } = useIsNRESVerifier();
   const [topTab, setTopTab] = useState<'mine' | 'manager'>('mine');
 
+  const [managerSummary, setManagerSummary] = useState<{ activeCount: number; totalEligible: number; practiceCount: number } | null>(null);
+  const subtitle = topTab === 'manager'
+    ? (managerSummary
+        ? `All NRES users · ${managerSummary.activeCount} active across ${managerSummary.practiceCount} ${managerSummary.practiceCount === 1 ? 'practice' : 'practices'}`
+        : 'All NRES users')
+    : 'Your time entries';
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      <div className={cn('mx-auto px-4 py-4 space-y-4', topTab === 'manager' ? 'max-w-7xl' : 'max-w-2xl')}>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className={cn('mx-auto px-4 py-4', topTab === 'manager' ? 'max-w-7xl' : 'max-w-2xl')}>
+        {/* Title row */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-600" /> NRES Time Tracker
           </h1>
           {isVerifier && (
-            <Tabs value={topTab} onValueChange={(v) => setTopTab(v as 'mine' | 'manager')}>
-              <TabsList>
-                <TabsTrigger value="mine">My time</TabsTrigger>
-                <TabsTrigger value="manager"><Users className="w-3.5 h-3.5 mr-1.5" />Manager view</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="inline-flex items-center gap-1 rounded-full bg-stone-100 p-1">
+              {([
+                { id: 'mine' as const, label: 'My time', Icon: Clock },
+                { id: 'manager' as const, label: 'Manager view', Icon: Users },
+              ]).map(({ id, label, Icon }) => {
+                const active = topTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTopTab(id)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full text-[13px] font-medium transition-all px-[18px] py-2',
+                      active
+                        ? 'bg-[#1D9E75] text-white shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
+                        : 'bg-transparent text-[#5F5E5A] hover:bg-white hover:shadow-[0_1px_2px_rgba(0,0,0,0.06)]'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
+        {/* Subtitle */}
+        <p className="mt-2 mb-5 text-[13px] text-slate-500">{subtitle}</p>
 
         {topTab === 'manager' && isVerifier ? (
-          <NRESTimeManagerView />
+          <NRESTimeManagerView hideHeading onSummaryChange={setManagerSummary} />
         ) : (
-        <>
+        <div className="space-y-4">
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-3">
