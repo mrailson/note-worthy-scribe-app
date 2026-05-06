@@ -446,6 +446,31 @@ const Index = () => {
                     Latest News & Updates
                   </h3>
                   <a 
+                    href="/gms-2026.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">New</span>
+                          <span className="text-[10px] text-muted-foreground">May 2026</span>
+                        </div>
+                        <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">GMS Amendment Directions 2026 — Practice Briefing</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Plain-English briefing on the GMS Amendment Directions 2026, what's changing for practices, and the actions to take ahead of go-live.
+                        </p>
+                        <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
+                          Read briefing <ExternalLink className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                  <a 
                     href="https://gpnotewell.co.uk/planning-studio"
                     className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
                   >
