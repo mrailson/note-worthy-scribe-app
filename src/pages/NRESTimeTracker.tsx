@@ -27,7 +27,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import nresLogoUrl from '@/assets/nres-logo.png';
 import { Mic, MicOff } from 'lucide-react';
-import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
+import { BrowserSpeechRecognition } from '@/utils/BrowserSpeechRecognition';
 
 const DEFAULT_ACTIVITIES = [
   'Programme Board / Governance',
