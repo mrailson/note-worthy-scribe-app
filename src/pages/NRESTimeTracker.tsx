@@ -48,6 +48,7 @@ interface Activity { id: string; label: string; is_default: boolean; sort_order:
 interface Entry {
   id: string; entry_date: string; activity: string; minutes: number;
   notes: string | null; created_at: string;
+  user_id?: string; entered_by?: string | null; practice_id?: string | null;
 }
 
 const NRESTimeTracker = () => {
