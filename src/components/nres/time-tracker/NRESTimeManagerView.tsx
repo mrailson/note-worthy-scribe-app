@@ -94,7 +94,12 @@ function targetForUser(user: ProfileLite, period: 'week' | 'month', targets: Tar
   return period === 'month' ? 18.75 : 4.7;
 }
 
-export function NRESTimeManagerView() {
+interface NRESTimeManagerViewProps {
+  hideHeading?: boolean;
+  onSummaryChange?: (s: { activeCount: number; totalEligible: number; practiceCount: number }) => void;
+}
+
+export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeManagerViewProps = {}) {
   const { user } = useAuth();
   const [period, setPeriod] = useState<Period>('this-month');
   const [customStart, setCustomStart] = useState<string>('');
