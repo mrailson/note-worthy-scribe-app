@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>GMS Amendment Directions 2026 — Practice Briefing</title>
+<title>Primary Care Contracts 2026/27 — PCN &amp; Practice Briefing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -32,7 +32,6 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { scroll-behavior: smooth; }
 
 body {
@@ -55,12 +54,11 @@ body {
 .topbar {
   border-bottom: 0.5px solid var(--rule);
   padding: 18px 0;
-  background: var(--bg);
+  background: rgba(250, 247, 242, 0.92);
   position: sticky;
   top: 0;
   z-index: 50;
   backdrop-filter: blur(8px);
-  background: rgba(250, 247, 242, 0.92);
 }
 .topbar-inner {
   display: flex;
@@ -108,9 +106,7 @@ body {
 }
 
 /* ---------- Hero ---------- */
-.hero {
-  padding: 72px 0 48px;
-}
+.hero { padding: 72px 0 48px; }
 .eyebrow {
   font-size: 12px;
   letter-spacing: 0.08em;
@@ -120,6 +116,7 @@ body {
   align-items: center;
   gap: 10px;
   margin-bottom: 28px;
+  flex-wrap: wrap;
 }
 .eyebrow::before {
   content: "";
@@ -129,9 +126,7 @@ body {
   border-radius: 50%;
   background: var(--teal);
 }
-.eyebrow .ref {
-  color: var(--ink-subtle);
-}
+.eyebrow .ref { color: var(--ink-subtle); }
 h1 {
   font-family: var(--serif);
   font-weight: 500;
@@ -144,7 +139,7 @@ h1 {
 .hero-lede {
   font-size: 18px;
   color: var(--ink-muted);
-  max-width: 720px;
+  max-width: 740px;
   line-height: 1.55;
 }
 .hero-lede strong {
@@ -176,7 +171,7 @@ h1 {
 }
 .stat-value {
   font-family: var(--serif);
-  font-size: 40px;
+  font-size: 38px;
   font-weight: 500;
   color: var(--navy);
   letter-spacing: -0.02em;
@@ -191,7 +186,7 @@ h1 {
 /* ---------- Section nav ---------- */
 .section-nav {
   display: flex;
-  gap: 36px;
+  gap: 30px;
   padding: 32px 0;
   border-bottom: 0.5px solid var(--rule);
   margin-bottom: 56px;
@@ -200,7 +195,7 @@ h1 {
 .section-nav a {
   text-decoration: none;
   color: var(--ink-muted);
-  font-size: 14px;
+  font-size: 13.5px;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -223,9 +218,7 @@ section {
   padding: 64px 0;
   scroll-margin-top: 80px;
 }
-section + section {
-  border-top: 0.5px solid var(--rule);
-}
+section + section { border-top: 0.5px solid var(--rule); }
 h2 {
   font-family: var(--serif);
   font-weight: 500;
@@ -238,10 +231,36 @@ h2 {
 .section-lede {
   font-size: 16px;
   color: var(--ink-muted);
-  max-width: 700px;
+  max-width: 740px;
   margin-bottom: 40px;
   line-height: 1.6;
 }
+.section-lede strong { color: var(--ink); font-weight: 500; }
+
+/* ---------- Theme banner (separates the four major themes) ---------- */
+.theme-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+  font-weight: 500;
+}
+.theme-banner::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: var(--teal);
+  display: inline-block;
+}
+.theme-banner.navy { color: var(--navy); }
+.theme-banner.navy::before { background: var(--navy); }
+.theme-banner.amber { color: var(--amber-ink); }
+.theme-banner.amber::before { background: var(--amber-ink); }
+
 h3 {
   font-family: var(--serif);
   font-weight: 500;
@@ -257,22 +276,22 @@ h4 {
   margin-bottom: 6px;
 }
 
-/* ---------- Three change cards ---------- */
+/* ---------- Change cards ---------- */
 .change-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 }
 .change-card {
   background: var(--bg-card);
   border: 0.5px solid var(--rule);
   border-radius: 10px;
-  padding: 24px;
+  padding: 22px 22px 24px;
   display: flex;
   flex-direction: column;
 }
 .change-card .tag {
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -289,11 +308,13 @@ h4 {
   background: currentColor;
   display: inline-block;
 }
-.change-card.headline .tag { color: var(--teal); }
-.change-card.financial .tag { color: var(--navy); }
-.change-card.workflow .tag { color: var(--amber-ink); }
+.change-card.money .tag { color: var(--teal); }
+.change-card.workforce .tag { color: var(--navy); }
+.change-card.flex .tag { color: var(--amber-ink); }
+.change-card.service .tag { color: var(--rose-ink); }
+.change-card h3 { font-size: 19px; }
 .change-card p {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--ink-muted);
   line-height: 1.55;
   margin-top: 6px;
@@ -301,14 +322,14 @@ h4 {
 .change-card .impact {
   margin-top: auto;
   padding-top: 18px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-strong);
   font-weight: 500;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
-/* ---------- GP Reimbursement detail ---------- */
+/* ---------- Big callout ---------- */
 .scheme-callout {
   background: var(--teal-deep);
   color: #FFFFFF;
@@ -316,16 +337,9 @@ h4 {
   padding: 36px 40px;
   margin-bottom: 40px;
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 220px 1fr;
   gap: 40px;
   align-items: center;
-}
-.scheme-callout .big {
-  font-family: var(--serif);
-  font-size: 64px;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.02em;
 }
 .scheme-callout .big-label {
   font-size: 11px;
@@ -334,27 +348,32 @@ h4 {
   opacity: 0.7;
   margin-bottom: 12px;
 }
+.scheme-callout .big {
+  font-family: var(--serif);
+  font-size: 56px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.scheme-callout .big.med { font-size: 44px; }
 .scheme-callout .big-sub {
   font-size: 13px;
   opacity: 0.8;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 .scheme-callout-body {
   font-size: 15px;
   line-height: 1.6;
   opacity: 0.95;
 }
-.scheme-callout-body ul {
-  list-style: none;
-  margin-top: 12px;
-}
+.scheme-callout-body ul { list-style: none; margin-top: 12px; }
 .scheme-callout-body li {
   padding-left: 16px;
   position: relative;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-family: ui-monospace, "SF Mono", monospace;
   font-size: 13px;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 .scheme-callout-body li::before {
   content: "·";
@@ -362,11 +381,12 @@ h4 {
   left: 0;
 }
 
+/* ---------- Claim routes (3 cards) ---------- */
 .claim-routes {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
 }
 .route {
   background: var(--bg-card);
@@ -409,6 +429,7 @@ h4 {
   border: 0.5px solid var(--rule);
   border-radius: 12px;
   padding: 36px 40px;
+  margin-top: 24px;
 }
 .calc-header {
   display: flex;
@@ -418,10 +439,7 @@ h4 {
   padding-bottom: 18px;
   border-bottom: 0.5px solid var(--rule);
 }
-.calc-header h3 {
-  font-size: 20px;
-  margin: 0;
-}
+.calc-header h3 { font-size: 20px; margin: 0; }
 .calc-header .powered-mini {
   font-size: 11px;
   color: var(--ink-subtle);
@@ -567,6 +585,301 @@ h4 {
   background: var(--bg-elev);
 }
 
+/* ---------- Process steps ---------- */
+.process-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  margin: 32px 0 24px;
+  position: relative;
+}
+.proc-step {
+  background: var(--bg-card);
+  border: 0.5px solid var(--rule);
+  padding: 22px 18px;
+  position: relative;
+}
+.proc-step:not(:last-child) { border-right: none; }
+.proc-step:first-child { border-radius: 10px 0 0 10px; }
+.proc-step:last-child { border-radius: 0 10px 10px 0; }
+.proc-num {
+  font-family: var(--serif);
+  font-size: 11px;
+  color: var(--teal);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.proc-title {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-strong);
+  margin-bottom: 6px;
+  letter-spacing: -0.005em;
+}
+.proc-desc {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.proc-step::after {
+  content: "→";
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg);
+  color: var(--teal);
+  font-size: 14px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  font-weight: 600;
+}
+.proc-step:last-child::after { display: none; }
+
+/* ---------- Scope checker ---------- */
+.scope-checker, .eligibility {
+  background: var(--bg-card);
+  border: 0.5px solid var(--rule);
+  border-radius: 12px;
+  padding: 32px 36px;
+}
+.scope-checker { margin-top: 24px; }
+.scope-checker-header, .elig-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 0.5px solid var(--rule);
+}
+.scope-checker-header h3, .elig-header h3 { margin: 0; font-size: 20px; }
+.scope-checker-header .powered-mini, .elig-header .powered-mini {
+  font-size: 11px;
+  color: var(--ink-subtle);
+  letter-spacing: 0.04em;
+}
+.scope-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.scope-item {
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 0.5px solid var(--rule);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.scope-item:hover {
+  border-color: var(--rule-strong);
+  background: var(--bg-elev);
+}
+.scope-item .scope-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.scope-item.allowed .scope-icon {
+  background: var(--teal-tint);
+  color: var(--teal-deep);
+}
+.scope-item.blocked .scope-icon {
+  background: var(--rose-tint);
+  color: var(--rose-ink);
+}
+.scope-item .scope-text {
+  flex: 1;
+  font-size: 13.5px;
+}
+.scope-item .scope-text strong {
+  display: block;
+  color: var(--ink-strong);
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.scope-item .scope-text span {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+.scope-result {
+  margin-top: 18px;
+  padding: 18px 22px;
+  border-radius: 10px;
+  background: var(--bg-elev);
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.55;
+  display: none;
+}
+.scope-result.show { display: block; }
+.scope-result.allowed {
+  background: var(--teal-tint);
+  color: var(--teal-deep);
+  border-left: 3px solid var(--teal);
+}
+.scope-result.blocked {
+  background: var(--rose-tint);
+  color: var(--rose-ink);
+  border-left: 3px solid var(--rose-ink);
+}
+.scope-result strong { font-weight: 500; }
+
+/* ---------- Eligibility decider ---------- */
+.elig-question { margin-bottom: 22px; }
+.elig-question label {
+  display: block;
+  font-size: 13.5px;
+  color: var(--ink-strong);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.elig-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.elig-options button {
+  padding: 9px 16px;
+  border: 0.5px solid var(--rule-strong);
+  background: var(--bg);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.elig-options button:hover {
+  border-color: var(--teal);
+  color: var(--teal-deep);
+}
+.elig-options button.active {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+.elig-output {
+  margin-top: 24px;
+  padding: 22px 26px;
+  border-radius: 10px;
+  background: var(--bg-elev);
+  border-left: 3px solid var(--ink-subtle);
+  display: none;
+}
+.elig-output.show { display: block; }
+.elig-output.ok { background: var(--teal-tint); border-left-color: var(--teal); }
+.elig-output.warn { background: var(--amber-tint); border-left-color: var(--amber-ink); }
+.elig-output.no { background: var(--rose-tint); border-left-color: var(--rose-ink); }
+.elig-verdict {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ink-strong);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.elig-output.ok .elig-verdict { color: var(--teal-deep); }
+.elig-output.warn .elig-verdict { color: var(--amber-ink); }
+.elig-output.no .elig-verdict { color: var(--rose-ink); }
+.elig-detail {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+.elig-detail strong { color: var(--ink-strong); font-weight: 500; }
+
+/* ---------- Linked banner ---------- */
+.linked-banner {
+  background: var(--bg-card);
+  border: 0.5px solid var(--rule);
+  border-left: 3px solid var(--teal);
+  border-radius: 10px;
+  padding: 22px 28px;
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+.linked-banner h4 {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink-strong);
+  margin-bottom: 6px;
+}
+.linked-banner p {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.linked-banner-pill {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal-deep);
+  background: var(--teal-tint);
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ---------- Compare grid ---------- */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+.compare-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--rule);
+  border-radius: 10px;
+  padding: 24px 26px;
+}
+.compare-tag {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 12px;
+  display: inline-block;
+  padding: 3px 9px;
+  background: var(--bg-elev);
+  border-radius: 4px;
+}
+.compare-card.was .compare-tag { color: var(--rose-ink); background: var(--rose-tint); }
+.compare-card.now .compare-tag { color: var(--teal-deep); background: var(--teal-tint); }
+.compare-card h4 {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink-strong);
+  margin-bottom: 8px;
+}
+.compare-card p {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  line-height: 1.55;
+}
+
 /* ---------- Issues grid ---------- */
 .issues-grid {
   display: grid;
@@ -591,7 +904,7 @@ h4 {
 }
 .issue h4 {
   font-family: var(--serif);
-  font-size: 17px;
+  font-size: 16.5px;
   font-weight: 500;
   color: var(--ink-strong);
   margin-bottom: 6px;
@@ -601,6 +914,21 @@ h4 {
   color: var(--ink-muted);
   line-height: 1.55;
 }
+.issue .issue-tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+  background: var(--bg-elev);
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+.issue .issue-tag.gms { background: var(--teal-tint); color: var(--teal-deep); }
+.issue .issue-tag.des { background: var(--amber-tint); color: var(--amber-ink); }
+.issue .issue-tag.both { background: var(--navy); color: #fff; }
 
 /* ---------- Action checklist ---------- */
 .checklist {
@@ -613,7 +941,7 @@ h4 {
   padding: 22px 0;
   border-bottom: 0.5px solid var(--rule);
   display: grid;
-  grid-template-columns: 24px 1fr 140px;
+  grid-template-columns: 24px 1fr 160px;
   gap: 20px;
   align-items: start;
 }
@@ -656,6 +984,19 @@ h4 {
   color: var(--ink-muted);
   line-height: 1.5;
 }
+.check-content .source-tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-weight: 500;
+}
+.check-content .source-tag.gms { background: var(--teal-tint); color: var(--teal-deep); }
+.check-content .source-tag.des { background: var(--amber-tint); color: var(--amber-ink); }
+.check-content .source-tag.both { background: var(--navy); color: #fff; }
 .check-meta {
   font-size: 12px;
   color: var(--ink-muted);
@@ -674,9 +1015,7 @@ h4 {
 .check-meta .pill.low { background: var(--teal-tint); color: var(--teal-deep); }
 
 /* ---------- Sources ---------- */
-.sources {
-  margin-top: 8px;
-}
+.sources { margin-top: 8px; }
 .source-item {
   display: grid;
   grid-template-columns: 32px 1fr auto;
@@ -741,7 +1080,99 @@ footer .disclaimer {
   line-height: 1.5;
 }
 
+/* ---------- Note box ---------- */
+.note-box {
+  background: var(--amber-tint);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--amber-ink);
+  line-height: 1.55;
+}
+.note-box strong { font-weight: 500; }
+
+/* ---------- Connection diagram ---------- */
+.connection {
+  margin-top: 32px;
+  background: var(--bg-card);
+  border: 0.5px solid var(--rule);
+  border-radius: 12px;
+  padding: 36px 40px;
+  position: relative;
+}
+.connection h3 { margin-bottom: 6px; }
+.connection > p {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-bottom: 24px;
+  max-width: 600px;
+}
+.connection-grid {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 0;
+  align-items: stretch;
+}
+.connection-side {
+  background: var(--bg-elev);
+  border-radius: 10px;
+  padding: 22px 24px;
+}
+.connection-side .label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+.connection-side .title {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink-strong);
+  margin-bottom: 8px;
+}
+.connection-side p {
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.connection-bridge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.connection-bridge::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--teal);
+  opacity: 0.3;
+}
+.connection-bridge .pill {
+  background: var(--teal);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  position: relative;
+  z-index: 2;
+  font-weight: 500;
+}
+
 /* ---------- Responsive ---------- */
+@media (max-width: 920px) {
+  .change-grid { grid-template-columns: repeat(2, 1fr); }
+  .claim-routes { grid-template-columns: 1fr; }
+}
 @media (max-width: 820px) {
   .container { padding: 0 20px; }
   h1 { font-size: 38px; }
@@ -751,15 +1182,28 @@ footer .disclaimer {
   .stat { border-right: none; padding: 20px 0; border-bottom: 0.5px solid var(--rule); }
   .stat:nth-child(2n) { padding-left: 24px; border-left: 0.5px solid var(--rule); }
   .stat:nth-child(odd) { padding-right: 24px; }
-  .change-grid, .claim-routes, .issues-grid { grid-template-columns: 1fr; }
+  .change-grid, .issues-grid, .compare-grid { grid-template-columns: 1fr; }
   .scheme-callout { grid-template-columns: 1fr; gap: 20px; padding: 28px; }
-  .scheme-callout .big { font-size: 48px; }
+  .scheme-callout .big { font-size: 40px; }
+  .scheme-callout .big.med { font-size: 34px; }
   .calc-grid { grid-template-columns: 1fr; gap: 24px; }
   .calc-output { border-left: none; padding-left: 0; padding-top: 20px; border-top: 0.5px solid var(--rule); }
   .calculator { padding: 24px; }
+  .process-steps { grid-template-columns: 1fr; }
+  .proc-step { border-right: 0.5px solid var(--rule) !important; border-bottom: none; border-radius: 0 !important; }
+  .proc-step:not(:last-child) { border-bottom: none; }
+  .proc-step::after { right: 50%; top: auto; bottom: -8px; transform: translateX(50%) rotate(90deg); }
+  .proc-step:first-child { border-radius: 10px 10px 0 0 !important; }
+  .proc-step:last-child { border-radius: 0 0 10px 10px !important; }
+  .scope-grid { grid-template-columns: 1fr; }
   .check-item { grid-template-columns: 24px 1fr; }
   .check-meta { grid-column: 2; text-align: left; margin-top: 4px; }
-  .section-nav { gap: 20px; }
+  .section-nav { gap: 18px; }
+  .scope-checker, .eligibility, .connection { padding: 22px 24px; }
+  .linked-banner { grid-template-columns: 1fr; }
+  .connection-grid { grid-template-columns: 1fr; }
+  .connection-bridge { padding: 12px 0; }
+  .connection-bridge::before { left: 50%; right: auto; top: 0; bottom: 0; width: 1px; height: auto; }
 }
 </style>
 </head>
@@ -769,7 +1213,7 @@ footer .disclaimer {
 <div class="topbar">
   <div class="container topbar-inner">
     <div class="brand"><span class="brand-mark"></span>Notewell AI</div>
-    <div class="powered"><strong>Practice briefing</strong> · v1.0 · 6 May 2026</div>
+    <div class="powered"><strong>Combined PCN &amp; Practice briefing</strong> · v2.0 · 6 May 2026</div>
   </div>
 </div>
 
@@ -778,12 +1222,12 @@ footer .disclaimer {
   <!-- Hero -->
   <section class="hero" style="padding-bottom: 0;">
     <div class="eyebrow">
-      GMS CONTRACT · 2026/27
-      <span class="ref">SI 2026 / Effective 1 April 2026</span>
+      GMS &amp; PCN DES · 2026/27
+      <span class="ref">SI 2026 + DES Specification 2026/27 · Effective 1 April 2026</span>
     </div>
-    <h1>What's changing in<br>GMS funding for 2026/27</h1>
+    <h1>What's changing in<br>primary care contracts<br>for 2026/27</h1>
     <p class="hero-lede">
-      A practice briefing on the <strong>General Medical Services Statement of Financial Entitlements (Amendment) Directions 2026</strong> — covering the new GP Reimbursement Scheme, pay rate uplifts, and the childhood immunisation workflow change. Designed for GP partners and practice managers acting on the changes now.
+      A combined briefing for PCN Clinical Directors, PCN Managers, GP Partners and Practice Managers covering both contract instruments that took effect on 1 April 2026: the <strong>GMS Statement of Financial Entitlements (Amendment) Directions 2026</strong> and the <strong>Network Contract DES Specification 2026/27</strong>. The two documents are deliberately interlocked — particularly around CAIP transition — and need to be read together.
     </p>
 
     <!-- Hero stats -->
@@ -791,22 +1235,22 @@ footer .disclaimer {
       <div class="stat">
         <div class="stat-label">Effective from</div>
         <div class="stat-value">1 Apr 26</div>
-        <div class="stat-sub">In force 1 May 2026</div>
+        <div class="stat-sub">to 31 March 2027</div>
       </div>
       <div class="stat">
-        <div class="stat-label">Practice cap</div>
+        <div class="stat-label">GP Reimbursement cap</div>
         <div class="stat-value">£4.57</div>
-        <div class="stat-sub">× adjusted population / yr</div>
+        <div class="stat-sub">× adjusted population</div>
       </div>
       <div class="stat">
         <div class="stat-label">Per GP maximum</div>
         <div class="stat-value">£152.9k</div>
-        <div class="stat-sub">£155.7k London weighted</div>
+        <div class="stat-sub">£155.7k London</div>
       </div>
       <div class="stat">
-        <div class="stat-label">Scheme period</div>
-        <div class="stat-value">12 mo</div>
-        <div class="stat-sub">to 31 March 2027</div>
+        <div class="stat-label">New mechanism</div>
+        <div class="stat-value">LVA</div>
+        <div class="stat-sub">Local Variation Arrangement</div>
       </div>
     </div>
   </section>
@@ -814,44 +1258,60 @@ footer .disclaimer {
   <!-- Section nav -->
   <nav class="section-nav">
     <a href="#overview"><span class="num">01</span>Overview</a>
-    <a href="#scheme"><span class="num">02</span>GP Reimbursement Scheme</a>
+    <a href="#gprs"><span class="num">02</span>GP Reimbursement</a>
     <a href="#calculator"><span class="num">03</span>Cap calculator</a>
     <a href="#rates"><span class="num">04</span>Pay rate uplifts</a>
-    <a href="#issues"><span class="num">05</span>Issues to watch</a>
-    <a href="#actions"><span class="num">06</span>Action checklist</a>
+    <a href="#additionality"><span class="num">05</span>Additionality &amp; CAIP</a>
+    <a href="#eligibility"><span class="num">06</span>Eligibility check</a>
+    <a href="#lva"><span class="num">07</span>Local Variation Arrangement</a>
+    <a href="#scope"><span class="num">08</span>LVA scope checker</a>
+    <a href="#service"><span class="num">09</span>Service changes</a>
+    <a href="#issues"><span class="num">10</span>Issues to watch</a>
+    <a href="#actions"><span class="num">11</span>Action checklist</a>
   </nav>
 
   <!-- Section: Overview -->
   <section id="overview" style="padding-top: 0;">
-    <h2>Three changes, one set of directions</h2>
-    <p class="section-lede">The amendment uplifts most reimbursable rates by ~3.5%, introduces a brand-new GP Reimbursement Scheme as a successor pot for CAIP-funded GP roles, and shifts one childhood immunisation from opportunistic to call/recall.</p>
+    <h2>Four threads, two contracts</h2>
+    <p class="section-lede">The substantive changes group into four themes. Money flowing into practices through the new GP Reimbursement Scheme; refreshed workforce rules where ARRS and the new GMS scheme dovetail around CAIP transitions; a brand-new local flexibility mechanism in the DES; and one operational change to childhood immunisations.</p>
 
     <div class="change-grid">
-      <div class="change-card headline">
-        <div class="tag">Headline change</div>
+      <div class="change-card money">
+        <div class="tag">Money · GMS</div>
         <h3>GP Reimbursement Scheme</h3>
-        <p>A new ring-fenced pot to fund new salaried GPs, increase sessions for existing salaried GPs, or continue posts previously funded under Capacity & Access Payments and the PCN Test Sites Programme.</p>
-        <div class="impact">£4.57 per patient · CQRSL claims</div>
+        <p>New ring-fenced pot funding new salaried GPs, increased sessions, and continuation of CAIP/Test Site GPs. £4.57 × adjusted population, three claim routes.</p>
+        <div class="impact">Section 14A SFE</div>
       </div>
-      <div class="change-card financial">
-        <div class="tag">Financial</div>
-        <h3>Reimbursable rate uplifts</h3>
-        <p>Parental leave, suspension and prolonged study leave rates rise by ~3.5%. The sickness reimbursement rate (Section 10(5)) gets a 7.6% uplift to align with the higher parental rate.</p>
-        <div class="impact">~3.5% across · 7.6% sickness</div>
+      <div class="change-card workforce">
+        <div class="tag">Workforce · DES + GMS</div>
+        <h3>CAIP &amp; Test Site carve-outs</h3>
+        <p>The DES additionality bar lifts for staff transferring from CAIP-funded posts. Aligns with GP Reimbursement Scheme Route C — same problem, two routes to solve it.</p>
+        <div class="impact">DES 7.3.8 / 7.3.9 + SFE 14A</div>
       </div>
-      <div class="change-card workflow">
-        <div class="tag">Workflow</div>
+      <div class="change-card flex">
+        <div class="tag">Flexibility · DES</div>
+        <h3>Local Variation Arrangements</h3>
+        <p>Brand new mechanism (Section 4.10) by which an ICB can ask NHS England to vary specified DES sections locally. Only sections 7, 8 and 10.1 to 10.5 can be varied.</p>
+        <div class="impact">Section 4.10 DES</div>
+      </div>
+      <div class="change-card service">
+        <div class="tag">Service · GMS</div>
         <h3>Immunisation call/recall</h3>
-        <p>The 3-year-4-month childhood immunisation moves from "opportunistic or if requested" to active call/recall. New admin and outreach workload to plan into capacity.</p>
-        <div class="impact">Active outreach required</div>
+        <p>The 3-year-4-month childhood vaccine moves from "opportunistic or if requested" to active call/recall. Plus ~3.5% uplift to most reimbursable rates and 7.6% to sickness leave.</p>
+        <div class="impact">SFE Schedule changes</div>
       </div>
     </div>
   </section>
 
-  <!-- Section: Scheme -->
-  <section id="scheme">
-    <h2>The GP Reimbursement Scheme</h2>
-    <p class="section-lede">Section 14A of the Principal Directions. A new payment scheme for the financial year ending 31 March 2027, with three claim routes and a hard cap of £4.57 × adjusted practice population.</p>
+  <!-- =============================== -->
+  <!-- THEME 1: MONEY (GMS) -->
+  <!-- =============================== -->
+
+  <!-- Section: GP Reimbursement Scheme -->
+  <section id="gprs">
+    <div class="theme-banner">Theme 1 · Money flowing into practices</div>
+    <h2>The new GP Reimbursement Scheme</h2>
+    <p class="section-lede">Section 14A of the GMS SFE Principal Directions, inserted by the Amendment Directions 2026. A new payment scheme for the financial year ending 31 March 2027, with three claim routes and a hard cap of £4.57 × adjusted practice population.</p>
 
     <div class="scheme-callout">
       <div>
@@ -885,17 +1345,17 @@ footer .disclaimer {
       <div class="route">
         <div class="route-num">Route C</div>
         <h4>Continuation of CAIP / Test Sites GPs</h4>
-        <p>Where a post was previously funded by Capacity & Access Payments or the PCN Test Sites Programme and that funding has ended or is ending. PCN approval required.</p>
+        <p>Where a post was previously funded by Capacity &amp; Access Payments or the PCN Test Sites Programme and that funding has ended or is ending. PCN approval required.</p>
         <span class="cap">Up to £152,900 / £155,698 London</span>
       </div>
     </div>
 
-    <div style="background: var(--amber-tint); border-radius: 10px; padding: 20px 24px; margin-top: 24px; font-size: 14px; color: var(--amber-ink); line-height: 1.55;">
-      <strong style="font-weight: 500;">Claims process —</strong> all claims via CQRSL, submitted within 3 months of the end of the month they relate to. Paid in arrears at the end of the following calendar month. Practices fund the wage-cycle gap.
+    <div class="note-box">
+      <strong>Claims process —</strong> all claims via CQRSL, submitted within 3 months of the end of the month they relate to. Paid in arrears at the end of the following calendar month. Practices fund the wage-cycle gap.
     </div>
   </section>
 
-  <!-- Section: Calculator -->
+  <!-- Section: Cap calculator -->
   <section id="calculator">
     <h2>What does the cap mean for your practice?</h2>
     <p class="section-lede">Adjust your list size to see your annual scheme entitlement. Compare it to the £152,900 single-GP maximum to understand how far the cap stretches.</p>
@@ -929,7 +1389,7 @@ footer .disclaimer {
     </div>
   </section>
 
-  <!-- Section: Rates -->
+  <!-- Section: Pay rate uplifts -->
   <section id="rates">
     <h2>Pay rate uplifts</h2>
     <p class="section-lede">Most reimbursable rates rise by 3.5% in line with the wider settlement. The sickness reimbursement rate gets a larger uplift, levelling it up to the higher parental leave rate.</p>
@@ -990,15 +1450,251 @@ footer .disclaimer {
       </tbody>
     </table>
 
-    <div style="margin-top: 28px; padding: 18px 22px; background: var(--bg-card); border: 0.5px solid var(--rule); border-radius: 10px; font-size: 13.5px; color: var(--ink-muted); line-height: 1.6;">
-      <strong style="color: var(--ink-strong); font-weight: 500;">Note on neonatal care leave —</strong> the reference to "neonatal care leave" has been removed from Section 9(1). Practices currently relying on that provision should query DHSC for clarification of where this is now handled.
+    <div class="note-box">
+      <strong>Note on neonatal care leave —</strong> the reference to "neonatal care leave" has been removed from Section 9(1). Practices currently relying on that provision should query DHSC for clarification of where this is now handled.
     </div>
   </section>
 
-  <!-- Section: Issues -->
+  <!-- =============================== -->
+  <!-- THEME 2: WORKFORCE (DES + GMS bridge) -->
+  <!-- =============================== -->
+
+  <!-- Section: Additionality with CAIP carve-outs -->
+  <section id="additionality">
+    <div class="theme-banner navy">Theme 2 · Workforce — where the two contracts meet</div>
+    <h2>Additionality, the 12-month bar, and CAIP transitions</h2>
+    <p class="section-lede">DES sections 7.3.8 (GPs) and 7.3.9 (general practice nurses) keep the 12-month bar on rehiring through ARRS, but add an explicit carve-out for staff transferring from CAIP-funded or PCN Test Site posts. This is the bridge that lets PCNs continue funding former CAIP roles through ARRS without breaching additionality — and it sits alongside Route C of the new GP Reimbursement Scheme as an alternative route for the same problem.</p>
+
+    <div class="compare-grid">
+      <div class="compare-card was">
+        <span class="compare-tag">Restriction stays</span>
+        <h4>The 12-month bar still applies</h4>
+        <p>A PCN cannot claim ARRS reimbursement for a GP substantively employed in any of its Core Network Practices in the previous 12 months. Same restriction applies to nurses, with a "specialist or more senior nursing role" carve-out.</p>
+      </div>
+      <div class="compare-card now">
+        <span class="compare-tag">New exemption</span>
+        <h4>CAIP and Test Site transfers exempt</h4>
+        <p>The bar does <em>not</em> apply where the GP, nurse or HCA is transferring into ARRS from a post which, immediately before transfer, was funded through the Capacity &amp; Access Payment or via NHS England's PCN Test Site programme.</p>
+      </div>
+    </div>
+
+    <div class="connection">
+      <h3>How the two routes connect</h3>
+      <p>For a former-CAIP GP post you have two legitimate routes to fund continuation. They cannot both be used for the same role.</p>
+      <div class="connection-grid">
+        <div class="connection-side">
+          <div class="label">Route via DES</div>
+          <div class="title">ARRS reimbursement</div>
+          <p>PCN-level claim under DES section 7.3.8 / 7.3.9. The CAIP/Test Site carve-out lifts the 12-month bar. Cap and rates set by Tables 2/3c of the DES.</p>
+        </div>
+        <div class="connection-bridge">
+          <div class="pill">OR</div>
+        </div>
+        <div class="connection-side">
+          <div class="label">Route via GMS</div>
+          <div class="title">GP Reimbursement Scheme · Route C</div>
+          <p>Practice-level claim under SFE 14A. PCN approval required. Cap up to £152,900 per GP (£155,698 London), drawing from the £4.57 × population pot.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section: Eligibility checker -->
+  <section id="eligibility">
+    <h2>"Can I claim ARRS for this GP?" — quick check</h2>
+    <p class="section-lede">A three-question decision tool to test whether a particular GP, nurse or HCA can be claimed for under ARRS given the new additionality rules in DES sections 7.3.8 and 7.3.9.</p>
+
+    <div class="eligibility">
+      <div class="elig-header">
+        <h3>Eligibility checker</h3>
+        <span class="powered-mini">DES 7.3.8 / 7.3.9 / 7.2.6</span>
+      </div>
+
+      <div class="elig-question">
+        <label>Has the individual been substantively employed in a PCN Core Network Practice in the past 12 months?</label>
+        <div class="elig-options" data-q="q1">
+          <button data-val="no">No, never</button>
+          <button data-val="yes-temp">Yes, but only to cover sickness/maternity</button>
+          <button data-val="yes-substantive">Yes, substantively</button>
+        </div>
+      </div>
+
+      <div class="elig-question">
+        <label>Was the role they're moving from funded by CAIP or the PCN Test Site programme immediately before transfer?</label>
+        <div class="elig-options" data-q="q2">
+          <button data-val="caip">Yes — CAIP / Test Site</button>
+          <button data-val="continued">No — but we claimed for them under last year's DES rules and they're still in post</button>
+          <button data-val="other">No — funded another way</button>
+        </div>
+      </div>
+
+      <div class="elig-question">
+        <label>Role being claimed for?</label>
+        <div class="elig-options" data-q="q3">
+          <button data-val="gp">GP</button>
+          <button data-val="nurse-senior">Nurse — specialist or senior role</button>
+          <button data-val="nurse-other">Nurse / HCA — standard role</button>
+        </div>
+      </div>
+
+      <div class="elig-output" id="eligOutput">
+        <div class="elig-verdict" id="eligVerdict">Choose an answer for each question</div>
+        <div class="elig-detail" id="eligDetail">Make a selection above to see the verdict.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== -->
+  <!-- THEME 3: FLEXIBILITY (DES) -->
+  <!-- =============================== -->
+
+  <!-- Section: LVA -->
+  <section id="lva">
+    <div class="theme-banner amber">Theme 3 · New flexibility</div>
+    <h2>The Local Variation Arrangement</h2>
+    <p class="section-lede">For the first time, the DES contains a structured mechanism for local flexibility. Until now any deviation from the national specification needed a national DES Variation issued by NHS England, or a separate Supplementary Network Service. The LVA opens a third route — narrowly scoped, ICB-initiated, but capable of varying the contract requirements on the practice itself.</p>
+
+    <div class="scheme-callout">
+      <div>
+        <div class="big-label">New mechanism</div>
+        <div class="big med">Local Variation<br/>Arrangement</div>
+        <div class="big-sub">Section 4.10 · 13 paragraphs<br/>Definition at 2.2.25</div>
+      </div>
+      <div class="scheme-callout-body">
+        Five things to know up front:
+        <ul>
+          <li>Only the <strong>commissioner</strong> (your ICB) can submit a Local Variation Arrangement Request</li>
+          <li>NHS England must approve the request — it is not a delegated decision</li>
+          <li>An LVA can <strong>only vary sections 7, 8 and 10.1 to 10.5</strong> — nothing else</li>
+          <li>An LVA can only be approved <strong>for the current financial year</strong></li>
+          <li>An LVA forms part of the DES — it is not a Supplementary Network Service</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="margin-top: 12px; margin-bottom: 8px;">Process at a glance</h3>
+    <p style="font-size: 14px; color: var(--ink-muted); margin-bottom: 4px;">The 4.10 process moves through five formal steps from request to operational variation.</p>
+
+    <div class="process-steps">
+      <div class="proc-step">
+        <div class="proc-num">Step 01</div>
+        <div class="proc-title">ICB request</div>
+        <div class="proc-desc">Commissioner submits a Local Variation Arrangement Request to NHS England (4.10.1–4.10.2). Must identify PCN(s), practices, sections, dates, rationale, and proposed wording.</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-num">Step 02</div>
+        <div class="proc-title">NHSE review</div>
+        <div class="proc-desc">NHS England may request further information (4.10.3) and decides whether the request meets the criteria in the DES Guidance (4.10.4). May approve unconditionally or with conditions.</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-num">Step 03</div>
+        <div class="proc-title">Local Variation Notice</div>
+        <div class="proc-desc">If approved, NHS England issues a written Local Variation Notice (4.10.5) setting out which PCNs, which practices, which sections, dates, conditions and how it interacts with national DES Variations.</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-num">Step 04</div>
+        <div class="proc-title">Practice agreement</div>
+        <div class="proc-desc">Before the LVA takes effect (4.10.6), the ICB must confirm the final list of participating Core Network Practices and obtain evidence each has agreed to the LVA terms.</div>
+      </div>
+      <div class="proc-step">
+        <div class="proc-num">Step 05</div>
+        <div class="proc-title">Contract variation</div>
+        <div class="proc-desc">Each participating practice signs a written variation of its primary medical services contract (4.10.10) and the PCN updates its Network Agreement to match (4.10.11).</div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <strong>Conflict rule (4.10.13) —</strong> if NHS England issues a national DES Variation during the year that touches a section also varied locally, the national Variation prevails over the LVA <em>unless</em> NHS England issues an amended Local Variation Notice that expressly preserves the local position. PCNs cannot rely on local terms surviving a national change automatically.
+    </div>
+  </section>
+
+  <!-- Section: LVA scope checker -->
+  <section id="scope">
+    <h2>What can an LVA actually change?</h2>
+    <p class="section-lede">An LVA may vary only sections 7, 8 and 10.1 to 10.5 of the Specification. Tap each Specification area below to see whether it is in or out of scope.</p>
+
+    <div class="scope-checker">
+      <div class="scope-checker-header">
+        <h3>LVA scope checker</h3>
+        <span class="powered-mini">Reference: 4.10.2(c) and 4.10.8</span>
+      </div>
+      <div class="scope-grid" id="scopeGrid">
+        <div class="scope-item allowed" data-key="s7">
+          <div class="scope-icon">✓</div>
+          <div class="scope-text"><strong>Section 7 — ARRS &amp; Workforce</strong><span>Additional Roles, claim rules, additionality</span></div>
+        </div>
+        <div class="scope-item allowed" data-key="s8">
+          <div class="scope-icon">✓</div>
+          <div class="scope-text"><strong>Section 8 — Enhanced Access</strong><span>Network Standard Hours service delivery</span></div>
+        </div>
+        <div class="scope-item allowed" data-key="s10a">
+          <div class="scope-icon">✓</div>
+          <div class="scope-text"><strong>Section 10.1 — Core PCN funding</strong><span>Core PCN payment mechanics</span></div>
+        </div>
+        <div class="scope-item allowed" data-key="s10b">
+          <div class="scope-icon">✓</div>
+          <div class="scope-text"><strong>Section 10.2 — Reimbursement claims</strong><span>Workforce reimbursement administration</span></div>
+        </div>
+        <div class="scope-item allowed" data-key="s10c">
+          <div class="scope-icon">✓</div>
+          <div class="scope-text"><strong>Section 10.3 — Enhanced Access funding</strong><span>EA payment terms</span></div>
+        </div>
+        <div class="scope-item allowed" data-key="s10d">
+          <div class="scope-icon">✓</div>
+          <div class="scope-text"><strong>Sections 10.4 &amp; 10.5</strong><span>Other financial entitlement mechanics</span></div>
+        </div>
+        <div class="scope-item blocked" data-key="s5">
+          <div class="scope-icon">✕</div>
+          <div class="scope-text"><strong>Section 5 — PCN Organisational Requirements</strong><span>List size, Clinical Director, Network Agreement</span></div>
+        </div>
+        <div class="scope-item blocked" data-key="s6">
+          <div class="scope-icon">✕</div>
+          <div class="scope-text"><strong>Section 6 — Member practices</strong><span>Eligibility, withdrawal, opt-out</span></div>
+        </div>
+        <div class="scope-item blocked" data-key="s9">
+          <div class="scope-icon">✕</div>
+          <div class="scope-text"><strong>Section 9 — Termination &amp; cessation</strong><span>Cessation arrangements</span></div>
+        </div>
+        <div class="scope-item blocked" data-key="s10x">
+          <div class="scope-icon">✕</div>
+          <div class="scope-text"><strong>Section 10.6+</strong><span>IIF, Capacity &amp; Access, other Section 10 sub-sections</span></div>
+        </div>
+      </div>
+      <div class="scope-result" id="scopeResult"></div>
+    </div>
+  </section>
+
+  <!-- =============================== -->
+  <!-- THEME 4: SERVICE -->
+  <!-- =============================== -->
+
+  <!-- Section: Service changes -->
+  <section id="service">
+    <div class="theme-banner" style="color: var(--rose-ink);">Theme 4 · Service delivery</div>
+    <h2>Childhood immunisation call/recall</h2>
+    <p class="section-lede">A small but operationally significant change in the GMS amendment. The 3-year-4-month childhood immunisation moves from "opportunistic or if requested" to active call/recall. Practices need to plan in the new admin and outreach workload.</p>
+
+    <div class="compare-grid">
+      <div class="compare-card was">
+        <span class="compare-tag">Was</span>
+        <h4>Opportunistic / if requested</h4>
+        <p>The 3y4m vaccine was offered when the patient or family attended for another reason, or specifically asked. No active outreach obligation on the practice.</p>
+      </div>
+      <div class="compare-card now">
+        <span class="compare-tag">Now</span>
+        <h4>Active call/recall</h4>
+        <p>Practices must actively call and recall the eligible cohort. Plan into call/recall lists, admin time, clinical capacity, IIF/QOF tracking and patient communications.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== -->
+  <!-- ISSUES (combined) -->
+  <!-- =============================== -->
+
   <section id="issues">
     <h2>Issues to watch</h2>
-    <p class="section-lede">Eight practical considerations as you put the scheme into operation. The financial cap looks generous on paper but interacts with eligibility rules and CAIP transition in ways that need careful planning.</p>
+    <p class="section-lede">Twelve practical considerations across both contracts. Tagged by source: <strong style="color: var(--teal-deep);">GMS</strong> for SFE Amendment items, <strong style="color: var(--amber-ink);">DES</strong> for Network Contract DES items, and <strong style="color: var(--navy);">Both</strong> where the two contracts interact.</p>
 
     <div class="issues-grid">
       <div class="issue">
@@ -1006,71 +1702,115 @@ footer .disclaimer {
         <div>
           <h4>Real-terms cut for CAIP-maxed practices</h4>
           <p>Where CAIP funded GP posts at higher levels, the £4.57 cap is materially tighter. Route C provides continuity but does not restore the previous envelope. Model against actual CAIP draw-down per practice.</p>
+          <span class="issue-tag gms">GMS</span>
         </div>
       </div>
       <div class="issue">
         <span class="issue-num">02</span>
         <div>
-          <h4>The 12-month additionality rule</h4>
-          <p>Practices cannot rehire a salaried GP let go in the past year — except retirement returnees and leave-cover GPs. Recent restructures may put returning GPs out of scope.</p>
+          <h4>The 12-month additionality rule (GMS side)</h4>
+          <p>Practices cannot rehire a salaried GP let go in the past year — except retirement returnees and leave-cover GPs. Recent restructures may put returning GPs out of scope of the GP Reimbursement Scheme.</p>
+          <span class="issue-tag gms">GMS</span>
         </div>
       </div>
       <div class="issue">
         <span class="issue-num">03</span>
         <div>
           <h4>3,500 patients per GP gate</h4>
-          <p>NHS England approval required to participate where the ratio is above 3,500. Most practices likely sit above this. Coordinate one PCN-level submission rather than multiple separate ones.</p>
+          <p>NHS England approval required to participate in the GP Reimbursement Scheme where the patient-per-GP ratio is above 3,500. Most practices likely sit above this. Coordinate one PCN-level submission rather than multiple separate ones.</p>
+          <span class="issue-tag gms">GMS</span>
         </div>
       </div>
       <div class="issue">
         <span class="issue-num">04</span>
         <div>
-          <h4>PCN-level transfer needs governance</h4>
-          <p>Paragraph (11) allows transfer of entitlement between Core Network Members. Useful for PCN workforce planning, but practices need a Standing Order or Programme Board mechanism to allocate fairly.</p>
+          <h4>Double-claim risk on CAIP transfers</h4>
+          <p>Same GP cannot be reimbursed under both ARRS (DES 7.3.8) and the GP Reimbursement Scheme Route C (SFE 14A). Decide route per-post and document the decision before submitting either claim.</p>
+          <span class="issue-tag both">Both</span>
         </div>
       </div>
       <div class="issue">
         <span class="issue-num">05</span>
         <div>
-          <h4>9-session ceiling on Route B</h4>
-          <p>Increased participation tops out at 9 sessions per week — essentially full-time. Limits creative use to incentivise portfolio GPs above that threshold.</p>
+          <h4>PCN-level transfer needs governance</h4>
+          <p>The GP Reimbursement Scheme allows transfer of entitlement between Core Network Members. Useful for PCN workforce planning, but practices need a Standing Order or Programme Board mechanism to allocate fairly.</p>
+          <span class="issue-tag gms">GMS</span>
         </div>
       </div>
       <div class="issue">
         <span class="issue-num">06</span>
         <div>
           <h4>Working capital impact</h4>
-          <p>Paid in arrears at the end of the calendar month after submission. Practices fund the wage-cycle gap. Worth flagging in PCN finance discussions for smaller members.</p>
+          <p>GP Reimbursement Scheme paid in arrears at the end of the calendar month after submission. Practices fund the wage-cycle gap. Worth flagging in PCN finance discussions for smaller members.</p>
+          <span class="issue-tag gms">GMS</span>
         </div>
       </div>
       <div class="issue">
         <span class="issue-num">07</span>
         <div>
-          <h4>CQRSL admin burden</h4>
-          <p>Monthly claim cycles plus a declaration against each route's principles per claim. Strong candidate for automated declaration templates and a tracker.</p>
+          <h4>Practice-level contract variation required</h4>
+          <p>Once an LVA is approved, every participating practice must enter a written variation of its primary medical services contract (4.10.10). This is not optional and is the practice's own legal obligation.</p>
+          <span class="issue-tag des">DES</span>
         </div>
       </div>
       <div class="issue">
         <span class="issue-num">08</span>
         <div>
+          <h4>National variations override LVAs</h4>
+          <p>Under 4.10.13, a national DES Variation issued mid-year prevails over any LVA touching the same section unless NHSE issues an amended Local Variation Notice preserving the local terms. PCNs need a watch-and-flag mechanism.</p>
+          <span class="issue-tag des">DES</span>
+        </div>
+      </div>
+      <div class="issue">
+        <span class="issue-num">09</span>
+        <div>
+          <h4>LVA single-year horizon</h4>
+          <p>An LVA can only be approved for the current financial year (4.10.2(b)). Workforce or service redesigns dependent on an LVA will need annual re-approval — not a stable platform for multi-year contracts.</p>
+          <span class="issue-tag des">DES</span>
+        </div>
+      </div>
+      <div class="issue">
+        <span class="issue-num">10</span>
+        <div>
+          <h4>LVA conditions can revoke effect mid-year</h4>
+          <p>If an LVA is approved subject to a continuing condition (4.10.9) and that condition stops being satisfied, the LVA ceases to have effect. Track conditions actively — don't treat approval as permanent for the year.</p>
+          <span class="issue-tag des">DES</span>
+        </div>
+      </div>
+      <div class="issue">
+        <span class="issue-num">11</span>
+        <div>
+          <h4>CQRSL admin burden</h4>
+          <p>Monthly claim cycles for the GP Reimbursement Scheme plus a declaration against each route's principles per claim. Strong candidate for automated declaration templates and a tracker.</p>
+          <span class="issue-tag gms">GMS</span>
+        </div>
+      </div>
+      <div class="issue">
+        <span class="issue-num">12</span>
+        <div>
           <h4>Immunisation workload uplift</h4>
           <p>The 3y4m vaccine moving to call/recall means active outreach. Plan into call-and-recall lists, admin time, and QOF/IIF performance trajectories.</p>
+          <span class="issue-tag gms">GMS</span>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Section: Actions -->
+  <!-- =============================== -->
+  <!-- ACTIONS (combined and prioritised) -->
+  <!-- =============================== -->
+
   <section id="actions">
     <h2>Action checklist</h2>
-    <p class="section-lede">Tick off as you go. Suggested ownership and priority indicate where to start. Practice-level actions sit below; PCN-level coordination items are flagged.</p>
+    <p class="section-lede">Sequenced, prioritised actions across both contracts. Tick off as you go. Tags identify which contract drives each action; ownership and priority indicate where to start.</p>
 
     <div class="checklist">
       <div class="check-item">
         <div class="check-box" onclick="this.classList.toggle('done')"></div>
         <div class="check-content">
-          <h4>Audit current CAIP-funded GP posts</h4>
-          <p>List every GP role with funding from CAIP or the Test Sites Programme. Note end date of current funding and current full cost (salary + ER NI + pension).</p>
+          <h4>Audit current CAIP-funded posts (GPs and nurses)</h4>
+          <p>List every GP, nurse and HCA whose post was funded through CAIP or the Test Site programme. For each: capture end date of current funding, current full cost (salary + ER NI + pension), and decide route — ARRS via DES 7.3.8/7.3.9, or GMS GP Reimbursement Scheme Route C.</p>
+          <span class="source-tag both">Both</span>
         </div>
         <div class="check-meta">
           <span class="pill high">Priority · High</span><br/>
@@ -1080,8 +1820,9 @@ footer .disclaimer {
       <div class="check-item">
         <div class="check-box" onclick="this.classList.toggle('done')"></div>
         <div class="check-content">
-          <h4>Calculate practice-level cap</h4>
-          <p>Take adjusted population × £4.57 to find your annual ceiling. Compare to current GP costs to see the gap or headroom.</p>
+          <h4>Calculate practice-level GP Reimbursement cap</h4>
+          <p>Take adjusted population × £4.57 to find your annual ceiling. Compare to current GP costs to see the gap or headroom. The cap calculator above models this for any list size.</p>
+          <span class="source-tag gms">GMS</span>
         </div>
         <div class="check-meta">
           <span class="pill high">Priority · High</span><br/>
@@ -1093,6 +1834,7 @@ footer .disclaimer {
         <div class="check-content">
           <h4>Identify practices above 3,500 patients per GP</h4>
           <p>Map current GP-per-patient ratios across the PCN. Coordinate one NHS England pre-approval submission for all affected practices rather than separate requests.</p>
+          <span class="source-tag gms">GMS</span>
         </div>
         <div class="check-meta">
           <span class="pill high">Priority · High</span><br/>
@@ -1102,8 +1844,45 @@ footer .disclaimer {
       <div class="check-item">
         <div class="check-box" onclick="this.classList.toggle('done')"></div>
         <div class="check-content">
-          <h4>Draft PCN allocation policy for paragraph (11) transfers</h4>
-          <p>Agree how entitlement is transferred between Core Network Members — decision-making body, criteria for approval, written confirmation process to NHS England.</p>
+          <h4>Engage with ICB on LVA pipeline</h4>
+          <p>Only the ICB can submit a Local Variation Arrangement Request. Open a conversation now with your ICB primary care team about which sections, if any, they intend to vary locally and the timeline.</p>
+          <span class="source-tag des">DES</span>
+        </div>
+        <div class="check-meta">
+          <span class="pill high">Priority · High</span><br/>
+          <span style="margin-top: 6px; display: inline-block;">PCN level</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-box" onclick="this.classList.toggle('done')"></div>
+        <div class="check-content">
+          <h4>Identify any local services that should become an LVA</h4>
+          <p>Review existing local arrangements with the ICB. Anything currently operating as an informal variation of Section 7, 8 or 10.1–10.5 needs formalising via the LVA process or moving into a Supplementary Network Service.</p>
+          <span class="source-tag des">DES</span>
+        </div>
+        <div class="check-meta">
+          <span class="pill high">Priority · High</span><br/>
+          <span style="margin-top: 6px; display: inline-block;">PCN level</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-box" onclick="this.classList.toggle('done')"></div>
+        <div class="check-content">
+          <h4>Document each former-CAIP claim route decision</h4>
+          <p>For every previously-CAIP-funded role, record on file which scheme it now claims under (ARRS via DES 7.3.8/9, or GMS GP Reimbursement Scheme Route C). Same role cannot appear in both. Keep evidence of the funding source immediately before transfer.</p>
+          <span class="source-tag both">Both</span>
+        </div>
+        <div class="check-meta">
+          <span class="pill med">Priority · Medium</span><br/>
+          <span style="margin-top: 6px; display: inline-block;">Practice manager</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-box" onclick="this.classList.toggle('done')"></div>
+        <div class="check-content">
+          <h4>Draft PCN allocation policy for entitlement transfers</h4>
+          <p>The GP Reimbursement Scheme allows transfer of entitlement between Core Network Members. Agree how this is decided — decision-making body, criteria for approval, written confirmation process to NHS England.</p>
+          <span class="source-tag gms">GMS</span>
         </div>
         <div class="check-meta">
           <span class="pill med">Priority · Medium</span><br/>
@@ -1114,7 +1893,8 @@ footer .disclaimer {
         <div class="check-box" onclick="this.classList.toggle('done')"></div>
         <div class="check-content">
           <h4>Set up CQRSL claim and declaration templates</h4>
-          <p>Build re-usable declarations for paragraphs (5), (6), (7) and (8). Track submission deadlines (3 months after the claim month) and arrears payment dates.</p>
+          <p>Build re-usable declarations for the GP Reimbursement Scheme paragraphs (5), (6), (7) and (8). Track submission deadlines (3 months after the claim month) and arrears payment dates.</p>
+          <span class="source-tag gms">GMS</span>
         </div>
         <div class="check-meta">
           <span class="pill med">Priority · Medium</span><br/>
@@ -1124,12 +1904,37 @@ footer .disclaimer {
       <div class="check-item">
         <div class="check-box" onclick="this.classList.toggle('done')"></div>
         <div class="check-content">
-          <h4>Update sickness leave recovery records (Section 10(5))</h4>
-          <p>The new £2,316.37 weekly rate applies retrospectively to 1 April 2026. Recalculate any open sickness reimbursement claims at the higher rate.</p>
+          <h4>Update sickness leave recovery records</h4>
+          <p>The new £2,316.37 weekly rate (Section 10(5)) applies retrospectively to 1 April 2026. Recalculate any open sickness reimbursement claims at the higher rate.</p>
+          <span class="source-tag gms">GMS</span>
         </div>
         <div class="check-meta">
           <span class="pill med">Priority · Medium</span><br/>
           <span style="margin-top: 6px; display: inline-block;">Practice manager</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-box" onclick="this.classList.toggle('done')"></div>
+        <div class="check-content">
+          <h4>Prepare a Network Agreement variation template</h4>
+          <p>If the PCN expects to participate in any LVA this year, draft a standard Network Agreement variation pack now — schedule of changes, sign-off mechanism, version control. This avoids a last-minute scramble after a Local Variation Notice arrives.</p>
+          <span class="source-tag des">DES</span>
+        </div>
+        <div class="check-meta">
+          <span class="pill med">Priority · Medium</span><br/>
+          <span style="margin-top: 6px; display: inline-block;">PCN level</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-box" onclick="this.classList.toggle('done')"></div>
+        <div class="check-content">
+          <h4>Set up a national DES Variation watch process</h4>
+          <p>Because national DES Variations override LVAs (4.10.13), the PCN needs a process to flag any in-year national variation against any active LVA terms — and prompt the ICB to seek an amended Local Variation Notice if needed.</p>
+          <span class="source-tag des">DES</span>
+        </div>
+        <div class="check-meta">
+          <span class="pill med">Priority · Medium</span><br/>
+          <span style="margin-top: 6px; display: inline-block;">PCN level</span>
         </div>
       </div>
       <div class="check-item">
@@ -1137,6 +1942,7 @@ footer .disclaimer {
         <div class="check-content">
           <h4>Plan 3y4m immunisation call/recall</h4>
           <p>Set up call/recall lists for the cohort due. Adjust admin and clinical capacity. Update IIF/QOF tracking and patient communications.</p>
+          <span class="source-tag gms">GMS</span>
         </div>
         <div class="check-meta">
           <span class="pill med">Priority · Medium</span><br/>
@@ -1146,8 +1952,33 @@ footer .disclaimer {
       <div class="check-item">
         <div class="check-box" onclick="this.classList.toggle('done')"></div>
         <div class="check-content">
+          <h4>Brief partners on LVA contract variation obligation</h4>
+          <p>Partners should know that any approved LVA brings an automatic obligation on the practice to sign a contract variation. Build LVA approval into partnership decision-making channels in advance.</p>
+          <span class="source-tag des">DES</span>
+        </div>
+        <div class="check-meta">
+          <span class="pill med">Priority · Medium</span><br/>
+          <span style="margin-top: 6px; display: inline-block;">Practice</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-box" onclick="this.classList.toggle('done')"></div>
+        <div class="check-content">
+          <h4>Confirm PCN list size at 1 January 2026</h4>
+          <p>5.1.2(b) reaffirms the PCN list size criterion is measured at 1 January 2026 (between 30,000 and 50,000 patients). Confirm the figure used by the commissioner and challenge if it doesn't match the practice's own list data.</p>
+          <span class="source-tag des">DES</span>
+        </div>
+        <div class="check-meta">
+          <span class="pill low">Priority · Low</span><br/>
+          <span style="margin-top: 6px; display: inline-block;">PCN level</span>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-box" onclick="this.classList.toggle('done')"></div>
+        <div class="check-content">
           <h4>Query neonatal care leave omission with DHSC</h4>
           <p>Confirm where the previous neonatal care leave reimbursement now sits. Important for any practices with current claims under that head.</p>
+          <span class="source-tag gms">GMS</span>
         </div>
         <div class="check-meta">
           <span class="pill low">Priority · Low</span><br/>
@@ -1157,7 +1988,10 @@ footer .disclaimer {
     </div>
   </section>
 
-  <!-- Section: Sources -->
+  <!-- =============================== -->
+  <!-- SOURCES (combined) -->
+  <!-- =============================== -->
+
   <section id="sources" style="padding-bottom: 40px;">
     <h2 style="font-size: 28px; margin-bottom: 24px;">Source documents</h2>
     <div class="sources">
@@ -1165,7 +1999,7 @@ footer .disclaimer {
         <div class="source-icon">SI</div>
         <div class="source-content">
           <h4>GMS Statement of Financial Entitlements (Amendment) Directions 2026</h4>
-          <p>The amending instrument signed 30 April 2026 by Claire Amal, DHSC.</p>
+          <p>The amending instrument signed 30 April 2026 by Claire Amal, DHSC. Inserts Section 14A (GP Reimbursement Scheme) and uplifts pay rates.</p>
         </div>
         <div class="source-meta">
           <span class="ref">DHSC</span>
@@ -1173,10 +2007,21 @@ footer .disclaimer {
         </div>
       </div>
       <div class="source-item">
+        <div class="source-icon">DES</div>
+        <div class="source-content">
+          <h4>Network Contract DES Specification 2026/27</h4>
+          <p>The 134-page specification of PCN requirements and entitlements for 2026/27. Section 4.10 introduces Local Variation Arrangements; sections 7.3.8 and 7.3.9 set the additionality carve-outs.</p>
+        </div>
+        <div class="source-meta">
+          <span class="ref">NHSE</span>
+          30 Apr 2026
+        </div>
+      </div>
+      <div class="source-item">
         <div class="source-icon">SI</div>
         <div class="source-content">
           <h4>GMS Statement of Financial Entitlements Directions 2026 (Principal)</h4>
-          <p>The Principal Directions amended by this instrument. Section 14A inserted by these amendments.</p>
+          <p>The Principal Directions amended by the GMS Amendment instrument. Section 14A inserted by these amendments.</p>
         </div>
         <div class="source-meta">
           <span class="ref">DHSC</span>
@@ -1184,10 +2029,10 @@ footer .disclaimer {
         </div>
       </div>
       <div class="source-item">
-        <div class="source-icon">DES</div>
+        <div class="source-icon">GUI</div>
         <div class="source-content">
-          <h4>Network Contract DES Specification</h4>
-          <p>Defines "Specification" referenced in Section 14A(3)(c) for PCN approval of continuation claims.</p>
+          <h4>Network Contract DES Guidance 2026/27</h4>
+          <p>Sets out the criteria NHS England will apply when deciding whether to establish a Local Variation Arrangement (referenced in 4.10.4). Required reading before submitting any LVA Request.</p>
         </div>
         <div class="source-meta">
           <span class="ref">NHSE</span>
@@ -1205,21 +2050,32 @@ footer .disclaimer {
           Ongoing
         </div>
       </div>
+      <div class="source-item">
+        <div class="source-icon">AGR</div>
+        <div class="source-content">
+          <h4>PCN Network Agreement</h4>
+          <p>Each PCN's Network Agreement must be updated to reflect any approved LVA (paragraph 4.10.11). The standard template is published by NHS England.</p>
+        </div>
+        <div class="source-meta">
+          <span class="ref">NHSE</span>
+          Ongoing
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- Footer -->
   <footer>
     <div class="disclaimer">
-      Briefing produced for GP partners and practice managers. Notewell AI is a working aid and not a substitute for the legal text of the Directions. Refer to the Principal Directions and Amendment for definitive obligations.
+      Combined briefing produced for PCN Clinical Directors, PCN Managers, GP Partners and Practice Managers. Notewell AI is a working aid and not a substitute for the legal text of the SFE Directions or the DES Specification. Refer to the source documents for definitive obligations.
     </div>
-    <div>v1.0 · Updated 6 May 2026</div>
+    <div>v2.0 · Updated 6 May 2026</div>
   </footer>
 
 </div>
 
 <script>
-  // Cap calculator
+  // ---------- Cap calculator ----------
   const popInput = document.getElementById('popInput');
   const popRange = document.getElementById('popRange');
   const capResult = document.getElementById('capResult');
@@ -1228,7 +2084,7 @@ footer .disclaimer {
   const GP_MAX = 152900;
   const RATE = 4.57;
 
-  function update(value) {
+  function updateCalc(value) {
     const pop = Math.max(1000, Math.min(50000, parseInt(value) || 0));
     const cap = Math.round(pop * RATE);
     capResult.textContent = '£' + cap.toLocaleString('en-GB');
@@ -1237,7 +2093,7 @@ footer .disclaimer {
 
     let narrative;
     if (cap < GP_MAX * 0.3) {
-      narrative = `Funds approximately <strong>${Math.round(pct)}% of one full-time GP</strong> at the £152,900 cap. Likely to be used alongside Route B (increased sessions) or pooled with PCN partners via the paragraph (11) transfer mechanism.`;
+      narrative = `Funds approximately <strong>${Math.round(pct)}% of one full-time GP</strong> at the £152,900 cap. Likely to be used alongside Route B (increased sessions) or pooled with PCN partners via the entitlement transfer mechanism.`;
     } else if (cap < GP_MAX) {
       narrative = `Funds approximately <strong>${Math.round(pct)}% of one full-time GP</strong> at the £152,900 cap. Enough to materially extend a GP's sessions or fund a substantial part-time post.`;
     } else if (cap < GP_MAX * 1.5) {
@@ -1250,14 +2106,106 @@ footer .disclaimer {
 
   popInput.addEventListener('input', (e) => {
     popRange.value = e.target.value;
-    update(e.target.value);
+    updateCalc(e.target.value);
   });
   popRange.addEventListener('input', (e) => {
     popInput.value = e.target.value;
-    update(e.target.value);
+    updateCalc(e.target.value);
   });
 
-  update(10000);
+  updateCalc(10000);
+
+  // ---------- Scope checker ----------
+  const scopeGrid = document.getElementById('scopeGrid');
+  const scopeResult = document.getElementById('scopeResult');
+
+  const scopeContent = {
+    s7: { allowed: true, title: 'Section 7 — ARRS &amp; Workforce', body: 'In scope. An LVA may vary how Additional Roles, claim rules, additionality and workforce reimbursement operate locally — for example modifying claim rules to suit a local recruitment arrangement.' },
+    s8: { allowed: true, title: 'Section 8 — Enhanced Access', body: 'In scope. An LVA may vary the Network Standard Hours service requirements — for example to flex how the 6.30pm–8pm and Saturday morning offer is structured locally.' },
+    s10a: { allowed: true, title: 'Section 10.1 — Core PCN funding', body: 'In scope. An LVA may vary the operation of core PCN payment mechanics within section 10.1.' },
+    s10b: { allowed: true, title: 'Section 10.2 — Reimbursement claims administration', body: 'In scope. An LVA may vary how reimbursement claims are processed, validated or evidenced locally.' },
+    s10c: { allowed: true, title: 'Section 10.3 — Enhanced Access funding', body: 'In scope. Funding mechanics for Enhanced Access can be varied alongside any variation of section 8 itself.' },
+    s10d: { allowed: true, title: 'Sections 10.4 &amp; 10.5', body: 'In scope. Other financial entitlement mechanics in sections 10.4 and 10.5 are within scope.' },
+    s5: { allowed: false, title: 'Section 5 — PCN Organisational Requirements', body: 'Out of scope. PCN list size limits, Clinical Director requirements and Network Agreement provisions cannot be varied by an LVA. Any change here would need a national DES Variation.' },
+    s6: { allowed: false, title: 'Section 6 — Member practices', body: 'Out of scope. Practice eligibility, opt-out and withdrawal mechanisms cannot be varied by an LVA.' },
+    s9: { allowed: false, title: 'Section 9 — Termination &amp; cessation', body: 'Out of scope. The cessation arrangements that govern how a practice exits the DES cannot be varied by an LVA.' },
+    s10x: { allowed: false, title: 'Section 10.6 onwards', body: 'Out of scope. Only sections 10.1 to 10.5 inclusive can be varied. IIF, Capacity &amp; Access and any other section 10 sub-sections beyond 10.5 are not within LVA scope.' }
+  };
+
+  scopeGrid.querySelectorAll('.scope-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const key = item.dataset.key;
+      const content = scopeContent[key];
+      scopeResult.className = 'scope-result show ' + (content.allowed ? 'allowed' : 'blocked');
+      scopeResult.innerHTML = '<strong>' + content.title + '</strong><br/>' + content.body;
+    });
+  });
+
+  // ---------- Eligibility ----------
+  const answers = { q1: null, q2: null, q3: null };
+
+  document.querySelectorAll('.elig-options').forEach(group => {
+    const q = group.dataset.q;
+    group.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        answers[q] = btn.dataset.val;
+        runEligibility();
+      });
+    });
+  });
+
+  function runEligibility() {
+    const out = document.getElementById('eligOutput');
+    const verdict = document.getElementById('eligVerdict');
+    const detail = document.getElementById('eligDetail');
+
+    if (!answers.q1 || !answers.q2 || !answers.q3) {
+      out.className = 'elig-output show';
+      verdict.textContent = 'Answer all three questions';
+      detail.textContent = 'Tap an option for each question above to see whether the role is eligible for ARRS reimbursement.';
+      return;
+    }
+
+    let cls = 'ok', v = '', d = '';
+
+    if (answers.q1 === 'no') {
+      cls = 'ok';
+      v = 'Eligible — clear on additionality';
+      d = '<strong>No 12-month bar issue.</strong> The individual has not been substantively employed in any of your Core Network Practices in the past 12 months. Standard ARRS additionality rules apply (must be additional to the 31 March 2019 baseline). Document the start date and prior funding source for the audit trail.';
+    } else if (answers.q1 === 'yes-temp') {
+      cls = 'ok';
+      v = 'Eligible — temporary cover does not count';
+      d = 'Section 7.3.8 expressly states that engagement on a <strong>temporary basis (e.g. maternity or sickness cover)</strong> does not count as substantive employment. The 12-month bar does not apply. Keep documentation of the temporary nature of the prior engagement on file.';
+    } else {
+      if (answers.q2 === 'caip') {
+        cls = 'ok';
+        v = 'Eligible — CAIP / Test Site carve-out applies';
+        d = '<strong>The 12-month bar is lifted</strong> for individuals transferring into ARRS from a post which, immediately before transfer, was funded through the Capacity &amp; Access Payment under a previous year\'s DES, or via NHS England\'s PCN Test Site programme. Keep clear evidence of the prior funding source. Note: this same role cannot also be claimed under the GMS GP Reimbursement Scheme Route C — pick one route.';
+      } else if (answers.q2 === 'continued' && answers.q3 === 'gp') {
+        cls = 'ok';
+        v = 'Eligible — continuation provision applies';
+        d = '7.3.8 final sentence: where the PCN was claiming for a GP that complied with the previous year\'s DES requirements and that GP continues to be employed, the PCN can continue to claim for that individual. The 12-month bar is not triggered by the continuation.';
+      } else if (answers.q2 === 'continued' && answers.q3 !== 'gp') {
+        cls = 'warn';
+        v = 'Probably eligible — but check the role detail';
+        d = 'The continuation language in 7.3.8 is specific to GPs. For nurses and HCAs the carve-outs in 7.3.9 are framed differently — review whether the role is being recruited to a "specialist or more senior nursing role", which is the nurse-specific exemption.';
+      } else if (answers.q3 === 'nurse-senior') {
+        cls = 'ok';
+        v = 'Eligible — senior/specialist nurse carve-out';
+        d = 'Under 7.3.9, the 12-month bar does not apply where the new to general practice nurse or experienced general practice nurse <strong>is being recruited to a specialist or more senior nursing role</strong>. Document the rationale for why the new post is more senior than the previous one.';
+      } else {
+        cls = 'no';
+        v = 'Not eligible';
+        d = '<strong>The 12-month bar applies.</strong> The individual was substantively employed in the PCN in the past 12 months, the prior funding was not CAIP or PCN Test Site, and no other carve-out applies. ARRS reimbursement cannot be claimed for this role under section 7.3.8 / 7.3.9. Consider whether the post might fit the GMS GP Reimbursement Scheme (different rules apply, but its 12-month additionality rule is similarly strict for GPs).';
+      }
+    }
+
+    out.className = 'elig-output show ' + cls;
+    verdict.textContent = v;
+    detail.innerHTML = d;
+  }
 </script>
 
 </body>
