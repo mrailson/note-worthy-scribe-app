@@ -26,8 +26,11 @@ import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import nresLogoUrl from '@/assets/nres-logo.png';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff, Users } from 'lucide-react';
 import { BrowserSpeechRecognition } from '@/utils/BrowserSpeechRecognition';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useIsNRESVerifier } from '@/hooks/useIsNRESVerifier';
+import { NRESTimeManagerView } from '@/components/nres/time-tracker/NRESTimeManagerView';
 
 const DEFAULT_ACTIVITIES = [
   'Programme Board / Governance',
@@ -48,6 +51,7 @@ interface Activity { id: string; label: string; is_default: boolean; sort_order:
 interface Entry {
   id: string; entry_date: string; activity: string; minutes: number;
   notes: string | null; created_at: string;
+  user_id?: string; entered_by?: string | null; practice_id?: string | null;
 }
 
 const NRESTimeTracker = () => {
@@ -564,16 +568,31 @@ const NRESTimeTracker = () => {
     return format(d, 'EEE');
   };
 
+  const { isVerifier } = useIsNRESVerifier();
+  const [topTab, setTopTab] = useState<'mine' | 'manager'>('mine');
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        <div>
+      <div className={cn('mx-auto px-4 py-4 space-y-4', topTab === 'manager' ? 'max-w-7xl' : 'max-w-2xl')}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-600" /> NRES Time Tracker
           </h1>
-          
+          {isVerifier && (
+            <Tabs value={topTab} onValueChange={(v) => setTopTab(v as 'mine' | 'manager')}>
+              <TabsList>
+                <TabsTrigger value="mine">My time</TabsTrigger>
+                <TabsTrigger value="manager"><Users className="w-3.5 h-3.5 mr-1.5" />Manager view</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
         </div>
+
+        {topTab === 'manager' && isVerifier ? (
+          <NRESTimeManagerView />
+        ) : (
+        <>
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-3">
@@ -1021,6 +1040,8 @@ const NRESTimeTracker = () => {
             </CardContent>
           )}
         </Card>
+        </>
+        )}
       </div>
 
       <TimeEntryAttachmentsModal
