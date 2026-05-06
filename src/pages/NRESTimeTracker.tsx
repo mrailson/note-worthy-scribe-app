@@ -412,7 +412,7 @@ const NRESTimeTracker = () => {
         r.readAsDataURL(blob);
       });
       const pageWidth = doc.internal.pageSize.getWidth();
-      doc.addImage(dataUrl, 'PNG', pageWidth - 14 - 28, 10, 28, 18);
+      doc.addImage(dataUrl, 'PNG', pageWidth - 20 - 34, 16, 34, 34);
     } catch {}
 
     doc.setFontSize(16);
