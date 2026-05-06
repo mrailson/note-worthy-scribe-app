@@ -25,6 +25,7 @@ import { Slider } from '@/components/ui/slider';
 import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import nresLogoUrl from '@/assets/nres-logo.png';
 
 const DEFAULT_ACTIVITIES = [
   'Programme Board / Governance',
