@@ -85,6 +85,16 @@ const NRESTimeTracker = () => {
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const notesBaseRef = useRef('');
   const finalSegmentsRef = useRef<string>('');
+  const notesElRef = useRef<HTMLTextAreaElement | null>(null);
+  const autoGrowNotes = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = notesElRef.current;
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+      el.scrollTop = el.scrollHeight;
+    });
+  }, []);
 
   const stopMic = useCallback(() => {
     try { recognitionRef.current?.stopRecognition(); } catch {}
@@ -113,12 +123,14 @@ const NRESTimeTracker = () => {
           const base = notesBaseRef.current;
           const merged = (base ? base + ' ' : '') + finalSegmentsRef.current;
           setNotes(merged);
+          autoGrowNotes();
         } else {
           // Live interim — show base + finals so far + interim
           const base = notesBaseRef.current;
           const finals = finalSegmentsRef.current;
           const live = [base, finals, text].filter(Boolean).join(' ').replace(/\s+/g, ' ');
           setNotes(live);
+          autoGrowNotes();
         }
       },
       (err) => {
@@ -143,7 +155,7 @@ const NRESTimeTracker = () => {
       toast.error('Could not start voice input');
       stopMic();
     }
-  }, [notes, micRecording, stopMic]);
+  }, [notes, micRecording, stopMic, autoGrowNotes]);
 
   useEffect(() => () => { try { recognitionRef.current?.stopRecognition(); } catch {} }, []);
 
@@ -825,9 +837,18 @@ const NRESTimeTracker = () => {
               </div>
             )}
             <div className="relative">
-              <Input
+              <Textarea
+                ref={notesElRef}
                 value={notes}
-                onChange={e => { setNotes(e.target.value); notesBaseRef.current = e.target.value; }}
+                rows={2}
+                onChange={e => {
+                  setNotes(e.target.value);
+                  notesBaseRef.current = e.target.value;
+                  const el = e.currentTarget;
+                  el.style.height = 'auto';
+                  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+                  el.scrollTop = el.scrollHeight;
+                }}
                 onPaste={(e) => {
                   const items = e.clipboardData?.items;
                   if (!items) return;
@@ -852,7 +873,7 @@ const NRESTimeTracker = () => {
                   }
                 }}
                 placeholder="e.g. v6 MoU review with Mark Gray (Ctrl+V to paste a screenshot)"
-                className="pr-9"
+                className="pr-9 resize-none overflow-y-auto max-h-40 min-h-[44px]"
               />
               <button
                 type="button"
@@ -860,7 +881,7 @@ const NRESTimeTracker = () => {
                 title={micRecording ? 'Stop voice input' : 'Dictate notes'}
                 aria-label={micRecording ? 'Stop voice input' : 'Dictate notes'}
                 className={cn(
-                  'absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-300',
+                  'absolute right-1.5 top-1.5 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-300',
                   micRecording
                     ? 'bg-red-500 text-white shadow-[0_0_0_4px_rgba(239,68,68,0.18)] animate-pulse'
                     : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'

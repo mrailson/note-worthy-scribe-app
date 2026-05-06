@@ -1,43 +1,22 @@
-## Why the current behaviour is poor
+## Change
 
-The mic is wired to the AssemblyAI realtime client, which routes audio through a Supabase Edge Function WebSocket proxy. The console logs show:
+In `src/pages/NRESTimeTracker.tsx` (lines ~827–871), swap the single-line `<Input>` for the existing `<Textarea>` so dictated words append visibly instead of scrolling out to the left.
 
-- ~2 seconds for the proxy + AssemblyAI session to begin sending audio
-- Only **1 partial** returned across a 7-second utterance
-- Final commit only fires on `end_of_turn`, so text appears in chunks (e.g. "Nicholas Den—") rather than word-by-word
-- All audio is upsampled/encoded/sent over the network — adds 300–800ms latency per partial
+### Edits
 
-For a small notes field on a fast laptop, this is the wrong tool. The browser's native Web Speech API runs locally (on Chromium it streams to Google's STT direct from the browser), returns interim results every ~150ms, and starts in well under a second.
+1. Replace `<Input>` with `<Textarea>` (already imported at line 11):
+   - `rows={2}`, `className="pr-9 resize-none overflow-y-auto max-h-40"`
+   - `onChange`: keep existing `setNotes` + `notesBaseRef` sync, then auto-grow:
+     ```
+     const el = e.currentTarget;
+     el.style.height = 'auto';
+     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+     el.scrollTop = el.scrollHeight;
+     ```
+2. Hold a `notesElRef = useRef<HTMLTextAreaElement>(null)` and pass to the Textarea. In `startMic`'s `onPartial`/`onFinal` handlers, after `setNotes(...)`, schedule `requestAnimationFrame(() => { const el = notesElRef.current; if (el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,160)+'px'; el.scrollTop=el.scrollHeight; } })` — this is the polish that keeps the caret/view glued to the bottom as new dictated words land.
+3. Move the mic button anchor from vertical-centre to top-right so it stays put as the textarea grows: change `top-1/2 -translate-y-1/2` → `top-1.5` (drop the translate).
+4. Keep `onPaste` screenshot logic, placeholder, and all `startMic`/`stopMic`/`BrowserSpeechRecognition` wiring exactly as-is.
 
-## Plan
+### Files touched
 
-### 1. Replace AssemblyAI with native Web Speech API for the notes mic
-
-In `src/pages/NRESTimeTracker.tsx`:
-
-- Remove the `AssemblyRealtimeClient` import and the realtime client/refs added in the previous turn.
-- Use the existing `BrowserSpeechRecognition` wrapper at `src/utils/BrowserSpeechRecognition.ts` (already used elsewhere in the project, configured for `en-GB`, continuous, interim results, auto-restart).
-- New behaviour:
-  - Click mic → `startRecognition()` immediately (mic permission already prompted on first use; subsequent starts are instant).
-  - Capture `notesBaseRef` = current notes text at start.
-  - On every interim result, set `notes = base + " " + interimAggregate` so the user sees words appear as spoken.
-  - On final result, append the final segment to `notesBaseRef` and clear interim.
-  - Click mic again → `stopRecognition()` and commit any trailing interim into the notes value.
-- Keep the existing discreet pill button (red pulse when active, slate when idle) inside the input's right edge.
-
-### 2. Graceful fallback
-
-If `BrowserSpeechRecognition.isSupported()` returns false (e.g. Firefox, Safari desktop), show a one-line toast: "Voice input requires Chrome or Edge" and disable the button. No silent failure.
-
-### 3. Smoothness details
-
-- Debounce React state updates is unnecessary — Web Speech fires interim updates at a sensible cadence already.
-- Show a subtle pulsing ring on the mic button while listening (already in place).
-- Auto-stop after 60 seconds of silence to avoid runaway sessions (the wrapper already restarts on `onend` while `isListening` is true; we add a silence watchdog by tracking the last result timestamp).
-
-## Technical notes
-
-- File touched: `src/pages/NRESTimeTracker.tsx` only.
-- No edge function changes, no new dependencies.
-- The AssemblyAI realtime client stays available for the meeting recorder where its accuracy + diarisation matter — we just stop using it for the lightweight notes field.
-- British English spelling throughout (`en-GB` locale already set in the wrapper).
+- `src/pages/NRESTimeTracker.tsx` only. No new imports, no dependencies, no edge-function changes.
