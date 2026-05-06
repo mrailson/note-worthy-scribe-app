@@ -1040,6 +1040,8 @@ const NRESTimeTracker = () => {
             </CardContent>
           )}
         </Card>
+        </>
+        )}
       </div>
 
       <TimeEntryAttachmentsModal
