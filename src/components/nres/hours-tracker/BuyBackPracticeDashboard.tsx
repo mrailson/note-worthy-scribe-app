@@ -2217,6 +2217,12 @@ export function StaffRosterSection({
   canAddOnBehalf?: boolean; managementRoles?: ManagementRoleConfig[];
 }) {
   const accent = CATEGORY_COLORS[category] || '#6b7280';
+  const { getConfigForCategory: getEvidenceConfigForCategory } = useNRESEvidenceConfig();
+  const evidenceRequirements = useMemo(() => {
+    const cat = category === 'meeting' ? 'management' : category;
+    if (!['buyback', 'new_sda', 'gp_locum', 'management'].includes(cat)) return [];
+    return getEvidenceConfigForCategory(cat as any);
+  }, [category, getEvidenceConfigForCategory]);
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -2304,6 +2310,43 @@ export function StaffRosterSection({
           }}>
             {staffList.length}
           </span>
+          {evidenceRequirements.length > 0 && (
+            <span
+              onClick={(e) => e.stopPropagation()}
+              style={{ position: 'relative', display: 'inline-flex', cursor: 'help' }}
+              className="group"
+            >
+              <HelpCircle style={{ width: 13, height: 13, color: accent, opacity: 0.7 }} />
+              <span
+                role="tooltip"
+                style={{
+                  position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 50,
+                  width: 340, padding: '10px 12px', background: '#111827', color: '#fff',
+                  borderRadius: 8, fontSize: 11, lineHeight: 1.45,
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
+                  opacity: 0, pointerEvents: 'none',
+                  transition: 'opacity 0.15s',
+                }}
+                className="group-hover:opacity-100"
+              >
+                <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 11, letterSpacing: '0.02em', textTransform: 'uppercase' as const, color: '#fde68a' }}>
+                  {title} — Evidence requirements
+                </div>
+                {evidenceRequirements.map(r => (
+                  <div key={r.id} style={{ marginBottom: 6, display: 'flex', gap: 6 }}>
+                    <span style={{ color: r.is_mandatory ? '#fca5a5' : '#9ca3af', flexShrink: 0, fontWeight: 700 }}>
+                      {r.is_mandatory ? '●' : '○'}
+                    </span>
+                    <span>
+                      <strong style={{ color: '#fff' }}>{r.label}</strong>
+                      {r.is_mandatory && <span style={{ color: '#fca5a5', marginLeft: 4 }}>(required)</span>}
+                      {r.description && <div style={{ color: '#d1d5db', marginTop: 1 }}>{r.description}</div>}
+                    </span>
+                  </div>
+                ))}
+              </span>
+            </span>
+          )}
           {!sectionOpen && staffList.length > 0 && (
             <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400, marginLeft: 4, maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
               {staffList.map(s => s.staff_name).join(', ')}
