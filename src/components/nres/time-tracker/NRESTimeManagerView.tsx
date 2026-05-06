@@ -122,15 +122,20 @@ export function NRESTimeManagerView() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [eRes, pRes, prRes, tRes] = await Promise.all([
+      const [eRes, pRes, prRes, tRes, aRes] = await Promise.all([
         supabase.from('nres_time_entries' as any).select('*'),
         supabase.from('profiles').select('user_id, full_name, email, role, is_verifier'),
         supabase.from('gp_practices').select('id, name').order('name'),
         supabase.from('nres_time_targets' as any).select('*'),
+        supabase.from('user_service_activations').select('user_id').eq('service', 'nres'),
       ]);
       if (eRes.error) throw eRes.error;
-      setEntries((eRes.data || []) as any);
-      setUsers(((pRes.data || []) as any) as ProfileLite[]);
+      const nresIds = new Set(((aRes.data || []) as any[]).map(r => r.user_id));
+      const profilesAll = ((pRes.data || []) as any) as ProfileLite[];
+      // Only NRES-assigned users
+      setUsers(profilesAll.filter(p => nresIds.has(p.user_id)));
+      // Only entries belonging to NRES-assigned users
+      setEntries(((eRes.data || []) as any[]).filter(e => nresIds.has(e.user_id)) as any);
       setPractices(((prRes.data || []) as any) as Practice[]);
       setTargets(((tRes.data || []) as any) as Target[]);
     } catch (e: any) {
