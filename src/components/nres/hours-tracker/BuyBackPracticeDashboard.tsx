@@ -2190,6 +2190,47 @@ function StaffActions({
 }
 
 
+function EvidenceTooltip({ accent, title, requirements }: { accent: string; title: string; requirements: { id: string; label: string; description: string | null; is_mandatory: boolean }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span
+      onClick={(e) => e.stopPropagation()}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      style={{ position: 'relative', display: 'inline-flex', cursor: 'help' }}
+    >
+      <HelpCircle style={{ width: 13, height: 13, color: accent, opacity: 0.8 }} />
+      {open && (
+        <span
+          role="tooltip"
+          style={{
+            position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 1000,
+            width: 340, padding: '10px 12px', background: '#111827', color: '#fff',
+            borderRadius: 8, fontSize: 11, lineHeight: 1.45,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.18)', pointerEvents: 'none',
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 11, letterSpacing: '0.02em', textTransform: 'uppercase' as const, color: '#fde68a' }}>
+            {title} — Evidence requirements
+          </div>
+          {requirements.map(r => (
+            <div key={r.id} style={{ marginBottom: 6, display: 'flex', gap: 6 }}>
+              <span style={{ color: r.is_mandatory ? '#fca5a5' : '#9ca3af', flexShrink: 0, fontWeight: 700 }}>
+                {r.is_mandatory ? '●' : '○'}
+              </span>
+              <span>
+                <strong style={{ color: '#fff' }}>{r.label}</strong>
+                {r.is_mandatory && <span style={{ color: '#fca5a5', marginLeft: 4 }}>(required)</span>}
+                {r.description && <div style={{ color: '#d1d5db', marginTop: 1 }}>{r.description}</div>}
+              </span>
+            </div>
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function StaffRosterSection({
   title, category, staffList, claims, claimMonths, onClickClaim, activeClaimKey,
   onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, showAddButton, rateParams,
