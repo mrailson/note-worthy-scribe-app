@@ -1,0 +1,2 @@
+INSERT INTO user_roles (user_id, practice_id, role, can_view_narp_identifiable, can_export_narp_identifiable)
+VALUES ('673da972-8fe8-4199-ace4-73c6a70b102f', '85cd140c-2980-40df-8e19-0ffc8a9346d5', 'practice_manager', true, true);
