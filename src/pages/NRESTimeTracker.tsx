@@ -263,6 +263,7 @@ const NRESTimeTracker = () => {
 
       const { data: ents, error: eErr } = await (supabase as any)
         .from('nres_time_entries').select('*')
+        .eq('user_id', user.id)
         .order('entry_date', { ascending: false })
         .order('created_at', { ascending: false });
       if (eErr) throw eErr;

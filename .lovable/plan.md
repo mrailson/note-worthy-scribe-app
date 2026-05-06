@@ -1,22 +1,17 @@
+## Scope
+
+The "My" tab on `/nres/time-tracker` currently loads `nres_time_entries` with no `user_id` filter, so if a user happens to have broader visibility (e.g. verifier / super admin / management lead RLS), entries from other users can leak into their personal Recent entries list and totals. The Manager View is the only place cross-user data should appear.
+
 ## Change
 
-In `src/pages/NRESTimeTracker.tsx` (lines ~827–871), swap the single-line `<Input>` for the existing `<Textarea>` so dictated words append visibly instead of scrolling out to the left.
+In `src/pages/NRESTimeTracker.tsx`, scope the personal entries query to the logged-in user only.
 
-### Edits
+- Around line 264, update the `nres_time_entries` select to add `.eq('user_id', user.id)` so the personal "My" view always returns just the current user's rows, regardless of RLS scope.
 
-1. Replace `<Input>` with `<Textarea>` (already imported at line 11):
-   - `rows={2}`, `className="pr-9 resize-none overflow-y-auto max-h-40"`
-   - `onChange`: keep existing `setNotes` + `notesBaseRef` sync, then auto-grow:
-     ```
-     const el = e.currentTarget;
-     el.style.height = 'auto';
-     el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-     el.scrollTop = el.scrollHeight;
-     ```
-2. Hold a `notesElRef = useRef<HTMLTextAreaElement>(null)` and pass to the Textarea. In `startMic`'s `onPartial`/`onFinal` handlers, after `setNotes(...)`, schedule `requestAnimationFrame(() => { const el = notesElRef.current; if (el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,160)+'px'; el.scrollTop=el.scrollHeight; } })` — this is the polish that keeps the caret/view glued to the bottom as new dictated words land.
-3. Move the mic button anchor from vertical-centre to top-right so it stays put as the textarea grows: change `top-1/2 -translate-y-1/2` → `top-1.5` (drop the translate).
-4. Keep `onPaste` screenshot logic, placeholder, and all `startMic`/`stopMic`/`BrowserSpeechRecognition` wiring exactly as-is.
+That's the only edit — Manager View (`NRESTimeManagerView.tsx`) keeps its existing cross-user query and stays gated behind `useIsNRESVerifier`, so verifiers/admins still see everyone there.
 
-### Files touched
+## Files touched
 
-- `src/pages/NRESTimeTracker.tsx` only. No new imports, no dependencies, no edge-function changes.
+- `src/pages/NRESTimeTracker.tsx` (one-line filter addition)
+
+No schema, RLS, hook, or Manager View changes.
