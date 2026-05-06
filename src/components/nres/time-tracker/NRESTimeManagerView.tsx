@@ -94,7 +94,12 @@ function targetForUser(user: ProfileLite, period: 'week' | 'month', targets: Tar
   return period === 'month' ? 18.75 : 4.7;
 }
 
-export function NRESTimeManagerView() {
+interface NRESTimeManagerViewProps {
+  hideHeading?: boolean;
+  onSummaryChange?: (s: { activeCount: number; totalEligible: number; practiceCount: number }) => void;
+}
+
+export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeManagerViewProps = {}) {
   const { user } = useAuth();
   const [period, setPeriod] = useState<Period>('this-month');
   const [customStart, setCustomStart] = useState<string>('');
@@ -328,25 +333,42 @@ export function NRESTimeManagerView() {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
+  // Notify parent of summary so the page subtitle can reflect scope
+  useEffect(() => {
+    if (onSummaryChange) {
+      onSummaryChange({ activeCount, totalEligible, practiceCount: practices.length });
+    }
+  }, [activeCount, totalEligible, practices.length, onSummaryChange]);
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
-          <Users className="w-5 h-5 text-[color:var(--nhs-blue,#185FA5)]" style={{ color: NHS_BLUE }} />
-          NRES Time Tracker — Management View
-        </h2>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-md border border-slate-200 overflow-hidden text-xs">
-            {(['this-week', 'this-month', 'last-month', 'custom'] as Period[]).map(p => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={cn('px-3 py-1.5 transition', period === p ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-slate-50')}
-              >
-                {p === 'this-week' ? 'This week' : p === 'this-month' ? 'This month' : p === 'last-month' ? 'Last month' : 'Custom'}
-              </button>
-            ))}
+        {hideHeading ? <div /> : (
+          <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
+            <Users className="w-5 h-5" style={{ color: NHS_BLUE }} />
+            NRES Time Tracker — Management View
+          </h2>
+        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center gap-1 rounded-full bg-stone-100 p-1 text-[13px]">
+            {(['this-week', 'this-month', 'last-month', 'custom'] as Period[]).map(p => {
+              const active = period === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={cn(
+                    'rounded-full font-medium transition-all px-3.5 py-1.5',
+                    active
+                      ? 'bg-white text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
+                      : 'bg-transparent text-[#5F5E5A] hover:bg-white/60'
+                  )}
+                >
+                  {p === 'this-week' ? 'This week' : p === 'this-month' ? 'This month' : p === 'last-month' ? 'Last month' : 'Custom'}
+                </button>
+              );
+            })}
           </div>
           {period === 'custom' && (
             <div className="flex items-center gap-1">
