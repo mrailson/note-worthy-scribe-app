@@ -333,9 +333,6 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Header */}
   // Notify parent of summary so the page subtitle can reflect scope
   useEffect(() => {
     if (onSummaryChange) {
