@@ -2271,24 +2271,27 @@ function EvidenceTooltip({ accent, title, category }: { accent: string; title: s
   const [open, setOpen] = useState(false);
   const spec = SECTION_EVIDENCE[category];
   if (!spec) return null;
-  const statusColor = (s: 'R' | 'O' | '?') => s === 'R' ? '#fca5a5' : s === 'O' ? '#fcd34d' : '#93c5fd';
+  const statusColor = (s: 'R' | 'O' | '?') => s === 'R' ? '#dc2626' : s === 'O' ? '#d97706' : '#2563eb';
   const statusLabel = (s: 'R' | 'O' | '?') => s === 'R' ? 'Required' : s === 'O' ? 'Optional' : 'Decision pending';
   return (
     <span
       onClick={(e) => e.stopPropagation()}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      style={{ position: 'relative', display: 'inline-flex', cursor: 'help' }}
+      onPointerEnter={() => setOpen(true)}
+      onPointerLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      tabIndex={0}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'help' }}
     >
-      <HelpCircle style={{ width: 13, height: 13, color: accent, opacity: 0.8 }} />
+      <HelpCircle style={{ width: 13, height: 13, color: accent, opacity: 0.85 }} />
       {open && (
         <span
           role="tooltip"
           style={{
-            position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 1000,
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 9999,
             width: 380, padding: '12px 14px', background: '#ffffff', color: '#111827',
             border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 11, lineHeight: 1.5,
-            boxShadow: '0 8px 24px rgba(15,23,42,0.12)', pointerEvents: 'none',
+            boxShadow: '0 12px 32px rgba(15,23,42,0.18)', pointerEvents: 'auto',
           }}
         >
           <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: accent }}>
