@@ -26,6 +26,8 @@ import { formatDuration } from '@/utils/formatDuration';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import nresLogoUrl from '@/assets/nres-logo.png';
+import { Mic, MicOff } from 'lucide-react';
+import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
 
 const DEFAULT_ACTIVITIES = [
   'Programme Board / Governance',
@@ -77,6 +79,59 @@ const NRESTimeTracker = () => {
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
   const recentEntries = entries.slice(0, 50);
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
+
+  // Discreet voice-to-text for notes (AssemblyAI realtime)
+  const [micRecording, setMicRecording] = useState(false);
+  const [micConnecting, setMicConnecting] = useState(false);
+  const micClientRef = useRef<AssemblyRealtimeClient | null>(null);
+  const notesBaseRef = useRef('');
+  const partialRef = useRef('');
+
+  const stopMic = useCallback(() => {
+    try { micClientRef.current?.stop(); } catch {}
+    micClientRef.current = null;
+    setMicRecording(false);
+    setMicConnecting(false);
+  }, []);
+
+  const startMic = useCallback(async () => {
+    if (micRecording || micConnecting) return;
+    setMicConnecting(true);
+    notesBaseRef.current = notes;
+    partialRef.current = '';
+    try {
+      const client = new AssemblyRealtimeClient({
+        onOpen: () => { setMicRecording(true); setMicConnecting(false); },
+        onPartial: (text) => {
+          partialRef.current = text;
+          const base = notesBaseRef.current;
+          setNotes(base ? `${base} ${text}` : text);
+        },
+        onFinal: (text) => {
+          const base = notesBaseRef.current;
+          const next = base ? `${base} ${text}`.trim() : text.trim();
+          notesBaseRef.current = next;
+          partialRef.current = '';
+          setNotes(next);
+        },
+        onError: (err) => {
+          console.error('Mic STT error:', err);
+          toast.error('Voice input error');
+          stopMic();
+        },
+        onClose: () => { setMicRecording(false); setMicConnecting(false); },
+      });
+      micClientRef.current = client;
+      await client.start();
+    } catch (err) {
+      console.error('Failed to start voice input:', err);
+      toast.error('Could not access microphone');
+      stopMic();
+    }
+  }, [notes, micRecording, micConnecting, stopMic]);
+
+  useEffect(() => () => { try { micClientRef.current?.stop(); } catch {} }, []);
+
 
   const draftKey = user?.id ? `nres-time-draft:${user.id}` : null;
   const draftLoadedRef = useRef(false);
@@ -754,34 +809,53 @@ const NRESTimeTracker = () => {
                 ))}
               </div>
             )}
-            <Input
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              onPaste={(e) => {
-                const items = e.clipboardData?.items;
-                if (!items) return;
-                const pasted: File[] = [];
-                for (let i = 0; i < items.length; i++) {
-                  const it = items[i];
-                  if (it.kind === 'file') {
-                    const f = it.getAsFile();
-                    if (f) {
-                      const ext = (f.type.split('/')[1] || 'png');
-                      const named = f.name && f.name !== 'image.png'
-                        ? f
-                        : new File([f], `screenshot-${new Date().toISOString().replace(/[:.]/g,'-')}.${ext}`, { type: f.type });
-                      pasted.push(named);
+            <div className="relative">
+              <Input
+                value={notes}
+                onChange={e => { setNotes(e.target.value); notesBaseRef.current = e.target.value; }}
+                onPaste={(e) => {
+                  const items = e.clipboardData?.items;
+                  if (!items) return;
+                  const pasted: File[] = [];
+                  for (let i = 0; i < items.length; i++) {
+                    const it = items[i];
+                    if (it.kind === 'file') {
+                      const f = it.getAsFile();
+                      if (f) {
+                        const ext = (f.type.split('/')[1] || 'png');
+                        const named = f.name && f.name !== 'image.png'
+                          ? f
+                          : new File([f], `screenshot-${new Date().toISOString().replace(/[:.]/g,'-')}.${ext}`, { type: f.type });
+                        pasted.push(named);
+                      }
                     }
                   }
-                }
-                if (pasted.length > 0) {
-                  e.preventDefault();
-                  setPendingFiles(prev => [...prev, ...pasted]);
-                  toast.success(`Attached ${pasted.length} file${pasted.length > 1 ? 's' : ''} from clipboard`);
-                }
-              }}
-              placeholder="e.g. v6 MoU review with Mark Gray (Ctrl+V to paste a screenshot)"
-            />
+                  if (pasted.length > 0) {
+                    e.preventDefault();
+                    setPendingFiles(prev => [...prev, ...pasted]);
+                    toast.success(`Attached ${pasted.length} file${pasted.length > 1 ? 's' : ''} from clipboard`);
+                  }
+                }}
+                placeholder="e.g. v6 MoU review with Mark Gray (Ctrl+V to paste a screenshot)"
+                className="pr-9"
+              />
+              <button
+                type="button"
+                onClick={micRecording ? stopMic : startMic}
+                disabled={micConnecting}
+                title={micRecording ? 'Stop voice input' : 'Dictate notes'}
+                aria-label={micRecording ? 'Stop voice input' : 'Dictate notes'}
+                className={cn(
+                  'absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full flex items-center justify-center transition-all duration-300',
+                  micRecording
+                    ? 'bg-red-500 text-white shadow-[0_0_0_4px_rgba(239,68,68,0.18)] animate-pulse'
+                    : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50',
+                  micConnecting && 'opacity-60'
+                )}
+              >
+                {micRecording ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+              </button>
+            </div>
             {pendingFiles.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {pendingFiles.map((f, i) => {
