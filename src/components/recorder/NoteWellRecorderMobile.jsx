@@ -1328,8 +1328,10 @@ export default function NoteWellRecorder() {
       if (document.hidden) {
         setIsPageHidden(true);
         // Track when we went hidden for suspension detection
-        if (recState === "recording" || recState === "paused") {
+        if (recStateRef.current === "recording" || recStateRef.current === "paused") {
           hiddenSinceRef.current = Date.now();
+          persistActiveRecordingMeta({ status: 'recording_interrupted' });
+          recorderRef.current?.checkpoint?.().catch(err => console.warn('[MobileRecorder] hide checkpoint failed', err));
         }
         // Tab backgrounded — update title as warning
         if (syncProgress && syncProgress.phase === "uploading") {
@@ -1362,7 +1364,21 @@ export default function NoteWellRecorder() {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [syncProgress]);
+  }, [syncProgress, persistActiveRecordingMeta]);
+
+  useEffect(() => {
+    const checkpointBeforePageExit = () => {
+      if (recStateRef.current === "idle") return;
+      persistActiveRecordingMeta({ status: 'recording_interrupted' });
+      recorderRef.current?.checkpoint?.().catch(err => console.warn('[MobileRecorder] exit checkpoint failed', err));
+    };
+    window.addEventListener("pagehide", checkpointBeforePageExit);
+    window.addEventListener("beforeunload", checkpointBeforePageExit);
+    return () => {
+      window.removeEventListener("pagehide", checkpointBeforePageExit);
+      window.removeEventListener("beforeunload", checkpointBeforePageExit);
+    };
+  }, [persistActiveRecordingMeta]);
 
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
