@@ -15,6 +15,7 @@ interface Row {
   followup_reason: string | null;
   followup_label: string | null;
   comment: string | null;
+  user_agent: string | null;
 }
 
 const RATING_LABEL: Record<string, string> = { better: "Better", same: "The same", worse: "Worse" };
@@ -39,14 +40,20 @@ function formatUK(iso: string) {
   }).format(new Date(iso));
 }
 
+function inputMethod(ua: string | null): string {
+  if (ua && /elevenlabs|voice agent|phone/i.test(ua)) return "Phone Service";
+  return "Web";
+}
+
 function toCsv(rows: Row[]): string {
-  const headers = ["Submitted", "Practice", "Rating", "Main issue", "Comment"];
+  const headers = ["Submitted", "Practice", "Method", "Rating", "Main issue", "Comment"];
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = [headers.join(",")];
   rows.forEach((r) => {
     lines.push([
       escape(formatUK(r.submitted_at)),
       escape(r.practice_label),
+      escape(inputMethod(r.user_agent)),
       escape(RATING_LABEL[r.rating] || r.rating),
       escape(r.rating === "worse" ? (r.followup_label || "") : "Not Applicable"),
       escape(r.comment || ""),
@@ -79,7 +86,7 @@ export default function AdminNRESResponses() {
     (async () => {
       const { data, error } = await supabase
         .from("nres_ppg_responses")
-        .select("id, submitted_at, practice_id, practice_label, rating, followup_reason, followup_label, comment")
+        .select("id, submitted_at, practice_id, practice_label, rating, followup_reason, followup_label, comment, user_agent")
         .order("submitted_at", { ascending: false })
         .limit(1000);
       if (error) setError(error.message);
@@ -181,6 +188,7 @@ export default function AdminNRESResponses() {
               <tr className="text-left">
                 <th className="px-4 py-2 font-semibold">Submitted</th>
                 <th className="px-4 py-2 font-semibold">Practice</th>
+                <th className="px-4 py-2 font-semibold">Method</th>
                 <th className="px-4 py-2 font-semibold">Rating</th>
                 <th className="px-4 py-2 font-semibold">Main issue</th>
                 <th className="px-4 py-2 font-semibold">Comment</th>
@@ -188,7 +196,7 @@ export default function AdminNRESResponses() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
               )}
               {filtered.map((r) => {
                 const isExpanded = expanded[r.id];
@@ -198,6 +206,7 @@ export default function AdminNRESResponses() {
                   <tr key={r.id} className="border-t">
                     <td className="px-4 py-2 whitespace-nowrap">{formatUK(r.submitted_at)}</td>
                     <td className="px-4 py-2">{r.practice_label}</td>
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{inputMethod(r.user_agent)}</td>
                     <td className="px-4 py-2">
                       <Badge style={{ background: RATING_COLOUR[r.rating] + "20", color: RATING_COLOUR[r.rating] }}>
                         {RATING_LABEL[r.rating]}
