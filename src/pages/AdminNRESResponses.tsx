@@ -40,14 +40,20 @@ function formatUK(iso: string) {
   }).format(new Date(iso));
 }
 
+function inputMethod(ua: string | null): string {
+  if (ua && /elevenlabs|voice agent|phone/i.test(ua)) return "Phone Service";
+  return "Web";
+}
+
 function toCsv(rows: Row[]): string {
-  const headers = ["Submitted", "Practice", "Rating", "Main issue", "Comment"];
+  const headers = ["Submitted", "Practice", "Method", "Rating", "Main issue", "Comment"];
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = [headers.join(",")];
   rows.forEach((r) => {
     lines.push([
       escape(formatUK(r.submitted_at)),
       escape(r.practice_label),
+      escape(inputMethod(r.user_agent)),
       escape(RATING_LABEL[r.rating] || r.rating),
       escape(r.rating === "worse" ? (r.followup_label || "") : "Not Applicable"),
       escape(r.comment || ""),
