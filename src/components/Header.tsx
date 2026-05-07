@@ -134,11 +134,11 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
 
   return (
     <header className="bg-gradient-primary text-primary-foreground shadow-strong sticky top-0 z-50">
-      <div className="container mx-auto px-3 py-1 sm:px-4 sm:py-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-3 py-1 sm:px-4 sm:py-4 relative">
+        <div className="flex items-center justify-between gap-2">
           {/* Mobile-friendly title - show for both logged in and logged out */}
           <div
-            className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+            className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2 min-w-0"
             onClick={() => navigate('/?from=home')}
           >
             <span className="text-sm sm:text-xl font-bold text-white flex items-center">
@@ -152,6 +152,29 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               )}
             </span>
           </div>
+
+          {/* Centred briefing link — visible to all users */}
+          <button
+            type="button"
+            onClick={() => navigate('/briefings/primary-care-2026')}
+            className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs lg:text-sm font-medium transition-all hover:-translate-y-[55%] hover:shadow-md whitespace-nowrap"
+            aria-label="Open Primary Care 2026/27 May 2026 briefing"
+          >
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground text-[9px] font-bold uppercase tracking-wider">New</span>
+            <span>May 2026 Update — Primary Care 2026/27 Briefing</span>
+          </button>
+
+          {/* Mobile briefing pill */}
+          <button
+            type="button"
+            onClick={() => navigate('/briefings/primary-care-2026')}
+            className="md:hidden flex items-center gap-1 px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-[10px] font-medium whitespace-nowrap shrink-0"
+            aria-label="Open Primary Care 2026/27 May 2026 briefing"
+          >
+            <span className="inline-flex items-center px-1 py-0.5 rounded-full bg-accent text-accent-foreground text-[8px] font-bold uppercase">New</span>
+            <span>May 26 — PC 2026/27</span>
+          </button>
+
 
           
             {/* Navigation */}
