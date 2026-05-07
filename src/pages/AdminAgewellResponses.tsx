@@ -102,17 +102,26 @@ export default function AdminAgewellResponses() {
   useEffect(() => {
     if (loading) return;
     if (!user) { navigate("/auth"); return; }
-    if (!isSystemAdmin) { setError("You do not have access to this page."); setFetching(false); return; }
+    let cancelled = false;
     (async () => {
+      setFetching(true);
+      setError(null);
       const { data, error } = await supabase
         .from("agewell_responses")
         .select("*")
         .order("submitted_at", { ascending: false })
         .limit(1000);
-      if (error) setError(error.message);
-      else setRows((data ?? []) as Row[]);
+      if (cancelled) return;
+      if (error) {
+        // RLS will block non-admins — show a friendly message
+        if (!isSystemAdmin) setError("You do not have access to this page.");
+        else setError(error.message);
+      } else {
+        setRows((data ?? []) as Row[]);
+      }
       setFetching(false);
     })();
+    return () => { cancelled = true; };
   }, [user, isSystemAdmin, loading, navigate]);
 
   const filtered = useMemo(() => {
