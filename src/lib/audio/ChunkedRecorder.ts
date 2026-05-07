@@ -96,6 +96,13 @@ export class ChunkedRecorder {
     return this.allCompletedChunks;
   }
 
+  async checkpoint(): Promise<AudioChunk[]> {
+    if (this.status !== 'recording' || !this.mediaRecorder || this.mediaRecorder.state !== 'recording') return this.allCompletedChunks;
+    if (this.chunkTimer) { clearTimeout(this.chunkTimer); this.chunkTimer = null; }
+    await this.rotateChunk();
+    return this.allCompletedChunks;
+  }
+
   get elapsedMs(): number {
     if (this.status === 'idle') return 0;
     return Date.now() - this.recordingStartTime;
