@@ -1631,12 +1631,44 @@ export default function NoteWellRecorder() {
     peakWordCountRef.current = 0;
     setLiveWordCount(0);
     try {
+      const autoId = `rec_${Date.now()}`;
+      const startedAt = Date.now();
+      activeRecordingIdRef.current = autoId;
+      activeRecordingStartedAtRef.current = startedAt;
+      await dbPut({
+        id: autoId,
+        title: `Interrupted recording ${new Date(startedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} ${new Date(startedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`,
+        createdAt: startedAt,
+        duration: 0,
+        size: 0,
+        mimeType: 'audio/webm',
+        chunks: [],
+        chunkCount: 0,
+        status: 'local',
+        capturedLiveTranscript: '',
+      });
+      await refresh();
+
       const recorder = new ChunkedRecorder({
-        chunkDurationMs: 15 * 60 * 1000, // 15 minutes
+        chunkDurationMs: isIOSDevice ? 60 * 1000 : 15 * 60 * 1000,
         audioBitrate: bitrate,
-        onChunkReady: (chunk) => {
+        onChunkReady: async (chunk) => {
           setChunksCompleted(prev => prev + 1);
           console.log(`[ChunkedRecording] Chunk ${chunk.index} ready: ${(chunk.sizeBytes / 1024 / 1024).toFixed(1)}MB, ${(chunk.durationMs / 1000).toFixed(0)}s`);
+          const arrayBuffer = await chunk.blob.arrayBuffer();
+          await dbAppendChunk(autoId, {
+            index: chunk.index,
+            arrayBuffer,
+            mimeType: chunk.blob.type,
+            startTimeMs: chunk.startTimeMs,
+            endTimeMs: chunk.endTimeMs,
+            durationMs: chunk.durationMs,
+            sizeBytes: chunk.sizeBytes,
+          }, {
+            duration: Math.max(Math.floor((Date.now() - startedAt) / 1000), 0),
+            capturedLiveTranscript: liveTranscript || capturedLiveTranscriptRef.current || '',
+          });
+          await refresh();
         },
         onStatusChange: (status) => console.log(`[ChunkedRecording] Status: ${status}`),
       });
