@@ -1799,9 +1799,9 @@ export default function NoteWellRecorder() {
     const totalSize = chunks.reduce((s, c) => s + c.sizeBytes, 0);
     const durationSecs = Math.floor(elapsed / 1000);
 
-    // Auto-save to IndexedDB immediately so the recording is safe before modal appears
+    // Finalise the IndexedDB draft created at recording start.
     const autoTitle = `Meeting ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})} ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
-    const autoId = `rec_${Date.now()}`;
+    const autoId = activeRecordingIdRef.current || `rec_${Date.now()}`;
     const chunkData = await Promise.all(
       chunks.map(async (chunk) => ({
         index: chunk.index,
@@ -1813,26 +1813,35 @@ export default function NoteWellRecorder() {
         sizeBytes: chunk.sizeBytes,
       }))
     );
-    const autoRec = {
+    const existingRecordings = await dbAll();
+    const existing = existingRecordings.find(r => r.id === autoId);
+    const mergedChunks = [
+      ...(existing?.chunks || []),
+      ...chunkData.filter(ch => !(existing?.chunks || []).some(prev => prev.index === ch.index)),
+    ].sort((a, b) => a.index - b.index);
+    await dbPut({
+      ...(existing || {}),
       id: autoId,
       title: autoTitle,
-      createdAt: Date.now(),
+      createdAt: existing?.createdAt || activeRecordingStartedAtRef.current || Date.now(),
       duration: durationSecs,
       size: totalSize,
       mimeType: chunks[0]?.blob.type || 'audio/webm',
-      chunks: chunkData,
-      chunkCount: chunks.length,
-      audioData: chunkData[0]?.arrayBuffer,
+      chunks: mergedChunks,
+      chunkCount: mergedChunks.length,
+      audioData: mergedChunks[0]?.arrayBuffer,
       status: 'local',
       capturedLiveTranscript: capturedLiveTranscriptRef.current || '',
-    };
+      updatedAt: Date.now(),
+    });
+    activeRecordingIdRef.current = null;
+    activeRecordingStartedAtRef.current = null;
     capturedLiveTranscriptRef.current = '';
     setConnectionLostMidRecord(false); // clear mid-record drop banner on stop
-    await dbPut(autoRec);
     await refresh();
 
     // Show the rename modal — recording is already safe in IndexedDB
-    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: chunks.length, stoppedElapsed: elapsed, autoSavedId: autoId, autoTitle });
+    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: mergedChunks.length, stoppedElapsed: elapsed, autoSavedId: autoId, autoTitle });
     setElapsed(0);
   };
 
