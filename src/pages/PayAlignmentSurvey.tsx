@@ -235,7 +235,7 @@ export default function PayAlignmentSurvey() {
                     <p className="text-xs text-stone-500">{role.band}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-stone-500">SDA ceiling</p>
+                    <p className="text-xs text-stone-500">SDA ceiling <span className="text-stone-400">(excl. on-costs)</span></p>
                     <p className="font-mono text-sm text-stone-900">{fmt(role.ceiling)}</p>
                   </div>
                 </div>
