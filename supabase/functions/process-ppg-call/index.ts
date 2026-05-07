@@ -251,17 +251,35 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  // Auth
+  // Read raw body once (needed for HMAC verification)
+  const rawBody = await req.text();
+
+  // Auth — accept either ElevenLabs HMAC signature OR Bearer + x-source
+  const sigHeader = req.headers.get("elevenlabs-signature") || "";
   const authHeader = req.headers.get("authorization") || "";
   const xSource = req.headers.get("x-source") || "";
-  const expected = `Bearer ${serviceKey}`;
-  if (authHeader !== expected || xSource !== "elevenlabs") {
-    return jsonResponse({ error: "Unauthorised" }, 401);
+
+  if (sigHeader) {
+    const result = await verifyElevenLabsSignature(sigHeader, rawBody, ELEVENLABS_WEBHOOK_SECRET);
+    if (!result.valid) {
+      console.warn(`[process-ppg-call] HMAC rejected: ${result.reason}`);
+      return jsonResponse({ error: "Invalid HMAC signature" }, 401);
+    }
+  } else if (authHeader || xSource) {
+    const expected = `Bearer ${serviceKey}`;
+    if (authHeader !== expected) {
+      return jsonResponse({ error: "Invalid Bearer token" }, 401);
+    }
+    if (xSource !== "elevenlabs") {
+      return jsonResponse({ error: "Invalid Bearer token" }, 401);
+    }
+  } else {
+    return jsonResponse({ error: "No valid authentication provided" }, 401);
   }
 
   let raw: any;
   try {
-    raw = await req.json();
+    raw = JSON.parse(rawBody);
   } catch {
     return jsonResponse({ error: "Invalid JSON" }, 400);
   }
