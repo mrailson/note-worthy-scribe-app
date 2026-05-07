@@ -86,7 +86,7 @@ export default function AdminNRESResponses() {
     (async () => {
       const { data, error } = await supabase
         .from("nres_ppg_responses")
-        .select("id, submitted_at, practice_id, practice_label, rating, followup_reason, followup_label, comment")
+        .select("id, submitted_at, practice_id, practice_label, rating, followup_reason, followup_label, comment, user_agent")
         .order("submitted_at", { ascending: false })
         .limit(1000);
       if (error) setError(error.message);
