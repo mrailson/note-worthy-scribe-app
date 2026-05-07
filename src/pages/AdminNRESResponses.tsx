@@ -48,7 +48,7 @@ function toCsv(rows: Row[]): string {
       escape(formatUK(r.submitted_at)),
       escape(r.practice_label),
       escape(RATING_LABEL[r.rating] || r.rating),
-      escape(r.followup_label || ""),
+      escape(r.rating === "worse" ? (r.followup_label || "") : "Not Applicable"),
       escape(r.comment || ""),
     ].join(","));
   });
