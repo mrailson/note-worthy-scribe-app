@@ -611,11 +611,11 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Admin Dashboard
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => navigate('/surveys')}
+                            onClick={() => navigate('/admin/nres-responses')}
                             className="cursor-pointer py-3"
                           >
                             <ClipboardList className="h-4 w-4 mr-2" />
-                            Survey Admin Results
+                            PPG Patient Survey Results
                           </DropdownMenuItem>
                          </DropdownMenuSubContent>
                      </DropdownMenuSub>
@@ -924,9 +924,9 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   </Button>
                                 </DrawerClose>
                                 <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/surveys')}>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin/nres-responses')}>
                                     <ClipboardList className="h-4 w-4 mr-2" />
-                                    Survey Admin Results
+                                    PPG Patient Survey Results
                                   </Button>
                                 </DrawerClose>
                               </CollapsibleContent>
