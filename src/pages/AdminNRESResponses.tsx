@@ -188,6 +188,7 @@ export default function AdminNRESResponses() {
               <tr className="text-left">
                 <th className="px-4 py-2 font-semibold">Submitted</th>
                 <th className="px-4 py-2 font-semibold">Practice</th>
+                <th className="px-4 py-2 font-semibold">Method</th>
                 <th className="px-4 py-2 font-semibold">Rating</th>
                 <th className="px-4 py-2 font-semibold">Main issue</th>
                 <th className="px-4 py-2 font-semibold">Comment</th>
@@ -195,7 +196,7 @@ export default function AdminNRESResponses() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
               )}
               {filtered.map((r) => {
                 const isExpanded = expanded[r.id];
