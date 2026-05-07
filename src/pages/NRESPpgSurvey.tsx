@@ -177,6 +177,8 @@ export default function NRESPpgSurvey() {
   // Smooth-scroll on step change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+    const root = document.querySelector(".ppg-root") as HTMLElement | null;
+    if (root) root.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
 
   // Esc closes modal
