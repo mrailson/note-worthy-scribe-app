@@ -71,6 +71,35 @@ const dbPatch  = async (id, patch) => {
   });
 };
 
+const dbAppendChunk = async (id, chunkData, patch = {}) => {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const get = store.get(id);
+    get.onsuccess = () => {
+      const rec = get.result;
+      if (!rec) return;
+      const existing = Array.isArray(rec.chunks) ? rec.chunks : [];
+      const chunks = existing.some(ch => ch.index === chunkData.index)
+        ? existing
+        : [...existing, chunkData].sort((a, b) => a.index - b.index);
+      const size = chunks.reduce((s, ch) => s + (ch.sizeBytes || ch.arrayBuffer?.byteLength || 0), 0);
+      store.put({
+        ...rec,
+        ...patch,
+        chunks,
+        chunkCount: chunks.length,
+        size,
+        audioData: chunks[0]?.arrayBuffer || rec.audioData,
+        updatedAt: Date.now(),
+      });
+    };
+    tx.oncomplete = () => { db.close(); res(); };
+    tx.onerror = () => { db.close(); rej(tx.error); };
+  });
+};
+
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 const fmtDuration = (ms) => {
   const totalSeconds = Math.floor(ms / 1000);
