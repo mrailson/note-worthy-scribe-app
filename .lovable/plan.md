@@ -1,40 +1,35 @@
 ## Goal
+Add a centred link in the blue header bar that opens the Primary Care 2026/27 briefing inside the app (header stays visible above it), with a short title that makes its currency obvious and a "New" badge.
 
-Surface, in the **Today's Meetings** hover card on the Meeting Usage Report (`/admin`), the **recording method** used for each meeting and the **word count of every transcription engine** that produced text — so you can see at a glance which engine worked, which fell short, and what platform was used.
+## Changes
 
-## What will appear in the hover card
+### 1. New in-app route for the briefing
+- Create `src/pages/PrimaryCare2026Briefing.tsx`:
+  - Renders the standard `<Header />` at the top.
+  - Below it, a full-height `<iframe src="/gms-2026.html" title="Primary Care Contracts 2026/27 Briefing">` filling the remaining viewport (`flex-1`, no border) so the briefing scrolls beneath the sticky blue bar.
+  - Reuses the existing static `public/gms-2026.html` unchanged.
+- Register a public route in `src/App.tsx`:
+  - `<Route path="/briefings/primary-care-2026" element={<PrimaryCare2026Briefing />} />`
+  - No `ProtectedRoute` — viewable while logged out.
 
-For every meeting in the hover, beneath the existing Title / Start / End / Duration / Words line, add two new rows:
+### 2. Centre link in the blue header bar
+- Edit `src/components/Header.tsx`.
+- Insert a centred element between the left "Notewell AI" title and the right-hand nav cluster (absolute-centred on `sm+`; on mobile, a compact pill placed next to the title).
+- Element is a `<Link to="/briefings/primary-care-2026">` styled as a translucent white pill on the blue bar:
+  - Desktop label: **"May 2026 Update — Primary Care 2026/27 Briefing"**
+  - Mobile label: **"May 26 Update — PC 2026/27"**
+  - Small accent-coloured `NEW` badge (`bg-accent text-accent-foreground`) on the left.
+  - Subtle hover lift.
+- Visible to both logged-in and logged-out users (placed outside any `{user && …}` blocks).
 
-```
-Method   Chrome (Desktop)
-Engines  Best-of-all 1,240  ·  Assembly 1,210  ·  Whisper 1,198  ·  Live 980
-```
+### 3. Update the logged-out "Latest News" card
+- In `src/pages/Index.tsx`, change the existing GMS/PCN news card from `<a href="/gms-2026.html" target="_blank">` to `<Link to="/briefings/primary-care-2026">` so it opens in-app under the header. Wording, "New" badge and "May 2026" date stay as-is.
 
-- **Method** — derived from existing fields on `meetings`:
-  - `import_source = 'mobile_live'` → "Mobile (Live)"
-  - `import_source = 'mobile_offline'` → "Mobile (Offline)"
-  - otherwise use `device_browser` + `device_type` → e.g. "Chrome (Desktop)", "Edge (Desktop)", or "Unknown"
-- **Engines** — word count for each transcript field that has content. The one matching `primary_transcript_source` is shown in **bold green** so the chosen output is obvious; the others are muted so shortfalls (e.g. Whisper way lower than Assembly) are easy to spot.
-  - `best_of_all_transcript` → "Best-of-all"
-  - `assembly_transcript_text` (or `assembly_ai_transcript`) → "Assembly"
-  - `whisper_transcript_text` → "Whisper"
-  - `live_transcript_text` → "Live"
-  - Engines with empty/null transcripts are omitted.
-
-## Technical approach
-
-1. **Extend the RPC `get_todays_meetings_details`** (DB migration) to return the additional columns:
-   - `import_source`, `device_browser`, `device_type`, `primary_transcript_source`
-   - `assembly_words`, `whisper_words`, `live_words`, `best_of_all_words` — computed server-side as `array_length(regexp_split_to_array(coalesce(<col>,''), '\s+'), 1)` (or 0 when empty), so the client never receives full transcript text.
-2. **Update `TodaysMeeting` interface** in `MeetingUsageReport.tsx` with the new fields.
-3. **Add two helpers** in the same file:
-   - `formatMethod(meeting)` → returns the method label.
-   - `engineList(meeting)` → returns an ordered array `[{label, words, isPrimary}]`, filtered to engines with words > 0.
-4. **Render** the new "Method" and "Engines" rows inside the existing hover card block (around lines 516–525). Keep typography consistent with the existing `text-xs text-muted-foreground` style; primary engine uses `text-green-700 font-medium`.
-5. No change to the table layout or sorting — purely additive content inside the existing hover card.
+## Technical notes
+- Iframe approach avoids porting the standalone HTML into React; the sticky blue Header sits above and the iframe scrolls internally.
+- Wrapper uses `flex flex-col min-h-[100dvh]` with the iframe `flex-1 w-full` so no hard-coded header height is needed.
+- No business-logic, auth, or DB changes.
 
 ## Out of scope
-
-- No change to the 7-day / 30-day / All-time hover popovers (they already show different summaries; can be done in a follow-up if you want the same treatment there).
-- No new column on the main user table.
+- No edits to the briefing content itself (`public/gms-2026.html` unchanged).
+- The existing news card on the logged-out page remains as a secondary entry point.
