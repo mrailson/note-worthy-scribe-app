@@ -1216,6 +1216,8 @@ export default function NoteWellRecorder() {
   const liveClientRef   = useRef(null);  // AssemblyRealtimeClient or UnifiedTranscriber
   const capturedLiveTranscriptRef = useRef(""); // Captured on stop for rescue fallback
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
+  const activeRecordingIdRef = useRef(null);
+  const activeRecordingStartedAtRef = useRef(null);
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
   const healthCheckRef = useRef(null); // Stream health monitor interval
@@ -1224,6 +1226,20 @@ export default function NoteWellRecorder() {
 
   // ── Pre-flight modal state ──
   const [showPreFlight, setShowPreFlight] = useState(false);
+
+  const persistActiveRecordingMeta = useCallback(async (patch = {}) => {
+    const id = activeRecordingIdRef.current;
+    if (!id) return;
+    const safeElapsed = Math.max(Math.floor(elapsed / 1000), 0);
+    await dbPatch(id, {
+      duration: safeElapsed,
+      capturedLiveTranscript: liveTranscript || capturedLiveTranscriptRef.current || '',
+      liveWordCount: peakWordCountRef.current,
+      status: 'recording_interrupted',
+      updatedAt: Date.now(),
+      ...patch,
+    }).catch(err => console.warn('[MobileRecorder] active recording metadata save failed', err));
+  }, [elapsed, liveTranscript]);
 
   const navigateToSignIn = useCallback((returnTo = location.pathname || "/new-recorder") => {
     navigate(`/auth?returnTo=${encodeURIComponent(returnTo)}`);
