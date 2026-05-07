@@ -607,8 +607,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             onClick={() => navigate('/admin')}
                             className="cursor-pointer py-3"
                           >
-                            <Wrench className="h-4 w-4 mr-2" />
+                           <Wrench className="h-4 w-4 mr-2" />
                             Admin Dashboard
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate('/surveys')}
+                            className="cursor-pointer py-3"
+                          >
+                            <ClipboardList className="h-4 w-4 mr-2" />
+                            Survey Admin Results
                           </DropdownMenuItem>
                          </DropdownMenuSubContent>
                      </DropdownMenuSub>
