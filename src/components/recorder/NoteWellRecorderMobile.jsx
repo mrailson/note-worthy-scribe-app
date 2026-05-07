@@ -355,8 +355,8 @@ function ModeSheet({ mode, onClose, onSelect, isAuthenticated, authLoading, onSi
 
         <div style={{background:"#f8fafc",borderRadius:12,padding:"10px 12px",display:"flex",alignItems:"flex-start",gap:8,marginTop:4}}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{marginTop:1,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>
-            Auto-detect will switch modes if your connection changes during a session and retry any failed sync.
+            <span style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>
+             Stay in this page while recording. iPhone app switching can suspend the browser; audio is now checkpointed locally every minute.
           </span>
         </div>
       </div>
