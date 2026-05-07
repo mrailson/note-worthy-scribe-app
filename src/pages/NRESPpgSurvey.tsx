@@ -462,6 +462,9 @@ export default function NRESPpgSurvey() {
               >
                 Learn more about NRES
               </button>
+              <p style={{ marginTop: 20, color: "var(--muted)", fontSize: 14 }}>
+                You can now close this window.
+              </p>
             </div>
           </section>
         )}
