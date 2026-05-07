@@ -223,7 +223,8 @@ export default function PayAlignmentSurvey() {
 
         <section className="mb-8">
           <h2 className="font-serif text-xl text-stone-900 mb-1">For each role, where does your top-of-pay sit?</h2>
-          <p className="text-sm text-stone-600 mb-5">Relative to the Same Day Access reclaimable ceiling shown alongside.</p>
+          <p className="text-sm text-stone-600 mb-1">Relative to the Same Day Access reclaimable ceiling shown alongside.</p>
+          <p className="text-xs text-stone-500 italic mb-5">All figures shown are <span className="font-semibold not-italic">excluding on-costs</span> (basic salary only — no NI, pension or other employer contributions).</p>
 
           <div className="space-y-4">
             {ROLES.map(role => (
