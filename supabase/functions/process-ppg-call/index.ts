@@ -211,11 +211,53 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Unauthorised" }, 401);
   }
 
-  let body: any;
+  let raw: any;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return jsonResponse({ error: "Invalid JSON" }, 400);
+  }
+
+  // Normalise payload — accept either the ElevenLabs post-call webhook format
+  // (nested under .data with type="post_call_transcription") or the flat test format.
+  let body: any;
+  if (raw?.type === "post_call_transcription" && raw?.data && typeof raw.data === "object") {
+    const d = raw.data;
+    const meta = d.metadata ?? {};
+    const startUnix = Number(meta.start_time_unix_secs ?? 0);
+    const durSecs = Number(meta.call_duration_secs ?? 0);
+    const startedAtIso = startUnix ? new Date(startUnix * 1000).toISOString() : null;
+    const endedAtIso = startUnix ? new Date((startUnix + durSecs) * 1000).toISOString() : null;
+
+    const dcrRaw = d.analysis?.data_collection_results;
+    let data_collection: Record<string, unknown> = {};
+    if (!dcrRaw || typeof dcrRaw !== "object") {
+      console.warn(`[process-ppg-call] No data_collection_results in payload, conversation_id=${d.conversation_id}`);
+    } else {
+      for (const [k, v] of Object.entries(dcrRaw as Record<string, any>)) {
+        data_collection[k] = v && typeof v === "object" && "value" in v ? v.value : v;
+      }
+    }
+
+    const transcriptArr = Array.isArray(d.transcript)
+      ? d.transcript.map((t: any) => ({
+          role: t.role,
+          message: t.message,
+          time_offset_s: Number(t.time_in_call_secs ?? 0),
+        }))
+      : [];
+
+    body = {
+      conversation_id: d.conversation_id,
+      agent_id: d.agent_id,
+      duration_seconds: durSecs,
+      started_at: startedAtIso,
+      ended_at: endedAtIso,
+      data_collection,
+      transcript: transcriptArr,
+    };
+  } else {
+    body = raw;
   }
 
   const conversation_id = body?.conversation_id;
