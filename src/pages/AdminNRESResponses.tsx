@@ -15,6 +15,7 @@ interface Row {
   followup_reason: string | null;
   followup_label: string | null;
   comment: string | null;
+  user_agent: string | null;
 }
 
 const RATING_LABEL: Record<string, string> = { better: "Better", same: "The same", worse: "Worse" };
