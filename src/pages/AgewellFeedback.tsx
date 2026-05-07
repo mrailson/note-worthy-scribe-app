@@ -110,7 +110,9 @@ const STYLES = `
 
 const PRACTICES_BY_AREA = AGEWELL_AREAS.map((area) => ({
   area,
-  items: AGEWELL_PRACTICES.filter((p) => p.area === area),
+  items: AGEWELL_PRACTICES
+    .filter((p) => p.area === area)
+    .sort((a, b) => a.name.localeCompare(b.name, "en-GB")),
 }));
 
 const QUESTIONS_TOTAL = 13;
