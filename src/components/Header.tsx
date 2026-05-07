@@ -936,6 +936,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                     PPG Patient Survey Results
                                   </Button>
                                 </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin/agewell-responses')}>
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    AgeWell Feedback Results
+                                  </Button>
+                                </DrawerClose>
                               </CollapsibleContent>
                             </Collapsible>
                           )}
