@@ -9903,7 +9903,11 @@ export type Database = {
       }
       nres_ppg_responses: {
         Row: {
+          branch_site: string | null
+          call_duration_seconds: number | null
+          channel: string
           comment: string | null
+          elevenlabs_conversation_id: string | null
           followup_label: string | null
           followup_reason: string | null
           id: string
@@ -9912,10 +9916,15 @@ export type Database = {
           rating: string
           submission_token: string | null
           submitted_at: string
+          transcript_json: Json | null
           user_agent: string | null
         }
         Insert: {
+          branch_site?: string | null
+          call_duration_seconds?: number | null
+          channel?: string
           comment?: string | null
+          elevenlabs_conversation_id?: string | null
           followup_label?: string | null
           followup_reason?: string | null
           id?: string
@@ -9924,10 +9933,15 @@ export type Database = {
           rating: string
           submission_token?: string | null
           submitted_at?: string
+          transcript_json?: Json | null
           user_agent?: string | null
         }
         Update: {
+          branch_site?: string | null
+          call_duration_seconds?: number | null
+          channel?: string
           comment?: string | null
+          elevenlabs_conversation_id?: string | null
           followup_label?: string | null
           followup_reason?: string | null
           id?: string
@@ -9936,6 +9950,7 @@ export type Database = {
           rating?: string
           submission_token?: string | null
           submitted_at?: string
+          transcript_json?: Json | null
           user_agent?: string | null
         }
         Relationships: []
