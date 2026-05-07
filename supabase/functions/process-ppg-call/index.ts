@@ -3,9 +3,57 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-source",
+    "authorization, x-client-info, apikey, content-type, x-source, elevenlabs-signature",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+const ELEVENLABS_WEBHOOK_SECRET = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
+const HMAC_TOLERANCE_SECONDS = 30 * 60; // 30 minutes
+
+async function verifyElevenLabsSignature(
+  signatureHeader: string,
+  rawBody: string,
+  secret: string,
+): Promise<{ valid: boolean; reason?: string }> {
+  if (!secret) return { valid: false, reason: "Server secret not configured" };
+  // Format: "t=<unix>,v0=<hexhash>"
+  const parts = signatureHeader.split(",").map((p) => p.trim());
+  let timestamp = "";
+  let providedHash = "";
+  for (const p of parts) {
+    if (p.startsWith("t=")) timestamp = p.slice(2);
+    else if (p.startsWith("v0=")) providedHash = p.slice(3);
+  }
+  if (!timestamp || !providedHash) return { valid: false, reason: "Malformed signature header" };
+
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts)) return { valid: false, reason: "Invalid timestamp" };
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - ts) > HMAC_TOLERANCE_SECONDS) {
+    return { valid: false, reason: "Timestamp outside tolerance window" };
+  }
+
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(`${timestamp}.${rawBody}`));
+  const computed = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // constant-time compare
+  if (computed.length !== providedHash.length) return { valid: false, reason: "Signature mismatch" };
+  let diff = 0;
+  for (let i = 0; i < computed.length; i++) {
+    diff |= computed.charCodeAt(i) ^ providedHash.charCodeAt(i);
+  }
+  return diff === 0 ? { valid: true } : { valid: false, reason: "Signature mismatch" };
+}
 
 const ALLOWED_PRACTICES = new Set([
   "brackley", "brook", "bugbrooke", "denton",
