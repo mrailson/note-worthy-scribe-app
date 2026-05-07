@@ -71,6 +71,35 @@ const dbPatch  = async (id, patch) => {
   });
 };
 
+const dbAppendChunk = async (id, chunkData, patch = {}) => {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const get = store.get(id);
+    get.onsuccess = () => {
+      const rec = get.result;
+      if (!rec) return;
+      const existing = Array.isArray(rec.chunks) ? rec.chunks : [];
+      const chunks = existing.some(ch => ch.index === chunkData.index)
+        ? existing
+        : [...existing, chunkData].sort((a, b) => a.index - b.index);
+      const size = chunks.reduce((s, ch) => s + (ch.sizeBytes || ch.arrayBuffer?.byteLength || 0), 0);
+      store.put({
+        ...rec,
+        ...patch,
+        chunks,
+        chunkCount: chunks.length,
+        size,
+        audioData: chunks[0]?.arrayBuffer || rec.audioData,
+        updatedAt: Date.now(),
+      });
+    };
+    tx.oncomplete = () => { db.close(); res(); };
+    tx.onerror = () => { db.close(); rej(tx.error); };
+  });
+};
+
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 const fmtDuration = (ms) => {
   const totalSeconds = Math.floor(ms / 1000);
@@ -326,8 +355,8 @@ function ModeSheet({ mode, onClose, onSelect, isAuthenticated, authLoading, onSi
 
         <div style={{background:"#f8fafc",borderRadius:12,padding:"10px 12px",display:"flex",alignItems:"flex-start",gap:8,marginTop:4}}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{marginTop:1,flexShrink:0}}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>
-            Auto-detect will switch modes if your connection changes during a session and retry any failed sync.
+            <span style={{fontSize:12,color:"#64748b",lineHeight:1.5}}>
+             Stay in this page while recording. iPhone app switching can suspend the browser; audio is now checkpointed locally every minute.
           </span>
         </div>
       </div>
@@ -1017,12 +1046,12 @@ function StepsGuide({ mode = "live" }) {
     ? [
         {n:"1",Icon:MicIcon, label:"Tap record to start"},
         {n:"2",Icon:LiveIcon,label:"Live transcription"},
-        {n:"3",Icon:SparkIcon,label:"Notes generated on stop"},
+        {n:"3",Icon:SparkIcon,label:"Auto-saved every minute"},
       ]
     : [
         {n:"1",Icon:MicIcon, label:"Tap record to start"},
         {n:"2",Icon:SaveIcon,label:"Saved to device"},
-        {n:"3",Icon:SparkIcon,label:"Notes generated on sync"},
+        {n:"3",Icon:SparkIcon,label:"Auto-saved every minute"},
       ];
   return (
     <div style={{margin:"8px 16px 0"}}>
@@ -1187,6 +1216,8 @@ export default function NoteWellRecorder() {
   const liveClientRef   = useRef(null);  // AssemblyRealtimeClient or UnifiedTranscriber
   const capturedLiveTranscriptRef = useRef(""); // Captured on stop for rescue fallback
   const recorderRef  = useRef(null);  // ChunkedRecorder instance
+  const activeRecordingIdRef = useRef(null);
+  const activeRecordingStartedAtRef = useRef(null);
   const timerRef     = useRef(null);
   const audioRef     = useRef(new Audio());
   const healthCheckRef = useRef(null); // Stream health monitor interval
@@ -1195,6 +1226,20 @@ export default function NoteWellRecorder() {
 
   // ── Pre-flight modal state ──
   const [showPreFlight, setShowPreFlight] = useState(false);
+
+  const persistActiveRecordingMeta = useCallback(async (patch = {}) => {
+    const id = activeRecordingIdRef.current;
+    if (!id) return;
+    const safeElapsed = Math.max(Math.floor(elapsed / 1000), 0);
+    await dbPatch(id, {
+      duration: safeElapsed,
+      capturedLiveTranscript: liveTranscript || capturedLiveTranscriptRef.current || '',
+      liveWordCount: peakWordCountRef.current,
+      status: 'recording_interrupted',
+      updatedAt: Date.now(),
+      ...patch,
+    }).catch(err => console.warn('[MobileRecorder] active recording metadata save failed', err));
+  }, [elapsed, liveTranscript]);
 
   const navigateToSignIn = useCallback((returnTo = location.pathname || "/new-recorder") => {
     navigate(`/auth?returnTo=${encodeURIComponent(returnTo)}`);
@@ -1283,8 +1328,10 @@ export default function NoteWellRecorder() {
       if (document.hidden) {
         setIsPageHidden(true);
         // Track when we went hidden for suspension detection
-        if (recState === "recording" || recState === "paused") {
+        if (recStateRef.current === "recording" || recStateRef.current === "paused") {
           hiddenSinceRef.current = Date.now();
+          persistActiveRecordingMeta({ status: 'recording_interrupted' });
+          recorderRef.current?.checkpoint?.().catch(err => console.warn('[MobileRecorder] hide checkpoint failed', err));
         }
         // Tab backgrounded — update title as warning
         if (syncProgress && syncProgress.phase === "uploading") {
@@ -1317,7 +1364,21 @@ export default function NoteWellRecorder() {
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [syncProgress]);
+  }, [syncProgress, persistActiveRecordingMeta]);
+
+  useEffect(() => {
+    const checkpointBeforePageExit = () => {
+      if (recStateRef.current === "idle") return;
+      persistActiveRecordingMeta({ status: 'recording_interrupted' });
+      recorderRef.current?.checkpoint?.().catch(err => console.warn('[MobileRecorder] exit checkpoint failed', err));
+    };
+    window.addEventListener("pagehide", checkpointBeforePageExit);
+    window.addEventListener("beforeunload", checkpointBeforePageExit);
+    return () => {
+      window.removeEventListener("pagehide", checkpointBeforePageExit);
+      window.removeEventListener("beforeunload", checkpointBeforePageExit);
+    };
+  }, [persistActiveRecordingMeta]);
 
   // ── Load saved recordings ─────────────────────────────────────────────────
   const refresh = useCallback(() => dbAll().then(setRecordings).catch(console.error), []);
@@ -1586,12 +1647,44 @@ export default function NoteWellRecorder() {
     peakWordCountRef.current = 0;
     setLiveWordCount(0);
     try {
+      const autoId = `rec_${Date.now()}`;
+      const startedAt = Date.now();
+      activeRecordingIdRef.current = autoId;
+      activeRecordingStartedAtRef.current = startedAt;
+      await dbPut({
+        id: autoId,
+        title: `Interrupted recording ${new Date(startedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} ${new Date(startedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`,
+        createdAt: startedAt,
+        duration: 0,
+        size: 0,
+        mimeType: 'audio/webm',
+        chunks: [],
+        chunkCount: 0,
+        status: 'local',
+        capturedLiveTranscript: '',
+      });
+      await refresh();
+
       const recorder = new ChunkedRecorder({
-        chunkDurationMs: 15 * 60 * 1000, // 15 minutes
+        chunkDurationMs: isIOSDevice ? 60 * 1000 : 15 * 60 * 1000,
         audioBitrate: bitrate,
-        onChunkReady: (chunk) => {
+        onChunkReady: async (chunk) => {
           setChunksCompleted(prev => prev + 1);
           console.log(`[ChunkedRecording] Chunk ${chunk.index} ready: ${(chunk.sizeBytes / 1024 / 1024).toFixed(1)}MB, ${(chunk.durationMs / 1000).toFixed(0)}s`);
+          const arrayBuffer = await chunk.blob.arrayBuffer();
+          await dbAppendChunk(autoId, {
+            index: chunk.index,
+            arrayBuffer,
+            mimeType: chunk.blob.type,
+            startTimeMs: chunk.startTimeMs,
+            endTimeMs: chunk.endTimeMs,
+            durationMs: chunk.durationMs,
+            sizeBytes: chunk.sizeBytes,
+          }, {
+            duration: Math.max(Math.floor((Date.now() - startedAt) / 1000), 0),
+            capturedLiveTranscript: liveTranscript || capturedLiveTranscriptRef.current || '',
+          });
+          await refresh();
         },
         onStatusChange: (status) => console.log(`[ChunkedRecording] Status: ${status}`),
       });
@@ -1706,9 +1799,9 @@ export default function NoteWellRecorder() {
     const totalSize = chunks.reduce((s, c) => s + c.sizeBytes, 0);
     const durationSecs = Math.floor(elapsed / 1000);
 
-    // Auto-save to IndexedDB immediately so the recording is safe before modal appears
+    // Finalise the IndexedDB draft created at recording start.
     const autoTitle = `Meeting ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})} ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
-    const autoId = `rec_${Date.now()}`;
+    const autoId = activeRecordingIdRef.current || `rec_${Date.now()}`;
     const chunkData = await Promise.all(
       chunks.map(async (chunk) => ({
         index: chunk.index,
@@ -1720,26 +1813,35 @@ export default function NoteWellRecorder() {
         sizeBytes: chunk.sizeBytes,
       }))
     );
-    const autoRec = {
+    const existingRecordings = await dbAll();
+    const existing = existingRecordings.find(r => r.id === autoId);
+    const mergedChunks = [
+      ...(existing?.chunks || []),
+      ...chunkData.filter(ch => !(existing?.chunks || []).some(prev => prev.index === ch.index)),
+    ].sort((a, b) => a.index - b.index);
+    await dbPut({
+      ...(existing || {}),
       id: autoId,
       title: autoTitle,
-      createdAt: Date.now(),
+      createdAt: existing?.createdAt || activeRecordingStartedAtRef.current || Date.now(),
       duration: durationSecs,
       size: totalSize,
       mimeType: chunks[0]?.blob.type || 'audio/webm',
-      chunks: chunkData,
-      chunkCount: chunks.length,
-      audioData: chunkData[0]?.arrayBuffer,
+      chunks: mergedChunks,
+      chunkCount: mergedChunks.length,
+      audioData: mergedChunks[0]?.arrayBuffer,
       status: 'local',
       capturedLiveTranscript: capturedLiveTranscriptRef.current || '',
-    };
+      updatedAt: Date.now(),
+    });
+    activeRecordingIdRef.current = null;
+    activeRecordingStartedAtRef.current = null;
     capturedLiveTranscriptRef.current = '';
     setConnectionLostMidRecord(false); // clear mid-record drop banner on stop
-    await dbPut(autoRec);
     await refresh();
 
     // Show the rename modal — recording is already safe in IndexedDB
-    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: chunks.length, stoppedElapsed: elapsed, autoSavedId: autoId, autoTitle });
+    setTitleModal({ chunks, duration: durationSecs, totalSize, chunkCount: mergedChunks.length, stoppedElapsed: elapsed, autoSavedId: autoId, autoTitle });
     setElapsed(0);
   };
 
