@@ -943,7 +943,10 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           confirmDeclaration={canSubmitForPractice ? confirmDeclaration : undefined}
           onDeleteClaim={canSubmitForPractice ? async (id: string) => { await deleteClaim(id); } : undefined}
           onCreateLocumClaim={canSubmitForPractice ? async (monthDate: string, staffMember: any, actualSessions: number, claimedAmount: number) => {
-            const modifiedStaff = { ...staffMember, allocation_value: actualSessions };
+            // Force allocation_type to 'sessions' so calculateStaffMonthlyAmount
+            // applies the £375/session rate (not the £750 daily fallback) when
+            // the staff record was configured with a different allocation_type.
+            const modifiedStaff = { ...staffMember, allocation_value: actualSessions, allocation_type: 'sessions' };
             const maxAmount = actualSessions * (staffMember.hourly_rate || 0);
             return createClaim(
               monthDate,
