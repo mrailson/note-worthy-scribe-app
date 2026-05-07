@@ -1046,12 +1046,12 @@ function StepsGuide({ mode = "live" }) {
     ? [
         {n:"1",Icon:MicIcon, label:"Tap record to start"},
         {n:"2",Icon:LiveIcon,label:"Live transcription"},
-        {n:"3",Icon:SparkIcon,label:"Notes generated on stop"},
+        {n:"3",Icon:SparkIcon,label:"Auto-saved every minute"},
       ]
     : [
         {n:"1",Icon:MicIcon, label:"Tap record to start"},
         {n:"2",Icon:SaveIcon,label:"Saved to device"},
-        {n:"3",Icon:SparkIcon,label:"Notes generated on sync"},
+        {n:"3",Icon:SparkIcon,label:"Auto-saved every minute"},
       ];
   return (
     <div style={{margin:"8px 16px 0"}}>
