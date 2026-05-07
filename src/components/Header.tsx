@@ -151,17 +151,31 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 </span>
               )}
             </span>
+
+            {/* Desktop briefing link — inline with Notewell AI */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/briefings/primary-care-2026');
+              }}
+              className="hidden md:flex ml-[60px] items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs lg:text-sm font-medium transition-all hover:-translate-y-[55%] hover:shadow-md whitespace-nowrap shrink-0"
+              aria-label="Open Primary Care 2026/27 May 2026 briefing"
+            >
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground text-[9px] font-bold uppercase tracking-wider">New</span>
+              <span>May 26 – GMS/PCN DES Changes</span>
+            </button>
           </div>
 
-          {/* Centred briefing link — visible to all users */}
+          {/* Mobile briefing pill */}
           <button
             type="button"
             onClick={() => navigate('/briefings/primary-care-2026')}
-            className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs lg:text-sm font-medium transition-all hover:-translate-y-[55%] hover:shadow-md whitespace-nowrap"
+            className="md:hidden flex items-center gap-1 px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-[10px] font-medium whitespace-nowrap shrink-0"
             aria-label="Open Primary Care 2026/27 May 2026 briefing"
           >
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground text-[9px] font-bold uppercase tracking-wider">New</span>
-            <span>May 26 – GMS/PCN DES Changes</span>
+            <span className="inline-flex items-center px-1 py-0.5 rounded-full bg-accent text-accent-foreground text-[8px] font-bold uppercase">New</span>
+            <span>May 26 – GMS/PCN DES</span>
           </button>
 
           {/* Mobile briefing pill */}
