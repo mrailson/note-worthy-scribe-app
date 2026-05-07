@@ -100,6 +100,84 @@ export type Database = {
         }
         Relationships: []
       }
+      agewell_responses: {
+        Row: {
+          branch_site: string | null
+          call_duration_seconds: number | null
+          channel: string
+          completed_with_support: string | null
+          email_sent_at: string | null
+          equipment_provided: string | null
+          id: string
+          listened_to_concerns: string | null
+          medicine_review_beneficial: string | null
+          more_independent: string | null
+          most_significant_difference: string | null
+          online_meeting_concerns_discussed: string | null
+          overall_rating: number | null
+          practice_canonical: string | null
+          practice_label_freeform: string | null
+          signposted: string | null
+          submission_token: string | null
+          submitted_at: string
+          suggestions_concerns: string | null
+          support_worker_rating: number | null
+          transcript_json: Json | null
+          user_agent: string | null
+          would_recommend: string | null
+        }
+        Insert: {
+          branch_site?: string | null
+          call_duration_seconds?: number | null
+          channel?: string
+          completed_with_support?: string | null
+          email_sent_at?: string | null
+          equipment_provided?: string | null
+          id?: string
+          listened_to_concerns?: string | null
+          medicine_review_beneficial?: string | null
+          more_independent?: string | null
+          most_significant_difference?: string | null
+          online_meeting_concerns_discussed?: string | null
+          overall_rating?: number | null
+          practice_canonical?: string | null
+          practice_label_freeform?: string | null
+          signposted?: string | null
+          submission_token?: string | null
+          submitted_at?: string
+          suggestions_concerns?: string | null
+          support_worker_rating?: number | null
+          transcript_json?: Json | null
+          user_agent?: string | null
+          would_recommend?: string | null
+        }
+        Update: {
+          branch_site?: string | null
+          call_duration_seconds?: number | null
+          channel?: string
+          completed_with_support?: string | null
+          email_sent_at?: string | null
+          equipment_provided?: string | null
+          id?: string
+          listened_to_concerns?: string | null
+          medicine_review_beneficial?: string | null
+          more_independent?: string | null
+          most_significant_difference?: string | null
+          online_meeting_concerns_discussed?: string | null
+          overall_rating?: number | null
+          practice_canonical?: string | null
+          practice_label_freeform?: string | null
+          signposted?: string | null
+          submission_token?: string | null
+          submitted_at?: string
+          suggestions_concerns?: string | null
+          support_worker_rating?: number | null
+          transcript_json?: Json | null
+          user_agent?: string | null
+          would_recommend?: string | null
+        }
+        Relationships: []
+      }
       ai_4_pm_searches: {
         Row: {
           brief_overview: string | null
