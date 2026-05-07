@@ -203,7 +203,7 @@ export default function AdminNRESResponses() {
                         {RATING_LABEL[r.rating]}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">{r.followup_label || "—"}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{r.rating === "worse" ? (r.followup_label || "—") : "Not Applicable"}</td>
                     <td className="px-4 py-2 max-w-md">
                       {!c && <span className="text-muted-foreground">—</span>}
                       {c && (
