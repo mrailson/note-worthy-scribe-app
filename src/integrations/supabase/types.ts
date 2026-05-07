@@ -4424,6 +4424,33 @@ export type Database = {
           },
         ]
       }
+      email_failures: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          payload: Json | null
+          response_id: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          response_id?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          response_id?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       enn_hub_practice_mappings: {
         Row: {
           created_at: string
@@ -9871,6 +9898,45 @@ export type Database = {
           is_active?: boolean
           name?: string
           token?: string
+        }
+        Relationships: []
+      }
+      nres_ppg_responses: {
+        Row: {
+          comment: string | null
+          followup_label: string | null
+          followup_reason: string | null
+          id: string
+          practice_id: string
+          practice_label: string
+          rating: string
+          submission_token: string | null
+          submitted_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          comment?: string | null
+          followup_label?: string | null
+          followup_reason?: string | null
+          id?: string
+          practice_id: string
+          practice_label: string
+          rating: string
+          submission_token?: string | null
+          submitted_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          comment?: string | null
+          followup_label?: string | null
+          followup_reason?: string | null
+          id?: string
+          practice_id?: string
+          practice_label?: string
+          rating?: string
+          submission_token?: string | null
+          submitted_at?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
