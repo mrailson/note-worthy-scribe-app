@@ -491,3 +491,6 @@ verify_jwt = false
 [functions.submit-ppg-response]
 verify_jwt = false
 
+[functions.process-ppg-call]
+verify_jwt = false
+
