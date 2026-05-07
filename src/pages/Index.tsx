@@ -460,7 +460,7 @@ const Index = () => {
                         </div>
                         <h4 className="font-semibold text-base mb-1 group-hover:text-[hsl(var(--primary))] transition-colors">Primary Care Contracts 2026/27 — PCN & Practice Briefing</h4>
                         <p className="text-sm text-muted-foreground">
-                          Combined plain-English briefing covering both the updated PCN Network Contract DES and the GMS Amendment Directions 2026 — what's changing, key dates, and the actions practices and PCNs need to take ahead of go-live.
+                          Focused plain-English briefing on the 2026/27 GMS and PCN DES changes most relevant to PCN managers and practices, including the new GP Reimbursement Scheme, ARRS/CAIP transition rules, Local Variation Arrangements, selected payment uplifts and key practice actions.
                         </p>
                         <span className="inline-flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-medium mt-2">
                           Read briefing <ExternalLink className="h-3 w-3" />
