@@ -178,18 +178,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             <span>May 26 – GMS/PCN DES</span>
           </button>
 
-          {/* Mobile briefing pill */}
-          <button
-            type="button"
-            onClick={() => navigate('/briefings/primary-care-2026')}
-            className="md:hidden flex items-center gap-1 px-2 py-1 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-[10px] font-medium whitespace-nowrap shrink-0"
-            aria-label="Open Primary Care 2026/27 May 2026 briefing"
-          >
-            <span className="inline-flex items-center px-1 py-0.5 rounded-full bg-accent text-accent-foreground text-[8px] font-bold uppercase">New</span>
-            <span>May 26 – GMS/PCN DES</span>
-          </button>
-
-
           
             {/* Navigation */}
             <div className="hidden sm:flex gap-2 items-center">
