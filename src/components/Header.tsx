@@ -161,7 +161,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             aria-label="Open Primary Care 2026/27 May 2026 briefing"
           >
             <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground text-[9px] font-bold uppercase tracking-wider">New</span>
-            <span>May 2026 Update — Primary Care 2026/27 Briefing</span>
+            <span>May 26 – GMS/PCN DES Changes</span>
           </button>
 
           {/* Mobile briefing pill */}
@@ -172,7 +172,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             aria-label="Open Primary Care 2026/27 May 2026 briefing"
           >
             <span className="inline-flex items-center px-1 py-0.5 rounded-full bg-accent text-accent-foreground text-[8px] font-bold uppercase">New</span>
-            <span>May 26 — PC 2026/27</span>
+            <span>May 26 – GMS/PCN DES</span>
           </button>
 
 
