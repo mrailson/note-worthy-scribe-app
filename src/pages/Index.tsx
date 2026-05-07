@@ -445,10 +445,8 @@ const Index = () => {
                     <Newspaper className="h-4 w-4" />
                     Latest News & Updates
                   </h3>
-                  <a 
-                    href="/gms-2026.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/briefings/primary-care-2026"
                     className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
                   >
                     <div className="flex items-start gap-3">
@@ -469,7 +467,7 @@ const Index = () => {
                         </span>
                       </div>
                     </div>
-                  </a>
+                  </Link>
                   <a 
                     href="https://gpnotewell.co.uk/planning-studio"
                     className="block p-4 border border-primary/20 rounded-lg bg-primary/5 hover:shadow-md transition-shadow group"
