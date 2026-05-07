@@ -121,6 +121,8 @@ const QuickRecord = lazy(() => import("./pages/QuickRecord"));
 const GPTranslationService = lazy(() => import("./pages/GPTranslationService"));
 const AgewellTranslateTrain = lazy(() => import("./services/agewell/AgewellTranslateTrain"));
 const PatientSupportPlan = lazy(() => import("./services/agewell/PatientSupportPlan"));
+const AgewellFeedback = lazy(() => import("./pages/AgewellFeedback"));
+const AdminAgewellResponses = lazy(() => import("./pages/AdminAgewellResponses"));
 const AuthConfirm = lazy(() => import("./pages/AuthConfirm"));
 const Scribe = lazy(() => import("./pages/Scribe"));
 const AI4GPPromptGuide = lazy(() => import("./pages/AI4GPPromptGuide"));
@@ -194,7 +196,9 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/briefings/primary-care-2026" element={<PrimaryCare2026Briefing />} />
                 <Route path="/nres/ppgsurvey" element={<NRESPpgSurvey />} />
+                <Route path="/agewell/feedback" element={<AgewellFeedback />} />
                 <Route path="/admin/nres-responses" element={<AdminNRESResponses />} />
+                <Route path="/admin/agewell-responses" element={<AdminAgewellResponses />} />
                 <Route path="/quick-record" element={<QuickRecord />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth-confirm" element={<AuthConfirm />} />
