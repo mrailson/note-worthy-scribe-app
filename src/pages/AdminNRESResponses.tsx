@@ -206,6 +206,7 @@ export default function AdminNRESResponses() {
                   <tr key={r.id} className="border-t">
                     <td className="px-4 py-2 whitespace-nowrap">{formatUK(r.submitted_at)}</td>
                     <td className="px-4 py-2">{r.practice_label}</td>
+                    <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{inputMethod(r.user_agent)}</td>
                     <td className="px-4 py-2">
                       <Badge style={{ background: RATING_COLOUR[r.rating] + "20", color: RATING_COLOUR[r.rating] }}>
                         {RATING_LABEL[r.rating]}
