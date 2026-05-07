@@ -434,10 +434,13 @@ function InlineClaimPanel({
       const cfg = rateParams.getRoleConfig(staffMember.staff_role);
       if (cfg?.annual_rate && cfg.annual_rate > 0) return cfg.annual_rate;
     }
-    // Fall back: derive from calculateStaffMonthlyAmount for 1 unit
+    // Fall back: derive from calculateStaffMonthlyAmount for 1 SESSION.
+    // We must force allocation_type:'sessions' here — otherwise a staff record
+    // whose allocation_type is 'daily' (or missing) yields the £750 daily rate
+    // and the per-session max comes out at £750 instead of £375.
     if (rateParams) {
       const oneUnit = calculateStaffMonthlyAmount(
-        { ...staffMember, allocation_value: 1 },
+        { ...staffMember, allocation_value: 1, allocation_type: 'sessions' },
         monthDate,
         staffMember.start_date,
         rateParams
