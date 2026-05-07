@@ -617,6 +617,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <ClipboardList className="h-4 w-4 mr-2" />
                             PPG Patient Survey Results
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate('/admin/agewell-responses')}
+                            className="cursor-pointer py-3"
+                          >
+                            <ClipboardList className="h-4 w-4 mr-2" />
+                            AgeWell Feedback Results
+                          </DropdownMenuItem>
                          </DropdownMenuSubContent>
                      </DropdownMenuSub>
                     )}
