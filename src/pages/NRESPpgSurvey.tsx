@@ -39,7 +39,8 @@ const STYLES = `
   --shadow-lg:0 4px 12px rgba(15,37,64,.08),0 16px 40px rgba(15,37,64,.10);
   --radius:14px;--radius-sm:10px;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
-  color:var(--ink);background:var(--bg);line-height:1.5;min-height:100vh;
+  color:var(--ink);background:var(--bg);line-height:1.5;
+  height:100vh;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
 }
 .ppg-root button { font-family:inherit;cursor:pointer;border:none;background:none;color:inherit; }
@@ -176,6 +177,8 @@ export default function NRESPpgSurvey() {
   // Smooth-scroll on step change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+    const root = document.querySelector(".ppg-root") as HTMLElement | null;
+    if (root) root.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
 
   // Esc closes modal
