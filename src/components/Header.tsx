@@ -923,6 +923,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                     Admin Dashboard
                                   </Button>
                                 </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/surveys')}>
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    Survey Admin Results
+                                  </Button>
+                                </DrawerClose>
                               </CollapsibleContent>
                             </Collapsible>
                           )}
