@@ -15,6 +15,8 @@ import { Loader2 } from "lucide-react";
 const RecoveryTool = lazy(() => import("./pages/RecoveryTool"));
 const Index = lazy(() => import("./pages/Index"));
 const PrimaryCare2026Briefing = lazy(() => import("./pages/PrimaryCare2026Briefing"));
+const NRESPpgSurvey = lazy(() => import("./pages/NRESPpgSurvey"));
+const AdminNRESResponses = lazy(() => import("./pages/AdminNRESResponses"));
 const AI4GP = lazy(() => import("./pages/AI4GP"));
 const VoiceAgent = lazy(() => import("./pages/VoiceAgent"));
 const GPScribe = lazy(() => import("./pages/GPScribe"));
@@ -191,6 +193,8 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/briefings/primary-care-2026" element={<PrimaryCare2026Briefing />} />
+                <Route path="/nres/ppgsurvey" element={<NRESPpgSurvey />} />
+                <Route path="/admin/nres-responses" element={<AdminNRESResponses />} />
                 <Route path="/quick-record" element={<QuickRecord />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth-confirm" element={<AuthConfirm />} />
