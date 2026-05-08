@@ -540,7 +540,6 @@ function InlineClaimPanel({
   const hoursMode =
     !isLocum && !isMeeting && !isManagement &&
     effectiveStaff.allocation_type === 'hours' &&
-    hoursModeIsSessionPriced &&
     hoursModeAnnualRate > 0;
   const sessionsMode =
     !isLocum && !isMeeting && !isManagement &&
@@ -549,14 +548,18 @@ function InlineClaimPanel({
     hoursModeAnnualRate > 0;
   const hoursModeIncludesOnCosts = hoursModeRoleConfig?.includes_on_costs !== false;
   const hoursModeOnCostMult = hoursModeIncludesOnCosts ? (rateParams?.onCostMultiplier ?? 1) : 1;
-  const hoursModeMaxStaffHourly = hoursModeAnnualRate / (52 * HOURS_PER_SESSION);
+  // £/hr staff rate cap. Session-priced GPs: annualRate is per-session, so /yr ÷ (52 × 4h10m).
+  // All other roles: annualRate is per 1.0 WTE, so /yr ÷ (52 × 37.5).
+  const hoursModeMaxStaffHourly = hoursModeIsSessionPriced
+    ? hoursModeAnnualRate / (52 * HOURS_PER_SESSION)
+    : hoursModeAnnualRate / (52 * 37.5);
 
   // Auto-seed override to hours/wk for WTE-allocated session-priced GPs so the
   // breakdown panel becomes available without forcing the user to toggle.
   useEffect(() => {
     if (
       !isLocum && !isMeeting && !isManagement &&
-      hoursModeIsSessionPriced && hoursModeAnnualRate > 0 &&
+      hoursModeAnnualRate > 0 &&
       overrideAllocType === null &&
       staffMember.allocation_type === 'wte'
     ) {
@@ -567,7 +570,7 @@ function InlineClaimPanel({
       setOverrideAllocValue(+wHrs.toFixed(2));
       void weeklyHours;
     }
-  }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value, hoursModeIsSessionPriced, hoursModeAnnualRate, isLocum, isMeeting, isManagement, overrideAllocType]);
+  }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value, hoursModeAnnualRate, isLocum, isMeeting, isManagement, overrideAllocType]);
 
   const hoursModeMaxOnCostsHourly = hoursModeMaxStaffHourly * (hoursModeOnCostMult - 1);
   const hoursModeMaxTotalHourly = hoursModeMaxStaffHourly + hoursModeMaxOnCostsHourly;
@@ -1613,7 +1616,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>hrs</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs (≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess). Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month (≈ {(9 * hoursModeFullMonthWeeks).toFixed(2)} sess)
+                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs{hoursModeIsSessionPriced ? ` (≈ ${(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess)` : ''}. Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month{hoursModeIsSessionPriced ? ` (≈ ${(9 * hoursModeFullMonthWeeks).toFixed(2)} sess)` : ''}
                           </p>
                         </div>
 
@@ -1644,7 +1647,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>/hr</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Max funded: £{hoursModeMaxStaffHourly.toFixed(2)}/hr (≈ £{(hoursModeMaxStaffHourly * HOURS_PER_SESSION).toFixed(2)}/sess) staff rate for {effectiveStaff.staff_role}
+                            Max funded: £{hoursModeMaxStaffHourly.toFixed(2)}/hr{hoursModeIsSessionPriced ? ` (≈ £${(hoursModeMaxStaffHourly * HOURS_PER_SESSION).toFixed(2)}/sess)` : ''} staff rate for {effectiveStaff.staff_role}
                           </p>
                         </div>
                       </div>
@@ -1676,7 +1679,7 @@ function InlineClaimPanel({
                           return (
                             <>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0', gap: 8 }}>
-                                <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs ≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess × £{actualHourlyRate.toFixed(2)}/hr)</span>
+                                <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs{hoursModeIsSessionPriced ? ` ≈ ${(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess` : ''} × £{actualHourlyRate.toFixed(2)}/hr)</span>
                                 {inputBox(effectiveStaffCost, v => setStaffCostOverride(v))}
                               </div>
                               {hoursModeIncludesOnCosts && (
