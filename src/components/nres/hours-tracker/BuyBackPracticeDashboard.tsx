@@ -849,9 +849,13 @@ function InlineClaimPanel({
       const onCostFraction = includesOnCosts ? (multiplier - 1) : 0;
       const onCostHourly = staffHourly * onCostFraction;
       const totalHourly = staffHourly + onCostHourly;
-      const hourlyRow = (isSessionPriced && includesOnCosts && annualHours > 0) ? [{
-        l: `Equivalent hourly rate (${sessionsPerWeek.toFixed(2)} sess/wk × 4h 10m × 52 = ${annualHours.toFixed(2)} hrs/yr)`,
-        r: `£${staffHourly.toFixed(2)}/hr staff + £${onCostHourly.toFixed(2)}/hr on-costs = £${totalHourly.toFixed(2)}/hr total`,
+      const hourlyRow = includesOnCosts && annualHours > 0 ? [{
+        l: isSessionPriced
+          ? `Equivalent hourly rate (${sessionsPerWeek.toFixed(2)} sess/wk × 4h 10m × 52 = ${annualHours.toFixed(2)} hrs/yr)`
+          : `Equivalent hourly rate (37.5 hrs/wk × 52 = 1950 hrs/yr per 1.0 WTE)`,
+        r: isSessionPriced
+          ? `£${staffHourly.toFixed(2)}/hr excl. on-costs · £${totalHourly.toFixed(2)}/hr incl. on-costs`
+          : `£${(annualRate / 1950).toFixed(2)}/hr excl. on-costs · £${((annualRate / 1950) * multiplier).toFixed(2)}/hr incl. on-costs`,
         bold: false,
         large: false,
       }] : [];
