@@ -789,14 +789,21 @@ function InlineClaimPanel({
           { label: '=' },
           { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
         ],
-        breakdown: includesOnCosts ? [
-          { l: `Base annual rate (${role}, per session/yr)`, r: fmtGBP(annualRate) + '/yr' },
-          { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
-          { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
-          { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
-          ...hourlyRow,
-          { l: `Monthly max (${allocValue} sess × total ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
-        ] : [
+        breakdown: includesOnCosts ? (() => {
+          const allocAnnual = annualWithOnCosts * allocValue;
+          const allocWeekly = allocAnnual / 52;
+          const allocHoursWk = allocValue * HOURS_PER_SESSION;
+          return [
+            { l: `Base annual rate (${role}, per session/yr)`, r: fmtGBP(annualRate) + '/yr' },
+            { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
+            { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
+            { l: 'Total incl. on-costs (per session/yr)', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+            ...hourlyRow,
+            { l: `× ${allocValue} session${allocValue !== 1 ? 's' : ''}/wk (${allocHoursWk.toFixed(2)} hrs/wk) = Annual cost incl. on-costs`, r: fmtGBP(allocAnnual) + '/yr' },
+            { l: `÷ 52 weeks = Weekly cost incl. on-costs`, r: fmtGBP(allocWeekly) + '/wk' },
+            { l: `÷ 12 months = Monthly max`, r: fmtGBP(calculatedAmount), bold: true, large: true },
+          ];
+        })() : [
           { l: `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${fmtGBP(annualRate)}/yr ÷ 12`, r: fmtGBP(calculatedAmount) + '/month', bold: true },
         ],
       };
