@@ -583,39 +583,44 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         </DropdownMenuItem>
                       )}
                    
-                   {/* System Admin Menu */}
-                   {isSystemAdmin && (
-                     <DropdownMenuSub>
-                       <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                         <Shield className="h-4 w-4 mr-2" />
-                         System Admin
-                       </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/admin')}
-                            className="cursor-pointer py-3"
-                          >
-                           <Wrench className="h-4 w-4 mr-2" />
-                            Admin Dashboard
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => navigate('/admin/nres-responses')}
-                            className="cursor-pointer py-3"
-                          >
-                            <ClipboardList className="h-4 w-4 mr-2" />
-                            PPG Patient Survey Results
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => navigate('/admin/agewell-responses')}
-                            className="cursor-pointer py-3"
-                          >
-                            <ClipboardList className="h-4 w-4 mr-2" />
-                            AgeWell Feedback Results
-                          </DropdownMenuItem>
-                         </DropdownMenuSubContent>
-                     </DropdownMenuSub>
+                    {/* System Admin Menu */}
+                    {isSystemAdmin && (
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                          <Shield className="h-4 w-4 mr-2" />
+                          System Admin
+                        </DropdownMenuSubTrigger>
+                         <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                           <DropdownMenuItem 
+                             onClick={() => navigate('/admin')}
+                             className="cursor-pointer py-3"
+                           >
+                            <Wrench className="h-4 w-4 mr-2" />
+                             Admin Dashboard
+                           </DropdownMenuItem>
+                           <DropdownMenuItem
+                             onClick={() => navigate('/admin/nres-responses')}
+                             className="cursor-pointer py-3"
+                           >
+                             <ClipboardList className="h-4 w-4 mr-2" />
+                             PPG Patient Survey Results
+                           </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                     )}
-                   <DropdownMenuSeparator />
+
+                    {/* AgeWell Feedback Results — available to system admins and AgeWell service users */}
+                    {(isSystemAdmin || hasServiceAccess('agewell')) && (
+                      <DropdownMenuItem
+                        onClick={() => navigate('/admin/agewell-responses')}
+                        className="cursor-pointer py-3"
+                      >
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        AgeWell Feedback Results
+                      </DropdownMenuItem>
+                    )}
+
+                    <DropdownMenuSeparator />
                    <DropdownMenuItem 
                      onClick={signOut}
                      className="cursor-pointer py-3 text-destructive focus:text-destructive"
@@ -924,14 +929,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                     PPG Patient Survey Results
                                   </Button>
                                 </DrawerClose>
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin/agewell-responses')}>
-                                    <ClipboardList className="h-4 w-4 mr-2" />
-                                    AgeWell Feedback Results
-                                  </Button>
-                                </DrawerClose>
                               </CollapsibleContent>
                             </Collapsible>
+                          )}
+
+                          {/* AgeWell Feedback Results — available to system admins and AgeWell service users */}
+                          {(isSystemAdmin || hasServiceAccess('agewell')) && (
+                            <DrawerClose asChild>
+                              <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin/agewell-responses')}>
+                                <ClipboardList className="h-4 w-4 mr-2" />
+                                AgeWell Feedback Results
+                              </Button>
+                            </DrawerClose>
                           )}
 
                           {/* Account Section - Always visible */}

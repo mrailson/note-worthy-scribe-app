@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,7 @@ function toCsv(rows: Row[]): string {
 
 export default function AdminAgewellResponses() {
   const { user, isSystemAdmin, loading } = useAuth() as any;
+  const { hasServiceAccess } = useServiceActivation();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -113,8 +115,8 @@ export default function AdminAgewellResponses() {
         .limit(1000);
       if (cancelled) return;
       if (error) {
-        // RLS will block non-admins — show a friendly message
-        if (!isSystemAdmin) setError("You do not have access to this page.");
+        // RLS will block non-authorised users — show a friendly message
+        if (!isSystemAdmin && !hasServiceAccess('agewell')) setError("You do not have access to this page.");
         else setError(error.message);
       } else {
         setRows((data ?? []) as Row[]);
@@ -122,7 +124,7 @@ export default function AdminAgewellResponses() {
       setFetching(false);
     })();
     return () => { cancelled = true; };
-  }, [user, isSystemAdmin, loading, navigate]);
+  }, [user, isSystemAdmin, loading, navigate, hasServiceAccess]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
