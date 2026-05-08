@@ -124,7 +124,8 @@ export default function AdminAgewellResponses() {
       setFetching(false);
     })();
     return () => { cancelled = true; };
-  }, [user, isSystemAdmin, loading, navigate, hasServiceAccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isSystemAdmin, loading, navigate]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
