@@ -1678,7 +1678,7 @@ function InlineClaimPanel({
 
                       <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                          <span style={{ color: '#6b7280' }}>Staff cost ({sessionsClaimedMonth.toFixed(2)} sess × £{actualSessionRate.toFixed(2)}/sess)</span>
+                          <span style={{ color: '#6b7280' }}>Staff cost ({sessionsClaimedMonth.toFixed(2)} sess ≈ {(sessionsClaimedMonth * HOURS_PER_SESSION).toFixed(2)} hrs × £{actualSessionRate.toFixed(2)}/sess)</span>
                           <span style={{ fontWeight: 600 }}>{fmtGBP(actualSessionRate * sessionsClaimedMonth)}</span>
                         </div>
                         {hoursModeIncludesOnCosts && (
