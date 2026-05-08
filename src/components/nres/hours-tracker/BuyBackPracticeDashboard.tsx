@@ -1118,87 +1118,139 @@ function InlineClaimPanel({
                   </div>
 
                   {/* Allocation override toggle — non-locum, non-meeting, non-management.
-                      Lets the user re-cast WTE ↔ Hours/wk for this claim only. */}
+                      Lets the user re-cast WTE ↔ Hours/wk ↔ Sessions/wk for this claim only. */}
                   {!isLocum && !isMeeting && !isManagement && staffMember.staff_role !== 'NRES Management' && (
-                    (staffMember.allocation_type === 'wte' || staffMember.allocation_type === 'hours') && (
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-                        padding: '8px 12px', marginBottom: 10,
-                        background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7,
-                      }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Claim as</span>
-                        <div style={{ display: 'inline-flex', borderRadius: 6, overflow: 'hidden', border: '1px solid #bfdbfe' }}>
-                          {(['wte', 'hours'] as const).map(t => {
-                            const active = (overrideAllocType ?? staffMember.allocation_type) === t;
-                            return (
-                              <button
-                                key={t}
-                                onClick={() => {
-                                  // Convert current value into the new unit
-                                  const currentType = overrideAllocType ?? staffMember.allocation_type;
-                                  const currentVal = overrideAllocValue;
-                                  let newVal = currentVal;
-                                  if (currentType !== t) {
-                                    if (t === 'hours') newVal = +(currentVal * 37.5).toFixed(2);
-                                    else newVal = +(currentVal / 37.5).toFixed(4);
-                                  }
-                                  const cap = t === 'wte' ? 1 : 37.5;
-                                  if (newVal > cap) newVal = cap;
-                                  setOverrideAllocType(t);
-                                  setOverrideAllocValue(newVal);
-                                }}
-                                style={{
-                                  padding: '4px 10px', fontSize: 11, fontWeight: 600,
-                                  background: active ? '#1e40af' : '#fff',
-                                  color: active ? '#fff' : '#1e40af',
-                                  border: 'none', cursor: 'pointer',
-                                }}
-                              >
-                                {t === 'wte' ? 'WTE' : 'Hours/wk'}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <input
-                          type="number"
-                          min={0}
-                          max={(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 1 : 37.5}
-                          step={(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 0.01 : 0.5}
-                          value={overrideAllocValue}
-                          onChange={e => {
-                            const raw = Number(e.target.value);
-                            const t = overrideAllocType ?? staffMember.allocation_type;
-                            const cap = t === 'wte' ? 1 : 37.5;
-                            const v = Math.max(0, Math.min(raw, cap));
-                            setOverrideAllocType(t as 'wte' | 'hours');
-                            setOverrideAllocValue(v);
-                          }}
-                          style={{
-                            width: 80, padding: '5px 8px', borderRadius: 6,
-                            border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600,
-                            textAlign: 'right', outline: 'none', background: '#fff',
-                          }}
-                        />
-                        <span style={{ fontSize: 11, color: '#1e40af' }}>
-                          {(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 'Max 1.0 WTE' : 'Max 37.5 hrs/wk'}
-                        </span>
-                        {overrideAllocType && (
-                          <button
-                            onClick={() => {
-                              setOverrideAllocType(null);
-                              setOverrideAllocValue(staffMember.allocation_value || 0);
+                    (staffMember.allocation_type === 'wte' || staffMember.allocation_type === 'hours' || staffMember.allocation_type === 'sessions') && (() => {
+                      const currentType = (overrideAllocType ?? staffMember.allocation_type) as 'wte' | 'hours' | 'sessions';
+                      const showSessions = hoursModeIsSessionPriced;
+                      const allTypes: Array<'wte' | 'hours' | 'sessions'> = showSessions
+                        ? ['wte', 'hours', 'sessions']
+                        : ['wte', 'hours'];
+                      const cap = currentType === 'wte' ? 1 : currentType === 'hours' ? 37.5 : 9;
+                      const unitLabel = currentType === 'wte' ? 'Max 1.0 WTE' : currentType === 'hours' ? 'Max 37.5 hrs/wk' : 'Max 9 sess/wk';
+                      // hrs <-> sessions <-> wte conversions
+                      const toWte = (v: number, from: 'wte' | 'hours' | 'sessions') => from === 'wte' ? v : from === 'hours' ? v / 37.5 : v / 9;
+                      const fromWte = (v: number, to: 'wte' | 'hours' | 'sessions') => to === 'wte' ? v : to === 'hours' ? v * 37.5 : v * 9;
+                      // Monthly equivalents (for the link)
+                      const monthlyHrs = currentType === 'hours'
+                        ? overrideAllocValue * hoursModeWorkingWeeks
+                        : currentType === 'sessions'
+                          ? overrideAllocValue * HOURS_PER_SESSION * hoursModeWorkingWeeks
+                          : 0;
+                      const monthlySess = currentType === 'sessions'
+                        ? overrideAllocValue * hoursModeWorkingWeeks
+                        : currentType === 'hours'
+                          ? (overrideAllocValue / HOURS_PER_SESSION) * hoursModeWorkingWeeks
+                          : 0;
+                      return (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                          padding: '8px 12px', marginBottom: 10,
+                          background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7,
+                        }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Claim as</span>
+                          <div style={{ display: 'inline-flex', borderRadius: 6, overflow: 'hidden', border: '1px solid #bfdbfe' }}>
+                            {allTypes.map(t => {
+                              const active = currentType === t;
+                              return (
+                                <button
+                                  key={t}
+                                  onClick={() => {
+                                    if (currentType === t) return;
+                                    const wteEquiv = toWte(overrideAllocValue, currentType);
+                                    let newVal = +fromWte(wteEquiv, t).toFixed(t === 'wte' ? 4 : 2);
+                                    const newCap = t === 'wte' ? 1 : t === 'hours' ? 37.5 : 9;
+                                    if (newVal > newCap) newVal = newCap;
+                                    setOverrideAllocType(t);
+                                    setOverrideAllocValue(newVal);
+                                  }}
+                                  style={{
+                                    padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                                    background: active ? '#1e40af' : '#fff',
+                                    color: active ? '#fff' : '#1e40af',
+                                    border: 'none', cursor: 'pointer',
+                                  }}
+                                >
+                                  {t === 'wte' ? 'WTE' : t === 'hours' ? 'Hours/wk' : 'Sessions/wk'}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            max={cap}
+                            step={currentType === 'wte' ? 0.01 : currentType === 'sessions' ? 0.1 : 0.5}
+                            value={overrideAllocValue}
+                            onChange={e => {
+                              const raw = Number(e.target.value);
+                              const v = Math.max(0, Math.min(raw, cap));
+                              setOverrideAllocType(currentType);
+                              setOverrideAllocValue(v);
                             }}
                             style={{
-                              marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
-                              border: '1px solid #bfdbfe', background: '#fff', color: '#1e40af',
-                              fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                              width: 80, padding: '5px 8px', borderRadius: 6,
+                              border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600,
+                              textAlign: 'right', outline: 'none', background: '#fff',
                             }}
-                          >
-                            Reset to {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
-                          </button>
-                        )}
-                      </div>
-                    )
+                          />
+                          <span style={{ fontSize: 11, color: '#1e40af' }}>{unitLabel}</span>
+
+                          {/* Total monthly quick links — visible for hours / sessions modes */}
+                          {showSessions && (currentType === 'hours' || currentType === 'sessions') && (
+                            <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center', marginLeft: 4 }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById('hours-mode-month-input');
+                                  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); (el as HTMLInputElement).focus(); }
+                                }}
+                                style={{
+                                  background: 'transparent', border: 'none', padding: 0,
+                                  color: '#1e40af', textDecoration: 'underline', cursor: 'pointer',
+                                  fontSize: 11, fontWeight: 600,
+                                }}
+                                title="Jump to monthly hours input"
+                              >
+                                Total monthly: {monthlyHrs.toFixed(2)} hrs
+                              </button>
+                              <span style={{ fontSize: 11, color: '#9ca3af' }}>·</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById('sessions-mode-month-input');
+                                  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); (el as HTMLInputElement).focus(); }
+                                }}
+                                style={{
+                                  background: 'transparent', border: 'none', padding: 0,
+                                  color: '#1e40af', textDecoration: 'underline', cursor: 'pointer',
+                                  fontSize: 11, fontWeight: 600,
+                                }}
+                                title="Jump to monthly sessions input"
+                              >
+                                Total monthly: {monthlySess.toFixed(2)} sess
+                              </button>
+                            </div>
+                          )}
+
+                          {overrideAllocType && (
+                            <button
+                              onClick={() => {
+                                setOverrideAllocType(null);
+                                setOverrideAllocValue(staffMember.allocation_value || 0);
+                              }}
+                              style={{
+                                marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
+                                border: '1px solid #bfdbfe', background: '#fff', color: '#1e40af',
+                                fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                              }}
+                            >
+                              Reset to {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()
                   )}
 
                   {/* Management breakdown (existing rich rows) */}
