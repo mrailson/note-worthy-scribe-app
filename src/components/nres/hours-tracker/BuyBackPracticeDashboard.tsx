@@ -3535,6 +3535,7 @@ export function StaffRosterSection({
                           onRemoveStaff={onRemoveStaff}
                           onUpdateStaff={onUpdateStaff}
                           staffRoles={staffRoles}
+                          claimCount={rowCells.filter(rc => rc.claim).length}
                         />
                       </td>
                     </tr>
