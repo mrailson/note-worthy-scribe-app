@@ -3375,6 +3375,7 @@ export function StaffRosterSection({
                           onDeleteClaim={onDeleteClaim}
                           onSubmit={onSubmit}
                           onResubmit={onResubmit}
+                          onUpdateClaimNotes={onUpdateClaimNotes}
                           confirmDeclaration={confirmDeclaration}
                           onClose={() => onClickClaim('')}
                           saving={saving}
