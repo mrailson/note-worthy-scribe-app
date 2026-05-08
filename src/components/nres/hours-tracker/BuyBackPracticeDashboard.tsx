@@ -670,10 +670,32 @@ function InlineClaimPanel({
     }
   };
 
+  // Effective max reclaimable for this claim (used to validate the over-max actual cost)
+  const effectiveMaxReclaimable = isLocum
+    ? locumMaxAmount
+    : isMeeting
+      ? meetingMaxAmount
+      : calculatedAmount;
+
+  /** Build the over-max extras payload — only persist if strictly above max. */
+  const buildOverspendExtras = (): { actual_cost_incurred: number | null; actual_cost_notes: string | null } => {
+    const raw = parseFloat(actualCostIncurred);
+    const valid = Number.isFinite(raw) && raw > 0;
+    const overMax = valid && effectiveMaxReclaimable > 0 && raw > effectiveMaxReclaimable + 0.005;
+    return {
+      actual_cost_incurred: overMax ? Math.round(raw * 100) / 100 : null,
+      actual_cost_notes: overMax ? (actualCostNotes.trim() || null) : null,
+    };
+  };
+
   const handleSubmit = async () => {
     if (!localClaim || !onSubmit) return;
     if (confirmDeclaration) {
       await confirmDeclaration(localClaim.id, true);
+    }
+    // Persist over-max actual cost (if any) before submission
+    if (onUpdateClaimNotes) {
+      try { await (onUpdateClaimNotes as any)(localClaim.id, practiceNotes.trim(), buildOverspendExtras()); } catch {}
     }
     onSubmit(localClaim.id, practiceNotes.trim() || undefined);
   };
@@ -684,7 +706,7 @@ function InlineClaimPanel({
     if (!localClaim || !onUpdateClaimNotes || savingDraft) return;
     setSavingDraft(true);
     try {
-      await onUpdateClaimNotes(localClaim.id, practiceNotes.trim());
+      await (onUpdateClaimNotes as any)(localClaim.id, practiceNotes.trim(), buildOverspendExtras());
       setDraftSavedAt(Date.now());
     } finally {
       setSavingDraft(false);
