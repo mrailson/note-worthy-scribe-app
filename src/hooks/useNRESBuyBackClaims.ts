@@ -649,23 +649,37 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     }
   };
 
-  /** Update invoice-facing claim description / practice notes */
-  const updateClaimNotes = async (claimId: string, notes: string) => {
+  /** Update invoice-facing claim description / practice notes (and optional over-max actual-cost capture) */
+  const updateClaimNotes = async (
+    claimId: string,
+    notes: string,
+    extras?: { actual_cost_incurred?: number | null; actual_cost_notes?: string | null }
+  ) => {
     if (!user?.id) return;
     try {
       const cleanNotes = notes.trim().slice(0, 1500);
+      const payload: any = { practice_notes: cleanNotes || null };
+      if (extras) {
+        if (extras.actual_cost_incurred === null || typeof extras.actual_cost_incurred === 'number') {
+          payload.actual_cost_incurred = extras.actual_cost_incurred ?? null;
+        }
+        if (extras.actual_cost_notes === null || typeof extras.actual_cost_notes === 'string') {
+          const cleanCostNotes = (extras.actual_cost_notes || '').trim().slice(0, 1000);
+          payload.actual_cost_notes = cleanCostNotes || null;
+        }
+      }
       const { data, error } = await supabase
         .from('nres_buyback_claims')
-        .update({ practice_notes: cleanNotes || null } as any)
+        .update(payload)
         .eq('id', claimId)
         .select()
         .single();
       if (error) throw error;
       setClaims(prev => prev.map(c => c.id === claimId ? (data as BuyBackClaim) : c));
-      toast.success('Invoice description saved');
+      toast.success('Draft saved');
     } catch (error) {
       console.error('Error updating claim notes:', error);
-      toast.error('Failed to save invoice description');
+      toast.error('Failed to save draft');
     }
   };
 
