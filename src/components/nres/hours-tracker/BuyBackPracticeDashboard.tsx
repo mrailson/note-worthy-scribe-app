@@ -540,7 +540,6 @@ function InlineClaimPanel({
   const hoursMode =
     !isLocum && !isMeeting && !isManagement &&
     effectiveStaff.allocation_type === 'hours' &&
-    hoursModeIsSessionPriced &&
     hoursModeAnnualRate > 0;
   const sessionsMode =
     !isLocum && !isMeeting && !isManagement &&
@@ -549,7 +548,11 @@ function InlineClaimPanel({
     hoursModeAnnualRate > 0;
   const hoursModeIncludesOnCosts = hoursModeRoleConfig?.includes_on_costs !== false;
   const hoursModeOnCostMult = hoursModeIncludesOnCosts ? (rateParams?.onCostMultiplier ?? 1) : 1;
-  const hoursModeMaxStaffHourly = hoursModeAnnualRate / (52 * HOURS_PER_SESSION);
+  // £/hr staff rate cap. Session-priced GPs: annualRate is per-session, so /yr ÷ (52 × 4h10m).
+  // All other roles: annualRate is per 1.0 WTE, so /yr ÷ (52 × 37.5).
+  const hoursModeMaxStaffHourly = hoursModeIsSessionPriced
+    ? hoursModeAnnualRate / (52 * HOURS_PER_SESSION)
+    : hoursModeAnnualRate / (52 * 37.5);
 
   // Auto-seed override to hours/wk for WTE-allocated session-priced GPs so the
   // breakdown panel becomes available without forcing the user to toggle.
