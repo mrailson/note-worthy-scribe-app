@@ -1264,8 +1264,109 @@ function InlineClaimPanel({
                     </div>
                   )}
 
-                  {/* Actual claimed amount input — for all non-management categories */}
-                  {staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management' && calculatedAmount > 0 && (
+                  {/* Hours-mode panel — sessional GP claimed by hrs/wk */}
+                  {hoursMode && calculatedAmount > 0 && (
+                    <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 10 }}>
+                        Hours-based claim breakdown
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                        <div>
+                          <label style={{ fontSize: 11, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+                            Hours claimed this month
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.25"
+                              value={hoursClaimedMonth}
+                              onChange={e => {
+                                const v = Math.max(0, Math.round(Number(e.target.value) * 100) / 100);
+                                setHoursClaimedMonth(v);
+                              }}
+                              style={{
+                                width: 110, padding: '7px 10px', borderRadius: 7,
+                                border: `1px solid ${catAccentColor}60`,
+                                fontSize: 15, fontWeight: 600, textAlign: 'right',
+                                outline: 'none', fontVariantNumeric: 'tabular-nums',
+                              }}
+                            />
+                            <span style={{ fontSize: 12, color: '#6b7280' }}>hrs</span>
+                          </div>
+                          <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
+                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeWorkingWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs
+                          </p>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: 11, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+                            Actual hourly rate paid (gross, excl. on-costs)
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>£</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max={hoursModeMaxStaffHourly}
+                              step="0.01"
+                              value={actualHourlyRate}
+                              onChange={e => {
+                                const raw = Number(e.target.value);
+                                const capped = Math.min(raw, hoursModeMaxStaffHourly);
+                                setActualHourlyRate(Math.max(0, Math.round(capped * 100) / 100));
+                              }}
+                              style={{
+                                width: 110, padding: '7px 10px', borderRadius: 7,
+                                border: `1px solid ${catAccentColor}60`,
+                                fontSize: 15, fontWeight: 600, textAlign: 'right',
+                                outline: 'none', fontVariantNumeric: 'tabular-nums',
+                              }}
+                            />
+                            <span style={{ fontSize: 12, color: '#6b7280' }}>/hr</span>
+                          </div>
+                          <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
+                            Max funded: £{hoursModeMaxStaffHourly.toFixed(2)}/hr staff rate for {effectiveStaff.staff_role}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                          <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs × £{actualHourlyRate.toFixed(2)}/hr)</span>
+                          <span style={{ fontWeight: 600 }}>{fmtGBP(actualHourlyRate * hoursClaimedMonth)}</span>
+                        </div>
+                        {hoursModeIncludesOnCosts && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                            <span style={{ color: '#6b7280' }}>+ Employer on-costs (× {hoursModeOnCostMult.toFixed(4)})</span>
+                            <span style={{ fontWeight: 600 }}>{fmtGBP(actualHourlyRate * hoursClaimedMonth * (hoursModeOnCostMult - 1))}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 0', marginTop: 4, borderTop: `1px solid ${catAccentColor}20` }}>
+                          <span style={{ color: '#374151', fontWeight: 600 }}>Amount to claim this month</span>
+                          <span style={{ fontWeight: 700, color: catAccentColor, fontSize: 13 }}>{fmtGBP(standardClaimedAmount)}</span>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const uncapped = Math.round(actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                        const capped = uncapped > calculatedAmount;
+                        return capped ? (
+                          <p style={{ fontSize: 11, color: '#b45309', margin: 0 }}>
+                            Capped at the monthly maximum of {fmtGBP(calculatedAmount)} (equivalent to £{hoursModeMaxStaffHourly.toFixed(2)}/hr staff rate × {hoursClaimedMonth.toFixed(2)} hrs incl. on-costs).
+                          </p>
+                        ) : (
+                          <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
+                            Auto-calculated from hours × hourly rate × on-costs. Maximum claimable this month is {fmtGBP(calculatedAmount)}.
+                          </p>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Actual claimed amount input — for all non-management categories (hidden in hours-mode) */}
+                  {!hoursMode && staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management' && calculatedAmount > 0 && (
                     <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Amount to claim this month</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' as const }}>
