@@ -107,8 +107,8 @@ export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPra
   },
   towcester: {
     bankName: '',
-    sortCode: '',
-    accountNumber: '',
+    sortCode: '16-25-27',
+    accountNumber: '10115027',
     accountName: 'Towcester Medical Centre',
   },
   brook: {
