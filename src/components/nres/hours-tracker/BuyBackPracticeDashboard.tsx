@@ -1495,51 +1495,70 @@ function InlineClaimPanel({
                     );
                   })() : calcBreakdownData ? (
                     /* SDA / Buy-Back breakdown */
-                    <div style={{ marginBottom: 12 }}>
-                      {/* Primary formula row */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, fontSize: 12, marginBottom: 8 }}>
-                        {calcBreakdownData.primary.map((item, i) => (
-                          item.label ? (
-                            <span key={i} style={{
-                              fontWeight: item.result ? 700 : item.accent ? 700 : 400,
-                              color: item.result ? '#111827' : item.accent ? catAccentColor : '#9ca3af',
-                              borderLeft: item.result ? `2px solid ${catAccentColor}` : 'none',
-                              paddingLeft: item.result ? 7 : 0,
-                              fontSize: item.result ? 13 : 12,
-                            }}>{item.label}</span>
-                          ) : null
-                        ))}
-                      </div>
-                      {/* On-costs breakdown box (collapsed by default) */}
-                      {calcBreakdownData.breakdown && (
-                        <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 8, padding: '6px 12px', fontSize: 11 }}>
-                          <button
-                            type="button"
-                            onClick={() => setAnnualBreakdownExpanded(v => !v)}
-                            style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-                              background: 'transparent', border: 'none', padding: '4px 0', cursor: 'pointer',
-                              color: catAccentColor, fontWeight: 600, fontSize: 11,
-                            }}
-                            aria-expanded={annualBreakdownExpanded}
-                          >
-                            <span>{annualBreakdownExpanded ? '▾' : '▸'} Base annual rate breakdown</span>
-                            <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 10 }}>
-                              {annualBreakdownExpanded ? 'Hide' : 'Show details'}
-                            </span>
-                          </button>
-                          {annualBreakdownExpanded && calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
-                            <div key={i} style={{
-                              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                              padding: '2px 0',
-                              borderTop: row.bold ? `1px solid ${catAccentColor}20` : 'none',
-                              marginTop: row.bold ? 4 : 0,
-                              paddingTop: row.bold ? 5 : 2,
-                            }}>
-                              <span style={{ color: '#6b7280' }}>{row.l}</span>
-                              <span style={{ fontWeight: row.bold ? 700 : 500, color: row.bold ? catAccentColor : '#374151', fontSize: row.large ? 13 : 11 }}>{row.r}</span>
+                    <div style={{ marginBottom: 12, background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, padding: '8px 12px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setCalcPanelExpanded(v => !v)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                          background: 'transparent', border: 'none', padding: '2px 0', cursor: 'pointer',
+                          color: '#047857', fontWeight: 700, fontSize: 12,
+                        }}
+                        aria-expanded={calcPanelExpanded}
+                      >
+                        <span>{calcPanelExpanded ? '▾' : '▸'} Calculation breakdown</span>
+                        <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 10 }}>
+                          {calcPanelExpanded ? 'Hide' : 'Show'}
+                        </span>
+                      </button>
+                      {calcPanelExpanded && (
+                        <div style={{ marginTop: 8 }}>
+                          {/* Primary formula row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' as const, fontSize: 12, marginBottom: 8 }}>
+                            {calcBreakdownData.primary.map((item, i) => (
+                              item.label ? (
+                                <span key={i} style={{
+                                  fontWeight: item.result ? 700 : item.accent ? 700 : 400,
+                                  color: item.result ? '#111827' : item.accent ? catAccentColor : '#9ca3af',
+                                  borderLeft: item.result ? `2px solid ${catAccentColor}` : 'none',
+                                  paddingLeft: item.result ? 7 : 0,
+                                  fontSize: item.result ? 13 : 12,
+                                }}>{item.label}</span>
+                              ) : null
+                            ))}
+                          </div>
+                          {/* On-costs breakdown box (collapsed by default) */}
+                          {calcBreakdownData.breakdown && (
+                            <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 8, padding: '6px 12px', fontSize: 11 }}>
+                              <button
+                                type="button"
+                                onClick={() => setAnnualBreakdownExpanded(v => !v)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                                  background: 'transparent', border: 'none', padding: '4px 0', cursor: 'pointer',
+                                  color: catAccentColor, fontWeight: 600, fontSize: 11,
+                                }}
+                                aria-expanded={annualBreakdownExpanded}
+                              >
+                                <span>{annualBreakdownExpanded ? '▾' : '▸'} Base annual rate breakdown</span>
+                                <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 10 }}>
+                                  {annualBreakdownExpanded ? 'Hide' : 'Show details'}
+                                </span>
+                              </button>
+                              {annualBreakdownExpanded && calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
+                                <div key={i} style={{
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                                  padding: '2px 0',
+                                  borderTop: row.bold ? `1px solid ${catAccentColor}20` : 'none',
+                                  marginTop: row.bold ? 4 : 0,
+                                  paddingTop: row.bold ? 5 : 2,
+                                }}>
+                                  <span style={{ color: '#6b7280' }}>{row.l}</span>
+                                  <span style={{ fontWeight: row.bold ? 700 : 500, color: row.bold ? catAccentColor : '#374151', fontSize: row.large ? 13 : 11 }}>{row.r}</span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
                       )}
                     </div>
