@@ -438,6 +438,9 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           // Optional hours-mode metadata (sessional GP claimed by hrs/wk)
           claimed_hours_in_month: (s as any).claimed_hours_in_month ?? undefined,
           actual_hourly_rate_gross: (s as any).actual_hourly_rate_gross ?? undefined,
+          // Optional sessions-mode metadata (sessional GP claimed by sess/wk)
+          claimed_sessions_in_month: (s as any).claimed_sessions_in_month ?? undefined,
+          actual_session_rate_gross: (s as any).actual_session_rate_gross ?? undefined,
         };
       });
 
