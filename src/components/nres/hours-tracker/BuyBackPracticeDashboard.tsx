@@ -594,7 +594,7 @@ function InlineClaimPanel({
       const capped = Math.min(derived, calculatedAmount);
       setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
     }
-  }, [hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
+  }, [amountManuallyEdited, hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
 
   const handleCreateDraft = async () => {
     if (!onCreateClaim || creating) return;
