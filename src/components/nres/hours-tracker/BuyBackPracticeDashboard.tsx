@@ -480,10 +480,13 @@ function InlineClaimPanel({
   // / 37.5 hrs/wk for non-locum claims.
   const [overrideAllocType, setOverrideAllocType] = useState<'wte' | 'hours' | 'sessions' | null>(null);
   const [overrideAllocValue, setOverrideAllocValue] = useState<number>(staffMember.allocation_value || 0);
+  // Period toggle for the claim panel: weekly vs monthly figure entry
+  const [claimPeriod, setClaimPeriod] = useState<'weekly' | 'monthly'>('weekly');
   // Reset override when underlying staff record changes
   useEffect(() => {
     setOverrideAllocType(null);
     setOverrideAllocValue(staffMember.allocation_value || 0);
+    setClaimPeriod('weekly');
   }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value]);
 
   const effectiveStaff = useMemo(() => {
