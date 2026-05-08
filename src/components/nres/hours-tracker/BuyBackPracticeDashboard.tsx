@@ -2995,7 +2995,7 @@ function EvidenceTooltip({ accent, title, category }: { accent: string; title: s
 export function StaffRosterSection({
   title, category, staffList, claims, claimMonths, onClickClaim, activeClaimKey,
   onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, showAddButton, rateParams,
-  onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit,
+  onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit, onUpdateClaimNotes,
   confirmDeclaration, practiceKey, saving,
   meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries, canAddOnBehalf, managementRoles,
 }: {
@@ -3010,6 +3010,7 @@ export function StaffRosterSection({
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string, practiceNotes?: string) => void; onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   practiceKey?: string; saving?: boolean;
   meetingLogEntries?: MeetingLogEntry[];
