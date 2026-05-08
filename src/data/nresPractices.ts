@@ -95,8 +95,8 @@ export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPra
   },
   brackley: {
     bankName: '',
-    sortCode: '',
-    accountNumber: '',
+    sortCode: '30-11-08',
+    accountNumber: '00336111',
     accountName: 'Brackley Medical Centre',
   },
   springfield: {
