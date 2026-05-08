@@ -304,7 +304,7 @@ export default function AdminAgewellResponses() {
                       </Badge>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{YN_LABEL[r.would_recommend || ""] || "—"}</td>
-                    <td className="px-3 py-2 max-w-md text-muted-foreground">{truncated || "—"}</td>
+                    <td className="px-3 py-2 max-w-md text-muted-foreground" title={c || undefined}>{truncated || "—"}</td>
                   </tr>
                 );
               })}
