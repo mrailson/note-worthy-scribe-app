@@ -6430,6 +6430,235 @@ export type Database = {
         }
         Relationships: []
       }
+      mandatory_read_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          assignment_id: string
+          email: string
+          id: string
+          ip: string | null
+          mandatory_read_id: string
+          typed_name: string
+          user_agent: string | null
+          user_id: string | null
+          version_at_ack: number
+          version_hash: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          assignment_id: string
+          email: string
+          id?: string
+          ip?: string | null
+          mandatory_read_id: string
+          typed_name: string
+          user_agent?: string | null
+          user_id?: string | null
+          version_at_ack: number
+          version_hash: string
+        }
+        Update: {
+          acknowledged_at?: string
+          assignment_id?: string
+          email?: string
+          id?: string
+          ip?: string | null
+          mandatory_read_id?: string
+          typed_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+          version_at_ack?: number
+          version_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandatory_read_acknowledgements_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_read_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mandatory_read_acknowledgements_mandatory_read_id_fkey"
+            columns: ["mandatory_read_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_reads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mandatory_read_assignments: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          due_at: string
+          email: string
+          full_name: string
+          id: string
+          last_reminder_at: string | null
+          magic_token_expires_at: string | null
+          magic_token_hash: string | null
+          mandatory_read_id: string
+          next_reminder_at: string | null
+          paused: boolean
+          practice_id: string | null
+          reminder_count: number
+          role_snapshot: string | null
+          status: Database["public"]["Enums"]["mandatory_read_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          due_at: string
+          email: string
+          full_name: string
+          id?: string
+          last_reminder_at?: string | null
+          magic_token_expires_at?: string | null
+          magic_token_hash?: string | null
+          mandatory_read_id: string
+          next_reminder_at?: string | null
+          paused?: boolean
+          practice_id?: string | null
+          reminder_count?: number
+          role_snapshot?: string | null
+          status?: Database["public"]["Enums"]["mandatory_read_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          due_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          last_reminder_at?: string | null
+          magic_token_expires_at?: string | null
+          magic_token_hash?: string | null
+          mandatory_read_id?: string
+          next_reminder_at?: string | null
+          paused?: boolean
+          practice_id?: string | null
+          reminder_count?: number
+          role_snapshot?: string | null
+          status?: Database["public"]["Enums"]["mandatory_read_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandatory_read_assignments_mandatory_read_id_fkey"
+            columns: ["mandatory_read_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_reads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mandatory_read_reminder_log: {
+        Row: {
+          assignment_id: string
+          error: string | null
+          id: string
+          kind: string
+          message_id: string | null
+          sent_at: string
+        }
+        Insert: {
+          assignment_id: string
+          error?: string | null
+          id?: string
+          kind: string
+          message_id?: string | null
+          sent_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          message_id?: string | null
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandatory_read_reminder_log_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "mandatory_read_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mandatory_reads: {
+        Row: {
+          archived: boolean
+          body_html: string | null
+          body_storage_path: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_days: number
+          effective_date: string
+          id: string
+          paused: boolean
+          practice_id: string | null
+          reminder_schedule: Json
+          reread_interval_months: number | null
+          source_ref: string | null
+          source_type: Database["public"]["Enums"]["mandatory_read_source_type"]
+          title: string
+          updated_at: string
+          version: number
+          version_hash: string
+        }
+        Insert: {
+          archived?: boolean
+          body_html?: string | null
+          body_storage_path?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_days?: number
+          effective_date?: string
+          id?: string
+          paused?: boolean
+          practice_id?: string | null
+          reminder_schedule?: Json
+          reread_interval_months?: number | null
+          source_ref?: string | null
+          source_type?: Database["public"]["Enums"]["mandatory_read_source_type"]
+          title: string
+          updated_at?: string
+          version?: number
+          version_hash: string
+        }
+        Update: {
+          archived?: boolean
+          body_html?: string | null
+          body_storage_path?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_days?: number
+          effective_date?: string
+          id?: string
+          paused?: boolean
+          practice_id?: string | null
+          reminder_schedule?: Json
+          reread_interval_months?: number | null
+          source_ref?: string | null
+          source_type?: Database["public"]["Enums"]["mandatory_read_source_type"]
+          title?: string
+          updated_at?: string
+          version?: number
+          version_hash?: string
+        }
+        Relationships: []
+      }
       manual_translation_entries: {
         Row: {
           created_at: string
@@ -15748,6 +15977,7 @@ export type Database = {
         }
         Returns: string
       }
+      mark_mandatory_read_overdue: { Args: never; Returns: undefined }
       mark_session_inactive: {
         Args: { p_session_id?: string; p_user_id: string }
         Returns: undefined
@@ -15935,6 +16165,12 @@ export type Database = {
         | "closed"
         | "escalated"
       file_type: "folder" | "file"
+      mandatory_read_source_type: "vault_policy" | "upload" | "pasted_text"
+      mandatory_read_status:
+        | "outstanding"
+        | "acknowledged"
+        | "overdue"
+        | "paused"
       permission_action: "view" | "edit" | "delete" | "share" | "upload"
       permission_level: "owner" | "editor" | "viewer" | "no_access"
       policy_access_level: "none" | "read" | "edit"
@@ -16173,6 +16409,13 @@ export const Constants = {
         "escalated",
       ],
       file_type: ["folder", "file"],
+      mandatory_read_source_type: ["vault_policy", "upload", "pasted_text"],
+      mandatory_read_status: [
+        "outstanding",
+        "acknowledged",
+        "overdue",
+        "paused",
+      ],
       permission_action: ["view", "edit", "delete", "share", "upload"],
       permission_level: ["owner", "editor", "viewer", "no_access"],
       policy_access_level: ["none", "read", "edit"],
