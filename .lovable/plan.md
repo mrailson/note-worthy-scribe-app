@@ -1,53 +1,66 @@
 ## Goal
-When a sessional GP claim is recast to **Hours/wk** in the Create-Draft panel, present the entire calculation in hours and let the practice enter an **Actual Hourly Rate Paid** (pre on-costs) plus an editable total hours figure. The "Amount to claim this month" then auto-derives from those two inputs and is capped at the equivalent maximum staff hourly rate held in the system for that role.
+Add a third **Sessions/wk** option to the "Claim as" toggle in the SDA Claims Create-Draft panel, with the breakdown panel re-labelling itself for sessions when chosen. Also surface a quick "Total monthly" link in the top toggle row that jumps to / mirrors the corresponding monthly figure in the breakdown.
 
-Only applies to session-priced GP roles (e.g. GP Over 2 Years CCT, GP Under 2 Years CCT, GP Retainer). Behaviour for WTE-claim mode and for non-session roles is unchanged.
+## Changes
 
-## What changes in the UI
+### 1. Extend the "Claim as" toggle — three options
+Toggle becomes: **WTE | Hours/wk | Sessions/wk** (sessions option only shown for session-priced GP roles to keep WTE-only roles uncluttered).
 
-Inside the Create-Draft panel (per-staff month modal in the SDA Claims tab), when `Claim as = Hours/wk` and the role is session-priced:
+Override state: `overrideAllocType: 'wte' | 'hours' | 'sessions' | null` (existing 'sessions' allocation_type is already supported by the calculator).
 
-1. **Formula line** is restated end-to-end in hours:
-   `X hrs/wk × W working wks = H hrs/month × £R/hr (incl. 1.2938 on-costs) = £Total`
+Conversion when switching units (1 session = 4 h 10 m = `HOURS_PER_SESSION` = 25/6):
+- WTE ↔ Hours: × / ÷ 37.5 (existing)
+- Hours ↔ Sessions: ÷ / × 4.1667
+- WTE ↔ Sessions: × / ÷ 9 (37.5 / 4.1667)
 
-2. **Breakdown panel** adds three new lines under "Total incl. on-costs":
-   - Staff hourly rate (excl. on-costs): **£55.39/hr** (= annual sessional cost ÷ annual hours)
-   - Employer on-costs per hour (29.38%): **£16.27/hr**
-   - Total hourly rate (incl. on-costs): **£71.66/hr**
-   All to 2 decimal places, dynamic.
+Caps:
+- WTE: 1.0
+- Hours: 37.5
+- Sessions: 9
 
-3. **New "Hours claimed this month" input** (editable number):
-   - Defaults to `weekly hours × working weeks in claim month` (using the existing `rateParams.workingWeeksInMonth`).
-   - User can adjust up or down; min 0, soft warning if above the default.
+Input label/units update accordingly ("Max 9 sess/wk").
 
-4. **New "Actual hourly rate paid (gross, before on-costs)" input** (editable £/hr):
-   - Defaults to the equivalent staff hourly rate (£55.39 in the example).
-   - Capped at that maximum — if the user types higher, clamp and show "Capped at £55.39/hr — this is the maximum staff hourly rate funded for {role}".
-   - 2-decimal formatting.
+### 2. Sessions-mode in the breakdown panel
+Rename the existing `hoursMode` block to a generic claim-mode panel that renders one of two variants:
 
-5. **"Amount to claim this month"** stops being free-text and becomes the live derived value:
-   `actualHourlyRate × hoursClaimedThisMonth × onCostMultiplier`
-   Read-only display, with a small note "Auto-calculated from hours and hourly rate". Maximum-claimable cap is unchanged (existing `calculatedAmount`), so any combination above the role's monthly cap is clamped down to the maximum.
+**Hours mode** (current behaviour, unchanged labelling):
+- "Hours claimed this month" + "Actual hourly rate paid (gross, excl. on-costs)"
+- Cap on hourly rate: `annualRate / (52 × HOURS_PER_SESSION)` (e.g. £55.38/hr).
 
-WTE mode and non-session-priced roles keep the current behaviour exactly.
+**Sessions mode** (new):
+- "Sessions claimed this month" + "Actual session rate paid (gross, excl. on-costs)"
+- Default monthly sessions = `sessionsPerWeek × workingWeeksInMonth`
+- Cap on session rate: `annualRate / 52` (e.g. £230.77/session for £12k/session/yr)
+- Derived amount = `actualSessionRate × sessionsClaimedMonth × onCostMultiplier`, capped at `calculatedAmount`
+- Breakdown lines:
+  - Staff cost (`N` sess × £R/sess) = £…
+  - + Employer on-costs (× 1.2938) = £…
+  - = Amount to claim this month
 
-## Persistence
-Store the two new inputs on the existing `staff_details` line in the claim so they round-trip and appear in admin/verifier views:
-- `claimed_hours_in_month` (number)
-- `actual_hourly_rate_gross` (number, pre on-costs)
+State: `sessionsClaimedMonth`, `actualSessionRate`. Reset effects mirror the hours-mode ones. The same `standardClaimedAmount`-sync effect handles both modes.
 
-These are passed through `onCreateClaim(...)` alongside the existing `amountToUse`. Verifier/admin read-only panels will display them as plain text under the existing breakdown — no editing.
+### 3. Top-section "Total monthly" link
+Add a small underlined link beside the weekly value input in the Claim-as row that always shows the live monthly equivalent:
+- Hours mode → "Total monthly: 36.50 hrs"
+- Sessions mode → "Total monthly: 8.69 sess"
+- WTE mode → hidden (monthly totals not used in the current panel below)
 
-## Out of scope
-- WTE claim mode (no change).
-- Non-session-priced roles (Practice Manager, salaried GP on WTE, etc.).
-- Locum / management / meeting categories (already use distinct flows).
-- Backfilling old claims — new fields are nullable; older claims simply omit them.
+Clicking the link scrolls the breakdown panel into view and focuses the matching monthly input. Useful as a fast jump from the top toggle to the editable monthly figure.
+
+### 4. Persistence
+Extend the staff-line snapshot in `useNRESBuyBackClaims.createClaim` with two more optional fields, alongside the existing `claimed_hours_in_month` / `actual_hourly_rate_gross`:
+- `claimed_sessions_in_month`
+- `actual_session_rate_gross`
+
+The Create Draft button attaches whichever pair is active.
+
+### Out of scope
+- Verifier / PML read-only views (will continue to display amount only; can add a follow-up to surface session metadata).
+- WTE-mode breakdown (no editable per-period inputs there — unchanged).
+- Non-session-priced roles do not get the Sessions/wk option.
 
 ## Technical notes
-- File: `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx` — extend `getCalcBreakdown()` for the hours/session-priced branch and add the two inputs into the panel near "Amount to claim this month".
-- Constants already in scope: `HOURS_PER_SESSION = 25/6`, `rateParams.onCostMultiplier`, `rateParams.workingWeeksInMonth`, `rateParams.getRoleAnnualRate`.
-- New state: `hoursClaimedMonth`, `actualHourlyRate`. Effect resets defaults whenever role / sessions / month / on-cost % change.
-- Derived `amountToUse = round2(actualHourlyRate × hoursClaimedMonth × onCostMultiplier)`, then `Math.min(amountToUse, calculatedAmount)`.
-- Migration: add nullable columns `claimed_hours_in_month numeric`, `actual_hourly_rate_gross numeric` to wherever the staff line JSON or table lives — needs confirmation that `staff_details` is JSONB (it is, based on existing `(claim.staff_details as any[])` usage), so **no DB migration required** — fields just live inside the JSONB blob.
-- Verifier/admin read-only display added to `BuyBackVerifierDashboard.tsx` and `BuyBackPMLDashboard.tsx` calc tooltip/breakdown sections so reviewers can see the rate the practice paid.
+- File: `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx` — extend toggle, generalise hours-mode block, add link, attach session metadata.
+- File: `src/hooks/useNRESBuyBackClaims.ts` — add the two new optional fields to the staff snapshot mapping.
+- Existing `getCalcBreakdown()` already handles `allocation_type === 'sessions'`, so the formula/breakdown box auto-recasts when the override switches to sessions — no change needed there.
+- `rateParams.workingWeeksInMonth` (or `rawWorkingWeeksInMonth`) supplies the month-week multiplier.
