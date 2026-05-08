@@ -1956,6 +1956,30 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
   const annualBase = baseSalary + onCostsValue;
   const fullMonthly = annualBase / 12;
 
+  // Sessional hourly equivalent: only meaningful for session-priced GP roles
+  let sessionalHourly: {
+    sessionsPerWeek: number;
+    hoursPerWeek: number;
+    annualHours: number;
+    staffHourlyRate: number;
+    onCostsPerHour: number;
+    totalHourlyRate: number;
+    onCostPct: number;
+  } | null = null;
+  if (isSessionPriced && (allocType === 'sessions' || allocType === 'hours')) {
+    const sessionsPerWeek = allocType === 'sessions' ? allocValue : allocValue / HOURS_PER_SESSION;
+    const hoursPerWeek = sessionsPerWeek * HOURS_PER_SESSION;
+    const annualHours = hoursPerWeek * 52;
+    const staffHourlyRate = annualHours > 0 ? baseSalary / annualHours : 0;
+    const onCostsPerHour = staffHourlyRate * (onCostRate);
+    const totalHourlyRate = staffHourlyRate + onCostsPerHour;
+    sessionalHourly = {
+      sessionsPerWeek, hoursPerWeek, annualHours,
+      staffHourlyRate, onCostsPerHour, totalHourlyRate,
+      onCostPct,
+    };
+  }
+
   let proRataInfo: { daysInMonth: number; workingDays: number; startDay: number; ratio: number } | null = null;
   let finalMonthly = fullMonthly;
 
