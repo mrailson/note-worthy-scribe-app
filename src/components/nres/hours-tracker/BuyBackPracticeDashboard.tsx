@@ -1201,7 +1201,6 @@ function InlineClaimPanel({
                       ? overrideAllocValue
                       : (currentUnit === 'hours' ? seededWeeklyHours : seededWeeklySess);
 
-                    const wkInMonth = hoursModeWorkingWeeks;
                     const fullMonthWeeks = 52 / 12;
                     const unitWeeklyCap = (unit: 'hours' | 'sessions') => unit === 'hours' ? 37.5 : 9;
                     const weeklyCap = unitWeeklyCap(currentUnit);
