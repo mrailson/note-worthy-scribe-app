@@ -1207,7 +1207,7 @@ function InlineClaimPanel({
                         )}
                       </div>
                       <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>
-                        Max claimable is {fmtGBP(locumMaxAmount)} — enter the actual locum invoice amount. You cannot claim above the ICB-approved maximum rate.
+                        Max claimable is {fmtGBP(locumMaxAmount)} — enter the actual locum invoice amount. You cannot claim above the maximum Locum rate.
                       </p>
                     </div>
                   </div>
