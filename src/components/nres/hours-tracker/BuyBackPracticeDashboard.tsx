@@ -1486,7 +1486,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>hrs</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs. Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month
+                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs (≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess). Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month (≈ {(9 * hoursModeFullMonthWeeks).toFixed(2)} sess)
                           </p>
                         </div>
 
@@ -1517,14 +1517,14 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>/hr</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Max funded: £{hoursModeMaxStaffHourly.toFixed(2)}/hr staff rate for {effectiveStaff.staff_role}
+                            Max funded: £{hoursModeMaxStaffHourly.toFixed(2)}/hr (≈ £{(hoursModeMaxStaffHourly * HOURS_PER_SESSION).toFixed(2)}/sess) staff rate for {effectiveStaff.staff_role}
                           </p>
                         </div>
                       </div>
 
                       <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                          <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs × £{actualHourlyRate.toFixed(2)}/hr)</span>
+                          <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs ≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess × £{actualHourlyRate.toFixed(2)}/hr)</span>
                           <span style={{ fontWeight: 600 }}>{fmtGBP(actualHourlyRate * hoursClaimedMonth)}</span>
                         </div>
                         {hoursModeIncludesOnCosts && (
@@ -1640,7 +1640,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>sess</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {sessionsModeWeekly} sess/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {sessionsModeDefaultMonthly.toFixed(2)} sess. Max {formatEditableNumber(9 * hoursModeFullMonthWeeks)} sess/month
+                            Default: {sessionsModeWeekly} sess/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {sessionsModeDefaultMonthly.toFixed(2)} sess (≈ {(sessionsClaimedMonth * HOURS_PER_SESSION).toFixed(2)} hrs). Max {formatEditableNumber(9 * hoursModeFullMonthWeeks)} sess/month (≈ {(9 * hoursModeFullMonthWeeks * HOURS_PER_SESSION).toFixed(2)} hrs)
                           </p>
                         </div>
 
@@ -1671,14 +1671,14 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>/sess</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Max funded: £{sessionsModeMaxStaffRate.toFixed(2)}/sess (4 h 10 m) for {effectiveStaff.staff_role}
+                            Max funded: £{sessionsModeMaxStaffRate.toFixed(2)}/sess (4 h 10 m, ≈ £{(sessionsModeMaxStaffRate / HOURS_PER_SESSION).toFixed(2)}/hr) for {effectiveStaff.staff_role}
                           </p>
                         </div>
                       </div>
 
                       <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11, marginBottom: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                          <span style={{ color: '#6b7280' }}>Staff cost ({sessionsClaimedMonth.toFixed(2)} sess × £{actualSessionRate.toFixed(2)}/sess)</span>
+                          <span style={{ color: '#6b7280' }}>Staff cost ({sessionsClaimedMonth.toFixed(2)} sess ≈ {(sessionsClaimedMonth * HOURS_PER_SESSION).toFixed(2)} hrs × £{actualSessionRate.toFixed(2)}/sess)</span>
                           <span style={{ fontWeight: 600 }}>{fmtGBP(actualSessionRate * sessionsClaimedMonth)}</span>
                         </div>
                         {hoursModeIncludesOnCosts && (
