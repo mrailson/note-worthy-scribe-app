@@ -2160,6 +2160,24 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <p className="text-muted-foreground font-medium mb-0.5">Base Salary</p>
                 <p className="text-foreground">{breakdown.baseLabel}</p>
                 <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
+                {breakdown.sessionalHourly && (
+                  <div className="mt-1.5 rounded border border-dashed border-muted-foreground/30 bg-muted/30 p-1.5">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">
+                      Equivalent hourly rate · {breakdown.sessionalHourly.sessionsPerWeek.toFixed(2)} sessions/wk × 4h 10m = {breakdown.sessionalHourly.hoursPerWeek.toFixed(2)} hrs/wk × 52 = {breakdown.sessionalHourly.annualHours.toFixed(2)} hrs/yr
+                    </p>
+                    <p className="text-foreground">
+                      <span className="font-semibold">£{breakdown.sessionalHourly.staffHourlyRate.toFixed(2)}/hr</span> staff rate
+                      <span className="text-muted-foreground"> (excl. employer on-costs)</span>
+                    </p>
+                    <p className="text-foreground">
+                      + <span className="font-semibold">£{breakdown.sessionalHourly.onCostsPerHour.toFixed(2)}/hr</span> employer on-costs ({breakdown.sessionalHourly.onCostPct.toFixed(2)}%)
+                    </p>
+                    <p className="font-semibold">
+                      = £{breakdown.sessionalHourly.totalHourlyRate.toFixed(2)}/hr total
+                      <span className="text-[10px] text-muted-foreground font-normal"> (incl. employer NI &amp; pension)</span>
+                    </p>
+                  </div>
+                )}
               </div>
               <Separator />
               {/* Step 2: On-costs — show differently based on includes_on_costs */}
