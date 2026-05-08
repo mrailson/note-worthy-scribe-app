@@ -435,6 +435,9 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
           calculated_amount: maxAmount,
           gl_code: glCode,
           gl_category: glCode ?? 'N/A',
+          // Optional hours-mode metadata (sessional GP claimed by hrs/wk)
+          claimed_hours_in_month: (s as any).claimed_hours_in_month ?? undefined,
+          actual_hourly_rate_gross: (s as any).actual_hourly_rate_gross ?? undefined,
         };
       });
 
