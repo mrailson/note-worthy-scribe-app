@@ -383,6 +383,12 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, id: responseId, email: "skipped" });
   }
 
+  const settings = await loadNotificationSettings();
+  if (settings.mode === "completed_only" && !isComplete) {
+    console.log(`${LOG} mode=completed_only and survey not complete — skipping email for id=${responseId}`);
+    return jsonResponse({ success: true, id: responseId, is_complete: isComplete, email: "skipped_incomplete" });
+  }
+
   const { subject, html, text } = buildEmail({
     practiceLabel: practice_label,
     branchSite: branch_site,
@@ -402,14 +408,14 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: FROM_EMAIL, to: TO_EMAILS, subject, html, text }),
+      body: JSON.stringify({ from: FROM_EMAIL, to: settings.recipients, subject, html, text }),
     });
     if (!resp.ok) {
       const errBody = await resp.text();
       console.error(`${LOG} Resend ${resp.status}: ${errBody}`);
       await logEmailFailure(responseId, `Resend ${resp.status}: ${errBody.slice(0, 800)}`, { conversationId, subject });
     } else {
-      console.log(`${LOG} email sent for id=${responseId} (complete=${isComplete})`);
+      console.log(`${LOG} email sent for id=${responseId} (complete=${isComplete}) to=${settings.recipients.join(",")}`);
     }
   } catch (e) {
     console.error(`${LOG} Resend exception:`, (e as Error).message);
