@@ -669,6 +669,19 @@ function InlineClaimPanel({
     onSubmit(localClaim.id, practiceNotes.trim() || undefined);
   };
 
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const handleSaveDraft = async () => {
+    if (!localClaim || !onUpdateClaimNotes || savingDraft) return;
+    setSavingDraft(true);
+    try {
+      await onUpdateClaimNotes(localClaim.id, practiceNotes.trim());
+      setDraftSavedAt(Date.now());
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
   const handleDeleteDraft = async (requireConfirm = false) => {
     if (!localClaim || !onDeleteClaim) return;
     if (requireConfirm) {
