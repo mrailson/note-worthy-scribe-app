@@ -478,7 +478,7 @@ function InlineClaimPanel({
   // Allocation override toggle (lets the user re-cast WTE ↔ hrs/wk in the
   // claim modal without altering the saved staff record). Capped at 1.0 WTE
   // / 37.5 hrs/wk for non-locum claims.
-  const [overrideAllocType, setOverrideAllocType] = useState<'wte' | 'hours' | null>(null);
+  const [overrideAllocType, setOverrideAllocType] = useState<'wte' | 'hours' | 'sessions' | null>(null);
   const [overrideAllocValue, setOverrideAllocValue] = useState<number>(staffMember.allocation_value || 0);
   // Reset override when underlying staff record changes
   useEffect(() => {
@@ -501,7 +501,7 @@ function InlineClaimPanel({
     setStandardClaimedAmount(Math.round(calculatedAmount * 100) / 100);
   }, [calculatedAmount]);
 
-  // ----- Hours-mode (session-priced GP claimed by hrs/wk) -----
+  // ----- Hours / Sessions mode (session-priced GP claimed by hrs/wk or sess/wk) -----
   const hoursModeRoleConfig = rateParams?.getRoleConfig?.(effectiveStaff.staff_role);
   const hoursModeAnnualRate = rateParams?.getRoleAnnualRate?.(effectiveStaff.staff_role) ?? 0;
   const hoursModeIsSessionPriced = isSessionPricedRole(effectiveStaff.staff_role, hoursModeRoleConfig, hoursModeAnnualRate);
@@ -510,22 +510,32 @@ function InlineClaimPanel({
     effectiveStaff.allocation_type === 'hours' &&
     hoursModeIsSessionPriced &&
     hoursModeAnnualRate > 0;
+  const sessionsMode =
+    !isLocum && !isMeeting && !isManagement &&
+    effectiveStaff.allocation_type === 'sessions' &&
+    hoursModeIsSessionPriced &&
+    hoursModeAnnualRate > 0;
   const hoursModeIncludesOnCosts = hoursModeRoleConfig?.includes_on_costs !== false;
   const hoursModeOnCostMult = hoursModeIncludesOnCosts ? (rateParams?.onCostMultiplier ?? 1) : 1;
   const hoursModeMaxStaffHourly = hoursModeAnnualRate / (52 * HOURS_PER_SESSION);
   const hoursModeMaxOnCostsHourly = hoursModeMaxStaffHourly * (hoursModeOnCostMult - 1);
   const hoursModeMaxTotalHourly = hoursModeMaxStaffHourly + hoursModeMaxOnCostsHourly;
-  const hoursModeWeeklyHours = effectiveStaff.allocation_value || 0;
+  const hoursModeWeeklyHours = hoursMode ? (effectiveStaff.allocation_value || 0) : 0;
   const hoursModeWorkingWeeks = rateParams?.rawWorkingWeeksInMonth ?? rateParams?.workingWeeksInMonth ?? (52 / 12);
   const hoursModeDefaultMonthlyHours = Math.round(hoursModeWeeklyHours * hoursModeWorkingWeeks * 100) / 100;
 
+  // Sessions mode equivalents
+  const sessionsModeMaxStaffRate = hoursModeAnnualRate / 52; // £ per session, gross
+  const sessionsModeWeekly = sessionsMode ? (effectiveStaff.allocation_value || 0) : 0;
+  const sessionsModeDefaultMonthly = Math.round(sessionsModeWeekly * hoursModeWorkingWeeks * 100) / 100;
+
   const [hoursClaimedMonth, setHoursClaimedMonth] = useState<number>(hoursModeDefaultMonthlyHours);
   const [actualHourlyRate, setActualHourlyRate] = useState<number>(Math.round(hoursModeMaxStaffHourly * 100) / 100);
+  const [sessionsClaimedMonth, setSessionsClaimedMonth] = useState<number>(sessionsModeDefaultMonthly);
+  const [actualSessionRate, setActualSessionRate] = useState<number>(Math.round(sessionsModeMaxStaffRate * 100) / 100);
 
-  // Reset hours-mode inputs whenever the underlying derivations change
-  useEffect(() => {
-    setHoursClaimedMonth(hoursModeDefaultMonthlyHours);
-  }, [hoursModeDefaultMonthlyHours]);
+  // Reset inputs whenever the underlying derivations change
+  useEffect(() => { setHoursClaimedMonth(hoursModeDefaultMonthlyHours); }, [hoursModeDefaultMonthlyHours]);
   useEffect(() => {
     setActualHourlyRate(prev => {
       const max = Math.round(hoursModeMaxStaffHourly * 100) / 100;
@@ -533,14 +543,27 @@ function InlineClaimPanel({
       return prev;
     });
   }, [hoursModeMaxStaffHourly]);
-
-  // When in hours-mode, the standard claimed amount is auto-derived
+  useEffect(() => { setSessionsClaimedMonth(sessionsModeDefaultMonthly); }, [sessionsModeDefaultMonthly]);
   useEffect(() => {
-    if (!hoursMode) return;
-    const derived = actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult;
-    const capped = Math.min(derived, calculatedAmount);
-    setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
-  }, [hoursMode, actualHourlyRate, hoursClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
+    setActualSessionRate(prev => {
+      const max = Math.round(sessionsModeMaxStaffRate * 100) / 100;
+      if (!prev || prev > max) return max;
+      return prev;
+    });
+  }, [sessionsModeMaxStaffRate]);
+
+  // When in hours/sessions-mode, the standard claimed amount is auto-derived
+  useEffect(() => {
+    if (hoursMode) {
+      const derived = actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult;
+      const capped = Math.min(derived, calculatedAmount);
+      setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
+    } else if (sessionsMode) {
+      const derived = actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult;
+      const capped = Math.min(derived, calculatedAmount);
+      setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
+    }
+  }, [hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
 
   const handleCreateDraft = async () => {
     if (!onCreateClaim || creating) return;
