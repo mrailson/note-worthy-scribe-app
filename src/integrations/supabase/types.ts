@@ -100,6 +100,30 @@ export type Database = {
         }
         Relationships: []
       }
+      agewell_notification_settings: {
+        Row: {
+          id: string
+          mode: string
+          recipients: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          mode?: string
+          recipients?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          mode?: string
+          recipients?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       agewell_responses: {
         Row: {
           anything_else: string | null
