@@ -9243,6 +9243,8 @@ export type Database = {
       }
       nres_buyback_claims: {
         Row: {
+          actual_cost_incurred: number | null
+          actual_cost_notes: string | null
           actual_payment_date: string | null
           approved_by_email: string | null
           bacs_reference: string | null
@@ -9292,6 +9294,8 @@ export type Database = {
           verified_notes: string | null
         }
         Insert: {
+          actual_cost_incurred?: number | null
+          actual_cost_notes?: string | null
           actual_payment_date?: string | null
           approved_by_email?: string | null
           bacs_reference?: string | null
@@ -9341,6 +9345,8 @@ export type Database = {
           verified_notes?: string | null
         }
         Update: {
+          actual_cost_incurred?: number | null
+          actual_cost_notes?: string | null
           actual_payment_date?: string | null
           approved_by_email?: string | null
           bacs_reference?: string | null
@@ -9655,6 +9661,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nres_buyback_claims"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nres_claim_evidence_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "nres_buyback_overspend_v"
+            referencedColumns: ["claim_id"]
           },
         ]
       }
@@ -14679,6 +14692,54 @@ export type Database = {
           name_norm?: never
           notes?: string | null
           status_enum?: string | null
+        }
+        Relationships: []
+      }
+      nres_buyback_overspend_v: {
+        Row: {
+          actual_cost_incurred: number | null
+          actual_cost_notes: string | null
+          claim_id: string | null
+          claim_month: string | null
+          claim_ref: number | null
+          claim_type: string | null
+          claimed_amount: number | null
+          max_reclaimable: number | null
+          overspend_amount: number | null
+          practice_key: string | null
+          status: string | null
+          submitted_at: string | null
+          submitted_by_email: string | null
+        }
+        Insert: {
+          actual_cost_incurred?: number | null
+          actual_cost_notes?: string | null
+          claim_id?: string | null
+          claim_month?: string | null
+          claim_ref?: number | null
+          claim_type?: string | null
+          claimed_amount?: number | null
+          max_reclaimable?: number | null
+          overspend_amount?: never
+          practice_key?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          submitted_by_email?: string | null
+        }
+        Update: {
+          actual_cost_incurred?: number | null
+          actual_cost_notes?: string | null
+          claim_id?: string | null
+          claim_month?: string | null
+          claim_ref?: number | null
+          claim_type?: string | null
+          claimed_amount?: number | null
+          max_reclaimable?: number | null
+          overspend_amount?: never
+          practice_key?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          submitted_by_email?: string | null
         }
         Relationships: []
       }
