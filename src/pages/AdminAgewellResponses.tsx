@@ -8,6 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AGEWELL_PRACTICES } from "@/data/agewellPractices";
+import { NotificationSettingsDialog } from "@/components/agewell/NotificationSettingsDialog";
+import { AgewellCharts } from "@/components/agewell/AgewellCharts";
+import { Settings } from "lucide-react";
 
 interface Row {
   id: string;
@@ -101,6 +104,7 @@ export default function AdminAgewellResponses() {
   const [recommendFilter, setRecommendFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [drawerRow, setDrawerRow] = useState<Row | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -271,10 +275,15 @@ export default function AdminAgewellResponses() {
           onChange={(e) => setSearch(e.target.value)}
           className="text-xs px-3 py-1.5 rounded-md border bg-background flex-1 min-w-[200px] max-w-md"
         />
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setSettingsOpen(true)}>
+            <Settings className="h-4 w-4" /> Notification settings
+          </Button>
           <Button size="sm" onClick={downloadCsv}>Download CSV</Button>
         </div>
       </div>
+
+      <AgewellCharts rows={filtered} />
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -371,6 +380,8 @@ export default function AdminAgewellResponses() {
           </div>
         </div>
       )}
+
+      <NotificationSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       </div>
     </div>
   );

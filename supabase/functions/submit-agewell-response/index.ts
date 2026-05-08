@@ -18,10 +18,33 @@ const HMAC_SECRET = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
 const FROM_EMAIL = Deno.env.get("AGEWELL_FROM_EMAIL") ||
   "Notewell AI <noreply@bluepcn.co.uk>";
 
-// Hardcoded during debug — will move to env vars later.
-const TO_EMAILS = ["malcolm.railson@nhs.net"];
+const DEFAULT_TO_EMAILS = ["malcolm.railson@nhs.net"];
 
 const admin = createClient(supabaseUrl, serviceKey);
+
+async function loadNotificationSettings(): Promise<{ recipients: string[]; mode: "all" | "completed_only" }> {
+  try {
+    const { data, error } = await admin
+      .from("agewell_notification_settings")
+      .select("recipients, mode")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error(`${LOG} settings load error:`, error.message);
+      return { recipients: DEFAULT_TO_EMAILS, mode: "all" };
+    }
+    const recipients = (data?.recipients ?? []).filter((e: string) => typeof e === "string" && e.includes("@"));
+    const mode = (data?.mode === "completed_only" ? "completed_only" : "all") as "all" | "completed_only";
+    return {
+      recipients: recipients.length > 0 ? recipients : DEFAULT_TO_EMAILS,
+      mode,
+    };
+  } catch (e) {
+    console.error(`${LOG} settings load exception:`, (e as Error).message);
+    return { recipients: DEFAULT_TO_EMAILS, mode: "all" };
+  }
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -267,7 +290,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ from: FROM_EMAIL, to: TO_EMAILS, subject, html }),
+        body: JSON.stringify({ from: FROM_EMAIL, to: DEFAULT_TO_EMAILS, subject, html }),
       });
       resendStatus = resp.status;
       const raw = await resp.text();
@@ -360,6 +383,12 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, id: responseId, email: "skipped" });
   }
 
+  const settings = await loadNotificationSettings();
+  if (settings.mode === "completed_only" && !isComplete) {
+    console.log(`${LOG} mode=completed_only and survey not complete — skipping email for id=${responseId}`);
+    return jsonResponse({ success: true, id: responseId, is_complete: isComplete, email: "skipped_incomplete" });
+  }
+
   const { subject, html, text } = buildEmail({
     practiceLabel: practice_label,
     branchSite: branch_site,
@@ -379,14 +408,14 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ from: FROM_EMAIL, to: TO_EMAILS, subject, html, text }),
+      body: JSON.stringify({ from: FROM_EMAIL, to: settings.recipients, subject, html, text }),
     });
     if (!resp.ok) {
       const errBody = await resp.text();
       console.error(`${LOG} Resend ${resp.status}: ${errBody}`);
       await logEmailFailure(responseId, `Resend ${resp.status}: ${errBody.slice(0, 800)}`, { conversationId, subject });
     } else {
-      console.log(`${LOG} email sent for id=${responseId} (complete=${isComplete})`);
+      console.log(`${LOG} email sent for id=${responseId} (complete=${isComplete}) to=${settings.recipients.join(",")}`);
     }
   } catch (e) {
     console.error(`${LOG} Resend exception:`, (e as Error).message);

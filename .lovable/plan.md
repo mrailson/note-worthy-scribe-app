@@ -1,73 +1,56 @@
-## NRES PPG Patient Survey — Implementation Plan
+# Ageing Well Admin — Notification Settings + Charts
 
-Build a public, anonymous patient feedback survey at `/nres/ppgsurvey`, converting the uploaded HTML 1:1 into a React component with Supabase backend, anonymous submission edge function, email notifications, and a minimal admin view.
+Two additions to `src/pages/AdminAgewellResponses.tsx` and the `submit-agewell-response` edge function.
 
-### 1. Database (migration)
+## 1. Notification settings (persisted)
 
-New table `public.nres_ppg_responses`:
-- `id`, `submitted_at`, `practice_id` (CHECK in 8-value list), `practice_label`, `rating` (CHECK better/same/worse), `followup_reason`, `followup_label`, `comment` (≤400 chars), `user_agent`, `submission_token`
-- Table-level CHECK: `rating <> 'worse' OR followup_reason IS NOT NULL`
-- RLS enabled
-  - INSERT policy for `anon` role
-  - SELECT policy for `authenticated` users with admin role (via existing `has_role` pattern — verify which role enum exists)
+A new "Notification Settings" panel (cog button beside Download CSV) opens a dialog where admins control who is emailed when a survey is submitted.
 
-New table `public.email_failures`:
-- `id`, `created_at`, `response_id`, `error_message`, `payload jsonb`
-- RLS: admin-only SELECT, service role INSERT
+**Controls in the dialog**
+- **Send for**: radio — *All submissions* / *Completed surveys only*
+  - "Completed" = `overall_rating IS NOT NULL` (respondent reached the final question). Documented in helper text under the radio.
+- **Recipients**: list of email chips. Add (input + Enter), remove (×). Multiple recipients allowed. Validated as email format.
+- Save / Cancel.
 
-New table `public.nres_ppg_rate_limit` (or use in-memory):
-- `submission_token`, `created_at` — to count per-token submissions in last hour
-- Plus a global hourly counter approach
+Settings persist in a new tiny singleton table so changes survive deploys and apply server-side.
 
-Index on `submitted_at DESC` and `practice_id`.
+### Database
 
-### 2. Edge function `submit-ppg-response` (verify_jwt = false)
+New table `agewell_notification_settings`:
+- `id` uuid primary key
+- `recipients` text[] not null default `{malcolm.railson@nhs.net}`
+- `mode` text not null default `'all'` (check: `'all' | 'completed_only'`)
+- `updated_at`, `updated_by`
 
-- CORS preflight
-- Honeypot check → silent 200
-- Zod validation of body
-- Compute `submission_token = SHA-256(client_ip + daily_salt + user_agent)` where daily_salt = secret `PPG_DAILY_SALT_BASE` + UTC date string. IP read from `x-forwarded-for`, never stored.
-- Rate limit: count rows in last hour for token (>5 → 429); count global rows (>200 → 429)
-- Insert row with service role
-- Send email via Resend (use existing `RESEND_API_KEY` if present, otherwise prompt to add)
-- On email failure → insert into `email_failures`, still return 200
-- Return `{ success: true }`
+RLS:
+- SELECT/UPDATE/INSERT restricted to system admins + users with `agewell` service access (mirroring the page's existing access pattern).
+- Edge function reads via service role (bypasses RLS).
 
-### 3. Email
+### Edge function changes (`submit-agewell-response/index.ts`)
 
-Sent via Resend from `NRES Patient Feedback <noreply@gpnotewell.co.uk>` to `malcolm.railson@nhs.net`. HTML + plain text per spec. Subject template per spec.
+- Replace hard-coded `TO_EMAILS` constant with a fetch of `agewell_notification_settings` (single row) at request time.
+- If `mode === 'completed_only'` and the submission has no `overall_rating`, **skip the email** (still insert the row).
+- Use `recipients` from the row as the `to:` list. Fallback to existing default if row missing or empty.
+- Test-mode (`?test=1`) bypass is unchanged.
 
-### 4. React route
+## 2. Chart overviews
 
-- New page `src/pages/NRESPpgSurvey.tsx` — full 1:1 port of uploaded HTML using inline `<style>` block and the same DOM/JS state, wrapped in React with `useState` for screen flow. Keep all classes, colors, animations, accessibility attributes exactly as built.
-- Inject `<meta name="robots" content="noindex,nofollow">` and the page title via `document.title` / a `<Helmet>`-style effect (project does not use Helmet — use `useEffect` to set `document.title` and append meta tag).
-- Hidden honeypot input `website`.
-- Submit POSTs to edge function via `supabase.functions.invoke`.
-- Loading + error states per spec.
-- Add route `/nres/ppgsurvey` in `src/App.tsx` OUTSIDE any auth-guarded layout, plain `<NRESPpgSurvey />` (no sidebar/header chrome).
+A new "Overview" section above the filters using `recharts` (already in project), driven by `filtered` rows so it reacts to the practice/channel/recommend filters.
 
-### 5. Admin view
+Four charts in a 2×2 grid (stacks on mobile):
+1. **Submissions over time** — line chart, last 12 weeks, count per ISO week.
+2. **Overall rating distribution** — bar chart 1–5 with the existing rating colours (red/orange/teal).
+3. **Recommendation breakdown** — donut: Yes / Unsure / No.
+4. **Channel mix** — donut: Web / Phone / Paper.
 
-- New page `src/pages/AdminNRESResponses.tsx` at `/admin/nres-responses`, behind existing admin guard.
-- Fetches rows via Supabase client (RLS allows admins).
-- Filter chips by practice & rating, count tile, CSV download (client-side blob), comment truncation with toggle.
+Plus a slim **per-practice average rating** horizontal bar list below the grid (top 8 practices by volume) for at-a-glance comparison.
 
-### 6. Test data
+Charts use design-system colours from `index.css` where possible; the rating-specific palette reuses the existing `RATING_COLOUR` values for consistency with the table.
 
-After deploy, insert two test rows directly via SQL/edge function call and trigger two `[TEST]`-prefixed emails to `malcolm.railson@nhs.net`.
+## Technical notes
 
-### Open questions / assumptions
-
-1. **Admin role check** — Project uses a `has_role` pattern. I'll reuse the existing admin role detection (will inspect `useEnhancedAuth` / role hooks before writing the admin page).
-2. **Resend** — I'll check `secrets--fetch_secrets` for `RESEND_API_KEY`. If missing, I'll request it via `add_secret`.
-3. **Sender domain** — `noreply@gpnotewell.co.uk` requires `gpnotewell.co.uk` to be a verified Resend sender domain. I'll proceed using it as specified; if Resend rejects, the email will land in `email_failures` (submission still succeeds).
-4. **Daily salt** — I'll add a secret `PPG_DAILY_SALT_BASE` (random string) and combine with UTC date. If you'd rather I generate and store it inline, let me know.
-5. **Rate-limit storage** — using a small `nres_ppg_rate_limit` table keyed by `submission_token` so counts survive cold starts.
-
-### Technical notes
-
-- Edge function uses `npm:` specifiers, `Deno.serve()`, inline CORS headers, service role for inserts.
-- 1:1 HTML preservation: the converted component will render the original `<style>` block scoped to a wrapper div with a unique class to avoid colliding with Tailwind/global styles. No Tailwind rewrite — preserves visuals exactly.
-- No localStorage / cookies / analytics.
-
-Shall I proceed?
+- New file: `supabase/migrations/<ts>_agewell_notification_settings.sql` (created via the migration tool — singleton row seeded with current default recipient).
+- New component: `src/components/agewell/NotificationSettingsDialog.tsx` (uses shadcn Dialog + Input + RadioGroup + Badge for chips).
+- Page edits: add Settings button, add `<AgewellCharts />` section, no changes to filters/table/drawer.
+- Edge function: small refactor — wrap email send in `if (shouldSend)` guard, fetch settings with cached 60-second TTL to avoid extra DB hits per submission.
+- Deploy `submit-agewell-response` after edits.
