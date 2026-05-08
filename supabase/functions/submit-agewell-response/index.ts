@@ -224,6 +224,70 @@ Deno.serve(async (req) => {
   console.log(`${LOG} Webhook received, will always email during debug mode`);
 
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // ===== TEST-MODE BYPASS (?test=1) =====
+  const url = new URL(req.url);
+  if (url.searchParams.get("test") === "1") {
+    const TLOG = "[submit-agewell-response TEST]";
+    const timestamp = new Date().toISOString();
+    console.log(`${TLOG} Test mode invoked via ?test=1 query param`);
+    console.log(`${TLOG} RESEND_API_KEY present: ${!!RESEND_API_KEY}`);
+    console.log(`${TLOG} FROM address: ${FROM_EMAIL}`);
+
+    if (!RESEND_API_KEY) {
+      return jsonResponse({
+        success: false,
+        mode: "test",
+        resendStatus: 0,
+        resendBody: { error: "RESEND_API_KEY missing" },
+        timestamp,
+      }, 500);
+    }
+
+    const subject = `[AgeWell TEST] Resend pipeline check — ${timestamp}`;
+    const html = `<!doctype html><html><body style="margin:0;background:#F8FAFC;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1E293B">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:24px 0"><tr><td align="center">
+  <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(15,37,64,.08)">
+    <tr><td style="background:#4DB6A6;color:#FFFFFF;padding:18px 26px;font-weight:700;font-size:16px">AgeWell — Resend pipeline test</td></tr>
+    <tr><td style="padding:22px 26px;font-size:14px;line-height:1.55">
+      Resend + bluepcn.co.uk are working. AgeWell email pipeline is operational.
+      If real survey calls aren't producing emails, the failure is upstream — check ElevenLabs webhook config and HMAC secret match.
+      <div style="margin-top:14px;color:#64748B;font-size:12px">Timestamp: ${escapeHtml(timestamp)}</div>
+    </td></tr>
+  </table>
+</td></tr></table></body></html>`;
+
+    console.log(`${TLOG} Calling Resend...`);
+    let resendStatus = 0;
+    let resendBody: any = null;
+    try {
+      const resp = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ from: FROM_EMAIL, to: TO_EMAILS, subject, html }),
+      });
+      resendStatus = resp.status;
+      const raw = await resp.text();
+      try { resendBody = JSON.parse(raw); } catch { resendBody = { raw }; }
+      console.log(`${TLOG} Resend response: status=${resendStatus} body=${JSON.stringify(resendBody)}`);
+    } catch (e) {
+      resendBody = { error: (e as Error).message };
+      console.error(`${TLOG} Resend exception:`, (e as Error).message);
+    }
+
+    return jsonResponse({
+      success: resendStatus >= 200 && resendStatus < 300,
+      mode: "test",
+      resendStatus,
+      resendBody,
+      timestamp,
+    });
+  }
+  // ===== END TEST-MODE BYPASS =====
+
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
   const rawBody = await req.text();
