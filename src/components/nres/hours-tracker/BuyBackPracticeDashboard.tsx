@@ -570,7 +570,7 @@ function InlineClaimPanel({
       setOverrideAllocValue(+wHrs.toFixed(2));
       void weeklyHours;
     }
-  }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value, hoursModeIsSessionPriced, hoursModeAnnualRate, isLocum, isMeeting, isManagement, overrideAllocType]);
+  }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value, hoursModeAnnualRate, isLocum, isMeeting, isManagement, overrideAllocType]);
 
   const hoursModeMaxOnCostsHourly = hoursModeMaxStaffHourly * (hoursModeOnCostMult - 1);
   const hoursModeMaxTotalHourly = hoursModeMaxStaffHourly + hoursModeMaxOnCostsHourly;
