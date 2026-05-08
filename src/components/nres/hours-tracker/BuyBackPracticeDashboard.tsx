@@ -1816,28 +1816,32 @@ function InlineClaimPanel({
                         </div>
                       </div>
 
+                      <div style={{ padding: '8px 10px', background: '#fff', border: `2px solid ${catAccentColor}`, borderRadius: 7, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Maximum claimable this month</span>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: catAccentColor, fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(calculatedAmount)}</span>
+                      </div>
                       {(() => {
-                        const derived = Math.round(actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                        const derived = effectiveBreakdownTotal;
                         const effectiveCap = Math.min(derived, calculatedAmount);
                         const cappedByMonthly = derived > calculatedAmount;
                         const belowDerived = standardClaimedAmount < derived - 0.005 && standardClaimedAmount > 0;
                         if (cappedByMonthly) {
                           return (
                             <p style={{ fontSize: 11, color: '#b45309', margin: 0 }}>
-                              Capped at the monthly maximum of {fmtGBP(calculatedAmount)} (equivalent to £{sessionsModeMaxStaffRate.toFixed(2)}/sess × {sessionsClaimedMonth.toFixed(2)} sess incl. on-costs). Editable up to {fmtGBP(effectiveCap)}.
+                              Capped at the monthly maximum (equivalent to £{sessionsModeMaxStaffRate.toFixed(2)}/sess × {sessionsClaimedMonth.toFixed(2)} sess incl. on-costs). Editable up to {fmtGBP(effectiveCap)}.
                             </p>
                           );
                         }
                         if (belowDerived) {
                           return (
                             <p style={{ fontSize: 11, color: '#0f766e', margin: 0 }}>
-                              Claiming {fmtGBP(standardClaimedAmount)} of {fmtGBP(derived)} derived ({fmtGBP(derived - standardClaimedAmount)} below). Maximum claimable this month is {fmtGBP(calculatedAmount)}.
+                              Claiming {fmtGBP(standardClaimedAmount)} of {fmtGBP(derived)} derived ({fmtGBP(derived - standardClaimedAmount)} below).
                             </p>
                           );
                         }
                         return (
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
-                            Auto-calculated from sessions × session rate × on-costs. Editable up to {fmtGBP(effectiveCap)} (max claimable this month {fmtGBP(calculatedAmount)}).
+                            Auto-calculated from sessions × session rate × on-costs. Editable up to {fmtGBP(effectiveCap)}.
                           </p>
                         );
                       })()}
