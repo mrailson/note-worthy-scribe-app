@@ -803,6 +803,17 @@ function InlineClaimPanel({
     }
 
     if (allocType === 'wte') {
+      const wteAnnualHours = 37.5 * 52; // 1950
+      const staffHourly = annualRate / wteAnnualHours;
+      const onCostFraction = includesOnCosts ? (multiplier - 1) : 0;
+      const onCostHourly = staffHourly * onCostFraction;
+      const totalHourly = staffHourly + onCostHourly;
+      const wteHourlyRow = includesOnCosts ? [{
+        l: `Equivalent hourly rate (37.5 hrs/wk × 52 = ${wteAnnualHours} hrs/yr per 1.0 WTE)`,
+        r: `£${staffHourly.toFixed(2)}/hr excl. on-costs · £${totalHourly.toFixed(2)}/hr incl. on-costs`,
+        bold: false,
+        large: false,
+      }] : [];
       return {
         primary: [
           { label: `${allocValue} WTE`, accent: true },
@@ -819,6 +830,7 @@ function InlineClaimPanel({
           { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
           { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
           { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+          ...wteHourlyRow,
           { l: `Monthly max (${allocValue} WTE × total ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
         ] : null,
       };
