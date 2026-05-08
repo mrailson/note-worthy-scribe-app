@@ -1,56 +1,114 @@
-# Ageing Well Admin — Notification Settings + Charts
 
-Two additions to `src/pages/AdminAgewellResponses.tsx` and the `submit-agewell-response` edge function.
+# Mandatory Reads — Policy Acknowledgement & Reminder System
 
-## 1. Notification settings (persisted)
+A new module under the Document/Policy area where managers publish policies that **must** be read by named staff, capture electronic acknowledgements (tick + typed name), chase non-readers automatically by email, and produce a one-click compliance log for inspectors.
 
-A new "Notification Settings" panel (cog button beside Download CSV) opens a dialog where admins control who is emailed when a survey is submitted.
+## 1. Where it lives
 
-**Controls in the dialog**
-- **Send for**: radio — *All submissions* / *Completed surveys only*
-  - "Completed" = `overall_rating IS NOT NULL` (respondent reached the final question). Documented in helper text under the radio.
-- **Recipients**: list of email chips. Add (input + Enter), remove (×). Multiple recipients allowed. Validated as email format.
-- Save / Cancel.
+- New top-level page **Mandatory Reads** under the existing Document Vault / Policy menu (practice manager + admin roles).
+- Two tabs:
+  - **Library** — list of mandatory documents with live compliance % per item.
+  - **My Reads** — every staff member sees outstanding items they must acknowledge (also surfaced as a red badge on the main header until cleared).
 
-Settings persist in a new tiny singleton table so changes survive deploys and apply server-side.
+## 2. Publishing a mandatory read
 
-### Database
+Manager flow:
+1. Click **New Mandatory Read**.
+2. Pick source: existing Vault policy, uploaded PDF/Docx, or paste text.
+3. Set **title, version, effective date, re-read interval** (none / 6 / 12 / 24 months).
+4. Choose **assignees** (admin chooses per policy, any combination):
+   - Everyone in the practice
+   - By role (clinicians, reception, managers, etc. — pulled from existing role table)
+   - Custom — pick individuals or reuse existing distribution lists
+5. Set **due date** (default +14 days) and **reminder cadence** (default below, editable).
+6. Publish → assignment rows created, first email goes out immediately.
 
-New table `agewell_notification_settings`:
-- `id` uuid primary key
-- `recipients` text[] not null default `{malcolm.railson@nhs.net}`
-- `mode` text not null default `'all'` (check: `'all' | 'completed_only'`)
-- `updated_at`, `updated_by`
+Re-publishing a new version automatically resets everyone's status to *Outstanding* and triggers a "policy updated, please re-read" email.
 
-RLS:
-- SELECT/UPDATE/INSERT restricted to system admins + users with `agewell` service access (mirroring the page's existing access pattern).
-- Edge function reads via service role (bypasses RLS).
+## 3. Reading & acknowledging
 
-### Edge function changes (`submit-agewell-response/index.ts`)
+Recipient flow (signed-in users):
+- Email link or in-app badge → opens the policy in a clean reader pane.
+- Scroll-to-bottom unlocks the acknowledgement panel:
+  - Tick "I confirm I have read and understood this policy"
+  - Type full name (must match account name within tolerance)
+  - Submit → record stored with timestamp, IP, user-agent, policy version hash.
+- Confirmation screen + email receipt.
 
-- Replace hard-coded `TO_EMAILS` constant with a fetch of `agewell_notification_settings` (single row) at request time.
-- If `mode === 'completed_only'` and the submission has no `overall_rating`, **skip the email** (still insert the row).
-- Use `recipients` from the row as the `to:` list. Fallback to existing default if row missing or empty.
-- Test-mode (`?test=1`) bypass is unchanged.
+External / non-account staff: signed magic link sent to their email opens the same flow without needing a login.
 
-## 2. Chart overviews
+## 4. Reminder schedule (default, override per policy)
 
-A new "Overview" section above the filters using `recharts` (already in project), driven by `filtered` rows so it reacts to the practice/channel/recommend filters.
+- Day 0 — initial assignment
+- Day +3 — gentle reminder
+- Day +7 — second reminder
+- Day +14 — overdue notice (also CC's line manager if set)
+- Then weekly until acknowledged
+- On version change — new "please re-read" email regardless of prior status
 
-Four charts in a 2×2 grid (stacks on mobile):
-1. **Submissions over time** — line chart, last 12 weeks, count per ISO week.
-2. **Overall rating distribution** — bar chart 1–5 with the existing rating colours (red/orange/teal).
-3. **Recommendation breakdown** — donut: Yes / Unsure / No.
-4. **Channel mix** — donut: Web / Phone / Paper.
+Manager can pause reminders for a specific person or policy.
 
-Plus a slim **per-practice average rating** horizontal bar list below the grid (top 8 practices by volume) for at-a-glance comparison.
+## 5. Compliance dashboard & inspector log
 
-Charts use design-system colours from `index.css` where possible; the rating-specific palette reuses the existing `RATING_COLOUR` values for consistency with the table.
+Per policy:
+- Donut: Acknowledged / Outstanding / Overdue
+- Table of every assignee with status, acknowledged date, version acknowledged
+- **Export** button → branded PDF "Policy Acknowledgement Log" suitable for CQC inspectors, plus CSV
+- Filter by role, date range, practice
 
-## Technical notes
+Practice-wide view:
+- Heatmap of policies × roles showing % compliance
+- Top 5 outstanding policies
+- Top 5 staff with overdue items
 
-- New file: `supabase/migrations/<ts>_agewell_notification_settings.sql` (created via the migration tool — singleton row seeded with current default recipient).
-- New component: `src/components/agewell/NotificationSettingsDialog.tsx` (uses shadcn Dialog + Input + RadioGroup + Badge for chips).
-- Page edits: add Settings button, add `<AgewellCharts />` section, no changes to filters/table/drawer.
-- Edge function: small refactor — wrap email send in `if (shouldSend)` guard, fetch settings with cached 60-second TTL to avoid extra DB hits per submission.
-- Deploy `submit-agewell-response` after edits.
+## 6. Email templates (Notewell AI branded)
+
+- New mandatory read assigned
+- Reminder (gentle / second / overdue)
+- Policy updated — please re-read
+- Acknowledgement receipt
+- Weekly manager digest (optional toggle) listing outstanding items across the practice
+
+All sent via the existing Notewell AI sender, queued through the standard transactional email infrastructure (retry-safe, suppression-aware).
+
+## 7. Audit & security
+
+- Append-only acknowledgement table — no edits, no deletes.
+- RLS: staff can only see their own assignments; managers see their practice; admins see all.
+- Signed magic-link tokens single-use, 30-day expiry, hashed in DB.
+- Each acknowledgement stores the **document version hash** so the log proves *which* version was acknowledged even after future edits.
+
+## Technical section
+
+**New tables**
+- `mandatory_reads` — id, practice_id, title, source_type, source_ref, version, version_hash, body_storage_path, effective_date, reread_interval_months, due_days, reminder_schedule jsonb, paused, created_by
+- `mandatory_read_assignments` — id, mandatory_read_id, user_id (nullable), email, full_name, role_snapshot, due_at, status (`outstanding|acknowledged|overdue|paused`), reminder_count, last_reminder_at, magic_token_hash, magic_token_expires_at
+- `mandatory_read_acknowledgements` — id, assignment_id, mandatory_read_id, version_hash, acknowledged_at, typed_name, ip, user_agent (append-only, no UPDATE/DELETE policies)
+- `mandatory_read_reminder_log` — assignment_id, sent_at, kind, message_id
+
+**Edge functions**
+- `mandatory-reads-publish` — creates assignments, enqueues initial emails
+- `mandatory-reads-reminder-cron` — pg_cron every 15 min, picks due reminders, calls `send-transactional-email`
+- `mandatory-reads-acknowledge` — validates magic token or auth, writes acknowledgement, sends receipt
+- `mandatory-reads-export-log` — generates PDF (docx-js → PDF via existing pipeline) + CSV
+
+**Email templates** (registered in transactional template registry):
+`mandatory-read-assigned`, `mandatory-read-reminder`, `mandatory-read-overdue`, `mandatory-read-updated`, `mandatory-read-receipt`, `mandatory-read-manager-digest`.
+
+**Frontend**
+- `src/pages/MandatoryReads.tsx` (Library + dashboard)
+- `src/pages/MandatoryReadsMine.tsx` (staff inbox)
+- `src/pages/MandatoryReadView.tsx` (reader + acknowledgement panel; supports `?token=` for magic-link mode)
+- Components: `PublishMandatoryReadDialog`, `AssigneePicker` (reuses existing distribution-list hook), `AcknowledgePanel`, `ComplianceDonut`, `ComplianceTable`, `InspectorExportButton`
+- Header badge hook: `useOutstandingMandatoryReads`
+
+**Reuses existing infra**
+- Notewell AI transactional email sender (queue + suppression + Notewell AI from-name)
+- Distribution lists (`useDistributionLists`)
+- Role table (`user_roles` + `has_role`)
+- Document branding/metadata for PDF export
+- Vault for source policies
+
+## Open question (one)
+
+Reminder cadence default — confirm the schedule above (Day 0, +3, +7, +14, then weekly, escalate to manager on overdue) or pick a different default during build.
