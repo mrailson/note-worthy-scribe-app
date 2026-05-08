@@ -113,6 +113,7 @@ export type Database = {
           email_sent_at: string | null
           equipment_provided: string | null
           id: string
+          is_complete: boolean
           listened_to_concerns: string | null
           medicine_review_beneficial: string | null
           more_independent: string | null
@@ -145,6 +146,7 @@ export type Database = {
           email_sent_at?: string | null
           equipment_provided?: string | null
           id?: string
+          is_complete?: boolean
           listened_to_concerns?: string | null
           medicine_review_beneficial?: string | null
           more_independent?: string | null
@@ -177,6 +179,7 @@ export type Database = {
           email_sent_at?: string | null
           equipment_provided?: string | null
           id?: string
+          is_complete?: boolean
           listened_to_concerns?: string | null
           medicine_review_beneficial?: string | null
           more_independent?: string | null
