@@ -583,6 +583,7 @@ function InlineClaimPanel({
         l: `Equivalent hourly rate (${sessionsPerWeek.toFixed(2)} sess/wk × 4h 10m × 52 = ${annualHours.toFixed(2)} hrs/yr)`,
         r: `£${staffHourly.toFixed(2)}/hr staff + £${onCostHourly.toFixed(2)}/hr on-costs = £${totalHourly.toFixed(2)}/hr total`,
         bold: false,
+        large: false,
       }] : [];
       return {
         primary: [
