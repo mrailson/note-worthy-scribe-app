@@ -1340,6 +1340,7 @@ function InlineClaimPanel({
                               setOverrideAllocType(null);
                               setOverrideAllocValue(staffMember.allocation_value || 0);
                               setClaimPeriod('weekly');
+                              setClaimQuantityInput(null);
                             }}
                             style={{
                               marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
