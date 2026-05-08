@@ -2067,6 +2067,28 @@ function InlineClaimPanel({
                     <Send style={{ width: 14, height: 14 }} />
                     Submit Claim →
                   </button>
+                  {onUpdateClaimNotes && (
+                    <button
+                      onClick={handleSaveDraft}
+                      disabled={savingDraft}
+                      title="Save your notes and close — uploaded files are kept; return later to complete and submit."
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px',
+                        borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff',
+                        color: '#0f172a', fontSize: 13, fontWeight: 600,
+                        cursor: savingDraft ? 'not-allowed' : 'pointer',
+                        opacity: savingDraft ? 0.6 : 1,
+                      }}
+                    >
+                      <Save style={{ width: 14, height: 14 }} />
+                      {savingDraft ? 'Saving…' : 'Save Draft'}
+                    </button>
+                  )}
+                  {draftSavedAt && !savingDraft && (
+                    <span style={{ fontSize: 11, color: '#059669', fontWeight: 500 }}>
+                      Draft saved — you can close and return later.
+                    </span>
+                  )}
                 </div>
                 {onDeleteClaim && (
                   <button
