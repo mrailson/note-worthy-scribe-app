@@ -1353,6 +1353,7 @@ function InlineClaimPanel({
                           </label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <input
+                              id="hours-mode-month-input"
                               type="number"
                               min="0"
                               step="0.25"
