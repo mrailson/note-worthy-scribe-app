@@ -1358,23 +1358,6 @@ function InlineClaimPanel({
                           </span>
                         </div>
 
-                        {isOverridden && (
-                          <button
-                            onClick={() => {
-                              setOverrideAllocType(null);
-                              setOverrideAllocValue(staffMember.allocation_value || 0);
-                              setClaimPeriod('weekly');
-                              setClaimQuantityInput(null);
-                            }}
-                            style={{
-                              marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
-                              border: '1px solid #bfdbfe', background: '#fff', color: '#1e40af',
-                              fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                            }}
-                          >
-                            Reset to {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
-                          </button>
-                        )}
                       </div>
                     );
                   })()}
