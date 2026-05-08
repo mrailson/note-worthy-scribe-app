@@ -2007,7 +2007,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
     mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
     grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
-    bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
+    bankHolidaysExcluded: 0, bankHolidayDetails: [],
     sessionalHourly,
   };
 }
