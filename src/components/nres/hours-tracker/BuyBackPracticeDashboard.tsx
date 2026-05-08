@@ -478,7 +478,7 @@ function InlineClaimPanel({
   // Allocation override toggle (lets the user re-cast WTE ↔ hrs/wk in the
   // claim modal without altering the saved staff record). Capped at 1.0 WTE
   // / 37.5 hrs/wk for non-locum claims.
-  const [overrideAllocType, setOverrideAllocType] = useState<'wte' | 'hours' | null>(null);
+  const [overrideAllocType, setOverrideAllocType] = useState<'wte' | 'hours' | 'sessions' | null>(null);
   const [overrideAllocValue, setOverrideAllocValue] = useState<number>(staffMember.allocation_value || 0);
   // Reset override when underlying staff record changes
   useEffect(() => {
@@ -501,7 +501,7 @@ function InlineClaimPanel({
     setStandardClaimedAmount(Math.round(calculatedAmount * 100) / 100);
   }, [calculatedAmount]);
 
-  // ----- Hours-mode (session-priced GP claimed by hrs/wk) -----
+  // ----- Hours / Sessions mode (session-priced GP claimed by hrs/wk or sess/wk) -----
   const hoursModeRoleConfig = rateParams?.getRoleConfig?.(effectiveStaff.staff_role);
   const hoursModeAnnualRate = rateParams?.getRoleAnnualRate?.(effectiveStaff.staff_role) ?? 0;
   const hoursModeIsSessionPriced = isSessionPricedRole(effectiveStaff.staff_role, hoursModeRoleConfig, hoursModeAnnualRate);
@@ -510,22 +510,32 @@ function InlineClaimPanel({
     effectiveStaff.allocation_type === 'hours' &&
     hoursModeIsSessionPriced &&
     hoursModeAnnualRate > 0;
+  const sessionsMode =
+    !isLocum && !isMeeting && !isManagement &&
+    effectiveStaff.allocation_type === 'sessions' &&
+    hoursModeIsSessionPriced &&
+    hoursModeAnnualRate > 0;
   const hoursModeIncludesOnCosts = hoursModeRoleConfig?.includes_on_costs !== false;
   const hoursModeOnCostMult = hoursModeIncludesOnCosts ? (rateParams?.onCostMultiplier ?? 1) : 1;
   const hoursModeMaxStaffHourly = hoursModeAnnualRate / (52 * HOURS_PER_SESSION);
   const hoursModeMaxOnCostsHourly = hoursModeMaxStaffHourly * (hoursModeOnCostMult - 1);
   const hoursModeMaxTotalHourly = hoursModeMaxStaffHourly + hoursModeMaxOnCostsHourly;
-  const hoursModeWeeklyHours = effectiveStaff.allocation_value || 0;
+  const hoursModeWeeklyHours = hoursMode ? (effectiveStaff.allocation_value || 0) : 0;
   const hoursModeWorkingWeeks = rateParams?.rawWorkingWeeksInMonth ?? rateParams?.workingWeeksInMonth ?? (52 / 12);
   const hoursModeDefaultMonthlyHours = Math.round(hoursModeWeeklyHours * hoursModeWorkingWeeks * 100) / 100;
 
+  // Sessions mode equivalents
+  const sessionsModeMaxStaffRate = hoursModeAnnualRate / 52; // £ per session, gross
+  const sessionsModeWeekly = sessionsMode ? (effectiveStaff.allocation_value || 0) : 0;
+  const sessionsModeDefaultMonthly = Math.round(sessionsModeWeekly * hoursModeWorkingWeeks * 100) / 100;
+
   const [hoursClaimedMonth, setHoursClaimedMonth] = useState<number>(hoursModeDefaultMonthlyHours);
   const [actualHourlyRate, setActualHourlyRate] = useState<number>(Math.round(hoursModeMaxStaffHourly * 100) / 100);
+  const [sessionsClaimedMonth, setSessionsClaimedMonth] = useState<number>(sessionsModeDefaultMonthly);
+  const [actualSessionRate, setActualSessionRate] = useState<number>(Math.round(sessionsModeMaxStaffRate * 100) / 100);
 
-  // Reset hours-mode inputs whenever the underlying derivations change
-  useEffect(() => {
-    setHoursClaimedMonth(hoursModeDefaultMonthlyHours);
-  }, [hoursModeDefaultMonthlyHours]);
+  // Reset inputs whenever the underlying derivations change
+  useEffect(() => { setHoursClaimedMonth(hoursModeDefaultMonthlyHours); }, [hoursModeDefaultMonthlyHours]);
   useEffect(() => {
     setActualHourlyRate(prev => {
       const max = Math.round(hoursModeMaxStaffHourly * 100) / 100;
@@ -533,14 +543,27 @@ function InlineClaimPanel({
       return prev;
     });
   }, [hoursModeMaxStaffHourly]);
-
-  // When in hours-mode, the standard claimed amount is auto-derived
+  useEffect(() => { setSessionsClaimedMonth(sessionsModeDefaultMonthly); }, [sessionsModeDefaultMonthly]);
   useEffect(() => {
-    if (!hoursMode) return;
-    const derived = actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult;
-    const capped = Math.min(derived, calculatedAmount);
-    setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
-  }, [hoursMode, actualHourlyRate, hoursClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
+    setActualSessionRate(prev => {
+      const max = Math.round(sessionsModeMaxStaffRate * 100) / 100;
+      if (!prev || prev > max) return max;
+      return prev;
+    });
+  }, [sessionsModeMaxStaffRate]);
+
+  // When in hours/sessions-mode, the standard claimed amount is auto-derived
+  useEffect(() => {
+    if (hoursMode) {
+      const derived = actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult;
+      const capped = Math.min(derived, calculatedAmount);
+      setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
+    } else if (sessionsMode) {
+      const derived = actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult;
+      const capped = Math.min(derived, calculatedAmount);
+      setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
+    }
+  }, [hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
 
   const handleCreateDraft = async () => {
     if (!onCreateClaim || creating) return;
@@ -1095,87 +1118,139 @@ function InlineClaimPanel({
                   </div>
 
                   {/* Allocation override toggle — non-locum, non-meeting, non-management.
-                      Lets the user re-cast WTE ↔ Hours/wk for this claim only. */}
+                      Lets the user re-cast WTE ↔ Hours/wk ↔ Sessions/wk for this claim only. */}
                   {!isLocum && !isMeeting && !isManagement && staffMember.staff_role !== 'NRES Management' && (
-                    (staffMember.allocation_type === 'wte' || staffMember.allocation_type === 'hours') && (
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-                        padding: '8px 12px', marginBottom: 10,
-                        background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7,
-                      }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Claim as</span>
-                        <div style={{ display: 'inline-flex', borderRadius: 6, overflow: 'hidden', border: '1px solid #bfdbfe' }}>
-                          {(['wte', 'hours'] as const).map(t => {
-                            const active = (overrideAllocType ?? staffMember.allocation_type) === t;
-                            return (
-                              <button
-                                key={t}
-                                onClick={() => {
-                                  // Convert current value into the new unit
-                                  const currentType = overrideAllocType ?? staffMember.allocation_type;
-                                  const currentVal = overrideAllocValue;
-                                  let newVal = currentVal;
-                                  if (currentType !== t) {
-                                    if (t === 'hours') newVal = +(currentVal * 37.5).toFixed(2);
-                                    else newVal = +(currentVal / 37.5).toFixed(4);
-                                  }
-                                  const cap = t === 'wte' ? 1 : 37.5;
-                                  if (newVal > cap) newVal = cap;
-                                  setOverrideAllocType(t);
-                                  setOverrideAllocValue(newVal);
-                                }}
-                                style={{
-                                  padding: '4px 10px', fontSize: 11, fontWeight: 600,
-                                  background: active ? '#1e40af' : '#fff',
-                                  color: active ? '#fff' : '#1e40af',
-                                  border: 'none', cursor: 'pointer',
-                                }}
-                              >
-                                {t === 'wte' ? 'WTE' : 'Hours/wk'}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <input
-                          type="number"
-                          min={0}
-                          max={(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 1 : 37.5}
-                          step={(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 0.01 : 0.5}
-                          value={overrideAllocValue}
-                          onChange={e => {
-                            const raw = Number(e.target.value);
-                            const t = overrideAllocType ?? staffMember.allocation_type;
-                            const cap = t === 'wte' ? 1 : 37.5;
-                            const v = Math.max(0, Math.min(raw, cap));
-                            setOverrideAllocType(t as 'wte' | 'hours');
-                            setOverrideAllocValue(v);
-                          }}
-                          style={{
-                            width: 80, padding: '5px 8px', borderRadius: 6,
-                            border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600,
-                            textAlign: 'right', outline: 'none', background: '#fff',
-                          }}
-                        />
-                        <span style={{ fontSize: 11, color: '#1e40af' }}>
-                          {(overrideAllocType ?? staffMember.allocation_type) === 'wte' ? 'Max 1.0 WTE' : 'Max 37.5 hrs/wk'}
-                        </span>
-                        {overrideAllocType && (
-                          <button
-                            onClick={() => {
-                              setOverrideAllocType(null);
-                              setOverrideAllocValue(staffMember.allocation_value || 0);
+                    (staffMember.allocation_type === 'wte' || staffMember.allocation_type === 'hours' || staffMember.allocation_type === 'sessions') && (() => {
+                      const currentType = (overrideAllocType ?? staffMember.allocation_type) as 'wte' | 'hours' | 'sessions';
+                      const showSessions = hoursModeIsSessionPriced;
+                      const allTypes: Array<'wte' | 'hours' | 'sessions'> = showSessions
+                        ? ['wte', 'hours', 'sessions']
+                        : ['wte', 'hours'];
+                      const cap = currentType === 'wte' ? 1 : currentType === 'hours' ? 37.5 : 9;
+                      const unitLabel = currentType === 'wte' ? 'Max 1.0 WTE' : currentType === 'hours' ? 'Max 37.5 hrs/wk' : 'Max 9 sess/wk';
+                      // hrs <-> sessions <-> wte conversions
+                      const toWte = (v: number, from: 'wte' | 'hours' | 'sessions') => from === 'wte' ? v : from === 'hours' ? v / 37.5 : v / 9;
+                      const fromWte = (v: number, to: 'wte' | 'hours' | 'sessions') => to === 'wte' ? v : to === 'hours' ? v * 37.5 : v * 9;
+                      // Monthly equivalents (for the link)
+                      const monthlyHrs = currentType === 'hours'
+                        ? overrideAllocValue * hoursModeWorkingWeeks
+                        : currentType === 'sessions'
+                          ? overrideAllocValue * HOURS_PER_SESSION * hoursModeWorkingWeeks
+                          : 0;
+                      const monthlySess = currentType === 'sessions'
+                        ? overrideAllocValue * hoursModeWorkingWeeks
+                        : currentType === 'hours'
+                          ? (overrideAllocValue / HOURS_PER_SESSION) * hoursModeWorkingWeeks
+                          : 0;
+                      return (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                          padding: '8px 12px', marginBottom: 10,
+                          background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7,
+                        }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#1e40af' }}>Claim as</span>
+                          <div style={{ display: 'inline-flex', borderRadius: 6, overflow: 'hidden', border: '1px solid #bfdbfe' }}>
+                            {allTypes.map(t => {
+                              const active = currentType === t;
+                              return (
+                                <button
+                                  key={t}
+                                  onClick={() => {
+                                    if (currentType === t) return;
+                                    const wteEquiv = toWte(overrideAllocValue, currentType);
+                                    let newVal = +fromWte(wteEquiv, t).toFixed(t === 'wte' ? 4 : 2);
+                                    const newCap = t === 'wte' ? 1 : t === 'hours' ? 37.5 : 9;
+                                    if (newVal > newCap) newVal = newCap;
+                                    setOverrideAllocType(t);
+                                    setOverrideAllocValue(newVal);
+                                  }}
+                                  style={{
+                                    padding: '4px 10px', fontSize: 11, fontWeight: 600,
+                                    background: active ? '#1e40af' : '#fff',
+                                    color: active ? '#fff' : '#1e40af',
+                                    border: 'none', cursor: 'pointer',
+                                  }}
+                                >
+                                  {t === 'wte' ? 'WTE' : t === 'hours' ? 'Hours/wk' : 'Sessions/wk'}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            max={cap}
+                            step={currentType === 'wte' ? 0.01 : currentType === 'sessions' ? 0.1 : 0.5}
+                            value={overrideAllocValue}
+                            onChange={e => {
+                              const raw = Number(e.target.value);
+                              const v = Math.max(0, Math.min(raw, cap));
+                              setOverrideAllocType(currentType);
+                              setOverrideAllocValue(v);
                             }}
                             style={{
-                              marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
-                              border: '1px solid #bfdbfe', background: '#fff', color: '#1e40af',
-                              fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                              width: 80, padding: '5px 8px', borderRadius: 6,
+                              border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600,
+                              textAlign: 'right', outline: 'none', background: '#fff',
                             }}
-                          >
-                            Reset to {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
-                          </button>
-                        )}
-                      </div>
-                    )
+                          />
+                          <span style={{ fontSize: 11, color: '#1e40af' }}>{unitLabel}</span>
+
+                          {/* Total monthly quick links — visible for hours / sessions modes */}
+                          {showSessions && (currentType === 'hours' || currentType === 'sessions') && (
+                            <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center', marginLeft: 4 }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById('hours-mode-month-input');
+                                  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); (el as HTMLInputElement).focus(); }
+                                }}
+                                style={{
+                                  background: 'transparent', border: 'none', padding: 0,
+                                  color: '#1e40af', textDecoration: 'underline', cursor: 'pointer',
+                                  fontSize: 11, fontWeight: 600,
+                                }}
+                                title="Jump to monthly hours input"
+                              >
+                                Total monthly: {monthlyHrs.toFixed(2)} hrs
+                              </button>
+                              <span style={{ fontSize: 11, color: '#9ca3af' }}>·</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById('sessions-mode-month-input');
+                                  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); (el as HTMLInputElement).focus(); }
+                                }}
+                                style={{
+                                  background: 'transparent', border: 'none', padding: 0,
+                                  color: '#1e40af', textDecoration: 'underline', cursor: 'pointer',
+                                  fontSize: 11, fontWeight: 600,
+                                }}
+                                title="Jump to monthly sessions input"
+                              >
+                                Total monthly: {monthlySess.toFixed(2)} sess
+                              </button>
+                            </div>
+                          )}
+
+                          {overrideAllocType && (
+                            <button
+                              onClick={() => {
+                                setOverrideAllocType(null);
+                                setOverrideAllocValue(staffMember.allocation_value || 0);
+                              }}
+                              style={{
+                                marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
+                                border: '1px solid #bfdbfe', background: '#fff', color: '#1e40af',
+                                fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                              }}
+                            >
+                              Reset to {getAllocDisplay(staffMember.allocation_type, staffMember.allocation_value)}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()
                   )}
 
                   {/* Management breakdown (existing rich rows) */}
@@ -1278,6 +1353,7 @@ function InlineClaimPanel({
                           </label>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <input
+                              id="hours-mode-month-input"
                               type="number"
                               min="0"
                               step="0.25"
@@ -1365,8 +1441,110 @@ function InlineClaimPanel({
                     </div>
                   )}
 
-                  {/* Actual claimed amount input — for all non-management categories (hidden in hours-mode) */}
-                  {!hoursMode && staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management' && calculatedAmount > 0 && (
+                  {/* Sessions-mode panel — sessional GP claimed by sess/wk */}
+                  {sessionsMode && calculatedAmount > 0 && (
+                    <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 10 }}>
+                        Sessions-based claim breakdown
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                        <div>
+                          <label style={{ fontSize: 11, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+                            Sessions claimed this month
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <input
+                              id="sessions-mode-month-input"
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              value={sessionsClaimedMonth}
+                              onChange={e => {
+                                const v = Math.max(0, Math.round(Number(e.target.value) * 100) / 100);
+                                setSessionsClaimedMonth(v);
+                              }}
+                              style={{
+                                width: 110, padding: '7px 10px', borderRadius: 7,
+                                border: `1px solid ${catAccentColor}60`,
+                                fontSize: 15, fontWeight: 600, textAlign: 'right',
+                                outline: 'none', fontVariantNumeric: 'tabular-nums',
+                              }}
+                            />
+                            <span style={{ fontSize: 12, color: '#6b7280' }}>sess</span>
+                          </div>
+                          <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
+                            Default: {sessionsModeWeekly} sess/wk × {hoursModeWorkingWeeks.toFixed(2)} wks = {sessionsModeDefaultMonthly.toFixed(2)} sess
+                          </p>
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: 11, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+                            Actual session rate paid (gross, excl. on-costs)
+                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>£</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max={sessionsModeMaxStaffRate}
+                              step="0.01"
+                              value={actualSessionRate}
+                              onChange={e => {
+                                const raw = Number(e.target.value);
+                                const capped = Math.min(raw, sessionsModeMaxStaffRate);
+                                setActualSessionRate(Math.max(0, Math.round(capped * 100) / 100));
+                              }}
+                              style={{
+                                width: 110, padding: '7px 10px', borderRadius: 7,
+                                border: `1px solid ${catAccentColor}60`,
+                                fontSize: 15, fontWeight: 600, textAlign: 'right',
+                                outline: 'none', fontVariantNumeric: 'tabular-nums',
+                              }}
+                            />
+                            <span style={{ fontSize: 12, color: '#6b7280' }}>/sess</span>
+                          </div>
+                          <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
+                            Max funded: £{sessionsModeMaxStaffRate.toFixed(2)}/sess (4 h 10 m) for {effectiveStaff.staff_role}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                          <span style={{ color: '#6b7280' }}>Staff cost ({sessionsClaimedMonth.toFixed(2)} sess × £{actualSessionRate.toFixed(2)}/sess)</span>
+                          <span style={{ fontWeight: 600 }}>{fmtGBP(actualSessionRate * sessionsClaimedMonth)}</span>
+                        </div>
+                        {hoursModeIncludesOnCosts && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                            <span style={{ color: '#6b7280' }}>+ Employer on-costs (× {hoursModeOnCostMult.toFixed(4)})</span>
+                            <span style={{ fontWeight: 600 }}>{fmtGBP(actualSessionRate * sessionsClaimedMonth * (hoursModeOnCostMult - 1))}</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 0', marginTop: 4, borderTop: `1px solid ${catAccentColor}20` }}>
+                          <span style={{ color: '#374151', fontWeight: 600 }}>Amount to claim this month</span>
+                          <span style={{ fontWeight: 700, color: catAccentColor, fontSize: 13 }}>{fmtGBP(standardClaimedAmount)}</span>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const uncapped = Math.round(actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                        const capped = uncapped > calculatedAmount;
+                        return capped ? (
+                          <p style={{ fontSize: 11, color: '#b45309', margin: 0 }}>
+                            Capped at the monthly maximum of {fmtGBP(calculatedAmount)} (equivalent to £{sessionsModeMaxStaffRate.toFixed(2)}/sess × {sessionsClaimedMonth.toFixed(2)} sess incl. on-costs).
+                          </p>
+                        ) : (
+                          <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
+                            Auto-calculated from sessions × session rate × on-costs. Maximum claimable this month is {fmtGBP(calculatedAmount)}.
+                          </p>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Actual claimed amount input — for all non-management categories (hidden in hours/sessions-mode) */}
+                  {!hoursMode && !sessionsMode && staffMember.staff_category !== 'management' && staffMember.staff_role !== 'NRES Management' && calculatedAmount > 0 && (
                     <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>Amount to claim this month</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' as const }}>
@@ -1421,7 +1599,9 @@ function InlineClaimPanel({
                         const holWeeks = (staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') ? holidayWeeks : 0;
                         const staffForClaim = hoursMode
                           ? ({ ...effectiveStaff, claimed_hours_in_month: hoursClaimedMonth, actual_hourly_rate_gross: actualHourlyRate } as any)
-                          : effectiveStaff;
+                          : sessionsMode
+                            ? ({ ...effectiveStaff, claimed_sessions_in_month: sessionsClaimedMonth, actual_session_rate_gross: actualSessionRate } as any)
+                            : effectiveStaff;
                         const result = await onCreateClaim(monthDate, staffForClaim, amountToUse, holWeeks);
                         if (result) setLocalClaim(result);
                       } finally {
