@@ -1611,13 +1611,25 @@ function InlineClaimPanel({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <input
                               id="sessions-mode-month-input"
-                              type="number"
-                              min="0"
-                              step="0.1"
-                              value={sessionsClaimedMonth}
+                              type="text"
+                              inputMode="decimal"
+                              value={sessionsClaimedInput ?? formatEditableNumber(sessionsClaimedMonth)}
                               onChange={e => {
-                                const v = Math.max(0, Math.round(Number(e.target.value) * 100) / 100);
+                                const nextInput = sanitiseDecimalInput(e.target.value);
+                                if (nextInput === null) return;
+                                setSessionsClaimedInput(nextInput);
+                                const raw = parseDecimalInput(nextInput);
+                                if (raw === null) return;
+                                const maxMonthlySessions = 9 * hoursModeFullMonthWeeks;
+                                const v = Math.max(0, Math.min(raw, maxMonthlySessions));
                                 setSessionsClaimedMonth(v);
+                              }}
+                              onBlur={() => {
+                                const maxMonthlySessions = 9 * hoursModeFullMonthWeeks;
+                                const raw = parseDecimalInput(sessionsClaimedInput ?? String(sessionsClaimedMonth));
+                                const v = Math.max(0, Math.min(raw ?? sessionsClaimedMonth, maxMonthlySessions));
+                                setSessionsClaimedMonth(v);
+                                setSessionsClaimedInput(formatEditableNumber(v));
                               }}
                               style={{
                                 width: 110, padding: '7px 10px', borderRadius: 7,
@@ -1629,7 +1641,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>sess</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {sessionsModeWeekly} sess/wk × {hoursModeWorkingWeeks.toFixed(2)} wks = {sessionsModeDefaultMonthly.toFixed(2)} sess
+                            Default: {sessionsModeWeekly} sess/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {sessionsModeDefaultMonthly.toFixed(2)} sess. Max {formatEditableNumber(9 * hoursModeFullMonthWeeks)} sess/month
                           </p>
                         </div>
 
