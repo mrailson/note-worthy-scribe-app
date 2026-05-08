@@ -1457,13 +1457,25 @@ function InlineClaimPanel({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <input
                               id="hours-mode-month-input"
-                              type="number"
-                              min="0"
-                              step="0.25"
-                              value={hoursClaimedMonth}
+                              type="text"
+                              inputMode="decimal"
+                              value={hoursClaimedInput ?? formatEditableNumber(hoursClaimedMonth)}
                               onChange={e => {
-                                const v = Math.max(0, Math.round(Number(e.target.value) * 100) / 100);
+                                const nextInput = sanitiseDecimalInput(e.target.value);
+                                if (nextInput === null) return;
+                                setHoursClaimedInput(nextInput);
+                                const raw = parseDecimalInput(nextInput);
+                                if (raw === null) return;
+                                const maxMonthlyHours = 37.5 * hoursModeFullMonthWeeks;
+                                const v = Math.max(0, Math.min(raw, maxMonthlyHours));
                                 setHoursClaimedMonth(v);
+                              }}
+                              onBlur={() => {
+                                const maxMonthlyHours = 37.5 * hoursModeFullMonthWeeks;
+                                const raw = parseDecimalInput(hoursClaimedInput ?? String(hoursClaimedMonth));
+                                const v = Math.max(0, Math.min(raw ?? hoursClaimedMonth, maxMonthlyHours));
+                                setHoursClaimedMonth(v);
+                                setHoursClaimedInput(formatEditableNumber(v));
                               }}
                               style={{
                                 width: 110, padding: '7px 10px', borderRadius: 7,
@@ -1475,7 +1487,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>hrs</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeWorkingWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs
+                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs. Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month
                           </p>
                         </div>
 
