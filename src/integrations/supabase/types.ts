@@ -102,10 +102,14 @@ export type Database = {
       }
       agewell_responses: {
         Row: {
+          anything_else: string | null
           branch_site: string | null
           call_duration_seconds: number | null
           channel: string
+          comment: string | null
           completed_with_support: string | null
+          created_at: string
+          elevenlabs_call_id: string | null
           email_sent_at: string | null
           equipment_provided: string | null
           id: string
@@ -116,7 +120,10 @@ export type Database = {
           online_meeting_concerns_discussed: string | null
           overall_rating: number | null
           practice_canonical: string | null
+          practice_id: string | null
+          practice_label: string | null
           practice_label_freeform: string | null
+          rating: string | null
           signposted: string | null
           submission_token: string | null
           submitted_at: string
@@ -127,10 +134,14 @@ export type Database = {
           would_recommend: string | null
         }
         Insert: {
+          anything_else?: string | null
           branch_site?: string | null
           call_duration_seconds?: number | null
           channel?: string
+          comment?: string | null
           completed_with_support?: string | null
+          created_at?: string
+          elevenlabs_call_id?: string | null
           email_sent_at?: string | null
           equipment_provided?: string | null
           id?: string
@@ -141,7 +152,10 @@ export type Database = {
           online_meeting_concerns_discussed?: string | null
           overall_rating?: number | null
           practice_canonical?: string | null
+          practice_id?: string | null
+          practice_label?: string | null
           practice_label_freeform?: string | null
+          rating?: string | null
           signposted?: string | null
           submission_token?: string | null
           submitted_at?: string
@@ -152,10 +166,14 @@ export type Database = {
           would_recommend?: string | null
         }
         Update: {
+          anything_else?: string | null
           branch_site?: string | null
           call_duration_seconds?: number | null
           channel?: string
+          comment?: string | null
           completed_with_support?: string | null
+          created_at?: string
+          elevenlabs_call_id?: string | null
           email_sent_at?: string | null
           equipment_provided?: string | null
           id?: string
@@ -166,7 +184,10 @@ export type Database = {
           online_meeting_concerns_discussed?: string | null
           overall_rating?: number | null
           practice_canonical?: string | null
+          practice_id?: string | null
+          practice_label?: string | null
           practice_label_freeform?: string | null
+          rating?: string | null
           signposted?: string | null
           submission_token?: string | null
           submitted_at?: string
