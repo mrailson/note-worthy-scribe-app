@@ -1,0 +1,1 @@
+ALTER TABLE public.agewell_responses ADD COLUMN IF NOT EXISTS is_complete boolean NOT NULL DEFAULT false;

@@ -1,5 +1,5 @@
-// ElevenLabs AgeWell post-call webhook
-// HMAC-verified, inserts to agewell_responses, emails via Resend.
+// ElevenLabs AgeWell post-call webhook — DEBUG MODE
+// HMAC-verified, ALWAYS inserts + emails (regardless of survey_completed).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const LOG = "[submit-agewell-response]";
@@ -17,8 +17,9 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const HMAC_SECRET = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
 const FROM_EMAIL = Deno.env.get("AGEWELL_FROM_EMAIL") ||
   "Ageing Well Feedback <noreply@gpnotewell.co.uk>";
-const TO_EMAILS = (Deno.env.get("AGEWELL_TO_EMAILS") || "")
-  .split(",").map((e) => e.trim()).filter(Boolean);
+
+// Hardcoded during debug — will move to env vars later.
+const TO_EMAILS = ["malcolm.railson@nhs.net"];
 
 const admin = createClient(supabaseUrl, serviceKey);
 
@@ -87,44 +88,53 @@ async function verifySignature(rawBody: string, header: string | null): Promise<
   return timingSafeEqual(expected, sig);
 }
 
+const NOT_CAPTURED = `<em style="color:#94A3B8">(not captured)</em>`;
+
 function buildEmail(opts: {
   practiceLabel: string;
   branchSite: string | null;
   rating: string;
-  comment: string | null;
-  anythingElse: string | null;
   callDuration: number | null;
   conversationId: string | null;
   submittedAt: string;
   transcript: any;
   dataCollection: Record<string, any>;
+  isComplete: boolean;
 }) {
   const branchSuffix = opts.branchSite ? ` (${opts.branchSite})` : "";
-  const subject = `[Phone] AgeWell — ${opts.practiceLabel}${branchSuffix} — ${opts.rating}`;
+  const subject = opts.isComplete
+    ? `[Phone] AgeWell — ${opts.practiceLabel} — ${opts.rating}`
+    : `[Phone DEBUG — INCOMPLETE] AgeWell — ${opts.practiceLabel || "no practice"} — ${opts.rating || "no rating"} — call ${opts.conversationId ?? "unknown"}`;
   const submittedFmt = formatUkDate(opts.submittedAt);
 
-  const row = (label: string, value: string) => `
+  const row = (label: string, valueHtml: string) => `
     <tr>
       <td style="padding:8px 14px 8px 0;color:#64748B;font-size:13px;width:38%;vertical-align:top">${escapeHtml(label)}</td>
-      <td style="padding:8px 0;font-size:14px;color:#1E293B;font-weight:600">${escapeHtml(value)}</td>
+      <td style="padding:8px 0;font-size:14px;color:#1E293B;font-weight:600">${valueHtml}</td>
     </tr>`;
 
-  const surveyRows: string[] = [];
-  for (const [k, v] of Object.entries(opts.dataCollection)) {
-    if (v == null || v === "") continue;
-    if (k === "survey_completed") continue;
+  const surveyKeys = [
+    "practice_id", "practice_label", "branch_site",
+    "rating", "comment", "anything_else", "survey_completed",
+  ];
+  const allKeys = Array.from(new Set([...surveyKeys, ...Object.keys(opts.dataCollection || {})]));
+
+  const surveyRows = allKeys.map((k) => {
+    const v = opts.dataCollection?.[k];
     const label = k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    if (v == null || v === "") return row(label, NOT_CAPTURED);
     let display: string;
     if (typeof v === "boolean") display = v ? "Yes" : "No";
     else if (typeof v === "object") display = JSON.stringify(v);
     else display = String(v);
-    surveyRows.push(row(label, display));
-  }
+    return row(label, escapeHtml(display));
+  }).join("");
 
   const transcriptHtml = (() => {
-    if (!opts.transcript) return "";
     const arr = Array.isArray(opts.transcript) ? opts.transcript : [];
-    if (!arr.length) return "";
+    if (!arr.length) {
+      return `<div style="padding:14px 16px;background:#F8FAFC;border-radius:8px;font-size:13px;color:#94A3B8;font-style:italic">(no transcript captured)</div>`;
+    }
     const lines = arr.map((t: any) => {
       const role = escapeHtml(String(t?.role ?? t?.speaker ?? "Speaker"));
       const text = escapeHtml(String(t?.message ?? t?.text ?? ""));
@@ -133,42 +143,39 @@ function buildEmail(opts: {
         : "";
       return `<div style="margin-bottom:6px"><strong>${role}</strong> <span style="color:#94A3B8;font-size:12px">${ts}</span><br>${text}</div>`;
     }).join("");
-    return `
-      <div style="margin-top:22px">
-        <div style="color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px">Full transcript</div>
-        <div style="padding:14px 16px;background:#F8FAFC;border-radius:8px;font-size:13px;line-height:1.5;color:#1E293B">${lines}</div>
-      </div>`;
+    return `<div style="padding:14px 16px;background:#F8FAFC;border-radius:8px;font-size:13px;line-height:1.5;color:#1E293B">${lines}</div>`;
   })();
 
-  const commentBlock = (label: string, text: string | null) => text ? `
-    <div style="margin-top:16px">
-      <div style="color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">${escapeHtml(label)}</div>
-      <blockquote style="margin:0;padding:12px 16px;background:#F1F5F9;border-left:4px solid #4DB6A6;color:#1E293B;font-size:14px;line-height:1.55;border-radius:6px;font-style:italic">${escapeHtml(text).replace(/\n/g, "<br>")}</blockquote>
-    </div>` : "";
+  const sectionHeader = (label: string) =>
+    `<div style="color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin:22px 0 8px">${escapeHtml(label)}</div>`;
+
+  const bannerColour = opts.isComplete ? "#4DB6A6" : "#D97706";
+  const bannerLabel = opts.isComplete
+    ? "AgeWell — New Phone Feedback"
+    : "AgeWell — Incomplete Call (DEBUG)";
 
   const html = `<!doctype html><html><body style="margin:0;background:#F8FAFC;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1E293B">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:24px 0">
   <tr><td align="center">
     <table width="640" cellpadding="0" cellspacing="0" style="max-width:640px;background:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(15,37,64,.08)">
-      <tr><td style="background:#4DB6A6;color:#FFFFFF;padding:20px 28px;font-weight:700;font-size:17px;letter-spacing:0.3px">
-        AgeWell — New Phone Feedback
+      <tr><td style="background:${bannerColour};color:#FFFFFF;padding:20px 28px;font-weight:700;font-size:17px;letter-spacing:0.3px">
+        ${escapeHtml(bannerLabel)}
       </td></tr>
       <tr><td style="padding:22px 28px 6px">
-        <table width="100%" cellpadding="0" cellspacing="0">
-          ${row("Practice", `${opts.practiceLabel}${branchSuffix}`)}
-          ${row("Rating", opts.rating)}
-          ${row("Submitted", submittedFmt)}
-          ${row("Call duration", fmtDuration(opts.callDuration))}
-          ${opts.conversationId ? row("Conversation ID", opts.conversationId) : ""}
+        ${sectionHeader("Survey answers")}
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:8px;padding:8px 14px">
+          ${surveyRows}
         </table>
-        <div style="margin-top:18px">
-          <div style="color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px">Survey answers</div>
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:8px;padding:8px 14px">
-            ${surveyRows.join("") || `<tr><td style="padding:8px 0;color:#94A3B8;font-size:13px">(no survey fields)</td></tr>`}
-          </table>
-        </div>
-        ${commentBlock("Comment", opts.comment)}
-        ${commentBlock("Anything else", opts.anythingElse)}
+
+        ${sectionHeader("Call metadata")}
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border-radius:8px;padding:8px 14px">
+          ${row("Conversation ID", escapeHtml(opts.conversationId ?? "—"))}
+          ${row("Call duration", escapeHtml(fmtDuration(opts.callDuration)))}
+          ${row("Completion status", opts.isComplete ? "Yes" : "No")}
+          ${row("Timestamp", escapeHtml(submittedFmt))}
+        </table>
+
+        ${sectionHeader("Full transcript")}
         ${transcriptHtml}
       </td></tr>
       <tr><td style="padding:18px 28px 24px;color:#64748B;font-size:12px;line-height:1.6;border-top:1px solid #E2E8F0">
@@ -180,17 +187,22 @@ function buildEmail(opts: {
 </table></body></html>`;
 
   const text = [
-    `AgeWell — New Phone Feedback`,
+    bannerLabel,
     ``,
-    `Practice: ${opts.practiceLabel}${branchSuffix}`,
-    `Rating: ${opts.rating}`,
-    `Submitted: ${submittedFmt}`,
-    `Call duration: ${fmtDuration(opts.callDuration)}`,
-    opts.conversationId ? `Conversation ID: ${opts.conversationId}` : "",
+    `Conversation ID: ${opts.conversationId ?? "—"}`,
+    `Duration: ${fmtDuration(opts.callDuration)}`,
+    `Completed: ${opts.isComplete ? "Yes" : "No"}`,
+    `Timestamp: ${submittedFmt}`,
     ``,
-    opts.comment ? `Comment: ${opts.comment}` : "",
-    opts.anythingElse ? `Anything else: ${opts.anythingElse}` : "",
-  ].filter(Boolean).join("\n");
+    `Survey answers:`,
+    ...allKeys.map((k) => {
+      const v = opts.dataCollection?.[k];
+      const display = (v == null || v === "")
+        ? "(not captured)"
+        : typeof v === "object" ? JSON.stringify(v) : String(v);
+      return `  ${k}: ${display}`;
+    }),
+  ].join("\n");
 
   return { subject, html, text };
 }
@@ -209,6 +221,8 @@ async function logEmailFailure(responseId: string | null, msg: string, payload: 
 }
 
 Deno.serve(async (req) => {
+  console.log(`${LOG} Webhook received, will always email during debug mode`);
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -232,18 +246,14 @@ Deno.serve(async (req) => {
   const data = payload?.data ?? payload;
   const dataCollection: Record<string, any> = data?.data_collection ?? {};
   const conversationId: string | null = data?.conversation_id ?? null;
+  const isComplete = dataCollection?.survey_completed === true;
 
-  console.log(`${LOG} received conversation_id=${conversationId}`);
-
-  if (dataCollection?.survey_completed !== true) {
-    console.log(`${LOG} abandonment — survey_completed=${dataCollection?.survey_completed} conversation_id=${conversationId}`);
-    return jsonResponse({ success: true, abandoned: true });
-  }
+  console.log(`${LOG} conversation_id=${conversationId} survey_completed=${dataCollection?.survey_completed} -> proceeding (debug always-email)`);
 
   const practice_id = dataCollection.practice_id ? String(dataCollection.practice_id) : null;
-  const practice_label = dataCollection.practice_label ? String(dataCollection.practice_label) : "Unknown practice";
+  const practice_label = dataCollection.practice_label ? String(dataCollection.practice_label) : "unspecified";
   const branch_site = dataCollection.branch_site ? String(dataCollection.branch_site) : null;
-  const rating = dataCollection.rating ? String(dataCollection.rating) : "—";
+  const rating = dataCollection.rating ? String(dataCollection.rating) : "unspecified";
   const comment = dataCollection.comment ? String(dataCollection.comment) : null;
   const anything_else = dataCollection.anything_else ? String(dataCollection.anything_else) : null;
   const call_duration_seconds = typeof data?.metadata?.call_duration_secs === "number"
@@ -265,30 +275,24 @@ Deno.serve(async (req) => {
       call_duration_seconds,
       transcript_json: transcript,
       elevenlabs_call_id: conversationId,
+      is_complete: isComplete,
     })
     .select("id, created_at, submitted_at")
     .single();
 
   if (insertErr) {
     console.error(`${LOG} insert error:`, insertErr);
-    // Still return 200 so ElevenLabs doesn't retry; we log the failure.
     await logEmailFailure(null, `insert error: ${insertErr.message}`, { conversationId, dataCollection });
-    return jsonResponse({ success: false, error: "insert_failed" });
+    // Continue — still try to email so we can debug.
   }
 
   const responseId = inserted?.id ?? null;
   const submittedAt = inserted?.created_at ?? inserted?.submitted_at ?? new Date().toISOString();
-
-  console.log(`${LOG} inserted id=${responseId}`);
+  console.log(`${LOG} inserted id=${responseId} is_complete=${isComplete}`);
 
   if (!RESEND_API_KEY) {
     console.error(`${LOG} RESEND_API_KEY missing`);
     await logEmailFailure(responseId, "RESEND_API_KEY missing", { conversationId });
-    return jsonResponse({ success: true, id: responseId, email: "skipped" });
-  }
-  if (!TO_EMAILS.length) {
-    console.error(`${LOG} AGEWELL_TO_EMAILS empty`);
-    await logEmailFailure(responseId, "AGEWELL_TO_EMAILS empty", { conversationId });
     return jsonResponse({ success: true, id: responseId, email: "skipped" });
   }
 
@@ -296,13 +300,12 @@ Deno.serve(async (req) => {
     practiceLabel: practice_label,
     branchSite: branch_site,
     rating,
-    comment,
-    anythingElse: anything_else,
     callDuration: call_duration_seconds,
     conversationId,
     submittedAt,
     transcript,
     dataCollection,
+    isComplete,
   });
 
   try {
@@ -319,12 +322,12 @@ Deno.serve(async (req) => {
       console.error(`${LOG} Resend ${resp.status}: ${errBody}`);
       await logEmailFailure(responseId, `Resend ${resp.status}: ${errBody.slice(0, 800)}`, { conversationId, subject });
     } else {
-      console.log(`${LOG} email sent for id=${responseId}`);
+      console.log(`${LOG} email sent for id=${responseId} (complete=${isComplete})`);
     }
   } catch (e) {
     console.error(`${LOG} Resend exception:`, (e as Error).message);
     await logEmailFailure(responseId, `Resend exception: ${(e as Error).message}`, { conversationId, subject });
   }
 
-  return jsonResponse({ success: true, id: responseId });
+  return jsonResponse({ success: true, id: responseId, is_complete: isComplete });
 });
