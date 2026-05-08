@@ -8,6 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AGEWELL_PRACTICES } from "@/data/agewellPractices";
+import { NotificationSettingsDialog } from "@/components/agewell/NotificationSettingsDialog";
+import { AgewellCharts } from "@/components/agewell/AgewellCharts";
+import { Settings } from "lucide-react";
 
 interface Row {
   id: string;
