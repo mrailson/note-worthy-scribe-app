@@ -293,7 +293,6 @@ export default function AdminAgewellResponses() {
                     <td className="px-3 py-2 whitespace-nowrap">{formatUK(r.submitted_at)}</td>
                     <td className="px-3 py-2 text-muted-foreground">{CHANNEL_LABEL[r.channel] || r.channel}</td>
                     <td className="px-3 py-2">{practiceLabel(r)}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.branch_site || "—"}</td>
                     <td className="px-3 py-2 text-center">
                       <Badge style={{ background: RATING_COLOUR(r.support_worker_rating) + "20", color: RATING_COLOUR(r.support_worker_rating) }}>
                         {r.support_worker_rating ?? "—"}
