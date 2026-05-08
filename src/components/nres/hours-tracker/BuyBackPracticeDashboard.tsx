@@ -1486,7 +1486,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>hrs</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs. Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month
+                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs (≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess). Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month (≈ {(9 * hoursModeFullMonthWeeks).toFixed(2)} sess)
                           </p>
                         </div>
 
