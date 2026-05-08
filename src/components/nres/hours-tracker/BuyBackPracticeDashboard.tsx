@@ -559,7 +559,7 @@ function InlineClaimPanel({
   useEffect(() => {
     if (
       !isLocum && !isMeeting && !isManagement &&
-      hoursModeIsSessionPriced && hoursModeAnnualRate > 0 &&
+      hoursModeAnnualRate > 0 &&
       overrideAllocType === null &&
       staffMember.allocation_type === 'wte'
     ) {
