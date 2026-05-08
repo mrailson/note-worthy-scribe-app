@@ -1222,11 +1222,11 @@ function InlineClaimPanel({
                     };
 
                     const monthlyHrsEquiv = currentUnit === 'hours'
-                      ? weeklyValue * wkInMonth
-                      : weeklyValue * HOURS_PER_SESSION * wkInMonth;
+                      ? weeklyValue * fullMonthWeeks
+                      : weeklyValue * HOURS_PER_SESSION * fullMonthWeeks;
                     const monthlySessEquiv = currentUnit === 'sessions'
-                      ? weeklyValue * wkInMonth
-                      : (weeklyValue / HOURS_PER_SESSION) * wkInMonth;
+                      ? weeklyValue * fullMonthWeeks
+                      : (weeklyValue / HOURS_PER_SESSION) * fullMonthWeeks;
 
                     const isOverridden = overrideAllocType !== null
                       || claimPeriod !== 'weekly'
@@ -1245,7 +1245,10 @@ function InlineClaimPanel({
                           <span style={{ fontSize: 11, fontWeight: 600, color: claimPeriod === 'weekly' ? '#1e40af' : '#94a3b8' }}>Weekly</span>
                           <button
                             type="button"
-                            onClick={() => setClaimPeriod(p => p === 'weekly' ? 'monthly' : 'weekly')}
+                            onClick={() => {
+                              setClaimQuantityInput(null);
+                              setClaimPeriod(p => p === 'weekly' ? 'monthly' : 'weekly');
+                            }}
                             aria-label="Toggle weekly / monthly"
                             style={{
                               position: 'relative', width: 38, height: 20, borderRadius: 999,
@@ -1274,6 +1277,7 @@ function InlineClaimPanel({
                                   const newWeekly = u === 'hours'
                                     ? weeklyValue * HOURS_PER_SESSION
                                     : weeklyValue / HOURS_PER_SESSION;
+                                  setClaimQuantityInput(null);
                                   commitWeekly(newWeekly, u);
                                 }}
                                 style={{
