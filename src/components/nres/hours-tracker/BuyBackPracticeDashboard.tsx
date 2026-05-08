@@ -105,6 +105,22 @@ export function fmtShort(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 0 });
 }
 
+function formatEditableNumber(n: number, maxDecimals = 2): string {
+  if (!Number.isFinite(n)) return '';
+  return n.toFixed(maxDecimals).replace(/\.?0+$/, '');
+}
+
+function sanitiseDecimalInput(input: string): string | null {
+  const value = input.replace(',', '.');
+  return /^\d*\.?\d*$/.test(value) ? value : null;
+}
+
+function parseDecimalInput(input: string): number | null {
+  if (!input || input === '.') return null;
+  const value = Number(input);
+  return Number.isFinite(value) ? value : null;
+}
+
 function claimTotal(claim: BuyBackClaim): number {
   const staffDets = (claim.staff_details || []) as any[];
   return staffDets.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
@@ -482,11 +498,13 @@ function InlineClaimPanel({
   const [overrideAllocValue, setOverrideAllocValue] = useState<number>(staffMember.allocation_value || 0);
   // Period toggle for the claim panel: weekly vs monthly figure entry
   const [claimPeriod, setClaimPeriod] = useState<'weekly' | 'monthly'>('weekly');
+  const [claimQuantityInput, setClaimQuantityInput] = useState<string | null>(null);
   // Reset override when underlying staff record changes
   useEffect(() => {
     setOverrideAllocType(null);
     setOverrideAllocValue(staffMember.allocation_value || 0);
     setClaimPeriod('weekly');
+    setClaimQuantityInput(null);
   }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value]);
 
   const effectiveStaff = useMemo(() => {
@@ -544,20 +562,26 @@ function InlineClaimPanel({
   const hoursModeMaxTotalHourly = hoursModeMaxStaffHourly + hoursModeMaxOnCostsHourly;
   const hoursModeWeeklyHours = hoursMode ? (effectiveStaff.allocation_value || 0) : 0;
   const hoursModeWorkingWeeks = rateParams?.rawWorkingWeeksInMonth ?? rateParams?.workingWeeksInMonth ?? (52 / 12);
-  const hoursModeDefaultMonthlyHours = Math.round(hoursModeWeeklyHours * hoursModeWorkingWeeks * 100) / 100;
+  const hoursModeFullMonthWeeks = 52 / 12;
+  const hoursModeDefaultMonthlyHours = Math.round(hoursModeWeeklyHours * hoursModeFullMonthWeeks * 100) / 100;
 
   // Sessions mode equivalents
   const sessionsModeMaxStaffRate = hoursModeAnnualRate / 52; // £ per session, gross
   const sessionsModeWeekly = sessionsMode ? (effectiveStaff.allocation_value || 0) : 0;
-  const sessionsModeDefaultMonthly = Math.round(sessionsModeWeekly * hoursModeWorkingWeeks * 100) / 100;
+  const sessionsModeDefaultMonthly = Math.round(sessionsModeWeekly * hoursModeFullMonthWeeks * 100) / 100;
 
   const [hoursClaimedMonth, setHoursClaimedMonth] = useState<number>(hoursModeDefaultMonthlyHours);
   const [actualHourlyRate, setActualHourlyRate] = useState<number>(Math.round(hoursModeMaxStaffHourly * 100) / 100);
   const [sessionsClaimedMonth, setSessionsClaimedMonth] = useState<number>(sessionsModeDefaultMonthly);
   const [actualSessionRate, setActualSessionRate] = useState<number>(Math.round(sessionsModeMaxStaffRate * 100) / 100);
+  const [hoursClaimedInput, setHoursClaimedInput] = useState<string | null>(null);
+  const [sessionsClaimedInput, setSessionsClaimedInput] = useState<string | null>(null);
 
   // Reset inputs whenever the underlying derivations change
-  useEffect(() => { setHoursClaimedMonth(hoursModeDefaultMonthlyHours); }, [hoursModeDefaultMonthlyHours]);
+  useEffect(() => {
+    setHoursClaimedMonth(hoursModeDefaultMonthlyHours);
+    setHoursClaimedInput(null);
+  }, [hoursModeDefaultMonthlyHours]);
   useEffect(() => {
     setActualHourlyRate(prev => {
       const max = Math.round(hoursModeMaxStaffHourly * 100) / 100;
@@ -565,7 +589,10 @@ function InlineClaimPanel({
       return prev;
     });
   }, [hoursModeMaxStaffHourly]);
-  useEffect(() => { setSessionsClaimedMonth(sessionsModeDefaultMonthly); }, [sessionsModeDefaultMonthly]);
+  useEffect(() => {
+    setSessionsClaimedMonth(sessionsModeDefaultMonthly);
+    setSessionsClaimedInput(null);
+  }, [sessionsModeDefaultMonthly]);
   useEffect(() => {
     setActualSessionRate(prev => {
       const max = Math.round(sessionsModeMaxStaffRate * 100) / 100;
@@ -1174,40 +1201,31 @@ function InlineClaimPanel({
                       ? overrideAllocValue
                       : (currentUnit === 'hours' ? seededWeeklyHours : seededWeeklySess);
 
-                    const wkInMonth = hoursModeWorkingWeeks;
-                    // Use a full-calendar-month value for the monthly cap so
-                    // partial-month staff (or holiday-discounted weeks) aren't
-                    // unfairly squeezed below the realistic monthly maximum.
-                    const capWeeksInMonth = Math.max(wkInMonth, 52 / 12);
-                    const weeklyCap = currentUnit === 'hours' ? 37.5 : 9;
-                    const cap = claimPeriod === 'weekly' ? weeklyCap : weeklyCap * capWeeksInMonth;
+                    const fullMonthWeeks = 52 / 12;
+                    const unitWeeklyCap = (unit: 'hours' | 'sessions') => unit === 'hours' ? 37.5 : 9;
+                    const weeklyCap = unitWeeklyCap(currentUnit);
+                    const cap = claimPeriod === 'weekly' ? weeklyCap : weeklyCap * fullMonthWeeks;
                     const displayValue = claimPeriod === 'weekly'
                       ? weeklyValue
-                      : Math.round(weeklyValue * wkInMonth * 100) / 100;
+                      : weeklyValue * fullMonthWeeks;
                     const unitSuffix = currentUnit === 'hours'
                       ? (claimPeriod === 'weekly' ? 'hrs/wk' : 'hrs/month')
                       : (claimPeriod === 'weekly' ? 'sess/wk' : 'sess/month');
                     const maxLabel = `Max ${cap.toFixed(currentUnit === 'hours' ? 1 : 2)} ${unitSuffix}`;
 
                     const commitWeekly = (newWeekly: number, unit: 'hours' | 'sessions') => {
-                      // In monthly mode, allow the canonical weekly value to
-                      // exceed the steady-state weekly cap so that the user can
-                      // enter a full month's worth of hours/sessions even when
-                      // the staff member has fewer working weeks this month.
-                      const upperWeekly = claimPeriod === 'monthly'
-                        ? (cap / Math.max(wkInMonth, 0.0001))
-                        : weeklyCap;
+                      const upperWeekly = unitWeeklyCap(unit);
                       const v = Math.max(0, Math.min(newWeekly, upperWeekly));
                       setOverrideAllocType(unit);
                       setOverrideAllocValue(+v.toFixed(unit === 'hours' ? 2 : 2));
                     };
 
                     const monthlyHrsEquiv = currentUnit === 'hours'
-                      ? weeklyValue * wkInMonth
-                      : weeklyValue * HOURS_PER_SESSION * wkInMonth;
+                      ? weeklyValue * fullMonthWeeks
+                      : weeklyValue * HOURS_PER_SESSION * fullMonthWeeks;
                     const monthlySessEquiv = currentUnit === 'sessions'
-                      ? weeklyValue * wkInMonth
-                      : (weeklyValue / HOURS_PER_SESSION) * wkInMonth;
+                      ? weeklyValue * fullMonthWeeks
+                      : (weeklyValue / HOURS_PER_SESSION) * fullMonthWeeks;
 
                     const isOverridden = overrideAllocType !== null
                       || claimPeriod !== 'weekly'
@@ -1226,7 +1244,10 @@ function InlineClaimPanel({
                           <span style={{ fontSize: 11, fontWeight: 600, color: claimPeriod === 'weekly' ? '#1e40af' : '#94a3b8' }}>Weekly</span>
                           <button
                             type="button"
-                            onClick={() => setClaimPeriod(p => p === 'weekly' ? 'monthly' : 'weekly')}
+                            onClick={() => {
+                              setClaimQuantityInput(null);
+                              setClaimPeriod(p => p === 'weekly' ? 'monthly' : 'weekly');
+                            }}
                             aria-label="Toggle weekly / monthly"
                             style={{
                               position: 'relative', width: 38, height: 20, borderRadius: 999,
@@ -1255,6 +1276,7 @@ function InlineClaimPanel({
                                   const newWeekly = u === 'hours'
                                     ? weeklyValue * HOURS_PER_SESSION
                                     : weeklyValue / HOURS_PER_SESSION;
+                                  setClaimQuantityInput(null);
                                   commitWeekly(newWeekly, u);
                                 }}
                                 style={{
@@ -1271,18 +1293,29 @@ function InlineClaimPanel({
                         </div>
 
                         <input
-                          type="number"
-                          min={0}
-                          max={cap}
-                          step={currentUnit === 'sessions' ? 0.1 : 0.25}
-                          value={displayValue}
+                          type="text"
+                          inputMode="decimal"
+                          value={claimQuantityInput ?? formatEditableNumber(displayValue)}
                           onChange={e => {
-                            const raw = Number(e.target.value);
+                            const nextInput = sanitiseDecimalInput(e.target.value);
+                            if (nextInput === null) return;
+                            setClaimQuantityInput(nextInput);
+                            const raw = parseDecimalInput(nextInput);
+                            if (raw === null) return;
                             const cappedDisplay = Math.max(0, Math.min(raw, cap));
                             const newWeekly = claimPeriod === 'weekly'
                               ? cappedDisplay
-                              : cappedDisplay / wkInMonth;
+                              : cappedDisplay / fullMonthWeeks;
                             commitWeekly(newWeekly, currentUnit);
+                          }}
+                          onBlur={() => {
+                            const raw = parseDecimalInput(claimQuantityInput ?? String(displayValue));
+                            const cappedDisplay = Math.max(0, Math.min(raw ?? displayValue, cap));
+                            const newWeekly = claimPeriod === 'weekly'
+                              ? cappedDisplay
+                              : cappedDisplay / fullMonthWeeks;
+                            commitWeekly(newWeekly, currentUnit);
+                            setClaimQuantityInput(formatEditableNumber(cappedDisplay));
                           }}
                           style={{
                             width: 90, padding: '5px 8px', borderRadius: 6,
@@ -1306,6 +1339,7 @@ function InlineClaimPanel({
                               setOverrideAllocType(null);
                               setOverrideAllocValue(staffMember.allocation_value || 0);
                               setClaimPeriod('weekly');
+                              setClaimQuantityInput(null);
                             }}
                             style={{
                               marginLeft: 'auto', padding: '4px 8px', borderRadius: 5,
@@ -1422,13 +1456,25 @@ function InlineClaimPanel({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <input
                               id="hours-mode-month-input"
-                              type="number"
-                              min="0"
-                              step="0.25"
-                              value={hoursClaimedMonth}
+                              type="text"
+                              inputMode="decimal"
+                              value={hoursClaimedInput ?? formatEditableNumber(hoursClaimedMonth)}
                               onChange={e => {
-                                const v = Math.max(0, Math.round(Number(e.target.value) * 100) / 100);
+                                const nextInput = sanitiseDecimalInput(e.target.value);
+                                if (nextInput === null) return;
+                                setHoursClaimedInput(nextInput);
+                                const raw = parseDecimalInput(nextInput);
+                                if (raw === null) return;
+                                const maxMonthlyHours = 37.5 * hoursModeFullMonthWeeks;
+                                const v = Math.max(0, Math.min(raw, maxMonthlyHours));
                                 setHoursClaimedMonth(v);
+                              }}
+                              onBlur={() => {
+                                const maxMonthlyHours = 37.5 * hoursModeFullMonthWeeks;
+                                const raw = parseDecimalInput(hoursClaimedInput ?? String(hoursClaimedMonth));
+                                const v = Math.max(0, Math.min(raw ?? hoursClaimedMonth, maxMonthlyHours));
+                                setHoursClaimedMonth(v);
+                                setHoursClaimedInput(formatEditableNumber(v));
                               }}
                               style={{
                                 width: 110, padding: '7px 10px', borderRadius: 7,
@@ -1440,7 +1486,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>hrs</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeWorkingWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs
+                            Default: {hoursModeWeeklyHours} hrs/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {hoursModeDefaultMonthlyHours.toFixed(2)} hrs. Max {formatEditableNumber(37.5 * hoursModeFullMonthWeeks)} hrs/month
                           </p>
                         </div>
 
@@ -1564,13 +1610,25 @@ function InlineClaimPanel({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <input
                               id="sessions-mode-month-input"
-                              type="number"
-                              min="0"
-                              step="0.1"
-                              value={sessionsClaimedMonth}
+                              type="text"
+                              inputMode="decimal"
+                              value={sessionsClaimedInput ?? formatEditableNumber(sessionsClaimedMonth)}
                               onChange={e => {
-                                const v = Math.max(0, Math.round(Number(e.target.value) * 100) / 100);
+                                const nextInput = sanitiseDecimalInput(e.target.value);
+                                if (nextInput === null) return;
+                                setSessionsClaimedInput(nextInput);
+                                const raw = parseDecimalInput(nextInput);
+                                if (raw === null) return;
+                                const maxMonthlySessions = 9 * hoursModeFullMonthWeeks;
+                                const v = Math.max(0, Math.min(raw, maxMonthlySessions));
                                 setSessionsClaimedMonth(v);
+                              }}
+                              onBlur={() => {
+                                const maxMonthlySessions = 9 * hoursModeFullMonthWeeks;
+                                const raw = parseDecimalInput(sessionsClaimedInput ?? String(sessionsClaimedMonth));
+                                const v = Math.max(0, Math.min(raw ?? sessionsClaimedMonth, maxMonthlySessions));
+                                setSessionsClaimedMonth(v);
+                                setSessionsClaimedInput(formatEditableNumber(v));
                               }}
                               style={{
                                 width: 110, padding: '7px 10px', borderRadius: 7,
@@ -1582,7 +1640,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>sess</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Default: {sessionsModeWeekly} sess/wk × {hoursModeWorkingWeeks.toFixed(2)} wks = {sessionsModeDefaultMonthly.toFixed(2)} sess
+                            Default: {sessionsModeWeekly} sess/wk × {hoursModeFullMonthWeeks.toFixed(2)} wks = {sessionsModeDefaultMonthly.toFixed(2)} sess. Max {formatEditableNumber(9 * hoursModeFullMonthWeeks)} sess/month
                           </p>
                         </div>
 
