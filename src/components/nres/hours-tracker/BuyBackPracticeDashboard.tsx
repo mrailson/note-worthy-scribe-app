@@ -2035,6 +2035,83 @@ function InlineClaimPanel({
                 ))}
               </div>
 
+              {/* Actual cost incurred — only record if OVER the maximum reclaimable */}
+              {(() => {
+                const maxR = effectiveMaxReclaimable;
+                const raw = parseFloat(actualCostIncurred);
+                const valid = Number.isFinite(raw) && raw > 0;
+                const overMax = valid && maxR > 0 && raw > maxR + 0.005;
+                const overspend = overMax ? Math.round((raw - maxR) * 100) / 100 : 0;
+                const belowOrEqual = valid && !overMax;
+                return (
+                  <div style={{ marginBottom: 12, border: '1px dashed #fcd34d', background: '#fffbeb', borderRadius: 8, padding: '10px 12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActualCostExpanded(v => !v)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#92400e' }}
+                    >
+                      <span>{actualCostExpanded ? '▾' : '▸'}</span>
+                      <span>Record actual cost (only if OVER the maximum reclaimable)</span>
+                    </button>
+                    {!actualCostExpanded && (
+                      <div style={{ fontSize: 11, color: '#92400e', marginTop: 4, lineHeight: 1.4 }}>
+                        Optional. Use this <strong>only if your real staff cost was higher than the maximum reclaimable</strong> ({fmtGBP(maxR)}). For overspend reporting only — does not change the amount you are paid.
+                      </div>
+                    )}
+                    {actualCostExpanded && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 11, color: '#92400e', marginBottom: 8, lineHeight: 1.4 }}>
+                          Only complete this if your <strong>actual staff cost was higher than the maximum reclaimable</strong> ({fmtGBP(maxR)}). This is captured for overspend reporting only — it will not increase the amount you are paid. Leave blank if your cost is at or below the maximum.
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, color: '#374151' }}>£</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            inputMode="decimal"
+                            value={actualCostIncurred}
+                            onChange={(e) => setActualCostIncurred(e.target.value)}
+                            placeholder={`> ${fmtGBP(maxR)}`}
+                            style={{
+                              width: 140, padding: '7px 10px', borderRadius: 6,
+                              border: `1px solid ${overMax ? '#d97706' : belowOrEqual ? '#fca5a5' : '#cbd5e1'}`,
+                              fontSize: 13, fontVariantNumeric: 'tabular-nums',
+                              background: '#fff',
+                            }}
+                          />
+                          {overMax && (
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '4px 8px', borderRadius: 6 }}>
+                              Overspend vs max: {fmtGBP(overspend)}
+                            </span>
+                          )}
+                          {belowOrEqual && (
+                            <span style={{ fontSize: 11, color: '#dc2626' }}>
+                              At or below max — leave blank. Value will be cleared on save.
+                            </span>
+                          )}
+                        </div>
+                        <textarea
+                          value={actualCostNotes}
+                          onChange={(e) => setActualCostNotes(e.target.value)}
+                          placeholder="Why was the cost higher? (e.g. higher salary, additional sessions, agency premium)"
+                          maxLength={1000}
+                          rows={2}
+                          disabled={!overMax}
+                          style={{
+                            marginTop: 8, width: '100%', padding: '7px 10px', borderRadius: 6,
+                            border: '1px solid #cbd5e1', fontSize: 12, color: '#374151',
+                            resize: 'vertical', fontFamily: 'inherit',
+                            background: overMax ? '#fff' : '#f9fafb',
+                            opacity: overMax ? 1 : 0.6,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* Invoice description / claim details */}
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6b7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
