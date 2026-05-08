@@ -1201,28 +1201,20 @@ function InlineClaimPanel({
                       : (currentUnit === 'hours' ? seededWeeklyHours : seededWeeklySess);
 
                     const wkInMonth = hoursModeWorkingWeeks;
-                    // Use a full-calendar-month value for the monthly cap so
-                    // partial-month staff (or holiday-discounted weeks) aren't
-                    // unfairly squeezed below the realistic monthly maximum.
-                    const capWeeksInMonth = Math.max(wkInMonth, 52 / 12);
-                    const weeklyCap = currentUnit === 'hours' ? 37.5 : 9;
-                    const cap = claimPeriod === 'weekly' ? weeklyCap : weeklyCap * capWeeksInMonth;
+                    const fullMonthWeeks = 52 / 12;
+                    const unitWeeklyCap = (unit: 'hours' | 'sessions') => unit === 'hours' ? 37.5 : 9;
+                    const weeklyCap = unitWeeklyCap(currentUnit);
+                    const cap = claimPeriod === 'weekly' ? weeklyCap : weeklyCap * fullMonthWeeks;
                     const displayValue = claimPeriod === 'weekly'
                       ? weeklyValue
-                      : Math.round(weeklyValue * wkInMonth * 100) / 100;
+                      : weeklyValue * fullMonthWeeks;
                     const unitSuffix = currentUnit === 'hours'
                       ? (claimPeriod === 'weekly' ? 'hrs/wk' : 'hrs/month')
                       : (claimPeriod === 'weekly' ? 'sess/wk' : 'sess/month');
                     const maxLabel = `Max ${cap.toFixed(currentUnit === 'hours' ? 1 : 2)} ${unitSuffix}`;
 
                     const commitWeekly = (newWeekly: number, unit: 'hours' | 'sessions') => {
-                      // In monthly mode, allow the canonical weekly value to
-                      // exceed the steady-state weekly cap so that the user can
-                      // enter a full month's worth of hours/sessions even when
-                      // the staff member has fewer working weeks this month.
-                      const upperWeekly = claimPeriod === 'monthly'
-                        ? (cap / Math.max(wkInMonth, 0.0001))
-                        : weeklyCap;
+                      const upperWeekly = unitWeeklyCap(unit);
                       const v = Math.max(0, Math.min(newWeekly, upperWeekly));
                       setOverrideAllocType(unit);
                       setOverrideAllocValue(+v.toFixed(unit === 'hours' ? 2 : 2));
