@@ -1679,7 +1679,7 @@ function InlineClaimPanel({
                           return (
                             <>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0', gap: 8 }}>
-                                <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs ≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess × £{actualHourlyRate.toFixed(2)}/hr)</span>
+                                <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs{hoursModeIsSessionPriced ? ` ≈ ${(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess` : ''} × £{actualHourlyRate.toFixed(2)}/hr)</span>
                                 {inputBox(effectiveStaffCost, v => setStaffCostOverride(v))}
                               </div>
                               {hoursModeIncludesOnCosts && (
