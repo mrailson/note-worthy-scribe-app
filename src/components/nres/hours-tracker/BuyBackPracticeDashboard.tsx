@@ -562,12 +562,13 @@ function InlineClaimPanel({
   const hoursModeMaxTotalHourly = hoursModeMaxStaffHourly + hoursModeMaxOnCostsHourly;
   const hoursModeWeeklyHours = hoursMode ? (effectiveStaff.allocation_value || 0) : 0;
   const hoursModeWorkingWeeks = rateParams?.rawWorkingWeeksInMonth ?? rateParams?.workingWeeksInMonth ?? (52 / 12);
-  const hoursModeDefaultMonthlyHours = Math.round(hoursModeWeeklyHours * hoursModeWorkingWeeks * 100) / 100;
+  const hoursModeFullMonthWeeks = 52 / 12;
+  const hoursModeDefaultMonthlyHours = Math.round(hoursModeWeeklyHours * hoursModeFullMonthWeeks * 100) / 100;
 
   // Sessions mode equivalents
   const sessionsModeMaxStaffRate = hoursModeAnnualRate / 52; // £ per session, gross
   const sessionsModeWeekly = sessionsMode ? (effectiveStaff.allocation_value || 0) : 0;
-  const sessionsModeDefaultMonthly = Math.round(sessionsModeWeekly * hoursModeWorkingWeeks * 100) / 100;
+  const sessionsModeDefaultMonthly = Math.round(sessionsModeWeekly * hoursModeFullMonthWeeks * 100) / 100;
 
   const [hoursClaimedMonth, setHoursClaimedMonth] = useState<number>(hoursModeDefaultMonthlyHours);
   const [actualHourlyRate, setActualHourlyRate] = useState<number>(Math.round(hoursModeMaxStaffHourly * 100) / 100);
