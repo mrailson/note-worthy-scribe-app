@@ -4830,7 +4830,7 @@ export function BuyBackPracticeDashboard({
     claims: practiceClaims, claimMonths, practiceKey,
     onClickClaim: handleClickClaim, activeClaimKey,
     onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, rateParams,
-    onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit,
+    onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit, onUpdateClaimNotes,
     confirmDeclaration, saving: savingClaim,
     meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries,
     canAddOnBehalf, managementRoles,
