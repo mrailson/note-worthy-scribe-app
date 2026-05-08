@@ -1546,20 +1546,54 @@ function InlineClaimPanel({
                       </div>
 
                       <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11, marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                          <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs ≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess × £{actualHourlyRate.toFixed(2)}/hr)</span>
-                          <span style={{ fontWeight: 600 }}>{fmtGBP(actualHourlyRate * hoursClaimedMonth)}</span>
-                        </div>
-                        {hoursModeIncludesOnCosts && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                            <span style={{ color: '#6b7280' }}>+ Employer on-costs (× {hoursModeOnCostMult.toFixed(4)})</span>
-                            <span style={{ fontWeight: 600 }}>{fmtGBP(actualHourlyRate * hoursClaimedMonth * (hoursModeOnCostMult - 1))}</span>
-                          </div>
-                        )}
+                        {(() => {
+                          const inputBox = (val: number, onChange: (v: number) => void) => (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              <span style={{ fontSize: 12, color: '#374151' }}>£</span>
+                              <input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={val}
+                                onChange={e => {
+                                  const raw = Number(e.target.value);
+                                  onChange(Math.max(0, Math.round((isNaN(raw) ? 0 : raw) * 100) / 100));
+                                }}
+                                style={{
+                                  width: 90, padding: '3px 6px', borderRadius: 5,
+                                  border: `1px solid ${catAccentColor}50`,
+                                  fontSize: 12, fontWeight: 600, textAlign: 'right',
+                                  outline: 'none', background: '#fff',
+                                  fontVariantNumeric: 'tabular-nums',
+                                }}
+                              />
+                            </div>
+                          );
+                          return (
+                            <>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0', gap: 8 }}>
+                                <span style={{ color: '#6b7280' }}>Staff cost ({hoursClaimedMonth.toFixed(2)} hrs ≈ {(hoursClaimedMonth / HOURS_PER_SESSION).toFixed(2)} sess × £{actualHourlyRate.toFixed(2)}/hr)</span>
+                                {inputBox(effectiveStaffCost, v => setStaffCostOverride(v))}
+                              </div>
+                              {hoursModeIncludesOnCosts && (
+                                <>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0', gap: 8 }}>
+                                    <span style={{ color: '#6b7280' }}>+ Employer NI ({breakdownNiPct}%)</span>
+                                    {inputBox(effectiveNiCost, v => setNiCostOverride(v))}
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0', gap: 8 }}>
+                                    <span style={{ color: '#6b7280' }}>+ Employer Pension / on-costs ({breakdownPenPct}%)</span>
+                                    {inputBox(effectivePensionCost, v => setPensionCostOverride(v))}
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          );
+                        })()}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 0', marginTop: 4, borderTop: `1px solid ${catAccentColor}20`, gap: 8 }}>
                           <span style={{ color: '#374151', fontWeight: 600 }}>Amount to claim this month</span>
                           {(() => {
-                            const derived = Math.round(actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                            const derived = effectiveBreakdownTotal;
                             const effectiveCap = Math.min(derived, calculatedAmount);
                             return (
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
