@@ -27,6 +27,8 @@ const ConsultationSummary = lazy(() => import("./pages/ConsultationSummary"));
 const Settings = lazy(() => import("./pages/Settings"));
 const SystemAdmin = lazy(() => import("./pages/SystemAdmin"));
 const PracticeAdmin = lazy(() => import("./pages/PracticeAdmin"));
+const MandatoryReads = lazy(() => import("./pages/MandatoryReads"));
+const MandatoryReadView = lazy(() => import("./pages/MandatoryReadView"));
 const PracticeAdminFridges = lazy(() => import("./pages/PracticeAdminFridges"));
 const FridgeTemperatureEntry = lazy(() => import("./components/FridgeTemperatureEntry").then(m => ({ default: m.FridgeTemperatureEntry })));
 const ComplaintsSystem = lazy(() => import("./pages/ComplaintsSystem"));
