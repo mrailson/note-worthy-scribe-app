@@ -394,6 +394,7 @@ function InlineClaimPanel({
   onDeleteClaim,
   onSubmit,
   onResubmit,
+  onUpdateClaimNotes,
   confirmDeclaration,
   onClose,
   saving,
@@ -410,6 +411,7 @@ function InlineClaimPanel({
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   onClose: () => void;
   saving?: boolean;
