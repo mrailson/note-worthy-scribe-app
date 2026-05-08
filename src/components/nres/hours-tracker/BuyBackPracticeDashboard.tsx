@@ -573,9 +573,14 @@ function InlineClaimPanel({
   const [actualHourlyRate, setActualHourlyRate] = useState<number>(Math.round(hoursModeMaxStaffHourly * 100) / 100);
   const [sessionsClaimedMonth, setSessionsClaimedMonth] = useState<number>(sessionsModeDefaultMonthly);
   const [actualSessionRate, setActualSessionRate] = useState<number>(Math.round(sessionsModeMaxStaffRate * 100) / 100);
+  const [hoursClaimedInput, setHoursClaimedInput] = useState<string | null>(null);
+  const [sessionsClaimedInput, setSessionsClaimedInput] = useState<string | null>(null);
 
   // Reset inputs whenever the underlying derivations change
-  useEffect(() => { setHoursClaimedMonth(hoursModeDefaultMonthlyHours); }, [hoursModeDefaultMonthlyHours]);
+  useEffect(() => {
+    setHoursClaimedMonth(hoursModeDefaultMonthlyHours);
+    setHoursClaimedInput(null);
+  }, [hoursModeDefaultMonthlyHours]);
   useEffect(() => {
     setActualHourlyRate(prev => {
       const max = Math.round(hoursModeMaxStaffHourly * 100) / 100;
@@ -583,7 +588,10 @@ function InlineClaimPanel({
       return prev;
     });
   }, [hoursModeMaxStaffHourly]);
-  useEffect(() => { setSessionsClaimedMonth(sessionsModeDefaultMonthly); }, [sessionsModeDefaultMonthly]);
+  useEffect(() => {
+    setSessionsClaimedMonth(sessionsModeDefaultMonthly);
+    setSessionsClaimedInput(null);
+  }, [sessionsModeDefaultMonthly]);
   useEffect(() => {
     setActualSessionRate(prev => {
       const max = Math.round(sessionsModeMaxStaffRate * 100) / 100;
