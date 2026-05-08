@@ -604,6 +604,8 @@ function InlineClaimPanel({
   // Tracks whether the user has manually overridden the auto-derived amount
   // in the hours/sessions breakdown. Reset whenever upstream inputs change.
   const [amountManuallyEdited, setAmountManuallyEdited] = useState(false);
+  // Base annual rate breakdown box is collapsed by default (expandable on demand)
+  const [annualBreakdownExpanded, setAnnualBreakdownExpanded] = useState(false);
 
   // Per-component overrides for the breakdown rows (Staff cost, Employer NI,
   // Employer Pension/On-costs). Null = use auto-derived value. Reset whenever
