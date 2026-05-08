@@ -271,7 +271,6 @@ export default function AdminAgewellResponses() {
                 <th className="px-3 py-2 font-semibold">Submitted</th>
                 <th className="px-3 py-2 font-semibold">Channel</th>
                 <th className="px-3 py-2 font-semibold">Practice</th>
-                <th className="px-3 py-2 font-semibold">Branch</th>
                 <th className="px-3 py-2 font-semibold text-center">Worker ★</th>
                 <th className="px-3 py-2 font-semibold text-center">Overall ★</th>
                 <th className="px-3 py-2 font-semibold">Recommend</th>
