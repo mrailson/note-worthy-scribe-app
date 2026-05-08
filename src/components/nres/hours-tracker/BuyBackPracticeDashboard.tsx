@@ -1599,7 +1599,9 @@ function InlineClaimPanel({
                         const holWeeks = (staffMember.staff_category === 'management' || staffMember.staff_role === 'NRES Management') ? holidayWeeks : 0;
                         const staffForClaim = hoursMode
                           ? ({ ...effectiveStaff, claimed_hours_in_month: hoursClaimedMonth, actual_hourly_rate_gross: actualHourlyRate } as any)
-                          : effectiveStaff;
+                          : sessionsMode
+                            ? ({ ...effectiveStaff, claimed_sessions_in_month: sessionsClaimedMonth, actual_session_rate_gross: actualSessionRate } as any)
+                            : effectiveStaff;
                         const result = await onCreateClaim(monthDate, staffForClaim, amountToUse, holWeeks);
                         if (result) setLocalClaim(result);
                       } finally {
