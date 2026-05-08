@@ -497,3 +497,6 @@ verify_jwt = false
 [functions.submit-agewell-response]
 verify_jwt = false
 
+[functions.submit-agewell-feedback]
+verify_jwt = false
+
