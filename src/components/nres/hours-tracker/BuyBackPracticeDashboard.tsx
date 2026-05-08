@@ -574,8 +574,17 @@ function InlineClaimPanel({
     });
   }, [sessionsModeMaxStaffRate]);
 
-  // When in hours/sessions-mode, the standard claimed amount is auto-derived
+  // Tracks whether the user has manually overridden the auto-derived amount
+  // in the hours/sessions breakdown. Reset whenever upstream inputs change.
+  const [amountManuallyEdited, setAmountManuallyEdited] = useState(false);
   useEffect(() => {
+    setAmountManuallyEdited(false);
+  }, [hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult]);
+
+  // When in hours/sessions-mode, the standard claimed amount is auto-derived
+  // (unless the user has manually typed a lower figure since the last input change).
+  useEffect(() => {
+    if (amountManuallyEdited) return;
     if (hoursMode) {
       const derived = actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult;
       const capped = Math.min(derived, calculatedAmount);
