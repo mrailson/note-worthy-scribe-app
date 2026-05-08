@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ from: FROM_EMAIL, to: TO_EMAILS, subject, html }),
+        body: JSON.stringify({ from: FROM_EMAIL, to: DEFAULT_TO_EMAILS, subject, html }),
       });
       resendStatus = resp.status;
       const raw = await resp.text();
