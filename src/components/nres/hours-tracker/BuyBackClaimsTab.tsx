@@ -1792,7 +1792,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
       mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
       grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
     };
   }
 
@@ -1840,7 +1840,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
       mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
       grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
     };
   }
 
@@ -1867,7 +1867,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate, baseHourlyRate, niPerHour, pensionPerHour, onCostsPerHour,
       mgmtNiPct, mgmtPensionPct, mgmtOnCostPct: onCostPct,
       grossHoursCost, totalOnCosts, weeklyHours: allocValue, workingWeeks, totalHours,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
@@ -1920,7 +1920,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
       mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
       grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
     };
   }
 
@@ -1956,6 +1956,30 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
   const annualBase = baseSalary + onCostsValue;
   const fullMonthly = annualBase / 12;
 
+  // Sessional hourly equivalent: only meaningful for session-priced GP roles
+  let sessionalHourly: {
+    sessionsPerWeek: number;
+    hoursPerWeek: number;
+    annualHours: number;
+    staffHourlyRate: number;
+    onCostsPerHour: number;
+    totalHourlyRate: number;
+    onCostPct: number;
+  } | null = null;
+  if (isSessionPriced && (allocType === 'sessions' || allocType === 'hours')) {
+    const sessionsPerWeek = allocType === 'sessions' ? allocValue : allocValue / HOURS_PER_SESSION;
+    const hoursPerWeek = sessionsPerWeek * HOURS_PER_SESSION;
+    const annualHours = hoursPerWeek * 52;
+    const staffHourlyRate = annualHours > 0 ? baseSalary / annualHours : 0;
+    const onCostsPerHour = staffHourlyRate * (onCostRate);
+    const totalHourlyRate = staffHourlyRate + onCostsPerHour;
+    sessionalHourly = {
+      sessionsPerWeek, hoursPerWeek, annualHours,
+      staffHourlyRate, onCostsPerHour, totalHourlyRate,
+      onCostPct,
+    };
+  }
+
   let proRataInfo: { daysInMonth: number; workingDays: number; startDay: number; ratio: number } | null = null;
   let finalMonthly = fullMonthly;
 
@@ -1984,6 +2008,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
     grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
     bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    sessionalHourly,
   };
 }
 
@@ -2135,6 +2160,24 @@ function CalcBreakdownHover({ staff, claimMonth, amount, rateParams }: { staff: 
                 <p className="text-muted-foreground font-medium mb-0.5">Base Salary</p>
                 <p className="text-foreground">{breakdown.baseLabel}</p>
                 <p className="font-semibold">= {fmtGBP(breakdown.baseSalary)}/year</p>
+                {breakdown.sessionalHourly && (
+                  <div className="mt-1.5 rounded border border-dashed border-muted-foreground/30 bg-muted/30 p-1.5">
+                    <p className="text-[10px] text-muted-foreground font-medium mb-0.5">
+                      Equivalent hourly rate · {breakdown.sessionalHourly.sessionsPerWeek.toFixed(2)} sessions/wk × 4h 10m = {breakdown.sessionalHourly.hoursPerWeek.toFixed(2)} hrs/wk × 52 = {breakdown.sessionalHourly.annualHours.toFixed(2)} hrs/yr
+                    </p>
+                    <p className="text-foreground">
+                      <span className="font-semibold">£{breakdown.sessionalHourly.staffHourlyRate.toFixed(2)}/hr</span> staff rate
+                      <span className="text-muted-foreground"> (excl. employer on-costs)</span>
+                    </p>
+                    <p className="text-foreground">
+                      + <span className="font-semibold">£{breakdown.sessionalHourly.onCostsPerHour.toFixed(2)}/hr</span> employer on-costs ({breakdown.sessionalHourly.onCostPct.toFixed(2)}%)
+                    </p>
+                    <p className="font-semibold">
+                      = £{breakdown.sessionalHourly.totalHourlyRate.toFixed(2)}/hr total
+                      <span className="text-[10px] text-muted-foreground font-normal"> (incl. employer NI &amp; pension)</span>
+                    </p>
+                  </div>
+                )}
               </div>
               <Separator />
               {/* Step 2: On-costs — show differently based on includes_on_costs */}
