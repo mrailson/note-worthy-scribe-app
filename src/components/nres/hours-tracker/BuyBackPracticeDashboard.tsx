@@ -604,24 +604,47 @@ function InlineClaimPanel({
   // Tracks whether the user has manually overridden the auto-derived amount
   // in the hours/sessions breakdown. Reset whenever upstream inputs change.
   const [amountManuallyEdited, setAmountManuallyEdited] = useState(false);
+
+  // Per-component overrides for the breakdown rows (Staff cost, Employer NI,
+  // Employer Pension/On-costs). Null = use auto-derived value. Reset whenever
+  // upstream inputs change so a fresh quantity/rate re-seeds the defaults.
+  const [staffCostOverride, setStaffCostOverride] = useState<number | null>(null);
+  const [niCostOverride, setNiCostOverride] = useState<number | null>(null);
+  const [pensionCostOverride, setPensionCostOverride] = useState<number | null>(null);
   useEffect(() => {
     setAmountManuallyEdited(false);
+    setStaffCostOverride(null);
+    setNiCostOverride(null);
+    setPensionCostOverride(null);
   }, [hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult]);
 
+  // Auto-derived breakdown components (used as defaults when no override).
+  const breakdownBaseStaff = hoursMode
+    ? actualHourlyRate * hoursClaimedMonth
+    : sessionsMode
+      ? actualSessionRate * sessionsClaimedMonth
+      : 0;
+  const breakdownNiPct = (rateParams as any)?.employerNiPct ?? 13.8;
+  const breakdownPenPct = (rateParams as any)?.employerPensionPct ?? 14.38;
+  const breakdownOnCostsTotal = breakdownBaseStaff * (hoursModeOnCostMult - 1);
+  const breakdownNiShare = (breakdownNiPct + breakdownPenPct) > 0 ? breakdownNiPct / (breakdownNiPct + breakdownPenPct) : 0;
+  const autoStaffCost = Math.round(breakdownBaseStaff * 100) / 100;
+  const autoNiCost = hoursModeIncludesOnCosts ? Math.round(breakdownOnCostsTotal * breakdownNiShare * 100) / 100 : 0;
+  const autoPensionCost = hoursModeIncludesOnCosts ? Math.round(breakdownOnCostsTotal * (1 - breakdownNiShare) * 100) / 100 : 0;
+  const effectiveStaffCost = staffCostOverride ?? autoStaffCost;
+  const effectiveNiCost = niCostOverride ?? autoNiCost;
+  const effectivePensionCost = pensionCostOverride ?? autoPensionCost;
+  const effectiveBreakdownTotal = Math.round((effectiveStaffCost + effectiveNiCost + effectivePensionCost) * 100) / 100;
+
   // When in hours/sessions-mode, the standard claimed amount is auto-derived
-  // (unless the user has manually typed a lower figure since the last input change).
+  // from the (possibly user-overridden) breakdown total, capped at the monthly max.
   useEffect(() => {
     if (amountManuallyEdited) return;
-    if (hoursMode) {
-      const derived = actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult;
-      const capped = Math.min(derived, calculatedAmount);
-      setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
-    } else if (sessionsMode) {
-      const derived = actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult;
-      const capped = Math.min(derived, calculatedAmount);
+    if (hoursMode || sessionsMode) {
+      const capped = Math.min(effectiveBreakdownTotal, calculatedAmount);
       setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
     }
-  }, [amountManuallyEdited, hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
+  }, [amountManuallyEdited, hoursMode, sessionsMode, effectiveBreakdownTotal, calculatedAmount]);
 
   const handleCreateDraft = async () => {
     if (!onCreateClaim || creating) return;
