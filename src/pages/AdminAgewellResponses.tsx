@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Header } from "@/components/Header";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -185,11 +186,23 @@ export default function AdminAgewellResponses() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading || fetching) return <div className="p-8 text-muted-foreground">Loading…</div>;
-  if (error) return <div className="p-8 text-destructive">{error}</div>;
+  if (loading || fetching) return (
+    <div className="min-h-screen bg-background">
+      <Header onNewMeeting={() => {}} />
+      <div className="p-8 text-muted-foreground">Loading…</div>
+    </div>
+  );
+  if (error) return (
+    <div className="min-h-screen bg-background">
+      <Header onNewMeeting={() => {}} />
+      <div className="p-8 text-destructive">{error}</div>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen bg-background">
+      <Header onNewMeeting={() => {}} />
+      <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Ageing Well — Patient Feedback Responses</h1>
         <p className="text-sm text-muted-foreground mt-1">Anonymous feedback. No patient identifiers stored.</p>
