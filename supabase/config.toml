@@ -494,3 +494,6 @@ verify_jwt = false
 [functions.process-ppg-call]
 verify_jwt = false
 
+[functions.submit-agewell-response]
+verify_jwt = false
+
