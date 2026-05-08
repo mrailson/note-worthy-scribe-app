@@ -895,17 +895,25 @@ function InlineClaimPanel({
           { label: '=' },
           { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
         ],
-        breakdown: includesOnCosts ? [
-          { l: `Base annual rate (${role}${isSessionPriced ? ', per session/yr' : ''})`, r: fmtGBP(annualRate) + '/yr' },
-          { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
-          { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
-          { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
-          ...hourlyRow,
-          { l: isSessionPriced
-              ? `Monthly max (${sessions.toFixed(2)} sess × total ÷ 12)`
-              : `Monthly max (${wteRatio.toFixed(2)} WTE × total ÷ 12)`,
-            r: fmtGBP(calculatedAmount), bold: true, large: true },
-        ] : null,
+        breakdown: includesOnCosts ? (() => {
+          const allocAnnual = isSessionPriced
+            ? annualWithOnCosts * sessions
+            : annualWithOnCosts * wteRatio;
+          const allocWeekly = allocAnnual / 52;
+          const unitLabel = isSessionPriced
+            ? `${sessions.toFixed(2)} session${sessions !== 1 ? 's' : ''}/wk`
+            : `${wteRatio.toFixed(4)} WTE`;
+          return [
+            { l: `Base annual rate (${role}${isSessionPriced ? ', per session/yr' : ', per 1.0 WTE'})`, r: fmtGBP(annualRate) + '/yr' },
+            { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
+            { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
+            { l: `Total incl. on-costs (${isSessionPriced ? 'per session/yr' : 'per 1.0 WTE'})`, r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+            ...hourlyRow,
+            { l: `× ${unitLabel} (${allocValue} hrs/wk) = Annual cost incl. on-costs`, r: fmtGBP(allocAnnual) + '/yr' },
+            { l: `÷ 52 weeks = Weekly cost incl. on-costs`, r: fmtGBP(allocWeekly) + '/wk' },
+            { l: `÷ 12 months = Monthly max`, r: fmtGBP(calculatedAmount), bold: true, large: true },
+          ];
+        })() : null,
       };
     }
 
