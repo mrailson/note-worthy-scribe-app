@@ -232,13 +232,28 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     className="bg-background border border-border shadow-lg w-48 z-50"
                   >
                         {hasServiceAccess('agewell') && (
-                          <DropdownMenuItem 
-                            onClick={() => navigate('/agewell')}
-                            className="cursor-pointer py-3"
-                          >
-                            <img src="/images/agewell-house-icon.png" alt="" className="h-4 w-4 mr-2 object-contain" />
-                            AgeWell
-                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                              <img src="/images/agewell-house-icon.png" alt="" className="h-4 w-4 mr-2 object-contain" />
+                              AgeWell
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="bg-background border border-border shadow-lg w-56 z-50">
+                              <DropdownMenuItem
+                                onClick={() => navigate('/agewell')}
+                                className="cursor-pointer py-2"
+                              >
+                                <img src="/images/agewell-house-icon.png" alt="" className="h-4 w-4 mr-2 object-contain" />
+                                AgeWell Home
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => navigate('/admin/agewell-responses')}
+                                className="cursor-pointer py-2"
+                              >
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Feedback Responses
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                         )}
                         {hasModuleAccess('ai_4_pm') && isServiceVisible('ai_4_pm') && (
                           <DropdownMenuItem 
