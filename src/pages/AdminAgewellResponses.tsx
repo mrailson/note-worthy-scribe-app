@@ -104,6 +104,7 @@ export default function AdminAgewellResponses() {
   const [recommendFilter, setRecommendFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [drawerRow, setDrawerRow] = useState<Row | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (loading) return;
