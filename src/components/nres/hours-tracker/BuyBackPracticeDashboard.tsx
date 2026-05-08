@@ -1290,18 +1290,29 @@ function InlineClaimPanel({
                         </div>
 
                         <input
-                          type="number"
-                          min={0}
-                          max={cap}
-                          step={currentUnit === 'sessions' ? 0.1 : 0.25}
-                          value={displayValue}
+                          type="text"
+                          inputMode="decimal"
+                          value={claimQuantityInput ?? formatEditableNumber(displayValue)}
                           onChange={e => {
-                            const raw = Number(e.target.value);
+                            const nextInput = sanitiseDecimalInput(e.target.value);
+                            if (nextInput === null) return;
+                            setClaimQuantityInput(nextInput);
+                            const raw = parseDecimalInput(nextInput);
+                            if (raw === null) return;
                             const cappedDisplay = Math.max(0, Math.min(raw, cap));
                             const newWeekly = claimPeriod === 'weekly'
                               ? cappedDisplay
-                              : cappedDisplay / wkInMonth;
+                              : cappedDisplay / fullMonthWeeks;
                             commitWeekly(newWeekly, currentUnit);
+                          }}
+                          onBlur={() => {
+                            const raw = parseDecimalInput(claimQuantityInput ?? String(displayValue));
+                            const cappedDisplay = Math.max(0, Math.min(raw ?? displayValue, cap));
+                            const newWeekly = claimPeriod === 'weekly'
+                              ? cappedDisplay
+                              : cappedDisplay / fullMonthWeeks;
+                            commitWeekly(newWeekly, currentUnit);
+                            setClaimQuantityInput(formatEditableNumber(cappedDisplay));
                           }}
                           style={{
                             width: 90, padding: '5px 8px', borderRadius: 6,
