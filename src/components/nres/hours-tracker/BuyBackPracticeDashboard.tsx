@@ -1540,7 +1540,7 @@ function InlineClaimPanel({
                                 }}
                                 aria-expanded={annualBreakdownExpanded}
                               >
-                                <span>{annualBreakdownExpanded ? '▾' : '▸'} Base annual rate breakdown</span>
+                                <span>{annualBreakdownExpanded ? '▾' : '▸'} Annual and Monthly / Weekly Breakdown Calculations for {staffMember.staff_role}</span>
                                 <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 10 }}>
                                   {annualBreakdownExpanded ? 'Hide' : 'Show details'}
                                 </span>
