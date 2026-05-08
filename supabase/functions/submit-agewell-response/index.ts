@@ -18,10 +18,33 @@ const HMAC_SECRET = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
 const FROM_EMAIL = Deno.env.get("AGEWELL_FROM_EMAIL") ||
   "Notewell AI <noreply@bluepcn.co.uk>";
 
-// Hardcoded during debug — will move to env vars later.
-const TO_EMAILS = ["malcolm.railson@nhs.net"];
+const DEFAULT_TO_EMAILS = ["malcolm.railson@nhs.net"];
 
 const admin = createClient(supabaseUrl, serviceKey);
+
+async function loadNotificationSettings(): Promise<{ recipients: string[]; mode: "all" | "completed_only" }> {
+  try {
+    const { data, error } = await admin
+      .from("agewell_notification_settings")
+      .select("recipients, mode")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error(`${LOG} settings load error:`, error.message);
+      return { recipients: DEFAULT_TO_EMAILS, mode: "all" };
+    }
+    const recipients = (data?.recipients ?? []).filter((e: string) => typeof e === "string" && e.includes("@"));
+    const mode = (data?.mode === "completed_only" ? "completed_only" : "all") as "all" | "completed_only";
+    return {
+      recipients: recipients.length > 0 ? recipients : DEFAULT_TO_EMAILS,
+      mode,
+    };
+  } catch (e) {
+    console.error(`${LOG} settings load exception:`, (e as Error).message);
+    return { recipients: DEFAULT_TO_EMAILS, mode: "all" };
+  }
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
