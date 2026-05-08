@@ -1792,7 +1792,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
       mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
       grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
     };
   }
 
@@ -1840,7 +1840,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
       mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
       grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
     };
   }
 
@@ -1867,7 +1867,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate, baseHourlyRate, niPerHour, pensionPerHour, onCostsPerHour,
       mgmtNiPct, mgmtPensionPct, mgmtOnCostPct: onCostPct,
       grossHoursCost, totalOnCosts, weeklyHours: allocValue, workingWeeks, totalHours,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
       baseSalary: 0, baseLabel: '', niPct: 0, pensionPct: 0, niValue: 0, pensionValue: 0,
       onCostsValue: 0, onCostPct: 0, annualBase: 0, fullMonthly: finalMonthly,
       proRataInfo: null, finalMonthly, baseRate: fmtGBP(hourlyRate),
@@ -1920,7 +1920,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
       hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
       mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
       grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
-      bankHolidaysExcluded: 0, bankHolidayDetails: [],
+      bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
     };
   }
 
@@ -2007,7 +2007,7 @@ function buildCalcTooltip(staff: any, claimMonth?: string, rateParams?: RatePara
     hourlyRate: 0, baseHourlyRate: 0, niPerHour: 0, pensionPerHour: 0, onCostsPerHour: 0,
     mgmtNiPct: 0, mgmtPensionPct: 0, mgmtOnCostPct: 0,
     grossHoursCost: 0, totalOnCosts: 0, weeklyHours: 0, workingWeeks: 0, totalHours: 0,
-    bankHolidaysExcluded: 0, bankHolidayDetails: [],
+    bankHolidaysExcluded: 0, bankHolidayDetails: [], sessionalHourly: null as any,
     sessionalHourly,
   };
 }
