@@ -1425,10 +1425,25 @@ function InlineClaimPanel({
                           ) : null
                         ))}
                       </div>
-                      {/* On-costs breakdown box */}
+                      {/* On-costs breakdown box (collapsed by default) */}
                       {calcBreakdownData.breakdown && (
-                        <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 8, padding: '10px 12px', fontSize: 11 }}>
-                          {calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
+                        <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 8, padding: '6px 12px', fontSize: 11 }}>
+                          <button
+                            type="button"
+                            onClick={() => setAnnualBreakdownExpanded(v => !v)}
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                              background: 'transparent', border: 'none', padding: '4px 0', cursor: 'pointer',
+                              color: catAccentColor, fontWeight: 600, fontSize: 11,
+                            }}
+                            aria-expanded={annualBreakdownExpanded}
+                          >
+                            <span>{annualBreakdownExpanded ? '▾' : '▸'} Base annual rate breakdown</span>
+                            <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 10 }}>
+                              {annualBreakdownExpanded ? 'Hide' : 'Show details'}
+                            </span>
+                          </button>
+                          {annualBreakdownExpanded && calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
                             <div key={i} style={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                               padding: '2px 0',
