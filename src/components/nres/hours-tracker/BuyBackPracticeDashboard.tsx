@@ -574,8 +574,17 @@ function InlineClaimPanel({
     });
   }, [sessionsModeMaxStaffRate]);
 
-  // When in hours/sessions-mode, the standard claimed amount is auto-derived
+  // Tracks whether the user has manually overridden the auto-derived amount
+  // in the hours/sessions breakdown. Reset whenever upstream inputs change.
+  const [amountManuallyEdited, setAmountManuallyEdited] = useState(false);
   useEffect(() => {
+    setAmountManuallyEdited(false);
+  }, [hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult]);
+
+  // When in hours/sessions-mode, the standard claimed amount is auto-derived
+  // (unless the user has manually typed a lower figure since the last input change).
+  useEffect(() => {
+    if (amountManuallyEdited) return;
     if (hoursMode) {
       const derived = actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult;
       const capped = Math.min(derived, calculatedAmount);
@@ -585,7 +594,7 @@ function InlineClaimPanel({
       const capped = Math.min(derived, calculatedAmount);
       setStandardClaimedAmount(Math.round(Math.max(0, capped) * 100) / 100);
     }
-  }, [hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
+  }, [amountManuallyEdited, hoursMode, sessionsMode, actualHourlyRate, hoursClaimedMonth, actualSessionRate, sessionsClaimedMonth, hoursModeOnCostMult, calculatedAmount]);
 
   const handleCreateDraft = async () => {
     if (!onCreateClaim || creating) return;
@@ -1467,22 +1476,62 @@ function InlineClaimPanel({
                             <span style={{ fontWeight: 600 }}>{fmtGBP(actualHourlyRate * hoursClaimedMonth * (hoursModeOnCostMult - 1))}</span>
                           </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 0', marginTop: 4, borderTop: `1px solid ${catAccentColor}20` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 0', marginTop: 4, borderTop: `1px solid ${catAccentColor}20`, gap: 8 }}>
                           <span style={{ color: '#374151', fontWeight: 600 }}>Amount to claim this month</span>
-                          <span style={{ fontWeight: 700, color: catAccentColor, fontSize: 13 }}>{fmtGBP(standardClaimedAmount)}</span>
+                          {(() => {
+                            const derived = Math.round(actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                            const effectiveCap = Math.min(derived, calculatedAmount);
+                            return (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>£</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={effectiveCap}
+                                  step="0.01"
+                                  value={standardClaimedAmount}
+                                  onChange={e => {
+                                    const raw = Number(e.target.value);
+                                    const v = Math.max(0, Math.min(raw, effectiveCap));
+                                    setAmountManuallyEdited(true);
+                                    setStandardClaimedAmount(Math.round(v * 100) / 100);
+                                  }}
+                                  style={{
+                                    width: 100, padding: '4px 8px', borderRadius: 6,
+                                    border: `1px solid ${catAccentColor}60`,
+                                    fontSize: 13, fontWeight: 700, color: catAccentColor,
+                                    textAlign: 'right', outline: 'none', background: '#fff',
+                                    fontVariantNumeric: 'tabular-nums',
+                                  }}
+                                />
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
 
                       {(() => {
-                        const uncapped = Math.round(actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult * 100) / 100;
-                        const capped = uncapped > calculatedAmount;
-                        return capped ? (
-                          <p style={{ fontSize: 11, color: '#b45309', margin: 0 }}>
-                            Capped at the monthly maximum of {fmtGBP(calculatedAmount)} (equivalent to £{hoursModeMaxStaffHourly.toFixed(2)}/hr staff rate × {hoursClaimedMonth.toFixed(2)} hrs incl. on-costs).
-                          </p>
-                        ) : (
+                        const derived = Math.round(actualHourlyRate * hoursClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                        const effectiveCap = Math.min(derived, calculatedAmount);
+                        const cappedByMonthly = derived > calculatedAmount;
+                        const belowDerived = standardClaimedAmount < derived - 0.005 && standardClaimedAmount > 0;
+                        if (cappedByMonthly) {
+                          return (
+                            <p style={{ fontSize: 11, color: '#b45309', margin: 0 }}>
+                              Capped at the monthly maximum of {fmtGBP(calculatedAmount)} (equivalent to £{hoursModeMaxStaffHourly.toFixed(2)}/hr staff rate × {hoursClaimedMonth.toFixed(2)} hrs incl. on-costs). Editable up to {fmtGBP(effectiveCap)}.
+                            </p>
+                          );
+                        }
+                        if (belowDerived) {
+                          return (
+                            <p style={{ fontSize: 11, color: '#0f766e', margin: 0 }}>
+                              Claiming {fmtGBP(standardClaimedAmount)} of {fmtGBP(derived)} derived ({fmtGBP(derived - standardClaimedAmount)} below). Maximum claimable this month is {fmtGBP(calculatedAmount)}.
+                            </p>
+                          );
+                        }
+                        return (
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
-                            Auto-calculated from hours × hourly rate × on-costs. Maximum claimable this month is {fmtGBP(calculatedAmount)}.
+                            Auto-calculated from hours × hourly rate × on-costs. Editable up to {fmtGBP(effectiveCap)} (max claimable this month {fmtGBP(calculatedAmount)}).
                           </p>
                         );
                       })()}
@@ -1569,22 +1618,62 @@ function InlineClaimPanel({
                             <span style={{ fontWeight: 600 }}>{fmtGBP(actualSessionRate * sessionsClaimedMonth * (hoursModeOnCostMult - 1))}</span>
                           </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 0', marginTop: 4, borderTop: `1px solid ${catAccentColor}20` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0 0', marginTop: 4, borderTop: `1px solid ${catAccentColor}20`, gap: 8 }}>
                           <span style={{ color: '#374151', fontWeight: 600 }}>Amount to claim this month</span>
-                          <span style={{ fontWeight: 700, color: catAccentColor, fontSize: 13 }}>{fmtGBP(standardClaimedAmount)}</span>
+                          {(() => {
+                            const derived = Math.round(actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                            const effectiveCap = Math.min(derived, calculatedAmount);
+                            return (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>£</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={effectiveCap}
+                                  step="0.01"
+                                  value={standardClaimedAmount}
+                                  onChange={e => {
+                                    const raw = Number(e.target.value);
+                                    const v = Math.max(0, Math.min(raw, effectiveCap));
+                                    setAmountManuallyEdited(true);
+                                    setStandardClaimedAmount(Math.round(v * 100) / 100);
+                                  }}
+                                  style={{
+                                    width: 100, padding: '4px 8px', borderRadius: 6,
+                                    border: `1px solid ${catAccentColor}60`,
+                                    fontSize: 13, fontWeight: 700, color: catAccentColor,
+                                    textAlign: 'right', outline: 'none', background: '#fff',
+                                    fontVariantNumeric: 'tabular-nums',
+                                  }}
+                                />
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
 
                       {(() => {
-                        const uncapped = Math.round(actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult * 100) / 100;
-                        const capped = uncapped > calculatedAmount;
-                        return capped ? (
-                          <p style={{ fontSize: 11, color: '#b45309', margin: 0 }}>
-                            Capped at the monthly maximum of {fmtGBP(calculatedAmount)} (equivalent to £{sessionsModeMaxStaffRate.toFixed(2)}/sess × {sessionsClaimedMonth.toFixed(2)} sess incl. on-costs).
-                          </p>
-                        ) : (
+                        const derived = Math.round(actualSessionRate * sessionsClaimedMonth * hoursModeOnCostMult * 100) / 100;
+                        const effectiveCap = Math.min(derived, calculatedAmount);
+                        const cappedByMonthly = derived > calculatedAmount;
+                        const belowDerived = standardClaimedAmount < derived - 0.005 && standardClaimedAmount > 0;
+                        if (cappedByMonthly) {
+                          return (
+                            <p style={{ fontSize: 11, color: '#b45309', margin: 0 }}>
+                              Capped at the monthly maximum of {fmtGBP(calculatedAmount)} (equivalent to £{sessionsModeMaxStaffRate.toFixed(2)}/sess × {sessionsClaimedMonth.toFixed(2)} sess incl. on-costs). Editable up to {fmtGBP(effectiveCap)}.
+                            </p>
+                          );
+                        }
+                        if (belowDerived) {
+                          return (
+                            <p style={{ fontSize: 11, color: '#0f766e', margin: 0 }}>
+                              Claiming {fmtGBP(standardClaimedAmount)} of {fmtGBP(derived)} derived ({fmtGBP(derived - standardClaimedAmount)} below). Maximum claimable this month is {fmtGBP(calculatedAmount)}.
+                            </p>
+                          );
+                        }
+                        return (
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>
-                            Auto-calculated from sessions × session rate × on-costs. Maximum claimable this month is {fmtGBP(calculatedAmount)}.
+                            Auto-calculated from sessions × session rate × on-costs. Editable up to {fmtGBP(effectiveCap)} (max claimable this month {fmtGBP(calculatedAmount)}).
                           </p>
                         );
                       })()}
