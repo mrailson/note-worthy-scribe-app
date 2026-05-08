@@ -521,6 +521,25 @@ function InlineClaimPanel({
   const hoursModeIncludesOnCosts = hoursModeRoleConfig?.includes_on_costs !== false;
   const hoursModeOnCostMult = hoursModeIncludesOnCosts ? (rateParams?.onCostMultiplier ?? 1) : 1;
   const hoursModeMaxStaffHourly = hoursModeAnnualRate / (52 * HOURS_PER_SESSION);
+
+  // Auto-seed override to hours/wk for WTE-allocated session-priced GPs so the
+  // breakdown panel becomes available without forcing the user to toggle.
+  useEffect(() => {
+    if (
+      !isLocum && !isMeeting && !isManagement &&
+      hoursModeIsSessionPriced && hoursModeAnnualRate > 0 &&
+      overrideAllocType === null &&
+      staffMember.allocation_type === 'wte'
+    ) {
+      const weeklyHours = (staffMember.allocation_value || 0) * 9 * HOURS_PER_SESSION; // wte → sess/wk → hrs/wk... actually wte=1.0 → 37.5h/wk
+      // 1.0 WTE = 37.5 hrs/wk. Use that direct conversion.
+      const wHrs = (staffMember.allocation_value || 0) * 37.5;
+      setOverrideAllocType('hours');
+      setOverrideAllocValue(+wHrs.toFixed(2));
+      void weeklyHours;
+    }
+  }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value, hoursModeIsSessionPriced, hoursModeAnnualRate, isLocum, isMeeting, isManagement, overrideAllocType]);
+
   const hoursModeMaxOnCostsHourly = hoursModeMaxStaffHourly * (hoursModeOnCostMult - 1);
   const hoursModeMaxTotalHourly = hoursModeMaxStaffHourly + hoursModeMaxOnCostsHourly;
   const hoursModeWeeklyHours = hoursMode ? (effectiveStaff.allocation_value || 0) : 0;
