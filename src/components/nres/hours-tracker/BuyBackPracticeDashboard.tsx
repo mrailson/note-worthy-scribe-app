@@ -2893,14 +2893,17 @@ function StaffActions({
   onRemoveStaff,
   onUpdateStaff,
   staffRoles,
+  claimCount = 0,
 }: {
   member: BuyBackStaffMember;
   category: string;
   onRemoveStaff?: (id: string) => Promise<void>;
   onUpdateStaff?: (id: string, updates: Partial<BuyBackStaffMember>) => Promise<any>;
   staffRoles?: string[];
+  claimCount?: number;
 }) {
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [typedConfirm, setTypedConfirm] = useState('');
   const [editing, setEditing] = useState(false);
   const [editRole, setEditRole] = useState(member.staff_role);
   const [editAllocType, setEditAllocType] = useState(member.allocation_type || 'sessions');
@@ -2913,36 +2916,80 @@ function StaffActions({
     return <span style={{ fontSize: 10, color: '#d1d5db' }}>—</span>;
   }
 
+  const hasClaims = claimCount > 0;
+
   if (confirmRemove) {
+    if (hasClaims) {
+      // Hard block — staff with any existing/past claims cannot be removed.
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, maxWidth: 260 }}>
+          <div style={{ fontSize: 10, color: '#b91c1c', fontWeight: 600, lineHeight: 1.3 }}>
+            ⚠ Cannot remove — {claimCount} claim{claimCount !== 1 ? 's' : ''} on record.
+          </div>
+          <div style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.3 }}>
+            Staff members with any existing or past claims must be retained for audit. Remove all claims first, or contact an administrator.
+          </div>
+          <button
+            onClick={() => { setConfirmRemove(false); setTypedConfirm(''); }}
+            style={{
+              padding: '3px 8px', borderRadius: 5, border: '1px solid #d1d5db',
+              background: '#fff', color: '#6b7280', fontSize: 10, fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            Close
+          </button>
+        </div>
+      );
+    }
+    const expected = `REMOVE ${member.staff_name}`;
+    const matches = typedConfirm.trim() === expected.trim();
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <button
-          onClick={async () => {
-            if (onRemoveStaff) {
-              setSaving(true);
-              await onRemoveStaff(member.id);
-              setSaving(false);
-            }
-            setConfirmRemove(false);
-          }}
-          disabled={saving}
-          style={{
-            padding: '3px 8px', borderRadius: 5, border: '1px solid #fca5a5',
-            background: '#fef2f2', color: '#dc2626', fontSize: 10, fontWeight: 600,
-            cursor: 'pointer', opacity: saving ? 0.5 : 1,
-          }}
-        >
-          {saving ? '...' : 'Yes'}
-        </button>
-        <button
-          onClick={() => setConfirmRemove(false)}
-          style={{
-            padding: '3px 8px', borderRadius: 5, border: '1px solid #d1d5db',
-            background: '#fff', color: '#6b7280', fontSize: 10, fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          No
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, maxWidth: 280 }}>
+        <div style={{ fontSize: 10, color: '#b91c1c', fontWeight: 600 }}>
+          Permanently remove {member.staff_name}?
+        </div>
+        <div style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.3 }}>
+          To confirm, type <strong>{expected}</strong> below.
+        </div>
+        <input
+          autoFocus
+          value={typedConfirm}
+          onChange={e => setTypedConfirm(e.target.value)}
+          placeholder={expected}
+          style={{ padding: '3px 6px', borderRadius: 4, border: '1px solid #d1d5db', fontSize: 10, width: '100%' }}
+        />
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button
+            onClick={async () => {
+              if (!matches) return;
+              if (onRemoveStaff) {
+                setSaving(true);
+                await onRemoveStaff(member.id);
+                setSaving(false);
+              }
+              setConfirmRemove(false);
+              setTypedConfirm('');
+            }}
+            disabled={saving || !matches}
+            style={{
+              padding: '3px 8px', borderRadius: 5, border: '1px solid #fca5a5',
+              background: matches ? '#fef2f2' : '#f9fafb', color: matches ? '#dc2626' : '#9ca3af',
+              fontSize: 10, fontWeight: 600,
+              cursor: matches ? 'pointer' : 'not-allowed', opacity: saving ? 0.5 : 1,
+            }}
+          >
+            {saving ? '...' : 'Confirm Remove'}
+          </button>
+          <button
+            onClick={() => { setConfirmRemove(false); setTypedConfirm(''); }}
+            style={{
+              padding: '3px 8px', borderRadius: 5, border: '1px solid #d1d5db',
+              background: '#fff', color: '#6b7280', fontSize: 10, fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     );
   }
@@ -3045,13 +3092,15 @@ function StaffActions({
       {onRemoveStaff && (
         <button
           onClick={() => setConfirmRemove(true)}
-          title="Remove staff member"
+          title={hasClaims
+            ? `Cannot remove — ${claimCount} claim${claimCount !== 1 ? 's' : ''} on record`
+            : 'Remove staff member'}
           style={{
             padding: 4, borderRadius: 4, border: 'none', background: 'transparent',
-            color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            color: hasClaims ? '#d1d5db' : '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}
+          onMouseEnter={e => (e.currentTarget.style.color = hasClaims ? '#9ca3af' : '#dc2626')}
+          onMouseLeave={e => (e.currentTarget.style.color = hasClaims ? '#d1d5db' : '#9ca3af')}
         >
           <Trash2 style={{ width: 13, height: 13 }} />
         </button>
@@ -3535,6 +3584,7 @@ export function StaffRosterSection({
                           onRemoveStaff={onRemoveStaff}
                           onUpdateStaff={onUpdateStaff}
                           staffRoles={staffRoles}
+                          claimCount={rowCells.filter(rc => rc.claim).length}
                         />
                       </td>
                     </tr>
