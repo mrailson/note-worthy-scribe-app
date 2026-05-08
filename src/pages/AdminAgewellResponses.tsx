@@ -271,7 +271,6 @@ export default function AdminAgewellResponses() {
                 <th className="px-3 py-2 font-semibold">Submitted</th>
                 <th className="px-3 py-2 font-semibold">Channel</th>
                 <th className="px-3 py-2 font-semibold">Practice</th>
-                <th className="px-3 py-2 font-semibold">Branch</th>
                 <th className="px-3 py-2 font-semibold text-center">Worker ★</th>
                 <th className="px-3 py-2 font-semibold text-center">Overall ★</th>
                 <th className="px-3 py-2 font-semibold">Recommend</th>
@@ -280,7 +279,7 @@ export default function AdminAgewellResponses() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
               )}
               {filtered.map((r) => {
                 const c = r.most_significant_difference || r.suggestions_concerns || "";
@@ -294,7 +293,6 @@ export default function AdminAgewellResponses() {
                     <td className="px-3 py-2 whitespace-nowrap">{formatUK(r.submitted_at)}</td>
                     <td className="px-3 py-2 text-muted-foreground">{CHANNEL_LABEL[r.channel] || r.channel}</td>
                     <td className="px-3 py-2">{practiceLabel(r)}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.branch_site || "—"}</td>
                     <td className="px-3 py-2 text-center">
                       <Badge style={{ background: RATING_COLOUR(r.support_worker_rating) + "20", color: RATING_COLOUR(r.support_worker_rating) }}>
                         {r.support_worker_rating ?? "—"}
@@ -306,7 +304,7 @@ export default function AdminAgewellResponses() {
                       </Badge>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{YN_LABEL[r.would_recommend || ""] || "—"}</td>
-                    <td className="px-3 py-2 max-w-md text-muted-foreground">{truncated || "—"}</td>
+                    <td className="px-3 py-2 max-w-md text-muted-foreground" title={c || undefined}>{truncated || "—"}</td>
                   </tr>
                 );
               })}
