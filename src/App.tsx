@@ -198,7 +198,11 @@ const App = () => {
                 <Route path="/nres/ppgsurvey" element={<NRESPpgSurvey />} />
                 <Route path="/agewell/feedback" element={<AgewellFeedback />} />
                 <Route path="/admin/nres-responses" element={<AdminNRESResponses />} />
-                <Route path="/admin/agewell-responses" element={<AdminAgewellResponses />} />
+                <Route path="/admin/agewell-responses" element={
+                  <ProtectedRoute requiredService="agewell">
+                    <AdminAgewellResponses />
+                  </ProtectedRoute>
+                } />
                 <Route path="/quick-record" element={<QuickRecord />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth-confirm" element={<AuthConfirm />} />
