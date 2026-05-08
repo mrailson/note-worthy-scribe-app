@@ -570,6 +570,21 @@ function InlineClaimPanel({
     const totalOnCostAmount = niAmount + penAmount;
 
     if (allocType === 'sessions') {
+      // Hourly equivalents for sessional GP roles
+      const sessionsPerWeek = allocValue;
+      const hoursPerWeek = sessionsPerWeek * HOURS_PER_SESSION;
+      const annualHours = hoursPerWeek * 52;
+      const annualStaffCost = sessionsPerWeek * annualRate;
+      const staffHourly = annualHours > 0 ? annualStaffCost / annualHours : 0;
+      const onCostFraction = includesOnCosts ? (multiplier - 1) : 0;
+      const onCostHourly = staffHourly * onCostFraction;
+      const totalHourly = staffHourly + onCostHourly;
+      const hourlyRow = includesOnCosts && annualHours > 0 ? [{
+        l: `Equivalent hourly rate (${sessionsPerWeek.toFixed(2)} sess/wk × 4h 10m × 52 = ${annualHours.toFixed(2)} hrs/yr)`,
+        r: `£${staffHourly.toFixed(2)}/hr staff + £${onCostHourly.toFixed(2)}/hr on-costs = £${totalHourly.toFixed(2)}/hr total`,
+        bold: false,
+        large: false,
+      }] : [];
       return {
         primary: [
           { label: `${allocValue} session${allocValue !== 1 ? 's' : ''}`, accent: true },
@@ -582,11 +597,12 @@ function InlineClaimPanel({
           { label: `${fmtGBP(calculatedAmount)}/month`, result: true },
         ],
         breakdown: includesOnCosts ? [
-          { l: `Base annual salary (${role})`, r: fmtGBP(annualRate) + '/yr' },
+          { l: `Base annual rate (${role}, per session/yr)`, r: fmtGBP(annualRate) + '/yr' },
           { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
           { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
           { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
-          { l: `Monthly max (× ${allocValue} sess ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
+          ...hourlyRow,
+          { l: `Monthly max (${allocValue} sess × total ÷ 12)`, r: fmtGBP(calculatedAmount), bold: true, large: true },
         ] : [
           { l: `${allocValue} session${allocValue !== 1 ? 's' : ''} × ${fmtGBP(annualRate)}/yr ÷ 12`, r: fmtGBP(calculatedAmount) + '/month', bold: true },
         ],
@@ -619,6 +635,21 @@ function InlineClaimPanel({
       const isSessionPriced = isSessionPricedRole(role, roleConfig, annualRate);
       const sessions = allocValue / HOURS_PER_SESSION;
       const wteRatio = allocValue / 37.5;
+      // Hourly equivalents only meaningful for session-priced GP roles
+      const sessionsPerWeek = sessions;
+      const hoursPerWeek = sessionsPerWeek * HOURS_PER_SESSION;
+      const annualHours = hoursPerWeek * 52;
+      const annualStaffCost = sessionsPerWeek * annualRate;
+      const staffHourly = annualHours > 0 ? annualStaffCost / annualHours : 0;
+      const onCostFraction = includesOnCosts ? (multiplier - 1) : 0;
+      const onCostHourly = staffHourly * onCostFraction;
+      const totalHourly = staffHourly + onCostHourly;
+      const hourlyRow = (isSessionPriced && includesOnCosts && annualHours > 0) ? [{
+        l: `Equivalent hourly rate (${sessionsPerWeek.toFixed(2)} sess/wk × 4h 10m × 52 = ${annualHours.toFixed(2)} hrs/yr)`,
+        r: `£${staffHourly.toFixed(2)}/hr staff + £${onCostHourly.toFixed(2)}/hr on-costs = £${totalHourly.toFixed(2)}/hr total`,
+        bold: false,
+        large: false,
+      }] : [];
       return {
         primary: isSessionPriced ? [
           { label: `${allocValue} hrs/wk`, accent: true },
@@ -646,6 +677,7 @@ function InlineClaimPanel({
           { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
           { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
           { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+          ...hourlyRow,
           { l: isSessionPriced
               ? `Monthly max (${sessions.toFixed(2)} sess × total ÷ 12)`
               : `Monthly max (${wteRatio.toFixed(2)} WTE × total ÷ 12)`,
@@ -1170,7 +1202,7 @@ function InlineClaimPanel({
                       {/* On-costs breakdown box */}
                       {calcBreakdownData.breakdown && (
                         <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 8, padding: '10px 12px', fontSize: 11 }}>
-                          {calcBreakdownData.breakdown.map((row, i) => (
+                          {calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
                             <div key={i} style={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                               padding: '2px 0',
@@ -1563,7 +1595,7 @@ function InlineClaimPanel({
                           </div>
                           {calcBreakdownData.breakdown && (
                             <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11 }}>
-                              {calcBreakdownData.breakdown.map((row, i) => (
+                              {calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
                                 <div key={i} style={{
                                   display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                                   padding: '2px 0',
@@ -1712,7 +1744,7 @@ function InlineClaimPanel({
                           </div>
                           {calcBreakdownData.breakdown && (
                             <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11 }}>
-                              {calcBreakdownData.breakdown.map((row, i) => (
+                              {calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
                                 <div key={i} style={{
                                   display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                                   padding: '2px 0',
