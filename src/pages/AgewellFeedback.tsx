@@ -408,7 +408,7 @@ export default function AgewellFeedback() {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("submit-agewell-response", {
+      const { data, error } = await supabase.functions.invoke("submit-agewell-feedback", {
         body: {
           practice_canonical: state.practiceLabel ?? null,
           practice_label_freeform: !state.practiceLabel ? state.practiceFreeform.trim() || null : null,
