@@ -424,10 +424,19 @@ function InlineClaimPanel({
   const [declared, setDeclared] = useState(false);
   const [queryResponse, setQueryResponse] = useState('');
   const [practiceNotes, setPracticeNotes] = useState('');
+  const [actualCostIncurred, setActualCostIncurred] = useState<string>('');
+  const [actualCostNotes, setActualCostNotes] = useState<string>('');
+  const [actualCostExpanded, setActualCostExpanded] = useState<boolean>(false);
   const [localClaim, setLocalClaim] = useState<BuyBackClaim | null>(existingClaim);
 
   useEffect(() => { setLocalClaim(existingClaim); }, [existingClaim]);
   useEffect(() => { setPracticeNotes((localClaim as any)?.practice_notes || ''); }, [localClaim?.id, (localClaim as any)?.practice_notes]);
+  useEffect(() => {
+    const ac = (localClaim as any)?.actual_cost_incurred;
+    setActualCostIncurred(ac != null ? String(ac) : '');
+    setActualCostNotes((localClaim as any)?.actual_cost_notes || '');
+    if (ac != null) setActualCostExpanded(true);
+  }, [localClaim?.id, (localClaim as any)?.actual_cost_incurred, (localClaim as any)?.actual_cost_notes]);
 
   const isLocum = staffMember.staff_category === 'gp_locum';
   const isManagement = staffMember.staff_category === 'management';
