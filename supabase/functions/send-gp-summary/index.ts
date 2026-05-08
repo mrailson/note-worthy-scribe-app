@@ -186,7 +186,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `Notewell GP Assistant <${fromEmail}>`,
+        from: `Notewell AI <${fromEmail}>`,
         to: [data.userEmail],
         subject: subjectLine,
         html,

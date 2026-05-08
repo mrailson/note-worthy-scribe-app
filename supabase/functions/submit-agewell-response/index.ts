@@ -16,7 +16,7 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const HMAC_SECRET = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
 const FROM_EMAIL = Deno.env.get("AGEWELL_FROM_EMAIL") ||
-  "Ageing Well Feedback <noreply@bluepcn.co.uk>";
+  "Notewell AI <noreply@bluepcn.co.uk>";
 
 // Hardcoded during debug — will move to env vars later.
 const TO_EMAILS = ["malcolm.railson@nhs.net"];
