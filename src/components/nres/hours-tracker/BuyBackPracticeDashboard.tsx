@@ -105,6 +105,22 @@ export function fmtShort(n: number): string {
   return '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 0 });
 }
 
+function formatEditableNumber(n: number, maxDecimals = 2): string {
+  if (!Number.isFinite(n)) return '';
+  return n.toFixed(maxDecimals).replace(/\.?0+$/, '');
+}
+
+function sanitiseDecimalInput(input: string): string | null {
+  const value = input.replace(',', '.');
+  return /^\d*\.?\d*$/.test(value) ? value : null;
+}
+
+function parseDecimalInput(input: string): number | null {
+  if (!input || input === '.') return null;
+  const value = Number(input);
+  return Number.isFinite(value) ? value : null;
+}
+
 function claimTotal(claim: BuyBackClaim): number {
   const staffDets = (claim.staff_details || []) as any[];
   return staffDets.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
