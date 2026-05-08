@@ -279,7 +279,7 @@ export default function AdminAgewellResponses() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">No responses yet.</td></tr>
               )}
               {filtered.map((r) => {
                 const c = r.most_significant_difference || r.suggestions_concerns || "";
