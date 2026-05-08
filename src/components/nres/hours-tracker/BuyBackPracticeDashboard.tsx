@@ -3092,13 +3092,15 @@ function StaffActions({
       {onRemoveStaff && (
         <button
           onClick={() => setConfirmRemove(true)}
-          title="Remove staff member"
+          title={hasClaims
+            ? `Cannot remove — ${claimCount} claim${claimCount !== 1 ? 's' : ''} on record`
+            : 'Remove staff member'}
           style={{
             padding: 4, borderRadius: 4, border: 'none', background: 'transparent',
-            color: '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center',
+            color: hasClaims ? '#d1d5db' : '#9ca3af', cursor: 'pointer', display: 'flex', alignItems: 'center',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}
+          onMouseEnter={e => (e.currentTarget.style.color = hasClaims ? '#9ca3af' : '#dc2626')}
+          onMouseLeave={e => (e.currentTarget.style.color = hasClaims ? '#d1d5db' : '#9ca3af')}
         >
           <Trash2 style={{ width: 13, height: 13 }} />
         </button>
