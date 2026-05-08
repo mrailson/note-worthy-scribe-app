@@ -498,11 +498,13 @@ function InlineClaimPanel({
   const [overrideAllocValue, setOverrideAllocValue] = useState<number>(staffMember.allocation_value || 0);
   // Period toggle for the claim panel: weekly vs monthly figure entry
   const [claimPeriod, setClaimPeriod] = useState<'weekly' | 'monthly'>('weekly');
+  const [claimQuantityInput, setClaimQuantityInput] = useState<string | null>(null);
   // Reset override when underlying staff record changes
   useEffect(() => {
     setOverrideAllocType(null);
     setOverrideAllocValue(staffMember.allocation_value || 0);
     setClaimPeriod('weekly');
+    setClaimQuantityInput(null);
   }, [staffMember.id, staffMember.allocation_type, staffMember.allocation_value]);
 
   const effectiveStaff = useMemo(() => {
