@@ -101,8 +101,8 @@ export const NRES_PRACTICE_BANK_DETAILS: Partial<Record<NRESPracticeKey, NRESPra
   },
   springfield: {
     bankName: '',
-    sortCode: '',
-    accountNumber: '',
+    sortCode: '30-96-35',
+    accountNumber: '59640160',
     accountName: 'Springfield Surgery',
   },
   towcester: {
