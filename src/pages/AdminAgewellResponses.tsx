@@ -371,6 +371,7 @@ export default function AdminAgewellResponses() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
