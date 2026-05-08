@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronRight, Eye, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText, Download } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, AlertTriangle, CheckCircle2, XCircle, Send, Clock, Reply, Plus, User, AlertCircle, Pencil, Trash2, HelpCircle, Settings, Calendar, FileText, Download, Save } from 'lucide-react';
 import { getPracticeName, NRES_ODS_CODES, NRES_PRACTICE_CONTACTS } from '@/data/nresPractices';
 import type { BuyBackClaim, RateParams } from '@/hooks/useNRESBuyBackClaims';
 import type { BuyBackStaffMember } from '@/hooks/useNRESBuyBackStaff';
@@ -394,6 +394,7 @@ function InlineClaimPanel({
   onDeleteClaim,
   onSubmit,
   onResubmit,
+  onUpdateClaimNotes,
   confirmDeclaration,
   onClose,
   saving,
@@ -410,6 +411,7 @@ function InlineClaimPanel({
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   onClose: () => void;
   saving?: boolean;
@@ -665,6 +667,19 @@ function InlineClaimPanel({
       await confirmDeclaration(localClaim.id, true);
     }
     onSubmit(localClaim.id, practiceNotes.trim() || undefined);
+  };
+
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const handleSaveDraft = async () => {
+    if (!localClaim || !onUpdateClaimNotes || savingDraft) return;
+    setSavingDraft(true);
+    try {
+      await onUpdateClaimNotes(localClaim.id, practiceNotes.trim());
+      setDraftSavedAt(Date.now());
+    } finally {
+      setSavingDraft(false);
+    }
   };
 
   const handleDeleteDraft = async (requireConfirm = false) => {
@@ -2052,6 +2067,28 @@ function InlineClaimPanel({
                     <Send style={{ width: 14, height: 14 }} />
                     Submit Claim →
                   </button>
+                  {onUpdateClaimNotes && (
+                    <button
+                      onClick={handleSaveDraft}
+                      disabled={savingDraft}
+                      title="Save your notes and close — uploaded files are kept; return later to complete and submit."
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px',
+                        borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff',
+                        color: '#0f172a', fontSize: 13, fontWeight: 600,
+                        cursor: savingDraft ? 'not-allowed' : 'pointer',
+                        opacity: savingDraft ? 0.6 : 1,
+                      }}
+                    >
+                      <Save style={{ width: 14, height: 14 }} />
+                      {savingDraft ? 'Saving…' : 'Save Draft'}
+                    </button>
+                  )}
+                  {draftSavedAt && !savingDraft && (
+                    <span style={{ fontSize: 11, color: '#059669', fontWeight: 500 }}>
+                      Draft saved — you can close and return later.
+                    </span>
+                  )}
                 </div>
                 {onDeleteClaim && (
                   <button
@@ -2995,7 +3032,7 @@ function EvidenceTooltip({ accent, title, category }: { accent: string; title: s
 export function StaffRosterSection({
   title, category, staffList, claims, claimMonths, onClickClaim, activeClaimKey,
   onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, showAddButton, rateParams,
-  onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit,
+  onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit, onUpdateClaimNotes,
   confirmDeclaration, practiceKey, saving,
   meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries, canAddOnBehalf, managementRoles,
 }: {
@@ -3010,6 +3047,7 @@ export function StaffRosterSection({
   onCreateLocumClaim?: (monthDate: string, staffMember: BuyBackStaffMember, actualSessions: number, claimedAmount: number) => Promise<any>;
   onDeleteClaim?: (id: string) => Promise<void>;
   onSubmit?: (id: string, practiceNotes?: string) => void; onResubmit?: (id: string, notes?: string) => void;
+  onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
   confirmDeclaration?: (id: string, confirmed: boolean) => Promise<void>;
   practiceKey?: string; saving?: boolean;
   meetingLogEntries?: MeetingLogEntry[];
@@ -3374,6 +3412,7 @@ export function StaffRosterSection({
                           onDeleteClaim={onDeleteClaim}
                           onSubmit={onSubmit}
                           onResubmit={onResubmit}
+                          onUpdateClaimNotes={onUpdateClaimNotes}
                           confirmDeclaration={confirmDeclaration}
                           onClose={() => onClickClaim('')}
                           saving={saving}
@@ -4830,7 +4869,7 @@ export function BuyBackPracticeDashboard({
     claims: practiceClaims, claimMonths, practiceKey,
     onClickClaim: handleClickClaim, activeClaimKey,
     onAddStaff, onRemoveStaff, onUpdateStaff, staffRoles, rateParams,
-    onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit,
+    onCreateClaim, onCreateLocumClaim, onDeleteClaim, onSubmit, onResubmit, onUpdateClaimNotes,
     confirmDeclaration, saving: savingClaim,
     meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries,
     canAddOnBehalf, managementRoles,
