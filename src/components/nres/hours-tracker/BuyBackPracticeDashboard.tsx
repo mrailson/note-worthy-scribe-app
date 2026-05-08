@@ -635,6 +635,21 @@ function InlineClaimPanel({
       const isSessionPriced = isSessionPricedRole(role, roleConfig, annualRate);
       const sessions = allocValue / HOURS_PER_SESSION;
       const wteRatio = allocValue / 37.5;
+      // Hourly equivalents only meaningful for session-priced GP roles
+      const sessionsPerWeek = sessions;
+      const hoursPerWeek = sessionsPerWeek * HOURS_PER_SESSION;
+      const annualHours = hoursPerWeek * 52;
+      const annualStaffCost = sessionsPerWeek * annualRate;
+      const staffHourly = annualHours > 0 ? annualStaffCost / annualHours : 0;
+      const onCostFraction = includesOnCosts ? (multiplier - 1) : 0;
+      const onCostHourly = staffHourly * onCostFraction;
+      const totalHourly = staffHourly + onCostHourly;
+      const hourlyRow = (isSessionPriced && includesOnCosts && annualHours > 0) ? [{
+        l: `Equivalent hourly rate (${sessionsPerWeek.toFixed(2)} sess/wk × 4h 10m × 52 = ${annualHours.toFixed(2)} hrs/yr)`,
+        r: `£${staffHourly.toFixed(2)}/hr staff + £${onCostHourly.toFixed(2)}/hr on-costs = £${totalHourly.toFixed(2)}/hr total`,
+        bold: false,
+        large: false,
+      }] : [];
       return {
         primary: isSessionPriced ? [
           { label: `${allocValue} hrs/wk`, accent: true },
@@ -662,6 +677,7 @@ function InlineClaimPanel({
           { l: `+ Employer NI (${niPct}%)`, r: fmtGBP(niAmount) + '/yr' },
           { l: `+ Employer Pension (${penPct}%)`, r: fmtGBP(penAmount) + '/yr' },
           { l: 'Total incl. on-costs', r: fmtGBP(annualWithOnCosts) + '/yr', bold: true },
+          ...hourlyRow,
           { l: isSessionPriced
               ? `Monthly max (${sessions.toFixed(2)} sess × total ÷ 12)`
               : `Monthly max (${wteRatio.toFixed(2)} WTE × total ÷ 12)`,
