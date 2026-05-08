@@ -380,6 +380,8 @@ export default function AdminAgewellResponses() {
           </div>
         </div>
       )}
+
+      <NotificationSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       </div>
     </div>
   );
