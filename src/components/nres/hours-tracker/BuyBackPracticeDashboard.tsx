@@ -1671,7 +1671,7 @@ function InlineClaimPanel({
                             <span style={{ fontSize: 12, color: '#6b7280' }}>/sess</span>
                           </div>
                           <p style={{ fontSize: 10, color: '#9ca3af', margin: '4px 0 0' }}>
-                            Max funded: £{sessionsModeMaxStaffRate.toFixed(2)}/sess (4 h 10 m) for {effectiveStaff.staff_role}
+                            Max funded: £{sessionsModeMaxStaffRate.toFixed(2)}/sess (4 h 10 m, ≈ £{(sessionsModeMaxStaffRate / HOURS_PER_SESSION).toFixed(2)}/hr) for {effectiveStaff.staff_role}
                           </p>
                         </div>
                       </div>
