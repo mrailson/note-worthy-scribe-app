@@ -1186,7 +1186,7 @@ function InlineClaimPanel({
                       {/* On-costs breakdown box */}
                       {calcBreakdownData.breakdown && (
                         <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 8, padding: '10px 12px', fontSize: 11 }}>
-                          {calcBreakdownData.breakdown.map((row, i) => (
+                          {calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
                             <div key={i} style={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                               padding: '2px 0',
@@ -1579,7 +1579,7 @@ function InlineClaimPanel({
                           </div>
                           {calcBreakdownData.breakdown && (
                             <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11 }}>
-                              {calcBreakdownData.breakdown.map((row, i) => (
+                              {calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
                                 <div key={i} style={{
                                   display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                                   padding: '2px 0',
@@ -1728,7 +1728,7 @@ function InlineClaimPanel({
                           </div>
                           {calcBreakdownData.breakdown && (
                             <div style={{ background: `${catAccentColor}08`, border: `1px solid ${catAccentColor}20`, borderRadius: 7, padding: '8px 10px', fontSize: 11 }}>
-                              {calcBreakdownData.breakdown.map((row, i) => (
+                              {calcBreakdownData.breakdown.map((row: { l: string; r: string; bold?: boolean; large?: boolean }, i: number) => (
                                 <div key={i} style={{
                                   display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
                                   padding: '2px 0',
