@@ -617,6 +617,7 @@ function InlineClaimPanel({
   const [amountManuallyEdited, setAmountManuallyEdited] = useState(false);
   // Base annual rate breakdown box is collapsed by default (expandable on demand)
   const [annualBreakdownExpanded, setAnnualBreakdownExpanded] = useState(false);
+  const [calcPanelExpanded, setCalcPanelExpanded] = useState(true);
 
   // Per-component overrides for the breakdown rows (Staff cost, Employer NI,
   // Employer Pension/On-costs). Null = use auto-derived value. Reset whenever
