@@ -217,7 +217,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email via Resend
     const { error: emailError } = await resend.emails.send({
-      from: "Notewell AI Security <noreply@bluepcn.co.uk>",
+      from: "Notewell AI <noreply@bluepcn.co.uk>",
       to: ["malcolm.railson@nhs.net"],
       subject: `⚠️ Magic Link Rate Limit Alert - ${ip_address}`,
       html: emailHtml,

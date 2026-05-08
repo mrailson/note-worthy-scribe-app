@@ -278,7 +278,7 @@ serve(async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "NoteWell PM Assistant <noreply@bluepcn.co.uk>",
+      from: "Notewell AI <noreply@bluepcn.co.uk>",
       to: [recipientEmail],
       subject: subject,
       html: htmlContent,

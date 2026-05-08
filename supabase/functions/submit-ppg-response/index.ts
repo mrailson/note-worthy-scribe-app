@@ -40,7 +40,7 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const NOTIFY_TO = "malcolm.railson@nhs.net";
 const NOTIFY_FROM = Deno.env.get("NRES_FROM_EMAIL") ||
-  "NRES Patient Feedback <noreply@gpnotewell.co.uk>";
+  "Notewell AI <noreply@bluepcn.co.uk>";
 const SALT_BASE = Deno.env.get("PPG_DAILY_SALT_BASE") || "ppg-default-salt-2026";
 
 const admin = createClient(supabaseUrl, serviceKey);

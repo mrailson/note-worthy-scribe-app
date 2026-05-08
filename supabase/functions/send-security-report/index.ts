@@ -332,7 +332,7 @@ const handler = async (req: Request): Promise<Response> => {
     const resend = new Resend(resendApiKey);
 
     const { error: emailError } = await resend.emails.send({
-      from: "Notewell AI Security <noreply@bluepcn.co.uk>",
+      from: "Notewell AI <noreply@bluepcn.co.uk>",
       to: [recipient_email],
       subject: `Notewell Security Report — ${reportDate}`,
       html: emailHtml,
