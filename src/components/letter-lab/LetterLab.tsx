@@ -32,6 +32,7 @@ import {
   type SignatoryOption,
   type Tone,
 } from './LetterControlsPanel';
+import { LetterQualityPanel, type QualityMetrics } from './LetterQualityPanel';
 
 interface LetterLabProps {
   complaintId: string;
