@@ -3532,6 +3532,12 @@ const ComplaintDetails = () => {
                 </Card>
               )}
             </TabsContent>
+
+            {ALLOWED_LAB_EMAILS.includes(user?.email ?? '') && (
+              <TabsContent value="letter-lab" className="space-y-6">
+                <LetterLab complaintId={complaintId} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
