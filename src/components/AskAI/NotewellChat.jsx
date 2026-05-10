@@ -413,7 +413,7 @@ async function generatePptxBlob(a){
     switch(slide.layout){
       case "title":
         s.addShape('rect', { x:0.5,y:1.5,w:9.3,h:3.8, fill:{color:"002060"}, line:{color:"41B6E6",pt:1}, rounding:true });
-        s.addText(slide.title||"", { x:0.8,y:1.9,w:8.7,h:1.8, fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true });
+        s.addText(slide.title||"", { x:0.8,y:1.9,w:8.7,h:1.8, fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true,fit:"shrink" });
         if(slide.subtitle) s.addText(slide.subtitle, { x:0.8,y:3.7,w:8.7,h:0.9, fontSize:16,color:"41B6E6",fontFace:"Arial",align:"center",wrap:true });
         if(slide.meta) s.addText(slide.meta, { x:0.8,y:5.4,w:8.7,h:0.6, fontSize:11,color:"8899AA",fontFace:"Arial",align:"center" });
         break;
@@ -426,7 +426,7 @@ async function generatePptxBlob(a){
           const x = 0.4 + i * cw;
           s.addShape('rect', { x:x+0.1,y:1.1,w:cw-0.2,h:4.0, fill:{color:dark?"002060":"EDF4FF"}, line:{color:MID,pt:1}, rounding:true });
           s.addText(st.value||"", { x:x+0.1,y:1.5,w:cw-0.2,h:1.8, fontSize:52,bold:true,color:MID,fontFace:"Arial Black",align:"center",valign:"middle" });
-          s.addText(st.label||"", { x:x+0.1,y:3.3,w:cw-0.2,h:0.8, fontSize:12,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true });
+          s.addText(st.label||"", { x:x+0.1,y:3.3,w:cw-0.2,h:0.8, fontSize:13,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true,fit:"shrink" });
         });
         break;
       case "two-col":
@@ -437,12 +437,12 @@ async function generatePptxBlob(a){
           const xOff = i === 0 ? 0.4 : 5.2;
           if(col.heading){
             s.addShape('rect', { x:xOff,y:1.1,w:4.4,h:0.4, fill:{color:MID},line:{type:"none"},rounding:true });
-            s.addText(col.heading, { x:xOff+0.1,y:1.12,w:4.2,h:0.36, fontSize:12,bold:true,color:WHITE,fontFace:"Arial",valign:"middle" });
+            s.addText(col.heading, { x:xOff+0.1,y:1.12,w:4.2,h:0.36, fontSize:13,bold:true,color:WHITE,fontFace:"Arial",valign:"middle" });
           }
           if(col.bullets?.length){
             s.addText(
-              col.bullets.map(b => ({ text:"  "+b, options:{ bullet:{type:"bullet",code:"2022",color:MID}, fontSize:12, color:dark?WHITE:"231F20", fontFace:"Arial", paraSpaceAfter:5 }})),
-              { x:xOff, y:1.6, w:4.4, h:5, wrap:true, valign:"top" }
+              col.bullets.map(b => ({ text:"  "+b, options:{ bullet:{type:"bullet",code:"2022",color:MID}, fontSize:14, color:dark?WHITE:"231F20", fontFace:"Arial", paraSpaceAfter:7 }})),
+              { x:xOff, y:1.6, w:4.4, h:5, wrap:true, valign:"top", fit:"shrink" }
             );
           }
         });
@@ -450,42 +450,34 @@ async function generatePptxBlob(a){
         break;
       default: {
         // Title
-        s.addText(slide.title||"", { x:0.4,y:0.2,w:9.5,h:0.8, fontSize:28,bold:true,color:TC,fontFace:"Arial Black",wrap:true });
+        s.addText(slide.title||"", { x:0.4,y:0.2,w:9.5,h:0.8, fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true });
         // Separator bar under title
         s.addShape('rect', { x:0.4,y:1.06,w:9.5,h:0.03, fill:{color:MID},line:{type:"none"} });
         if(slide.bullets?.length){
           const count = slide.bullets.length;
-          // Dynamic font size — fewer bullets = bigger, more bullets = smaller
           const fontSize =
-            count <= 2 ? 20 :
-            count === 3 ? 17 :
-            count === 4 ? 15 :
-            count <= 6 ? 13 : 11;
-          // Dynamic paragraph spacing — fewer bullets = more air
+            count <= 3 ? 18 :
+            count <= 5 ? 16 :
+            count <= 7 ? 14 : 12;
           const paraSpaceAfter =
-            count <= 2 ? 20 :
-            count === 3 ? 14 :
-            count === 4 ? 10 :
-            count <= 6 ? 6 : 4;
-          // Content starts slightly lower for breathing room after separator
+            count <= 3 ? 12 :
+            count <= 5 ? 8 : 6;
           const contentY = 1.22;
           s.addText(
-            slide.bullets.map((b, bi) => ({
+            slide.bullets.map((b) => ({
               text: "  " + b,
               options: {
                 bullet: { type:"bullet", code:"2022", color:MID },
-                // First bullet is slightly larger and bold — acts as a lead statement
-                fontSize: bi === 0 && count >= 2 ? fontSize + 2 : fontSize,
-                bold: bi === 0 && count >= 2,
-                color: dark ? WHITE : (bi === 0 ? DARK : "231F20"),
+                fontSize,
+                color: dark ? WHITE : "231F20",
                 fontFace: "Arial",
                 paraSpaceAfter,
               }
             })),
-            { x:0.4, y:contentY, w:9.4, h:5.5, fontFace:"Arial", wrap:true, valign:"top" }
+            { x:0.4, y:contentY, w:9.4, h:5.5, fontFace:"Arial", wrap:true, valign:"top", fit:"shrink" }
           );
         } else if(slide.body){
-          s.addText(slide.body, { x:0.4,y:1.25,w:9.4,h:5.5, fontSize:14,color:dark?WHITE:"231F20",fontFace:"Arial",wrap:true,valign:"top" });
+          s.addText(slide.body, { x:0.4,y:1.25,w:9.4,h:5.5, fontSize:14,color:dark?WHITE:"231F20",fontFace:"Arial",wrap:true,valign:"top",fit:"shrink" });
         }
         break;
       }
