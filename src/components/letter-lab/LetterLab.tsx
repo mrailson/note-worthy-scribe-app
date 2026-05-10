@@ -1,16 +1,37 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { FlaskConical, Loader2 } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { FlaskConical, Loader2, SlidersHorizontal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useLetterheadStatus } from '@/hooks/useLetterheadStatus';
 import { showShadcnToast } from '@/utils/toastWrapper';
+import type { EditorCommands } from '@/components/RichTextEditor';
 import { ComplaintContextPane } from './ComplaintContextPane';
 import { LetterEditor, type LetterType } from './LetterEditor';
 import { LetterPreviewPane } from './LetterPreviewPane';
+import {
+  LetterControlsPanel,
+  type ControlsValue,
+  type Length,
+  type SignatoryOption,
+  type Tone,
+} from './LetterControlsPanel';
 
 interface LetterLabProps {
   complaintId: string;
@@ -38,6 +59,7 @@ interface DraftRow {
   status: string;
   tone: string;
   length: string;
+  signatory_ids: string[] | null;
   letter_date: string;
   response_due_date: string | null;
   reference_number: string | null;
@@ -46,16 +68,26 @@ interface DraftRow {
   updated_at: string;
 }
 
-// Convert basic markdown-ish HTML to a clean HTML string.
-// RichTextEditor stores its onChange output as markdown-converted; for the
-// preview we just show the value directly — the editor already handles HTML.
 function markdownLikeToHtml(input: string): string {
   if (!input) return '';
-  if (input.includes('<')) return input; // already HTML
+  if (input.includes('<')) return input;
   return input
     .split(/\n{2,}/)
     .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
     .join('');
+}
+
+function deriveInitials(name: string | null): string {
+  if (!name) return 'CMP';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return (parts.map((p) => p[0]).join('').toUpperCase().slice(0, 3)) || 'CMP';
+}
+
+function suggestReference(opts: { practiceName: string | null; complaintId: string; date: Date }): string {
+  const initials = deriveInitials(opts.practiceName);
+  const year = opts.date.getFullYear();
+  const short = opts.complaintId.replace(/-/g, '').slice(0, 4).toUpperCase();
+  return `${initials}-CMP-${year}-${short}`;
 }
 
 export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
@@ -63,6 +95,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
   const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
 
   const [complaint, setComplaint] = useState<ComplaintRow | null>(null);
+  const [practiceName, setPracticeName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [letterType, setLetterType] = useState<LetterType>('acknowledgement');
   const [draft, setDraft] = useState<DraftRow | null>(null);
@@ -70,11 +103,28 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
+  const [signatories, setSignatories] = useState<SignatoryOption[]>([]);
+  const [signatoriesLoading, setSignatoriesLoading] = useState(false);
+
+  const [controls, setControls] = useState<ControlsValue>({
+    tone: 'formal',
+    length: 'standard',
+    signatoryIds: [],
+    letterDate: new Date(),
+    responseDueDate: null,
+    agreedTimeframe: null,
+    referenceNumber: '',
+  });
+  const [settingsChanged, setSettingsChanged] = useState(false);
+
   const letterhead = useLetterheadStatus(complaint?.practice_id);
   const debounceRef = useRef<number | null>(null);
+  const controlsDebounceRef = useRef<number | null>(null);
   const skipNextAutoSave = useRef(true);
+  const skipControlsAutoSave = useRef(true);
+  const editorCmdsRef = useRef<EditorCommands | null>(null);
 
-  // Load complaint
+  // Load complaint + practice name
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -91,6 +141,14 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         console.error('[LetterLab] complaint load failed:', error);
       } else {
         setComplaint(data as ComplaintRow);
+        if (data?.practice_id) {
+          const { data: p } = await supabase
+            .from('gp_practices')
+            .select('practice_name')
+            .eq('id', data.practice_id)
+            .maybeSingle();
+          if (!cancelled) setPracticeName((p as any)?.practice_name ?? null);
+        }
       }
       setLoading(false);
     })();
@@ -99,11 +157,38 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     };
   }, [complaintId]);
 
-  // Load or create the active draft for this complaint + letter type
+  // Load signatories for practice
   useEffect(() => {
+    if (!complaint?.practice_id) return;
+    let cancelled = false;
+    (async () => {
+      setSignatoriesLoading(true);
+      const { data, error } = await supabase
+        .from('complaint_signatures')
+        .select('id, name, job_title, signature_image_url')
+        .eq('practice_id', complaint.practice_id)
+        .order('is_default', { ascending: false })
+        .order('name');
+      if (cancelled) return;
+      if (error) {
+        console.warn('[LetterLab] signatories load failed:', error);
+      } else {
+        setSignatories((data ?? []) as SignatoryOption[]);
+      }
+      setSignatoriesLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [complaint?.practice_id]);
+
+  // Load or create the active draft
+  useEffect(() => {
+    if (!complaint) return;
     let cancelled = false;
     (async () => {
       skipNextAutoSave.current = true;
+      skipControlsAutoSave.current = true;
       const { data: existing, error } = await supabase
         .from('complaint_letter_lab_drafts')
         .select('*')
@@ -117,13 +202,33 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         console.error('[LetterLab] draft fetch failed:', error);
         return;
       }
+
+      const seedDate = new Date();
+      const initialRef = suggestReference({
+        practiceName,
+        complaintId,
+        date: seedDate,
+      });
+
       if (existing) {
-        setDraft(existing as DraftRow);
-        setBody((existing as DraftRow).body_markdown ?? '');
-        setLastSavedAt(new Date((existing as DraftRow).updated_at));
+        const row = existing as DraftRow;
+        setDraft(row);
+        setBody(row.body_markdown ?? '');
+        setLastSavedAt(new Date(row.updated_at));
+        setControls({
+          tone: (row.tone as Tone) ?? 'formal',
+          length: (row.length as Length) ?? 'standard',
+          signatoryIds: row.signatory_ids ?? [],
+          letterDate: row.letter_date ? new Date(row.letter_date) : seedDate,
+          responseDueDate: row.response_due_date ? new Date(row.response_due_date) : null,
+          agreedTimeframe: null,
+          referenceNumber: row.reference_number ?? initialRef,
+        });
+        setSettingsChanged(false);
         return;
       }
-      // No draft yet — create one
+
+      // Create new
       const { data: created, error: createErr } = await supabase
         .from('complaint_letter_lab_drafts')
         .insert({
@@ -131,6 +236,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           letter_type: letterType,
           body_markdown: '',
           body_html: '',
+          reference_number: initialRef,
         })
         .select()
         .single();
@@ -144,14 +250,25 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         });
         return;
       }
-      setDraft(created as DraftRow);
+      const row = created as DraftRow;
+      setDraft(row);
       setBody('');
       setLastSavedAt(null);
+      setControls({
+        tone: 'formal',
+        length: 'standard',
+        signatoryIds: [],
+        letterDate: seedDate,
+        responseDueDate: null,
+        agreedTimeframe: null,
+        referenceNumber: initialRef,
+      });
+      setSettingsChanged(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [complaintId, letterType]);
+  }, [complaint, complaintId, letterType, practiceName]);
 
   const persistDraft = useCallback(
     async (nextBody: string) => {
@@ -172,7 +289,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     [draft],
   );
 
-  // Debounced autosave on body change
+  // Body autosave
   useEffect(() => {
     if (skipNextAutoSave.current) {
       skipNextAutoSave.current = false;
@@ -187,6 +304,46 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
   }, [body, draft, persistDraft]);
+
+  // Controls autosave (debounced)
+  useEffect(() => {
+    if (skipControlsAutoSave.current) {
+      skipControlsAutoSave.current = false;
+      return;
+    }
+    if (!draft) return;
+    if (controlsDebounceRef.current) window.clearTimeout(controlsDebounceRef.current);
+    controlsDebounceRef.current = window.setTimeout(async () => {
+      const { error } = await supabase
+        .from('complaint_letter_lab_drafts')
+        .update({
+          tone: controls.tone,
+          length: controls.length,
+          signatory_ids: controls.signatoryIds,
+          letter_date: controls.letterDate.toISOString().slice(0, 10),
+          response_due_date: controls.responseDueDate
+            ? controls.responseDueDate.toISOString().slice(0, 10)
+            : null,
+          reference_number: controls.referenceNumber || null,
+        })
+        .eq('id', draft.id);
+      if (error) console.warn('[LetterLab] controls autosave failed:', error);
+    }, 800);
+    return () => {
+      if (controlsDebounceRef.current) window.clearTimeout(controlsDebounceRef.current);
+    };
+  }, [controls, draft]);
+
+  const handleControlsChange = (patch: Partial<ControlsValue>) => {
+    setControls((prev) => ({ ...prev, ...patch }));
+    if (
+      patch.tone !== undefined ||
+      patch.length !== undefined ||
+      patch.signatoryIds !== undefined
+    ) {
+      setSettingsChanged(true);
+    }
+  };
 
   const handleSaveDraft = async () => {
     await persistDraft(body);
@@ -207,8 +364,8 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       draft_id: draft.id,
       version_number: nextNumber,
       body_markdown: body,
-      tone: draft.tone,
-      length: draft.length,
+      tone: controls.tone,
+      length: controls.length,
     });
     if (error) {
       showShadcnToast({
@@ -218,7 +375,24 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       });
       return;
     }
+    setSettingsChanged(false);
     showShadcnToast({ title: `Version ${nextNumber} saved` });
+  };
+
+  const handleRegenerate = () => {
+    setSettingsChanged(false);
+    showShadcnToast({
+      title: 'Regenerate queued',
+      description: 'AI regeneration will run in a future update — settings flag cleared.',
+    });
+  };
+
+  const handleInsertSnippet = (text: string) => {
+    if (editorCmdsRef.current) {
+      editorCmdsRef.current.insertText(text + '\n\n');
+    } else {
+      setBody((b) => (b ? b + '\n\n' + text : text));
+    }
   };
 
   if (loading || !complaint) {
@@ -231,17 +405,56 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     );
   }
 
-  const editorPane = (
-    <LetterEditor
+  const controlsPanel = (
+    <LetterControlsPanel
       letterType={letterType}
-      onLetterTypeChange={setLetterType}
-      body={body}
-      onBodyChange={setBody}
-      saving={saving}
-      lastSavedAt={lastSavedAt}
-      onSaveDraft={handleSaveDraft}
-      onGenerateVersion={handleGenerateVersion}
+      value={controls}
+      onChange={handleControlsChange}
+      signatories={signatories}
+      signatoriesLoading={signatoriesLoading}
+      settingsChanged={settingsChanged}
+      onRegenerate={handleRegenerate}
+      onInsertSnippet={handleInsertSnippet}
     />
+  );
+
+  const editorPane = (
+    <div className="relative">
+      <LetterEditor
+        letterType={letterType}
+        onLetterTypeChange={setLetterType}
+        body={body}
+        onBodyChange={setBody}
+        saving={saving}
+        lastSavedAt={lastSavedAt}
+        onSaveDraft={handleSaveDraft}
+        onGenerateVersion={handleGenerateVersion}
+        onEditorReady={(cmds) => {
+          editorCmdsRef.current = cmds;
+        }}
+      />
+      {/* Desktop drawer trigger */}
+      {isDesktop && (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="absolute -right-3 top-2 z-10 shadow-md"
+              title="Letter controls"
+            >
+              <SlidersHorizontal className="h-4 w-4 mr-1" /> Controls
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[380px] sm:w-[420px] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Letter Controls</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">{controlsPanel}</div>
+          </SheetContent>
+        </Sheet>
+      )}
+    </div>
   );
 
   const previewPane = (
@@ -250,8 +463,8 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       bodyHtml={markdownLikeToHtml(body)}
       recipientName={complaint.patient_name}
       recipientAddress={complaint.patient_address}
-      reference={draft?.reference_number ?? complaint.reference_number}
-      letterDate={draft?.letter_date ? new Date(draft.letter_date) : new Date()}
+      reference={controls.referenceNumber || complaint.reference_number}
+      letterDate={controls.letterDate}
       letterType={letterType}
     />
   );
@@ -274,7 +487,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     </div>
   );
 
-  // Desktop — three column layout
+  // Desktop — three column layout, controls in right-edge sheet
   if (isDesktop) {
     return (
       <div>
@@ -288,12 +501,16 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     );
   }
 
-  // Tablet — Editor / Preview tabs + collapsible context
+  // Tablet — controls accordion strip, then Editor / Preview tabs
   if (isTablet) {
     return (
       <div>
         {header}
-        <Accordion type="single" collapsible defaultValue="ctx" className="mb-3">
+        <Accordion type="multiple" defaultValue={['controls']} className="mb-3 space-y-2">
+          <AccordionItem value="controls">
+            <AccordionTrigger className="text-sm">Letter controls</AccordionTrigger>
+            <AccordionContent>{controlsPanel}</AccordionContent>
+          </AccordionItem>
           <AccordionItem value="ctx">
             <AccordionTrigger className="text-sm">Complaint context</AccordionTrigger>
             <AccordionContent>{contextPane}</AccordionContent>
@@ -316,6 +533,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     <div>
       {header}
       <Accordion type="multiple" defaultValue={['editor']} className="space-y-2">
+        <AccordionItem value="controls">
+          <AccordionTrigger className="text-sm">Letter controls</AccordionTrigger>
+          <AccordionContent>{controlsPanel}</AccordionContent>
+        </AccordionItem>
         <AccordionItem value="ctx">
           <AccordionTrigger className="text-sm">Complaint context</AccordionTrigger>
           <AccordionContent>{contextPane}</AccordionContent>
