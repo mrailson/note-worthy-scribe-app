@@ -328,12 +328,12 @@ export const LetterQualityPanel: React.FC<LetterQualityPanelProps> = ({
       if (ids.length) {
         const { data: profs } = await supabase
           .from('profiles')
-          .select('id, display_name')
-          .in('id', ids);
+          .select('user_id, full_name')
+          .in('user_id', ids);
         if (cancelled) return;
         const map: Record<string, string> = {};
         ((profs ?? []) as ProfileLite[]).forEach((p) => {
-          if (p.display_name) map[p.id] = p.display_name;
+          if (p.full_name) map[p.user_id] = p.full_name;
         });
         setProfileMap(map);
       } else {
