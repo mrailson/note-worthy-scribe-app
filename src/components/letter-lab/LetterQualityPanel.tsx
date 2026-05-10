@@ -349,27 +349,16 @@ export const LetterQualityPanel: React.FC<LetterQualityPanelProps> = ({
   }, [draftId, versionsRefreshKey]);
 
   const handleSimplify = async () => {
+    if (!onSimplify) {
+      showShadcnToast({
+        title: 'Simplify unavailable',
+        description: 'AI simplify is not wired in this view.',
+      });
+      return;
+    }
     setSimplifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke('letter-lab-rewrite', {
-        body: { mode: 'simplify', body: plainBody, letterType },
-      });
-      if (error) throw error;
-      const rewritten = (data as any)?.body as string | undefined;
-      if (rewritten) {
-        onRestoreVersion(rewritten);
-        showShadcnToast({ title: 'Simplified draft applied' });
-      } else {
-        showShadcnToast({
-          title: 'Simplify unavailable',
-          description: 'The rewrite service is not yet available — try again later.',
-        });
-      }
-    } catch (e: any) {
-      showShadcnToast({
-        title: 'Simplify failed',
-        description: e?.message ?? 'The rewrite service is not yet available.',
-      });
+      await onSimplify();
     } finally {
       setSimplifying(false);
     }
