@@ -43,6 +43,7 @@ interface ComplaintRow {
   reference_number: string | null;
   patient_name: string | null;
   patient_address: string | null;
+  patient_contact_email: string | null;
   complaint_on_behalf: boolean | null;
   complaint_description: string | null;
   complaint_title: string | null;
