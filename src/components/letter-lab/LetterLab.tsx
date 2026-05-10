@@ -120,6 +120,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
   const [settingsChanged, setSettingsChanged] = useState(false);
   const [versionsRefreshKey, setVersionsRefreshKey] = useState(0);
   const latestMetricsRef = useRef<QualityMetrics | null>(null);
+  const [complianceItems, setComplianceItems] = useState<{ label: string; present: boolean }[]>([]);
+  const [readingAge, setReadingAge] = useState(0);
+  const [latestVersionNumber, setLatestVersionNumber] = useState<number | null>(null);
+  const [practiceContact, setPracticeContact] = useState<{ address: string | null; phone: string | null; email: string | null }>({ address: null, phone: null, email: null });
   const [aiLoading, setAiLoading] = useState(false);
 
   const letterhead = useLetterheadStatus(complaint?.practice_id);
