@@ -426,7 +426,7 @@ async function generatePptxBlob(a){
           const x = 0.4 + i * cw;
           s.addShape('rect', { x:x+0.1,y:1.1,w:cw-0.2,h:4.0, fill:{color:dark?"002060":"EDF4FF"}, line:{color:MID,pt:1}, rounding:true });
           s.addText(st.value||"", { x:x+0.1,y:1.5,w:cw-0.2,h:1.8, fontSize:52,bold:true,color:MID,fontFace:"Arial Black",align:"center",valign:"middle" });
-          s.addText(st.label||"", { x:x+0.1,y:3.3,w:cw-0.2,h:0.8, fontSize:12,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true });
+          s.addText(st.label||"", { x:x+0.1,y:3.3,w:cw-0.2,h:0.8, fontSize:13,color:dark?WHITE:GREY,fontFace:"Arial",align:"center",wrap:true,fit:"shrink" });
         });
         break;
       case "two-col":
