@@ -585,13 +585,19 @@ XLSX RULES:
 - Use multiple sheets when data naturally separates (e.g. Summary + Detail + Lookup tabs)
 - For VLOOKUP: source data goes on a lookup sheet, formulas reference it cross-sheet e.g. =VLOOKUP(A2,Lookup!A:B,2,FALSE)
 PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."],"notes":"speaker notes here"},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
-PPTX RULES:
-- Maximum 4 bullets per content slide — split into multiple slides if more content
-- Fewer bullets = bigger, bolder text — aim for 3-4 per slide for best visual impact
-- Always add a "notes" field on each content slide with presenter talking points
-- Use "stat" layout for slides with 2-4 key numbers/metrics
-- Use "two-col" layout for comparisons, before/after, pros/cons
-- First and last slides auto-render as dark NHS navy — always use "title" layout for slide 1
+PPTX RULES (strict — follow exactly):
+- Hard cap: 5 bullets maximum on any content slide. If you have more points, split across multiple slides — do not exceed 5.
+- Hard cap: each bullet must be 90 characters or fewer. If a point needs more, shorten it or move detail into the "notes" field.
+- Aim for 3-4 bullets per slide as the sweet spot for readability.
+- Slide titles: 60 characters or fewer. Keep them punchy.
+- Every content/two-col/stat slide MUST include a "notes" field with 2-4 sentences of speaker talking points. Notes are where detail and nuance live — bullets stay terse.
+- Use "stat" layout whenever 2-4 key numbers or metrics drive the message — far more impactful than bullets of figures.
+- Use "two-col" layout for comparisons, before/after, pros/cons, current vs proposed. Each column: heading 40 chars max, bullets 70 chars max, max 5 bullets per column.
+- For "title" layout slides: title 50 chars max, subtitle 80 chars max.
+- Slide 1 must always be layout:"title". Last slide should also be layout:"title" (renders as dark NHS navy "thank you / next steps" closing slide).
+- Vary layouts across the deck — a deck of nothing but content bullets is monotonous. Mix in stat and two-col where the content supports it.
+- Never use placeholder text like [Insert X] or [TBC] — if a value isn't known, omit the bullet entirely.
+- Aim for 6-12 slides total for a typical request unless the user specifies otherwise.
 IMAGE: {"type":"image","title":"...","filename":"kebab","alt":"description","svg":"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'>...</svg>"}
 SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Escape quotes as \\".
 
