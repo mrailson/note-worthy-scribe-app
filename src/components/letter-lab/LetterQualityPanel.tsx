@@ -229,8 +229,8 @@ interface VersionRow {
 }
 
 interface ProfileLite {
-  id: string;
-  display_name: string | null;
+  user_id: string;
+  full_name: string | null;
 }
 
 // ---------- Public metrics shape exposed upward ----------
