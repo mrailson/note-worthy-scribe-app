@@ -448,6 +448,52 @@ async function generatePptxBlob(a){
         });
         s.addShape('rect', { x:4.95,y:1.0,w:0.03,h:5.8, fill:{color:"DDDDDD"},line:{type:"none"} });
         break;
+      case "image": {
+        // Title bar (same style as content/stat)
+        s.addText(slide.title||"", {
+          x:0.4, y:0.2, w:9.5, h:0.7,
+          fontSize:26, bold:true, color:TC, fontFace:"Arial Black",
+          wrap:true, fit:"shrink"
+        });
+        s.addShape('rect', { x:0.4, y:0.95, w:9.5, h:0.03, fill:{color:MID}, line:{type:"none"} });
+        // Image area: 9.0 wide x 4.8 tall, centred horizontally
+        const img = slide.image || {};
+        const hasCaption = !!slide.caption;
+        const imgY = 1.15;
+        const imgH = hasCaption ? 4.5 : 5.4;
+        if (img.src) {
+          const isDataUrl = /^data:image\//i.test(img.src);
+          const imageOpts = {
+            x: 0.65, y: imgY, w: 8.7, h: imgH,
+            sizing: { type: "contain", w: 8.7, h: imgH }
+          };
+          if (isDataUrl) {
+            imageOpts.data = img.src;
+          } else {
+            imageOpts.path = img.src;
+          }
+          if (img.alt) imageOpts.altText = img.alt;
+          s.addImage(imageOpts);
+        } else {
+          s.addShape('rect', {
+            x:0.65, y:imgY, w:8.7, h:imgH,
+            fill:{color:dark?"002060":"F0F4F8"}, line:{color:MID,pt:1}, rounding:true
+          });
+          s.addText("[ Image not provided ]", {
+            x:0.65, y:imgY, w:8.7, h:imgH,
+            fontSize:14, color:dark?"6699CC":GREY, fontFace:"Arial",
+            align:"center", valign:"middle", italic:true
+          });
+        }
+        if (hasCaption) {
+          s.addText(slide.caption, {
+            x:0.65, y:imgY + imgH + 0.1, w:8.7, h:0.5,
+            fontSize:11, color:dark?"BBCCDD":GREY, fontFace:"Arial",
+            align:"center", italic:true, wrap:true, fit:"shrink"
+          });
+        }
+        break;
+      }
       default: {
         // Title
         s.addText(slide.title||"", { x:0.4,y:0.2,w:9.5,h:0.8, fontSize:26,bold:true,color:TC,fontFace:"Arial Black",wrap:true });
