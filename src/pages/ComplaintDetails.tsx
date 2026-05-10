@@ -1969,7 +1969,7 @@ const ComplaintDetails = () => {
 
           {/* Complaint Workflow Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="flex w-full overflow-x-auto scrollbar-hide sm:grid sm:grid-cols-5 gap-1">
+            <TabsList className={`flex w-full overflow-x-auto scrollbar-hide sm:grid ${ALLOWED_LAB_EMAILS.includes(user?.email ?? '') ? 'sm:grid-cols-6' : 'sm:grid-cols-5'} gap-1`}>
               <TabsTrigger value="details" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
                 Details
               </TabsTrigger>
@@ -1988,6 +1988,12 @@ const ComplaintDetails = () => {
                 <span className="hidden sm:inline">Audit Log</span>
                 <span className="sm:hidden">Audit</span>
               </TabsTrigger>
+              {ALLOWED_LAB_EMAILS.includes(user?.email ?? '') && (
+                <TabsTrigger value="letter-lab" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
+                  <FlaskConical className="h-4 w-4 mr-1 inline" />
+                  <span>Letter Lab</span>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Details Tab */}
