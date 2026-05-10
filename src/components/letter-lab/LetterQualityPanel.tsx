@@ -247,6 +247,8 @@ export interface LetterQualityPanelProps {
   body: string;
   onInsertSnippet: (text: string) => void;
   onRestoreVersion: (body: string) => void;
+  /** If provided, the panel delegates "Simplify with AI" to the parent (recommended). */
+  onSimplify?: () => Promise<void> | void;
   /** Notified (debounced) of latest metrics so the parent can persist them with the next saved version. */
   onMetricsChange?: (m: QualityMetrics) => void;
   /** Bumped by parent each time a new version is written, so the panel reloads history. */
