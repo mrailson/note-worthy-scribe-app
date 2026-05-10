@@ -500,3 +500,6 @@ verify_jwt = false
 [functions.submit-agewell-feedback]
 verify_jwt = false
 
+
+[functions.letter-lab-generate]
+verify_jwt = true
