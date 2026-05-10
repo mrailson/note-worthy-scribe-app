@@ -32,6 +32,7 @@ import {
   type SignatoryOption,
   type Tone,
 } from './LetterControlsPanel';
+import { LetterQualityPanel, type QualityMetrics } from './LetterQualityPanel';
 
 interface LetterLabProps {
   complaintId: string;
@@ -116,6 +117,8 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     referenceNumber: '',
   });
   const [settingsChanged, setSettingsChanged] = useState(false);
+  const [versionsRefreshKey, setVersionsRefreshKey] = useState(0);
+  const latestMetricsRef = useRef<QualityMetrics | null>(null);
 
   const letterhead = useLetterheadStatus(complaint?.practice_id);
   const debounceRef = useRef<number | null>(null);
@@ -350,33 +353,62 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     showShadcnToast({ title: 'Draft saved' });
   };
 
+  const writeVersion = useCallback(
+    async (opts: { bodyText: string; changeNote?: string }) => {
+      if (!draft) return null;
+      const { data: versions } = await supabase
+        .from('complaint_letter_lab_versions')
+        .select('version_number')
+        .eq('draft_id', draft.id)
+        .order('version_number', { ascending: false })
+        .limit(1);
+      const nextNumber = ((versions?.[0]?.version_number as number | undefined) ?? 0) + 1;
+      const { data: userRes } = await supabase.auth.getUser();
+      const m = latestMetricsRef.current;
+      const { error } = await supabase.from('complaint_letter_lab_versions').insert({
+        draft_id: draft.id,
+        version_number: nextNumber,
+        body_markdown: opts.bodyText,
+        tone: controls.tone,
+        length: controls.length,
+        reading_age: m?.readingAge ?? null,
+        flesch_kincaid_grade: m?.fleschGrade ?? null,
+        compliance_score: m?.complianceScore ?? null,
+        change_note: opts.changeNote ?? null,
+        created_by: userRes?.user?.id ?? null,
+      });
+      if (error) {
+        showShadcnToast({
+          title: 'Version save failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return null;
+      }
+      setVersionsRefreshKey((k) => k + 1);
+      return nextNumber;
+    },
+    [draft, controls.tone, controls.length],
+  );
+
   const handleGenerateVersion = async () => {
     if (!draft) return;
     await persistDraft(body);
-    const { data: versions } = await supabase
-      .from('complaint_letter_lab_versions')
-      .select('version_number')
-      .eq('draft_id', draft.id)
-      .order('version_number', { ascending: false })
-      .limit(1);
-    const nextNumber = ((versions?.[0]?.version_number as number | undefined) ?? 0) + 1;
-    const { error } = await supabase.from('complaint_letter_lab_versions').insert({
-      draft_id: draft.id,
-      version_number: nextNumber,
-      body_markdown: body,
-      tone: controls.tone,
-      length: controls.length,
-    });
-    if (error) {
-      showShadcnToast({
-        title: 'Version save failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-      return;
+    const n = await writeVersion({ bodyText: body });
+    if (n != null) {
+      setSettingsChanged(false);
+      showShadcnToast({ title: `Version ${n} saved` });
     }
-    setSettingsChanged(false);
-    showShadcnToast({ title: `Version ${nextNumber} saved` });
+  };
+
+  const handleRestoreVersion = async (restoredBody: string) => {
+    if (!draft) return;
+    // Snapshot current first so nothing is lost
+    if (body && body !== restoredBody) {
+      await writeVersion({ bodyText: body, changeNote: 'Auto-snapshot before restore' });
+    }
+    setBody(restoredBody);
+    await persistDraft(restoredBody);
   };
 
   const handleRegenerate = () => {
@@ -457,6 +489,20 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     </div>
   );
 
+  const qualityPanel = (
+    <LetterQualityPanel
+      draftId={draft?.id ?? null}
+      letterType={letterType}
+      body={body}
+      onInsertSnippet={handleInsertSnippet}
+      onRestoreVersion={handleRestoreVersion}
+      onMetricsChange={(m) => {
+        latestMetricsRef.current = m;
+      }}
+      versionsRefreshKey={versionsRefreshKey}
+    />
+  );
+
   const previewPane = (
     <LetterPreviewPane
       letterhead={letterhead}
@@ -494,7 +540,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         {header}
         <div className="grid grid-cols-10 gap-4">
           <div className="col-span-3">{contextPane}</div>
-          <div className="col-span-4">{editorPane}</div>
+          <div className="col-span-4 space-y-4">
+            {editorPane}
+            {qualityPanel}
+          </div>
           <div className="col-span-3">{previewPane}</div>
         </div>
       </div>
@@ -517,12 +566,14 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           </AccordionItem>
         </Accordion>
         <Tabs defaultValue="editor">
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="quality">Quality</TabsTrigger>
           </TabsList>
           <TabsContent value="editor">{editorPane}</TabsContent>
           <TabsContent value="preview">{previewPane}</TabsContent>
+          <TabsContent value="quality">{qualityPanel}</TabsContent>
         </Tabs>
       </div>
     );
@@ -548,6 +599,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         <AccordionItem value="preview">
           <AccordionTrigger className="text-sm">Preview</AccordionTrigger>
           <AccordionContent>{previewPane}</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="quality">
+          <AccordionTrigger className="text-sm">Quality &amp; history</AccordionTrigger>
+          <AccordionContent>{qualityPanel}</AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>
