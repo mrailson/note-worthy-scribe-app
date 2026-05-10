@@ -413,7 +413,7 @@ async function generatePptxBlob(a){
     switch(slide.layout){
       case "title":
         s.addShape('rect', { x:0.5,y:1.5,w:9.3,h:3.8, fill:{color:"002060"}, line:{color:"41B6E6",pt:1}, rounding:true });
-        s.addText(slide.title||"", { x:0.8,y:1.9,w:8.7,h:1.8, fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true });
+        s.addText(slide.title||"", { x:0.8,y:1.9,w:8.7,h:1.8, fontSize:38,bold:true,color:WHITE,fontFace:"Arial Black",align:"center",valign:"middle",wrap:true,fit:"shrink" });
         if(slide.subtitle) s.addText(slide.subtitle, { x:0.8,y:3.7,w:8.7,h:0.9, fontSize:16,color:"41B6E6",fontFace:"Arial",align:"center",wrap:true });
         if(slide.meta) s.addText(slide.meta, { x:0.8,y:5.4,w:8.7,h:0.6, fontSize:11,color:"8899AA",fontFace:"Arial",align:"center" });
         break;
