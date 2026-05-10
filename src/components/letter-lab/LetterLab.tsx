@@ -412,12 +412,75 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     await persistDraft(restoredBody);
   };
 
+  const runAi = useCallback(
+    async (mode: 'generate' | 'regenerate' | 'simplify' | 'rewrite-section', sectionText?: string) => {
+      if (!draft) return;
+      setAiLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('letter-lab-generate', {
+          body: { draftId: draft.id, mode, sectionText },
+        });
+        if (error) throw error;
+        const result = data as {
+          bodyMarkdown?: string;
+          warnings?: string[];
+        } | null;
+        const next = result?.bodyMarkdown ?? '';
+        if (!next) {
+          showShadcnToast({ title: 'AI returned no content', variant: 'destructive' });
+          return;
+        }
+        if (mode === 'rewrite-section' && editorCmdsRef.current) {
+          editorCmdsRef.current.insertText(next);
+        } else {
+          setBody(next);
+        }
+        if (mode === 'regenerate') setSettingsChanged(false);
+        showShadcnToast({
+          title:
+            mode === 'simplify'
+              ? 'Simplified draft applied'
+              : mode === 'rewrite-section'
+                ? 'Section rewritten'
+                : 'AI draft applied',
+          description: result?.warnings?.length ? result.warnings.join(' · ') : undefined,
+        });
+      } catch (e: any) {
+        console.error('[LetterLab] AI call failed:', e);
+        showShadcnToast({
+          title: 'AI generation failed',
+          description: e?.message ?? 'Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setAiLoading(false);
+      }
+    },
+    [draft],
+  );
+
   const handleRegenerate = () => {
-    setSettingsChanged(false);
-    showShadcnToast({
-      title: 'Regenerate queued',
-      description: 'AI regeneration will run in a future update — settings flag cleared.',
-    });
+    void runAi('regenerate');
+  };
+
+  const handleAiGenerate = () => {
+    void runAi('generate');
+  };
+
+  const handleAiRewriteSelection = () => {
+    const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+    if (!sel) {
+      showShadcnToast({
+        title: 'No selection',
+        description: 'Select text in the editor first, then click "Rewrite selection".',
+      });
+      return;
+    }
+    void runAi('rewrite-section', sel);
+  };
+
+  const handleAiSimplify = async () => {
+    await runAi('simplify');
   };
 
   const handleInsertSnippet = (text: string) => {
