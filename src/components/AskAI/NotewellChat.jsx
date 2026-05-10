@@ -643,6 +643,9 @@ PPTX RULES (strict — follow exactly):
 - Slide 1 must always be layout:"title". Last slide should also be layout:"title" (renders as dark NHS navy "thank you / next steps" closing slide).
 - Vary layouts across the deck — a deck of nothing but content bullets is monotonous. Mix in stat and two-col where the content supports it.
 - Never use placeholder text like [Insert X] or [TBC] — if a value isn't known, omit the bullet entirely.
+- Use "image" layout when a chart, diagram, screenshot, photo or logo is the focus of the slide. Provide the image as either a remote URL (image.src starts with https://) or as a base64 data URL (image.src starts with data:image/). Always include an "alt" field describing the image for accessibility.
+- Image titles: 60 chars max. Caption (optional): 100 chars max.
+- Do not invent image URLs. Only use "image" layout if the user has uploaded an image, asked you to embed a specific URL, or generated an image via Image Studio in this conversation.
 - Aim for 6-12 slides total for a typical request unless the user specifies otherwise.
 IMAGE: {"type":"image","title":"...","filename":"kebab","alt":"description","svg":"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'>...</svg>"}
 SVG colours: #003087 #005EB8 #0072CE #41B6E6 #009639 #DA291C #FFB81C. No JS. Escape quotes as \\".
