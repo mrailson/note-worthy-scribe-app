@@ -29,6 +29,7 @@ export const LetterEditor: React.FC<Props> = ({
   lastSavedAt,
   onSaveDraft,
   onGenerateVersion,
+  onEditorReady,
 }) => {
   const text = useMemo(() => body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(), [body]);
   const wordCount = text ? text.split(/\s+/).length : 0;
