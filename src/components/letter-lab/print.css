@@ -1,0 +1,39 @@
+/* Letter Lab — print stylesheet */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .letter-print-area,
+  .letter-print-area * {
+    visibility: visible;
+  }
+
+  .letter-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 21cm;
+    padding: 2cm;
+    box-sizing: border-box;
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .letter-print-letterhead {
+    width: 100%;
+    margin-bottom: 1.5cm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
