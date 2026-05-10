@@ -78,6 +78,12 @@ import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns, ChevronUp } fr
 import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
 import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
 import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
+import { LetterLab } from "@/components/letter-lab/LetterLab";
+import { FlaskConical } from "lucide-react";
+
+// Letter Lab feature flag — emails listed here see the experimental "Letter Lab" tab.
+// Add NHS.net addresses to extend access.
+const ALLOWED_LAB_EMAILS = ['malcolm.railson@nhs.net'];
 import { ExecutiveBriefingSuite } from "@/components/complaints/ExecutiveBriefingSuite";
 import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote";
 import { AddComplaintDocumentDialog } from "@/components/complaints/AddComplaintDocumentDialog";
