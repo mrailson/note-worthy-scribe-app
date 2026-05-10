@@ -137,7 +137,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       const { data, error } = await supabase
         .from('complaints')
         .select(
-          'id, reference_number, patient_name, patient_address, complaint_on_behalf, complaint_description, complaint_title, status, created_at, submitted_at, practice_id, response_due_date',
+          'id, reference_number, patient_name, patient_address, patient_contact_email, complaint_on_behalf, complaint_description, complaint_title, status, created_at, submitted_at, practice_id, response_due_date',
         )
         .eq('id', complaintId)
         .maybeSingle();
