@@ -2343,6 +2343,121 @@ export type Database = {
           },
         ]
       }
+      complaint_letter_lab_drafts: {
+        Row: {
+          body_html: string
+          body_markdown: string
+          complaint_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          length: string
+          letter_date: string
+          letter_type: string
+          reference_number: string | null
+          response_due_date: string | null
+          signatory_ids: string[]
+          status: string
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          body_html?: string
+          body_markdown?: string
+          complaint_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          length?: string
+          letter_date?: string
+          letter_type: string
+          reference_number?: string | null
+          response_due_date?: string | null
+          signatory_ids?: string[]
+          status?: string
+          tone?: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          body_markdown?: string
+          complaint_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          length?: string
+          letter_date?: string
+          letter_type?: string
+          reference_number?: string | null
+          response_due_date?: string | null
+          signatory_ids?: string[]
+          status?: string
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_letter_lab_drafts_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_letter_lab_versions: {
+        Row: {
+          body_markdown: string
+          change_note: string | null
+          compliance_score: number | null
+          created_at: string
+          created_by: string | null
+          draft_id: string
+          flesch_kincaid_grade: number | null
+          id: string
+          length: string | null
+          reading_age: number | null
+          tone: string | null
+          version_number: number
+        }
+        Insert: {
+          body_markdown?: string
+          change_note?: string | null
+          compliance_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          draft_id: string
+          flesch_kincaid_grade?: number | null
+          id?: string
+          length?: string | null
+          reading_age?: number | null
+          tone?: string | null
+          version_number: number
+        }
+        Update: {
+          body_markdown?: string
+          change_note?: string | null
+          compliance_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          draft_id?: string
+          flesch_kincaid_grade?: number | null
+          id?: string
+          length?: string | null
+          reading_age?: number | null
+          tone?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_letter_lab_versions_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_letter_lab_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_notes: {
         Row: {
           complaint_id: string
