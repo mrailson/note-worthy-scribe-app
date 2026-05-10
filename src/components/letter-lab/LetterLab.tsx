@@ -563,6 +563,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       body={body}
       onInsertSnippet={handleInsertSnippet}
       onRestoreVersion={handleRestoreVersion}
+      onSimplify={handleAiSimplify}
       onMetricsChange={(m) => {
         latestMetricsRef.current = m;
       }}
