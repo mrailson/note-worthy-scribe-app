@@ -100,12 +100,33 @@ export const LetterEditor: React.FC<Props> = ({
               )}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {onAiGenerate && (
+              <Button variant="secondary" size="sm" onClick={onAiGenerate} disabled={aiLoading}>
+                {aiLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                )}
+                Generate with AI
+              </Button>
+            )}
+            {onAiRewriteSelection && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAiRewriteSelection}
+                disabled={aiLoading}
+                title="Select text in the editor first, then click to rewrite"
+              >
+                <Wand2 className="h-3.5 w-3.5 mr-1" /> Rewrite selection
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={onSaveDraft} disabled={saving}>
               <Save className="h-3.5 w-3.5 mr-1" /> Save draft
             </Button>
             <Button size="sm" onClick={onGenerateVersion} disabled={saving || !body.trim()}>
-              <GitBranch className="h-3.5 w-3.5 mr-1" /> Generate version
+              <GitBranch className="h-3.5 w-3.5 mr-1" /> Save version
             </Button>
           </div>
         </div>
