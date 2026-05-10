@@ -489,6 +489,20 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     </div>
   );
 
+  const qualityPanel = (
+    <LetterQualityPanel
+      draftId={draft?.id ?? null}
+      letterType={letterType}
+      body={body}
+      onInsertSnippet={handleInsertSnippet}
+      onRestoreVersion={handleRestoreVersion}
+      onMetricsChange={(m) => {
+        latestMetricsRef.current = m;
+      }}
+      versionsRefreshKey={versionsRefreshKey}
+    />
+  );
+
   const previewPane = (
     <LetterPreviewPane
       letterhead={letterhead}
