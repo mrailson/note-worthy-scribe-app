@@ -2405,6 +2405,50 @@ export type Database = {
           },
         ]
       }
+      complaint_letter_lab_exports: {
+        Row: {
+          draft_id: string
+          exported_at: string
+          exported_by: string | null
+          file_size_bytes: number | null
+          format: string
+          id: string
+          notes: string | null
+          recipient_email: string | null
+          version_number: number | null
+        }
+        Insert: {
+          draft_id: string
+          exported_at?: string
+          exported_by?: string | null
+          file_size_bytes?: number | null
+          format: string
+          id?: string
+          notes?: string | null
+          recipient_email?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          draft_id?: string
+          exported_at?: string
+          exported_by?: string | null
+          file_size_bytes?: number | null
+          format?: string
+          id?: string
+          notes?: string | null
+          recipient_email?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_letter_lab_exports_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_letter_lab_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_letter_lab_versions: {
         Row: {
           body_markdown: string

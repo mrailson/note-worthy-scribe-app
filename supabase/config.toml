@@ -503,3 +503,6 @@ verify_jwt = false
 
 [functions.letter-lab-generate]
 verify_jwt = true
+
+[functions.letter-lab-pii-check]
+verify_jwt = true

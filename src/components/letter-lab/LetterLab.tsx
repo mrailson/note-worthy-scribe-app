@@ -43,6 +43,7 @@ interface ComplaintRow {
   reference_number: string | null;
   patient_name: string | null;
   patient_address: string | null;
+  patient_contact_email: string | null;
   complaint_on_behalf: boolean | null;
   complaint_description: string | null;
   complaint_title: string | null;
@@ -119,6 +120,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
   const [settingsChanged, setSettingsChanged] = useState(false);
   const [versionsRefreshKey, setVersionsRefreshKey] = useState(0);
   const latestMetricsRef = useRef<QualityMetrics | null>(null);
+  const [complianceItems, setComplianceItems] = useState<{ label: string; present: boolean }[]>([]);
+  const [readingAge, setReadingAge] = useState(0);
+  const [latestVersionNumber, setLatestVersionNumber] = useState<number | null>(null);
+  const [practiceContact, setPracticeContact] = useState<{ address: string | null; phone: string | null; email: string | null }>({ address: null, phone: null, email: null });
   const [aiLoading, setAiLoading] = useState(false);
 
   const letterhead = useLetterheadStatus(complaint?.practice_id);
@@ -136,7 +141,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       const { data, error } = await supabase
         .from('complaints')
         .select(
-          'id, reference_number, patient_name, patient_address, complaint_on_behalf, complaint_description, complaint_title, status, created_at, submitted_at, practice_id, response_due_date',
+          'id, reference_number, patient_name, patient_address, patient_contact_email, complaint_on_behalf, complaint_description, complaint_title, status, created_at, submitted_at, practice_id, response_due_date',
         )
         .eq('id', complaintId)
         .maybeSingle();
@@ -148,10 +153,17 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         if (data?.practice_id) {
           const { data: p } = await supabase
             .from('gp_practices')
-            .select('name')
+            .select('name, address, phone, email')
             .eq('id', data.practice_id)
             .maybeSingle();
-          if (!cancelled) setPracticeName((p as any)?.name ?? null);
+          if (!cancelled) {
+            setPracticeName((p as any)?.name ?? null);
+            setPracticeContact({
+              address: (p as any)?.address ?? null,
+              phone: (p as any)?.phone ?? null,
+              email: (p as any)?.email ?? null,
+            });
+          }
         }
       }
       setLoading(false);
@@ -387,6 +399,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         return null;
       }
       setVersionsRefreshKey((k) => k + 1);
+      setLatestVersionNumber(nextNumber);
       return nextNumber;
     },
     [draft, controls.tone, controls.length],
