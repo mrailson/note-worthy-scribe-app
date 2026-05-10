@@ -72,7 +72,7 @@ export const LetterPreviewPane: React.FC<Props> = ({
 
   return (
     <Card className="flex flex-col h-full">
-      <CardHeader className="pb-3 space-y-3">
+      <CardHeader className="pb-3 space-y-3 no-print">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base">Live Preview</CardTitle>
           <div className="flex items-center gap-2 text-xs">
@@ -86,7 +86,7 @@ export const LetterPreviewPane: React.FC<Props> = ({
       <CardContent className="flex-1 overflow-auto bg-muted/30 p-4">
         <div
           className={cn(
-            'mx-auto bg-white text-black shadow-md border border-border',
+            'letter-print-area mx-auto bg-white text-black shadow-md border border-border',
             printMode ? 'w-[210mm] min-h-[297mm] p-[20mm]' : 'w-full max-w-[640px] p-6',
           )}
           style={printMode ? { aspectRatio: '210 / 297' } : undefined}
