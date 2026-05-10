@@ -119,6 +119,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
   const [settingsChanged, setSettingsChanged] = useState(false);
   const [versionsRefreshKey, setVersionsRefreshKey] = useState(0);
   const latestMetricsRef = useRef<QualityMetrics | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const letterhead = useLetterheadStatus(complaint?.practice_id);
   const debounceRef = useRef<number | null>(null);
