@@ -74,6 +74,7 @@ export const LetterEditor: React.FC<Props> = ({
             content={body}
             onChange={onBodyChange}
             placeholder={`Draft your ${letterType} letter…`}
+            onReady={onEditorReady}
           />
         </div>
 
