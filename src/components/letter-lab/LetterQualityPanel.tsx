@@ -261,6 +261,7 @@ export const LetterQualityPanel: React.FC<LetterQualityPanelProps> = ({
   body,
   onInsertSnippet,
   onRestoreVersion,
+  onSimplify,
   onMetricsChange,
   versionsRefreshKey = 0,
 }) => {
