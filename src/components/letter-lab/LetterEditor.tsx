@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Save, GitBranch, Mail, FileCheck2 } from 'lucide-react';
-import RichTextEditor from '@/components/RichTextEditor';
+import RichTextEditor, { type EditorCommands } from '@/components/RichTextEditor';
 import { cn } from '@/lib/utils';
 
 export type LetterType = 'acknowledgement' | 'outcome';
@@ -17,6 +17,7 @@ interface Props {
   lastSavedAt: Date | null;
   onSaveDraft: () => void;
   onGenerateVersion: () => void;
+  onEditorReady?: (cmds: EditorCommands) => void;
 }
 
 export const LetterEditor: React.FC<Props> = ({
@@ -28,6 +29,7 @@ export const LetterEditor: React.FC<Props> = ({
   lastSavedAt,
   onSaveDraft,
   onGenerateVersion,
+  onEditorReady,
 }) => {
   const text = useMemo(() => body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(), [body]);
   const wordCount = text ? text.split(/\s+/).length : 0;
@@ -72,6 +74,7 @@ export const LetterEditor: React.FC<Props> = ({
             content={body}
             onChange={onBodyChange}
             placeholder={`Draft your ${letterType} letter…`}
+            onReady={onEditorReady}
           />
         </div>
 
