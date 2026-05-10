@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { diffLines, diffWordsWithSpace } from 'diff';
+import { diffLines } from 'diff';
 import {
   CheckCircle2,
   XCircle,
