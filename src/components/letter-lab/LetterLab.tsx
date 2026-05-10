@@ -566,12 +566,14 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           </AccordionItem>
         </Accordion>
         <Tabs defaultValue="editor">
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="quality">Quality</TabsTrigger>
           </TabsList>
           <TabsContent value="editor">{editorPane}</TabsContent>
           <TabsContent value="preview">{previewPane}</TabsContent>
+          <TabsContent value="quality">{qualityPanel}</TabsContent>
         </Tabs>
       </div>
     );
