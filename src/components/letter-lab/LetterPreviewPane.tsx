@@ -94,7 +94,7 @@ export const LetterPreviewPane: React.FC<Props> = ({
           {/* Letterhead */}
           {lh && lh.signed_url ? (
             <div
-              className="mb-4"
+              className="letter-print-letterhead mb-4"
               style={{
                 textAlign: lh.alignment,
                 marginTop: `${lh.top_margin_cm}cm`,
