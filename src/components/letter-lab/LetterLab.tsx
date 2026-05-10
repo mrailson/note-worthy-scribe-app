@@ -528,6 +528,9 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         onEditorReady={(cmds) => {
           editorCmdsRef.current = cmds;
         }}
+        onAiGenerate={handleAiGenerate}
+        onAiRewriteSelection={handleAiRewriteSelection}
+        aiLoading={aiLoading}
       />
       {/* Desktop drawer trigger */}
       {isDesktop && (
