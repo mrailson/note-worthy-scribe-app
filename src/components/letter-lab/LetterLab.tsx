@@ -540,7 +540,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         {header}
         <div className="grid grid-cols-10 gap-4">
           <div className="col-span-3">{contextPane}</div>
-          <div className="col-span-4">{editorPane}</div>
+          <div className="col-span-4 space-y-4">
+            {editorPane}
+            {qualityPanel}
+          </div>
           <div className="col-span-3">{previewPane}</div>
         </div>
       </div>
