@@ -600,6 +600,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           <AccordionTrigger className="text-sm">Preview</AccordionTrigger>
           <AccordionContent>{previewPane}</AccordionContent>
         </AccordionItem>
+        <AccordionItem value="quality">
+          <AccordionTrigger className="text-sm">Quality &amp; history</AccordionTrigger>
+          <AccordionContent>{qualityPanel}</AccordionContent>
+        </AccordionItem>
       </Accordion>
     </div>
   );
