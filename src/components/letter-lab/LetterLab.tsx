@@ -153,10 +153,17 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         if (data?.practice_id) {
           const { data: p } = await supabase
             .from('gp_practices')
-            .select('name')
+            .select('name, address, phone, email')
             .eq('id', data.practice_id)
             .maybeSingle();
-          if (!cancelled) setPracticeName((p as any)?.name ?? null);
+          if (!cancelled) {
+            setPracticeName((p as any)?.name ?? null);
+            setPracticeContact({
+              address: (p as any)?.address ?? null,
+              phone: (p as any)?.phone ?? null,
+              email: (p as any)?.email ?? null,
+            });
+          }
         }
       }
       setLoading(false);
