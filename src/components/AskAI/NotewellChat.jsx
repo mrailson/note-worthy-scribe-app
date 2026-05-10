@@ -630,7 +630,7 @@ XLSX RULES:
 - Always provide columnWidths — aim for 12-25 characters depending on content
 - Use multiple sheets when data naturally separates (e.g. Summary + Detail + Lookup tabs)
 - For VLOOKUP: source data goes on a lookup sheet, formulas reference it cross-sheet e.g. =VLOOKUP(A2,Lookup!A:B,2,FALSE)
-PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."],"notes":"speaker notes here"},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]}]}
+PPTX: {"type":"pptx","title":"...","filename":"kebab","meta":{"author":"${user.name}","organisation":"${user.practice.name}"},"slides":[{"layout":"title","title":"...","subtitle":"...","meta":"${user.practice.name}"},{"layout":"content","title":"...","bullets":["..."],"notes":"speaker notes here"},{"layout":"two-col","title":"...","left":{"heading":"...","bullets":[]},"right":{"heading":"...","bullets":[]}},{"layout":"stat","title":"...","stats":[{"value":"...","label":"..."}]},{"layout":"image","title":"...","image":{"src":"https://...","alt":"description"},"caption":"Optional caption","notes":"speaker notes"}]}
 PPTX RULES (strict — follow exactly):
 - Hard cap: 5 bullets maximum on any content slide. If you have more points, split across multiple slides — do not exceed 5.
 - Hard cap: each bullet must be 90 characters or fewer. If a point needs more, shorten it or move detail into the "notes" field.
