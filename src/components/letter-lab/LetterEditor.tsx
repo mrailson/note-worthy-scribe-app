@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Save, GitBranch, Mail, FileCheck2 } from 'lucide-react';
+import { Loader2, Save, GitBranch, Mail, FileCheck2, Sparkles, Wand2 } from 'lucide-react';
 import RichTextEditor, { type EditorCommands } from '@/components/RichTextEditor';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +18,9 @@ interface Props {
   onSaveDraft: () => void;
   onGenerateVersion: () => void;
   onEditorReady?: (cmds: EditorCommands) => void;
+  onAiGenerate?: () => void;
+  onAiRewriteSelection?: () => void;
+  aiLoading?: boolean;
 }
 
 export const LetterEditor: React.FC<Props> = ({
