@@ -437,12 +437,12 @@ async function generatePptxBlob(a){
           const xOff = i === 0 ? 0.4 : 5.2;
           if(col.heading){
             s.addShape('rect', { x:xOff,y:1.1,w:4.4,h:0.4, fill:{color:MID},line:{type:"none"},rounding:true });
-            s.addText(col.heading, { x:xOff+0.1,y:1.12,w:4.2,h:0.36, fontSize:12,bold:true,color:WHITE,fontFace:"Arial",valign:"middle" });
+            s.addText(col.heading, { x:xOff+0.1,y:1.12,w:4.2,h:0.36, fontSize:13,bold:true,color:WHITE,fontFace:"Arial",valign:"middle" });
           }
           if(col.bullets?.length){
             s.addText(
-              col.bullets.map(b => ({ text:"  "+b, options:{ bullet:{type:"bullet",code:"2022",color:MID}, fontSize:12, color:dark?WHITE:"231F20", fontFace:"Arial", paraSpaceAfter:5 }})),
-              { x:xOff, y:1.6, w:4.4, h:5, wrap:true, valign:"top" }
+              col.bullets.map(b => ({ text:"  "+b, options:{ bullet:{type:"bullet",code:"2022",color:MID}, fontSize:14, color:dark?WHITE:"231F20", fontFace:"Arial", paraSpaceAfter:7 }})),
+              { x:xOff, y:1.6, w:4.4, h:5, wrap:true, valign:"top", fit:"shrink" }
             );
           }
         });
