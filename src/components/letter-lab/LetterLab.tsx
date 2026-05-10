@@ -392,6 +392,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         return null;
       }
       setVersionsRefreshKey((k) => k + 1);
+      setLatestVersionNumber(nextNumber);
       return nextNumber;
     },
     [draft, controls.tone, controls.length],
