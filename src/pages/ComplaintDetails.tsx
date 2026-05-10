@@ -78,6 +78,12 @@ import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns, ChevronUp } fr
 import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
 import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
 import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
+import { LetterLab } from "@/components/letter-lab/LetterLab";
+import { FlaskConical } from "lucide-react";
+
+// Letter Lab feature flag — emails listed here see the experimental "Letter Lab" tab.
+// Add NHS.net addresses to extend access.
+const ALLOWED_LAB_EMAILS = ['malcolm.railson@nhs.net'];
 import { ExecutiveBriefingSuite } from "@/components/complaints/ExecutiveBriefingSuite";
 import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote";
 import { AddComplaintDocumentDialog } from "@/components/complaints/AddComplaintDocumentDialog";
@@ -1963,7 +1969,7 @@ const ComplaintDetails = () => {
 
           {/* Complaint Workflow Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="flex w-full overflow-x-auto scrollbar-hide sm:grid sm:grid-cols-5 gap-1">
+            <TabsList className={`flex w-full overflow-x-auto scrollbar-hide sm:grid ${ALLOWED_LAB_EMAILS.includes(user?.email ?? '') ? 'sm:grid-cols-6' : 'sm:grid-cols-5'} gap-1`}>
               <TabsTrigger value="details" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
                 Details
               </TabsTrigger>
@@ -1982,6 +1988,12 @@ const ComplaintDetails = () => {
                 <span className="hidden sm:inline">Audit Log</span>
                 <span className="sm:hidden">Audit</span>
               </TabsTrigger>
+              {ALLOWED_LAB_EMAILS.includes(user?.email ?? '') && (
+                <TabsTrigger value="letter-lab" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
+                  <FlaskConical className="h-4 w-4 mr-1 inline" />
+                  <span>Letter Lab</span>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Details Tab */}
@@ -3520,6 +3532,12 @@ const ComplaintDetails = () => {
                 </Card>
               )}
             </TabsContent>
+
+            {ALLOWED_LAB_EMAILS.includes(user?.email ?? '') && (
+              <TabsContent value="letter-lab" className="space-y-6">
+                <LetterLab complaintId={complaintId} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>
