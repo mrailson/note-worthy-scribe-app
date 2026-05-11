@@ -14,6 +14,8 @@ interface PowerPointGenerationOverlayProps {
   slideCount?: number;
   isComplete?: boolean;
   error?: string | null;
+  /** Optional manual retry — used when the browser suppressed the auto-download. */
+  onRedownload?: () => void;
 }
 
 const TIPS = [
@@ -69,7 +71,8 @@ export const PowerPointGenerationOverlay: React.FC<PowerPointGenerationOverlayPr
   isFullVersion = false,
   slideCount = 10,
   isComplete = false,
-  error = null
+  error = null,
+  onRedownload,
 }) => {
   // Base 90s (or 120s for full version), plus 10s per slide above 10
   const extraTime = slideCount > 10 ? (slideCount - 10) * 10 : 0;
@@ -167,8 +170,15 @@ export const PowerPointGenerationOverlay: React.FC<PowerPointGenerationOverlayPr
               </div>
               <div>
                 <p className="font-medium text-primary">Presentation Ready!</p>
-                <p className="text-sm text-muted-foreground mt-1">Your presentation has been downloaded automatically</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your presentation should have downloaded automatically. If nothing happened, use the button below.
+                </p>
               </div>
+              {onRedownload && (
+                <Button onClick={onRedownload} className="w-full">
+                  Download presentation
+                </Button>
+              )}
               <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
                 Done
               </Button>
