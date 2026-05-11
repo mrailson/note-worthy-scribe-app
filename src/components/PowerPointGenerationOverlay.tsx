@@ -71,7 +71,8 @@ export const PowerPointGenerationOverlay: React.FC<PowerPointGenerationOverlayPr
   isFullVersion = false,
   slideCount = 10,
   isComplete = false,
-  error = null
+  error = null,
+  onRedownload,
 }) => {
   // Base 90s (or 120s for full version), plus 10s per slide above 10
   const extraTime = slideCount > 10 ? (slideCount - 10) * 10 : 0;
