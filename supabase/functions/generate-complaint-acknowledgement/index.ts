@@ -208,7 +208,7 @@ serve(async (req) => {
         
         // Determine role: prefer profile.role from My Profile, then user_roles
         if (userProfile?.role) {
-          signatoryTitle = userProfile.role;
+          signatoryTitle = formatRoleLabel(userProfile.role);
           console.log('Using role from My Profile:', signatoryTitle);
         } else {
           const { data: userRoleData } = await supabase
@@ -218,7 +218,7 @@ serve(async (req) => {
             .maybeSingle();
           
           if (userRoleData?.practice_role) {
-            signatoryTitle = userRoleData.practice_role;
+            signatoryTitle = formatRoleLabel(userRoleData.practice_role);
           } else if (userRoleData?.role === 'practice_manager') {
             signatoryTitle = 'Practice Manager';
           } else if (userRoleData?.role === 'practice_user' || userRoleData?.role === 'gp' || userRoleData?.role === 'clinical') {
