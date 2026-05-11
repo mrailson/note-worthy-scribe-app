@@ -580,8 +580,38 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       onSimplify={handleAiSimplify}
       onMetricsChange={(m) => {
         latestMetricsRef.current = m;
+        setComplianceItems(m.complianceItems);
+        setReadingAge(m.readingAge);
       }}
       versionsRefreshKey={versionsRefreshKey}
+    />
+  );
+
+  const exportPanel = (
+    <LetterExportPanel
+      draftId={draft?.id ?? null}
+      letterType={letterType}
+      bodyMarkdown={body}
+      bodyHtml={markdownLikeToHtml(body)}
+      letterDate={controls.letterDate}
+      referenceNumber={controls.referenceNumber}
+      signatoryIds={controls.signatoryIds}
+      signatories={signatories}
+      letterhead={letterhead}
+      complianceItems={complianceItems}
+      readingAge={readingAge}
+      recipient={{
+        name: complaint.patient_name,
+        address: complaint.patient_address,
+        email: complaint.patient_contact_email,
+      }}
+      practice={{
+        name: practiceName,
+        address: practiceContact.address,
+        phone: practiceContact.phone,
+        email: practiceContact.email,
+      }}
+      latestVersionNumber={latestVersionNumber}
     />
   );
 
