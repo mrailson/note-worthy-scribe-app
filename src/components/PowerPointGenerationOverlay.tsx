@@ -14,6 +14,8 @@ interface PowerPointGenerationOverlayProps {
   slideCount?: number;
   isComplete?: boolean;
   error?: string | null;
+  /** Optional manual retry — used when the browser suppressed the auto-download. */
+  onRedownload?: () => void;
 }
 
 const TIPS = [
