@@ -170,8 +170,15 @@ export const PowerPointGenerationOverlay: React.FC<PowerPointGenerationOverlayPr
               </div>
               <div>
                 <p className="font-medium text-primary">Presentation Ready!</p>
-                <p className="text-sm text-muted-foreground mt-1">Your presentation has been downloaded automatically</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your presentation should have downloaded automatically. If nothing happened, use the button below.
+                </p>
               </div>
+              {onRedownload && (
+                <Button onClick={onRedownload} className="w-full">
+                  Download presentation
+                </Button>
+              )}
               <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
                 Done
               </Button>
