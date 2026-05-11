@@ -34,6 +34,9 @@ export const useGammaPowerPoint = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [templatePreference, setTemplatePreference] = useState<UserTemplatePreference | null>(null);
   const [brandingPreference, setBrandingPreference] = useState<BrandingPreference | null>(null);
+  // Last-completed download surfaced so the overlay can offer a manual retry
+  // when the browser suppressed the auto-download (e.g. backgrounded tab).
+  const [lastDownload, setLastDownload] = useState<{ blobUrl: string; filename: string } | null>(null);
 
   // Fetch user's preferences on mount
   useEffect(() => {
