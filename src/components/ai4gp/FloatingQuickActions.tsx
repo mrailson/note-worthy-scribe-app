@@ -52,11 +52,6 @@ export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
       action: onOpenAITestModal
     },
     {
-      icon: Newspaper,
-      label: 'GP News',
-      action: onOpenNews
-    },
-    {
       icon: Zap,
       label: 'Quick Image',
       action: onOpenQuickImageModal
