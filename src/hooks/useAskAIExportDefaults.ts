@@ -14,6 +14,11 @@ export interface AskAIExportDefaults {
 }
 
 const STORAGE_KEY = 'notewell-askai-export-defaults';
+// Custom event name used to keep multiple hook instances in sync within the same tab.
+// Without this, the Document Settings modal updates its own state + localStorage,
+// but the DocumentPreviewModal (which also mounts the hook) keeps a stale copy
+// and sends the old image mode to Gamma when generating PowerPoints.
+const SYNC_EVENT = 'notewell-askai-export-defaults:changed';
 
 const DEFAULTS: AskAIExportDefaults = {
   defaultInfographicStyle: 'practice-professional',
@@ -33,18 +38,60 @@ function loadDefaults(): AskAIExportDefaults {
   return DEFAULTS;
 }
 
-export function useAskAIExportDefaults() {
-  const [defaults, setDefaults] = useState<AskAIExportDefaults>(loadDefaults);
+function broadcast(next: AskAIExportDefaults) {
+  try {
+    window.dispatchEvent(new CustomEvent<AskAIExportDefaults>(SYNC_EVENT, { detail: next }));
+  } catch {}
+}
 
+export function useAskAIExportDefaults() {
+  const [defaults, setDefaultsState] = useState<AskAIExportDefaults>(loadDefaults);
+
+  // Listen for changes from other hook instances (same tab) and other tabs.
   useEffect(() => {
+    const onSameTab = (e: Event) => {
+      const detail = (e as CustomEvent<AskAIExportDefaults>).detail;
+      if (detail) setDefaultsState(detail);
+    };
+    const onCrossTab = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      try {
+        const next = e.newValue ? { ...DEFAULTS, ...JSON.parse(e.newValue) } : DEFAULTS;
+        setDefaultsState(next);
+      } catch {}
+    };
+    window.addEventListener(SYNC_EVENT, onSameTab as EventListener);
+    window.addEventListener('storage', onCrossTab);
+    return () => {
+      window.removeEventListener(SYNC_EVENT, onSameTab as EventListener);
+      window.removeEventListener('storage', onCrossTab);
+    };
+  }, []);
+
+  const persist = useCallback((next: AskAIExportDefaults) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {}
-  }, [defaults]);
+    broadcast(next);
+  }, []);
 
   const updateDefault = useCallback(<K extends keyof AskAIExportDefaults>(key: K, value: AskAIExportDefaults[K]) => {
-    setDefaults(prev => ({ ...prev, [key]: value }));
-  }, []);
+    setDefaultsState(prev => {
+      const next = { ...prev, [key]: value };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
+  const setDefaults = useCallback((updater: AskAIExportDefaults | ((prev: AskAIExportDefaults) => AskAIExportDefaults)) => {
+    setDefaultsState(prev => {
+      const next = typeof updater === 'function'
+        ? (updater as (p: AskAIExportDefaults) => AskAIExportDefaults)(prev)
+        : updater;
+      persist(next);
+      return next;
+    });
+  }, [persist]);
 
   return { defaults, updateDefault, setDefaults };
 }
