@@ -1,50 +1,36 @@
-## Goal
+## Problem
 
-Let practices record the **actual** cost they incurred for a claim line **only when it exceeds the maximum reclaimable amount**. This gives the PML/finance team visibility of how much practices are paying above the ICB-approved cap, so over-spend can be reported.
+On the affected slide (slide 5, "Your Next Steps After This Session"), the AI-generated image of the NHS reception fills the top ~60% of the slide. The title, four content cards and the green callout are then crammed into the bottom third, forcing Gamma to shrink body text far below the 16pt floor. Other slides in the same deck look fine because they use smaller header images.
 
-## UX
+The cause is in the prompt sent to Gamma in `supabase/functions/generate-powerpoint-gamma/index.ts`:
 
-In the `InlineClaimPanel` (the draft/claim editor inside `BuyBackPracticeDashboard.tsx`), add a new compact section directly under "Step 2 — Actual invoice amount to claim":
+- **AI-generated images** (line ~295-296): instruction says illustrations should be *"prominent and visually engaging"* with no size constraint.
+- **Stock images** (line ~298-299): already has a guard *"Place images as accent visuals alongside content — never let an image dominate or push text to the bottom"* — which is why the stock-image path doesn't show this bug.
 
-```text
-Step 3 — Actual cost incurred (optional)
-Only complete this if your real cost was HIGHER than the maximum reclaimable
-(£X,XXX.XX). This is for reporting only — it will not increase your payment.
+The AI-image path simply needs the same guardrail.
 
-[ £  __________ ]   Overspend vs max: £YYY.YY
-[ Notes (optional): why was the cost higher? ]
-```
+## Fix
 
-Behaviour:
-- Field is **optional** and hidden behind a small "Record actual cost (over max)" toggle/link to keep the panel tidy.
-- If the entered value is **≤ max reclaimable**, show an inline hint: *"Only record a value here if it is above the maximum reclaimable (£X). Leave blank otherwise."* and do not persist a value below max (clear it on save).
-- If the value is **> max**, highlight the overspend amount in amber and persist it.
-- Visible in both Hours and Sessions modes, and across all staff categories (Buy-Back, New SDA, Management, GP Locum, Meeting).
-- Also surfaced (read-only) in the Verifier and PML dashboards as a small "Actual cost: £X (£Y over max)" tag on the claim line so reviewers can see it.
+Edit `supabase/functions/generate-powerpoint-gamma/index.ts` only — single prompt change, no client/UI work.
 
-## Data
+1. **Constrain AI-image size and placement** in the `aiGenerated` branch (~line 295-296):
+   - Replace *"Illustrations should be prominent and visually engaging"* with explicit limits:
+     - Image must occupy **no more than 40% of slide area**.
+     - Place as an **accent visual on one side** (left or right column), never full-width or full-height.
+     - **Never push title or body text below the visible area** — content text remains the primary focus.
+     - If a slide has 3+ content blocks (cards, bullets, steps), the image must be smaller (≤ 30%) or omitted on that slide.
 
-Add two new nullable columns to `public.nres_buyback_claims`:
-- `actual_cost_incurred numeric` — the practice-entered actual spend.
-- `actual_cost_notes text` — optional explanation.
+2. **Add a global layout-consistency rule** to `additionalInstructions` (just before the LAYOUT line at ~316):
+   - *"All slides in the deck must use a consistent layout pattern. Do not let any single slide deviate to a hero-image layout that shrinks body text below the 16pt minimum."*
 
-(Single value per claim, matching how `claimed_amount` and `practice_notes` are already stored. No migration needed for existing rows; both default to NULL.)
+3. **Strengthen the existing LAYOUT line** (~line 316):
+   - Add: *"If content does not fit at the minimum text sizes, split into an additional slide rather than shrinking text or compressing the layout."*
 
-A simple reporting view `public.nres_buyback_overspend_v` will expose claims where `actual_cost_incurred > calculated_amount`, with the delta, so PML can pull a list of practices paying above the cap. SECURITY INVOKER, RLS on the base table governs access.
+These are prompt-only changes — no schema, no edge-function signature changes, no client changes. Existing slides that already render well will continue to do so; only Gamma's tendency to produce occasional hero-image layouts is suppressed.
 
-## Wiring
+## Verification
 
-- Extend the existing `updateClaim` / draft-save path so `actual_cost_incurred` and `actual_cost_notes` are persisted alongside `practice_notes` on Save Draft and Submit.
-- Reset the field to NULL automatically if the user lowers it to ≤ max before saving.
-- No change to `claimed_amount` logic — payment is still capped at max.
-
-## Files touched
-
-- `src/components/nres/hours-tracker/BuyBackPracticeDashboard.tsx` — new UI section in `InlineClaimPanel`, prop threading for the new save handler, read-only display in verifier/PML lists.
-- New migration adding the two columns + reporting view.
-- `src/integrations/supabase/types.ts` — auto-regenerated after migration.
-
-## Out of scope
-
-- A dedicated "Overspend report" page (the view is enough for now; we can build a UI later if you want).
-- Changing payment/claim caps — actual cost is informational only.
+After deploy, regenerate the same PLT Session Plan deck with **Illustrations** mode selected and confirm slide 5 (and any equivalent multi-card slides) renders with:
+- Image ≤ 40% of slide area, placed as a side accent
+- All four content cards readable at normal body size
+- Consistent layout with the rest of the deck
