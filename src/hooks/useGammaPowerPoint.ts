@@ -423,6 +423,8 @@ export const useGammaPowerPoint = () => {
     templatePreference, 
     brandingPreference,
     uploadToStorage,
-    downloadFromUrl 
+    downloadFromUrl,
+    lastDownload,
+    redownloadLast,
   };
 };
