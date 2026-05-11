@@ -33,6 +33,7 @@ import {
   type Tone,
 } from './LetterControlsPanel';
 import { LetterQualityPanel, type QualityMetrics } from './LetterQualityPanel';
+import { LetterExportPanel } from './LetterExportPanel';
 
 interface LetterLabProps {
   complaintId: string;
@@ -350,6 +351,28 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     };
   }, [controls, draft]);
 
+  // Load latest version_number for the active draft (used in export logs)
+  useEffect(() => {
+    if (!draft) {
+      setLatestVersionNumber(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('complaint_letter_lab_versions')
+        .select('version_number')
+        .eq('draft_id', draft.id)
+        .order('version_number', { ascending: false })
+        .limit(1);
+      if (cancelled) return;
+      setLatestVersionNumber((data?.[0]?.version_number as number | undefined) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [draft, versionsRefreshKey]);
+
   const handleControlsChange = (patch: Partial<ControlsValue>) => {
     setControls((prev) => ({ ...prev, ...patch }));
     if (
@@ -579,8 +602,38 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
       onSimplify={handleAiSimplify}
       onMetricsChange={(m) => {
         latestMetricsRef.current = m;
+        setComplianceItems(m.complianceItems);
+        setReadingAge(m.readingAge);
       }}
       versionsRefreshKey={versionsRefreshKey}
+    />
+  );
+
+  const exportPanel = (
+    <LetterExportPanel
+      draftId={draft?.id ?? null}
+      letterType={letterType}
+      bodyMarkdown={body}
+      bodyHtml={markdownLikeToHtml(body)}
+      letterDate={controls.letterDate}
+      referenceNumber={controls.referenceNumber}
+      signatoryIds={controls.signatoryIds}
+      signatories={signatories}
+      letterhead={letterhead}
+      complianceItems={complianceItems}
+      readingAge={readingAge}
+      recipient={{
+        name: complaint.patient_name,
+        address: complaint.patient_address,
+        email: complaint.patient_contact_email,
+      }}
+      practice={{
+        name: practiceName,
+        address: practiceContact.address,
+        phone: practiceContact.phone,
+        email: practiceContact.email,
+      }}
+      latestVersionNumber={latestVersionNumber}
     />
   );
 
@@ -624,6 +677,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           <div className="col-span-4 space-y-4">
             {editorPane}
             {qualityPanel}
+            {exportPanel}
           </div>
           <div className="col-span-3">{previewPane}</div>
         </div>
@@ -647,14 +701,16 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           </AccordionItem>
         </Accordion>
         <Tabs defaultValue="editor">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="preview">Preview</TabsTrigger>
             <TabsTrigger value="quality">Quality</TabsTrigger>
+            <TabsTrigger value="export">Export</TabsTrigger>
           </TabsList>
           <TabsContent value="editor">{editorPane}</TabsContent>
           <TabsContent value="preview">{previewPane}</TabsContent>
           <TabsContent value="quality">{qualityPanel}</TabsContent>
+          <TabsContent value="export">{exportPanel}</TabsContent>
         </Tabs>
       </div>
     );
@@ -684,6 +740,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
         <AccordionItem value="quality">
           <AccordionTrigger className="text-sm">Quality &amp; history</AccordionTrigger>
           <AccordionContent>{qualityPanel}</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="export">
+          <AccordionTrigger className="text-sm">Export &amp; send</AccordionTrigger>
+          <AccordionContent>{exportPanel}</AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>

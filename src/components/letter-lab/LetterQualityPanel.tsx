@@ -239,6 +239,7 @@ export interface QualityMetrics {
   fleschGrade: number;
   complianceScore: number;
   complianceMax: number;
+  complianceItems: { label: string; present: boolean }[];
 }
 
 export interface LetterQualityPanelProps {
@@ -296,8 +297,9 @@ export const LetterQualityPanel: React.FC<LetterQualityPanelProps> = ({
       fleschGrade: metrics.fkGrade,
       complianceScore,
       complianceMax,
+      complianceItems: checkResults.map((c) => ({ label: c.label, present: c.ok })),
     });
-  }, [metrics, complianceScore, complianceMax, onMetricsChange]);
+  }, [metrics, complianceScore, complianceMax, checkResults, onMetricsChange]);
 
   // --- versions ---
   const [versions, setVersions] = useState<VersionRow[]>([]);
