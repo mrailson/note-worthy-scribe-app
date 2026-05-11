@@ -33,6 +33,7 @@ import {
   type Tone,
 } from './LetterControlsPanel';
 import { LetterQualityPanel, type QualityMetrics } from './LetterQualityPanel';
+import { LetterExportPanel } from './LetterExportPanel';
 
 interface LetterLabProps {
   complaintId: string;
