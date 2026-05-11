@@ -283,7 +283,7 @@ export const useGammaPowerPoint = () => {
 
         if (data.downloadUrl) {
           console.log('[Gamma Hook] Using direct download URL from Gamma');
-          downloadFromUrl(data.downloadUrl, presentationTitle);
+          await downloadFromUrl(data.downloadUrl, presentationTitle);
           toast.success('Professional presentation downloaded!');
           return { success: true, downloadUrl: data.downloadUrl, title: presentationTitle };
         }
@@ -292,7 +292,7 @@ export const useGammaPowerPoint = () => {
           if (storeInCloud && user) {
             const cloudUrl = await uploadToStorage(data.pptxBase64, presentationTitle);
             if (cloudUrl) {
-              downloadFromUrl(cloudUrl, presentationTitle);
+              await downloadFromUrl(cloudUrl, presentationTitle);
               toast.success('Professional presentation downloaded!');
               return { success: true, downloadUrl: cloudUrl, title: presentationTitle };
             }
@@ -386,7 +386,7 @@ export const useGammaPowerPoint = () => {
 
       if (data.downloadUrl) {
         console.log('[Gamma Hook] Using direct download URL from Gamma');
-        downloadFromUrl(data.downloadUrl, presentationTitle);
+        await downloadFromUrl(data.downloadUrl, presentationTitle);
         toast.success('Professional presentation downloaded!');
         return { success: true, downloadUrl: data.downloadUrl, title: presentationTitle };
       }
@@ -396,7 +396,7 @@ export const useGammaPowerPoint = () => {
         if (storeInCloud && user) {
           const cloudUrl = await uploadToStorage(data.pptxBase64, presentationTitle);
           if (cloudUrl) {
-            downloadFromUrl(cloudUrl, presentationTitle);
+            await downloadFromUrl(cloudUrl, presentationTitle);
             toast.success('Professional presentation downloaded!');
             return { success: true, downloadUrl: cloudUrl, title: presentationTitle };
           }
