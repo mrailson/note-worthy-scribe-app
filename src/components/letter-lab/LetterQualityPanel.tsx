@@ -239,6 +239,7 @@ export interface QualityMetrics {
   fleschGrade: number;
   complianceScore: number;
   complianceMax: number;
+  complianceItems: { label: string; present: boolean }[];
 }
 
 export interface LetterQualityPanelProps {
