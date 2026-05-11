@@ -677,6 +677,7 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           <div className="col-span-4 space-y-4">
             {editorPane}
             {qualityPanel}
+            {exportPanel}
           </div>
           <div className="col-span-3">{previewPane}</div>
         </div>
