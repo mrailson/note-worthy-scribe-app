@@ -7,6 +7,51 @@
 import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType, convertInchesToTwip, Table, TableRow, TableCell, WidthType, BorderStyle, VerticalAlign, ShadingType } from "docx";
 import { saveAs } from "file-saver";
 
+/**
+ * Read intrinsic image dimensions from a Blob (browser only).
+ * Returns null if dimensions cannot be determined.
+ */
+async function getImageDimensionsFromBlob(blob: Blob): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        URL.revokeObjectURL(url);
+        if (w > 0 && h > 0) resolve({ width: w, height: h });
+        else resolve(null);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Compute logo dimensions for docx that preserve the source aspect ratio,
+ * fitted within a max bounding box. Prevents squashed/stretched logos when
+ * the source isn't 8:3 (e.g., square or tall logos like NRES).
+ */
+function fitLogoBox(
+  intrinsic: { width: number; height: number } | null,
+  maxWidth = 160,
+  maxHeight = 80,
+): { width: number; height: number } {
+  if (!intrinsic) return { width: maxWidth, height: maxHeight };
+  const ratio = intrinsic.width / intrinsic.height;
+  let w = maxWidth;
+  let h = w / ratio;
+  if (h > maxHeight) {
+    h = maxHeight;
+    w = h * ratio;
+  }
+  return { width: Math.round(w), height: Math.round(h) };
+}
+
 // Professional colour scheme
 const COLORS = {
   headingBlue: "2563EB",
