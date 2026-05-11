@@ -741,6 +741,10 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
           <AccordionTrigger className="text-sm">Quality &amp; history</AccordionTrigger>
           <AccordionContent>{qualityPanel}</AccordionContent>
         </AccordionItem>
+        <AccordionItem value="export">
+          <AccordionTrigger className="text-sm">Export &amp; send</AccordionTrigger>
+          <AccordionContent>{exportPanel}</AccordionContent>
+        </AccordionItem>
       </Accordion>
     </div>
   );
