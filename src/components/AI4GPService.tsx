@@ -790,23 +790,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                 </div>
               )}
 
-              {/* News Panel - Inline Display */}
-              {showNews && (
-                <div className="flex-1 overflow-y-auto bg-background">
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">Notewell GP News Portal</h2>
-                    <button
-                      onClick={() => setShowNews(false)}
-                      className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-muted/50"
-                    >
-                      ✕ Close
-                    </button>
-                  </div>
-                  <div className="p-4">
-                    <NewsPanel cleanView />
-                  </div>
-                </div>
-              )}
+
 
               {/* BP Calculator Panel - Inline Display */}
               {showBPCalculator && (

@@ -95,7 +95,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
 
   const quickActions = [
     { icon: Languages, label: 'Translation Service', action: onShowTranslationService },
-    { icon: Newspaper, label: 'GP News', action: onShowNews },
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
     { icon: Mic, label: 'Dictate', action: onShowAdminDictate },
     { icon: Presentation, label: 'Presentation Studio', action: onShowPresentationStudio },
