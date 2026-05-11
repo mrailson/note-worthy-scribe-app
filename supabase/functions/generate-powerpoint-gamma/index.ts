@@ -293,7 +293,7 @@ serve(async (req) => {
     } else if (effectiveImageSource === 'pictographic') {
       additionalInstructions += ` Use simple, flat icons on each slide to illustrate key points. No photographs. Icons should be clean and professional.`;
     } else if (effectiveImageSource === 'aiGenerated') {
-      additionalInstructions += ` Use rich, full illustrations on every slide. Each slide MUST include a detailed, colourful illustration relevant to the topic. Illustrations should be prominent and visually engaging.`;
+      additionalInstructions += ` Include a relevant illustration on each slide as a SIDE ACCENT only — placed in a left or right column, occupying no more than 40% of slide area. Never use full-bleed, full-width or hero-image layouts. The illustration must NEVER push the title or body text below the visible area, and must NEVER cause body text to shrink below 16pt. On any slide with 3 or more content blocks (cards, bullets, numbered steps, callouts), the illustration must be smaller (≤30% of slide area) or omitted entirely on that slide so all content remains readable at standard sizes.`;
     } else if (effectiveImageSource === 'webFreeToUseCommercially' || useStockLibraryImages) {
       additionalInstructions += ` Every slide must include a high-quality stock photograph relevant to the topic. No slide without a visual.`;
       additionalInstructions += ` Place images as accent visuals alongside content — never let an image dominate or push text to the bottom.`;
@@ -313,7 +313,8 @@ serve(async (req) => {
 
     // Data integrity (condensed)
     additionalInstructions += ` DATA INTEGRITY: Only use statistics/numbers explicitly in the source content. Never fabricate figures. Use qualitative descriptions if data is absent.`;
-    additionalInstructions += ` LAYOUT: Body text must be at least 16pt. Headings at least 24pt. Never shrink text to fit more content — split across slides instead.`;
+    additionalInstructions += ` CONSISTENT LAYOUT: All slides in the deck must use a consistent layout pattern. No single slide may deviate to a hero-image or full-bleed-image layout that shrinks body text below the 16pt minimum or compresses content into a narrow strip.`;
+    additionalInstructions += ` LAYOUT: Body text must be at least 16pt. Headings at least 24pt. Never shrink text to fit more content. If content does not fit at the minimum text sizes, split it across an additional slide rather than shrinking text or compressing the layout.`;
 
     // Custom instructions (highest priority — added early)
     if (customInstructions) {
