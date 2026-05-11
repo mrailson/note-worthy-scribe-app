@@ -563,14 +563,24 @@ export async function generateCleanAIResponseBlob(
         const blob = await response.blob();
         const arrayBuffer = await blob.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
+        const dims = await getImageDimensionsFromBlob(blob);
+        const { width: lw, height: lh } = fitLogoBox(dims);
+        const mime = (blob.type || '').toLowerCase();
+        const lower = options.logoUrl.toLowerCase();
+        const imgType: 'png' | 'jpg' | 'gif' | 'bmp' | 'svg' =
+          mime.includes('png') || lower.includes('.png') ? 'png'
+          : mime.includes('gif') || lower.includes('.gif') ? 'gif'
+          : mime.includes('bmp') || lower.includes('.bmp') ? 'bmp'
+          : mime.includes('svg') || lower.includes('.svg') ? 'svg'
+          : 'jpg';
         const logoAlign = options?.logoPosition || 'left';
         const alignMap = { left: AlignmentType.LEFT, center: AlignmentType.CENTER, right: AlignmentType.RIGHT };
         children.push(new Paragraph({
           children: [
             new ImageRun({
               data: uint8Array,
-              transformation: { width: 160, height: 60 },
-              type: 'png',
+              transformation: { width: lw, height: lh },
+              type: imgType,
             } as any),
           ],
           alignment: alignMap[logoAlign],
