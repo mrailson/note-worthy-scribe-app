@@ -124,10 +124,51 @@ export const useGammaPowerPoint = () => {
     }
   };
 
-  const downloadFromUrl = (url: string, title: string) => {
+  const sanitizeFilename = (title: string) =>
+    `${title.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50).trim() || 'presentation'}.pptx`;
+
+  const triggerBlobDownload = (blob: Blob, filename: string): string => {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${title.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50)}.pptx`;
+    link.download = filename;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    // Keep the URL alive for a manual retry (revoked when a new download replaces it)
+    setLastDownload(prev => {
+      if (prev?.blobUrl) URL.revokeObjectURL(prev.blobUrl);
+      return { blobUrl: url, filename };
+    });
+    return url;
+  };
+
+  /**
+   * Reliable cross-origin download: fetch the file as a Blob first, then
+   * trigger the save from a same-origin blob: URL. The HTML `download`
+   * attribute is ignored on cross-origin URLs and Chromium often suppresses
+   * the navigation entirely when the user is no longer interacting with the
+   * page (the "Creating Presentation" modal has been closed). Fetching first
+   * sidesteps both problems.
+   */
+  const downloadFromUrl = async (url: string, title: string) => {
+    const filename = sanitizeFilename(title);
+    try {
+      const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      triggerBlobDownload(blob, filename);
+      return;
+    } catch (err) {
+      console.warn('[Gamma Hook] Blob download failed, falling back to anchor click', err);
+    }
+    // Fallback: direct anchor click (may open a new tab if Content-Disposition is missing)
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    link.rel = 'noopener';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -135,14 +176,19 @@ export const useGammaPowerPoint = () => {
 
   const downloadBase64AsPptx = (base64: string, title: string) => {
     const blob = base64ToBlob(base64, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-    const url = URL.createObjectURL(blob);
+    triggerBlobDownload(blob, sanitizeFilename(title));
+  };
+
+  const redownloadLast = () => {
+    if (!lastDownload) return false;
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50)}.pptx`;
+    link.href = lastDownload.blobUrl;
+    link.download = lastDownload.filename;
+    link.rel = 'noopener';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    return true;
   };
 
   const prepareContentForGamma = (content: string, title?: string): { topic: string; supportingContent: string } => {
