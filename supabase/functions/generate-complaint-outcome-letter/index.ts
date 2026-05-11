@@ -7,6 +7,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function formatRoleLabel(value: string | null | undefined): string {
+  if (!value) return '';
+  const v = String(value).trim();
+  if (!v) return '';
+  if (/\s/.test(v) && /[A-Z]/.test(v)) return v;
+  return v
+    .replace(/[_-]+/g, ' ')
+    .split(/\s+/)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(' ');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -188,7 +200,7 @@ serve(async (req) => {
         // Determine role: prefer profile.role from My Profile, then user_roles
         let signatoryTitle = 'Complaints Manager';
         if (userProfile?.role) {
-          signatoryTitle = userProfile.role;
+          signatoryTitle = formatRoleLabel(userProfile.role);
           console.log('Using role from My Profile:', signatoryTitle);
         } else {
           const { data: userRoleData } = await supabase
@@ -198,7 +210,7 @@ serve(async (req) => {
             .maybeSingle();
           
           if (userRoleData?.practice_role) {
-            signatoryTitle = userRoleData.practice_role;
+            signatoryTitle = formatRoleLabel(userRoleData.practice_role);
           } else if (userRoleData?.role === 'practice_manager') {
             signatoryTitle = 'Practice Manager';
           } else if (userRoleData?.role === 'practice_user' || userRoleData?.role === 'gp' || userRoleData?.role === 'clinical') {

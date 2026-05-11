@@ -7,6 +7,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Convert raw role identifiers (e.g. "practice_manager") into a human-readable
+// label suitable for letter signatures (e.g. "Practice Manager"). If the value
+// already looks like a free-text job title, it is returned unchanged.
+function formatRoleLabel(value: string | null | undefined): string {
+  if (!value) return '';
+  const v = String(value).trim();
+  if (!v) return '';
+  // If it contains spaces and any uppercase letter, treat as already-formatted
+  if (/\s/.test(v) && /[A-Z]/.test(v)) return v;
+  return v
+    .replace(/[_-]+/g, ' ')
+    .split(/\s+/)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(' ');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
