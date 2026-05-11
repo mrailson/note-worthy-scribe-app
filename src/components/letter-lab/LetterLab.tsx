@@ -351,6 +351,28 @@ export const LetterLab: React.FC<LetterLabProps> = ({ complaintId }) => {
     };
   }, [controls, draft]);
 
+  // Load latest version_number for the active draft (used in export logs)
+  useEffect(() => {
+    if (!draft) {
+      setLatestVersionNumber(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('complaint_letter_lab_versions')
+        .select('version_number')
+        .eq('draft_id', draft.id)
+        .order('version_number', { ascending: false })
+        .limit(1);
+      if (cancelled) return;
+      setLatestVersionNumber((data?.[0]?.version_number as number | undefined) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [draft, versionsRefreshKey]);
+
   const handleControlsChange = (patch: Partial<ControlsValue>) => {
     setControls((prev) => ({ ...prev, ...patch }));
     if (
