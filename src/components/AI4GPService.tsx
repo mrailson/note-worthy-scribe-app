@@ -1242,6 +1242,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
         isFullVersion={isFullPowerPointGenerating}
         isComplete={pptComplete}
         error={pptError}
+        onRedownload={lastPptDownload ? redownloadLastPpt : undefined}
       />
 
 
