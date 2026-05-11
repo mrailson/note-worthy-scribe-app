@@ -99,7 +99,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const deviceInfo = useDeviceInfo();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { generateWithGamma, isGenerating: isPowerPointGenerating } = useGammaPowerPoint();
+  const { generateWithGamma, isGenerating: isPowerPointGenerating, lastDownload: lastPptDownload, redownloadLast: redownloadLastPpt } = useGammaPowerPoint();
   const { generateWithGammaAndVoiceover, isGenerating: isFullPowerPointGenerating, currentPhase } = useGammaPowerPointWithVoiceover();
   
   // PowerPoint dialog state - independent of generation so user can dismiss and carry on
