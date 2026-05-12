@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
 import { showToast } from '@/utils/toastWrapper';
 import { createTranscriber, isBatchService, UnifiedTranscriber } from '@/utils/TranscriptionServiceFactory';
+import { GptRealtimeWhisperProvider } from '@/services/transcription/gptRealtimeWhisper';
 export type AdminDictationStatus = 'idle' | 'connecting' | 'recording' | 'paused' | 'processing' | 'error';
 export type AdminTemplateType = 'free' | 'complaint-response' | 'hr-record' | 'briefing-note';
 
@@ -34,7 +35,7 @@ interface AdminDictationSession {
   updated_at: string;
 }
 
-export type DictationTranscriptionService = 'assemblyai' | 'deepgram';
+export type DictationTranscriptionService = 'assemblyai' | 'deepgram' | 'gpt-realtime-whisper';
 
 export function useAdminDictation() {
   const { user } = useAuth();
@@ -55,7 +56,9 @@ export function useAdminDictation() {
   const [transcriptionService, setTranscriptionService] = useState<DictationTranscriptionService>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('admin-dictation-service');
-      return (saved === 'deepgram' ? 'deepgram' : 'assemblyai') as DictationTranscriptionService;
+      if (saved === 'deepgram' || saved === 'gpt-realtime-whisper' || saved === 'assemblyai') {
+        return saved as DictationTranscriptionService;
+      }
     }
     return 'assemblyai';
   });
@@ -86,6 +89,7 @@ export function useAdminDictation() {
   // Refs
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
   const transcriberRef = useRef<UnifiedTranscriber | null>(null);
+  const gptWhisperRef = useRef<GptRealtimeWhisperProvider | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef(content);
@@ -411,7 +415,20 @@ export function useAdminDictation() {
       };
 
       // Use selected transcription service
-      if (transcriptionService === 'deepgram') {
+      if (transcriptionService === 'gpt-realtime-whisper') {
+        const provider = new GptRealtimeWhisperProvider({
+          onPartial: (text) => {
+            currentPartialRef.current = text;
+            const newContent = (baseContentRef.current + ' ' + recordingTranscriptRef.current + ' ' + text).trim();
+            setContent(newContent);
+          },
+          onFinal: (text) => handleTranscription({ text, is_final: true, confidence: 0.9 }),
+          onError: (msg) => handleError(msg),
+          onStatusChange: (s) => handleStatusChange(s),
+        });
+        gptWhisperRef.current = provider;
+        await provider.start();
+      } else if (transcriptionService === 'deepgram') {
         // Use TranscriptionServiceFactory for Deepgram
         const transcriber = createTranscriber('deepgram', {
           onTranscription: handleTranscription,
@@ -474,6 +491,11 @@ export function useAdminDictation() {
       transcriberRef.current = null;
     }
 
+    if (gptWhisperRef.current) {
+      gptWhisperRef.current.stop();
+      gptWhisperRef.current = null;
+    }
+
     if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current);
 
@@ -516,6 +538,14 @@ export function useAdminDictation() {
     if (clientRef.current) {
       clientRef.current.stop();
       clientRef.current = null;
+    }
+    if (transcriberRef.current) {
+      transcriberRef.current.stopTranscription();
+      transcriberRef.current = null;
+    }
+    if (gptWhisperRef.current) {
+      gptWhisperRef.current.stop();
+      gptWhisperRef.current = null;
     }
     
     if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
