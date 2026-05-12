@@ -135,6 +135,7 @@ const ComplaintDetails = () => {
   
   // All state hooks must be called before any conditional returns
   const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [practiceName, setPracticeName] = useState<string | null>(null);
   const [previousComplaintsCount, setPreviousComplaintsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("workflow");
