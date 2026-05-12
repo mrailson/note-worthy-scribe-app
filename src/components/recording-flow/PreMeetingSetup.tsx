@@ -485,15 +485,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 <ClipboardPaste className="h-3 w-3" />
                 <span className="hidden sm:inline">Paste Text</span>
               </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isExtractingAgenda}
-                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all cursor-pointer disabled:opacity-50"
-                title="Upload a file (image, PDF, or Word document)"
-              >
-                <Upload className="h-3 w-3" />
-                <span className="hidden sm:inline">Upload File</span>
-              </button>
             </div>
           </div>
           <div className="p-3 flex-1 overflow-y-auto min-h-0">
