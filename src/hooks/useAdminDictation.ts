@@ -491,6 +491,11 @@ export function useAdminDictation() {
       transcriberRef.current = null;
     }
 
+    if (gptWhisperRef.current) {
+      gptWhisperRef.current.stop();
+      gptWhisperRef.current = null;
+    }
+
     if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current);
 
