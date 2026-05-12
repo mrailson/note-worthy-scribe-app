@@ -574,8 +574,8 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 <div className="text-xs font-semibold text-foreground/70 short-viewport:hidden">No agenda items yet</div>
                 <div className="text-[11px] mt-1 short-viewport:mt-0">Add items below — they help the AI segment the transcript</div>
                 <div className="text-[10px] mt-1.5 text-muted-foreground/50 flex items-center justify-center gap-1.5 short-viewport:hidden">
-                  <Upload className="h-3 w-3" />
-                  Upload a file, paste text, or Ctrl+V an image to auto-extract
+                  <ClipboardPaste className="h-3 w-3" />
+                  Paste text or Ctrl+V an image to auto-extract
                 </div>
               </div>
             )}
