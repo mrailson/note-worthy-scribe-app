@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
     if (!complaintId) throw new Error("complaintId required");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const callerKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? serviceRoleKey;
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Authentication required" }), {
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     // then use a service-role client only for persisting the generated assessment.
     const supabase = createClient(
       supabaseUrl,
-      anonKey,
+      callerKey,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
     const serviceSupabase = createClient(supabaseUrl, serviceRoleKey);
