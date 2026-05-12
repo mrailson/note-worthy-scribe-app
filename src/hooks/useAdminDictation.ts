@@ -34,7 +34,7 @@ interface AdminDictationSession {
   updated_at: string;
 }
 
-export type DictationTranscriptionService = 'assemblyai' | 'deepgram';
+export type DictationTranscriptionService = 'assemblyai' | 'deepgram' | 'gpt-realtime-whisper';
 
 export function useAdminDictation() {
   const { user } = useAuth();
