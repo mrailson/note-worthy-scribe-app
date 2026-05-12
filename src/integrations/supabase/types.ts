@@ -2115,6 +2115,71 @@ export type Database = {
           },
         ]
       }
+      complaint_indemnity_risk_assessments: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          complaint_id: string
+          confidence: number
+          generated_at: string
+          generated_by: string | null
+          id: string
+          is_stale: boolean
+          model: string | null
+          prompt_version: string | null
+          rationale: string[]
+          recommendation: string
+          red_flags: string[]
+          risk_level: string
+          suggested_mdo: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          complaint_id: string
+          confidence?: number
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          is_stale?: boolean
+          model?: string | null
+          prompt_version?: string | null
+          rationale?: string[]
+          recommendation: string
+          red_flags?: string[]
+          risk_level: string
+          suggested_mdo?: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          complaint_id?: string
+          confidence?: number
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          is_stale?: boolean
+          model?: string | null
+          prompt_version?: string | null
+          rationale?: string[]
+          recommendation?: string
+          red_flags?: string[]
+          risk_level?: string
+          suggested_mdo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_indemnity_risk_assessments_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_investigation_decisions: {
         Row: {
           complaint_id: string
