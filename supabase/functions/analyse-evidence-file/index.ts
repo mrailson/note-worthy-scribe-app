@@ -101,6 +101,63 @@ async function extractPptxText(data: Uint8Array): Promise<string> {
   }
 }
 
+// Extract readable text from Outlook .msg (CFBF compound binary) files.
+// .msg stores body as UTF-16LE and ASCII strings inside a binary container,
+// so a plain TextDecoder produces garbage. We pull out printable runs of both.
+function extractMsgText(bytes: Uint8Array): string {
+  const minRun = 6;
+  const out: string[] = [];
+
+  // 1. UTF-16LE printable runs (covers Subject, Body, From, To in modern .msg)
+  let buf: number[] = [];
+  for (let i = 0; i + 1 < bytes.length; i += 2) {
+    const lo = bytes[i];
+    const hi = bytes[i + 1];
+    const code = lo | (hi << 8);
+    const printable =
+      (code >= 0x20 && code <= 0x7e) ||
+      code === 0x09 || code === 0x0a || code === 0x0d ||
+      (code >= 0xa0 && code <= 0xff);
+    if (hi === 0 && printable) {
+      buf.push(code);
+    } else if (printable && code >= 0xa0) {
+      buf.push(code);
+    } else {
+      if (buf.length >= minRun) out.push(String.fromCharCode(...buf));
+      buf = [];
+    }
+  }
+  if (buf.length >= minRun) out.push(String.fromCharCode(...buf));
+
+  // 2. ASCII printable runs (older .msg variants / headers)
+  buf = [];
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i];
+    if ((b >= 0x20 && b <= 0x7e) || b === 0x09 || b === 0x0a || b === 0x0d) {
+      buf.push(b);
+    } else {
+      if (buf.length >= minRun) out.push(String.fromCharCode(...buf));
+      buf = [];
+    }
+  }
+  if (buf.length >= minRun) out.push(String.fromCharCode(...buf));
+
+  // De-duplicate adjacent identical runs and CFBF noise tokens
+  const noise = /^(Root Entry|__substg1\.0|__properties|__recip|__attach|__nameid|MsoDataStore|CONTENTS|EscherDelayStm|Workbook|WordDocument|ObjectPool|\u0001|Ole|CompObj|SummaryInformation|DocumentSummaryInformation)/i;
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const s of out) {
+    const t = s.trim();
+    if (t.length < minRun) continue;
+    if (noise.test(t)) continue;
+    if (seen.has(t)) continue;
+    seen.add(t);
+    cleaned.push(t);
+  }
+
+  return cleaned.join("\n").substring(0, 8000);
+}
+
 // Parse email (.eml) content
 function parseEmlContent(text: string): string {
   const lines = text.split("\n");
