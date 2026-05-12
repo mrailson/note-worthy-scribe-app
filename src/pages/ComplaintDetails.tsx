@@ -89,6 +89,7 @@ import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote
 import { AddComplaintDocumentDialog } from "@/components/complaints/AddComplaintDocumentDialog";
 import { getComplaintSourceLabel, getAcknowledgementRecipientLabel } from "@/utils/complaintSourceLabels";
 import { IndemnityConsiderationField } from "@/components/complaints/IndemnityConsiderationField";
+import { IndemnityRiskTrafficLight } from "@/components/complaints/IndemnityRiskTrafficLight";
 
 interface Complaint {
   id: string;
@@ -1889,11 +1890,14 @@ const ComplaintDetails = () => {
                 {complaint.response_due_date && (
                   <div><strong>Due Date:</strong> {format(new Date(complaint.response_due_date), 'dd/MM/yyyy')}</div>
                 )}
-                <div className="w-56">
-                  <IndemnityConsiderationField
-                    complaintId={complaint.id}
-                    isOutcomeFinalised={!!complaint.closed_at}
-                  />
+                <div className="col-span-full space-y-2">
+                  <IndemnityRiskTrafficLight complaintId={complaint.id} />
+                  <div className="w-56">
+                    <IndemnityConsiderationField
+                      complaintId={complaint.id}
+                      isOutcomeFinalised={!!complaint.closed_at}
+                    />
+                  </div>
                 </div>
               </div>
               
