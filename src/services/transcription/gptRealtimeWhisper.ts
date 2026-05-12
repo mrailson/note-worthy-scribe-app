@@ -55,13 +55,18 @@ export class GptRealtimeWhisperProvider {
       this.dc = this.pc.createDataChannel('oai-events');
       this.dc.addEventListener('open', () => {
         this.callbacks.onStatusChange?.('connected');
-        // Configure session for transcription
+        // Configure session for transcription with snappier VAD commits
         this.dc?.send(
           JSON.stringify({
             type: 'session.update',
             session: {
               input_audio_transcription: { model: 'gpt-4o-transcribe' },
-              turn_detection: { type: 'server_vad' },
+              turn_detection: {
+                type: 'server_vad',
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 200,
+              },
             },
           }),
         );
@@ -99,11 +104,14 @@ export class GptRealtimeWhisperProvider {
   private handleEvent(raw: any) {
     try {
       const evt = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      // TEMP DIAGNOSTIC: confirm whether delta events arrive incrementally
+      console.log('[gpt-realtime-whisper] event:', evt.type, evt.delta ?? evt.transcript ?? '');
       switch (evt.type) {
         case 'conversation.item.input_audio_transcription.delta': {
           const delta: string = evt.delta ?? '';
           this.partialBuffer += delta;
-          this.callbacks.onPartial?.(this.partialBuffer);
+          // Emit RAW delta — hook accumulates (APPEND semantics, GPT-only)
+          if (delta) this.callbacks.onPartial?.(delta);
           break;
         }
         case 'conversation.item.input_audio_transcription.completed': {

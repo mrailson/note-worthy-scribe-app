@@ -416,13 +416,20 @@ export function useAdminDictation() {
 
       // Use selected transcription service
       if (transcriptionService === 'gpt-realtime-whisper') {
+        // GPT-Realtime-Whisper emits INCREMENTAL deltas — APPEND, don't replace.
+        // (AssemblyAI/Deepgram emit full partials and use REPLACE — leave them alone.)
         const provider = new GptRealtimeWhisperProvider({
-          onPartial: (text) => {
-            currentPartialRef.current = text;
-            const newContent = (baseContentRef.current + ' ' + recordingTranscriptRef.current + ' ' + text).trim();
+          onPartial: (delta) => {
+            currentPartialRef.current = currentPartialRef.current + delta;
+            const newContent = (
+              baseContentRef.current + ' ' + recordingTranscriptRef.current + ' ' + currentPartialRef.current
+            ).trim();
             setContent(newContent);
           },
-          onFinal: (text) => handleTranscription({ text, is_final: true, confidence: 0.9 }),
+          onFinal: (text) => {
+            currentPartialRef.current = '';
+            handleTranscription({ text, is_final: true, confidence: 0.9 });
+          },
           onError: (msg) => handleError(msg),
           onStatusChange: (s) => handleStatusChange(s),
         });
