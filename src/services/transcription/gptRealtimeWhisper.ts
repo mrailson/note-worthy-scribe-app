@@ -104,11 +104,14 @@ export class GptRealtimeWhisperProvider {
   private handleEvent(raw: any) {
     try {
       const evt = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      // TEMP DIAGNOSTIC: confirm whether delta events arrive incrementally
+      console.log('[gpt-realtime-whisper] event:', evt.type, evt.delta ?? evt.transcript ?? '');
       switch (evt.type) {
         case 'conversation.item.input_audio_transcription.delta': {
           const delta: string = evt.delta ?? '';
           this.partialBuffer += delta;
-          this.callbacks.onPartial?.(this.partialBuffer);
+          // Emit RAW delta — hook accumulates (APPEND semantics, GPT-only)
+          if (delta) this.callbacks.onPartial?.(delta);
           break;
         }
         case 'conversation.item.input_audio_transcription.completed': {
