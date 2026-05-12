@@ -508,8 +508,18 @@ Keep each section brief (2-4 sentences). Do not fabricate details not present in
       }
 
       case "email": {
-        const textContent = new TextDecoder().decode(bytes);
-        const parsedEmail = parseEmlContent(textContent);
+        const ext = fileName.split(".").pop()?.toLowerCase() || "";
+        let parsedEmail: string;
+        if (ext === "msg") {
+          parsedEmail = extractMsgText(bytes);
+          if (!parsedEmail || parsedEmail.length < 30) {
+            // Fall back to vision so the AI can at least see the raw structure
+            summary = await aiVisionAnalyse(base64Data, "application/octet-stream", fileName, evidenceType, LOVABLE_API_KEY);
+            break;
+          }
+        } else {
+          parsedEmail = parseEmlContent(new TextDecoder().decode(bytes));
+        }
         summary = await aiSummarise(parsedEmail, fileName, evidenceType, LOVABLE_API_KEY);
         break;
       }
