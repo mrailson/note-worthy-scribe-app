@@ -1811,6 +1811,7 @@ const ComplaintDetails = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><strong>Patient:</strong> {complaint.patient_name}</div>
                 <div><strong>Category:</strong> {getCategoryLabel(complaint.category)}</div>
+                <div><strong>Practice:</strong> {practiceName || (complaint.practice_id ? 'Loading…' : 'Not assigned')}</div>
                 <div>
                   <strong>Status: </strong>
                   {complaint.status === 'under_review' && acknowledgementSentToPatient && (
