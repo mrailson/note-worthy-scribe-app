@@ -89,6 +89,7 @@ export function useAdminDictation() {
   // Refs
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
   const transcriberRef = useRef<UnifiedTranscriber | null>(null);
+  const gptWhisperRef = useRef<GptRealtimeWhisperProvider | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef(content);
