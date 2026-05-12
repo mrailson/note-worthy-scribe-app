@@ -651,10 +651,10 @@ const ComplaintDetails = () => {
       try {
         const { data: gp } = await supabase
           .from('gp_practices')
-          .select('practice_name')
+          .select('name')
           .eq('id', pid)
           .maybeSingle();
-        if (!cancelled && gp?.practice_name) { setPracticeName(gp.practice_name); return; }
+        if (!cancelled && gp?.name) { setPracticeName(gp.name); return; }
         const { data: pd } = await supabase
           .from('practice_details')
           .select('practice_name')
