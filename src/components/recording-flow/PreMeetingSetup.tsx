@@ -55,6 +55,23 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
   const fileInputRef = useRef<HTMLInputElement>(null);
   const agendaDropRef = useRef<HTMLDivElement>(null);
 
+  // Default to "Multiple Participants" on first mount when no attendees set
+  const didDefaultAttendeesRef = useRef(false);
+  React.useEffect(() => {
+    if (didDefaultAttendeesRef.current) return;
+    if (attendees.length === 0) {
+      didDefaultAttendeesRef.current = true;
+      setAttendees([{
+        id: `multi-${Date.now()}`,
+        name: 'Multiple Participants',
+        initials: '++',
+        role: 'Various',
+        org: '',
+        status: 'present' as const,
+      }]);
+    }
+  }, [attendees.length, setAttendees]);
+
   const handleAddAgenda = () => {
     if (agendaInput.trim()) {
       addAgendaItem(agendaInput.trim());
