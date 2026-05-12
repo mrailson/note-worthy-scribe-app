@@ -1563,6 +1563,28 @@ const MeetingHistory = () => {
 
   const handleMeetingDelete = async (meetingId: string) => {
     try {
+      // Safeguard: meetings with substantial transcript content require typed confirmation
+      const target = meetings.find(m => m.id === meetingId);
+      const wordCount = (target as any)?.word_count ?? 0;
+      const chunkCount = (target as any)?.chunk_count ?? 0;
+      const durationMins = (target as any)?.duration_minutes ?? 0;
+      const isSubstantial = wordCount > 500 || chunkCount > 5 || durationMins > 5;
+
+      if (isSubstantial) {
+        const summary = [
+          wordCount ? `${wordCount.toLocaleString()} words` : null,
+          durationMins ? `${durationMins} min` : null,
+          chunkCount ? `${chunkCount} transcript chunks` : null,
+        ].filter(Boolean).join(' · ');
+        const typed = window.prompt(
+          `This meeting has ${summary} of transcript that will be permanently lost.\n\nType DELETE to confirm.`
+        );
+        if (typed !== 'DELETE') {
+          showToast.info('Delete cancelled', { section: 'meeting_manager' });
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('meetings')
         .delete()
