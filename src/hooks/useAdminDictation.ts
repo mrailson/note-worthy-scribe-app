@@ -415,7 +415,20 @@ export function useAdminDictation() {
       };
 
       // Use selected transcription service
-      if (transcriptionService === 'deepgram') {
+      if (transcriptionService === 'gpt-realtime-whisper') {
+        const provider = new GptRealtimeWhisperProvider({
+          onPartial: (text) => {
+            currentPartialRef.current = text;
+            const newContent = (baseContentRef.current + ' ' + recordingTranscriptRef.current + ' ' + text).trim();
+            setContent(newContent);
+          },
+          onFinal: (text) => handleTranscription({ text, is_final: true, confidence: 0.9 }),
+          onError: (msg) => handleError(msg),
+          onStatusChange: (s) => handleStatusChange(s),
+        });
+        gptWhisperRef.current = provider;
+        await provider.start();
+      } else if (transcriptionService === 'deepgram') {
         // Use TranscriptionServiceFactory for Deepgram
         const transcriber = createTranscriber('deepgram', {
           onTranscription: handleTranscription,
