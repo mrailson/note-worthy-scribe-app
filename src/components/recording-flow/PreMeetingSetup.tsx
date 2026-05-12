@@ -55,6 +55,23 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
   const fileInputRef = useRef<HTMLInputElement>(null);
   const agendaDropRef = useRef<HTMLDivElement>(null);
 
+  // Default to "Multiple Participants" on first mount when no attendees set
+  const didDefaultAttendeesRef = useRef(false);
+  React.useEffect(() => {
+    if (didDefaultAttendeesRef.current) return;
+    if (attendees.length === 0) {
+      didDefaultAttendeesRef.current = true;
+      setAttendees([{
+        id: `multi-${Date.now()}`,
+        name: 'Multiple Participants',
+        initials: '++',
+        role: 'Various',
+        org: '',
+        status: 'present' as const,
+      }]);
+    }
+  }, [attendees.length, setAttendees]);
+
   const handleAddAgenda = () => {
     if (agendaInput.trim()) {
       addAgendaItem(agendaInput.trim());
@@ -485,15 +502,6 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 <ClipboardPaste className="h-3 w-3" />
                 <span className="hidden sm:inline">Paste Text</span>
               </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isExtractingAgenda}
-                className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 border border-transparent hover:border-primary/20 transition-all cursor-pointer disabled:opacity-50"
-                title="Upload a file (image, PDF, or Word document)"
-              >
-                <Upload className="h-3 w-3" />
-                <span className="hidden sm:inline">Upload File</span>
-              </button>
             </div>
           </div>
           <div className="p-3 flex-1 overflow-y-auto min-h-0">
@@ -583,8 +591,8 @@ export const PreMeetingSetup: React.FC<PreMeetingSetupProps> = ({ onStartRecordi
                 <div className="text-xs font-semibold text-foreground/70 short-viewport:hidden">No agenda items yet</div>
                 <div className="text-[11px] mt-1 short-viewport:mt-0">Add items below — they help the AI segment the transcript</div>
                 <div className="text-[10px] mt-1.5 text-muted-foreground/50 flex items-center justify-center gap-1.5 short-viewport:hidden">
-                  <Upload className="h-3 w-3" />
-                  Upload a file, paste text, or Ctrl+V an image to auto-extract
+                  <ClipboardPaste className="h-3 w-3" />
+                  Paste text or Ctrl+V an image to auto-extract
                 </div>
               </div>
             )}
