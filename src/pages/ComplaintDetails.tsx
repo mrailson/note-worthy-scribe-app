@@ -135,6 +135,7 @@ const ComplaintDetails = () => {
   
   // All state hooks must be called before any conditional returns
   const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [practiceName, setPracticeName] = useState<string | null>(null);
   const [previousComplaintsCount, setPreviousComplaintsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("workflow");
@@ -640,6 +641,33 @@ const ComplaintDetails = () => {
       }
     };
   }, []);
+
+  // Resolve practice name for the header (gp_practices is authoritative, fallback to practice_details)
+  useEffect(() => {
+    let cancelled = false;
+    const pid = complaint?.practice_id;
+    if (!pid) { setPracticeName(null); return; }
+    (async () => {
+      try {
+        const { data: gp } = await supabase
+          .from('gp_practices')
+          .select('name')
+          .eq('id', pid)
+          .maybeSingle();
+        if (!cancelled && gp?.name) { setPracticeName(gp.name); return; }
+        const { data: pd } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('id', pid)
+          .maybeSingle();
+        if (!cancelled) setPracticeName(pd?.practice_name || null);
+      } catch (e) {
+        console.error('Failed to resolve practice name:', e);
+        if (!cancelled) setPracticeName(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [complaint?.practice_id]);
 
   // Conditional return AFTER all hooks are called
   if (!user) {
@@ -1810,6 +1838,7 @@ const ComplaintDetails = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><strong>Patient:</strong> {complaint.patient_name}</div>
                 <div><strong>Category:</strong> {getCategoryLabel(complaint.category)}</div>
+                <div><strong>Practice:</strong> {practiceName || (complaint.practice_id ? 'Loading…' : 'Not assigned')}</div>
                 <div>
                   <strong>Status: </strong>
                   {complaint.status === 'under_review' && acknowledgementSentToPatient && (
