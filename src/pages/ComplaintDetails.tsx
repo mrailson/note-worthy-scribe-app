@@ -89,6 +89,7 @@ import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote
 import { AddComplaintDocumentDialog } from "@/components/complaints/AddComplaintDocumentDialog";
 import { getComplaintSourceLabel, getAcknowledgementRecipientLabel } from "@/utils/complaintSourceLabels";
 import { IndemnityConsiderationField } from "@/components/complaints/IndemnityConsiderationField";
+import { IndemnityRiskTrafficLight } from "@/components/complaints/IndemnityRiskTrafficLight";
 
 interface Complaint {
   id: string;
