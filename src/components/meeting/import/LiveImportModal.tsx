@@ -188,13 +188,6 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
             </TabsList>
 
             <div className="flex-1 min-h-0 overflow-hidden p-6">
-              <TabsContent value="screenshot" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
-                <ScreenshotImportTab 
-                  onImport={handleImportContent}
-                  isImporting={isImporting}
-                />
-              </TabsContent>
-              
               <TabsContent value="attendees" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
                 <MeetingAttendeesTab
                   meetingId={getCurrentMeetingId()}
@@ -202,21 +195,6 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                   isImporting={isImporting}
                   onAttendeesChanged={onAttendeesChanged}
                   editGroupId={editGroupId}
-                />
-              </TabsContent>
-              
-              
-              <TabsContent value="agenda" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
-                <AgendaImportTab 
-                  onImport={handleImportContent}
-                  isImporting={isImporting}
-                />
-              </TabsContent>
-              
-              <TabsContent value="create" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
-                <CreateMeetingTab 
-                  onComplete={onImportComplete}
-                  onClose={() => onOpenChange(false)}
                 />
               </TabsContent>
             </div>
