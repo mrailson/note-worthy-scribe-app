@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
 import { showToast } from '@/utils/toastWrapper';
 import { createTranscriber, isBatchService, UnifiedTranscriber } from '@/utils/TranscriptionServiceFactory';
+import { GptRealtimeWhisperProvider } from '@/services/transcription/gptRealtimeWhisper';
 export type AdminDictationStatus = 'idle' | 'connecting' | 'recording' | 'paused' | 'processing' | 'error';
 export type AdminTemplateType = 'free' | 'complaint-response' | 'hr-record' | 'briefing-note';
 
