@@ -1,112 +1,51 @@
+## Recover Stephanie Allen's missing PCN Board meeting
 
-## MDU Indemnity Risk Assessor — Complaints Service
+### What I found
 
-Add an AI-driven assessment that reads each complaint's content and metadata, classifies the medico-legal risk to the practice on a green / amber / red scale, and recommends whether the practice should contact their MDO (MDU, MPS, other). Surfaced alongside the existing manual `IndemnityConsiderationField` so the clinician retains the final decision.
+- User: **Stephanie Allen** (`stephanie.allen19@nhs.net`, id `ce00b066-…`).
+- The `meetings` row for this afternoon's recording is **gone** (no row in `meetings`, no row in `meetings_archive`).
+- The recording itself is **fully preserved** as 72 transcript chunks in `meeting_transcription_chunks` under meeting id `41ec0c85-147f-4817-8e36-8ca3068995cb`:
+  - First chunk 12:47 BST, last chunk 14:53 BST.
+  - Internal segment timestamps run 0 s → 6 190 s ≈ **1 h 43 m** of audio.
+  - **18 718 words** of validated Whisper transcript, all `is_final=true, validation_status=validated`.
+- Two `meeting_groups` named "PCN Board Meeting" were set up by her this morning (09:05 and 11:52 BST) — consistent with her account that she configured groups + agenda before recording.
+- One generation attempt fired at 11:48 BST on the very first 371-word snippet and Sonnet refused it as `skip_reason: llm_refused_non_meeting` (classified `test_recording`). After that there is no further generation log, so notes were never produced.
+- A separate small (24 s, 78-word) test backup `b3f3401c-…` exists from 19:13 BST — that's a later mic check, not the lost meeting.
+- Audio backup for the lost meeting is **not** in `meeting_audio_backups` (no file path), so we cannot re-transcribe from raw audio — but we don't need to: the validated transcript is intact.
 
-### 1. Risk model (what the AI looks at)
+### Cause (most likely)
 
-Inputs sent to the analyser:
-- Complaint title, description, category, sub-category
-- Patient harm indicators (incident_date vs reported, severity if present)
-- Staff mentioned, clinician involvement flag
-- Whether the complaint mentions: missed/delayed diagnosis, medication error, safeguarding, death, serious harm, surgery/procedure, mental health crisis, child, threats of legal action, regulator (CQC/GMC/NMC/Ombudsman), media/solicitor
-- Existing log entries / outcome status
+The parent `meetings` row was deleted by a path that bypassed the `meetings_archive` trigger (hard delete, or cascaded from `folder_id` removal). Transcript chunks have no ON-DELETE-CASCADE on `meeting_id`, which is why they survived. The early "test_recording" refusal also means no auto-generated title/notes were ever stored on the row, so deletion would not have warned the user about losing them.
 
-Output (structured JSON):
-- `risk_level`: green | amber | red
-- `recommendation`: no_action | consider_mdo | contact_mdo_now
-- `suggested_mdo`: mdu | mps | other | unknown (best guess from staff mentioned / practice profile if available, else "unknown")
-- `rationale`: 2–4 short bullets, British English
-- `red_flags`: string[] of detected high-risk phrases/themes
-- `confidence`: 0–1
+### Recovery plan
 
-Heuristic guardrails (deterministic, run before AI to bias result):
-- Any mention of death, serious harm, safeguarding, solicitor, coroner, GMC/NMC, police → forced **red**.
-- Missed/delayed diagnosis, medication error, procedural injury, formal Ombudsman escalation, threats of legal action → at least **amber**.
-- Service/admin only (rudeness, appointment booking, parking, comms tone) → **green**.
-AI may upgrade but never downgrade below the heuristic floor.
+1. **Re-insert the meeting row** with the original id `41ec0c85-147f-4817-8e36-8ca3068995cb` so all 72 surviving chunks reconnect:
+   - `user_id` = Stephanie's id
+   - `title` = "PCN Board Meeting (recovered)"
+   - `start_time` = first chunk created_at (12:47 BST)
+   - `end_time` = last chunk created_at (14:53 BST)
+   - `duration_minutes` = 103
+   - `status` = `completed`
+   - `notes_generation_status` = `pending`
+   - `chunk_count` = 72
+   - `meeting_type` / `format` = sensible defaults matching her usual PCN board template
+   - link to her practice via `practice_id` if resolvable
+2. **Re-link to the right meeting group** — there are two "PCN Board Meeting" groups created today; attach the recovered meeting to the later one (11:52 BST, id `5f55a42e-…`) since that matches the recording start.
+3. **Stitch the transcript** from `meeting_transcription_chunks` (ordered by `chunk_number`/`created_at`) into the meeting's `whisper_transcript_text` (and `best_of_all_transcript`) so existing readers find content immediately.
+4. **Trigger notes generation** via the standard pipeline (Sonnet 4.6, per project rules) using the stitched transcript. This time the transcript is long and substantive, so the "test_recording" refusal that fired at 11:48 won't repeat.
+5. **Add a hard safeguard so this can't repeat:**
+   - Soft-delete pattern for `meetings`: route deletes through the existing `meetings_archive` write so a row is always preserved.
+   - Add a confirmation guard in the meeting list UI when a meeting has > N transcript chunks (e.g. > 5) — *"This meeting has X minutes of transcript that will be lost. Type DELETE to confirm."*
+   - Add a `before delete` trigger on `meetings` that copies `id, user_id, title, duration_minutes, word_count, start_time, end_time` into `meetings_archive` and additionally tags it when surviving chunks exist, so we can offer one-click restore in future.
 
-### 2. Backend
+### Out of scope (won't touch)
 
-New edge function: `assess-complaint-indemnity-risk`
-- Input: `{ complaint_id }`
-- Pulls complaint + log entries server-side (RLS via service role + practice check).
-- Runs heuristic floor, then calls Anthropic `claude-sonnet-4-6` (per project Sonnet-only rule for clinical/governance outputs) with a strict JSON schema and British English instructions.
-- Persists result.
+- Existing meeting templates, AssemblyAI/Deepgram code paths, or the complaints indemnity work from earlier today.
+- Stephanie's other recordings — only the lost one is rebuilt.
 
-New table: `complaint_indemnity_risk_assessments`
-- complaint_id (uniq)
-- risk_level (enum: green/amber/red)
-- recommendation (enum)
-- suggested_mdo
-- rationale (jsonb / text[])
-- red_flags (text[])
-- confidence (numeric)
-- model, prompt_version
-- generated_by (uuid, nullable for system runs)
-- generated_at, updated_at
-- RLS: same practice scoping pattern as `complaint_indemnity_considerations`.
+### What I need from you before I run it
 
-Re-assessment triggers:
-- Manual "Re-assess" button.
-- Auto on first open if no assessment exists.
-- Auto when complaint description, category, or a new log entry is added (debounced; `stale=true` flag shown until refreshed).
-
-### 3. UI — traffic light on the complaint
-
-Replace the current narrow `w-56` indemnity field block with a two-part panel:
-
-```text
-+------------------------------------------------------------+
-| 🟢/🟡/🔴  Indemnity Risk: AMBER                            |
-| Recommendation: Consider contacting MDU                    |
-| • Delayed diagnosis mentioned                              |
-| • Patient referencing solicitor                            |
-|                                                            |
-| [ Re-assess ]   Confidence: 82%   Updated 12:04            |
-+------------------------------------------------------------+
-| Manual status: [Advice sought from MDO ▾]  (existing field)|
-+------------------------------------------------------------+
-```
-
-Visual rules:
-- Use semantic tokens already in the design system (no raw hex). Map:
-  - green → success token / soft green background, dark green text
-  - amber → warning token / soft amber, dark amber text, subtle pulse on first display
-  - red → destructive token / soft red, dark red text, persistent gentle pulse until acknowledged
-- Amber/red show a prominent call-out: *"Best practice: contact your MDO (MDU/MPS) before responding."*
-- Green shows quiet reassurance: *"No medico-legal escalation indicators detected."*
-- Tooltip explains AI is advisory and the registered clinician retains responsibility (matches existing CSO AI safety guardrails memory).
-
-New component: `src/components/complaints/IndemnityRiskTrafficLight.tsx`
-- Loads assessment, shows traffic light, rationale list, red flags chips, "Re-assess" button.
-- "Acknowledged" action (red/amber) writes a log entry via existing `logComplaintActionWithMetadata`.
-
-`IndemnityConsiderationField` stays — it becomes the *human decision* under the AI advisory banner. When AI recommends `contact_mdo_now` and the manual status is still `not_applicable`, show a soft inline nudge.
-
-### 4. Complaints list / dashboard surfacing
-
-- Add a small traffic-light dot next to each complaint row in `ComplimentsSummaryView`-equivalent complaints list (the complaints list view, not compliments) so triagers see risk at a glance.
-- Add a "High medico-legal risk" filter chip (red + amber).
-- Show count of unacknowledged red items at top of complaints dashboard.
-
-### 5. Audit & safety
-
-- Every assessment write logs to complaint audit trail (model, prompt version, risk level).
-- AI output never auto-changes the manual `consideration_status`; it only recommends.
-- Standard MHRA Class I disclaimer banner reused from CSO module: "Advisory only — not a substitute for MDO advice."
-- Rate-limit re-assessment to e.g. once per 30s per complaint.
-
-### 6. Rollout
-
-1. Migration: enum + table + RLS + trigger.
-2. Edge function with heuristic + Sonnet call + JSON schema validation.
-3. `IndemnityRiskTrafficLight` component + integration in `ComplaintDetails.tsx` (replace the `w-56` block with the new panel; keep manual field beneath).
-4. Dashboard list dot + filter.
-5. Audit log entries + acknowledgement flow.
-6. QA on a few seeded complaints (clear red, clear amber, clear green) to confirm heuristic floor behaviour and British English wording.
-
-### Out of scope
-- No automatic email to MDU.
-- No change to existing `complaint_indemnity_considerations` table or the manual dropdown's behaviour — only an advisory layer above it.
-- No changes to compliments, meeting, or other services.
+Please confirm:
+1. Title to use for the recovered meeting (default suggestion: **"PCN Board Meeting — 12 May 2026 (recovered)"**).
+2. OK to attach to her later meeting group `5f55a42e-…` ("PCN Board Meeting", 11:52 BST)?
+3. OK to also implement the safeguard (soft-delete + delete-confirmation + before-delete trigger) in this same change?
