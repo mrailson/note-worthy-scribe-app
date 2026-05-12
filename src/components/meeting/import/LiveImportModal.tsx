@@ -2,12 +2,9 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Camera, Users, ClipboardList, Loader2, FilePlus } from 'lucide-react';
-import { ScreenshotImportTab } from './ScreenshotImportTab';
+import { Users, Loader2 } from 'lucide-react';
 import { AttendeesImportTab } from './AttendeesImportTab';
 import { MeetingAttendeesTab } from './MeetingAttendeesTab';
-import { AgendaImportTab } from './AgendaImportTab';
-import { CreateMeetingTab } from './CreateMeetingTab';
 import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -177,7 +174,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
         
         <div className="flex-1 min-h-0 overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full min-h-0 flex flex-col">
-            <TabsList className="grid w-full grid-cols-4 px-6 py-2 bg-muted/30 rounded-none border-b border-border/50 shrink-0">
+            <TabsList className="grid w-full grid-cols-1 px-6 py-2 bg-muted/30 rounded-none border-b border-border/50 shrink-0">
               <TabsTrigger 
                 value="attendees"
                 className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -185,37 +182,9 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Attendees</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="agenda"
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <ClipboardList className="h-4 w-4" />
-                <span className="hidden sm:inline">Agenda</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="screenshot" 
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <Camera className="h-4 w-4" />
-                <span className="hidden sm:inline">Screenshot</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="create"
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                <FilePlus className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs">Create from Audio/Text</span>
-              </TabsTrigger>
             </TabsList>
 
             <div className="flex-1 min-h-0 overflow-hidden p-6">
-              <TabsContent value="screenshot" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
-                <ScreenshotImportTab 
-                  onImport={handleImportContent}
-                  isImporting={isImporting}
-                />
-              </TabsContent>
-              
               <TabsContent value="attendees" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
                 <MeetingAttendeesTab
                   meetingId={getCurrentMeetingId()}
@@ -223,21 +192,6 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                   isImporting={isImporting}
                   onAttendeesChanged={onAttendeesChanged}
                   editGroupId={editGroupId}
-                />
-              </TabsContent>
-              
-              
-              <TabsContent value="agenda" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
-                <AgendaImportTab 
-                  onImport={handleImportContent}
-                  isImporting={isImporting}
-                />
-              </TabsContent>
-              
-              <TabsContent value="create" className="mt-0 h-full min-h-0 flex flex-col overflow-hidden">
-                <CreateMeetingTab 
-                  onComplete={onImportComplete}
-                  onClose={() => onOpenChange(false)}
                 />
               </TabsContent>
             </div>
