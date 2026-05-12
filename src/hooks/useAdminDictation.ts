@@ -55,7 +55,9 @@ export function useAdminDictation() {
   const [transcriptionService, setTranscriptionService] = useState<DictationTranscriptionService>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('admin-dictation-service');
-      return (saved === 'deepgram' ? 'deepgram' : 'assemblyai') as DictationTranscriptionService;
+      if (saved === 'deepgram' || saved === 'gpt-realtime-whisper' || saved === 'assemblyai') {
+        return saved as DictationTranscriptionService;
+      }
     }
     return 'assemblyai';
   });
