@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -66,7 +65,7 @@ function recForLevel(level: RiskLevel): Recommendation {
   return "no_action";
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -76,11 +75,25 @@ serve(async (req) => {
     const { complaintId } = await req.json();
     if (!complaintId) throw new Error("complaintId required");
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Use the caller-scoped client for reads so complaint access still follows RLS,
+    // then use a service-role client only for persisting the generated assessment.
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      supabaseUrl,
+      anonKey,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
+    const serviceSupabase = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: complaint, error } = await supabase
       .from("complaints")
@@ -203,7 +216,7 @@ Rules:
     parsed.confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5));
 
     // Persist
-    const { data: upserted, error: upErr } = await supabase
+    const { data: upserted, error: upErr } = await serviceSupabase
       .from("complaint_indemnity_risk_assessments")
       .upsert(
         {
