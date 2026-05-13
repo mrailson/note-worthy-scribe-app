@@ -4,28 +4,33 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useNRESClaimants } from '@/hooks/useNRESClaimants';
 import { UserPlus } from 'lucide-react';
+import type { MemberPractice, NRESClaimant } from '@/hooks/useNRESClaimants';
 
 interface QuickAddClaimantDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  addClaimant: (name: string, role: 'gp' | 'pm', memberPractice?: MemberPractice) => Promise<NRESClaimant | null>;
+  saving: boolean;
+  userPracticeName: string | null;
   onAdded?: (newClaimantId: string) => void;
 }
 
-export function QuickAddClaimantDialog({ open, onOpenChange, onAdded }: QuickAddClaimantDialogProps) {
-  const { addClaimant, saving, userPracticeName } = useNRESClaimants();
+export function QuickAddClaimantDialog({
+  open,
+  onOpenChange,
+  addClaimant,
+  saving,
+  userPracticeName,
+  onAdded,
+}: QuickAddClaimantDialogProps) {
   const [name, setName] = useState('');
   const [role, setRole] = useState<'gp' | 'pm'>('gp');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    const result = await addClaimant(
-      name.trim(),
-      role,
-      (userPracticeName as any) || undefined
-    );
+    const result = await addClaimant(name.trim(), role, (userPracticeName as MemberPractice) || undefined);
     if (result) {
       setName('');
       setRole('gp');
@@ -43,7 +48,7 @@ export function QuickAddClaimantDialog({ open, onOpenChange, onAdded }: QuickAdd
             Add staff member
           </DialogTitle>
           <DialogDescription>
-            Quickly add a new GP or Practice Manager so you can log hours on their behalf.
+            Quickly add a GP or Practice Manager so you can log hours on their behalf.
             {userPracticeName && <> They will be added to <strong>{userPracticeName}</strong>.</>}
           </DialogDescription>
         </DialogHeader>
