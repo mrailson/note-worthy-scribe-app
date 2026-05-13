@@ -47,11 +47,39 @@ const DEFAULT_ACTIVITIES = [
 
 const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240];
 
-interface Activity { id: string; label: string; is_default: boolean; sort_order: number; }
+type CategoryT = 'general' | 'part_b';
+type RoleT = 'clinician' | 'manager';
+
+const PART_B_COHORTS = ['COPD', 'Heart failure', 'Housebound', 'Palliative', 'Frailty', 'Multimorbidity', 'LD / MH', 'Other'];
+
+const CLINICIAN_PART_B_DEFAULTS = [
+  'Part B MDT',
+  'Complex patient review',
+  'Housebound review',
+  'Discharge follow-up',
+  'ReSPECT / palliative',
+  'Audit / cohort prep',
+  'LTC 30-min appointment',
+  'Frailty / proactive call',
+];
+
+const MANAGER_PART_B_DEFAULTS = [
+  'Part B planning meeting',
+  'Buy-back / claims admin',
+  'Locum coordination',
+  'Rota / slot setup (NRES Part B)',
+  'Audit / cohort list prep',
+  'MDT prep & coordination',
+  'Recruitment / interviews (Part B)',
+  'Briefing / documentation',
+];
+
+interface Activity { id: string; label: string; is_default: boolean; sort_order: number; category?: CategoryT; role?: RoleT | null; }
 interface Entry {
   id: string; entry_date: string; activity: string; minutes: number;
   notes: string | null; created_at: string;
   user_id?: string; entered_by?: string | null; practice_id?: string | null;
+  category?: CategoryT; cohort?: string | null;
 }
 
 const NRESTimeTracker = () => {
@@ -81,7 +109,23 @@ const NRESTimeTracker = () => {
   const [editNotes, setEditNotes] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
-  const recentEntries = entries.slice(0, 50);
+
+  // Part B state
+  const [category, setCategory] = useState<CategoryT>('general');
+  const [cohort, setCohort] = useState<string | null>(null);
+  const [cohortOther, setCohortOther] = useState('');
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [defaultRole, setDefaultRole] = useState<RoleT | null>(null);
+  const [showRolePrompt, setShowRolePrompt] = useState(false);
+
+  const visibleActivities = useMemo(
+    () => activities.filter(a => (a.category || 'general') === category),
+    [activities, category]
+  );
+  const recentEntries = useMemo(
+    () => entries.filter(e => (e.category || 'general') === category).slice(0, 50),
+    [entries, category]
+  );
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
   // Discreet voice-to-text for notes (native Web Speech API for instant real-time)
@@ -239,6 +283,26 @@ const NRESTimeTracker = () => {
     return { anchor, days: eachDayOfInterval({ start, end }), leadingBlanks: (getDay(start) + 6) % 7 };
   }, [monthOffset]);
 
+  const seedPartBForRole = useCallback(async (role: RoleT, existingActs: Activity[]) => {
+    if (!user?.id) return [] as Activity[];
+    const labels = role === 'clinician' ? CLINICIAN_PART_B_DEFAULTS : MANAGER_PART_B_DEFAULTS;
+    const existingLabels = new Set(
+      existingActs.filter(a => (a.category || 'general') === 'part_b').map(a => a.label.toLowerCase())
+    );
+    const toInsert = labels
+      .filter(l => !existingLabels.has(l.toLowerCase()))
+      .map((label, i) => ({
+        user_id: user.id, label, is_default: true,
+        sort_order: existingActs.length + i,
+        category: 'part_b', role,
+      }));
+    if (toInsert.length === 0) return [];
+    const { data: inserted, error } = await (supabase as any)
+      .from('nres_user_activities').insert(toInsert).select();
+    if (error) { console.error(error); toast.error('Failed to seed Part B activities'); return []; }
+    return (inserted as Activity[]) || [];
+  }, [user?.id]);
+
   const loadAll = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -252,7 +316,7 @@ const NRESTimeTracker = () => {
 
       if (!acts || acts.length === 0) {
         const seed = DEFAULT_ACTIVITIES.map((label, i) => ({
-          user_id: user.id, label, is_default: true, sort_order: i,
+          user_id: user.id, label, is_default: true, sort_order: i, category: 'general',
         }));
         const { data: inserted, error: iErr } = await (supabase as any)
           .from('nres_user_activities').insert(seed).select();
@@ -260,6 +324,18 @@ const NRESTimeTracker = () => {
         acts = inserted;
       }
       setActivities(acts || []);
+
+      // Profile (role + last_category)
+      const { data: prof } = await (supabase as any)
+        .from('nres_user_profile').select('*').eq('user_id', user.id).maybeSingle();
+      if (prof) {
+        setDefaultRole((prof.default_role as RoleT) || null);
+        setCategory((prof.last_category as CategoryT) || 'general');
+        setShowRolePrompt(!prof.default_role);
+      } else {
+        setShowRolePrompt(true);
+      }
+      setProfileLoaded(true);
 
       const { data: ents, error: eErr } = await (supabase as any)
         .from('nres_time_entries').select('*')
@@ -277,6 +353,40 @@ const NRESTimeTracker = () => {
   }, [user?.id]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Persist last_category when user switches tabs
+  const persistCategory = useCallback(async (next: CategoryT) => {
+    if (!user?.id) return;
+    try {
+      await (supabase as any).from('nres_user_profile').upsert({
+        user_id: user.id, last_category: next, default_role: defaultRole,
+      }, { onConflict: 'user_id' });
+    } catch (e) { console.warn('persist category failed', e); }
+  }, [user?.id, defaultRole]);
+
+  const handleCategoryChange = useCallback((next: CategoryT) => {
+    setCategory(next);
+    setSelectedActivity('');
+    setCohort(null); setCohortOther('');
+    persistCategory(next);
+  }, [persistCategory]);
+
+  const handlePickRole = useCallback(async (role: RoleT) => {
+    if (!user?.id) return;
+    try {
+      await (supabase as any).from('nres_user_profile').upsert({
+        user_id: user.id, default_role: role, last_category: category,
+      }, { onConflict: 'user_id' });
+      setDefaultRole(role);
+      setShowRolePrompt(false);
+      const inserted = await seedPartBForRole(role, activities);
+      if (inserted.length > 0) setActivities(prev => [...prev, ...inserted]);
+      toast.success(`Logging as ${role === 'clinician' ? 'Clinician' : 'Manager'} — Part B activities ready`);
+    } catch (e: any) {
+      console.error(e); toast.error('Could not save role');
+    }
+  }, [user?.id, category, activities, seedPartBForRole]);
+
 
   // Totals
   const { weekTotal, monthTotal, lastMonthTotal } = useMemo(() => {
@@ -336,9 +446,13 @@ const NRESTimeTracker = () => {
     setSaving(true);
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const resolvedCohort = category === 'part_b'
+        ? (cohort === 'Other' ? (cohortOther.trim().slice(0, 40) || null) : cohort)
+        : null;
       const { data, error } = await (supabase as any).from('nres_time_entries').insert({
         user_id: user.id, entry_date: dateStr, activity: selectedActivity,
         minutes: selectedDuration, notes: notes.trim() || null,
+        category, cohort: resolvedCohort,
       }).select().single();
       if (error) throw error;
       const newEntry = data as Entry;
@@ -349,8 +463,12 @@ const NRESTimeTracker = () => {
         }
       }
       setEntries(prev => [newEntry, ...prev]);
-      toast.success(`Logged ${formatDuration(selectedDuration)} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
+      const partBSuffix = category === 'part_b'
+        ? ` Part B${resolvedCohort ? ` (${resolvedCohort})` : ''}`
+        : '';
+      toast.success(`Logged ${formatDuration(selectedDuration)}${partBSuffix} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
       setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
+      setCohort(null); setCohortOther('');
       if (draftKey) localStorage.removeItem(draftKey);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
@@ -401,13 +519,13 @@ const NRESTimeTracker = () => {
     if (!user?.id) return;
     if (!label) { toast.error('Activity label required'); return; }
     if (label.length > 80) { toast.error('Max 80 characters'); return; }
-    if (activities.some(a => a.label.toLowerCase() === label.toLowerCase())) {
-      toast.error('Activity already exists'); return;
+    if (activities.some(a => (a.category || 'general') === category && a.label.toLowerCase() === label.toLowerCase())) {
+      toast.error('Activity already exists in this tab'); return;
     }
     try {
       const { data, error } = await (supabase as any)
         .from('nres_user_activities')
-        .insert({ user_id: user.id, label, is_default: false, sort_order: activities.length })
+        .insert({ user_id: user.id, label, is_default: false, sort_order: activities.length, category, role: null })
         .select().single();
       if (error) throw error;
       setActivities(prev => [...prev, data]);
@@ -458,25 +576,40 @@ const NRESTimeTracker = () => {
 
   const exportCSV = (range: ExportRange) => {
     const { entries: rangeEntries, label, fileBase } = getRangeData(range);
-    const rows: string[][] = [['Date', 'Day', 'Activity', 'Duration (mins)', 'Duration (hh:mm)', 'Notes']];
+    const rows: string[][] = [['Date', 'Day', 'Category', 'Cohort', 'Activity', 'Duration (mins)', 'Duration (hh:mm)', 'Notes']];
     let total = 0;
     const byAct: Record<string, { mins: number; count: number }> = {};
+    const byCohort: Record<string, { mins: number; count: number }> = {};
     for (const e of rangeEntries) {
       const d = parseISO(e.entry_date);
-      rows.push([e.entry_date, format(d, 'EEE'), e.activity, String(e.minutes), formatDuration(e.minutes), (e.notes || '').replace(/"/g, '""')]);
+      const cat = (e.category || 'general') === 'part_b' ? 'Part B' : 'General';
+      rows.push([e.entry_date, format(d, 'EEE'), cat, e.cohort || '', e.activity, String(e.minutes), formatDuration(e.minutes), (e.notes || '').replace(/"/g, '""')]);
       total += e.minutes;
       if (!byAct[e.activity]) byAct[e.activity] = { mins: 0, count: 0 };
       byAct[e.activity].mins += e.minutes;
       byAct[e.activity].count += 1;
+      if ((e.category || 'general') === 'part_b') {
+        const c = e.cohort || '(no cohort)';
+        if (!byCohort[c]) byCohort[c] = { mins: 0, count: 0 };
+        byCohort[c].mins += e.minutes;
+        byCohort[c].count += 1;
+      }
     }
     rows.push([]);
-    rows.push(['', '', `Range: ${label}`, '', '', '']);
-    rows.push(['', '', 'Total entries', String(rangeEntries.length), '', '']);
-    rows.push(['', '', 'Total time', String(total), formatDuration(total), '']);
+    rows.push(['', '', '', '', `Range: ${label}`, '', '', '']);
+    rows.push(['', '', '', '', 'Total entries', String(rangeEntries.length), '', '']);
+    rows.push(['', '', '', '', 'Total time', String(total), formatDuration(total), '']);
     rows.push([]);
-    rows.push(['Activity breakdown', 'Entries', 'Minutes', 'Duration (hh:mm)', '', '']);
+    rows.push(['Activity breakdown', 'Entries', 'Minutes', 'Duration (hh:mm)', '', '', '', '']);
     for (const [act, v] of Object.entries(byAct)) {
-      rows.push([act, String(v.count), String(v.mins), formatDuration(v.mins), '', '']);
+      rows.push([act, String(v.count), String(v.mins), formatDuration(v.mins), '', '', '', '']);
+    }
+    if (Object.keys(byCohort).length > 0) {
+      rows.push([]);
+      rows.push(['Part B by cohort', 'Entries', 'Minutes', 'Duration (hh:mm)', '', '', '', '']);
+      for (const [c, v] of Object.entries(byCohort)) {
+        rows.push([c, String(v.count), String(v.mins), formatDuration(v.mins), '', '', '', '']);
+      }
     }
     const csv = rows.map(r => r.map(c => /[",\n]/.test(c) ? `"${c}"` : c).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -485,7 +618,7 @@ const NRESTimeTracker = () => {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
-  const exportPDF = async (range: ExportRange = 'this-month') => {
+  const exportPDF = async (range: ExportRange = 'this-month', groupBy: 'activity' | 'cohort' = 'activity') => {
     const { entries: rangeEntries, label, fileBase } = getRangeData(range);
     const doc = new jsPDF();
 
@@ -508,27 +641,34 @@ const NRESTimeTracker = () => {
     doc.text(`${user?.email || ''}`, 14, 26);
     doc.text(`Generated: ${format(new Date(), 'd MMM yyyy HH:mm')}`, 14, 32);
 
-    const total = rangeEntries.reduce((s, e) => s + e.minutes, 0);
-    const byAct: Record<string, { mins: number; count: number }> = {};
-    rangeEntries.forEach(e => {
-      if (!byAct[e.activity]) byAct[e.activity] = { mins: 0, count: 0 };
-      byAct[e.activity].mins += e.minutes;
-      byAct[e.activity].count += 1;
+    // For cohort grouping, restrict to Part B entries
+    const focused = groupBy === 'cohort'
+      ? rangeEntries.filter(e => (e.category || 'general') === 'part_b')
+      : rangeEntries;
+
+    const total = focused.reduce((s, e) => s + e.minutes, 0);
+    const buckets: Record<string, { mins: number; count: number }> = {};
+    focused.forEach(e => {
+      const key = groupBy === 'cohort' ? (e.cohort || '(no cohort)') : e.activity;
+      if (!buckets[key]) buckets[key] = { mins: 0, count: 0 };
+      buckets[key].mins += e.minutes;
+      buckets[key].count += 1;
     });
 
     doc.setFontSize(11);
-    doc.text(`Total entries: ${rangeEntries.length}    Total time: ${formatDuration(total)}`, 14, 40);
+    const groupLabel = groupBy === 'cohort' ? 'Part B by cohort' : 'By activity';
+    doc.text(`${groupLabel}    Total entries: ${focused.length}    Total time: ${formatDuration(total)}`, 14, 40);
 
     autoTable(doc, {
       startY: 46,
-      head: [['Activity', 'Entries', 'Total time', '% of total']],
+      head: [[groupBy === 'cohort' ? 'Cohort' : 'Activity', 'Entries', 'Total time', '% of total']],
       body: [
-        ...Object.entries(byAct).map(([a, v]) => [
+        ...Object.entries(buckets).map(([a, v]) => [
           a, String(v.count), formatDuration(v.mins), total ? `${((v.mins / total) * 100).toFixed(1)}%` : '0%',
         ]),
         [
           { content: 'Total', styles: { fontStyle: 'bold' as const } },
-          { content: String(rangeEntries.length), styles: { fontStyle: 'bold' as const } },
+          { content: String(focused.length), styles: { fontStyle: 'bold' as const } },
           { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
           { content: '100%', styles: { fontStyle: 'bold' as const } },
         ],
@@ -537,14 +677,16 @@ const NRESTimeTracker = () => {
     });
 
     autoTable(doc, {
-      head: [['Date', 'Activity', 'Duration', 'Notes']],
+      head: [['Date', 'Cat', 'Cohort', 'Activity', 'Duration', 'Notes']],
       body: [
-        ...rangeEntries.map(e => [
+        ...focused.map(e => [
           format(parseISO(e.entry_date), 'dd/MM/yyyy'),
+          (e.category || 'general') === 'part_b' ? 'Part B' : 'Gen',
+          e.cohort || '',
           e.activity, formatDuration(e.minutes), e.notes || '',
         ]),
         [
-          { content: `Total entries: ${rangeEntries.length}`, colSpan: 2, styles: { fontStyle: 'bold' as const } },
+          { content: `Total entries: ${focused.length}`, colSpan: 4, styles: { fontStyle: 'bold' as const } },
           { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
           { content: '', styles: {} },
         ],
@@ -557,7 +699,8 @@ const NRESTimeTracker = () => {
       doc.setPage(i); doc.setFontSize(8);
       doc.text(`Notewell AI — NRES Dashboard   Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 8);
     }
-    doc.save(`${fileBase}.pdf`);
+    const suffix = groupBy === 'cohort' ? '-by-cohort' : '';
+    doc.save(`${fileBase}${suffix}.pdf`);
   };
 
   const dayLabel = (d: Date) => {
@@ -645,6 +788,56 @@ const NRESTimeTracker = () => {
               <div className="text-2xl font-bold text-slate-700 mt-1">{formatDuration(lastMonthTotal)}</div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* First-run role prompt */}
+        {showRolePrompt && profileLoaded && (
+          <Card className="rounded-xl border-2 border-emerald-300 bg-emerald-50">
+            <CardContent className="p-3 space-y-2">
+              <div className="text-sm font-medium text-emerald-900">
+                Quick setup — are you logging mostly as a clinician (GP, ANP, nurse) or as a manager (PM, admin)?
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handlePickRole('clinician')}>Clinician</Button>
+                <Button size="sm" variant="outline" onClick={() => handlePickRole('manager')}>Manager</Button>
+                <Button size="sm" variant="ghost" className="ml-auto text-slate-500" onClick={() => setShowRolePrompt(false)}>Not now</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Category tabs (General / Part B) */}
+        <div className="flex items-center justify-between">
+          <div className="inline-flex items-center gap-1 rounded-md bg-slate-100 p-1">
+            {([
+              { id: 'general' as const, label: 'General' },
+              { id: 'part_b' as const, label: 'Part B' },
+            ]).map(({ id, label }) => {
+              const active = category === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => handleCategoryChange(id)}
+                  className={cn(
+                    'rounded-md px-4 py-1.5 text-sm font-medium transition',
+                    active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {category === 'part_b' && defaultRole && (
+            <div className="text-xs text-slate-500 flex items-center gap-2">
+              Logging as
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
+                {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
+              </span>
+              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">Switch</button>
+            </div>
+          )}
         </div>
 
         {/* Date strip */}
@@ -782,7 +975,7 @@ const NRESTimeTracker = () => {
                 ACTIVITY
                 {!activityOpen && (
                   <span className="ml-2 normal-case text-slate-600">
-                    · {activities.length} {activities.length === 1 ? 'activity' : 'activities'} — click to expand
+                    · {visibleActivities.length} {visibleActivities.length === 1 ? 'activity' : 'activities'} — click to expand
                     {selectedActivity && <span className="ml-1 text-emerald-700">(selected: {selectedActivity})</span>}
                   </span>
                 )}
@@ -796,7 +989,7 @@ const NRESTimeTracker = () => {
             </div>
             {activityOpen && (
               <div className="grid grid-cols-2 gap-2">
-                {activities.map(a => {
+                {visibleActivities.map(a => {
                   const active = selectedActivity === a.label;
                   return (
                     <div key={a.id} className="relative">
@@ -834,6 +1027,47 @@ const NRESTimeTracker = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Cohort chips (Part B only) */}
+        {category === 'part_b' && (
+          <Card className="rounded-xl border-2 border-slate-200">
+            <CardContent className="p-3 space-y-2">
+              <div className="text-xs font-medium text-slate-500">
+                COHORT <span className="text-slate-400 normal-case">(optional)</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {PART_B_COHORTS.map(c => {
+                  const active = cohort === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => { setCohort(active ? null : c); if (c !== 'Other') setCohortOther(''); }}
+                      className={cn(
+                        'rounded-full px-3 h-8 text-xs font-medium border transition',
+                        active
+                          ? 'bg-green-100 border-green-300 text-green-900'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300'
+                      )}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+              {cohort === 'Other' && (
+                <Input
+                  autoFocus
+                  value={cohortOther}
+                  onChange={e => setCohortOther(e.target.value.slice(0, 40))}
+                  placeholder="Specify cohort (max 40 chars)"
+                  maxLength={40}
+                  className="h-8 text-sm"
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Duration */}
         <DurationPicker selectedDuration={selectedDuration} setSelectedDuration={setSelectedDuration} />
@@ -971,9 +1205,15 @@ const NRESTimeTracker = () => {
         {/* Save */}
         <Button disabled={!selectedActivity || saving} onClick={handleSave}
           className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base">
-          {selectedActivity
-            ? `Log ${formatDuration(selectedDuration)} — ${selectedActivity}`
-            : 'Select an activity to log'}
+          {(() => {
+            if (!selectedActivity) return 'Select an activity to log';
+            const dur = formatDuration(selectedDuration);
+            if (category !== 'part_b') return `Log ${dur} — ${selectedActivity}`;
+            const c = cohort === 'Other' ? cohortOther.trim() : cohort;
+            return c
+              ? `Log ${dur} Part B — ${selectedActivity} (${c})`
+              : `Log ${dur} Part B — ${selectedActivity}`;
+          })()}
         </Button>
 
         {/* Recent entries */}
@@ -1006,13 +1246,23 @@ const NRESTimeTracker = () => {
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Export PDF</DropdownMenuSubTrigger>
+                  <DropdownMenuSubTrigger>PDF — by activity</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => exportPDF('this-month')}>This month</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportPDF('last-month')}>Last month</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportPDF('all-time')}>All time</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('this-month', 'activity')}>This month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('last-month', 'activity')}>Last month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('all-time', 'activity')}>All time</DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                {entries.some(e => (e.category || 'general') === 'part_b') && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>PDF — Part B by cohort</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => exportPDF('this-month', 'cohort')}>This month</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportPDF('last-month', 'cohort')}>Last month</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportPDF('all-time', 'cohort')}>All time</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
@@ -1028,12 +1278,24 @@ const NRESTimeTracker = () => {
                   return (
                     <li key={e.id} className="flex items-center gap-3 p-3">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-slate-900 truncate">{e.activity}</div>
+                        <div className="text-sm font-medium text-slate-900 truncate flex items-center">
+                          {(e.category || 'general') === 'part_b' && (
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 shrink-0" aria-label="Part B" />
+                          )}
+                          <span className="truncate">{e.activity}</span>
+                        </div>
                         <div className="text-xs text-slate-500 truncate">
                           {format(parseISO(e.entry_date), 'EEE d MMM')}{e.notes ? ` · ${e.notes}` : ''}
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-emerald-700 shrink-0">{formatDuration(e.minutes)}</div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {e.cohort && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-900 text-[10px] font-medium">
+                            {e.cohort}
+                          </span>
+                        )}
+                        <div className="text-sm font-semibold text-emerald-700">{formatDuration(e.minutes)}</div>
+                      </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
