@@ -1124,7 +1124,7 @@ const NRESTimeTracker = () => {
         )}
 
         {/* Duration */}
-        <DurationPicker selectedDuration={selectedDuration} setSelectedDuration={setSelectedDuration} />
+        <DurationPicker selectedDuration={selectedDuration} setSelectedDuration={setSelectedDuration} category={category} />
 
         {/* Notes & attachments */}
         <Card className="rounded-xl border-2 border-slate-200">
