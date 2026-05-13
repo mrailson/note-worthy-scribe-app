@@ -119,6 +119,12 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
   const [drillUserId, setDrillUserId] = useState<string | null>(null);
   const [logBehalfOpen, setLogBehalfOpen] = useState(false);
 
+  // Most-recent tab state
+  type RecentSortKey = 'created_at' | 'entry_date' | 'user' | 'entered_by' | 'practice' | 'activity' | 'minutes';
+  const [recentSort, setRecentSort] = useState<{ key: RecentSortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' });
+  const [recentSearch, setRecentSearch] = useState('');
+  const [recentLimit, setRecentLimit] = useState(10);
+
   const range = useMemo(() => periodRange(period,
     customStart ? new Date(customStart) : undefined,
     customEnd ? new Date(customEnd) : undefined,
