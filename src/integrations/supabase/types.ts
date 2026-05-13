@@ -10449,6 +10449,7 @@ export type Database = {
           id: string
           minutes: number
           notes: string | null
+          on_behalf_of_name: string | null
           practice_id: string | null
           updated_at: string
           user_id: string
@@ -10463,6 +10464,7 @@ export type Database = {
           id?: string
           minutes: number
           notes?: string | null
+          on_behalf_of_name?: string | null
           practice_id?: string | null
           updated_at?: string
           user_id: string
@@ -10477,6 +10479,7 @@ export type Database = {
           id?: string
           minutes?: number
           notes?: string | null
+          on_behalf_of_name?: string | null
           practice_id?: string | null
           updated_at?: string
           user_id?: string
