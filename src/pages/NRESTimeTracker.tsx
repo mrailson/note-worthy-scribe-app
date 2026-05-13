@@ -354,6 +354,40 @@ const NRESTimeTracker = () => {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Persist last_category when user switches tabs
+  const persistCategory = useCallback(async (next: CategoryT) => {
+    if (!user?.id) return;
+    try {
+      await (supabase as any).from('nres_user_profile').upsert({
+        user_id: user.id, last_category: next, default_role: defaultRole,
+      }, { onConflict: 'user_id' });
+    } catch (e) { console.warn('persist category failed', e); }
+  }, [user?.id, defaultRole]);
+
+  const handleCategoryChange = useCallback((next: CategoryT) => {
+    setCategory(next);
+    setSelectedActivity('');
+    setCohort(null); setCohortOther('');
+    persistCategory(next);
+  }, [persistCategory]);
+
+  const handlePickRole = useCallback(async (role: RoleT) => {
+    if (!user?.id) return;
+    try {
+      await (supabase as any).from('nres_user_profile').upsert({
+        user_id: user.id, default_role: role, last_category: category,
+      }, { onConflict: 'user_id' });
+      setDefaultRole(role);
+      setShowRolePrompt(false);
+      const inserted = await seedPartBForRole(role, activities);
+      if (inserted.length > 0) setActivities(prev => [...prev, ...inserted]);
+      toast.success(`Logging as ${role === 'clinician' ? 'Clinician' : 'Manager'} — Part B activities ready`);
+    } catch (e: any) {
+      console.error(e); toast.error('Could not save role');
+    }
+  }, [user?.id, category, activities, seedPartBForRole]);
+
+
   // Totals
   const { weekTotal, monthTotal, lastMonthTotal } = useMemo(() => {
     const now = new Date();
