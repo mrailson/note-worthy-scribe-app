@@ -4456,11 +4456,20 @@ function EditableStaffRow({ s, i, claim, hasLocum, onUpdateStaffLine, rateParams
         {editing ? (
           <input style={{ ...inputStyle, width: '100%', minWidth: 120 }} value={name} onChange={e => setName(e.target.value)} />
         ) : (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             {s.staff_name || '—'}
             {editable && onUpdateStaffLine && (
-              <button onClick={() => setEditing(true)} title="Edit row" style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, color: '#64748b', display: 'inline-flex' }}>
-                <Pencil style={{ width: 12, height: 12 }} />
+              <button
+                onClick={() => setEditing(true)}
+                title="Edit name, role, sessions, date or amount"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 8px', borderRadius: 6,
+                  border: '1px solid #fbbf24', background: '#fef3c7', color: '#92400e',
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                <Pencil style={{ width: 11, height: 11 }} /> Edit
               </button>
             )}
           </span>
