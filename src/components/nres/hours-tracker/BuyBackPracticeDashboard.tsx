@@ -4956,7 +4956,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
 // --- Main Dashboard ---
 export function BuyBackPracticeDashboard({
   claims, practiceKey, staff, staffRoles, rateParams, managementRoles,
-  onSubmit, onResubmit, onUpdateClaimNotes, onCreateClaim, onCreateLocumClaim, onDeleteClaim,
+  onSubmit, onResubmit, onUpdateClaimNotes, onUpdateStaffLine, onCreateClaim, onCreateLocumClaim, onDeleteClaim,
   onAddStaff, onRemoveStaff, onUpdateStaff, confirmDeclaration,
   savingClaim, savingStaff, onGuideOpen, onSettingsOpen, showSettings,
   meetingLogEntries, onAddMeetingEntry, onDeleteMeetingEntry, onSubmitMeetingEntries, canAddOnBehalf,
