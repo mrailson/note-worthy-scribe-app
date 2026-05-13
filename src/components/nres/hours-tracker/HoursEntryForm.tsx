@@ -120,7 +120,16 @@ export function HoursEntryForm({ saving, claimants, onSubmit, addClaimant, addin
               <User className="w-3 h-3" />
               Claim For
             </Label>
-            <Select value={claimantSelection} onValueChange={setClaimantSelection}>
+            <Select
+              value={claimantSelection}
+              onValueChange={(v) => {
+                if (v === ADD_NEW_VALUE) {
+                  setAddDialogOpen(true);
+                  return;
+                }
+                setClaimantSelection(v);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select who this claim is for...">
                   {claimantSelection === 'personal' && 'Personal Rate (Your own hours)'}
