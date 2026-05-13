@@ -131,9 +131,11 @@ export const NRESHeader = ({ activeTab }: NRESHeaderProps) => {
                     )}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => navigate('/enn')} className="cursor-pointer py-2">
-                  ENN Dashboard
-                </DropdownMenuItem>
+                {hasServiceAccess('enn') && (
+                  <DropdownMenuItem onClick={() => navigate('/enn')} className="cursor-pointer py-2">
+                    ENN Dashboard
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
