@@ -1319,7 +1319,13 @@ const NRESTimeTracker = () => {
                           <span className="truncate">{e.activity}</span>
                         </div>
                         <div className="text-xs text-slate-500 truncate">
-                          {format(parseISO(e.entry_date), 'EEE d MMM')}{e.on_behalf_of_name ? ` · on behalf of ${e.on_behalf_of_name}` : ''}{e.notes ? ` · ${e.notes}` : ''}
+                          {format(parseISO(e.entry_date), 'EEE d MMM')}
+                          {e.logged_by && e.user_id && e.logged_by !== e.user_id && (
+                            e.logged_by === user?.id
+                              ? ` · for ${e.on_behalf_of_name || 'colleague'}`
+                              : ` · logged by colleague`
+                          )}
+                          {e.notes ? ` · ${e.notes}` : ''}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
