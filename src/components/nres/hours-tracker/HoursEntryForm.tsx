@@ -285,6 +285,16 @@ export function HoursEntryForm({ saving, claimants, onSubmit, addClaimant, addin
           </Button>
         </form>
       </CardContent>
+      {addClaimant && (
+        <QuickAddClaimantDialog
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
+          addClaimant={addClaimant}
+          saving={!!addingClaimant}
+          userPracticeName={userPracticeName ?? null}
+          onAdded={(newId) => setClaimantSelection(newId)}
+        />
+      )}
     </Card>
   );
 }
