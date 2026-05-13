@@ -501,6 +501,11 @@ const NRESTimeTracker = () => {
         ? (cohort === 'Other' ? (cohortOther.trim().slice(0, 40) || null) : cohort)
         : null;
       const ownerId = logFor?.id || user.id;
+      let ownerPracticeId: string | null = null;
+      try {
+        const { data: pids } = await supabase.rpc('get_user_practice_ids', { p_user_id: ownerId });
+        if (pids && pids.length > 0) ownerPracticeId = pids[0];
+      } catch {}
       const { data, error } = await (supabase as any).from('nres_time_entries').insert({
         user_id: ownerId,
         logged_by: user.id,
@@ -508,6 +513,7 @@ const NRESTimeTracker = () => {
         minutes: selectedDuration, notes: notes.trim() || null,
         category, cohort: resolvedCohort,
         on_behalf_of_name: logFor ? logFor.name : null,
+        practice_id: ownerPracticeId,
       }).select().single();
       if (error) throw error;
       const newEntry = data as Entry;

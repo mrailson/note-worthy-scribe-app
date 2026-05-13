@@ -108,6 +108,7 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
   const [users, setUsers] = useState<ProfileLite[]>([]);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
+  const [userPracticeMap, setUserPracticeMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const [filterPractice, setFilterPractice] = useState<string>('all');
@@ -133,12 +134,13 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [eRes, pRes, prRes, tRes, aRes] = await Promise.all([
+      const [eRes, pRes, prRes, tRes, aRes, urRes] = await Promise.all([
         supabase.from('nres_time_entries' as any).select('*'),
         supabase.from('profiles').select('user_id, full_name, email, role, is_verifier'),
         supabase.from('gp_practices').select('id, name, practice_code').order('name'),
         supabase.from('nres_time_targets' as any).select('*'),
         supabase.from('user_service_activations').select('user_id').eq('service', 'nres'),
+        supabase.from('user_roles').select('user_id, practice_id').not('practice_id', 'is', null),
       ]);
       if (eRes.error) throw eRes.error;
       const nresIds = new Set(((aRes.data || []) as any[]).map(r => r.user_id));
@@ -156,6 +158,9 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
       const allPractices = ((prRes.data || []) as any[]) as (Practice & { practice_code?: string })[];
       setPractices(allPractices.filter(p => p.practice_code && allowedOds.has(p.practice_code)));
       setTargets(((tRes.data || []) as any) as Target[]);
+      const upm = new Map<string, string>();
+      ((urRes.data || []) as any[]).forEach(r => { if (r.user_id && r.practice_id && !upm.has(r.user_id)) upm.set(r.user_id, r.practice_id); });
+      setUserPracticeMap(upm);
     } catch (e: any) {
       console.error(e);
       toast.error('Failed to load manager view');
@@ -651,7 +656,10 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
                 user_name: u?.full_name || u?.email || '—',
                 entered_by_name: eb?.full_name || eb?.email || (onBehalf ? '—' : (u?.full_name || u?.email || '—')),
                 on_behalf: onBehalf,
-                practice: e.practice_id ? (practiceById.get(e.practice_id) || 'Unknown') : 'Unassigned',
+                practice: (() => {
+                  const pid = e.practice_id || userPracticeMap.get(e.user_id);
+                  return pid ? (practiceById.get(pid) || 'Unknown') : 'Unassigned';
+                })(),
                 activity: e.activity,
                 minutes: e.minutes,
                 notes: e.notes || '',
