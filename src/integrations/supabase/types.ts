@@ -16112,6 +16112,10 @@ export type Database = {
         Returns: number
       }
       nres_normalise_practice_key: { Args: { _value: string }; Returns: string }
+      nres_time_can_see_all_colleagues: {
+        Args: { _uid: string }
+        Returns: boolean
+      }
       nres_user_practice_keys: {
         Args: { _uid: string }
         Returns: {
