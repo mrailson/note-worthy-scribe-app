@@ -519,13 +519,13 @@ const NRESTimeTracker = () => {
     if (!user?.id) return;
     if (!label) { toast.error('Activity label required'); return; }
     if (label.length > 80) { toast.error('Max 80 characters'); return; }
-    if (activities.some(a => a.label.toLowerCase() === label.toLowerCase())) {
-      toast.error('Activity already exists'); return;
+    if (activities.some(a => (a.category || 'general') === category && a.label.toLowerCase() === label.toLowerCase())) {
+      toast.error('Activity already exists in this tab'); return;
     }
     try {
       const { data, error } = await (supabase as any)
         .from('nres_user_activities')
-        .insert({ user_id: user.id, label, is_default: false, sort_order: activities.length })
+        .insert({ user_id: user.id, label, is_default: false, sort_order: activities.length, category, role: null })
         .select().single();
       if (error) throw error;
       setActivities(prev => [...prev, data]);
