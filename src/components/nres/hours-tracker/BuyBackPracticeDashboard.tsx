@@ -5218,6 +5218,8 @@ export function BuyBackPracticeDashboard({
           onSubmit={onSubmit}
           onResubmit={onResubmit}
           onUpdateClaimNotes={onUpdateClaimNotes}
+          onUpdateStaffLine={onUpdateStaffLine}
+          rateParams={rateParams}
           onDeleteClaim={onDeleteClaim}
           onContinueDraft={handleContinueDraft}
           saving={savingClaim}
