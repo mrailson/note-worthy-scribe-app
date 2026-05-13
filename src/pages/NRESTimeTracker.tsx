@@ -1636,13 +1636,14 @@ const NRESTimeTracker = () => {
 
 export default NRESTimeTracker;
 
-const DurationPicker = ({ selectedDuration, setSelectedDuration }: { selectedDuration: number; setSelectedDuration: (n: number) => void }) => {
+const DurationPicker = ({ selectedDuration, setSelectedDuration, category }: { selectedDuration: number; setSelectedDuration: (n: number) => void; category?: string }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const idx = DURATION_OPTIONS.indexOf(selectedDuration);
-  // pick visible range: prefer current as middle, show ±2
   const safeIdx = idx >= 0 ? idx : DURATION_OPTIONS.findIndex(o => o >= selectedDuration);
   const start = Math.max(0, Math.min(DURATION_OPTIONS.length - 5, (safeIdx < 0 ? 0 : safeIdx) - 2));
   const visible = DURATION_OPTIONS.slice(start, start + 5);
+  const isPartB = category === 'part_b';
+  const sliderValue = Math.min(240, Math.max(5, selectedDuration));
 
   return (
     <Card className="rounded-xl border-2 border-slate-200">
@@ -1664,12 +1665,31 @@ const DurationPicker = ({ selectedDuration, setSelectedDuration }: { selectedDur
             );
           })}
         </div>
+        {isPartB && (
+          <div className="flex flex-wrap gap-2 justify-center pt-1 border-t border-slate-100">
+            {[
+              { label: 'Full Session', sub: '4h 10m', mins: 250 },
+              { label: 'Full Day', sub: '2 sessions · 8h 20m', mins: 500 },
+            ].map(p => {
+              const active = selectedDuration === p.mins;
+              return (
+                <button key={p.mins} onClick={() => setSelectedDuration(p.mins)}
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium border-2 transition ${
+                    active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                  }`}>
+                  <div className="font-semibold">{p.label}</div>
+                  <div className="text-[10px] opacity-80">{p.sub}</div>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="px-1 pt-1">
           <Slider
             min={5}
             max={240}
             step={5}
-            value={[selectedDuration]}
+            value={[sliderValue]}
             onValueChange={(v) => setSelectedDuration(v[0])}
           />
           <div className="flex justify-between text-[10px] text-slate-400 mt-1">
