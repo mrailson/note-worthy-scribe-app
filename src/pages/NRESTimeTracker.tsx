@@ -618,7 +618,7 @@ const NRESTimeTracker = () => {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
-  const exportPDF = async (range: ExportRange = 'this-month') => {
+  const exportPDF = async (range: ExportRange = 'this-month', groupBy: 'activity' | 'cohort' = 'activity') => {
     const { entries: rangeEntries, label, fileBase } = getRangeData(range);
     const doc = new jsPDF();
 
@@ -641,27 +641,34 @@ const NRESTimeTracker = () => {
     doc.text(`${user?.email || ''}`, 14, 26);
     doc.text(`Generated: ${format(new Date(), 'd MMM yyyy HH:mm')}`, 14, 32);
 
-    const total = rangeEntries.reduce((s, e) => s + e.minutes, 0);
-    const byAct: Record<string, { mins: number; count: number }> = {};
-    rangeEntries.forEach(e => {
-      if (!byAct[e.activity]) byAct[e.activity] = { mins: 0, count: 0 };
-      byAct[e.activity].mins += e.minutes;
-      byAct[e.activity].count += 1;
+    // For cohort grouping, restrict to Part B entries
+    const focused = groupBy === 'cohort'
+      ? rangeEntries.filter(e => (e.category || 'general') === 'part_b')
+      : rangeEntries;
+
+    const total = focused.reduce((s, e) => s + e.minutes, 0);
+    const buckets: Record<string, { mins: number; count: number }> = {};
+    focused.forEach(e => {
+      const key = groupBy === 'cohort' ? (e.cohort || '(no cohort)') : e.activity;
+      if (!buckets[key]) buckets[key] = { mins: 0, count: 0 };
+      buckets[key].mins += e.minutes;
+      buckets[key].count += 1;
     });
 
     doc.setFontSize(11);
-    doc.text(`Total entries: ${rangeEntries.length}    Total time: ${formatDuration(total)}`, 14, 40);
+    const groupLabel = groupBy === 'cohort' ? 'Part B by cohort' : 'By activity';
+    doc.text(`${groupLabel}    Total entries: ${focused.length}    Total time: ${formatDuration(total)}`, 14, 40);
 
     autoTable(doc, {
       startY: 46,
-      head: [['Activity', 'Entries', 'Total time', '% of total']],
+      head: [[groupBy === 'cohort' ? 'Cohort' : 'Activity', 'Entries', 'Total time', '% of total']],
       body: [
-        ...Object.entries(byAct).map(([a, v]) => [
+        ...Object.entries(buckets).map(([a, v]) => [
           a, String(v.count), formatDuration(v.mins), total ? `${((v.mins / total) * 100).toFixed(1)}%` : '0%',
         ]),
         [
           { content: 'Total', styles: { fontStyle: 'bold' as const } },
-          { content: String(rangeEntries.length), styles: { fontStyle: 'bold' as const } },
+          { content: String(focused.length), styles: { fontStyle: 'bold' as const } },
           { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
           { content: '100%', styles: { fontStyle: 'bold' as const } },
         ],
@@ -670,14 +677,16 @@ const NRESTimeTracker = () => {
     });
 
     autoTable(doc, {
-      head: [['Date', 'Activity', 'Duration', 'Notes']],
+      head: [['Date', 'Cat', 'Cohort', 'Activity', 'Duration', 'Notes']],
       body: [
-        ...rangeEntries.map(e => [
+        ...focused.map(e => [
           format(parseISO(e.entry_date), 'dd/MM/yyyy'),
+          (e.category || 'general') === 'part_b' ? 'Part B' : 'Gen',
+          e.cohort || '',
           e.activity, formatDuration(e.minutes), e.notes || '',
         ]),
         [
-          { content: `Total entries: ${rangeEntries.length}`, colSpan: 2, styles: { fontStyle: 'bold' as const } },
+          { content: `Total entries: ${focused.length}`, colSpan: 4, styles: { fontStyle: 'bold' as const } },
           { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
           { content: '', styles: {} },
         ],
@@ -690,7 +699,8 @@ const NRESTimeTracker = () => {
       doc.setPage(i); doc.setFontSize(8);
       doc.text(`Notewell AI — NRES Dashboard   Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 8);
     }
-    doc.save(`${fileBase}.pdf`);
+    const suffix = groupBy === 'cohort' ? '-by-cohort' : '';
+    doc.save(`${fileBase}${suffix}.pdf`);
   };
 
   const dayLabel = (d: Date) => {
