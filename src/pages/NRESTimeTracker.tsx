@@ -1246,13 +1246,23 @@ const NRESTimeTracker = () => {
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>Export PDF</DropdownMenuSubTrigger>
+                  <DropdownMenuSubTrigger>PDF — by activity</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => exportPDF('this-month')}>This month</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportPDF('last-month')}>Last month</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportPDF('all-time')}>All time</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('this-month', 'activity')}>This month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('last-month', 'activity')}>Last month</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportPDF('all-time', 'activity')}>All time</DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                {entries.some(e => (e.category || 'general') === 'part_b') && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>PDF — Part B by cohort</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => exportPDF('this-month', 'cohort')}>This month</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportPDF('last-month', 'cohort')}>Last month</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportPDF('all-time', 'cohort')}>All time</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
