@@ -765,6 +765,56 @@ const NRESTimeTracker = () => {
           </Card>
         </div>
 
+        {/* First-run role prompt */}
+        {showRolePrompt && profileLoaded && (
+          <Card className="rounded-xl border-2 border-emerald-300 bg-emerald-50">
+            <CardContent className="p-3 space-y-2">
+              <div className="text-sm font-medium text-emerald-900">
+                Quick setup — are you logging mostly as a clinician (GP, ANP, nurse) or as a manager (PM, admin)?
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handlePickRole('clinician')}>Clinician</Button>
+                <Button size="sm" variant="outline" onClick={() => handlePickRole('manager')}>Manager</Button>
+                <Button size="sm" variant="ghost" className="ml-auto text-slate-500" onClick={() => setShowRolePrompt(false)}>Not now</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Category tabs (General / Part B) */}
+        <div className="flex items-center justify-between">
+          <div className="inline-flex items-center gap-1 rounded-md bg-slate-100 p-1">
+            {([
+              { id: 'general' as const, label: 'General' },
+              { id: 'part_b' as const, label: 'Part B' },
+            ]).map(({ id, label }) => {
+              const active = category === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => handleCategoryChange(id)}
+                  className={cn(
+                    'rounded-md px-4 py-1.5 text-sm font-medium transition',
+                    active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {category === 'part_b' && defaultRole && (
+            <div className="text-xs text-slate-500 flex items-center gap-2">
+              Logging as
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
+                {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
+              </span>
+              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">Switch</button>
+            </div>
+          )}
+        </div>
+
         {/* Date strip */}
         <Card className="rounded-xl border-2 border-slate-200">
           <CardContent className="p-3">
