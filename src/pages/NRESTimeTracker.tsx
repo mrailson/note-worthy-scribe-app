@@ -1014,7 +1014,7 @@ const NRESTimeTracker = () => {
                   </span>
                 )}
               </button>
-              {activityOpen && (
+              {activityOpen && isSelf && (
                 <button onClick={() => setManageMode(m => !m)}
                   className="text-xs text-emerald-700 inline-flex items-center gap-1">
                   <Settings2 className="w-3 h-3" /> {manageMode ? 'Done' : 'Manage'}
