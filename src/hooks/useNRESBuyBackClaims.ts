@@ -690,6 +690,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
     claimId: string,
     staffIndex: number,
     updates: {
+      staff_name?: string;
+      staff_role?: string;
       allocation_type?: string;
       allocation_value?: number;
       start_date?: string | null;
@@ -711,6 +713,8 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       const updatedDetails = [...(claim.staff_details as any[])];
       const currentLine = { ...updatedDetails[staffIndex] };
 
+      if (updates.staff_name !== undefined) currentLine.staff_name = updates.staff_name;
+      if (updates.staff_role !== undefined) currentLine.staff_role = updates.staff_role;
       if (updates.allocation_type !== undefined) currentLine.allocation_type = updates.allocation_type;
       if (updates.allocation_value !== undefined) currentLine.allocation_value = updates.allocation_value;
       if (updates.start_date !== undefined) currentLine.start_date = updates.start_date;
