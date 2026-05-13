@@ -1376,6 +1376,75 @@ const NRESTimeTracker = () => {
         onClose={() => { setAttachmentEntry(null); refreshCounts(); }}
       />
 
+      {/* Log-for picker dialog */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="sm:max-w-md p-0 gap-0">
+          <DialogHeader className="px-5 py-4">
+            <DialogTitle>Log time for…</DialogTitle>
+          </DialogHeader>
+          <div className="px-5 pb-3">
+            <Input
+              autoFocus
+              value={pickerSearch}
+              onChange={e => setPickerSearch(e.target.value)}
+              placeholder="Search colleagues…"
+              className="h-9 text-sm"
+            />
+          </div>
+          <div className="max-h-[50vh] overflow-y-auto border-t">
+            <button
+              type="button"
+              onClick={() => selectLogTarget(null)}
+              className={cn(
+                'w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition',
+                isSelf && 'bg-emerald-50'
+              )}
+            >
+              <span className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-semibold">Me</span>
+              <span className="flex-1">
+                <div className="text-sm font-medium text-slate-900">Me</div>
+                <div className="text-xs text-slate-500">{user?.email}</div>
+              </span>
+            </button>
+            {colleagues
+              .filter(c => {
+                const q = pickerSearch.trim().toLowerCase();
+                if (!q) return true;
+                return (c.display_name || '').toLowerCase().includes(q) || (c.staff_role || '').toLowerCase().includes(q);
+              })
+              .map(c => {
+                const name = c.display_name || 'Unnamed';
+                const initials = name.split(/\s+/).slice(0, 2).map(p => p[0] || '').join('').toUpperCase();
+                const active = logFor?.id === c.user_id;
+                return (
+                  <button
+                    key={c.user_id}
+                    type="button"
+                    onClick={() => selectLogTarget({ id: c.user_id, name })}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition border-t',
+                      active && 'bg-emerald-50'
+                    )}
+                  >
+                    <span className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold">{initials || '?'}</span>
+                    <span className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-slate-900 truncate">{name}</div>
+                      <div className="text-xs text-slate-500 truncate">
+                        {[c.staff_role, c.practice_name].filter(Boolean).join(' · ')}
+                      </div>
+                    </span>
+                  </button>
+                );
+              })}
+            {colleagues.length === 0 && (
+              <div className="px-5 py-6 text-sm text-slate-500 text-center">
+                No practice colleagues found. Add staff in the Buy-back tab to enable logging on their behalf.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
