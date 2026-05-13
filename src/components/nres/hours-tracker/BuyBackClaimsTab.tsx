@@ -924,6 +924,7 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           onSubmit={canSubmitForPractice ? (id: string, practiceNotes?: string) => submitClaim(id, undefined, practiceNotes) : undefined}
           onResubmit={canSubmitForPractice ? (id, notes) => submitClaim(id, notes) : undefined}
           onUpdateClaimNotes={canSubmitForPractice ? updateClaimNotes : undefined}
+          onUpdateStaffLine={canSubmitForPractice ? updateStaffLine : undefined}
           onCreateClaim={canSubmitForPractice ? (monthDate, staffMember, claimedAmount, holidayWeeksDeducted) => {
             const maxAmt = calculateStaffMonthlyAmount(staffMember, monthDate, staffMember.start_date, rateParams, holidayWeeksDeducted ?? 0);
             const actualClaimed = (claimedAmount && claimedAmount > 0 && claimedAmount <= maxAmt)
@@ -1386,6 +1387,9 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
              expandedClaimId={adminExpandedClaimId}
             onSubmit={submitClaim}
             onResubmit={(id, notes) => submitClaim(id, notes)}
+            onUpdateClaimNotes={updateClaimNotes}
+            onUpdateStaffLine={updateStaffLine}
+            rateParams={rateParams}
             saving={savingClaim}
             directorMode
             practiceFilter={effectiveFilterPractice}
