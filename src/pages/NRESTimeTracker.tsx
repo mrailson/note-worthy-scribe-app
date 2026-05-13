@@ -449,13 +449,14 @@ const NRESTimeTracker = () => {
     const lastMonthEnd = endOfMonth(subMonths(now, 1));
     let w = 0, m = 0, lm = 0;
     for (const e of entries) {
+      if (e.user_id !== user?.id) continue; // exclude entries logged on behalf of others
       const d = parseISO(e.entry_date);
       if (d >= monthStart) m += e.minutes;
       if (d >= weekStart) w += e.minutes;
       if (d >= lastMonthStart && d <= lastMonthEnd) lm += e.minutes;
     }
     return { weekTotal: w, monthTotal: m, lastMonthTotal: lm };
-  }, [entries]);
+  }, [entries, user?.id]);
 
   // Note suggestions: recent unique (last 5) then most-frequent (not already shown)
   const noteSuggestions = useMemo(() => {
