@@ -491,8 +491,9 @@ const NRESTimeTracker = () => {
   const handleSave = async () => {
     if (!user?.id || !selectedActivity) return;
     if (selectedDate > new Date()) { toast.error('Date cannot be in the future'); return; }
-    if (selectedDuration < 5 || selectedDuration > 240 || selectedDuration % 5 !== 0) {
-      toast.error('Duration must be between 5 and 240 minutes'); return;
+    const maxDuration = category === 'part_b' ? 500 : 240;
+    if (selectedDuration < 5 || selectedDuration > maxDuration || selectedDuration % 5 !== 0) {
+      toast.error(`Duration must be between 5 and ${maxDuration} minutes`); return;
     }
     setSaving(true);
     try {
