@@ -10447,6 +10447,7 @@ export type Database = {
           entered_by: string | null
           entry_date: string
           id: string
+          logged_by: string | null
           minutes: number
           notes: string | null
           on_behalf_of_name: string | null
@@ -10462,6 +10463,7 @@ export type Database = {
           entered_by?: string | null
           entry_date: string
           id?: string
+          logged_by?: string | null
           minutes: number
           notes?: string | null
           on_behalf_of_name?: string | null
@@ -10477,6 +10479,7 @@ export type Database = {
           entered_by?: string | null
           entry_date?: string
           id?: string
+          logged_by?: string | null
           minutes?: number
           notes?: string | null
           on_behalf_of_name?: string | null
@@ -10635,18 +10638,21 @@ export type Database = {
         Row: {
           default_role: string | null
           last_category: string
+          last_logged_for: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           default_role?: string | null
           last_category?: string
+          last_logged_for?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           default_role?: string | null
           last_category?: string
+          last_logged_for?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -15589,6 +15595,16 @@ export type Database = {
           surname: string
         }[]
       }
+      get_nres_practice_colleagues: {
+        Args: never
+        Returns: {
+          display_name: string
+          practice_id: string
+          practice_name: string
+          staff_role: string
+          user_id: string
+        }[]
+      }
       get_old_ai_chats: {
         Args: { days_old?: number }
         Returns: {
@@ -16094,6 +16110,10 @@ export type Database = {
           p_rows: Json
         }
         Returns: number
+      }
+      nres_users_share_practice: {
+        Args: { _a: string; _b: string }
+        Returns: boolean
       }
       purge_expired_data: { Args: never; Returns: string }
       remove_user_from_practice: {
