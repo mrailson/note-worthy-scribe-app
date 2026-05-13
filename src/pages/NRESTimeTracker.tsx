@@ -38,9 +38,9 @@ const DEFAULT_ACTIVITIES = [
   'Buy-back Claims Processing',
   'Stakeholder Meeting (PML)',
   'Stakeholder Meeting (ICB)',
-  'LTC Part B Workstream',
-  'ENN Pilot Site',
+  'Practice / PCN Liaison',
   'Documentation / Briefing',
+  'Reporting & Evidence',
   'Email & Admin',
   'Strategy & Planning',
 ];
@@ -131,16 +131,17 @@ const NRESTimeTracker = () => {
   const visibleActivities = useMemo(() => {
     const src = isSelf ? activities : colleagueActivities;
     const filtered = src.filter(a => (a.category || 'general') === category);
-    // Fallback: if logging Part B for a colleague (or self) who has no Part B activities yet,
-    // surface the universal Part B defaults so the picker is never empty.
-    if (category === 'part_b' && filtered.length === 0) {
-      return PART_B_DEFAULTS.map((label, i) => ({
-        id: `virtual-partb-${i}`,
+    // Fallback: if the target user has no activities for this category yet,
+    // surface the universal defaults so the picker is never empty.
+    if (filtered.length === 0) {
+      const defaults = category === 'part_b' ? PART_B_DEFAULTS : DEFAULT_ACTIVITIES;
+      return defaults.map((label, i) => ({
+        id: `virtual-${category}-${i}`,
         user_id: targetUserId || '',
         label,
         is_default: true,
         sort_order: i,
-        category: 'part_b' as const,
+        category,
       })) as Activity[];
     }
     return filtered;
