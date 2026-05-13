@@ -130,8 +130,21 @@ const NRESTimeTracker = () => {
 
   const visibleActivities = useMemo(() => {
     const src = isSelf ? activities : colleagueActivities;
-    return src.filter(a => (a.category || 'general') === category);
-  }, [activities, colleagueActivities, isSelf, category]);
+    const filtered = src.filter(a => (a.category || 'general') === category);
+    // Fallback: if logging Part B for a colleague (or self) who has no Part B activities yet,
+    // surface the universal Part B defaults so the picker is never empty.
+    if (category === 'part_b' && filtered.length === 0) {
+      return PART_B_DEFAULTS.map((label, i) => ({
+        id: `virtual-partb-${i}`,
+        user_id: targetUserId || '',
+        label,
+        is_default: true,
+        sort_order: i,
+        category: 'part_b' as const,
+      })) as Activity[];
+    }
+    return filtered;
+  }, [activities, colleagueActivities, isSelf, category, targetUserId]);
   const recentEntries = useMemo(
     () => entries.filter(e => (e.category || 'general') === category).slice(0, 50),
     [entries, category]
