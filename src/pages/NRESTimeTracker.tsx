@@ -283,6 +283,26 @@ const NRESTimeTracker = () => {
     return { anchor, days: eachDayOfInterval({ start, end }), leadingBlanks: (getDay(start) + 6) % 7 };
   }, [monthOffset]);
 
+  const seedPartBForRole = useCallback(async (role: RoleT, existingActs: Activity[]) => {
+    if (!user?.id) return [] as Activity[];
+    const labels = role === 'clinician' ? CLINICIAN_PART_B_DEFAULTS : MANAGER_PART_B_DEFAULTS;
+    const existingLabels = new Set(
+      existingActs.filter(a => (a.category || 'general') === 'part_b').map(a => a.label.toLowerCase())
+    );
+    const toInsert = labels
+      .filter(l => !existingLabels.has(l.toLowerCase()))
+      .map((label, i) => ({
+        user_id: user.id, label, is_default: true,
+        sort_order: existingActs.length + i,
+        category: 'part_b', role,
+      }));
+    if (toInsert.length === 0) return [];
+    const { data: inserted, error } = await (supabase as any)
+      .from('nres_user_activities').insert(toInsert).select();
+    if (error) { console.error(error); toast.error('Failed to seed Part B activities'); return []; }
+    return (inserted as Activity[]) || [];
+  }, [user?.id]);
+
   const loadAll = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -296,7 +316,7 @@ const NRESTimeTracker = () => {
 
       if (!acts || acts.length === 0) {
         const seed = DEFAULT_ACTIVITIES.map((label, i) => ({
-          user_id: user.id, label, is_default: true, sort_order: i,
+          user_id: user.id, label, is_default: true, sort_order: i, category: 'general',
         }));
         const { data: inserted, error: iErr } = await (supabase as any)
           .from('nres_user_activities').insert(seed).select();
@@ -304,6 +324,18 @@ const NRESTimeTracker = () => {
         acts = inserted;
       }
       setActivities(acts || []);
+
+      // Profile (role + last_category)
+      const { data: prof } = await (supabase as any)
+        .from('nres_user_profile').select('*').eq('user_id', user.id).maybeSingle();
+      if (prof) {
+        setDefaultRole((prof.default_role as RoleT) || null);
+        setCategory((prof.last_category as CategoryT) || 'general');
+        setShowRolePrompt(!prof.default_role);
+      } else {
+        setShowRolePrompt(true);
+      }
+      setProfileLoaded(true);
 
       const { data: ents, error: eErr } = await (supabase as any)
         .from('nres_time_entries').select('*')
