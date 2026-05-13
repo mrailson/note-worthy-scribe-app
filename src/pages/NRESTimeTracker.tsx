@@ -1003,6 +1003,47 @@ const NRESTimeTracker = () => {
           </CardContent>
         </Card>
 
+        {/* Cohort chips (Part B only) */}
+        {category === 'part_b' && (
+          <Card className="rounded-xl border-2 border-slate-200">
+            <CardContent className="p-3 space-y-2">
+              <div className="text-xs font-medium text-slate-500">
+                COHORT <span className="text-slate-400 normal-case">(optional)</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {PART_B_COHORTS.map(c => {
+                  const active = cohort === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => { setCohort(active ? null : c); if (c !== 'Other') setCohortOther(''); }}
+                      className={cn(
+                        'rounded-full px-3 h-8 text-xs font-medium border transition',
+                        active
+                          ? 'bg-green-100 border-green-300 text-green-900'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300'
+                      )}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+              {cohort === 'Other' && (
+                <Input
+                  autoFocus
+                  value={cohortOther}
+                  onChange={e => setCohortOther(e.target.value.slice(0, 40))}
+                  placeholder="Specify cohort (max 40 chars)"
+                  maxLength={40}
+                  className="h-8 text-sm"
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Duration */}
         <DurationPicker selectedDuration={selectedDuration} setSelectedDuration={setSelectedDuration} />
 
