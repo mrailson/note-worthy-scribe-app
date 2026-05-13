@@ -1402,7 +1402,7 @@ const TopRiskSection = ({
         )}
         <div className={`${canViewPII ? "" : "ml-auto"} flex items-center gap-2 rounded-md border bg-background px-2 py-1.5`}>
           <Label htmlFor="top-risk-export-patient-id" className="text-xs text-muted-foreground cursor-pointer">
-            Excel includes patient ID
+            Excel includes NARP ID
           </Label>
           <Switch
             id="top-risk-export-patient-id"
