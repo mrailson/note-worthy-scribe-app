@@ -4091,6 +4091,8 @@ export function ClaimsViewSwitcher({
               onSubmit={onSubmit}
               onResubmit={onResubmit}
               onUpdateClaimNotes={onUpdateClaimNotes}
+              onUpdateStaffLine={onUpdateStaffLine}
+              rateParams={rateParams}
               onDeleteClaim={onDeleteClaim}
               onContinueDraft={onContinueDraft}
               showPracticeName={directorMode}
