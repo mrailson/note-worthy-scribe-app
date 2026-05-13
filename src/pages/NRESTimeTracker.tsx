@@ -118,6 +118,8 @@ const NRESTimeTracker = () => {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [defaultRole, setDefaultRole] = useState<RoleT | null>(null);
   const [showRolePrompt, setShowRolePrompt] = useState(false);
+  const [onBehalfOf, setOnBehalfOf] = useState('');
+  const [showBehalf, setShowBehalf] = useState(false);
 
   const visibleActivities = useMemo(
     () => activities.filter(a => (a.category || 'general') === category),
