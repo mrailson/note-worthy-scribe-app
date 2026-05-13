@@ -1243,12 +1243,24 @@ const NRESTimeTracker = () => {
                   return (
                     <li key={e.id} className="flex items-center gap-3 p-3">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-slate-900 truncate">{e.activity}</div>
+                        <div className="text-sm font-medium text-slate-900 truncate flex items-center">
+                          {(e.category || 'general') === 'part_b' && (
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 shrink-0" aria-label="Part B" />
+                          )}
+                          <span className="truncate">{e.activity}</span>
+                        </div>
                         <div className="text-xs text-slate-500 truncate">
                           {format(parseISO(e.entry_date), 'EEE d MMM')}{e.notes ? ` · ${e.notes}` : ''}
                         </div>
                       </div>
-                      <div className="text-sm font-semibold text-emerald-700 shrink-0">{formatDuration(e.minutes)}</div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {e.cohort && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-900 text-[10px] font-medium">
+                            {e.cohort}
+                          </span>
+                        )}
+                        <div className="text-sm font-semibold text-emerald-700">{formatDuration(e.minutes)}</div>
+                      </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
