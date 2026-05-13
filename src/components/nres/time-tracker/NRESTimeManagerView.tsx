@@ -456,6 +456,7 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
             { v: 'by-user', label: 'By user', Icon: Users },
             { v: 'by-activity', label: 'By activity', Icon: ListChecks },
             { v: 'by-practice', label: 'By practice', Icon: Building2 },
+            { v: 'recent', label: 'Most recent', Icon: Clock },
             { v: 'trends', label: 'Trends', Icon: TrendingUp },
           ]).map(({ v, label, Icon }) => (
             <TabsTrigger
