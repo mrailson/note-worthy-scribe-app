@@ -1396,7 +1396,7 @@ const TopRiskSection = ({
               <span className="text-xs text-muted-foreground">Looking up identifiable details…</span>
             )}
             {identifierLookupStatus === "unavailable" && (
-              <span className="text-xs text-muted-foreground">Identifiable lookup unavailable — showing REF only</span>
+              <span className="text-xs text-muted-foreground">Identifiable lookup not available until DSA and ICB IG approval — showing NARP REF only</span>
             )}
           </div>
         )}
