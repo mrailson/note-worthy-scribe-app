@@ -158,6 +158,9 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
       const allPractices = ((prRes.data || []) as any[]) as (Practice & { practice_code?: string })[];
       setPractices(allPractices.filter(p => p.practice_code && allowedOds.has(p.practice_code)));
       setTargets(((tRes.data || []) as any) as Target[]);
+      const upm = new Map<string, string>();
+      ((urRes.data || []) as any[]).forEach(r => { if (r.user_id && r.practice_id && !upm.has(r.user_id)) upm.set(r.user_id, r.practice_id); });
+      setUserPracticeMap(upm);
     } catch (e: any) {
       console.error(e);
       toast.error('Failed to load manager view');
