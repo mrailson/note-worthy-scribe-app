@@ -9,6 +9,7 @@ import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSaf
 import { cleanupStaleStorage } from '@/utils/localStorageManager';
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MockInspectionProtectedRoute } from "./components/MockInspectionProtectedRoute";
+import { PopulationRiskGuard } from "./components/PopulationRiskGuard";
 import { Loader2 } from "lucide-react";
 
 // Lazy-load all pages to reduce initial bundle size
@@ -253,12 +254,16 @@ const App = () => {
                 } />
                 <Route path="/nres/population-risk" element={
                   <ProtectedRoute requiredService="nres">
-                    <NRESPopulationRisk />
+                    <PopulationRiskGuard>
+                      <NRESPopulationRisk />
+                    </PopulationRiskGuard>
                   </ProtectedRoute>
                 } />
                 <Route path="/nres/population-risk/methodology" element={
                   <ProtectedRoute requiredService="nres">
-                    <NRESPopulationRiskMethodology />
+                    <PopulationRiskGuard>
+                      <NRESPopulationRiskMethodology />
+                    </PopulationRiskGuard>
                   </ProtectedRoute>
                 } />
                 <Route path="/nres/comms-strategy" element={
