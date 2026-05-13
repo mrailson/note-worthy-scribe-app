@@ -109,7 +109,23 @@ const NRESTimeTracker = () => {
   const [editNotes, setEditNotes] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
-  const recentEntries = entries.slice(0, 50);
+
+  // Part B state
+  const [category, setCategory] = useState<CategoryT>('general');
+  const [cohort, setCohort] = useState<string | null>(null);
+  const [cohortOther, setCohortOther] = useState('');
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [defaultRole, setDefaultRole] = useState<RoleT | null>(null);
+  const [showRolePrompt, setShowRolePrompt] = useState(false);
+
+  const visibleActivities = useMemo(
+    () => activities.filter(a => (a.category || 'general') === category),
+    [activities, category]
+  );
+  const recentEntries = useMemo(
+    () => entries.filter(e => (e.category || 'general') === category).slice(0, 50),
+    [entries, category]
+  );
   const { counts: attachmentCounts, refresh: refreshCounts } = useTimeEntryAttachmentCounts(recentEntries.map(e => e.id));
 
   // Discreet voice-to-text for notes (native Web Speech API for instant real-time)
