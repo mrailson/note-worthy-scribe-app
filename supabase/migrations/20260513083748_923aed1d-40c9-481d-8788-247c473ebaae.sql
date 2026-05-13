@@ -1,0 +1,1 @@
+ALTER TABLE public.nres_time_entries ADD COLUMN IF NOT EXISTS on_behalf_of_name text;

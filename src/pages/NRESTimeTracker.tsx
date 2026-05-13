@@ -80,6 +80,7 @@ interface Entry {
   notes: string | null; created_at: string;
   user_id?: string; entered_by?: string | null; practice_id?: string | null;
   category?: CategoryT; cohort?: string | null;
+  on_behalf_of_name?: string | null;
 }
 
 const NRESTimeTracker = () => {
@@ -117,6 +118,8 @@ const NRESTimeTracker = () => {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [defaultRole, setDefaultRole] = useState<RoleT | null>(null);
   const [showRolePrompt, setShowRolePrompt] = useState(false);
+  const [onBehalfOf, setOnBehalfOf] = useState('');
+  const [showBehalf, setShowBehalf] = useState(false);
 
   const visibleActivities = useMemo(
     () => activities.filter(a => (a.category || 'general') === category),
@@ -453,6 +456,7 @@ const NRESTimeTracker = () => {
         user_id: user.id, entry_date: dateStr, activity: selectedActivity,
         minutes: selectedDuration, notes: notes.trim() || null,
         category, cohort: resolvedCohort,
+        on_behalf_of_name: onBehalfOf.trim() || null,
       }).select().single();
       if (error) throw error;
       const newEntry = data as Entry;
@@ -469,6 +473,7 @@ const NRESTimeTracker = () => {
       toast.success(`Logged ${formatDuration(selectedDuration)}${partBSuffix} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
       setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
       setCohort(null); setCohortOther('');
+      setOnBehalfOf(''); setShowBehalf(false);
       if (draftKey) localStorage.removeItem(draftKey);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
@@ -829,15 +834,51 @@ const NRESTimeTracker = () => {
               );
             })}
           </div>
-          {category === 'part_b' && defaultRole && (
+          <div className="flex items-center gap-3 flex-wrap justify-end">
             <div className="text-xs text-slate-500 flex items-center gap-2">
               Logging as
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
-                {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
-              </span>
-              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">Switch</button>
+              {defaultRole ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
+                  {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium">
+                  Not set
+                </span>
+              )}
+              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">
+                {defaultRole ? 'Switch' : 'Set'}
+              </button>
             </div>
-          )}
+            <div className="text-xs text-slate-500 flex items-center gap-2">
+              {showBehalf || onBehalfOf ? (
+                <>
+                  <span>On behalf of</span>
+                  <Input
+                    value={onBehalfOf}
+                    onChange={(e) => setOnBehalfOf(e.target.value.slice(0, 60))}
+                    placeholder="Colleague name"
+                    className="h-7 w-44 text-xs"
+                  />
+                  <button
+                    onClick={() => { setOnBehalfOf(''); setShowBehalf(false); }}
+                    className="text-slate-500 hover:text-red-600"
+                    title="Clear"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setShowBehalf(true)}
+                  className="text-emerald-700 hover:underline"
+                >
+                  + Log on behalf of…
+                </button>
+              )}
+            </div>
+          </div>
+
         </div>
 
         {/* Date strip */}
@@ -1285,7 +1326,7 @@ const NRESTimeTracker = () => {
                           <span className="truncate">{e.activity}</span>
                         </div>
                         <div className="text-xs text-slate-500 truncate">
-                          {format(parseISO(e.entry_date), 'EEE d MMM')}{e.notes ? ` · ${e.notes}` : ''}
+                          {format(parseISO(e.entry_date), 'EEE d MMM')}{e.on_behalf_of_name ? ` · on behalf of ${e.on_behalf_of_name}` : ''}{e.notes ? ` · ${e.notes}` : ''}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
