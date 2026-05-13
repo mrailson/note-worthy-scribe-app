@@ -48,40 +48,42 @@ const DEFAULT_ACTIVITIES = [
 const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240];
 
 type CategoryT = 'general' | 'part_b';
-type RoleT = 'clinician' | 'manager';
 
 const PART_B_COHORTS = ['COPD', 'Heart failure', 'Housebound', 'Palliative', 'Frailty', 'Multimorbidity', 'LD / MH', 'Other'];
 
-const CLINICIAN_PART_B_DEFAULTS = [
+// Universal Part B defaults — same for everyone (role concept removed)
+const PART_B_DEFAULTS = [
   'Part B MDT',
   'Complex patient review',
   'Housebound review',
   'Discharge follow-up',
   'ReSPECT / palliative',
-  'Audit / cohort prep',
   'LTC 30-min appointment',
-  'Frailty / proactive call',
-];
-
-const MANAGER_PART_B_DEFAULTS = [
+  'Audit / cohort prep',
   'Part B planning meeting',
   'Buy-back / claims admin',
-  'Locum coordination',
-  'Rota / slot setup (NRES Part B)',
-  'Audit / cohort list prep',
-  'MDT prep & coordination',
-  'Recruitment / interviews (Part B)',
   'Briefing / documentation',
 ];
 
-interface Activity { id: string; label: string; is_default: boolean; sort_order: number; category?: CategoryT; role?: RoleT | null; }
+interface Activity { id: string; label: string; is_default: boolean; sort_order: number; category?: CategoryT; user_id?: string; }
 interface Entry {
   id: string; entry_date: string; activity: string; minutes: number;
   notes: string | null; created_at: string;
   user_id?: string; entered_by?: string | null; practice_id?: string | null;
   category?: CategoryT; cohort?: string | null;
   on_behalf_of_name?: string | null;
+  logged_by?: string | null;
 }
+
+interface Colleague {
+  user_id: string;
+  display_name: string | null;
+  staff_role: string | null;
+  practice_id: string | null;
+  practice_name: string | null;
+}
+
+type LogTarget = { id: string; name: string } | null; // null = self
 
 const NRESTimeTracker = () => {
   const { user } = useAuth();
