@@ -4,10 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, Plus, User } from 'lucide-react';
+import { Clock, Plus, User, UserPlus } from 'lucide-react';
 import { ACTIVITY_TYPES, CLAIMANT_TYPES } from '@/types/nresHoursTypes';
 import { format } from 'date-fns';
-import { NRESClaimant } from '@/hooks/useNRESClaimants';
+import { NRESClaimant, MemberPractice } from '@/hooks/useNRESClaimants';
+import { QuickAddClaimantDialog } from './QuickAddClaimantDialog';
 
 interface HoursEntryFormProps {
   saving: boolean;
@@ -22,9 +23,15 @@ interface HoursEntryFormProps {
     claimant_type: 'gp' | 'pm' | null;
     claimant_name: string | null;
   }) => Promise<any>;
+  addClaimant?: (name: string, role: 'gp' | 'pm', memberPractice?: MemberPractice) => Promise<NRESClaimant | null>;
+  addingClaimant?: boolean;
+  userPracticeName?: string | null;
 }
 
-export function HoursEntryForm({ saving, claimants, onSubmit }: HoursEntryFormProps) {
+const ADD_NEW_VALUE = '__add_new_staff__';
+
+export function HoursEntryForm({ saving, claimants, onSubmit, addClaimant, addingClaimant, userPracticeName }: HoursEntryFormProps) {
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [workDate, setWorkDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
