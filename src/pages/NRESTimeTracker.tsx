@@ -950,7 +950,7 @@ const NRESTimeTracker = () => {
                 ACTIVITY
                 {!activityOpen && (
                   <span className="ml-2 normal-case text-slate-600">
-                    · {activities.length} {activities.length === 1 ? 'activity' : 'activities'} — click to expand
+                    · {visibleActivities.length} {visibleActivities.length === 1 ? 'activity' : 'activities'} — click to expand
                     {selectedActivity && <span className="ml-1 text-emerald-700">(selected: {selectedActivity})</span>}
                   </span>
                 )}
