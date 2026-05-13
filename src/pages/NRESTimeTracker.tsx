@@ -118,15 +118,20 @@ const NRESTimeTracker = () => {
   const [cohort, setCohort] = useState<string | null>(null);
   const [cohortOther, setCohortOther] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
-  const [defaultRole, setDefaultRole] = useState<RoleT | null>(null);
-  const [showRolePrompt, setShowRolePrompt] = useState(false);
-  const [onBehalfOf, setOnBehalfOf] = useState('');
-  const [showBehalf, setShowBehalf] = useState(false);
 
-  const visibleActivities = useMemo(
-    () => activities.filter(a => (a.category || 'general') === category),
-    [activities, category]
-  );
+  // Log-for picker state
+  const [logFor, setLogFor] = useState<LogTarget>(null); // null = self
+  const [colleagues, setColleagues] = useState<Colleague[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [colleagueActivities, setColleagueActivities] = useState<Activity[]>([]);
+  const targetUserId = logFor?.id || user?.id;
+  const isSelf = !logFor;
+
+  const visibleActivities = useMemo(() => {
+    const src = isSelf ? activities : colleagueActivities;
+    return src.filter(a => (a.category || 'general') === category);
+  }, [activities, colleagueActivities, isSelf, category]);
   const recentEntries = useMemo(
     () => entries.filter(e => (e.category || 'general') === category).slice(0, 50),
     [entries, category]
