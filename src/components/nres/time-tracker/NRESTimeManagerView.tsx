@@ -16,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
-import { Users, Download, ChevronRight, Search, Plus, Trash2, Pencil, AlertTriangle, ListChecks, Building2, TrendingUp } from 'lucide-react';
+import { Users, Download, ChevronRight, Search, Plus, Trash2, Pencil, AlertTriangle, ListChecks, Building2, TrendingUp, Clock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, parseISO, eachWeekOfInterval, addWeeks } from 'date-fns';
 import { toast } from 'sonner';
 import { formatDuration } from '@/utils/formatDuration';
@@ -118,6 +118,12 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
 
   const [drillUserId, setDrillUserId] = useState<string | null>(null);
   const [logBehalfOpen, setLogBehalfOpen] = useState(false);
+
+  // Most-recent tab state
+  type RecentSortKey = 'created_at' | 'entry_date' | 'user' | 'entered_by' | 'practice' | 'activity' | 'minutes';
+  const [recentSort, setRecentSort] = useState<{ key: RecentSortKey; dir: 'asc' | 'desc' }>({ key: 'created_at', dir: 'desc' });
+  const [recentSearch, setRecentSearch] = useState('');
+  const [recentLimit, setRecentLimit] = useState(10);
 
   const range = useMemo(() => periodRange(period,
     customStart ? new Date(customStart) : undefined,
@@ -456,6 +462,7 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
             { v: 'by-user', label: 'By user', Icon: Users },
             { v: 'by-activity', label: 'By activity', Icon: ListChecks },
             { v: 'by-practice', label: 'By practice', Icon: Building2 },
+            { v: 'recent', label: 'Most recent', Icon: Clock },
             { v: 'trends', label: 'Trends', Icon: TrendingUp },
           ]).map(({ v, label, Icon }) => (
             <TabsTrigger
@@ -628,6 +635,134 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="recent">
+          {(() => {
+            const practiceById = new Map(practices.map(p => [p.id, p.name]));
+            const rows = entries.map(e => {
+              const u = userById.get(e.user_id);
+              const eb = e.entered_by ? userById.get(e.entered_by) : null;
+              const onBehalf = !!(e.entered_by && e.entered_by !== e.user_id);
+              return {
+                id: e.id,
+                created_at: e.created_at,
+                entry_date: e.entry_date,
+                user_name: u?.full_name || u?.email || '—',
+                entered_by_name: eb?.full_name || eb?.email || (onBehalf ? '—' : (u?.full_name || u?.email || '—')),
+                on_behalf: onBehalf,
+                practice: e.practice_id ? (practiceById.get(e.practice_id) || 'Unknown') : 'Unassigned',
+                activity: e.activity,
+                minutes: e.minutes,
+                notes: e.notes || '',
+              };
+            });
+            const q = recentSearch.trim().toLowerCase();
+            const filtered = q
+              ? rows.filter(r =>
+                  r.user_name.toLowerCase().includes(q) ||
+                  r.entered_by_name.toLowerCase().includes(q) ||
+                  r.practice.toLowerCase().includes(q) ||
+                  r.activity.toLowerCase().includes(q) ||
+                  r.notes.toLowerCase().includes(q))
+              : rows;
+            const sorted = [...filtered].sort((a, b) => {
+              const k = recentSort.key;
+              let av: any, bv: any;
+              if (k === 'created_at' || k === 'entry_date') { av = a[k]; bv = b[k]; }
+              else if (k === 'user') { av = a.user_name; bv = b.user_name; }
+              else if (k === 'entered_by') { av = a.entered_by_name; bv = b.entered_by_name; }
+              else if (k === 'practice') { av = a.practice; bv = b.practice; }
+              else if (k === 'activity') { av = a.activity; bv = b.activity; }
+              else { av = a.minutes; bv = b.minutes; }
+              if (av < bv) return recentSort.dir === 'asc' ? -1 : 1;
+              if (av > bv) return recentSort.dir === 'asc' ? 1 : -1;
+              return 0;
+            });
+            const visible = sorted.slice(0, recentLimit);
+            const toggle = (key: RecentSortKey) => setRecentSort(s =>
+              s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' });
+            const SortIcon = ({ k }: { k: RecentSortKey }) =>
+              recentSort.key !== k
+                ? <ArrowUpDown className="w-3 h-3 inline ml-1 text-slate-400" />
+                : recentSort.dir === 'asc'
+                  ? <ArrowUp className="w-3 h-3 inline ml-1 text-slate-600" />
+                  : <ArrowDown className="w-3 h-3 inline ml-1 text-slate-600" />;
+            const Th = ({ k, label, align }: { k: RecentSortKey; label: string; align?: 'right' }) => (
+              <TableHead className={cn('cursor-pointer select-none', align === 'right' && 'text-right')} onClick={() => toggle(k)}>
+                {label}<SortIcon k={k} />
+              </TableHead>
+            );
+            return (
+              <Card className="rounded-lg border border-slate-200">
+                <CardContent className="p-3 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2 justify-between">
+                    <div className="text-xs font-semibold text-slate-500">
+                      MOST RECENT ENTRIES — showing {visible.length} of {filtered.length}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                        <Input
+                          value={recentSearch}
+                          onChange={e => setRecentSearch(e.target.value)}
+                          placeholder="Search entries…"
+                          className="h-8 pl-7 text-xs w-56"
+                        />
+                      </div>
+                      <Select value={String(recentLimit)} onValueChange={(v) => setRecentLimit(Number(v))}>
+                        <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">Show 10</SelectItem>
+                          <SelectItem value="25">Show 25</SelectItem>
+                          <SelectItem value="50">Show 50</SelectItem>
+                          <SelectItem value="100">Show 100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <Th k="created_at" label="Added" />
+                        <Th k="entry_date" label="Work date" />
+                        <Th k="user" label="For" />
+                        <Th k="entered_by" label="Logged by" />
+                        <Th k="practice" label="Practice" />
+                        <Th k="activity" label="Activity" />
+                        <Th k="minutes" label="Duration" align="right" />
+                        <TableHead>Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visible.map(r => (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(parseISO(r.created_at), 'dd/MM/yyyy HH:mm')}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {format(parseISO(r.entry_date), 'dd/MM/yyyy')}
+                          </TableCell>
+                          <TableCell className="text-sm">{r.user_name}</TableCell>
+                          <TableCell className="text-sm">
+                            {r.entered_by_name}
+                            {r.on_behalf && <Badge variant="outline" className="ml-1 text-[9px] py-0 px-1">on behalf</Badge>}
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-600">{r.practice}</TableCell>
+                          <TableCell className="text-sm">{r.activity}</TableCell>
+                          <TableCell className="text-right text-sm whitespace-nowrap">{formatDuration(r.minutes)}</TableCell>
+                          <TableCell className="text-xs text-slate-600 max-w-[260px] truncate" title={r.notes}>{r.notes || '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                      {visible.length === 0 && (
+                        <TableRow><TableCell colSpan={8} className="text-center text-sm text-slate-500 py-6">No entries match the current search.</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="trends">
