@@ -723,14 +723,11 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
 
       // Recalculate maximum
       const maxAmount = calculateStaffMonthlyAmount(
-        {
-          allocation_type: currentLine.allocation_type,
-          allocation_value: currentLine.allocation_value,
-          staff_role: currentLine.staff_role,
-        },
+        currentLine as any,
         claim.claim_month,
         currentLine.start_date,
         rateParams,
+        claim.holiday_weeks_deducted ?? 0,
       );
 
       // Enforce cap
@@ -739,14 +736,15 @@ export function useNRESBuyBackClaims(emailConfig?: BuyBackClaimsEmailConfig) {
       } else if (currentLine.claimed_amount > maxAmount) {
         currentLine.claimed_amount = maxAmount;
       }
+      currentLine.calculated_amount = maxAmount;
       currentLine.max_claimable = maxAmount;
 
       updatedDetails[staffIndex] = currentLine;
 
       const newCalculated = updatedDetails.reduce((sum, s) => {
         return sum + calculateStaffMonthlyAmount(
-          { allocation_type: s.allocation_type, allocation_value: s.allocation_value, staff_role: s.staff_role },
-          claim.claim_month, s.start_date, rateParams
+          s as any,
+          claim.claim_month, s.start_date, rateParams, claim.holiday_weeks_deducted ?? 0,
         );
       }, 0);
       const newClaimed = updatedDetails.reduce((sum, s) => sum + (s.claimed_amount ?? 0), 0);
