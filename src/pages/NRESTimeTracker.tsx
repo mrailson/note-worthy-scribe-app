@@ -38,9 +38,9 @@ const DEFAULT_ACTIVITIES = [
   'Buy-back Claims Processing',
   'Stakeholder Meeting (PML)',
   'Stakeholder Meeting (ICB)',
-  'LTC Part B Workstream',
-  'ENN Pilot Site',
+  'Practice / PCN Liaison',
   'Documentation / Briefing',
+  'Reporting & Evidence',
   'Email & Admin',
   'Strategy & Planning',
 ];
