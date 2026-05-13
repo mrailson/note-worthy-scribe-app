@@ -78,6 +78,9 @@ export function NRESDigitalAndFinance({
   const {
     practiceFilteredClaimants,
     practiceId: userPracticeId,
+    addClaimant,
+    saving: savingClaimant,
+    userPracticeName,
   } = useNRESClaimants();
 
   const practiceClaimantNames = useMemo(
