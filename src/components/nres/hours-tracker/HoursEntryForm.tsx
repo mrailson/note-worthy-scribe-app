@@ -184,6 +184,17 @@ export function HoursEntryForm({ saving, claimants, onSubmit, addClaimant, addin
                     <SelectItem value="pm">Practice Manager (£50/hr) - Unnamed</SelectItem>
                   </>
                 )}
+
+                {addClaimant && (
+                  <div className="border-t mt-1">
+                    <SelectItem value={ADD_NEW_VALUE}>
+                      <span className="flex items-center gap-2 text-primary font-medium">
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Add new staff member…
+                      </span>
+                    </SelectItem>
+                  </div>
+                )}
               </SelectContent>
             </Select>
             
