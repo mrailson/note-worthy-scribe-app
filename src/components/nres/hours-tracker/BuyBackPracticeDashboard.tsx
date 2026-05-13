@@ -36,6 +36,7 @@ interface BuyBackPracticeDashboardProps {
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
+  onUpdateStaffLine?: (claimId: string, staffIndex: number, updates: { staff_name?: string; staff_role?: string; allocation_type?: string; allocation_value?: number; start_date?: string | null; claimed_amount?: number; notes?: string }, rateParams?: RateParams) => Promise<void>;
   onCreateClaim?: (monthDate: string, staffMember: BuyBackStaffMember, claimedAmount?: number, holidayWeeksDeducted?: number) => Promise<any>;
   onAddStaff?: (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onRemoveStaff?: (id: string) => Promise<void>;
