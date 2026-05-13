@@ -1180,9 +1180,15 @@ const NRESTimeTracker = () => {
         {/* Save */}
         <Button disabled={!selectedActivity || saving} onClick={handleSave}
           className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base">
-          {selectedActivity
-            ? `Log ${formatDuration(selectedDuration)} — ${selectedActivity}`
-            : 'Select an activity to log'}
+          {(() => {
+            if (!selectedActivity) return 'Select an activity to log';
+            const dur = formatDuration(selectedDuration);
+            if (category !== 'part_b') return `Log ${dur} — ${selectedActivity}`;
+            const c = cohort === 'Other' ? cohortOther.trim() : cohort;
+            return c
+              ? `Log ${dur} Part B — ${selectedActivity} (${c})`
+              : `Log ${dur} Part B — ${selectedActivity}`;
+          })()}
         </Button>
 
         {/* Recent entries */}
