@@ -486,15 +486,17 @@ const NRESTimeTracker = () => {
       const resolvedCohort = category === 'part_b'
         ? (cohort === 'Other' ? (cohortOther.trim().slice(0, 40) || null) : cohort)
         : null;
+      const ownerId = logFor?.id || user.id;
       const { data, error } = await (supabase as any).from('nres_time_entries').insert({
-        user_id: user.id, entry_date: dateStr, activity: selectedActivity,
+        user_id: ownerId,
+        logged_by: user.id,
+        entry_date: dateStr, activity: selectedActivity,
         minutes: selectedDuration, notes: notes.trim() || null,
         category, cohort: resolvedCohort,
-        on_behalf_of_name: onBehalfOf.trim() || null,
+        on_behalf_of_name: logFor ? logFor.name : null,
       }).select().single();
       if (error) throw error;
       const newEntry = data as Entry;
-      // Upload any pending attachments to the freshly-created entry
       if (pendingFiles.length > 0) {
         for (const f of pendingFiles) {
           await uploadStandalone(f, newEntry.id);
@@ -504,10 +506,10 @@ const NRESTimeTracker = () => {
       const partBSuffix = category === 'part_b'
         ? ` Part B${resolvedCohort ? ` (${resolvedCohort})` : ''}`
         : '';
-      toast.success(`Logged ${formatDuration(selectedDuration)}${partBSuffix} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
+      const forSuffix = logFor ? ` for ${logFor.name.split(' ')[0]}` : '';
+      toast.success(`Logged ${formatDuration(selectedDuration)}${partBSuffix}${forSuffix} · ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
       setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
       setCohort(null); setCohortOther('');
-      setOnBehalfOf(''); setShowBehalf(false);
       if (draftKey) localStorage.removeItem(draftKey);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
