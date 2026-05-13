@@ -456,6 +456,7 @@ const NRESTimeTracker = () => {
         user_id: user.id, entry_date: dateStr, activity: selectedActivity,
         minutes: selectedDuration, notes: notes.trim() || null,
         category, cohort: resolvedCohort,
+        on_behalf_of_name: onBehalfOf.trim() || null,
       }).select().single();
       if (error) throw error;
       const newEntry = data as Entry;
