@@ -8806,13 +8806,10 @@ export type Database = {
           export_date: string
           export_id: string
           fk_patient_link_id: string
-          forenames_enc: string | null
           frailty_category: string | null
           id: number
           inpatient_elective: number | null
           inpatient_total_admissions: number | null
-          nhs_number_enc: string | null
-          nhs_number_hash: string | null
           outpatient_first: number | null
           outpatient_followup: number | null
           poa: number | null
@@ -8820,7 +8817,6 @@ export type Database = {
           practice_id: string
           risk_tier: string | null
           rub: string | null
-          surname_enc: string | null
         }
         Insert: {
           ae_attendances?: number | null
@@ -8830,13 +8826,10 @@ export type Database = {
           export_date: string
           export_id: string
           fk_patient_link_id: string
-          forenames_enc?: string | null
           frailty_category?: string | null
           id?: number
           inpatient_elective?: number | null
           inpatient_total_admissions?: number | null
-          nhs_number_enc?: string | null
-          nhs_number_hash?: string | null
           outpatient_first?: number | null
           outpatient_followup?: number | null
           poa?: number | null
@@ -8844,7 +8837,6 @@ export type Database = {
           practice_id: string
           risk_tier?: string | null
           rub?: string | null
-          surname_enc?: string | null
         }
         Update: {
           ae_attendances?: number | null
@@ -8854,13 +8846,10 @@ export type Database = {
           export_date?: string
           export_id?: string
           fk_patient_link_id?: string
-          forenames_enc?: string | null
           frailty_category?: string | null
           id?: number
           inpatient_elective?: number | null
           inpatient_total_admissions?: number | null
-          nhs_number_enc?: string | null
-          nhs_number_hash?: string | null
           outpatient_first?: number | null
           outpatient_followup?: number | null
           poa?: number | null
@@ -8868,7 +8857,6 @@ export type Database = {
           practice_id?: string
           risk_tier?: string | null
           rub?: string | null
-          surname_enc?: string | null
         }
         Relationships: [
           {
