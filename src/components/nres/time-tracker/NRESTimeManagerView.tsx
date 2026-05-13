@@ -656,7 +656,10 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
                 user_name: u?.full_name || u?.email || '—',
                 entered_by_name: eb?.full_name || eb?.email || (onBehalf ? '—' : (u?.full_name || u?.email || '—')),
                 on_behalf: onBehalf,
-                practice: e.practice_id ? (practiceById.get(e.practice_id) || 'Unknown') : 'Unassigned',
+                practice: (() => {
+                  const pid = e.practice_id || userPracticeMap.get(e.user_id);
+                  return pid ? (practiceById.get(pid) || 'Unknown') : 'Unassigned';
+                })(),
                 activity: e.activity,
                 minutes: e.minutes,
                 notes: e.notes || '',
