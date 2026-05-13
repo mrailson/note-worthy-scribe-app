@@ -4815,56 +4815,20 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                     </tr>
                   </thead>
                   <tbody>
-                    {staffDets.map((s: any, i: number) => {
-                      const isLocum = s.staff_category === 'gp_locum';
-                      const locumHrs = isLocum ? formatLocumHrs(s.allocation_value || 0) : null;
-                      const claimedAmt = s.claimed_amount ?? s.calculated_amount ?? 0;
-                      const maxInfo = getMaxInfo(s);
-                      const overMax = maxInfo.max > 0 && claimedAmt > maxInfo.max;
-                      return (
-                        <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                          <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{s.staff_name || '—'}</td>
-                          <td style={{ padding: '10px', color: '#374151' }}>{s.staff_role || '—'}</td>
-                          <td style={{ padding: '10px' }}>
-                            <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
-                              {getSDAClaimGLCode(s, claim.claim_type || 'buyback') || '—'}
-                            </code>
-                          </td>
-                          {hasLocum ? (
-                            <>
-                              <td style={{ padding: '10px', textAlign: 'center', color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                                {isLocum ? (s.allocation_value || 0) : '—'}
-                              </td>
-                              <td style={{ padding: '10px', color: '#374151' }}>{s.start_date ? new Date(s.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</td>
-                              <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                                {isLocum && locumHrs ? locumHrs.display : '—'}
-                              </td>
-                              <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                                {isLocum && locumHrs ? locumHrs.decimal : '—'}
-                              </td>
-                            </>
-                          ) : (
-                            <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                              {s.allocation_value} {s.allocation_type}
-                            </td>
-                          )}
-                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: overMax ? '#dc2626' : '#111827' }}>
-                            {fmtGBP(claimedAmt)}
-                            {overMax && <span style={{ marginLeft: 4, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>!</span>}
-                          </td>
-                          <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
-                            {maxInfo.max > 0 ? (
-                              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 2 }}>
-                                <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
-                                <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right' as const, maxWidth: 260, fontStyle: 'italic' as const }}>
-                                  {maxInfo.formula}
-                                </span>
-                              </div>
-                            ) : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {staffDets.map((s: any, i: number) => (
+                      <EditableStaffRow
+                        key={i}
+                        s={s}
+                        i={i}
+                        claim={claim}
+                        hasLocum={hasLocum}
+                        onUpdateStaffLine={onUpdateStaffLine}
+                        rateParams={rateParams}
+                        formatLocumHrs={formatLocumHrs}
+                        getMaxInfo={getMaxInfo}
+                        editable={needsAction}
+                      />
+                    ))}
                   </tbody>
                   <tfoot>
                     <tr>
