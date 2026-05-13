@@ -1342,13 +1342,26 @@ const NRESTimeTracker = () => {
                         </div>
                         <div className="text-xs text-slate-500 truncate">
                           {format(parseISO(e.entry_date), 'EEE d MMM')}
-                          {e.logged_by && e.user_id && e.logged_by !== e.user_id && (
-                            e.logged_by === user?.id
-                              ? ` · for ${e.on_behalf_of_name || 'colleague'}`
-                              : ` · logged by colleague`
-                          )}
                           {e.notes ? ` · ${e.notes}` : ''}
                         </div>
+                        {(() => {
+                          const youName = (user as any)?.user_metadata?.full_name || 'you';
+                          const colleagueName = (id: string | null | undefined) =>
+                            id ? (colleagues.find(c => c.user_id === id)?.display_name || 'colleague') : 'colleague';
+                          const forName = e.user_id === user?.id
+                            ? youName
+                            : (e.on_behalf_of_name || colleagueName(e.user_id));
+                          const addedByDifferent = e.logged_by && e.user_id && e.logged_by !== e.user_id;
+                          const addedByName = !addedByDifferent
+                            ? null
+                            : (e.logged_by === user?.id ? youName : colleagueName(e.logged_by));
+                          return (
+                            <div className="text-[11px] text-slate-400 truncate">
+                              For: <span className="text-slate-600 font-medium">{forName}</span>
+                              {addedByName && <> · Added by: <span className="text-slate-600 font-medium">{addedByName}</span></>}
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {e.cohort && (
