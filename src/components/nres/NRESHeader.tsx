@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecording } from "@/contexts/RecordingContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
+import { usePopulationRiskAccess } from "@/hooks/usePopulationRiskAccess";
 import { useOutstandingNarpWorklists } from "@/hooks/useNarpWorklists";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,7 @@ export const NRESHeader = ({ activeTab }: NRESHeaderProps) => {
   const { user, signOut } = useAuth();
   const { isRecording: isGlobalRecording } = useRecording();
   const { hasServiceAccess } = useServiceActivation();
+  const { isBlocked: isPopulationRiskBlocked } = usePopulationRiskAccess();
   const { data: outstandingWorklists } = useOutstandingNarpWorklists();
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -118,7 +120,7 @@ export const NRESHeader = ({ activeTab }: NRESHeaderProps) => {
                     NRES Time Tracker
                   </DropdownMenuItem>
                 )}
-                {hasServiceAccess('nres') && (
+                {hasServiceAccess('nres') && !isPopulationRiskBlocked && (
                   <DropdownMenuItem onClick={() => navigate('/nres/population-risk')} className="cursor-pointer py-2">
                     Population Risk
                     <span className="ml-2 text-[10px] font-semibold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">PoC</span>
