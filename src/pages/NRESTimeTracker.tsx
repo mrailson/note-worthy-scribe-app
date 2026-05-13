@@ -80,6 +80,7 @@ interface Entry {
   notes: string | null; created_at: string;
   user_id?: string; entered_by?: string | null; practice_id?: string | null;
   category?: CategoryT; cohort?: string | null;
+  on_behalf_of_name?: string | null;
 }
 
 const NRESTimeTracker = () => {
