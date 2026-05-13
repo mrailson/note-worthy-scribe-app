@@ -832,15 +832,51 @@ const NRESTimeTracker = () => {
               );
             })}
           </div>
-          {category === 'part_b' && defaultRole && (
+          <div className="flex items-center gap-3 flex-wrap justify-end">
             <div className="text-xs text-slate-500 flex items-center gap-2">
               Logging as
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
-                {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
-              </span>
-              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">Switch</button>
+              {defaultRole ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
+                  {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium">
+                  Not set
+                </span>
+              )}
+              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">
+                {defaultRole ? 'Switch' : 'Set'}
+              </button>
             </div>
-          )}
+            <div className="text-xs text-slate-500 flex items-center gap-2">
+              {showBehalf || onBehalfOf ? (
+                <>
+                  <span>On behalf of</span>
+                  <Input
+                    value={onBehalfOf}
+                    onChange={(e) => setOnBehalfOf(e.target.value.slice(0, 60))}
+                    placeholder="Colleague name"
+                    className="h-7 w-44 text-xs"
+                  />
+                  <button
+                    onClick={() => { setOnBehalfOf(''); setShowBehalf(false); }}
+                    className="text-slate-500 hover:text-red-600"
+                    title="Clear"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setShowBehalf(true)}
+                  className="text-emerald-700 hover:underline"
+                >
+                  + Log on behalf of…
+                </button>
+              )}
+            </div>
+          </div>
+
         </div>
 
         {/* Date strip */}
