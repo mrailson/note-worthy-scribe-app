@@ -4388,13 +4388,15 @@ function PracticeEvidenceSection({ claimId, staffLines }: { claimId: string; sta
   );
 }
 
-function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onDeleteClaim, onContinueDraft, showPracticeName, saving }: {
+function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onUpdateStaffLine, rateParams, onDeleteClaim, onContinueDraft, showPracticeName, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
   onToggle: () => void;
   onSubmit?: (id: string, practiceNotes?: string) => void;
   onResubmit?: (id: string, notes?: string) => void;
   onUpdateClaimNotes?: (id: string, notes: string) => Promise<void>;
+  onUpdateStaffLine?: (claimId: string, staffIndex: number, updates: { staff_name?: string; staff_role?: string; allocation_type?: string; allocation_value?: number; start_date?: string | null; claimed_amount?: number; notes?: string }, rateParams?: RateParams) => Promise<void>;
+  rateParams?: RateParams;
   onDeleteClaim?: (id: string) => Promise<void>;
   onContinueDraft?: (claim: BuyBackClaim) => void;
   showPracticeName?: boolean;
