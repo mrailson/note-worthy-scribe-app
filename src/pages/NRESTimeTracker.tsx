@@ -48,40 +48,42 @@ const DEFAULT_ACTIVITIES = [
 const DURATION_OPTIONS = [5, 10, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240];
 
 type CategoryT = 'general' | 'part_b';
-type RoleT = 'clinician' | 'manager';
 
 const PART_B_COHORTS = ['COPD', 'Heart failure', 'Housebound', 'Palliative', 'Frailty', 'Multimorbidity', 'LD / MH', 'Other'];
 
-const CLINICIAN_PART_B_DEFAULTS = [
+// Universal Part B defaults — same for everyone (role concept removed)
+const PART_B_DEFAULTS = [
   'Part B MDT',
   'Complex patient review',
   'Housebound review',
   'Discharge follow-up',
   'ReSPECT / palliative',
-  'Audit / cohort prep',
   'LTC 30-min appointment',
-  'Frailty / proactive call',
-];
-
-const MANAGER_PART_B_DEFAULTS = [
+  'Audit / cohort prep',
   'Part B planning meeting',
   'Buy-back / claims admin',
-  'Locum coordination',
-  'Rota / slot setup (NRES Part B)',
-  'Audit / cohort list prep',
-  'MDT prep & coordination',
-  'Recruitment / interviews (Part B)',
   'Briefing / documentation',
 ];
 
-interface Activity { id: string; label: string; is_default: boolean; sort_order: number; category?: CategoryT; role?: RoleT | null; }
+interface Activity { id: string; label: string; is_default: boolean; sort_order: number; category?: CategoryT; user_id?: string; }
 interface Entry {
   id: string; entry_date: string; activity: string; minutes: number;
   notes: string | null; created_at: string;
   user_id?: string; entered_by?: string | null; practice_id?: string | null;
   category?: CategoryT; cohort?: string | null;
   on_behalf_of_name?: string | null;
+  logged_by?: string | null;
 }
+
+interface Colleague {
+  user_id: string;
+  display_name: string | null;
+  staff_role: string | null;
+  practice_id: string | null;
+  practice_name: string | null;
+}
+
+type LogTarget = { id: string; name: string } | null; // null = self
 
 const NRESTimeTracker = () => {
   const { user } = useAuth();
@@ -116,15 +118,20 @@ const NRESTimeTracker = () => {
   const [cohort, setCohort] = useState<string | null>(null);
   const [cohortOther, setCohortOther] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
-  const [defaultRole, setDefaultRole] = useState<RoleT | null>(null);
-  const [showRolePrompt, setShowRolePrompt] = useState(false);
-  const [onBehalfOf, setOnBehalfOf] = useState('');
-  const [showBehalf, setShowBehalf] = useState(false);
 
-  const visibleActivities = useMemo(
-    () => activities.filter(a => (a.category || 'general') === category),
-    [activities, category]
-  );
+  // Log-for picker state
+  const [logFor, setLogFor] = useState<LogTarget>(null); // null = self
+  const [colleagues, setColleagues] = useState<Colleague[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [colleagueActivities, setColleagueActivities] = useState<Activity[]>([]);
+  const targetUserId = logFor?.id || user?.id;
+  const isSelf = !logFor;
+
+  const visibleActivities = useMemo(() => {
+    const src = isSelf ? activities : colleagueActivities;
+    return src.filter(a => (a.category || 'general') === category);
+  }, [activities, colleagueActivities, isSelf, category]);
   const recentEntries = useMemo(
     () => entries.filter(e => (e.category || 'general') === category).slice(0, 50),
     [entries, category]
@@ -286,18 +293,17 @@ const NRESTimeTracker = () => {
     return { anchor, days: eachDayOfInterval({ start, end }), leadingBlanks: (getDay(start) + 6) % 7 };
   }, [monthOffset]);
 
-  const seedPartBForRole = useCallback(async (role: RoleT, existingActs: Activity[]) => {
-    if (!user?.id) return [] as Activity[];
-    const labels = role === 'clinician' ? CLINICIAN_PART_B_DEFAULTS : MANAGER_PART_B_DEFAULTS;
+  const seedPartBDefaults = useCallback(async (existingActs: Activity[]): Promise<Activity[]> => {
+    if (!user?.id) return [];
     const existingLabels = new Set(
       existingActs.filter(a => (a.category || 'general') === 'part_b').map(a => a.label.toLowerCase())
     );
-    const toInsert = labels
+    const toInsert = PART_B_DEFAULTS
       .filter(l => !existingLabels.has(l.toLowerCase()))
       .map((label, i) => ({
         user_id: user.id, label, is_default: true,
         sort_order: existingActs.length + i,
-        category: 'part_b', role,
+        category: 'part_b' as const,
       }));
     if (toInsert.length === 0) return [];
     const { data: inserted, error } = await (supabase as any)
@@ -328,25 +334,26 @@ const NRESTimeTracker = () => {
       }
       setActivities(acts || []);
 
-      // Profile (role + last_category)
+      // Profile (last_category + last_logged_for)
       const { data: prof } = await (supabase as any)
         .from('nres_user_profile').select('*').eq('user_id', user.id).maybeSingle();
       if (prof) {
-        setDefaultRole((prof.default_role as RoleT) || null);
         setCategory((prof.last_category as CategoryT) || 'general');
-        setShowRolePrompt(!prof.default_role);
-      } else {
-        setShowRolePrompt(true);
       }
       setProfileLoaded(true);
 
+      // Entries: where I am the time-owner OR where I logged it
       const { data: ents, error: eErr } = await (supabase as any)
         .from('nres_time_entries').select('*')
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},logged_by.eq.${user.id}`)
         .order('entry_date', { ascending: false })
         .order('created_at', { ascending: false });
       if (eErr) throw eErr;
       setEntries(ents || []);
+
+      // Practice colleagues
+      const { data: cols } = await (supabase as any).rpc('get_nres_practice_colleagues');
+      setColleagues((cols as Colleague[]) || []);
     } catch (e: any) {
       console.error(e);
       toast.error('Failed to load tracker data');
@@ -357,15 +364,40 @@ const NRESTimeTracker = () => {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Auto-seed Part B defaults the first time a user lands on Part B with no part_b activities
+  useEffect(() => {
+    if (!profileLoaded || category !== 'part_b' || !isSelf) return;
+    const hasPartB = activities.some(a => (a.category || 'general') === 'part_b');
+    if (hasPartB) return;
+    seedPartBDefaults(activities).then(inserted => {
+      if (inserted.length > 0) setActivities(prev => [...prev, ...inserted]);
+    });
+  }, [profileLoaded, category, isSelf, activities, seedPartBDefaults]);
+
+  // Load colleague's activities (read-only) when target changes
+  useEffect(() => {
+    if (isSelf) { setColleagueActivities([]); return; }
+    const colleagueId = logFor?.id;
+    if (!colleagueId) return;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from('nres_user_activities').select('*')
+        .eq('user_id', colleagueId)
+        .order('sort_order', { ascending: true });
+      if (error) { console.error(error); setColleagueActivities([]); return; }
+      setColleagueActivities((data as Activity[]) || []);
+    })();
+  }, [isSelf, logFor?.id]);
+
   // Persist last_category when user switches tabs
   const persistCategory = useCallback(async (next: CategoryT) => {
     if (!user?.id) return;
     try {
       await (supabase as any).from('nres_user_profile').upsert({
-        user_id: user.id, last_category: next, default_role: defaultRole,
+        user_id: user.id, last_category: next,
       }, { onConflict: 'user_id' });
     } catch (e) { console.warn('persist category failed', e); }
-  }, [user?.id, defaultRole]);
+  }, [user?.id]);
 
   const handleCategoryChange = useCallback((next: CategoryT) => {
     setCategory(next);
@@ -374,21 +406,23 @@ const NRESTimeTracker = () => {
     persistCategory(next);
   }, [persistCategory]);
 
-  const handlePickRole = useCallback(async (role: RoleT) => {
-    if (!user?.id) return;
+  const persistLastLoggedFor = useCallback(async (colleagueId: string | null) => {
+    if (!user?.id || !colleagueId) return;
     try {
       await (supabase as any).from('nres_user_profile').upsert({
-        user_id: user.id, default_role: role, last_category: category,
+        user_id: user.id, last_logged_for: colleagueId,
       }, { onConflict: 'user_id' });
-      setDefaultRole(role);
-      setShowRolePrompt(false);
-      const inserted = await seedPartBForRole(role, activities);
-      if (inserted.length > 0) setActivities(prev => [...prev, ...inserted]);
-      toast.success(`Logging as ${role === 'clinician' ? 'Clinician' : 'Manager'} — Part B activities ready`);
-    } catch (e: any) {
-      console.error(e); toast.error('Could not save role');
-    }
-  }, [user?.id, category, activities, seedPartBForRole]);
+    } catch (e) { console.warn('persist last_logged_for failed', e); }
+  }, [user?.id]);
+
+  const selectLogTarget = useCallback((target: LogTarget) => {
+    setLogFor(target);
+    setSelectedActivity('');
+    setPickerOpen(false);
+    setPickerSearch('');
+    if (target?.id) persistLastLoggedFor(target.id);
+  }, [persistLastLoggedFor]);
+
 
 
   // Totals
@@ -452,15 +486,17 @@ const NRESTimeTracker = () => {
       const resolvedCohort = category === 'part_b'
         ? (cohort === 'Other' ? (cohortOther.trim().slice(0, 40) || null) : cohort)
         : null;
+      const ownerId = logFor?.id || user.id;
       const { data, error } = await (supabase as any).from('nres_time_entries').insert({
-        user_id: user.id, entry_date: dateStr, activity: selectedActivity,
+        user_id: ownerId,
+        logged_by: user.id,
+        entry_date: dateStr, activity: selectedActivity,
         minutes: selectedDuration, notes: notes.trim() || null,
         category, cohort: resolvedCohort,
-        on_behalf_of_name: onBehalfOf.trim() || null,
+        on_behalf_of_name: logFor ? logFor.name : null,
       }).select().single();
       if (error) throw error;
       const newEntry = data as Entry;
-      // Upload any pending attachments to the freshly-created entry
       if (pendingFiles.length > 0) {
         for (const f of pendingFiles) {
           await uploadStandalone(f, newEntry.id);
@@ -470,10 +506,10 @@ const NRESTimeTracker = () => {
       const partBSuffix = category === 'part_b'
         ? ` Part B${resolvedCohort ? ` (${resolvedCohort})` : ''}`
         : '';
-      toast.success(`Logged ${formatDuration(selectedDuration)}${partBSuffix} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
+      const forSuffix = logFor ? ` for ${logFor.name.split(' ')[0]}` : '';
+      toast.success(`Logged ${formatDuration(selectedDuration)}${partBSuffix}${forSuffix} · ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
       setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
       setCohort(null); setCohortOther('');
-      setOnBehalfOf(''); setShowBehalf(false);
       if (draftKey) localStorage.removeItem(draftKey);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
@@ -795,24 +831,8 @@ const NRESTimeTracker = () => {
           </Card>
         </div>
 
-        {/* First-run role prompt */}
-        {showRolePrompt && profileLoaded && (
-          <Card className="rounded-xl border-2 border-emerald-300 bg-emerald-50">
-            <CardContent className="p-3 space-y-2">
-              <div className="text-sm font-medium text-emerald-900">
-                Quick setup — are you logging mostly as a clinician (GP, ANP, nurse) or as a manager (PM, admin)?
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handlePickRole('clinician')}>Clinician</Button>
-                <Button size="sm" variant="outline" onClick={() => handlePickRole('manager')}>Manager</Button>
-                <Button size="sm" variant="ghost" className="ml-auto text-slate-500" onClick={() => setShowRolePrompt(false)}>Not now</Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Category tabs (General / Part B) */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="inline-flex items-center gap-1 rounded-md bg-slate-100 p-1">
             {([
               { id: 'general' as const, label: 'General' },
@@ -834,52 +854,25 @@ const NRESTimeTracker = () => {
               );
             })}
           </div>
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            <div className="text-xs text-slate-500 flex items-center gap-2">
-              Logging as
-              {defaultRole ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
-                  {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium">
-                  Not set
-                </span>
-              )}
-              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">
-                {defaultRole ? 'Switch' : 'Set'}
-              </button>
-            </div>
-            <div className="text-xs text-slate-500 flex items-center gap-2">
-              {showBehalf || onBehalfOf ? (
-                <>
-                  <span>On behalf of</span>
-                  <Input
-                    value={onBehalfOf}
-                    onChange={(e) => setOnBehalfOf(e.target.value.slice(0, 60))}
-                    placeholder="Colleague name"
-                    className="h-7 w-44 text-xs"
-                  />
-                  <button
-                    onClick={() => { setOnBehalfOf(''); setShowBehalf(false); }}
-                    className="text-slate-500 hover:text-red-600"
-                    title="Clear"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setShowBehalf(true)}
-                  className="text-emerald-700 hover:underline"
-                >
-                  + Log on behalf of…
-                </button>
-              )}
-            </div>
-          </div>
-
         </div>
+
+        {/* Log-for picker */}
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className={cn(
+            'w-full flex items-center justify-between gap-2 rounded-md px-3 h-9 text-sm transition',
+            isSelf
+              ? 'border border-slate-200 bg-transparent text-slate-600 hover:border-slate-300'
+              : 'border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-medium'
+          )}
+        >
+          <span className="flex items-center gap-2">
+            <Users className={cn('w-4 h-4', isSelf ? 'text-slate-500' : 'text-emerald-600')} />
+            {isSelf ? 'For me' : `Logging for ${logFor!.name}`}
+          </span>
+          <ChevronDown className="w-4 h-4 opacity-60" />
+        </button>
 
         {/* Date strip */}
         <Card className="rounded-xl border-2 border-slate-200">
@@ -1021,7 +1014,7 @@ const NRESTimeTracker = () => {
                   </span>
                 )}
               </button>
-              {activityOpen && (
+              {activityOpen && isSelf && (
                 <button onClick={() => setManageMode(m => !m)}
                   className="text-xs text-emerald-700 inline-flex items-center gap-1">
                   <Settings2 className="w-3 h-3" /> {manageMode ? 'Done' : 'Manage'}
@@ -1326,7 +1319,13 @@ const NRESTimeTracker = () => {
                           <span className="truncate">{e.activity}</span>
                         </div>
                         <div className="text-xs text-slate-500 truncate">
-                          {format(parseISO(e.entry_date), 'EEE d MMM')}{e.on_behalf_of_name ? ` · on behalf of ${e.on_behalf_of_name}` : ''}{e.notes ? ` · ${e.notes}` : ''}
+                          {format(parseISO(e.entry_date), 'EEE d MMM')}
+                          {e.logged_by && e.user_id && e.logged_by !== e.user_id && (
+                            e.logged_by === user?.id
+                              ? ` · for ${e.on_behalf_of_name || 'colleague'}`
+                              : ` · logged by colleague`
+                          )}
+                          {e.notes ? ` · ${e.notes}` : ''}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -1382,6 +1381,75 @@ const NRESTimeTracker = () => {
         entryLabel={attachmentEntry ? `${attachmentEntry.activity} · ${format(parseISO(attachmentEntry.entry_date), 'EEE d MMM')}` : undefined}
         onClose={() => { setAttachmentEntry(null); refreshCounts(); }}
       />
+
+      {/* Log-for picker dialog */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="sm:max-w-md p-0 gap-0">
+          <DialogHeader className="px-5 py-4">
+            <DialogTitle>Log time for…</DialogTitle>
+          </DialogHeader>
+          <div className="px-5 pb-3">
+            <Input
+              autoFocus
+              value={pickerSearch}
+              onChange={e => setPickerSearch(e.target.value)}
+              placeholder="Search colleagues…"
+              className="h-9 text-sm"
+            />
+          </div>
+          <div className="max-h-[50vh] overflow-y-auto border-t">
+            <button
+              type="button"
+              onClick={() => selectLogTarget(null)}
+              className={cn(
+                'w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition',
+                isSelf && 'bg-emerald-50'
+              )}
+            >
+              <span className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-semibold">Me</span>
+              <span className="flex-1">
+                <div className="text-sm font-medium text-slate-900">Me</div>
+                <div className="text-xs text-slate-500">{user?.email}</div>
+              </span>
+            </button>
+            {colleagues
+              .filter(c => {
+                const q = pickerSearch.trim().toLowerCase();
+                if (!q) return true;
+                return (c.display_name || '').toLowerCase().includes(q) || (c.staff_role || '').toLowerCase().includes(q);
+              })
+              .map(c => {
+                const name = c.display_name || 'Unnamed';
+                const initials = name.split(/\s+/).slice(0, 2).map(p => p[0] || '').join('').toUpperCase();
+                const active = logFor?.id === c.user_id;
+                return (
+                  <button
+                    key={c.user_id}
+                    type="button"
+                    onClick={() => selectLogTarget({ id: c.user_id, name })}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition border-t',
+                      active && 'bg-emerald-50'
+                    )}
+                  >
+                    <span className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold">{initials || '?'}</span>
+                    <span className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-slate-900 truncate">{name}</div>
+                      <div className="text-xs text-slate-500 truncate">
+                        {[c.staff_role, c.practice_name].filter(Boolean).join(' · ')}
+                      </div>
+                    </span>
+                  </button>
+                );
+              })}
+            {colleagues.length === 0 && (
+              <div className="px-5 py-6 text-sm text-slate-500 text-center">
+                No practice colleagues found. Add staff in the Buy-back tab to enable logging on their behalf.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editEntry} onOpenChange={(o) => !o && setEditEntry(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
