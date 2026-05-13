@@ -293,18 +293,17 @@ const NRESTimeTracker = () => {
     return { anchor, days: eachDayOfInterval({ start, end }), leadingBlanks: (getDay(start) + 6) % 7 };
   }, [monthOffset]);
 
-  const seedPartBForRole = useCallback(async (role: RoleT, existingActs: Activity[]) => {
-    if (!user?.id) return [] as Activity[];
-    const labels = role === 'clinician' ? CLINICIAN_PART_B_DEFAULTS : MANAGER_PART_B_DEFAULTS;
+  const seedPartBDefaults = useCallback(async (existingActs: Activity[]): Promise<Activity[]> => {
+    if (!user?.id) return [];
     const existingLabels = new Set(
       existingActs.filter(a => (a.category || 'general') === 'part_b').map(a => a.label.toLowerCase())
     );
-    const toInsert = labels
+    const toInsert = PART_B_DEFAULTS
       .filter(l => !existingLabels.has(l.toLowerCase()))
       .map((label, i) => ({
         user_id: user.id, label, is_default: true,
         sort_order: existingActs.length + i,
-        category: 'part_b', role,
+        category: 'part_b' as const,
       }));
     if (toInsert.length === 0) return [];
     const { data: inserted, error } = await (supabase as any)
@@ -335,25 +334,26 @@ const NRESTimeTracker = () => {
       }
       setActivities(acts || []);
 
-      // Profile (role + last_category)
+      // Profile (last_category + last_logged_for)
       const { data: prof } = await (supabase as any)
         .from('nres_user_profile').select('*').eq('user_id', user.id).maybeSingle();
       if (prof) {
-        setDefaultRole((prof.default_role as RoleT) || null);
         setCategory((prof.last_category as CategoryT) || 'general');
-        setShowRolePrompt(!prof.default_role);
-      } else {
-        setShowRolePrompt(true);
       }
       setProfileLoaded(true);
 
+      // Entries: where I am the time-owner OR where I logged it
       const { data: ents, error: eErr } = await (supabase as any)
         .from('nres_time_entries').select('*')
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},logged_by.eq.${user.id}`)
         .order('entry_date', { ascending: false })
         .order('created_at', { ascending: false });
       if (eErr) throw eErr;
       setEntries(ents || []);
+
+      // Practice colleagues
+      const { data: cols } = await (supabase as any).rpc('get_nres_practice_colleagues');
+      setColleagues((cols as Colleague[]) || []);
     } catch (e: any) {
       console.error(e);
       toast.error('Failed to load tracker data');
@@ -364,15 +364,40 @@ const NRESTimeTracker = () => {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Auto-seed Part B defaults the first time a user lands on Part B with no part_b activities
+  useEffect(() => {
+    if (!profileLoaded || category !== 'part_b' || !isSelf) return;
+    const hasPartB = activities.some(a => (a.category || 'general') === 'part_b');
+    if (hasPartB) return;
+    seedPartBDefaults(activities).then(inserted => {
+      if (inserted.length > 0) setActivities(prev => [...prev, ...inserted]);
+    });
+  }, [profileLoaded, category, isSelf, activities, seedPartBDefaults]);
+
+  // Load colleague's activities (read-only) when target changes
+  useEffect(() => {
+    if (isSelf) { setColleagueActivities([]); return; }
+    const colleagueId = logFor?.id;
+    if (!colleagueId) return;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from('nres_user_activities').select('*')
+        .eq('user_id', colleagueId)
+        .order('sort_order', { ascending: true });
+      if (error) { console.error(error); setColleagueActivities([]); return; }
+      setColleagueActivities((data as Activity[]) || []);
+    })();
+  }, [isSelf, logFor?.id]);
+
   // Persist last_category when user switches tabs
   const persistCategory = useCallback(async (next: CategoryT) => {
     if (!user?.id) return;
     try {
       await (supabase as any).from('nres_user_profile').upsert({
-        user_id: user.id, last_category: next, default_role: defaultRole,
+        user_id: user.id, last_category: next,
       }, { onConflict: 'user_id' });
     } catch (e) { console.warn('persist category failed', e); }
-  }, [user?.id, defaultRole]);
+  }, [user?.id]);
 
   const handleCategoryChange = useCallback((next: CategoryT) => {
     setCategory(next);
@@ -381,21 +406,23 @@ const NRESTimeTracker = () => {
     persistCategory(next);
   }, [persistCategory]);
 
-  const handlePickRole = useCallback(async (role: RoleT) => {
-    if (!user?.id) return;
+  const persistLastLoggedFor = useCallback(async (colleagueId: string | null) => {
+    if (!user?.id || !colleagueId) return;
     try {
       await (supabase as any).from('nres_user_profile').upsert({
-        user_id: user.id, default_role: role, last_category: category,
+        user_id: user.id, last_logged_for: colleagueId,
       }, { onConflict: 'user_id' });
-      setDefaultRole(role);
-      setShowRolePrompt(false);
-      const inserted = await seedPartBForRole(role, activities);
-      if (inserted.length > 0) setActivities(prev => [...prev, ...inserted]);
-      toast.success(`Logging as ${role === 'clinician' ? 'Clinician' : 'Manager'} — Part B activities ready`);
-    } catch (e: any) {
-      console.error(e); toast.error('Could not save role');
-    }
-  }, [user?.id, category, activities, seedPartBForRole]);
+    } catch (e) { console.warn('persist last_logged_for failed', e); }
+  }, [user?.id]);
+
+  const selectLogTarget = useCallback((target: LogTarget) => {
+    setLogFor(target);
+    setSelectedActivity('');
+    setPickerOpen(false);
+    setPickerSearch('');
+    if (target?.id) persistLastLoggedFor(target.id);
+  }, [persistLastLoggedFor]);
+
 
 
   // Totals
