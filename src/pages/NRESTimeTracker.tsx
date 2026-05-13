@@ -446,9 +446,13 @@ const NRESTimeTracker = () => {
     setSaving(true);
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const resolvedCohort = category === 'part_b'
+        ? (cohort === 'Other' ? (cohortOther.trim().slice(0, 40) || null) : cohort)
+        : null;
       const { data, error } = await (supabase as any).from('nres_time_entries').insert({
         user_id: user.id, entry_date: dateStr, activity: selectedActivity,
         minutes: selectedDuration, notes: notes.trim() || null,
+        category, cohort: resolvedCohort,
       }).select().single();
       if (error) throw error;
       const newEntry = data as Entry;
@@ -459,8 +463,12 @@ const NRESTimeTracker = () => {
         }
       }
       setEntries(prev => [newEntry, ...prev]);
-      toast.success(`Logged ${formatDuration(selectedDuration)} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
+      const partBSuffix = category === 'part_b'
+        ? ` Part B${resolvedCohort ? ` (${resolvedCohort})` : ''}`
+        : '';
+      toast.success(`Logged ${formatDuration(selectedDuration)}${partBSuffix} for ${format(selectedDate, 'd MMM')}${pendingFiles.length ? ` · ${pendingFiles.length} attachment${pendingFiles.length > 1 ? 's' : ''}` : ''}`);
       setSelectedActivity(''); setNotes(''); setSelectedDuration(60); setPendingFiles([]);
+      setCohort(null); setCohortOther('');
       if (draftKey) localStorage.removeItem(draftKey);
     } catch (e: any) {
       toast.error(e.message || 'Save failed');
