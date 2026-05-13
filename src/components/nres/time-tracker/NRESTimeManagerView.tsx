@@ -108,6 +108,7 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
   const [users, setUsers] = useState<ProfileLite[]>([]);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [targets, setTargets] = useState<Target[]>([]);
+  const [userPracticeMap, setUserPracticeMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const [filterPractice, setFilterPractice] = useState<string>('all');
