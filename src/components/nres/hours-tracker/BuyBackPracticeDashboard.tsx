@@ -4388,6 +4388,150 @@ function PracticeEvidenceSection({ claimId, staffLines }: { claimId: string; sta
   );
 }
 
+function EditableStaffRow({ s, i, claim, hasLocum, onUpdateStaffLine, rateParams, formatLocumHrs, getMaxInfo, editable }: {
+  s: any;
+  i: number;
+  claim: BuyBackClaim;
+  hasLocum: boolean;
+  onUpdateStaffLine?: (claimId: string, staffIndex: number, updates: { staff_name?: string; staff_role?: string; allocation_type?: string; allocation_value?: number; start_date?: string | null; claimed_amount?: number; notes?: string }, rateParams?: RateParams) => Promise<void>;
+  rateParams?: RateParams;
+  formatLocumHrs: (sessions: number) => { display: string; decimal: string };
+  getMaxInfo: (s: any) => { max: number; formula: string };
+  editable: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(s.staff_name || '');
+  const [role, setRole] = useState(s.staff_role || '');
+  const [allocVal, setAllocVal] = useState(String(s.allocation_value ?? ''));
+  const [startDate, setStartDate] = useState(s.start_date ? String(s.start_date).slice(0, 10) : '');
+  const [amount, setAmount] = useState(String(s.claimed_amount ?? s.calculated_amount ?? 0));
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setName(s.staff_name || '');
+    setRole(s.staff_role || '');
+    setAllocVal(String(s.allocation_value ?? ''));
+    setStartDate(s.start_date ? String(s.start_date).slice(0, 10) : '');
+    setAmount(String(s.claimed_amount ?? s.calculated_amount ?? 0));
+  }, [s.staff_name, s.staff_role, s.allocation_value, s.start_date, s.claimed_amount, s.calculated_amount]);
+
+  const isLocum = s.staff_category === 'gp_locum';
+  const claimedAmtNum = Number(amount) || 0;
+  const allocNum = Number(allocVal) || 0;
+  const locumHrsCurrent = isLocum ? formatLocumHrs(s.allocation_value || 0) : null;
+  const maxInfo = getMaxInfo(s);
+  const overMax = maxInfo.max > 0 && (s.claimed_amount ?? s.calculated_amount ?? 0) > maxInfo.max;
+
+  const inputStyle: React.CSSProperties = { padding: '4px 6px', borderRadius: 4, border: '1px solid #cbd5e1', fontSize: 12, outline: 'none' };
+
+  const save = async () => {
+    if (!onUpdateStaffLine) return;
+    setBusy(true);
+    try {
+      await onUpdateStaffLine(claim.id, i, {
+        staff_name: name.trim(),
+        staff_role: role.trim(),
+        allocation_value: allocNum,
+        start_date: startDate || null,
+        claimed_amount: claimedAmtNum,
+      }, rateParams);
+      setEditing(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancel = () => {
+    setName(s.staff_name || '');
+    setRole(s.staff_role || '');
+    setAllocVal(String(s.allocation_value ?? ''));
+    setStartDate(s.start_date ? String(s.start_date).slice(0, 10) : '');
+    setAmount(String(s.claimed_amount ?? s.calculated_amount ?? 0));
+    setEditing(false);
+  };
+
+  return (
+    <tr style={{ borderBottom: '1px solid #f3f4f6', background: editing ? '#fffbeb' : undefined }}>
+      <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>
+        {editing ? (
+          <input style={{ ...inputStyle, width: '100%', minWidth: 120 }} value={name} onChange={e => setName(e.target.value)} />
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {s.staff_name || '—'}
+            {editable && onUpdateStaffLine && (
+              <button onClick={() => setEditing(true)} title="Edit row" style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 2, color: '#64748b', display: 'inline-flex' }}>
+                <Pencil style={{ width: 12, height: 12 }} />
+              </button>
+            )}
+          </span>
+        )}
+      </td>
+      <td style={{ padding: '10px', color: '#374151' }}>
+        {editing ? (
+          <input style={{ ...inputStyle, width: '100%', minWidth: 100 }} value={role} onChange={e => setRole(e.target.value)} />
+        ) : (s.staff_role || '—')}
+      </td>
+      <td style={{ padding: '10px' }}>
+        <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
+          {getSDAClaimGLCode(s, claim.claim_type || 'buyback') || '—'}
+        </code>
+      </td>
+      {hasLocum ? (
+        <>
+          <td style={{ padding: '10px', textAlign: 'center', color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            {editing && isLocum ? (
+              <input type="number" min={0} step="0.5" style={{ ...inputStyle, width: 70, textAlign: 'right' }} value={allocVal} onChange={e => setAllocVal(e.target.value)} />
+            ) : (isLocum ? (s.allocation_value || 0) : '—')}
+          </td>
+          <td style={{ padding: '10px', color: '#374151' }}>
+            {editing ? (
+              <input type="date" style={{ ...inputStyle, width: 140 }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+            ) : (s.start_date ? new Date(s.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—')}
+          </td>
+          <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+            {isLocum && locumHrsCurrent ? locumHrsCurrent.display : '—'}
+          </td>
+          <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+            {isLocum && locumHrsCurrent ? locumHrsCurrent.decimal : '—'}
+          </td>
+        </>
+      ) : (
+        <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+          {editing ? (
+            <input type="number" min={0} step="0.25" style={{ ...inputStyle, width: 90, textAlign: 'right' }} value={allocVal} onChange={e => setAllocVal(e.target.value)} />
+          ) : `${s.allocation_value} ${s.allocation_type}`}
+        </td>
+      )}
+      <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: overMax ? '#dc2626' : '#111827' }}>
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <input type="number" min={0} step="0.01" style={{ ...inputStyle, width: 110, textAlign: 'right' }} value={amount} onChange={e => setAmount(e.target.value)} />
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={save} disabled={busy} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#059669', color: '#fff', fontSize: 11, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}>{busy ? 'Saving…' : 'Save'}</button>
+              <button onClick={cancel} disabled={busy} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', color: '#374151', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {fmtGBP(s.claimed_amount ?? s.calculated_amount ?? 0)}
+            {overMax && <span style={{ marginLeft: 4, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>!</span>}
+          </>
+        )}
+      </td>
+      <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
+        {maxInfo.max > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 2 }}>
+            <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
+            <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right' as const, maxWidth: 260, fontStyle: 'italic' as const }}>
+              {maxInfo.formula}
+            </span>
+          </div>
+        ) : '—'}
+      </td>
+    </tr>
+  );
+}
+
 function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, onUpdateClaimNotes, onUpdateStaffLine, rateParams, onDeleteClaim, onContinueDraft, showPracticeName, saving }: {
   claim: BuyBackClaim;
   expanded: boolean;
@@ -4671,56 +4815,20 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
                     </tr>
                   </thead>
                   <tbody>
-                    {staffDets.map((s: any, i: number) => {
-                      const isLocum = s.staff_category === 'gp_locum';
-                      const locumHrs = isLocum ? formatLocumHrs(s.allocation_value || 0) : null;
-                      const claimedAmt = s.claimed_amount ?? s.calculated_amount ?? 0;
-                      const maxInfo = getMaxInfo(s);
-                      const overMax = maxInfo.max > 0 && claimedAmt > maxInfo.max;
-                      return (
-                        <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                          <td style={{ padding: '10px', fontWeight: 500, color: '#111827' }}>{s.staff_name || '—'}</td>
-                          <td style={{ padding: '10px', color: '#374151' }}>{s.staff_role || '—'}</td>
-                          <td style={{ padding: '10px' }}>
-                            <code style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
-                              {getSDAClaimGLCode(s, claim.claim_type || 'buyback') || '—'}
-                            </code>
-                          </td>
-                          {hasLocum ? (
-                            <>
-                              <td style={{ padding: '10px', textAlign: 'center', color: '#374151', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                                {isLocum ? (s.allocation_value || 0) : '—'}
-                              </td>
-                              <td style={{ padding: '10px', color: '#374151' }}>{s.start_date ? new Date(s.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}</td>
-                              <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                                {isLocum && locumHrs ? locumHrs.display : '—'}
-                              </td>
-                              <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                                {isLocum && locumHrs ? locumHrs.decimal : '—'}
-                              </td>
-                            </>
-                          ) : (
-                            <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                              {s.allocation_value} {s.allocation_type}
-                            </td>
-                          )}
-                          <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: overMax ? '#dc2626' : '#111827' }}>
-                            {fmtGBP(claimedAmt)}
-                            {overMax && <span style={{ marginLeft: 4, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>!</span>}
-                          </td>
-                          <td style={{ padding: '10px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11, color: '#9ca3af' }}>
-                            {maxInfo.max > 0 ? (
-                              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 2 }}>
-                                <span title={maxInfo.formula}>{fmtGBP(maxInfo.max)}</span>
-                                <span style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.35, textAlign: 'right' as const, maxWidth: 260, fontStyle: 'italic' as const }}>
-                                  {maxInfo.formula}
-                                </span>
-                              </div>
-                            ) : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {staffDets.map((s: any, i: number) => (
+                      <EditableStaffRow
+                        key={i}
+                        s={s}
+                        i={i}
+                        claim={claim}
+                        hasLocum={hasLocum}
+                        onUpdateStaffLine={onUpdateStaffLine}
+                        rateParams={rateParams}
+                        formatLocumHrs={formatLocumHrs}
+                        getMaxInfo={getMaxInfo}
+                        editable={needsAction}
+                      />
+                    ))}
                   </tbody>
                   <tfoot>
                     <tr>
