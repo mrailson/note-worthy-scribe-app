@@ -78,6 +78,9 @@ export function NRESDigitalAndFinance({
   const {
     practiceFilteredClaimants,
     practiceId: userPracticeId,
+    addClaimant,
+    saving: savingClaimant,
+    userPracticeName,
   } = useNRESClaimants();
 
   const practiceClaimantNames = useMemo(
@@ -204,6 +207,9 @@ export function NRESDigitalAndFinance({
             saving={savingEntry}
             claimants={practiceFilteredClaimants}
             onSubmit={addEntry}
+            addClaimant={addClaimant}
+            addingClaimant={savingClaimant}
+            userPracticeName={userPracticeName}
           />
           <HoursEntriesTable
             entries={filteredEntries}
