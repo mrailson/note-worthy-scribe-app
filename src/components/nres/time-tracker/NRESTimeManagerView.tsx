@@ -134,12 +134,13 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [eRes, pRes, prRes, tRes, aRes] = await Promise.all([
+      const [eRes, pRes, prRes, tRes, aRes, urRes] = await Promise.all([
         supabase.from('nres_time_entries' as any).select('*'),
         supabase.from('profiles').select('user_id, full_name, email, role, is_verifier'),
         supabase.from('gp_practices').select('id, name, practice_code').order('name'),
         supabase.from('nres_time_targets' as any).select('*'),
         supabase.from('user_service_activations').select('user_id').eq('service', 'nres'),
+        supabase.from('user_roles').select('user_id, practice_id').not('practice_id', 'is', null),
       ]);
       if (eRes.error) throw eRes.error;
       const nresIds = new Set(((aRes.data || []) as any[]).map(r => r.user_id));
