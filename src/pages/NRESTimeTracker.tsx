@@ -831,24 +831,8 @@ const NRESTimeTracker = () => {
           </Card>
         </div>
 
-        {/* First-run role prompt */}
-        {showRolePrompt && profileLoaded && (
-          <Card className="rounded-xl border-2 border-emerald-300 bg-emerald-50">
-            <CardContent className="p-3 space-y-2">
-              <div className="text-sm font-medium text-emerald-900">
-                Quick setup — are you logging mostly as a clinician (GP, ANP, nurse) or as a manager (PM, admin)?
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => handlePickRole('clinician')}>Clinician</Button>
-                <Button size="sm" variant="outline" onClick={() => handlePickRole('manager')}>Manager</Button>
-                <Button size="sm" variant="ghost" className="ml-auto text-slate-500" onClick={() => setShowRolePrompt(false)}>Not now</Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Category tabs (General / Part B) */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="inline-flex items-center gap-1 rounded-md bg-slate-100 p-1">
             {([
               { id: 'general' as const, label: 'General' },
@@ -870,52 +854,25 @@ const NRESTimeTracker = () => {
               );
             })}
           </div>
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            <div className="text-xs text-slate-500 flex items-center gap-2">
-              Logging as
-              {defaultRole ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium">
-                  {defaultRole === 'clinician' ? 'Clinician' : 'Manager'}
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium">
-                  Not set
-                </span>
-              )}
-              <button onClick={() => setShowRolePrompt(true)} className="text-emerald-700 hover:underline">
-                {defaultRole ? 'Switch' : 'Set'}
-              </button>
-            </div>
-            <div className="text-xs text-slate-500 flex items-center gap-2">
-              {showBehalf || onBehalfOf ? (
-                <>
-                  <span>On behalf of</span>
-                  <Input
-                    value={onBehalfOf}
-                    onChange={(e) => setOnBehalfOf(e.target.value.slice(0, 60))}
-                    placeholder="Colleague name"
-                    className="h-7 w-44 text-xs"
-                  />
-                  <button
-                    onClick={() => { setOnBehalfOf(''); setShowBehalf(false); }}
-                    className="text-slate-500 hover:text-red-600"
-                    title="Clear"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setShowBehalf(true)}
-                  className="text-emerald-700 hover:underline"
-                >
-                  + Log on behalf of…
-                </button>
-              )}
-            </div>
-          </div>
-
         </div>
+
+        {/* Log-for picker */}
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className={cn(
+            'w-full flex items-center justify-between gap-2 rounded-md px-3 h-9 text-sm transition',
+            isSelf
+              ? 'border border-slate-200 bg-transparent text-slate-600 hover:border-slate-300'
+              : 'border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-medium'
+          )}
+        >
+          <span className="flex items-center gap-2">
+            <Users className={cn('w-4 h-4', isSelf ? 'text-slate-500' : 'text-emerald-600')} />
+            {isSelf ? 'For me' : `Logging for ${logFor!.name}`}
+          </span>
+          <ChevronDown className="w-4 h-4 opacity-60" />
+        </button>
 
         {/* Date strip */}
         <Card className="rounded-xl border-2 border-slate-200">
