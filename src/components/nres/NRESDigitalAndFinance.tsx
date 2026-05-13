@@ -207,6 +207,9 @@ export function NRESDigitalAndFinance({
             saving={savingEntry}
             claimants={practiceFilteredClaimants}
             onSubmit={addEntry}
+            addClaimant={addClaimant}
+            addingClaimant={savingClaimant}
+            userPracticeName={userPracticeName}
           />
           <HoursEntriesTable
             entries={filteredEntries}
