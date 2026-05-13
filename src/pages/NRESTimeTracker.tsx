@@ -964,7 +964,7 @@ const NRESTimeTracker = () => {
             </div>
             {activityOpen && (
               <div className="grid grid-cols-2 gap-2">
-                {activities.map(a => {
+                {visibleActivities.map(a => {
                   const active = selectedActivity === a.label;
                   return (
                     <div key={a.id} className="relative">
