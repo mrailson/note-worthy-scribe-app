@@ -10441,6 +10441,8 @@ export type Database = {
       nres_time_entries: {
         Row: {
           activity: string
+          category: string
+          cohort: string | null
           created_at: string
           entered_by: string | null
           entry_date: string
@@ -10453,6 +10455,8 @@ export type Database = {
         }
         Insert: {
           activity: string
+          category?: string
+          cohort?: string | null
           created_at?: string
           entered_by?: string | null
           entry_date: string
@@ -10465,6 +10469,8 @@ export type Database = {
         }
         Update: {
           activity?: string
+          category?: string
+          cohort?: string | null
           created_at?: string
           entered_by?: string | null
           entry_date?: string
@@ -10591,27 +10597,54 @@ export type Database = {
       }
       nres_user_activities: {
         Row: {
+          category: string
           created_at: string
           id: string
           is_default: boolean
           label: string
+          role: string | null
           sort_order: number
           user_id: string
         }
         Insert: {
+          category?: string
           created_at?: string
           id?: string
           is_default?: boolean
           label: string
+          role?: string | null
           sort_order?: number
           user_id: string
         }
         Update: {
+          category?: string
           created_at?: string
           id?: string
           is_default?: boolean
           label?: string
+          role?: string | null
           sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nres_user_profile: {
+        Row: {
+          default_role: string | null
+          last_category: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          default_role?: string | null
+          last_category?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          default_role?: string | null
+          last_category?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
