@@ -450,13 +450,15 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
     let w = 0, m = 0, lm = 0;
     for (const e of entries) {
       if (e.user_id !== user?.id) continue; // exclude entries logged on behalf of others
+      const eCat = (e.category || 'general');
+      if (eCat !== category) continue; // only count totals for the active category (General / Part B)
       const d = parseISO(e.entry_date);
       if (d >= monthStart) m += e.minutes;
       if (d >= weekStart) w += e.minutes;
       if (d >= lastMonthStart && d <= lastMonthEnd) lm += e.minutes;
     }
     return { weekTotal: w, monthTotal: m, lastMonthTotal: lm };
-  }, [entries, user?.id]);
+  }, [entries, user?.id, category]);
 
   // Note suggestions: recent unique (last 5) then most-frequent (not already shown)
   const noteSuggestions = useMemo(() => {
@@ -940,11 +942,12 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const [topTab, setTopTab] = useState<'mine' | 'manager'>('mine');
 
   const [managerSummary, setManagerSummary] = useState<{ activeCount: number; totalEligible: number; practiceCount: number } | null>(null);
+  const categoryLabel = category === 'part_b' ? 'Part B' : 'General';
   const subtitle = topTab === 'manager'
     ? (managerSummary
         ? `All NRES users · ${managerSummary.activeCount} active across ${managerSummary.practiceCount} ${managerSummary.practiceCount === 1 ? 'practice' : 'practices'}`
         : 'All NRES users')
-    : 'Your time entries';
+    : `Your ${categoryLabel} time entries`;
 
   return (
     <div className={embedded ? '' : 'min-h-screen bg-slate-50'}>
@@ -994,20 +997,27 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
         <div className="grid grid-cols-3 gap-3">
           <Card className="rounded-xl border-2 border-slate-200">
             <CardContent className="p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">This Week</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500 flex items-center gap-2">
+                <span>This Week</span>
+                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold', category === 'part_b' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>{categoryLabel}</span>
+              </div>
               <div className="text-2xl font-bold text-slate-900 mt-1">{formatDuration(weekTotal)}</div>
             </CardContent>
           </Card>
           <Card className="rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white">
             <CardContent className="p-4">
-              <div className="text-xs uppercase tracking-wide text-emerald-100">This Month · {format(new Date(), 'MMMM yyyy')}</div>
+              <div className="text-xs uppercase tracking-wide text-emerald-100 flex items-center gap-2">
+                <span>This Month · {format(new Date(), 'MMMM yyyy')}</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/20 text-white">{categoryLabel}</span>
+              </div>
               <div className="text-2xl font-bold mt-1">{formatDuration(monthTotal)}</div>
             </CardContent>
           </Card>
           <Card className="rounded-xl border-2 border-slate-200 bg-slate-50">
             <CardContent className="p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">
-                Last Month · {format(subMonths(new Date(), 1), 'MMMM yyyy')}
+              <div className="text-xs uppercase tracking-wide text-slate-500 flex items-center gap-2">
+                <span>Last Month · {format(subMonths(new Date(), 1), 'MMMM yyyy')}</span>
+                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold', category === 'part_b' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>{categoryLabel}</span>
               </div>
               <div className="text-2xl font-bold text-slate-700 mt-1">{formatDuration(lastMonthTotal)}</div>
             </CardContent>
@@ -1516,9 +1526,11 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
                   return (
                     <li key={e.id} className="flex items-center gap-3 p-3">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-slate-900 truncate flex items-center">
-                          {(e.category || 'general') === 'part_b' && (
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 shrink-0" aria-label="Part B" />
+                        <div className="text-sm font-medium text-slate-900 truncate flex items-center gap-1.5">
+                          {(e.category || 'general') === 'part_b' ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0">Part B</span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 shrink-0">General</span>
                           )}
                           <span className="truncate">{e.activity}</span>
                         </div>
