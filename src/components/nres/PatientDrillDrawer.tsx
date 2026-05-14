@@ -670,7 +670,7 @@ export const PatientDrillDrawer = ({
       <div ref={cohortScrollRef} className="min-h-0 flex-1 overflow-auto bg-background">
         <div className="sticky top-0 z-20 grid h-9 grid-cols-[24px_60px_40px_74px_52px_48px_62px_62px_24px] items-center border-b bg-background px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           <div><Checkbox checked={allVisibleSelected || (someSelected ? "indeterminate" : false)} onCheckedChange={handleHeaderSelect} aria-label="Select visible patients" /></div>
-          <div>Ref</div><div className="text-right">Age</div><div>Frailty</div><div className="text-right">Drugs</div><div className="text-right">Inpt</div><div className="text-right">PoA</div><div className="text-right">PoLoS</div><div />
+          <div>NARP Ref</div><div className="text-right">Age</div><div>Frailty</div><div className="text-right">Drugs</div><div className="text-right">Inpt</div><div className="text-right">PoA</div><div className="text-right">PoLoS</div><div />
         </div>
         {sortedRows.length === 0 ? (
           <div className="flex h-full min-h-[280px] flex-col items-center justify-center px-8 text-center">
