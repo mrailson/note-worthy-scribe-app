@@ -155,8 +155,6 @@ export const PatientDrillDrawer = ({
   // without collecting a separate reason because the DSA/DPO approval covers access.
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
 
-  // Identifiable CSV export modal — Phase B
-  const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
 
   // Add-to-worklist dialog — Phase C
   const [worklistDialogOpen, setWorklistDialogOpen] = useState(false);
