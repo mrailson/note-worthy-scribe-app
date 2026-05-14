@@ -3665,7 +3665,7 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
       const monthLabel = getClaimMonthLabel(c);
       const practice = directorMode ? (getPracticeName(c.practice_key) || '—') : '';
       const key = directorMode ? `${monthLabel}__${practice}` : monthLabel;
-      if (!m[key]) m[key] = { key, month: monthLabel, practice, claims: 0, hours: 0, sessions: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 };
+      if (!m[key]) m[key] = { key, month: monthLabel, practice, claims: 0, hours: 0, sessions: 0, draft: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 };
       const r = m[key];
       const t = claimTotal(c);
       r.claims += 1;
@@ -3673,7 +3673,8 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
       r.sessions += claimStaffCount(c);
       r.total += t;
       const ds = toDisplayStatus(c.status);
-      if (ds === 'awaiting_review' || ds === 'submitted') r.awaiting += t;
+      if (ds === 'draft') r.draft += t;
+      else if (ds === 'awaiting_review' || ds === 'submitted') r.awaiting += t;
       else if (ds === 'queried') r.queried += t;
       else if (ds === 'approved' || ds === 'invoiced') r.approved += t;
       else if (ds === 'paid') r.paid += t;
@@ -3690,16 +3691,16 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
 
   const totals = useMemo(() => byMonth.reduce((acc: any, r: any) => ({
     claims: acc.claims + r.claims, hours: acc.hours + r.hours, sessions: acc.sessions + r.sessions,
-    awaiting: acc.awaiting + r.awaiting, queried: acc.queried + r.queried,
+    draft: acc.draft + r.draft, awaiting: acc.awaiting + r.awaiting, queried: acc.queried + r.queried,
     approved: acc.approved + r.approved, paid: acc.paid + r.paid, total: acc.total + r.total,
-  }), { claims: 0, hours: 0, sessions: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 }), [byMonth]);
+  }), { claims: 0, hours: 0, sessions: 0, draft: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 }), [byMonth]);
 
   const COLS = [
     { key: 'month', label: 'Period', align: 'left' as const },
     ...(directorMode ? [{ key: 'practice', label: 'Practice', align: 'left' as const }] : []),
     { key: 'claims', label: 'Claims', align: 'center' as const, w: 55 },
     { key: 'sessions', label: 'Staff', align: 'center' as const, w: 55 },
-    { key: 'hours', label: 'Hours', align: 'right' as const, w: 60 },
+    { key: 'draft', label: 'Drafts', align: 'right' as const, w: 80, color: '#64748b' },
     { key: 'awaiting', label: 'Awaiting', align: 'right' as const, w: 80, color: '#2563eb' },
     { key: 'queried', label: 'Queried', align: 'right' as const, w: 75, color: '#dc2626' },
     { key: 'approved', label: 'Approved', align: 'right' as const, w: 80, color: '#7c3aed' },
@@ -3711,14 +3712,13 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
     const v = row[col.key];
     if (col.key === 'month' || col.key === 'practice') return v;
     if (col.key === 'claims' || col.key === 'sessions') return v;
-    if (col.key === 'hours') return v.toFixed(1);
     if (v === 0) return '—';
-    return fmtShort(v);
+    return fmtGBP(v);
   };
 
   const cellColor = (row: any, col: any) => {
     if (col.key === 'month' || col.key === 'practice') return '#374151';
-    if (col.key === 'claims' || col.key === 'sessions' || col.key === 'hours') return '#6b7280';
+    if (col.key === 'claims' || col.key === 'sessions') return '#6b7280';
     if (col.key === 'total') return '#111827';
     if (row[col.key] === 0) return '#d1d5db';
     return col.color || '#111827';
