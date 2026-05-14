@@ -389,7 +389,6 @@ export default function Auth() {
               </CardContent>
             </TabsContent>
             
-            </TabsContent>
           </Tabs>
         </Card>
 
