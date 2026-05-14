@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { type ClaimLine, type ClaimsRole, type Practice, type ClaimEvidence, type ClaimAuditEntry, STATUS_CONFIG, type ClaimStatus } from '@/hooks/useNRESClaims';
 import { ClaimStatusBadge } from './ClaimStatusBadge';
 import { ClaimStatusPipeline } from './ClaimStatusPipeline';
@@ -20,6 +20,7 @@ interface ClaimsHistoryProps {
   onResubmit: (claimId: string) => void;
   onQuery: (claimId: string, note: string) => void;
   onExpandClaim: (claimId: string) => void;
+  externalStatusFilter?: string | null;
 }
 
 const IN_PROGRESS = ['submitted', 'verified', 'approved', 'invoice_created', 'scheduled'];
@@ -71,6 +72,7 @@ function getFilterPills(role: ClaimsRole, claims: ClaimLine[], statusCounts: Rec
 export function ClaimsHistory({
   claims, practices, role, evidence, auditLog, saving,
   getAction, canQuery, onAdvanceStatus, onResubmit, onQuery, onExpandClaim,
+  externalStatusFilter,
 }: ClaimsHistoryProps) {
   const defaultFilter = role === 'approver' ? 'awaiting_pml_approval' : role === 'finance' ? 'finance_pipeline' : 'all';
   const [statusFilter, setStatusFilter] = useState(defaultFilter);
@@ -79,6 +81,13 @@ export function ClaimsHistory({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [queryNote, setQueryNote] = useState('');
   const [queryingId, setQueryingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (externalStatusFilter) {
+      const key = externalStatusFilter.split('__')[0];
+      setStatusFilter(key);
+    }
+  }, [externalStatusFilter]);
 
   const filtered = useMemo(() => {
     return claims.filter(c => {

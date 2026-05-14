@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNRESClaims, type ClaimsRole } from '@/hooks/useNRESClaims';
 import { ClaimsSummaryCards } from './ClaimsSummaryCards';
 import { CreateClaimPanel } from './CreateClaimPanel';
@@ -41,6 +41,15 @@ export function NRESClaimsOversight() {
 
   const [view, setView] = useState<'dashboard' | 'create' | 'claims'>('dashboard');
   const [selectedPracticeId, setSelectedPracticeId] = useState<string>('');
+  const [externalStatusFilter, setExternalStatusFilter] = useState<{ key: string; n: number } | null>(null);
+  const claimsHistoryRef = useRef<HTMLDivElement | null>(null);
+
+  const handleCardClick = (filterKey: string) => {
+    setExternalStatusFilter({ key: filterKey, n: Date.now() });
+    requestAnimationFrame(() => {
+      claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   // Default to first practice if none selected
   const effectivePracticeId = selectedPracticeId || (practices.length > 0 ? practices[0].id : '');
@@ -185,21 +194,26 @@ export function NRESClaimsOversight() {
       <main className="max-w-[1100px] mx-auto px-4 py-5 pb-16">
         {(view === 'dashboard' || view === 'claims') && (
           <>
-            {view === 'dashboard' && <ClaimsSummaryCards claims={visibleClaims} role={effectiveRole} />}
-            <ClaimsHistory
-              claims={visibleClaims}
-              practices={practices}
-              role={effectiveRole}
-              evidence={evidence}
-              auditLog={auditLog}
-              saving={saving}
-              getAction={getAction}
-              canQuery={canQuery}
-              onAdvanceStatus={(id, from, to) => advanceStatus(id, from, to)}
-              onResubmit={resubmitQueried}
-              onQuery={raiseQuery}
-              onExpandClaim={handleExpandClaim}
-            />
+            {view === 'dashboard' && (
+              <ClaimsSummaryCards claims={visibleClaims} role={effectiveRole} onCardClick={handleCardClick} />
+            )}
+            <div ref={claimsHistoryRef} style={{ scrollMarginTop: 80 }}>
+              <ClaimsHistory
+                claims={visibleClaims}
+                practices={practices}
+                role={effectiveRole}
+                evidence={evidence}
+                auditLog={auditLog}
+                saving={saving}
+                getAction={getAction}
+                canQuery={canQuery}
+                onAdvanceStatus={(id, from, to) => advanceStatus(id, from, to)}
+                onResubmit={resubmitQueried}
+                onQuery={raiseQuery}
+                onExpandClaim={handleExpandClaim}
+                externalStatusFilter={externalStatusFilter ? `${externalStatusFilter.key}__${externalStatusFilter.n}` : null}
+              />
+            </div>
           </>
         )}
         {view === 'create' && showCreateTab && (
