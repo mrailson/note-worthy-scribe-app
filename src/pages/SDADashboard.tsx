@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
@@ -6,7 +7,6 @@ import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
-import { TimeTrackerTab } from "@/components/nres/hours-tracker/TimeTrackerTab";
 import { 
   LayoutDashboard, 
   Building2, 
@@ -30,6 +30,7 @@ const tabs = [
 
 const SDADashboard = () => {
   const [activeTab, setActiveTab] = useState("executive");
+  const navigate = useNavigate();
 
   return (
     <NRESPeopleProvider>
@@ -49,7 +50,13 @@ const SDADashboard = () => {
                     key={tab.value}
                     role="tab"
                     aria-selected={isActive}
-                    onClick={() => setActiveTab(tab.value)}
+                    onClick={() => {
+                      if (tab.value === 'time-tracker') {
+                        navigate('/nres/time-tracker');
+                        return;
+                      }
+                      setActiveTab(tab.value);
+                    }}
                     className={`
                       flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 shrink-0
                       ${isActive
@@ -83,9 +90,6 @@ const SDADashboard = () => {
               </TabsContent>
               <TabsContent value="hours" className="mt-0">
                 <NRESHoursTracker />
-              </TabsContent>
-              <TabsContent value="time-tracker" className="mt-0">
-                <TimeTrackerTab neighbourhoodName="NRES" />
               </TabsContent>
               <TabsContent value="document-vault" className="mt-0">
                 <NRESDocumentVault />
