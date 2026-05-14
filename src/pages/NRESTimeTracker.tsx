@@ -786,8 +786,8 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
     : 'Your time entries';
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
+    <div className={embedded ? '' : 'min-h-screen bg-slate-50'}>
+      {!embedded && <Header />}
       <div className={cn('mx-auto px-4 py-4', topTab === 'manager' ? 'max-w-7xl' : 'max-w-2xl')}>
         {/* Title row */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
