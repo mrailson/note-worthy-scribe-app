@@ -1534,16 +1534,6 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                 )}
-                {entries.some(e => (e.category || 'general') === 'part_b') && (
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>PDF — Part B by cohort</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => exportPDF('this-month', 'cohort')}>This month</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => exportPDF('last-month', 'cohort')}>Last month</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => exportPDF('all-time', 'cohort')}>All time</DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                )}
                 {category === 'part_b' && (
                   <>
                     <DropdownMenuSeparator />
