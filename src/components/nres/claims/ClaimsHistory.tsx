@@ -72,6 +72,7 @@ function getFilterPills(role: ClaimsRole, claims: ClaimLine[], statusCounts: Rec
 export function ClaimsHistory({
   claims, practices, role, evidence, auditLog, saving,
   getAction, canQuery, onAdvanceStatus, onResubmit, onQuery, onExpandClaim,
+  externalStatusFilter,
 }: ClaimsHistoryProps) {
   const defaultFilter = role === 'approver' ? 'awaiting_pml_approval' : role === 'finance' ? 'finance_pipeline' : 'all';
   const [statusFilter, setStatusFilter] = useState(defaultFilter);
@@ -80,6 +81,10 @@ export function ClaimsHistory({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [queryNote, setQueryNote] = useState('');
   const [queryingId, setQueryingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (externalStatusFilter) setStatusFilter(externalStatusFilter);
+  }, [externalStatusFilter]);
 
   const filtered = useMemo(() => {
     return claims.filter(c => {
