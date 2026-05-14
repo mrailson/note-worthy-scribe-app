@@ -648,10 +648,9 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
     const colleagueEmail = (id: string | null | undefined) =>
       id ? ((colleagues.find(c => c.user_id === id) as any)?.email || '') : '';
 
-    const rows: string[][] = [['Date', 'Day', 'Tracked for (name)', 'Tracked for (email)', 'Logged by', 'Category', 'Cohort', 'Activity', 'Duration (mins)', 'Duration (hh:mm)', 'Notes']];
+    const rows: string[][] = [['Date', 'Day', 'Tracked for (name)', 'Tracked for (email)', 'Logged by', 'Category', 'Activity', 'Duration (mins)', 'Duration (hh:mm)', 'Notes']];
     let total = 0;
     const byAct: Record<string, { mins: number; count: number }> = {};
-    const byCohort: Record<string, { mins: number; count: number }> = {};
     for (const e of rangeEntries) {
       const d = parseISO(e.entry_date);
       const cat = (e.category || 'general') === 'part_b' ? 'Part B' : 'General';
@@ -664,7 +663,7 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       rows.push([
         e.entry_date, format(d, 'EEE'),
         trackedName, trackedEmail, loggedBy,
-        cat, e.cohort || '', e.activity,
+        cat, e.activity,
         String(e.minutes), formatDuration(e.minutes),
         (e.notes || '').replace(/"/g, '""'),
       ]);
@@ -672,29 +671,16 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       if (!byAct[e.activity]) byAct[e.activity] = { mins: 0, count: 0 };
       byAct[e.activity].mins += e.minutes;
       byAct[e.activity].count += 1;
-      if ((e.category || 'general') === 'part_b') {
-        const c = e.cohort || '(no cohort)';
-        if (!byCohort[c]) byCohort[c] = { mins: 0, count: 0 };
-        byCohort[c].mins += e.minutes;
-        byCohort[c].count += 1;
-      }
     }
     const pad = (extra: number) => Array(extra).fill('');
     rows.push([]);
-    rows.push(['', '', '', '', '', '', '', `Range: ${label}`, '', '', '']);
-    rows.push(['', '', '', '', '', '', '', 'Total entries', String(rangeEntries.length), '', '']);
-    rows.push(['', '', '', '', '', '', '', 'Total time', String(total), formatDuration(total), '']);
+    rows.push(['', '', '', '', '', '', `Range: ${label}`, '', '', '']);
+    rows.push(['', '', '', '', '', '', 'Total entries', String(rangeEntries.length), '', '']);
+    rows.push(['', '', '', '', '', '', 'Total time', String(total), formatDuration(total), '']);
     rows.push([]);
-    rows.push(['Activity breakdown', 'Entries', 'Minutes', 'Duration (hh:mm)', ...pad(7)]);
+    rows.push(['Activity breakdown', 'Entries', 'Minutes', 'Duration (hh:mm)', ...pad(6)]);
     for (const [act, v] of Object.entries(byAct)) {
-      rows.push([act, String(v.count), String(v.mins), formatDuration(v.mins), ...pad(7)]);
-    }
-    if (Object.keys(byCohort).length > 0) {
-      rows.push([]);
-      rows.push(['Part B by cohort', 'Entries', 'Minutes', 'Duration (hh:mm)', ...pad(7)]);
-      for (const [c, v] of Object.entries(byCohort)) {
-        rows.push([c, String(v.count), String(v.mins), formatDuration(v.mins), ...pad(7)]);
-      }
+      rows.push([act, String(v.count), String(v.mins), formatDuration(v.mins), ...pad(6)]);
     }
     const csv = rows.map(r => r.map(c => /[",\n]/.test(c) ? `"${c}"` : c).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
