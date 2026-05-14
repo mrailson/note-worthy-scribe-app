@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDrillThrough } from "@/hooks/useDrillThrough";
 import { useNarpIdentifiableAccess } from "@/hooks/useNarpIdentifiableAccess";
-import { IdentifiableExportModal } from "@/components/nres/IdentifiableExportModal";
+
 import { AddToWorklistDialog } from "@/components/nres/AddToWorklistDialog";
 import { ScoreInfoTooltip } from "@/components/nres/ScoreInfoTooltip";
 import { Kpi } from "@/components/dashboard/Kpi";
@@ -155,8 +155,6 @@ export const PatientDrillDrawer = ({
   // without collecting a separate reason because the DSA/DPO approval covers access.
   const [exceptionRevealed, setExceptionRevealed] = useState(false);
 
-  // Identifiable CSV export modal — Phase B
-  const [identifiableExportOpen, setIdentifiableExportOpen] = useState(false);
 
   // Add-to-worklist dialog — Phase C
   const [worklistDialogOpen, setWorklistDialogOpen] = useState(false);
@@ -480,17 +478,14 @@ export const PatientDrillDrawer = ({
     return details;
   };
 
-  const exportCsvAnonymised = async () => {
+  const exportCohortCsv = (withNarpRef: boolean) => {
     if (!sortedRows.length) {
       toast.info("Nothing to export");
       return;
     }
-    const includeIdentifiers = showInlinePII;
-    const details = includeIdentifiers ? await resolveDetailsForRows(sortedRows) : null;
-    if (includeIdentifiers && !details) return;
-    const headers = includeIdentifiers
-      ? ["NHS_Number", "Name", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"]
-      : ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
+    const headers = withNarpRef
+      ? ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"]
+      : ["Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
     const csvRows: string[] = [headers.join(",")];
     for (const r of sortedRows) {
       const base = [
@@ -503,36 +498,19 @@ export const PatientDrillDrawer = ({
         r.poA ?? "",
         r.poLoS ?? "",
       ];
-      const values = includeIdentifiers
-        ? [details?.[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details?.[r.fkPatientLinkId], r), ...base]
-        : [r.fkPatientLinkId, ...base];
+      const values = withNarpRef ? [r.fkPatientLinkId, ...base] : base;
       csvRows.push(values.map(csvEscape).join(","));
     }
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const slug = filters.map((f) => f.key).join("+") || "all";
-    a.href = url; a.download = includeIdentifiers ? `narp-${slug}-identifiable.csv` : `narp-${slug}-anonymised.csv`; a.click();
+    a.href = url; a.download = withNarpRef ? `narp-${slug}-with-ref.csv` : `narp-${slug}-metrics.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
-  /**
-   * Identifiable CSV export — opens the reason+consent modal.
-   * The modal calls the `narp-export-identifiable` edge function which
-   * decrypts PII server-side, returns CSV bytes + SHA-256, and writes
-   * one audit row to `narp_export_log`.
-   */
-  const exportCsvIdentifiable = () => {
-    if (!practiceId) {
-      toast.error("Select a single practice before exporting identifiers");
-      return;
-    }
-    if (!sortedRows.length) {
-      toast.info("Nothing to export");
-      return;
-    }
-    setIdentifiableExportOpen(true);
-  };
+  const exportCsvMetricsOnly = () => exportCohortCsv(false);
+  const exportCsvWithNarpRef = () => exportCohortCsv(true);
 
   const titleText = filters.length === 0
     ? "Patient list"
@@ -573,7 +551,7 @@ export const PatientDrillDrawer = ({
     if (frailty === "Mild") return "border-accent/30 bg-accent/10 text-accent-foreground";
     return "border-muted-foreground/20 bg-muted text-muted-foreground";
   };
-  const exportVisibleCsv = () => void exportCsvAnonymised();
+  const exportVisibleCsv = () => exportCsvMetricsOnly();
 
   const renderCohortMode = () => (
     <>
@@ -727,15 +705,13 @@ export const PatientDrillDrawer = ({
                   <TooltipContent side="left" className="max-w-xs text-xs">Cohort rows with risk metrics only. No patient-level reference column included.</TooltipContent>
                 </Tooltip>
               </div>
-              {canExportPII && (
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={exportCsvIdentifiable} className="flex flex-1 items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" />Export visible (with NARP reference)</button>
-                  <Tooltip>
-                    <TooltipTrigger asChild><button type="button" aria-label="About NARP reference export" className="px-1.5 py-2 text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button></TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-xs text-xs">Includes the pseudonymised Graphnet NARP reference (FK_Patient_Link_ID). No patient identifiable data (NHS number, name, date of birth) is held in or exported by Notewell.</TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={exportCsvWithNarpRef} className="flex flex-1 items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" />Export visible (with NARP reference)</button>
+                <Tooltip>
+                  <TooltipTrigger asChild><button type="button" aria-label="About NARP reference export" className="px-1.5 py-2 text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button></TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs text-xs">Includes the pseudonymised Graphnet NARP reference (FK_Patient_Link_ID). No patient identifiable data (NHS number, name, date of birth) is held in or exported by Notewell.</TooltipContent>
+                </Tooltip>
+              </div>
               {selected.size > 0 && <button type="button" onClick={sendToBuyBack} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><Send className="h-4 w-4" />Send to Buy-Back Claims</button>}
             </TooltipProvider>
           </PopoverContent>
@@ -834,15 +810,6 @@ export const PatientDrillDrawer = ({
           added_frailty_category: r.frailty,
         }))}
         onAdded={() => clearSelection()}
-      />
-
-      <IdentifiableExportModal
-        open={identifiableExportOpen}
-        onOpenChange={setIdentifiableExportOpen}
-        practiceId={practiceId}
-        practiceName={practiceName}
-        cohortLabel={filters.length > 0 ? filters.map((f) => f.label).join(" + ") : undefined}
-        rowCountHint={sortedRows.length}
       />
     </>
   );
