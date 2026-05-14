@@ -4600,7 +4600,17 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
         : '0 1px 3px rgba(0,0,0,0.04)',
       transition: 'box-shadow 0.2s',
     }}>
-      <button onClick={onToggle} style={{
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
+        style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
         padding: '14px 18px', border: 'none', background: 'transparent',
         cursor: 'pointer', textAlign: 'left',
@@ -4677,7 +4687,7 @@ function PracticeClaimCard({ claim, expanded, onToggle, onSubmit, onResubmit, on
             </div>
           )}
         </div>
-      </button>
+      </div>
 
       {expanded && (
         <div style={{ borderTop: '1px solid #f3f4f6', padding: '0 18px 18px' }}>

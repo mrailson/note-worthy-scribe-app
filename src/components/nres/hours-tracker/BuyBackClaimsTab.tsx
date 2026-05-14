@@ -1093,6 +1093,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   });
   const adminQueriedCount = adminCounts.queried || 0;
 
+  const handleAdminKpiSelect = useCallback((status: string) => {
+    setFilterStatus(status);
+    setTimeout(() => {
+      claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }, []);
+
   // Wrappers to satisfy StaffRosterSection signature (Practice form expects practice_key)
   const adminAddStaff = isAdmin
     ? async (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => {
@@ -1225,12 +1232,12 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
 
           {/* KPI cards — 6-column grid matching Practice view */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 16 }}>
-            <KpiCard label="Drafts" value={adminCounts.draft || 0} sub={fmtShort(adminTotals.draft)} accent={(adminCounts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted" />
-            <KpiCard label="Awaiting Verification" value={adminCounts.submitted || 0} sub={fmtShort(adminTotals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES verification" />
-            <KpiCard label="Awaiting Approval" value={adminCounts.verified || 0} sub={fmtShort(adminTotals.verified)} accent="#7c3aed" tooltip="Verified, awaiting PML Finance Director approval" />
-            <KpiCard label="Invoiced" value={(adminCounts.approved || 0) + (adminCounts.invoiced || 0)} sub={fmtShort(adminTotals.approved + adminTotals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" />
-            <KpiCard label="Paid" value={adminCounts.paid || 0} sub={fmtShort(adminTotals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" />
-            <KpiCard label="Queried" value={adminQueriedCount} sub={fmtShort(adminTotals.queried)} accent={adminQueriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" />
+            <KpiCard label="Drafts" value={adminCounts.draft || 0} sub={fmtShort(adminTotals.draft)} accent={(adminCounts.draft || 0) > 0 ? '#64748b' : '#d1d5db'} tooltip="Claims being prepared, not yet submitted" onClick={() => handleAdminKpiSelect('draft')} active={filterStatus === 'draft'} />
+            <KpiCard label="Awaiting Verification" value={adminCounts.submitted || 0} sub={fmtShort(adminTotals.submitted)} accent="#2563eb" tooltip="Submitted by practice, awaiting NRES verification" onClick={() => handleAdminKpiSelect('submitted')} active={filterStatus === 'submitted'} />
+            <KpiCard label="Awaiting Approval" value={adminCounts.verified || 0} sub={fmtShort(adminTotals.verified)} accent="#7c3aed" tooltip="Verified, awaiting PML Finance Director approval" onClick={() => handleAdminKpiSelect('verified')} active={filterStatus === 'verified'} />
+            <KpiCard label="Invoiced" value={(adminCounts.approved || 0) + (adminCounts.invoiced || 0)} sub={fmtShort(adminTotals.approved + adminTotals.invoiced)} accent="#d97706" tooltip="Approved and invoiced, awaiting payment" onClick={() => handleAdminKpiSelect('invoiced')} active={filterStatus === 'invoiced'} />
+            <KpiCard label="Paid" value={adminCounts.paid || 0} sub={fmtShort(adminTotals.paid)} accent="#16a34a" tooltip="Payment completed and confirmed" onClick={() => handleAdminKpiSelect('paid')} active={filterStatus === 'paid'} />
+            <KpiCard label="Queried" value={adminQueriedCount} sub={fmtShort(adminTotals.queried)} accent={adminQueriedCount > 0 ? '#dc2626' : '#d1d5db'} tooltip="Returned with queries — action required from practice" onClick={() => handleAdminKpiSelect('queried')} active={filterStatus === 'queried'} />
           </div>
 
           {/* Unified filter row — 4 equal columns */}
@@ -1379,25 +1386,29 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
           </div>
 
           {/* Unified Claims section — Practice-style ClaimsViewSwitcher with view tabs + Export */}
-          <ClaimsViewSwitcher
-            claims={practiceFilteredClaims}
-            practiceKey={effectiveFilterPractice === 'all' ? '' : effectiveFilterPractice}
-            practiceName={effectiveFilterPractice === 'all' ? 'All Practices' : (ALL_PRACTICES[effectiveFilterPractice] || '')}
-            onToggleCard={(id) => setAdminExpandedClaimId(adminExpandedClaimId === id ? null : id)}
-             expandedClaimId={adminExpandedClaimId}
-            onSubmit={submitClaim}
-            onResubmit={(id, notes) => submitClaim(id, notes)}
-            onUpdateClaimNotes={updateClaimNotes}
-            onUpdateStaffLine={updateStaffLine}
-            rateParams={rateParams}
-            saving={savingClaim}
-            directorMode
-            practiceFilter={effectiveFilterPractice}
-            onPracticeFilterChange={setFilterPractice}
-            practiceOptions={directorPracticeOptions}
-            defaultView="cards"
-            exportVariant={isPMLFinance ? 'finance' : 'director'}
-          />
+          <div ref={claimsHistoryRef}>
+            <ClaimsViewSwitcher
+              claims={practiceFilteredClaims}
+              practiceKey={effectiveFilterPractice === 'all' ? '' : effectiveFilterPractice}
+              practiceName={effectiveFilterPractice === 'all' ? 'All Practices' : (ALL_PRACTICES[effectiveFilterPractice] || '')}
+              onToggleCard={(id) => setAdminExpandedClaimId(adminExpandedClaimId === id ? null : id)}
+               expandedClaimId={adminExpandedClaimId}
+              onSubmit={submitClaim}
+              onResubmit={(id, notes) => submitClaim(id, notes)}
+              onUpdateClaimNotes={updateClaimNotes}
+              onUpdateStaffLine={updateStaffLine}
+              rateParams={rateParams}
+              saving={savingClaim}
+              directorMode
+              practiceFilter={effectiveFilterPractice}
+              onPracticeFilterChange={setFilterPractice}
+              practiceOptions={directorPracticeOptions}
+              defaultView="cards"
+              exportVariant={isPMLFinance ? 'finance' : 'director'}
+              statusFilter={filterStatus === 'all' ? null : filterStatus}
+              onStatusFilterChange={(status) => setFilterStatus(status || 'all')}
+            />
+          </div>
         </>
       )}
 
