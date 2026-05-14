@@ -1526,9 +1526,11 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
                   return (
                     <li key={e.id} className="flex items-center gap-3 p-3">
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-slate-900 truncate flex items-center">
-                          {(e.category || 'general') === 'part_b' && (
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 shrink-0" aria-label="Part B" />
+                        <div className="text-sm font-medium text-slate-900 truncate flex items-center gap-1.5">
+                          {(e.category || 'general') === 'part_b' ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 shrink-0">Part B</span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 shrink-0">General</span>
                           )}
                           <span className="truncate">{e.activity}</span>
                         </div>
