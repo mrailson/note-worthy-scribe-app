@@ -761,17 +761,28 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       headStyles: { fillColor: [5, 150, 105] },
     });
 
+    const colleagueName = (id?: string | null) =>
+      id ? (colleagues.find(c => c.user_id === id)?.display_name || '') : '';
+    const trackedFor = (e: Entry) =>
+      e.user_id === user?.id
+        ? ((user?.user_metadata as any)?.full_name || user?.email || 'You')
+        : ((e as any).on_behalf_of_name || colleagueName(e.user_id) || 'Colleague');
+
     autoTable(doc, {
-      head: [['Date', 'Cat', 'Cohort', 'Activity', 'Duration', 'Notes']],
+      head: [['Date', 'Cat', 'Activity', 'Duration', 'Notes']],
       body: [
-        ...focused.map(e => [
-          format(parseISO(e.entry_date), 'dd/MM/yyyy'),
-          (e.category || 'general') === 'part_b' ? 'Part B' : 'Gen',
-          e.cohort || '',
-          e.activity, formatDuration(e.minutes), e.notes || '',
-        ]),
+        ...focused.map(e => {
+          const who = trackedFor(e);
+          const baseNotes = e.notes || '';
+          const notesWithWho = baseNotes ? `${baseNotes}\n— Tracked for: ${who}` : `Tracked for: ${who}`;
+          return [
+            format(parseISO(e.entry_date), 'dd/MM/yyyy'),
+            (e.category || 'general') === 'part_b' ? 'Part B' : 'Gen',
+            e.activity, formatDuration(e.minutes), notesWithWho,
+          ];
+        }),
         [
-          { content: `Total entries: ${focused.length}`, colSpan: 4, styles: { fontStyle: 'bold' as const } },
+          { content: `Total entries: ${focused.length}`, colSpan: 3, styles: { fontStyle: 'bold' as const } },
           { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
           { content: '', styles: {} },
         ],
