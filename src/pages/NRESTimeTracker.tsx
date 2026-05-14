@@ -879,14 +879,28 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       doc.addImage(dataUrl, 'PNG', pageWidth - 20 - 30, 8, 30, 30);
     } catch {}
 
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const leftX = 14;
+    const rightLogoEdge = pageWidth - 20 - 30; // start of logo
+    const headerWrapWidth = rightLogoEdge - leftX - 4; // keep clear of logo
+
     doc.setFontSize(16);
-    doc.text(`NRES Part B — ${scopeLabel}`, 14, 18);
+    doc.text(`NRES Part B — ${scopeLabel}`, leftX, 18);
     doc.setFontSize(10);
-    doc.text(`${label}`, 14, 26);
-    doc.text(scope === 'practice'
+    doc.text(`${label}`, leftX, 26);
+
+    const subjectText = scope === 'practice'
       ? (practiceNames.join(', ') || 'Practice')
-      : (user?.email || ''), 14, 32);
-    doc.text(`Generated: ${format(new Date(), 'd MMM yyyy HH:mm')}`, 14, 38);
+      : (user?.email || '');
+    const subjectLines = doc.splitTextToSize(subjectText, headerWrapWidth);
+    doc.text(subjectLines, leftX, 32);
+    let y = 32 + subjectLines.length * 5;
+
+    // Ensure we're below the logo (logo bottom ≈ 8 + 30 = 38)
+    if (y < 42) y = 42;
+
+    doc.text(`Generated: ${format(new Date(), 'd MMM yyyy HH:mm')}`, leftX, y);
+    y += 8;
 
     const total = scopedEntries.reduce((s, e) => s + e.minutes, 0);
 
@@ -899,10 +913,11 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
     });
 
     doc.setFontSize(11);
-    doc.text(`Total entries: ${scopedEntries.length}    Total time: ${formatDuration(total)}`, 14, 46);
+    doc.text(`Total entries: ${scopedEntries.length}    Total time: ${formatDuration(total)}`, leftX, y);
+    y += 6;
 
     autoTable(doc, {
-      startY: 52,
+      startY: y,
       head: [['Cohort', 'Entries', 'Total time', '% of total']],
       body: [
         ...Object.entries(byCohort).map(([c, v]) => [
