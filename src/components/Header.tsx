@@ -360,7 +360,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 className="cursor-pointer py-3 text-emerald-700"
                               >
                                 <Clock className="h-4 w-4 mr-2" />
-                                Time Tracker
+                                Part B Time Tracker
                               </DropdownMenuItem>
                               {(() => {
                                 const NHC_PLANNING_ALLOWED_EMAILS = [
