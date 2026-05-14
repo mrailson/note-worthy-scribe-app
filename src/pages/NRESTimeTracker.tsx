@@ -114,7 +114,7 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
 
   // Part B state
-  const [category, setCategory] = useState<CategoryT>('part_b');
+  const [category, setCategory] = useState<CategoryT>('general');
   const [cohort, setCohort] = useState<string | null>(null);
   const [cohortOther, setCohortOther] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
