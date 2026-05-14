@@ -41,6 +41,17 @@ export function NRESClaimsOversight() {
 
   const [view, setView] = useState<'dashboard' | 'create' | 'claims'>('dashboard');
   const [selectedPracticeId, setSelectedPracticeId] = useState<string>('');
+  const [externalStatusFilter, setExternalStatusFilter] = useState<string | null>(null);
+  const claimsHistoryRef = useRef<HTMLDivElement | null>(null);
+
+  const handleCardClick = (filterKey: string) => {
+    // Bump with a unique suffix so repeat clicks still trigger the effect
+    setExternalStatusFilter(`${filterKey}::${Date.now()}`);
+    // Use rAF to allow the filter to apply before scrolling
+    requestAnimationFrame(() => {
+      claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   // Default to first practice if none selected
   const effectivePracticeId = selectedPracticeId || (practices.length > 0 ? practices[0].id : '');
