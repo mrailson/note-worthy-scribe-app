@@ -181,7 +181,15 @@ export const methodologySections: MethodologySection[] = [
     id: "data-governance",
     title: "DATA GOVERNANCE",
     blocks: [
-      { type: "list", items: ["NARP data is processed under the New Models of Care Data Sharing Agreement signed with Northamptonshire ICB.", "Patient identifiable data (NHS number, name, DOB) is visible only to named users explicitly authorised under the DSA.", "All access to identifiable data is logged in narp_pii_access_log; all identifiable exports in narp_export_log. These logs are reviewable by the ICB and the Notewell Caldicott Guardian on request.", "FK_Patient_Link_ID is the Graphnet-assigned pseudonymised internal key used to link records across exports without exposing NHS number.", "Notewell AI holds MHRA Class I medical device registration and conforms to DCB0129 / DCB0160 clinical safety standards."] },
+      { type: "p", text: "Current data position (Proof of Concept)" },
+      { type: "p", text: "For the current proof-of-concept phase, Notewell holds NO patient identifiable data — no NHS number, no name, no date of birth, no address or contact details." },
+      { type: "p", text: "The only patient-level reference held in Notewell is the FK_Patient_Link_ID, the pseudonymised internal patient key assigned by Graphnet. This key allows records to be linked across monthly NARP exports without exposing identity. Re-identification can only be performed by users with authorised access to the source Graphnet / Northamptonshire Care Record system; it cannot be done from within Notewell." },
+      { type: "p", text: "Information Governance pathway" },
+      { type: "list", items: ["A NARP-specific Data Sharing Agreement (DSA) for the NRES pilot is in development with ICB DDaT.", "A corresponding DPIA covers the data flows for the proof-of-concept phase.", "Any future change to introduce patient identifiable data into Notewell would require formal ICB IG sign-off via the Digital Review process (chaired by Tracey Dempster), with a corresponding DSA / DPIA update, before implementation."] },
+      { type: "p", text: "Clinical safety & regulatory" },
+      { type: "list", items: ["Notewell AI holds MHRA Class I medical device registration.", "Built and maintained in line with DCB0129 (Manufacturer) and DCB0160 (Deployment) clinical safety standards.", "Clinical Safety Officer: Dr Simon Ellis, NRES Clinical Director."] },
+      { type: "p", text: "Logging and audit" },
+      { type: "list", items: ["All user access and queries within Notewell are logged for audit purposes.", "Logs are reviewable by the ICB on request."] },
     ],
   },
   {
