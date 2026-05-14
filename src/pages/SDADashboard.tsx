@@ -30,7 +30,7 @@ const tabs = [
 
 const SDADashboard = () => {
   const [activeTab, setActiveTab] = useState("executive");
-  const navigate = useNavigate();
+
 
   return (
     <NRESPeopleProvider>
