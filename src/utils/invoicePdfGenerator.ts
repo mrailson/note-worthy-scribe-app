@@ -327,7 +327,7 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   const invoiceDescription = String((claim as any).practice_notes || '').trim();
   const invoiceTableRows = parseInvoiceTableDescription(invoiceDescription);
   const pipeTable = !invoiceTableRows ? parsePipeAlignedTable(invoiceDescription) : null;
-  const MAX_LINE_CHARS = 106;
+  const MAX_LINE_CHARS = 212; // allow up to ~2 wrapped lines per entered line
   const cappedDescription = invoiceDescription
     .split('\n')
     .map(l => l.length > MAX_LINE_CHARS ? l.slice(0, MAX_LINE_CHARS) : l)
