@@ -1501,14 +1501,16 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
                     <DropdownMenuItem onClick={() => exportCSV('all-time')}>All time</DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>PDF — by activity</DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuItem onClick={() => exportPDF('this-month', 'activity')}>This month</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportPDF('last-month', 'activity')}>Last month</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportPDF('all-time', 'activity')}>All time</DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
+                {category !== 'part_b' && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>PDF — by activity</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => exportPDF('this-month', 'activity')}>This month</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportPDF('last-month', 'activity')}>Last month</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportPDF('all-time', 'activity')}>All time</DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
                 {entries.some(e => (e.category || 'general') === 'part_b') && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>PDF — Part B by cohort</DropdownMenuSubTrigger>
