@@ -607,9 +607,6 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>
-            {staffDetails.length} line{staffDetails.length !== 1 ? 's' : ''} · {sessionCount} session{sessionCount !== 1 ? 's' : ''}
-          </div>
         </div>
       </button>
 
@@ -799,9 +796,12 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               if (allocType === 'sessions' && baseRate > 0) return `£${baseRate.toFixed(2)} / session`;
               return baseRate > 0 ? `£${baseRate.toFixed(2)} / hr` : '—';
             };
+            const allNewSda = staffDetails.length > 0 && staffDetails.every((s: any) => (s.staff_category || 'buyback') === 'new_sda');
             const headers = hasLocum
               ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable']
-              : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable'];
+              : allNewSda
+                ? ['Name', 'Role', 'GL Cat', 'Date', 'Unit Rate', 'Amount', 'Max Claimable']
+                : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable'];
             const rightAlignIdx = hasLocum ? 5 : 4;
             const totalClaimed = staffDetails.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
             const totalMax = staffDetails.reduce((sum: number, s: any) => sum + getMaxInfo(s).max, 0);
@@ -855,17 +855,21 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                           return isNaN(d.getTime()) ? raw : d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
                         })()}
                       </td>
-                      <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
-                        {isLocum && locHrs ? locHrs.display : hoursWorked}
-                      </td>
-                      <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                        {isLocum && locHrs ? locHrs.decimal : (() => {
-                          if (s.staff_category === 'management' && s.hourly_rate > 0 && (s.calculated_amount ?? 0) > 0) {
-                            return (s.calculated_amount / s.hourly_rate).toFixed(1);
-                          }
-                          return totalHrs !== null ? totalHrs.toFixed(1) : '—';
-                        })()}
-                      </td>
+                      {!allNewSda && (
+                        <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
+                          {isLocum && locHrs ? locHrs.display : hoursWorked}
+                        </td>
+                      )}
+                      {!allNewSda && (
+                        <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+                          {isLocum && locHrs ? locHrs.decimal : (() => {
+                            if (s.staff_category === 'management' && s.hourly_rate > 0 && (s.calculated_amount ?? 0) > 0) {
+                              return (s.calculated_amount / s.hourly_rate).toFixed(1);
+                            }
+                            return totalHrs !== null ? totalHrs.toFixed(1) : '—';
+                          })()}
+                        </td>
+                      )}
                       <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {getUnitRate(s)}
                       </td>
