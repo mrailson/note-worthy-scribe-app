@@ -903,9 +903,14 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
     doc.setFontSize(10);
     doc.text(`${label}`, leftX, 26);
 
+    let mineSubject = user?.email || '';
+    if (scope === 'mine') {
+      const myPractices = await fetchUserPracticeNames();
+      if (myPractices.length === 1) mineSubject = `${mineSubject}  ·  ${myPractices[0]}`;
+    }
     const subjectText = scope === 'practice'
       ? (practiceNames.join(', ') || 'Practice')
-      : (user?.email || '');
+      : mineSubject;
     const subjectLines = doc.splitTextToSize(subjectText, headerWrapWidth);
     doc.text(subjectLines, leftX, 32);
     let y = 32 + subjectLines.length * 5;
