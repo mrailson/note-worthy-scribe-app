@@ -1093,6 +1093,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
   });
   const adminQueriedCount = adminCounts.queried || 0;
 
+  const handleAdminKpiSelect = useCallback((status: string) => {
+    setFilterStatus(status);
+    setTimeout(() => {
+      claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }, []);
+
   // Wrappers to satisfy StaffRosterSection signature (Practice form expects practice_key)
   const adminAddStaff = isAdmin
     ? async (member: Omit<BuyBackStaffMember, 'id' | 'user_id' | 'practice_id' | 'created_at' | 'updated_at'>) => {
