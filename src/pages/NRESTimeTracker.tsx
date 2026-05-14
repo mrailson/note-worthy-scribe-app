@@ -85,7 +85,7 @@ interface Colleague {
 
 type LogTarget = { id: string; name: string } | null; // null = self
 
-const NRESTimeTracker = () => {
+const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activities, setActivities] = useState<Activity[]>([]);
