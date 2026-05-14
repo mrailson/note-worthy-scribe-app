@@ -7,7 +7,6 @@ import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
-import { TimeTrackerTab } from "@/components/nres/hours-tracker/TimeTrackerTab";
 import { 
   LayoutDashboard, 
   Building2, 
