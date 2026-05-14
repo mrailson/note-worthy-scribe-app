@@ -703,6 +703,17 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   };
 
+  const fetchUserPracticeNames = async (): Promise<string[]> => {
+    try {
+      const { data: pids } = await (supabase as any).rpc('get_user_practice_ids', { p_user_id: user?.id });
+      const practiceIds: string[] = (pids || []).map((p: any) => p.practice_id || p);
+      if (practiceIds.length === 0) return [];
+      const { data: pracs } = await (supabase as any)
+        .from('gp_practices').select('name').in('id', practiceIds);
+      return (pracs || []).map((p: any) => p.name).filter(Boolean);
+    } catch { return []; }
+  };
+
   const exportPDF = async (range: ExportRange = 'this-month', groupBy: 'activity' | 'cohort' = 'activity') => {
     const { entries: rangeEntries, label, fileBase } = getRangeData(range);
     const doc = new jsPDF();
@@ -720,10 +731,13 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       doc.addImage(dataUrl, 'PNG', pageWidth - 20 - 30, 8, 30, 30);
     } catch {}
 
+    const myPractices = await fetchUserPracticeNames();
+    const singlePractice = myPractices.length === 1 ? myPractices[0] : '';
+
     doc.setFontSize(16);
     doc.text(`NRES Time Recording — ${label}`, 14, 18);
     doc.setFontSize(10);
-    doc.text(`${user?.email || ''}`, 14, 26);
+    doc.text(`${user?.email || ''}${singlePractice ? `  ·  ${singlePractice}` : ''}`, 14, 26);
     doc.text(`Generated: ${format(new Date(), 'd MMM yyyy HH:mm')}`, 14, 32);
 
     // For cohort grouping, restrict to Part B entries
