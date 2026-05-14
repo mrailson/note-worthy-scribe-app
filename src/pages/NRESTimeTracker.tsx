@@ -997,7 +997,7 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
         {/* Title row */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-emerald-600" /> NRES Time Tracker
+            <Clock className="w-5 h-5 text-emerald-600" /> {category === 'part_b' ? 'NRES Part B Time Tracker' : 'NRES Time Tracker - General'}
           </h1>
           {isVerifier && (
             <div className="inline-flex items-center gap-1 rounded-full bg-stone-100 p-1">
