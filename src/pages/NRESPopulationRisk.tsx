@@ -1421,7 +1421,7 @@ const TopRiskSection = ({
         <table className="w-full text-sm border-collapse">
           <thead className="bg-slate-50 text-muted-foreground uppercase text-[10px] tracking-wider">
             <tr>
-              <th className="text-left p-3">Ref</th>
+              <th className="text-left p-3">NARP Ref</th>
               {showIdentifiers && <th className="text-left p-3">NHS Number</th>}
               {showIdentifiers && <th className="text-left p-3">Name</th>}
               <th className="text-left p-3">Age</th>
