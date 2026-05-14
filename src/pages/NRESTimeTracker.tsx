@@ -1295,8 +1295,10 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
                   return (
                     <div key={a.id} className="relative">
                       <button onClick={() => !manageMode && setSelectedActivity(a.label)}
-                        className={`w-full rounded-lg px-3 py-2 text-left text-sm border-2 transition ${
-                          active ? 'bg-emerald-600 border-emerald-700 text-white' : 'bg-white border-slate-200 text-slate-700'
+                        className={`w-full rounded-lg px-3 py-2 text-left text-sm border-2 transition-all duration-200 ${
+                          active
+                            ? 'bg-emerald-600 border-emerald-700 text-white shadow-md hover:shadow-lg hover:-translate-y-0.5'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-800 hover:shadow-md hover:-translate-y-0.5'
                         }`}>
                         {a.label}
                       </button>
