@@ -813,15 +813,6 @@ export const PatientDrillDrawer = ({
         }))}
         onAdded={() => clearSelection()}
       />
-
-      <IdentifiableExportModal
-        open={identifiableExportOpen}
-        onOpenChange={setIdentifiableExportOpen}
-        practiceId={practiceId}
-        practiceName={practiceName}
-        cohortLabel={filters.length > 0 ? filters.map((f) => f.label).join(" + ") : undefined}
-        rowCountHint={sortedRows.length}
-      />
     </>
   );
 };
