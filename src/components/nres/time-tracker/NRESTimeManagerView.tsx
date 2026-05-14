@@ -364,7 +364,7 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
         {hideHeading ? <div /> : (
           <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
             <Users className="w-5 h-5" style={{ color: NHS_BLUE }} />
-            NRES Time Tracker — Management View
+            NRES Part B Time Tracker — Management View
           </h2>
         )}
         <div className="flex items-center gap-2 flex-wrap">
