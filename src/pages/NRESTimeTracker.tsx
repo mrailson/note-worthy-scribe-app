@@ -1480,6 +1480,27 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                 )}
+                {category === 'part_b' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>PDF — My Part B Activity</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => exportPartBPDF('mine', 'this-month')}>This month</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportPartBPDF('mine', 'last-month')}>Last month</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportPartBPDF('mine', 'all-time')}>All time</DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>PDF — My Practice Part B</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => exportPartBPDF('practice', 'this-month')}>This month</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportPartBPDF('practice', 'last-month')}>Last month</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportPartBPDF('practice', 'all-time')}>All time</DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </CardHeader>
