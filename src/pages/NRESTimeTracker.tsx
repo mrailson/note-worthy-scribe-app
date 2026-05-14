@@ -641,14 +641,33 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
 
   const exportCSV = (range: ExportRange) => {
     const { entries: rangeEntries, label, fileBase } = getRangeData(range);
-    const rows: string[][] = [['Date', 'Day', 'Category', 'Cohort', 'Activity', 'Duration (mins)', 'Duration (hh:mm)', 'Notes']];
+    const youName = (user as any)?.user_metadata?.full_name || user?.email || 'Me';
+    const youEmail = user?.email || '';
+    const colleagueName = (id: string | null | undefined) =>
+      id ? (colleagues.find(c => c.user_id === id)?.display_name || '') : '';
+    const colleagueEmail = (id: string | null | undefined) =>
+      id ? ((colleagues.find(c => c.user_id === id) as any)?.email || '') : '';
+
+    const rows: string[][] = [['Date', 'Day', 'Tracked for (name)', 'Tracked for (email)', 'Logged by', 'Category', 'Cohort', 'Activity', 'Duration (mins)', 'Duration (hh:mm)', 'Notes']];
     let total = 0;
     const byAct: Record<string, { mins: number; count: number }> = {};
     const byCohort: Record<string, { mins: number; count: number }> = {};
     for (const e of rangeEntries) {
       const d = parseISO(e.entry_date);
       const cat = (e.category || 'general') === 'part_b' ? 'Part B' : 'General';
-      rows.push([e.entry_date, format(d, 'EEE'), cat, e.cohort || '', e.activity, String(e.minutes), formatDuration(e.minutes), (e.notes || '').replace(/"/g, '""')]);
+      const isMine = e.user_id === user?.id;
+      const trackedName = isMine
+        ? youName
+        : ((e as any).on_behalf_of_name || colleagueName(e.user_id) || 'Colleague');
+      const trackedEmail = isMine ? youEmail : colleagueEmail(e.user_id);
+      const loggedBy = (e.entered_by && e.entered_by !== e.user_id) ? youName : trackedName;
+      rows.push([
+        e.entry_date, format(d, 'EEE'),
+        trackedName, trackedEmail, loggedBy,
+        cat, e.cohort || '', e.activity,
+        String(e.minutes), formatDuration(e.minutes),
+        (e.notes || '').replace(/"/g, '""'),
+      ]);
       total += e.minutes;
       if (!byAct[e.activity]) byAct[e.activity] = { mins: 0, count: 0 };
       byAct[e.activity].mins += e.minutes;
@@ -660,20 +679,21 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
         byCohort[c].count += 1;
       }
     }
+    const pad = (extra: number) => Array(extra).fill('');
     rows.push([]);
-    rows.push(['', '', '', '', `Range: ${label}`, '', '', '']);
-    rows.push(['', '', '', '', 'Total entries', String(rangeEntries.length), '', '']);
-    rows.push(['', '', '', '', 'Total time', String(total), formatDuration(total), '']);
+    rows.push(['', '', '', '', '', '', '', `Range: ${label}`, '', '', '']);
+    rows.push(['', '', '', '', '', '', '', 'Total entries', String(rangeEntries.length), '', '']);
+    rows.push(['', '', '', '', '', '', '', 'Total time', String(total), formatDuration(total), '']);
     rows.push([]);
-    rows.push(['Activity breakdown', 'Entries', 'Minutes', 'Duration (hh:mm)', '', '', '', '']);
+    rows.push(['Activity breakdown', 'Entries', 'Minutes', 'Duration (hh:mm)', ...pad(7)]);
     for (const [act, v] of Object.entries(byAct)) {
-      rows.push([act, String(v.count), String(v.mins), formatDuration(v.mins), '', '', '', '']);
+      rows.push([act, String(v.count), String(v.mins), formatDuration(v.mins), ...pad(7)]);
     }
     if (Object.keys(byCohort).length > 0) {
       rows.push([]);
-      rows.push(['Part B by cohort', 'Entries', 'Minutes', 'Duration (hh:mm)', '', '', '', '']);
+      rows.push(['Part B by cohort', 'Entries', 'Minutes', 'Duration (hh:mm)', ...pad(7)]);
       for (const [c, v] of Object.entries(byCohort)) {
-        rows.push([c, String(v.count), String(v.mins), formatDuration(v.mins), '', '', '', '']);
+        rows.push([c, String(v.count), String(v.mins), formatDuration(v.mins), ...pad(7)]);
       }
     }
     const csv = rows.map(r => r.map(c => /[",\n]/.test(c) ? `"${c}"` : c).join(',')).join('\n');
