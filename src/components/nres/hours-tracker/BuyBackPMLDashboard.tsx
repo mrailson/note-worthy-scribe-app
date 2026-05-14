@@ -796,9 +796,12 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               if (allocType === 'sessions' && baseRate > 0) return `£${baseRate.toFixed(2)} / session`;
               return baseRate > 0 ? `£${baseRate.toFixed(2)} / hr` : '—';
             };
+            const allNewSda = staffDetails.length > 0 && staffDetails.every((s: any) => (s.staff_category || 'buyback') === 'new_sda');
             const headers = hasLocum
               ? ['Name', 'Role', 'GL Cat', 'Sessions', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable']
-              : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable'];
+              : allNewSda
+                ? ['Name', 'Role', 'GL Cat', 'Date', 'Unit Rate', 'Amount', 'Max Claimable']
+                : ['Name', 'Role', 'GL Cat', 'Date', 'Hours Worked', 'Hrs', 'Unit Rate', 'Amount', 'Max Claimable'];
             const rightAlignIdx = hasLocum ? 5 : 4;
             const totalClaimed = staffDetails.reduce((sum: number, s: any) => sum + (s.claimed_amount ?? s.calculated_amount ?? 0), 0);
             const totalMax = staffDetails.reduce((sum: number, s: any) => sum + getMaxInfo(s).max, 0);
