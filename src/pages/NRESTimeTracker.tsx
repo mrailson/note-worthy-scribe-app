@@ -766,6 +766,167 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
     doc.save(`${fileBase}${suffix}.pdf`);
   };
 
+  const exportPartBPDF = async (scope: 'mine' | 'practice', range: ExportRange) => {
+    const { label, fileBase } = getRangeData(range);
+
+    const now = new Date();
+    let start: Date | null = null;
+    let end: Date | null = null;
+    if (range === 'this-month') { start = startOfMonth(now); end = endOfMonth(now); }
+    else if (range === 'last-month') { const lm = subMonths(now, 1); start = startOfMonth(lm); end = endOfMonth(lm); }
+
+    let scopedEntries: Entry[] = [];
+    let scopeLabel = '';
+    let practiceNames: string[] = [];
+
+    if (scope === 'mine') {
+      scopeLabel = 'My Part B Activity';
+      scopedEntries = entries.filter(e =>
+        e.user_id === user?.id && (e.category || 'general') === 'part_b'
+      );
+      if (start && end) {
+        scopedEntries = scopedEntries.filter(e => {
+          const d = parseISO(e.entry_date);
+          return d >= start! && d <= end!;
+        });
+      }
+    } else {
+      scopeLabel = 'My Practice Part B Activity';
+      try {
+        const { data: pids } = await (supabase as any).rpc('get_user_practice_ids', { p_user_id: user?.id });
+        const practiceIds: string[] = (pids || []).map((p: any) => p.practice_id || p);
+        if (practiceIds.length === 0) {
+          toast.error('No practice found for your account');
+          return;
+        }
+        let q = (supabase as any).from('nres_time_entries').select('*')
+          .in('practice_id', practiceIds)
+          .eq('category', 'part_b');
+        if (start && end) {
+          q = q.gte('entry_date', format(start, 'yyyy-MM-dd')).lte('entry_date', format(end, 'yyyy-MM-dd'));
+        }
+        const { data, error } = await q.order('entry_date', { ascending: false });
+        if (error) throw error;
+        scopedEntries = (data || []) as Entry[];
+
+        const { data: pracs } = await (supabase as any)
+          .from('gp_practices').select('name').in('id', practiceIds);
+        practiceNames = (pracs || []).map((p: any) => p.name).filter(Boolean);
+      } catch (err: any) {
+        console.error(err);
+        toast.error('Failed to load practice Part B entries');
+        return;
+      }
+    }
+
+    scopedEntries = scopedEntries.slice().sort((a, b) => b.entry_date.localeCompare(a.entry_date));
+
+    let userNameById: Record<string, string> = {};
+    if (scope === 'practice') {
+      const ids = Array.from(new Set(scopedEntries.map(e => e.user_id).filter(Boolean))) as string[];
+      if (ids.length > 0) {
+        const { data: profs } = await (supabase as any)
+          .from('profiles').select('user_id, full_name, email').in('user_id', ids);
+        for (const p of (profs || [])) {
+          userNameById[p.user_id] = p.full_name || p.email || p.user_id;
+        }
+      }
+    }
+
+    const doc = new jsPDF();
+    try {
+      const res = await fetch(nresLogoUrl);
+      const blob = await res.blob();
+      const dataUrl: string = await new Promise((resolve) => {
+        const r = new FileReader();
+        r.onloadend = () => resolve(r.result as string);
+        r.readAsDataURL(blob);
+      });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.addImage(dataUrl, 'PNG', pageWidth - 20 - 30, 8, 30, 30);
+    } catch {}
+
+    doc.setFontSize(16);
+    doc.text(`NRES Part B — ${scopeLabel}`, 14, 18);
+    doc.setFontSize(10);
+    doc.text(`${label}`, 14, 26);
+    doc.text(scope === 'practice'
+      ? (practiceNames.join(', ') || 'Practice')
+      : (user?.email || ''), 14, 32);
+    doc.text(`Generated: ${format(new Date(), 'd MMM yyyy HH:mm')}`, 14, 38);
+
+    const total = scopedEntries.reduce((s, e) => s + e.minutes, 0);
+
+    const byCohort: Record<string, { mins: number; count: number }> = {};
+    scopedEntries.forEach(e => {
+      const k = e.cohort || '(no cohort)';
+      if (!byCohort[k]) byCohort[k] = { mins: 0, count: 0 };
+      byCohort[k].mins += e.minutes;
+      byCohort[k].count += 1;
+    });
+
+    doc.setFontSize(11);
+    doc.text(`Total entries: ${scopedEntries.length}    Total time: ${formatDuration(total)}`, 14, 46);
+
+    autoTable(doc, {
+      startY: 52,
+      head: [['Cohort', 'Entries', 'Total time', '% of total']],
+      body: [
+        ...Object.entries(byCohort).map(([c, v]) => [
+          c, String(v.count), formatDuration(v.mins), total ? `${((v.mins / total) * 100).toFixed(1)}%` : '0%',
+        ]),
+        [
+          { content: 'Total', styles: { fontStyle: 'bold' as const } },
+          { content: String(scopedEntries.length), styles: { fontStyle: 'bold' as const } },
+          { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
+          { content: '100%', styles: { fontStyle: 'bold' as const } },
+        ],
+      ],
+      headStyles: { fillColor: [5, 150, 105] },
+    });
+
+    const detailHead = scope === 'practice'
+      ? [['Date', 'User', 'Cohort', 'Activity', 'Duration', 'Notes']]
+      : [['Date', 'Cohort', 'Activity', 'Duration', 'Notes']];
+    const detailBody = scopedEntries.map(e => scope === 'practice'
+      ? [
+          format(parseISO(e.entry_date), 'dd/MM/yyyy'),
+          userNameById[e.user_id || ''] || '',
+          e.cohort || '',
+          e.activity, formatDuration(e.minutes), e.notes || '',
+        ]
+      : [
+          format(parseISO(e.entry_date), 'dd/MM/yyyy'),
+          e.cohort || '',
+          e.activity, formatDuration(e.minutes), e.notes || '',
+        ]);
+    const totalRow = scope === 'practice'
+      ? [
+          { content: `Total entries: ${scopedEntries.length}`, colSpan: 4, styles: { fontStyle: 'bold' as const } },
+          { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
+          { content: '', styles: {} },
+        ]
+      : [
+          { content: `Total entries: ${scopedEntries.length}`, colSpan: 3, styles: { fontStyle: 'bold' as const } },
+          { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
+          { content: '', styles: {} },
+        ];
+
+    autoTable(doc, {
+      head: detailHead,
+      body: [...detailBody, totalRow as any],
+      headStyles: { fillColor: [5, 150, 105] },
+    });
+
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i); doc.setFontSize(8);
+      doc.text(`Notewell AI — NRES Dashboard   Page ${i} of ${pageCount}`, 14, doc.internal.pageSize.height - 8);
+    }
+    const scopeTag = scope === 'practice' ? 'practice-part-b' : 'my-part-b';
+    doc.save(`${fileBase}-${scopeTag}.pdf`);
+  };
+
   const dayLabel = (d: Date) => {
     const today = new Date(); today.setHours(0,0,0,0);
     const cmp = new Date(d); cmp.setHours(0,0,0,0);
