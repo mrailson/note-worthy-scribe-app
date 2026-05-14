@@ -3665,7 +3665,7 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
       const monthLabel = getClaimMonthLabel(c);
       const practice = directorMode ? (getPracticeName(c.practice_key) || '—') : '';
       const key = directorMode ? `${monthLabel}__${practice}` : monthLabel;
-      if (!m[key]) m[key] = { key, month: monthLabel, practice, claims: 0, hours: 0, sessions: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 };
+      if (!m[key]) m[key] = { key, month: monthLabel, practice, claims: 0, hours: 0, sessions: 0, draft: 0, awaiting: 0, queried: 0, approved: 0, paid: 0, total: 0 };
       const r = m[key];
       const t = claimTotal(c);
       r.claims += 1;
@@ -3673,7 +3673,8 @@ function HistorySummary({ claims, hidePeriodFilter, directorMode }: { claims: Bu
       r.sessions += claimStaffCount(c);
       r.total += t;
       const ds = toDisplayStatus(c.status);
-      if (ds === 'awaiting_review' || ds === 'submitted') r.awaiting += t;
+      if (ds === 'draft') r.draft += t;
+      else if (ds === 'awaiting_review' || ds === 'submitted') r.awaiting += t;
       else if (ds === 'queried') r.queried += t;
       else if (ds === 'approved' || ds === 'invoiced') r.approved += t;
       else if (ds === 'paid') r.paid += t;
