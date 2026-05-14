@@ -20,6 +20,7 @@ interface ClaimsHistoryProps {
   onResubmit: (claimId: string) => void;
   onQuery: (claimId: string, note: string) => void;
   onExpandClaim: (claimId: string) => void;
+  externalStatusFilter?: string | null;
 }
 
 const IN_PROGRESS = ['submitted', 'verified', 'approved', 'invoice_created', 'scheduled'];
