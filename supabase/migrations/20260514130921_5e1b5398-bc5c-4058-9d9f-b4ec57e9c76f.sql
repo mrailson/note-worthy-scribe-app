@@ -1,0 +1,1 @@
+UPDATE nres_buyback_claims SET status = 'draft', submitted_at = NULL, verified_by = NULL, verified_at = NULL, verified_notes = NULL WHERE id IN ('e05e4521-2cf6-4cd0-baa0-305072e8190e','1dcfeafb-46b2-437d-bb56-d8aa16b9b0ad');
