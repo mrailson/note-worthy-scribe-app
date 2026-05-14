@@ -942,11 +942,12 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const [topTab, setTopTab] = useState<'mine' | 'manager'>('mine');
 
   const [managerSummary, setManagerSummary] = useState<{ activeCount: number; totalEligible: number; practiceCount: number } | null>(null);
+  const categoryLabel = category === 'part_b' ? 'Part B' : 'General';
   const subtitle = topTab === 'manager'
     ? (managerSummary
         ? `All NRES users · ${managerSummary.activeCount} active across ${managerSummary.practiceCount} ${managerSummary.practiceCount === 1 ? 'practice' : 'practices'}`
         : 'All NRES users')
-    : 'Your time entries';
+    : `Your ${categoryLabel} time entries`;
 
   return (
     <div className={embedded ? '' : 'min-h-screen bg-slate-50'}>
