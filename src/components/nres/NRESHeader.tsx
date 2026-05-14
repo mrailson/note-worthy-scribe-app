@@ -117,7 +117,7 @@ export const NRESHeader = ({ activeTab }: NRESHeaderProps) => {
                 {hasServiceAccess('nres') && (
                   <DropdownMenuItem onClick={() => navigate('/nres/time-tracker')} className="cursor-pointer py-2 text-emerald-700">
                     <Clock className="h-3.5 w-3.5 mr-2" />
-                    NRES Time Tracker
+                    NRES Part B Time Tracker
                   </DropdownMenuItem>
                 )}
                 {hasServiceAccess('nres') && !isPopulationRiskBlocked && (

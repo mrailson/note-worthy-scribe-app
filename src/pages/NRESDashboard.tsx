@@ -96,7 +96,7 @@ const NRESDashboard = () => {
               <Link to="/nres/time-tracker">
                 <Button variant="outline" size="sm">
                   <Clock className="w-4 h-4 mr-2" />
-                  Time Tracker
+                  Part B Time Tracker
                 </Button>
               </Link>
               <Link to="/nres/population-risk">

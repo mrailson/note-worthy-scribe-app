@@ -360,7 +360,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 className="cursor-pointer py-3 text-emerald-700"
                               >
                                 <Clock className="h-4 w-4 mr-2" />
-                                Time Tracker
+                                Part B Time Tracker
                               </DropdownMenuItem>
                               {(() => {
                                 const NHC_PLANNING_ALLOWED_EMAILS = [
@@ -539,7 +539,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           className="cursor-pointer py-3 text-emerald-700"
                         >
                           <Clock className="h-4 w-4 mr-2" />
-                          NRES Time Tracker
+                          NRES Part B Time Tracker
                         </DropdownMenuItem>
                       )}
                       {/* CSO Report - Only show if user has CSO governance access */}
@@ -681,7 +681,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           onClick={() => navigate('/nres/time-tracker')}
                         >
                           <Clock className="h-4 w-4 mr-2" />
-                          NRES Time Tracker
+                          NRES Part B Time Tracker
                         </Button>
                       </DrawerClose>
                     )}
