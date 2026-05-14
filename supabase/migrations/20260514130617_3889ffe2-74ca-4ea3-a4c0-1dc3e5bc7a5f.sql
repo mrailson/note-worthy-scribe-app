@@ -1,0 +1,1 @@
+UPDATE nres_buyback_claims SET practice_notes = 'Dr Tom Evans - New SDA - Started 10th April 2026. 8.69 Sessions for April 26 Claim.' WHERE id = 'e05e4521-2cf6-4cd0-baa0-305072e8190e';
