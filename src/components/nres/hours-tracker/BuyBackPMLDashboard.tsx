@@ -855,17 +855,21 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
                           return isNaN(d.getTime()) ? raw : d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
                         })()}
                       </td>
-                      <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
-                        {isLocum && locHrs ? locHrs.display : hoursWorked}
-                      </td>
-                      <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
-                        {isLocum && locHrs ? locHrs.decimal : (() => {
-                          if (s.staff_category === 'management' && s.hourly_rate > 0 && (s.calculated_amount ?? 0) > 0) {
-                            return (s.calculated_amount / s.hourly_rate).toFixed(1);
-                          }
-                          return totalHrs !== null ? totalHrs.toFixed(1) : '—';
-                        })()}
-                      </td>
+                      {!allNewSda && (
+                        <td style={{ padding: '10px', color: '#374151', whiteSpace: 'nowrap' }}>
+                          {isLocum && locHrs ? locHrs.display : hoursWorked}
+                        </td>
+                      )}
+                      {!allNewSda && (
+                        <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+                          {isLocum && locHrs ? locHrs.decimal : (() => {
+                            if (s.staff_category === 'management' && s.hourly_rate > 0 && (s.calculated_amount ?? 0) > 0) {
+                              return (s.calculated_amount / s.hourly_rate).toFixed(1);
+                            }
+                            return totalHrs !== null ? totalHrs.toFixed(1) : '—';
+                          })()}
+                        </td>
+                      )}
                       <td style={{ padding: '10px', textAlign: 'right', color: '#374151', fontVariantNumeric: 'tabular-nums', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {getUnitRate(s)}
                       </td>
