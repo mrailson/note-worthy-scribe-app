@@ -851,6 +851,13 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     }
   }, [filteredClaims.length, hasAutoExpanded]);
 
+  const handleAdminKpiSelect = useCallback((status: string) => {
+    setFilterStatus(status);
+    setTimeout(() => {
+      claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }, []);
+
   const categoryBadge = (cat: string) => {
     if (cat === 'new_sda') return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 text-xs">New SDA</Badge>;
     if (cat === 'management') return <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 text-xs">Management</Badge>;
@@ -1092,13 +1099,6 @@ export function BuyBackClaimsTab({ neighbourhoodName = 'NRES', onGuideOpen, onSe
     else if (l.status === 'queried') adminTotals.queried += l.amount;
   });
   const adminQueriedCount = adminCounts.queried || 0;
-
-  const handleAdminKpiSelect = useCallback((status: string) => {
-    setFilterStatus(status);
-    setTimeout(() => {
-      claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
-  }, []);
 
   // Wrappers to satisfy StaffRosterSection signature (Practice form expects practice_key)
   const adminAddStaff = isAdmin
