@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNRESClaims, type ClaimsRole } from '@/hooks/useNRESClaims';
 import { ClaimsSummaryCards } from './ClaimsSummaryCards';
 import { CreateClaimPanel } from './CreateClaimPanel';
