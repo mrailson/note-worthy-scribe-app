@@ -707,15 +707,13 @@ export const PatientDrillDrawer = ({
                   <TooltipContent side="left" className="max-w-xs text-xs">Cohort rows with risk metrics only. No patient-level reference column included.</TooltipContent>
                 </Tooltip>
               </div>
-              {canExportPII && (
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={exportCsvIdentifiable} className="flex flex-1 items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" />Export visible (with NARP reference)</button>
-                  <Tooltip>
-                    <TooltipTrigger asChild><button type="button" aria-label="About NARP reference export" className="px-1.5 py-2 text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button></TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-xs text-xs">Includes the pseudonymised Graphnet NARP reference (FK_Patient_Link_ID). No patient identifiable data (NHS number, name, date of birth) is held in or exported by Notewell.</TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={exportCsvWithNarpRef} className="flex flex-1 items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" />Export visible (with NARP reference)</button>
+                <Tooltip>
+                  <TooltipTrigger asChild><button type="button" aria-label="About NARP reference export" className="px-1.5 py-2 text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button></TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs text-xs">Includes the pseudonymised Graphnet NARP reference (FK_Patient_Link_ID). No patient identifiable data (NHS number, name, date of birth) is held in or exported by Notewell.</TooltipContent>
+                </Tooltip>
+              </div>
               {selected.size > 0 && <button type="button" onClick={sendToBuyBack} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><Send className="h-4 w-4" />Send to Buy-Back Claims</button>}
             </TooltipProvider>
           </PopoverContent>
