@@ -24,6 +24,7 @@ const tabs = [
   { value: "estates", label: "Estates & Capacity", shortLabel: "Estates", icon: Building2 },
   { value: "digital", label: "IT & Reporting", shortLabel: "Digital", icon: Monitor },
   { value: "hours", label: "SDA Claims", shortLabel: "Claims", icon: Clock },
+  { value: "time-tracker", label: "Time Tracker", shortLabel: "Time", icon: Timer },
   { value: "document-vault", label: "NRES Document Vault Home", shortLabel: "Vault", icon: FolderLock },
 ];
 
