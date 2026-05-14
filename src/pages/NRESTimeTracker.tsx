@@ -997,27 +997,36 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
         <div className="grid grid-cols-3 gap-3">
           <Card className="rounded-xl border-2 border-slate-200">
             <CardContent className="p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500 flex items-center gap-2">
-                <span>This Week</span>
-                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold', category === 'part_b' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>{categoryLabel}</span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wide text-slate-500 truncate">This Week</div>
+                  <div className="text-[10px] text-slate-400 truncate">&nbsp;</div>
+                </div>
+                <span className={cn('shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold leading-none', category === 'part_b' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>{categoryLabel}</span>
               </div>
               <div className="text-2xl font-bold text-slate-900 mt-1">{formatDuration(weekTotal)}</div>
             </CardContent>
           </Card>
           <Card className="rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white">
             <CardContent className="p-4">
-              <div className="text-xs uppercase tracking-wide text-emerald-100 flex items-center gap-2">
-                <span>This Month · {format(new Date(), 'MMMM yyyy')}</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/20 text-white">{categoryLabel}</span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wide text-emerald-100 truncate">This Month</div>
+                  <div className="text-[10px] text-emerald-100/80 truncate">{format(new Date(), 'MMMM yyyy')}</div>
+                </div>
+                <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold leading-none bg-white/20 text-white">{categoryLabel}</span>
               </div>
               <div className="text-2xl font-bold mt-1">{formatDuration(monthTotal)}</div>
             </CardContent>
           </Card>
           <Card className="rounded-xl border-2 border-slate-200 bg-slate-50">
             <CardContent className="p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500 flex items-center gap-2">
-                <span>Last Month · {format(subMonths(new Date(), 1), 'MMMM yyyy')}</span>
-                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold', category === 'part_b' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>{categoryLabel}</span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-wide text-slate-500 truncate">Last Month</div>
+                  <div className="text-[10px] text-slate-400 truncate">{format(subMonths(new Date(), 1), 'MMMM yyyy')}</div>
+                </div>
+                <span className={cn('shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold leading-none', category === 'part_b' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700')}>{categoryLabel}</span>
               </div>
               <div className="text-2xl font-bold text-slate-700 mt-1">{formatDuration(lastMonthTotal)}</div>
             </CardContent>
