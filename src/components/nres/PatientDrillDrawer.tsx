@@ -480,17 +480,14 @@ export const PatientDrillDrawer = ({
     return details;
   };
 
-  const exportCsvAnonymised = async () => {
+  const exportCohortCsv = (withNarpRef: boolean) => {
     if (!sortedRows.length) {
       toast.info("Nothing to export");
       return;
     }
-    const includeIdentifiers = showInlinePII;
-    const details = includeIdentifiers ? await resolveDetailsForRows(sortedRows) : null;
-    if (includeIdentifiers && !details) return;
-    const headers = includeIdentifiers
-      ? ["NHS_Number", "Name", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"]
-      : ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
+    const headers = withNarpRef
+      ? ["FK_Patient_Link_ID", "Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"]
+      : ["Age", "Frailty_eFI", "Drug_Count", "Inpatient_Admissions", "AE_Attendances", "RUB", "PoA_pct", "PoLoS_pct"];
     const csvRows: string[] = [headers.join(",")];
     for (const r of sortedRows) {
       const base = [
@@ -503,36 +500,19 @@ export const PatientDrillDrawer = ({
         r.poA ?? "",
         r.poLoS ?? "",
       ];
-      const values = includeIdentifiers
-        ? [details?.[r.fkPatientLinkId]?.nhs_number ?? r.nhsNumber ?? "", patientDisplayName(details?.[r.fkPatientLinkId], r), ...base]
-        : [r.fkPatientLinkId, ...base];
+      const values = withNarpRef ? [r.fkPatientLinkId, ...base] : base;
       csvRows.push(values.map(csvEscape).join(","));
     }
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const slug = filters.map((f) => f.key).join("+") || "all";
-    a.href = url; a.download = includeIdentifiers ? `narp-${slug}-identifiable.csv` : `narp-${slug}-anonymised.csv`; a.click();
+    a.href = url; a.download = withNarpRef ? `narp-${slug}-with-ref.csv` : `narp-${slug}-metrics.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
-  /**
-   * Identifiable CSV export — opens the reason+consent modal.
-   * The modal calls the `narp-export-identifiable` edge function which
-   * decrypts PII server-side, returns CSV bytes + SHA-256, and writes
-   * one audit row to `narp_export_log`.
-   */
-  const exportCsvIdentifiable = () => {
-    if (!practiceId) {
-      toast.error("Select a single practice before exporting identifiers");
-      return;
-    }
-    if (!sortedRows.length) {
-      toast.info("Nothing to export");
-      return;
-    }
-    setIdentifiableExportOpen(true);
-  };
+  const exportCsvMetricsOnly = () => exportCohortCsv(false);
+  const exportCsvWithNarpRef = () => exportCohortCsv(true);
 
   const titleText = filters.length === 0
     ? "Patient list"
