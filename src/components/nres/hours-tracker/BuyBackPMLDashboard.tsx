@@ -607,9 +607,6 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 90 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>{fmtGBP(total)}</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>
-            {staffDetails.length} line{staffDetails.length !== 1 ? 's' : ''} · {sessionCount} session{sessionCount !== 1 ? 's' : ''}
-          </div>
         </div>
       </button>
 
