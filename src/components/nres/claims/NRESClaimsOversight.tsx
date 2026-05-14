@@ -194,21 +194,26 @@ export function NRESClaimsOversight() {
       <main className="max-w-[1100px] mx-auto px-4 py-5 pb-16">
         {(view === 'dashboard' || view === 'claims') && (
           <>
-            {view === 'dashboard' && <ClaimsSummaryCards claims={visibleClaims} role={effectiveRole} />}
-            <ClaimsHistory
-              claims={visibleClaims}
-              practices={practices}
-              role={effectiveRole}
-              evidence={evidence}
-              auditLog={auditLog}
-              saving={saving}
-              getAction={getAction}
-              canQuery={canQuery}
-              onAdvanceStatus={(id, from, to) => advanceStatus(id, from, to)}
-              onResubmit={resubmitQueried}
-              onQuery={raiseQuery}
-              onExpandClaim={handleExpandClaim}
-            />
+            {view === 'dashboard' && (
+              <ClaimsSummaryCards claims={visibleClaims} role={effectiveRole} onCardClick={handleCardClick} />
+            )}
+            <div ref={claimsHistoryRef} style={{ scrollMarginTop: 80 }}>
+              <ClaimsHistory
+                claims={visibleClaims}
+                practices={practices}
+                role={effectiveRole}
+                evidence={evidence}
+                auditLog={auditLog}
+                saving={saving}
+                getAction={getAction}
+                canQuery={canQuery}
+                onAdvanceStatus={(id, from, to) => advanceStatus(id, from, to)}
+                onResubmit={resubmitQueried}
+                onQuery={raiseQuery}
+                onExpandClaim={handleExpandClaim}
+                externalStatusFilter={externalStatusFilter ? `${externalStatusFilter.key}__${externalStatusFilter.n}` : null}
+              />
+            </div>
           </>
         )}
         {view === 'create' && showCreateTab && (
