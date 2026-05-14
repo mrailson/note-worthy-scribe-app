@@ -50,13 +50,7 @@ const SDADashboard = () => {
                     key={tab.value}
                     role="tab"
                     aria-selected={isActive}
-                    onClick={() => {
-                      if (tab.value === 'time-tracker') {
-                        navigate('/nres/time-tracker');
-                        return;
-                      }
-                      setActiveTab(tab.value);
-                    }}
+                    onClick={() => setActiveTab(tab.value)}
                     className={`
                       flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 shrink-0
                       ${isActive
