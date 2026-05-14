@@ -351,12 +351,8 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       // Profile (last_category + last_logged_for)
       const { data: prof } = await (supabase as any)
         .from('nres_user_profile').select('*').eq('user_id', user.id).maybeSingle();
-      // Default to Part B for first-time users; otherwise honour the last selection.
-      if (prof) {
-        setCategory((prof.last_category as CategoryT) || 'part_b');
-      } else {
-        setCategory('part_b');
-      }
+      // Part B retired — always default to General.
+      setCategory('general');
       setProfileLoaded(true);
 
       // Entries: where I am the time-owner OR where I logged it
