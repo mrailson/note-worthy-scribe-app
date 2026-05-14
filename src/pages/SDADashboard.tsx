@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { SDAExecutiveSummary } from "@/components/sda/SDAExecutiveSummary";
@@ -7,6 +6,7 @@ import { SDAEstatesCapacity } from "@/components/sda/SDAEstatesCapacity";
 import { SDADigitalIntegration } from "@/components/sda/SDADigitalIntegration";
 import { NRESDocumentVault } from "@/components/nres/vault/NRESDocumentVault";
 import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
+import NRESTimeTracker from "@/pages/NRESTimeTracker";
 import { 
   LayoutDashboard, 
   Building2, 
