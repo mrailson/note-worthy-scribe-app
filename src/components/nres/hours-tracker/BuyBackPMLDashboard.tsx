@@ -904,7 +904,8 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               </tfoot>
             </table>
             </div>
-            {/* Calculation explainer for SNO Approver transparency */}
+            {/* Calculation explainer for SNO Approver transparency — hidden for New SDA claims */}
+            {!(staffDetails.length > 0 && staffDetails.every((s: any) => (s.staff_category || 'buyback') === 'new_sda')) && (
             <div style={{
               marginTop: 8, padding: '8px 12px', borderRadius: 6,
               background: '#f8fafc', border: '1px solid #e2e8f0',
@@ -918,6 +919,7 @@ function ClaimCard({ claim, view, expanded, onToggle, userId, userEmail, isAdmin
               Grand total: <strong style={{ fontStyle: 'normal', color: '#111827' }}>{fmtGBP(totalClaimed)}</strong>
               {totalMax > 0 && totalMax !== totalClaimed && <> · Max permitted: <strong style={{ fontStyle: 'normal', color: '#111827' }}>{fmtGBP(totalMax)}</strong></>}.
             </div>
+            )}
           </div>
             );
           })()}
