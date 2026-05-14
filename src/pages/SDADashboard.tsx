@@ -12,7 +12,7 @@ import {
   Building2, 
   Monitor, 
   FolderLock,
-  Clock,
+  PoundSterling,
   Timer,
 } from "lucide-react";
 import { NRESPeopleProvider } from "@/contexts/NRESPeopleContext";
