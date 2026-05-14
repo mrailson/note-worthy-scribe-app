@@ -319,17 +319,22 @@ export function NRESTimeManagerView({ hideHeading, onSummaryChange }: NRESTimeMa
   const weeklyTargetSum = useMemo(() => eligibleUsers.reduce((s, u) => s + targetForUser(u, 'week', targets), 0), [eligibleUsers, targets]);
 
   const exportCSV = () => {
-    const rows: string[][] = [['User', 'Role', 'Practice (entry)', 'Date', 'Activity', 'Duration (hours)', 'Notes', 'Logged By', 'Logged At']];
+    const rows: string[][] = [['User', 'Role', 'Practice (entry)', 'Date', 'Activity', 'Tracked against', 'Category', 'Duration (hours)', 'Notes', 'Logged By', 'Logged At']];
     for (const e of filteredEntries) {
       const u = userById.get(e.user_id);
       const eb = userById.get(e.entered_by || e.user_id);
       const pname = e.practice_id ? (practices.find(p => p.id === e.practice_id)?.name || '') : '';
+      const anyE = e as any;
+      const cat = (anyE.category || 'general') === 'part_b' ? 'Part B' : 'General';
+      const trackedAgainst = anyE.cohort || anyE.on_behalf_of_name || pname || (u?.full_name || u?.email || '');
       rows.push([
         u?.full_name || u?.email || e.user_id,
         u?.role || '',
         pname,
         e.entry_date,
         e.activity,
+        trackedAgainst,
+        cat,
         (e.minutes / 60).toFixed(2),
         (e.notes || '').replace(/"/g, '""'),
         eb?.full_name || eb?.email || '',
