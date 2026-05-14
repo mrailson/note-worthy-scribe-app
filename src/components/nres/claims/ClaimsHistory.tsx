@@ -83,7 +83,10 @@ export function ClaimsHistory({
   const [queryingId, setQueryingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (externalStatusFilter) setStatusFilter(externalStatusFilter);
+    if (externalStatusFilter) {
+      const key = externalStatusFilter.split('__')[0];
+      setStatusFilter(key);
+    }
   }, [externalStatusFilter]);
 
   const filtered = useMemo(() => {
