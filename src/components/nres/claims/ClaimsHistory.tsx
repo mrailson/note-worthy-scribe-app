@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { type ClaimLine, type ClaimsRole, type Practice, type ClaimEvidence, type ClaimAuditEntry, STATUS_CONFIG, type ClaimStatus } from '@/hooks/useNRESClaims';
 import { ClaimStatusBadge } from './ClaimStatusBadge';
 import { ClaimStatusPipeline } from './ClaimStatusPipeline';
