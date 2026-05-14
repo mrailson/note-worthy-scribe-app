@@ -41,13 +41,11 @@ export function NRESClaimsOversight() {
 
   const [view, setView] = useState<'dashboard' | 'create' | 'claims'>('dashboard');
   const [selectedPracticeId, setSelectedPracticeId] = useState<string>('');
-  const [externalStatusFilter, setExternalStatusFilter] = useState<string | null>(null);
+  const [externalStatusFilter, setExternalStatusFilter] = useState<{ key: string; n: number } | null>(null);
   const claimsHistoryRef = useRef<HTMLDivElement | null>(null);
 
   const handleCardClick = (filterKey: string) => {
-    // Bump with a unique suffix so repeat clicks still trigger the effect
-    setExternalStatusFilter(`${filterKey}::${Date.now()}`);
-    // Use rAF to allow the filter to apply before scrolling
+    setExternalStatusFilter({ key: filterKey, n: Date.now() });
     requestAnimationFrame(() => {
       claimsHistoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
