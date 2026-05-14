@@ -923,12 +923,12 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
 
     const total = scopedEntries.reduce((s, e) => s + e.minutes, 0);
 
-    const byCohort: Record<string, { mins: number; count: number }> = {};
+    const byActivity: Record<string, { mins: number; count: number }> = {};
     scopedEntries.forEach(e => {
-      const k = e.cohort || '(no cohort)';
-      if (!byCohort[k]) byCohort[k] = { mins: 0, count: 0 };
-      byCohort[k].mins += e.minutes;
-      byCohort[k].count += 1;
+      const k = e.activity || '(no activity)';
+      if (!byActivity[k]) byActivity[k] = { mins: 0, count: 0 };
+      byActivity[k].mins += e.minutes;
+      byActivity[k].count += 1;
     });
 
     doc.setFontSize(11);
@@ -937,10 +937,10 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
 
     autoTable(doc, {
       startY: y,
-      head: [['Cohort', 'Entries', 'Total time', '% of total']],
+      head: [['Activity', 'Entries', 'Total time', '% of total']],
       body: [
-        ...Object.entries(byCohort).map(([c, v]) => [
-          c, String(v.count), formatDuration(v.mins), total ? `${((v.mins / total) * 100).toFixed(1)}%` : '0%',
+        ...Object.entries(byActivity).map(([a, v]) => [
+          a, String(v.count), formatDuration(v.mins), total ? `${((v.mins / total) * 100).toFixed(1)}%` : '0%',
         ]),
         [
           { content: 'Total', styles: { fontStyle: 'bold' as const } },
@@ -952,32 +952,22 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       headStyles: { fillColor: [5, 150, 105] },
     });
 
-    const detailHead = scope === 'practice'
-      ? [['Date', 'User', 'Cohort', 'Activity', 'Duration', 'Notes']]
-      : [['Date', 'Cohort', 'Activity', 'Duration', 'Notes']];
-    const detailBody = scopedEntries.map(e => scope === 'practice'
-      ? [
-          format(parseISO(e.entry_date), 'dd/MM/yyyy'),
-          userNameById[e.user_id || ''] || '',
-          e.cohort || '',
-          e.activity, formatDuration(e.minutes), e.notes || '',
-        ]
-      : [
-          format(parseISO(e.entry_date), 'dd/MM/yyyy'),
-          e.cohort || '',
-          e.activity, formatDuration(e.minutes), e.notes || '',
-        ]);
-    const totalRow = scope === 'practice'
-      ? [
-          { content: `Total entries: ${scopedEntries.length}`, colSpan: 4, styles: { fontStyle: 'bold' as const } },
-          { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
-          { content: '', styles: {} },
-        ]
-      : [
-          { content: `Total entries: ${scopedEntries.length}`, colSpan: 3, styles: { fontStyle: 'bold' as const } },
-          { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
-          { content: '', styles: {} },
-        ];
+    const myDisplayName = (user?.user_metadata as any)?.full_name || user?.email || 'You';
+    const nameFor = (e: Entry) => scope === 'practice'
+      ? (userNameById[e.user_id || ''] || '')
+      : myDisplayName;
+
+    const detailHead = [['Date', 'User', 'Activity', 'Duration', 'Notes']];
+    const detailBody = scopedEntries.map(e => [
+      format(parseISO(e.entry_date), 'dd/MM/yyyy'),
+      nameFor(e),
+      e.activity, formatDuration(e.minutes), e.notes || '',
+    ]);
+    const totalRow = [
+      { content: `Total entries: ${scopedEntries.length}`, colSpan: 3, styles: { fontStyle: 'bold' as const } },
+      { content: formatDuration(total), styles: { fontStyle: 'bold' as const } },
+      { content: '', styles: {} },
+    ];
 
     autoTable(doc, {
       head: detailHead,
