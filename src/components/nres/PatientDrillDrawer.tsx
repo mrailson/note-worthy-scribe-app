@@ -718,10 +718,26 @@ export const PatientDrillDrawer = ({
         <span className="text-muted-foreground">Showing {fmt(visibleRows.length)} of {fmt(cohortBaseRows.length)} · {filterDescription}</span>
         <Popover>
           <PopoverTrigger asChild><Button size="sm" variant="outline" className="h-8 text-xs"><FileDown className="mr-1.5 h-3.5 w-3.5" />Export</Button></PopoverTrigger>
-          <PopoverContent align="end" className="w-64 p-2">
-            <button type="button" onClick={exportVisibleCsv} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><FileDown className="h-4 w-4" />Export visible (anonymised)</button>
-            {canExportPII && <button type="button" onClick={exportCsvIdentifiable} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" />Export visible (with identifiers)</button>}
-            {selected.size > 0 && <button type="button" onClick={sendToBuyBack} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><Send className="h-4 w-4" />Send to Buy-Back Claims</button>}
+          <PopoverContent align="end" className="w-72 p-2">
+            <TooltipProvider delayDuration={150}>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={exportVisibleCsv} className="flex flex-1 items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><FileDown className="h-4 w-4" />Export visible (metrics only)</button>
+                <Tooltip>
+                  <TooltipTrigger asChild><button type="button" aria-label="About metrics-only export" className="px-1.5 py-2 text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button></TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs text-xs">Cohort rows with risk metrics only. No patient-level reference column included.</TooltipContent>
+                </Tooltip>
+              </div>
+              {canExportPII && (
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={exportCsvIdentifiable} className="flex flex-1 items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><ShieldCheck className="h-4 w-4" />Export visible (with NARP reference)</button>
+                  <Tooltip>
+                    <TooltipTrigger asChild><button type="button" aria-label="About NARP reference export" className="px-1.5 py-2 text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button></TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs text-xs">Includes the pseudonymised Graphnet NARP reference (FK_Patient_Link_ID). No patient identifiable data (NHS number, name, date of birth) is held in or exported by Notewell.</TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
+              {selected.size > 0 && <button type="button" onClick={sendToBuyBack} className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted"><Send className="h-4 w-4" />Send to Buy-Back Claims</button>}
+            </TooltipProvider>
           </PopoverContent>
         </Popover>
       </div>
