@@ -114,7 +114,7 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const { uploadFile: uploadStandalone } = useNRESTimeEntryAttachments(undefined);
 
   // Part B state
-  const [category, setCategory] = useState<CategoryT>('part_b');
+  const [category, setCategory] = useState<CategoryT>('general');
   const [cohort, setCohort] = useState<string | null>(null);
   const [cohortOther, setCohortOther] = useState('');
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -351,12 +351,8 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
       // Profile (last_category + last_logged_for)
       const { data: prof } = await (supabase as any)
         .from('nres_user_profile').select('*').eq('user_id', user.id).maybeSingle();
-      // Default to Part B for first-time users; otherwise honour the last selection.
-      if (prof) {
-        setCategory((prof.last_category as CategoryT) || 'part_b');
-      } else {
-        setCategory('part_b');
-      }
+      // Part B retired — always default to General.
+      setCategory('general');
       setProfileLoaded(true);
 
       // Entries: where I am the time-owner OR where I logged it
@@ -1077,30 +1073,7 @@ const NRESTimeTracker = ({ embedded = false }: { embedded?: boolean } = {}) => {
           </Card>
         </div>
 
-        {/* Category tabs (General / Part B) */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="inline-flex items-center gap-1 rounded-md bg-slate-100 p-1">
-            {([
-              { id: 'general' as const, label: 'General' },
-              { id: 'part_b' as const, label: 'Part B' },
-            ]).map(({ id, label }) => {
-              const active = category === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => handleCategoryChange(id)}
-                  className={cn(
-                    'rounded-md px-4 py-1.5 text-sm font-medium transition',
-                    active ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* Category toggle hidden — defaults to General (Part B retired) */}
 
         {/* Log-for picker */}
         <button
