@@ -553,7 +553,7 @@ export const PatientDrillDrawer = ({
     if (frailty === "Mild") return "border-accent/30 bg-accent/10 text-accent-foreground";
     return "border-muted-foreground/20 bg-muted text-muted-foreground";
   };
-  const exportVisibleCsv = () => void exportCsvAnonymised();
+  const exportVisibleCsv = () => exportCsvMetricsOnly();
 
   const renderCohortMode = () => (
     <>
