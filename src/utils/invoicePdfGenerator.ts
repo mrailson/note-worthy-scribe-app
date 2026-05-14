@@ -242,67 +242,86 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
 
   // --- Staff Lines Table ---
   const tableStartY = metaY + 36;
-  const tableData = staffDetails.map((s: any, i: number) => [
-    i + 1,
-    s.staff_name || '—',
-    s.staff_role || '—',
-    getGLInvoiceLabel(resolveGLCode(s)),
-    s.staff_category === 'gp_locum'
-      ? (s.allocation_type === 'daily'
-        ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''}`
-        : `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`)
-      : s.allocation_type === 'sessions'
-        ? `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`
-        : s.allocation_type === 'hours'
-          ? `${s.allocation_value} hrs/wk`
-          : s.allocation_type === 'daily'
-            ? `${s.allocation_value}/day`
-            : `${s.allocation_value} WTE`,
-    getUnitRate(s),
-    fmt(s.claimed_amount || 0),
-  ]);
+  const allNewSda = staffDetails.length > 0 && staffDetails.every((s: any) => (s.staff_category || 'buyback') === 'new_sda');
+  const tableData = staffDetails.map((s: any, i: number) => {
+    const baseCols: any[] = [
+      i + 1,
+      s.staff_name || '—',
+      s.staff_role || '—',
+      getGLInvoiceLabel(resolveGLCode(s)),
+    ];
+    if (!allNewSda) {
+      baseCols.push(
+        s.staff_category === 'gp_locum'
+          ? (s.allocation_type === 'daily'
+            ? `${s.allocation_value} day${s.allocation_value !== 1 ? 's' : ''}`
+            : `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`)
+          : s.allocation_type === 'sessions'
+            ? `${s.allocation_value} session${s.allocation_value !== 1 ? 's' : ''}`
+            : s.allocation_type === 'hours'
+              ? `${s.allocation_value} hrs/wk`
+              : s.allocation_type === 'daily'
+                ? `${s.allocation_value}/day`
+                : `${s.allocation_value} WTE`,
+        getUnitRate(s),
+      );
+    }
+    baseCols.push(fmt(s.claimed_amount || 0));
+    return baseCols;
+  });
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['#', 'Staff Member', 'Role', 'GL Category', 'Allocation', 'Unit Rate', 'Amount']],
+    head: [allNewSda
+      ? ['#', 'Staff Member', 'Role', 'GL Category', 'Amount']
+      : ['#', 'Staff Member', 'Role', 'GL Category', 'Allocation', 'Unit Rate', 'Amount']],
     body: tableData,
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     headStyles: { fillColor: [0, 94, 184], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
-    columnStyles: {
-      0: { cellWidth: 8 },
-      1: { cellWidth: 32 },
-      2: { cellWidth: 28 },
-      3: { cellWidth: 28 },
-      4: { cellWidth: 26 },
-      5: { cellWidth: 26, halign: 'right' },
-      6: { cellWidth: 'auto', halign: 'right', fontStyle: 'bold' },
-    },
+    columnStyles: allNewSda
+      ? {
+          0: { cellWidth: 8 },
+          1: { cellWidth: 50 },
+          2: { cellWidth: 44 },
+          3: { cellWidth: 44 },
+          4: { cellWidth: 'auto', halign: 'right', fontStyle: 'bold' },
+        }
+      : {
+          0: { cellWidth: 8 },
+          1: { cellWidth: 32 },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 28 },
+          4: { cellWidth: 26 },
+          5: { cellWidth: 26, halign: 'right' },
+          6: { cellWidth: 'auto', halign: 'right', fontStyle: 'bold' },
+        },
     alternateRowStyles: { fillColor: [240, 244, 245] },
   });
 
-  // --- Calculation explainer line beneath staff table ---
+  // --- Calculation explainer line beneath staff table (hidden for New SDA) ---
   const tableEndY = (doc as any).lastAutoTable.finalY;
-  const formulaParts = staffDetails
-    .map((s: any) => formatMaxClaimableInfo(s).formula)
-    .filter((f: string) => f && f !== '—');
-  const grandTotalForExplainer = staffDetails.reduce(
-    (a: number, s: any) => a + (s.claimed_amount || 0),
-    0
-  );
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(GREY_100);
-  const explainer =
-    'Invoice total derived line-by-line as Allocation × Unit Rate. ' +
-    'Hourly rates shown for buy-back / salaried lines are the effective hourly cost inclusive of employer on-costs ' +
-    '(NI + pension), based on a 37.5-hour week × 52 weeks (1,950 hrs/year). ' +
-    (formulaParts.length
-      ? formulaParts.join('  +  ') + `  =  ${fmt(grandTotalForExplainer)}`
-      : `Total = ${fmt(grandTotalForExplainer)}`);
-  const explainerLines = doc.splitTextToSize(explainer, 182);
-  doc.text(explainerLines, 14, tableEndY + 5);
-  // Push subsequent content down based on explainer height
-  (doc as any).lastAutoTable.finalY = tableEndY + 2 + explainerLines.length * 3.6;
+  if (!allNewSda) {
+    const formulaParts = staffDetails
+      .map((s: any) => formatMaxClaimableInfo(s).formula)
+      .filter((f: string) => f && f !== '—');
+    const grandTotalForExplainer = staffDetails.reduce(
+      (a: number, s: any) => a + (s.claimed_amount || 0),
+      0
+    );
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(GREY_100);
+    const explainer =
+      'Invoice total derived line-by-line as Allocation × Unit Rate. ' +
+      'Hourly rates shown for buy-back / salaried lines are the effective hourly cost inclusive of employer on-costs ' +
+      '(NI + pension), based on a 37.5-hour week × 52 weeks (1,950 hrs/year). ' +
+      (formulaParts.length
+        ? formulaParts.join('  +  ') + `  =  ${fmt(grandTotalForExplainer)}`
+        : `Total = ${fmt(grandTotalForExplainer)}`);
+    const explainerLines = doc.splitTextToSize(explainer, 182);
+    doc.text(explainerLines, 14, tableEndY + 5);
+    (doc as any).lastAutoTable.finalY = tableEndY + 2 + explainerLines.length * 3.6;
+  }
 
   // --- Optional invoice-facing claim description ---
   const invoiceDescription = String((claim as any).practice_notes || '').trim();
