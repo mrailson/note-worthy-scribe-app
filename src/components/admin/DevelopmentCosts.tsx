@@ -454,7 +454,7 @@ export const DevelopmentCosts = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Object.keys(monthlyTotals).length} months</div>
+            <div className="text-2xl font-bold">12 months</div>
             <p className="text-xs text-muted-foreground">of development</p>
           </CardContent>
         </Card>
