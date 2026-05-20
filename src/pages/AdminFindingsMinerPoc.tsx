@@ -126,10 +126,15 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 export default function AdminFindingsMinerPoc() {
+  const { isSystemAdmin, loading, user } = useAuth();
   const [pasteText, setPasteText] = useState("");
   const [queue, setQueue] = useState<QueuedDoc[]>([]);
   const [analysing, setAnalysing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  if (loading) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isSystemAdmin) return <Navigate to="/" replace />;
 
   const addPasted = () => {
     if (!pasteText.trim()) return;
