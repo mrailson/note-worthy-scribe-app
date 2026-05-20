@@ -7,12 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FindingsDocumentViewer } from "@/components/admin/FindingsDocumentViewer";
 import {
   AlertTriangle,
   FileText,
@@ -631,33 +626,15 @@ function DocResultCard({
 
       </CardContent>
 
-      {canView && dataUrl && (
-        <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
-          <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 flex flex-col">
-            <DialogHeader className="px-4 py-3 border-b">
-              <DialogTitle className="text-sm font-medium truncate pr-8">
-                {doc.name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-auto bg-muted/40">
-              {doc.kind === "pdf" ? (
-                <iframe
-                  src={dataUrl}
-                  title={doc.name}
-                  className="w-full h-full border-0"
-                />
-              ) : (
-                <div className="flex items-center justify-center p-4 min-h-full">
-                  <img
-                    src={dataUrl}
-                    alt={doc.name}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+      {canView && doc.base64 && (doc.kind === "pdf" || doc.kind === "image") && (
+        <FindingsDocumentViewer
+          open={viewerOpen}
+          onOpenChange={setViewerOpen}
+          fileName={doc.name}
+          base64={doc.base64}
+          mediaType={doc.mediaType || (doc.kind === "pdf" ? "application/pdf" : "image/png")}
+          kind={doc.kind}
+        />
       )}
     </Card>
   );
