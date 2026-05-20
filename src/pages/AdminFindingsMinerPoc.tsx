@@ -513,26 +513,27 @@ function DocResultCard({
           </div>
         </div>
 
-        {hasPatient && (
-          <div className="rounded-md border bg-muted/30 p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <User className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Patient details (as printed on document — verify before coding)
-              </span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-sm">
-              {p?.name && <PatientField label="Name" value={p.name} />}
-              {p?.date_of_birth && <PatientField label="Date of birth" value={p.date_of_birth} />}
-              {p?.nhs_number && <PatientField label="NHS number" value={p.nhs_number} mono />}
-              {p?.hospital_number && (
-                <PatientField label="Hospital no." value={p.hospital_number} mono />
-              )}
-              {p?.gender && <PatientField label="Gender" value={p.gender} />}
-              {p?.address && <PatientField label="Address" value={p.address} />}
-            </div>
+        <div className="rounded-md border bg-muted/30 p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <User className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Patient details (as printed on document — verify before coding)
+            </span>
           </div>
-        )}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-sm">
+            <PatientField label="Name" value={p?.name || "Not stated"} />
+            <PatientField label="Date of birth" value={p?.date_of_birth || "Not stated"} />
+            <PatientField label="NHS number" value={p?.nhs_number || "Not stated"} mono />
+            <PatientField label="Hospital no." value={p?.hospital_number || "Not stated"} mono />
+            <PatientField label="Gender" value={p?.gender || "Not stated"} />
+            <PatientField label="Address" value={p?.address || "Not stated"} />
+          </div>
+          {!hasPatient && (
+            <p className="text-xs text-muted-foreground italic mt-2">
+              No patient demographics were printed on this document.
+            </p>
+          )}
+        </div>
 
         {r.summary && <p className="text-sm text-muted-foreground">{r.summary}</p>}
       </CardHeader>
