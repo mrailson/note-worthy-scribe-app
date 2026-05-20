@@ -438,6 +438,7 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                   <DocResultCard
                     key={d.id}
                     doc={d}
+                    codebook={codebook}
                     onToggleReviewed={(i) => toggleReviewed(d.id, i)}
                   />
                 ))}
