@@ -474,9 +474,11 @@ function SummaryStat({
 
 function DocResultCard({
   doc,
+  codebook,
   onToggleReviewed,
 }: {
   doc: QueuedDoc;
+  codebook: Codebook;
   onToggleReviewed: (idx: number) => void;
 }) {
   const [viewerOpen, setViewerOpen] = useState(false);
