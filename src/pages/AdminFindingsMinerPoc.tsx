@@ -337,7 +337,7 @@ export default function AdminFindingsMinerPoc() {
                     )}
                     <span className="flex-1 truncate text-sm">{d.name}</span>
                     <Badge variant="outline" className="text-xs">
-                      {d.kind === "image" ? "image / scanned" : d.kind === "pdf-text" ? "PDF text" : "text"}
+                      {d.kind === "image" ? "image" : d.kind === "pdf" ? "PDF" : "text"}
                     </Badge>
                     {d.status === "analysing" && <Loader2 className="h-4 w-4 animate-spin" />}
                     {d.status === "done" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
