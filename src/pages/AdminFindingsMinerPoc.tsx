@@ -58,13 +58,15 @@ interface EchoResult {
   reporting_site: string | null;
   lvef: { value: string | null; category: string };
   track_a_findings: Array<{
-    finding: string;
+    finding_key?: string;
+    finding?: string;
     severity: string | null;
     evidence_snippet: string;
-    suggested_snomed: string;
+    suggested_snomed?: string;
     confidence: "high" | "medium" | "low";
   }>;
   track_b_flags: Array<{
+    finding_key?: string;
     pattern: string;
     evidence_snippet: string;
     rationale: string;
