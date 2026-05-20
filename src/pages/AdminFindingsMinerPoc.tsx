@@ -709,12 +709,15 @@ function SummaryStat({
 function DocResultCard({
   doc,
   codebook,
+  existingCodes,
   onToggleReviewed,
 }: {
   doc: QueuedDoc;
   codebook: Codebook;
+  existingCodes: ExistingCodeRow[] | null;
   onToggleReviewed: (idx: number) => void;
 }) {
+
   const [viewerOpen, setViewerOpen] = useState(false);
 
   if (doc.status === "error") {
