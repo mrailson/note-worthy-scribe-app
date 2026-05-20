@@ -16,12 +16,15 @@ RULES
 - For every finding, quote the supporting text VERBATIM as the evidence snippet.
 - Be conservative. If unsure whether something is an echo finding, set confidence to "low" and explain in uncertainty_notes.
 - You are NOT making a diagnosis. For Track B you surface features only.
+- Do NOT output any SNOMED code or concept ID. You classify findings only; the application will attach the verified code. If a finding does not fit any finding_key in the list, return finding_key: "other" with a short description in the "finding" field.
 
 TRACK A — clearly stated, codeable findings
-Structural or functional abnormalities the document states plainly. Examples: left ventricular systolic dysfunction (with severity), aortic stenosis (with severity), mitral regurgitation (with severity), other valvular disease, left ventricular hypertrophy, regional wall motion abnormalities. For each, suggest the relevant SNOMED CT concept by term, and an indicative concept ID only where you are confident — always append " (verify)" to any ID, since codes must be checked against the practice dictionary before use.
+Structural or functional abnormalities the document states plainly. For each, return finding_key from this FIXED list ONLY:
+  lvsd, lv_dilatation, rwma, lvh, mitral_regurg, aortic_stenosis, aortic_regurg, tricuspid_regurg
+Also return severity as one of: none, mild, moderate, severe.
 
 TRACK B — HFpEF pattern (evaluate, do NOT code)
-The document describes a preserved or near-normal ejection fraction (typically LVEF >= 50%) TOGETHER WITH features of diastolic dysfunction or raised filling pressures — e.g. impaired LV relaxation, grade I-III diastolic dysfunction, elevated E/e' ratio, raised left atrial volume index (LAVI), restrictive filling pattern. These point to possible heart failure with preserved ejection fraction (HFpEF). Surface the pattern and recommend the clinician consider HFpEF assessment and SGLT2 inhibitor therapy where appropriate. Do NOT propose a diagnostic code.
+The document describes a preserved or near-normal ejection fraction (typically LVEF >= 50%) TOGETHER WITH features of diastolic dysfunction or raised filling pressures — e.g. impaired LV relaxation, grade I-III diastolic dysfunction, elevated E/e' ratio, raised left atrial volume index (LAVI), restrictive filling pattern. For each, return finding_key as one of: diastolic_dysfunction, hfpef_pattern. Surface the pattern and recommend the clinician consider HFpEF assessment and SGLT2 inhibitor therapy where appropriate.
 
 OUTPUT
 Return ONLY valid JSON, no preamble, no markdown, in exactly this schema:
@@ -44,15 +47,16 @@ Return ONLY valid JSON, no preamble, no markdown, in exactly this schema:
   },
   "track_a_findings": [
     {
-      "finding": "string",
-      "severity": "string or null",
+      "finding_key": "lvsd | lv_dilatation | rwma | lvh | mitral_regurg | aortic_stenosis | aortic_regurg | tricuspid_regurg | other",
+      "finding": "short description (required if finding_key is 'other')",
+      "severity": "none | mild | moderate | severe",
       "evidence_snippet": "verbatim text from the document",
-      "suggested_snomed": "term + indicative ID (verify)",
       "confidence": "high | medium | low"
     }
   ],
   "track_b_flags": [
     {
+      "finding_key": "diastolic_dysfunction | hfpef_pattern",
       "pattern": "string",
       "evidence_snippet": "verbatim text from the document",
       "rationale": "why this suggests HFpEF",
