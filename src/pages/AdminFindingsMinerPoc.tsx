@@ -390,11 +390,30 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
       work[i] = updated;
       setQueue([...work]);
     }
-    setAnalysing(false);
+  const [existingCodes, setExistingCodes] = useState<ExistingCodeRow[] | null>(null);
+  const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const csvRef = useRef<HTMLInputElement>(null);
+
+  const onCsvImport = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      setExistingCodes(rows);
+      setCsvFileName(file.name);
+      const patientCount = new Set(rows.map((r) => r.nhs_number)).size;
+      toast.success(`Imported ${rows.length} coded entries across ${patientCount} patient(s) (session only).`);
+    } catch (e) {
+      toast.error(`CSV import failed: ${e instanceof Error ? e.message : "parse error"}`);
+    }
+    if (csvRef.current) csvRef.current.value = "";
   };
 
-  const stats = useMemo(() => {
-    const analysed = queue.filter((d) => d.status === "done");
+  const clearExistingCodes = () => {
+    setExistingCodes(null);
+    setCsvFileName(null);
+  };
+
     let trackA = 0;
     let trackB = 0;
     let noFindings = 0;
