@@ -2112,6 +2112,12 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             <h1 className="text-3xl font-bold">System Administration</h1>
             <p className="text-muted-foreground">Manage users, system configuration, security, and monitoring</p>
           </div>
+          <a
+            href="/admin/findings-miner-poc"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+          >
+            Coded Findings Miner — Echo POC
+          </a>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
