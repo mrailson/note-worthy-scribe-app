@@ -101,6 +101,21 @@ serve(async (req) => {
       });
     }
 
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { count, error } = await supabase
+        .from("echo_finding_codes")
+        .select("finding_key", { count: "exact", head: true })
+        .eq("status", "active");
+      if (error) {
+        console.error("[findings-miner-poc] echo_finding_codes read failed:", error.message);
+      } else {
+        console.log("[findings-miner-poc] echo_finding_codes active row count:", count ?? 0);
+      }
+    } else {
+      console.warn("[findings-miner-poc] Supabase service role env vars missing; codebook row count not checked");
+    }
+
     const body = await req.json();
     const kind: "text" | "pdf" | "image" = body?.kind;
     const content: string = body?.content;
