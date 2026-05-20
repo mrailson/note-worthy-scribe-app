@@ -109,14 +109,24 @@ function fileToBase64(file: File): Promise<string> {
 
 export default function AdminFindingsMinerPoc() {
   const { isSystemAdmin, loading, user } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isSystemAdmin) return <Navigate to="/" replace />;
+
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-6xl mx-auto">
+        <FindingsMinerContent showHeading />
+      </div>
+    </div>
+  );
+}
+
+export function FindingsMinerContent({ showHeading = false }: { showHeading?: boolean }) {
   const [pasteText, setPasteText] = useState("");
   const [queue, setQueue] = useState<QueuedDoc[]>([]);
   const [analysing, setAnalysing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  if (loading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
-  if (!isSystemAdmin) return <Navigate to="/" replace />;
 
   const addPasted = () => {
     if (!pasteText.trim()) return;
