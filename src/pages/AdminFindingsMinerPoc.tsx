@@ -164,12 +164,36 @@ export const ECHO_FINDING_CODE_CLUSTERS: Record<string, string[]> = {
   aortic_regurg: ["60234000"],
   tricuspid_regurg: ["111287006"],
   pulm_htn: ["70995007"],
+  pericardial_effusion: ["373945007"],
   lv_dilatation: [],
   rwma: [],
   la_dilatation: [],
   aortic_sclerosis: [],
-  pericardial_effusion: [],
 };
+
+// Findings that are descriptors rolling up to a primary diagnosis — render as
+// supporting features under their parent, never as separate codeable rows.
+export const FEATURE_OF: Record<string, string> = {
+  lv_dilatation: "lvsd",
+  global_hypokinesis: "lvsd",
+  rwma: "lvsd",
+  la_dilatation: "diastolic_dysfunction",
+};
+
+// Findings that are descriptive only and never coded separately (no parent).
+export const DESCRIPTIVE_ONLY = new Set<string>(["aortic_sclerosis"]);
+
+// Primary codeable findings — these carry SNOMED code badges.
+export const PRIMARY_CODEABLE = new Set<string>([
+  "lvsd",
+  "lvh",
+  "mitral_regurg",
+  "aortic_stenosis",
+  "aortic_regurg",
+  "tricuspid_regurg",
+  "pulm_htn",
+  "pericardial_effusion",
+]);
 
 export interface ExistingCodeRow {
   nhs_number: string; // normalised (no spaces)
