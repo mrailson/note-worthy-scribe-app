@@ -410,8 +410,7 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                 ))}
             </div>
           </>
-        )}
-      </div>
+      )}
     </div>
   );
 }
