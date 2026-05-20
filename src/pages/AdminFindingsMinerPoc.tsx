@@ -846,163 +846,212 @@ function DocResultCard({
           <p className="text-sm text-muted-foreground italic">
             No echo findings detected in this document.
           </p>
-        ) : (
-          <>
-            {r.track_a_findings?.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-primary">Codeable findings</h3>
-                  <span className="text-xs text-muted-foreground">
-                    Codes drawn from a curated, clinician-approved set. AI classifies findings only; it does not generate codes.
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {r.track_a_findings.map((f, i) => {
-                    const rawKey = normaliseFindingKey(f.finding_key);
-                    const aliasKey = !rawKey || rawKey === "other" ? aliasKeyForFindingName(f.finding) : undefined;
-                    const lookupKey = aliasKey || rawKey;
-                    const entry = lookupKey && lookupKey !== "other" ? codebook[lookupKey] : undefined;
-                    const pendingVerification = !!entry && !entry.snomed_code;
-                    const uncategorised = !entry;
-                    const gapState = !uncategorised
-                      ? computeGapState(lookupKey, r.patient?.nhs_number, existingCodes)
-                      : null;
-                    console.info("[FindingsMiner] finding_key lookup", {
-                      finding_key: f.finding_key || null,
-                      normalised_key: rawKey || null,
-                      alias_key: aliasKey || null,
-                      lookup_key: lookupKey || null,
-                      matched: !!entry,
-                      gap_state: gapState?.kind || null,
-                    });
-                    const displayName =
-                      entry?.display_name ||
-                      f.finding ||
-                      (lookupKey && lookupKey !== "other" ? lookupKey : "Uncategorised finding");
-                    const borderClass = uncategorised
-                      ? "border-amber-500 bg-amber-50"
-                      : gapState?.kind === "already_coded"
-                      ? "border-green-500 bg-green-50"
-                      : gapState?.kind === "coding_gap"
-                      ? "border-amber-500 bg-amber-50"
-                      : "border-primary bg-primary/5";
-                    return (
-                      <div key={i} className={`rounded-md border-l-4 p-3 ${borderClass}`}>
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className="font-medium">{displayName}</span>
-                          {f.severity && f.severity !== "none" && (
-                            <Badge variant="outline" className="text-xs capitalize">
-                              Severity: {f.severity}
-                            </Badge>
-                          )}
-                          {gapState?.kind === "already_coded" && (
-                            <Badge className="text-xs border bg-green-100 text-green-800 border-green-300">
-                              Already coded — {gapState.code} {gapState.code_term}
-                              {gapState.date_recorded ? ` (${gapState.date_recorded})` : ""}
-                            </Badge>
-                          )}
-                          {gapState?.kind === "coding_gap" && entry && (
-                            <Badge className="text-xs border bg-amber-100 text-amber-900 border-amber-300">
-                              {entry.snomed_code
-                                ? `Coding gap — propose ${entry.snomed_code} ${entry.snomed_term}`
-                                : "Coding gap — code pending verification"}
-                            </Badge>
-                          )}
-                          {gapState?.kind === "coded_status_unknown" && entry && (
-                            <Badge className="text-xs border bg-muted text-muted-foreground border-border">
-                              Coded status unknown — import the coded record to check
-                            </Badge>
-                          )}
-                          {pendingVerification && gapState?.kind !== "coding_gap" && gapState?.kind !== "already_coded" && (
-                            <Badge className="text-xs border bg-amber-100 text-amber-800 border-amber-300">
-                              Code pending verification
-                            </Badge>
-                          )}
-                          {uncategorised && (
-                            <Badge className="text-xs border bg-amber-100 text-amber-800 border-amber-300">
-                              Uncategorised — needs clinician review
-                            </Badge>
-                          )}
-                          <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
-                            {f.confidence} confidence
-                          </Badge>
+        ) : (() => {
+          // Partition Track A findings into primaries, features, descriptive, and others
+          const findings = (r.track_a_findings || []).map((f, originalIndex) => {
+            const rawKey = normaliseFindingKey(f.finding_key);
+            const aliasKey = !rawKey || rawKey === "other" ? aliasKeyForFindingName(f.finding) : undefined;
+            const lookupKey = aliasKey || rawKey;
+            return { f, originalIndex, lookupKey };
+          });
 
-                          <div className="ml-auto flex items-center gap-2 no-print">
-                            <Switch
-                              id={`rev-${doc.id}-${i}`}
-                              checked={!!doc.reviewed?.[i]}
-                              onCheckedChange={() => onToggleReviewed(i)}
-                            />
-                            <Label htmlFor={`rev-${doc.id}-${i}`} className="text-xs">
-                              Mark reviewed
-                            </Label>
-                          </div>
-                        </div>
-                        <blockquote className="text-xs italic text-muted-foreground border-l-2 border-muted pl-3 my-2">
-                          "{f.evidence_snippet}"
-                        </blockquote>
-                        {entry ? (
-                          <div className="text-xs">
-                            <span className="text-muted-foreground">SNOMED CT: </span>
-                            <span>{entry.snomed_term}</span>
-                            {entry.snomed_code ? (
-                              <>
-                                <span className="text-muted-foreground"> · </span>
-                                <span className="font-mono">{entry.snomed_code}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-muted-foreground"> · </span>
-                                <span className="font-medium text-amber-800">Code pending verification</span>
-                              </>
+          const primaries = findings.filter((x) => x.lookupKey && PRIMARY_CODEABLE.has(x.lookupKey));
+          const features = findings.filter((x) => x.lookupKey && FEATURE_OF[x.lookupKey]);
+          const descriptives = findings.filter((x) => x.lookupKey && DESCRIPTIVE_ONLY.has(x.lookupKey));
+
+          const trackBKeys = new Set((r.track_b_flags || []).map((b: any) => normaliseFindingKey(b.finding_key)));
+
+          // Features grouped by parent key
+          const featuresByParent: Record<string, typeof features> = {};
+          const orphanFeatures: typeof features = [];
+          for (const ft of features) {
+            const parent = FEATURE_OF[ft.lookupKey!];
+            const parentPresent =
+              primaries.some((p) => p.lookupKey === parent) || trackBKeys.has(parent);
+            if (parentPresent) {
+              (featuresByParent[parent] ||= []).push(ft);
+            } else {
+              orphanFeatures.push(ft);
+            }
+          }
+
+          const renderSupportingLine = (ft: { f: any; lookupKey?: string }) => (
+            <div className="text-xs text-muted-foreground pl-3 border-l-2 border-muted py-0.5">
+              <span className="font-medium">Supporting feature:</span>{" "}
+              {ft.f.finding || ft.lookupKey}
+              {ft.f.evidence_snippet && (
+                <span className="italic"> — "{ft.f.evidence_snippet}"</span>
+              )}
+            </div>
+          );
+
+          const renderDescriptiveLine = (ft: { f: any; lookupKey?: string }) => (
+            <div className="text-xs text-muted-foreground pl-3 border-l-2 border-muted py-0.5">
+              <span className="font-medium">{ft.f.finding || ft.lookupKey}</span> — descriptive finding, not separately coded
+              {ft.f.evidence_snippet && (
+                <span className="italic"> — "{ft.f.evidence_snippet}"</span>
+              )}
+            </div>
+          );
+
+          const hasAnything =
+            primaries.length > 0 ||
+            descriptives.length > 0 ||
+            orphanFeatures.length > 0 ||
+            (r.track_b_flags?.length || 0) > 0;
+
+          if (!hasAnything) {
+            return (
+              <p className="text-sm text-muted-foreground italic">
+                No codeable echo findings detected in this document.
+              </p>
+            );
+          }
+
+          return (
+            <>
+              {(primaries.length > 0 || descriptives.length > 0 || orphanFeatures.length > 0) && (
+                <section>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-primary">Codeable findings</h3>
+                    <span className="text-xs text-muted-foreground">
+                      Codes drawn from a curated, clinician-approved set. AI classifies findings only; it does not generate codes.
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {primaries.map(({ f, originalIndex: i, lookupKey }) => {
+                      const entry = codebook[lookupKey!];
+                      const gapState = computeGapState(lookupKey, r.patient?.nhs_number, existingCodes);
+                      const displayName = entry?.display_name || f.finding || lookupKey;
+                      const borderClass =
+                        gapState.kind === "already_coded"
+                          ? "border-green-500 bg-green-50"
+                          : gapState.kind === "coding_gap"
+                          ? "border-amber-500 bg-amber-50"
+                          : "border-primary bg-primary/5";
+                      const attachedFeatures = featuresByParent[lookupKey!] || [];
+                      return (
+                        <div key={i} className={`rounded-md border-l-4 p-3 ${borderClass}`}>
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className="font-medium">{displayName}</span>
+                            {f.severity && f.severity !== "none" && (
+                              <Badge variant="outline" className="text-xs capitalize">
+                                Severity: {f.severity}
+                              </Badge>
                             )}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-amber-900">
-                            No code assigned. This finding did not match the curated set and
-                            requires clinician review before any coding decision.
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+                            {gapState.kind === "already_coded" && (
+                              <Badge className="text-xs border bg-green-100 text-green-800 border-green-300">
+                                Already coded — {gapState.code} {gapState.code_term}
+                                {gapState.date_recorded ? ` (${gapState.date_recorded})` : ""}
+                              </Badge>
+                            )}
+                            {gapState.kind === "coding_gap" && entry?.snomed_code && (
+                              <Badge className="text-xs border bg-amber-100 text-amber-900 border-amber-300">
+                                Coding gap — propose {entry.snomed_code} {entry.snomed_term}
+                              </Badge>
+                            )}
+                            {gapState.kind === "coded_status_unknown" && entry?.snomed_code && (
+                              <Badge className="text-xs border bg-muted text-muted-foreground border-border">
+                                Coded status unknown — import the coded record to check
+                              </Badge>
+                            )}
+                            <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
+                              {f.confidence} confidence
+                            </Badge>
 
-            {r.track_b_flags?.length > 0 && (
-              <section>
-                <h3 className="text-sm font-semibold text-amber-700 mb-3">
-                  HFpEF — consider assessment
-                </h3>
-                <div className="space-y-3">
-                  {r.track_b_flags.map((f, i) => (
-                    <div
-                      key={i}
-                      className="rounded-md border-l-4 border-amber-500 bg-amber-50 p-3"
-                    >
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="font-medium">{f.pattern}</span>
-                        <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
-                          {f.confidence} confidence
-                        </Badge>
-                      </div>
-                      <blockquote className="text-xs italic text-muted-foreground border-l-2 border-muted pl-3 my-2">
-                        "{f.evidence_snippet}"
-                      </blockquote>
-                      <p className="text-xs text-amber-900">
-                        <span className="font-medium">Rationale: </span>
-                        {f.rationale}
-                      </p>
-                      <p className="text-xs text-amber-900 mt-1">
-                        <span className="font-medium">Recommended: </span>
-                        {f.recommended_action}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+                            <div className="ml-auto flex items-center gap-2 no-print">
+                              <Switch
+                                id={`rev-${doc.id}-${i}`}
+                                checked={!!doc.reviewed?.[i]}
+                                onCheckedChange={() => onToggleReviewed(i)}
+                              />
+                              <Label htmlFor={`rev-${doc.id}-${i}`} className="text-xs">
+                                Mark reviewed
+                              </Label>
+                            </div>
+                          </div>
+                          <blockquote className="text-xs italic text-muted-foreground border-l-2 border-muted pl-3 my-2">
+                            "{f.evidence_snippet}"
+                          </blockquote>
+                          {entry?.snomed_code && (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">SNOMED CT: </span>
+                              <span>{entry.snomed_term}</span>
+                              <span className="text-muted-foreground"> · </span>
+                              <span className="font-mono">{entry.snomed_code}</span>
+                            </div>
+                          )}
+                          {attachedFeatures.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {attachedFeatures.map((ft, fi) => (
+                                <div key={`feat-${fi}`}>{renderSupportingLine(ft)}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {descriptives.map((ft, di) => (
+                      <div key={`desc-${di}`}>{renderDescriptiveLine(ft)}</div>
+                    ))}
+                    {orphanFeatures
+                      .filter((ft) => !trackBKeys.has(FEATURE_OF[ft.lookupKey!]))
+                      .map((ft, oi) => (
+                        <div key={`orphan-${oi}`}>{renderSupportingLine(ft)}</div>
+                      ))}
+                  </div>
+                </section>
+              )}
+
+              {r.track_b_flags?.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-amber-700 mb-3">
+                    HFpEF — consider assessment
+                  </h3>
+                  <div className="space-y-3">
+                    {r.track_b_flags.map((f: any, i: number) => {
+                      const parentKey = normaliseFindingKey(f.finding_key);
+                      const attached = features.filter(
+                        (ft) => FEATURE_OF[ft.lookupKey!] === parentKey,
+                      );
+                      return (
+                        <div
+                          key={i}
+                          className="rounded-md border-l-4 border-amber-500 bg-amber-50 p-3"
+                        >
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span className="font-medium">{f.pattern}</span>
+                            <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
+                              {f.confidence} confidence
+                            </Badge>
+                          </div>
+                          <blockquote className="text-xs italic text-muted-foreground border-l-2 border-muted pl-3 my-2">
+                            "{f.evidence_snippet}"
+                          </blockquote>
+                          <p className="text-xs text-amber-900">
+                            <span className="font-medium">Rationale: </span>
+                            {f.rationale}
+                          </p>
+                          <p className="text-xs text-amber-900 mt-1">
+                            <span className="font-medium">Recommended: </span>
+                            {f.recommended_action}
+                          </p>
+                          {attached.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {attached.map((ft, fi) => (
+                                <div key={`tb-feat-${fi}`}>{renderSupportingLine(ft)}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+            </>
+          );
+        })()}
           </>
         )}
 
