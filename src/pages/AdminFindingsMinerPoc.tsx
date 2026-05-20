@@ -532,8 +532,52 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                 PDFs and images are sent directly to Claude Opus 4.7 (vision). Max ~5 MB per file.
               </p>
             </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-sm font-medium">Import existing coded record (CSV)</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Columns: nhs_number, patient_name, code, code_system, code_term, date_recorded.
+                    Held in session memory only — never stored.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    ref={csvRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={(e) => onCsvImport(e.target.files?.[0] || null)}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => csvRef.current?.click()}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import CSV
+                  </Button>
+                  {existingCodes && (
+                    <Button variant="ghost" size="sm" onClick={clearExistingCodes}>
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {existingCodes ? (
+                <p className="text-xs text-green-700">
+                  Loaded {existingCodes.length} entries from {csvFileName}
+                  {" · "}
+                  {new Set(existingCodes.map((r) => r.nhs_number)).size} patient(s).
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  No coded record imported — findings will show as "Coded status unknown".
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
+
 
         {queue.length > 0 && (
           <Card className="no-print">
