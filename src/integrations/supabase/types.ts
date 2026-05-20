@@ -4774,6 +4774,33 @@ export type Database = {
           },
         ]
       }
+      echo_finding_codes: {
+        Row: {
+          display_name: string
+          finding_key: string
+          snomed_code: string | null
+          snomed_term: string
+          status: string
+          track: string
+        }
+        Insert: {
+          display_name: string
+          finding_key: string
+          snomed_code?: string | null
+          snomed_term: string
+          status?: string
+          track: string
+        }
+        Update: {
+          display_name?: string
+          finding_key?: string
+          snomed_code?: string | null
+          snomed_term?: string
+          status?: string
+          track?: string
+        }
+        Relationships: []
+      }
       email_failures: {
         Row: {
           created_at: string

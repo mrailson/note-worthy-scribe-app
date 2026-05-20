@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,13 +58,15 @@ interface EchoResult {
   reporting_site: string | null;
   lvef: { value: string | null; category: string };
   track_a_findings: Array<{
-    finding: string;
+    finding_key?: string;
+    finding?: string;
     severity: string | null;
     evidence_snippet: string;
-    suggested_snomed: string;
+    suggested_snomed?: string;
     confidence: "high" | "medium" | "low";
   }>;
   track_b_flags: Array<{
+    finding_key?: string;
     pattern: string;
     evidence_snippet: string;
     rationale: string;
@@ -122,11 +124,42 @@ export default function AdminFindingsMinerPoc() {
   );
 }
 
+export interface CodebookEntry {
+  finding_key: string;
+  display_name: string;
+  track: "A" | "B";
+  snomed_term: string;
+  snomed_code: string | null;
+}
+
+export type Codebook = Record<string, CodebookEntry>;
+
+function useCodebook(): Codebook {
+  const [book, setBook] = useState<Codebook>({});
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("echo_finding_codes")
+        .select("finding_key, display_name, track, snomed_term, snomed_code")
+        .eq("status", "active");
+      if (error) {
+        console.error("Failed to load echo_finding_codes:", error);
+        return;
+      }
+      const map: Codebook = {};
+      for (const row of (data || []) as CodebookEntry[]) map[row.finding_key] = row;
+      setBook(map);
+    })();
+  }, []);
+  return book;
+}
+
 export function FindingsMinerContent({ showHeading = false }: { showHeading?: boolean }) {
   const [pasteText, setPasteText] = useState("");
   const [queue, setQueue] = useState<QueuedDoc[]>([]);
   const [analysing, setAnalysing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const codebook = useCodebook();
 
   const addPasted = () => {
     if (!pasteText.trim()) return;
@@ -405,6 +438,7 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                   <DocResultCard
                     key={d.id}
                     doc={d}
+                    codebook={codebook}
                     onToggleReviewed={(i) => toggleReviewed(d.id, i)}
                   />
                 ))}
@@ -440,9 +474,11 @@ function SummaryStat({
 
 function DocResultCard({
   doc,
+  codebook,
   onToggleReviewed,
 }: {
   doc: QueuedDoc;
+  codebook: Codebook;
   onToggleReviewed: (idx: number) => void;
 }) {
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -555,45 +591,76 @@ function DocResultCard({
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-primary">Codeable findings</h3>
                   <span className="text-xs text-muted-foreground">
-                    Demonstration: no codes are written
+                    Codes drawn from a curated, clinician-approved set. AI classifies findings only; it does not generate codes.
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {r.track_a_findings.map((f, i) => (
-                    <div
-                      key={i}
-                      className="rounded-md border-l-4 border-primary bg-primary/5 p-3"
-                    >
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="font-medium">{f.finding}</span>
-                        {f.severity && (
-                          <Badge variant="outline" className="text-xs">
-                            {f.severity}
+                  {r.track_a_findings.map((f, i) => {
+                    const key = (f.finding_key || "").toLowerCase();
+                    const entry = key && key !== "other" ? codebook[key] : undefined;
+                    const uncategorised = !entry;
+                    const displayName =
+                      entry?.display_name ||
+                      f.finding ||
+                      (key && key !== "other" ? key : "Uncategorised finding");
+                    return (
+                      <div
+                        key={i}
+                        className={`rounded-md border-l-4 p-3 ${
+                          uncategorised
+                            ? "border-amber-500 bg-amber-50"
+                            : "border-primary bg-primary/5"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="font-medium">{displayName}</span>
+                          {f.severity && f.severity !== "none" && (
+                            <Badge variant="outline" className="text-xs capitalize">
+                              Severity: {f.severity}
+                            </Badge>
+                          )}
+                          {uncategorised && (
+                            <Badge className="text-xs border bg-amber-100 text-amber-800 border-amber-300">
+                              Uncategorised — needs clinician review
+                            </Badge>
+                          )}
+                          <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
+                            {f.confidence} confidence
                           </Badge>
-                        )}
-                        <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
-                          {f.confidence} confidence
-                        </Badge>
-                        <div className="ml-auto flex items-center gap-2 no-print">
-                          <Switch
-                            id={`rev-${doc.id}-${i}`}
-                            checked={!!doc.reviewed?.[i]}
-                            onCheckedChange={() => onToggleReviewed(i)}
-                          />
-                          <Label htmlFor={`rev-${doc.id}-${i}`} className="text-xs">
-                            Mark reviewed
-                          </Label>
+                          <div className="ml-auto flex items-center gap-2 no-print">
+                            <Switch
+                              id={`rev-${doc.id}-${i}`}
+                              checked={!!doc.reviewed?.[i]}
+                              onCheckedChange={() => onToggleReviewed(i)}
+                            />
+                            <Label htmlFor={`rev-${doc.id}-${i}`} className="text-xs">
+                              Mark reviewed
+                            </Label>
+                          </div>
                         </div>
+                        <blockquote className="text-xs italic text-muted-foreground border-l-2 border-muted pl-3 my-2">
+                          "{f.evidence_snippet}"
+                        </blockquote>
+                        {entry ? (
+                          <div className="text-xs">
+                            <span className="text-muted-foreground">SNOMED CT: </span>
+                            <span>{entry.snomed_term}</span>
+                            {entry.snomed_code && (
+                              <>
+                                <span className="text-muted-foreground"> · </span>
+                                <span className="font-mono">{entry.snomed_code}</span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-amber-900">
+                            No code assigned. This finding did not match the curated set and
+                            requires clinician review before any coding decision.
+                          </div>
+                        )}
                       </div>
-                      <blockquote className="text-xs italic text-muted-foreground border-l-2 border-muted pl-3 my-2">
-                        "{f.evidence_snippet}"
-                      </blockquote>
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Suggested SNOMED: </span>
-                        <span className="font-mono">{f.suggested_snomed}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
