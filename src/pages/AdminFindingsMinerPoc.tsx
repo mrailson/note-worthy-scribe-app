@@ -134,6 +134,28 @@ export interface CodebookEntry {
 
 export type Codebook = Record<string, CodebookEntry>;
 
+const FINDING_NAME_ALIASES: Array<[string, string]> = [
+  ["left ventricular systolic dysfunction", "lvsd"],
+  ["global hypokinesis", "lvsd"],
+  ["dilated left ventricle", "lv_dilatation"],
+  ["left ventricular dilatation", "lv_dilatation"],
+  ["regional wall motion", "rwma"],
+  ["akinesis", "rwma"],
+  ["mitral regurg", "mitral_regurg"],
+  ["hypertrophy", "lvh"],
+  ["aortic stenosis", "aortic_stenosis"],
+];
+
+function normaliseFindingKey(value?: string | null) {
+  return (value || "").trim().toLowerCase();
+}
+
+function aliasKeyForFindingName(finding?: string | null) {
+  const name = (finding || "").trim().toLowerCase();
+  if (!name) return undefined;
+  return FINDING_NAME_ALIASES.find(([alias]) => name.includes(alias))?.[1];
+}
+
 function useCodebook(): Codebook {
   const [book, setBook] = useState<Codebook>({});
   useEffect(() => {
@@ -147,7 +169,9 @@ function useCodebook(): Codebook {
         return;
       }
       const map: Codebook = {};
-      for (const row of (data || []) as CodebookEntry[]) map[row.finding_key] = row;
+      for (const row of (data || []) as CodebookEntry[]) {
+        map[normaliseFindingKey(row.finding_key)] = row;
+      }
       setBook(map);
     })();
   }, []);
