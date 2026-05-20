@@ -440,6 +440,8 @@ function DocResultCard({
   doc: QueuedDoc;
   onToggleReviewed: (idx: number) => void;
 }) {
+  const [viewerOpen, setViewerOpen] = useState(false);
+
   if (doc.status === "error") {
     return (
       <Card>
@@ -463,6 +465,16 @@ function DocResultCard({
     !r.contains_echo_findings ||
     ((r.track_a_findings?.length || 0) === 0 && (r.track_b_flags?.length || 0) === 0);
 
+  const p = r.patient;
+  const hasPatient =
+    p && (p.name || p.date_of_birth || p.nhs_number || p.hospital_number || p.address || p.gender);
+
+  const canView = doc.kind !== "text" && !!doc.base64;
+  const dataUrl =
+    canView && doc.base64
+      ? `data:${doc.mediaType || (doc.kind === "pdf" ? "application/pdf" : "image/png")};base64,${doc.base64}`
+      : null;
+
   return (
     <Card>
       <CardHeader className="space-y-2">
@@ -483,10 +495,45 @@ function DocResultCard({
           <Badge className={`border ${lvefChipClasses(r.lvef?.category || "not stated")}`}>
             LVEF: {r.lvef?.value || "—"} ({r.lvef?.category || "not stated"})
           </Badge>
-          <span className="text-xs text-muted-foreground ml-auto truncate max-w-[40%]">
-            {doc.name}
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {canView && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="no-print h-7"
+                onClick={() => setViewerOpen(true)}
+              >
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+                View document
+              </Button>
+            )}
+            <span className="text-xs text-muted-foreground truncate max-w-[240px]">
+              {doc.name}
+            </span>
+          </div>
         </div>
+
+        {hasPatient && (
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Patient details (as printed on document — verify before coding)
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-sm">
+              {p?.name && <PatientField label="Name" value={p.name} />}
+              {p?.date_of_birth && <PatientField label="Date of birth" value={p.date_of_birth} />}
+              {p?.nhs_number && <PatientField label="NHS number" value={p.nhs_number} mono />}
+              {p?.hospital_number && (
+                <PatientField label="Hospital no." value={p.hospital_number} mono />
+              )}
+              {p?.gender && <PatientField label="Gender" value={p.gender} />}
+              {p?.address && <PatientField label="Address" value={p.address} />}
+            </div>
+          </div>
+        )}
+
         {r.summary && <p className="text-sm text-muted-foreground">{r.summary}</p>}
       </CardHeader>
 
