@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { Header } from "@/components/Header";
+
 
 type DocKind = "text" | "pdf" | "image";
 
@@ -116,12 +118,16 @@ export default function AdminFindingsMinerPoc() {
   if (!isSystemAdmin) return <Navigate to="/" replace />;
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
-        <FindingsMinerContent showHeading />
-      </div>
+    <div className="min-h-screen bg-gradient-subtle">
+      <Header onNewMeeting={() => {}} />
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <FindingsMinerContent showHeading />
+        </div>
+      </main>
     </div>
   );
+
 }
 
 export interface CodebookEntry {
