@@ -7,8 +7,9 @@ import {
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, ListChecks, Loader2, CalendarIcon, FileCheck2,
+  Upload, FileDown, ListChecks, Loader2, CalendarIcon, FileCheck2, FileSearch,
 } from "lucide-react";
+import { FindingsMinerContent } from "@/pages/AdminFindingsMinerPoc";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { EditorialHeader } from "@/components/dashboard/EditorialHeader";
 import { Kpi } from "@/components/dashboard/Kpi";
