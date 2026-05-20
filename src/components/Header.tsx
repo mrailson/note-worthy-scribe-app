@@ -923,11 +923,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   </Button>
                                 </DrawerClose>
                                 <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin/findings-miner-poc')}>
+                                    <Wrench className="h-4 w-4 mr-2" />
+                                    Coded Findings Miner (POC)
+                                  </Button>
+                                </DrawerClose>
+                                <DrawerClose asChild>
                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin/nres-responses')}>
                                     <ClipboardList className="h-4 w-4 mr-2" />
                                     PPG Patient Survey Results
                                   </Button>
                                 </DrawerClose>
+
                               </CollapsibleContent>
                             </Collapsible>
                           )}
