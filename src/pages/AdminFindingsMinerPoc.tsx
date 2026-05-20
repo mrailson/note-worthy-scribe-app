@@ -305,8 +305,7 @@ export default function AdminFindingsMinerPoc() {
                 Upload PDFs or images
               </Button>
               <p className="text-xs text-muted-foreground">
-                Text PDFs are extracted locally with pdf.js. Scanned PDFs and images are read by
-                the configured multimodal AI model.
+                PDFs and images are sent directly to Claude Opus 4.7 (vision). Max ~5 MB per file.
               </p>
             </div>
           </CardContent>
