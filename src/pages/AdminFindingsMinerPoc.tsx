@@ -127,26 +127,37 @@ export default function AdminFindingsMinerPoc() {
     for (const file of Array.from(files)) {
       const ext = file.name.toLowerCase().split(".").pop() || "";
       try {
+        if (file.size > MAX_BYTES) {
+          toast.error(`${file.name}: exceeds 5 MB limit.`);
+          continue;
+        }
         if (ext === "pdf") {
-          const text = await extractPdfText(file);
-          if (text && text.replace(/\s/g, "").length > 200) {
-            setQueue((q) => [
-              ...q,
-              { id: uid(), name: file.name, kind: "pdf-text", text, status: "queued" },
-            ]);
-          } else {
-            toast.info(`${file.name}: appears scanned — using vision model.`);
-            const images = await pdfPagesToImages(file);
-            setQueue((q) => [
-              ...q,
-              { id: uid(), name: file.name, kind: "image", images, status: "queued" },
-            ]);
-          }
-        } else if (["jpg", "jpeg", "png", "webp"].includes(ext)) {
-          const dataUrl = await fileToDataUrl(file);
+          const base64 = await fileToBase64(file);
           setQueue((q) => [
             ...q,
-            { id: uid(), name: file.name, kind: "image", images: [dataUrl], status: "queued" },
+            {
+              id: uid(),
+              name: file.name,
+              kind: "pdf",
+              base64,
+              mediaType: "application/pdf",
+              status: "queued",
+            },
+          ]);
+        } else if (["jpg", "jpeg", "png", "webp"].includes(ext)) {
+          const base64 = await fileToBase64(file);
+          const mediaType =
+            ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+          setQueue((q) => [
+            ...q,
+            {
+              id: uid(),
+              name: file.name,
+              kind: "image",
+              base64,
+              mediaType,
+              status: "queued",
+            },
           ]);
         } else {
           toast.error(`Unsupported file type: ${file.name}`);
@@ -162,10 +173,10 @@ export default function AdminFindingsMinerPoc() {
 
   const analyseDoc = async (doc: QueuedDoc): Promise<QueuedDoc> => {
     try {
-      let payload: { kind: "text" | "image"; content: string };
-      if (doc.kind === "image") {
-        if (!doc.images?.length) throw new Error("No image data");
-        payload = { kind: "image", content: doc.images[0] };
+      let payload: { kind: DocKind; content: string; mediaType?: string };
+      if (doc.kind === "image" || doc.kind === "pdf") {
+        if (!doc.base64) throw new Error("No file data");
+        payload = { kind: doc.kind, content: doc.base64, mediaType: doc.mediaType };
       } else {
         if (!doc.text) throw new Error("No text content");
         payload = { kind: "text", content: doc.text };
