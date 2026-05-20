@@ -83,40 +83,14 @@ function confidenceClasses(c: string) {
   return "bg-muted text-muted-foreground border-border";
 }
 
-async function extractPdfText(file: File): Promise<string> {
-  const ab = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-  let out = "";
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const tc = await page.getTextContent();
-    const text = tc.items.map((i: any) => i.str).join(" ");
-    out += text + "\n\n";
-  }
-  return out.trim();
-}
-
-async function pdfPagesToImages(file: File): Promise<string[]> {
-  const ab = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-  const images: string[] = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({ scale: 1.6 });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext("2d")!;
-    await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-    images.push(canvas.toDataURL("image/jpeg", 0.85));
-  }
-  return images;
-}
-
-function fileToDataUrl(file: File): Promise<string> {
+function fileToBase64(file: File): Promise<string> {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res(r.result as string);
+    r.onload = () => {
+      const result = r.result as string;
+      const idx = result.indexOf("base64,");
+      res(idx >= 0 ? result.slice(idx + 7) : result);
+    };
     r.onerror = () => rej(new Error("read failed"));
     r.readAsDataURL(file);
   });
