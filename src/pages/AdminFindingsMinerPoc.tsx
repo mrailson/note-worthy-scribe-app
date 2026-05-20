@@ -390,6 +390,9 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
       work[i] = updated;
       setQueue([...work]);
     }
+    setAnalysing(false);
+  };
+
   const [existingCodes, setExistingCodes] = useState<ExistingCodeRow[] | null>(null);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
   const csvRef = useRef<HTMLInputElement>(null);
@@ -414,9 +417,19 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
     setCsvFileName(null);
   };
 
+  const resolveFindingLookupKey = (f: { finding_key?: string; finding?: string }) => {
+    const rawKey = normaliseFindingKey(f.finding_key);
+    const aliasKey = !rawKey || rawKey === "other" ? aliasKeyForFindingName(f.finding) : undefined;
+    return aliasKey || rawKey;
+  };
+
+  const stats = useMemo(() => {
+    const analysed = queue.filter((d) => d.status === "done");
     let trackA = 0;
     let trackB = 0;
     let noFindings = 0;
+    let codingGaps = 0;
+    let alreadyCoded = 0;
     for (const d of analysed) {
       trackA += d.result?.track_a_findings?.length || 0;
       trackB += d.result?.track_b_flags?.length || 0;
@@ -427,9 +440,17 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
       ) {
         noFindings++;
       }
+      const nhs = d.result?.patient?.nhs_number;
+      for (const f of d.result?.track_a_findings || []) {
+        const key = resolveFindingLookupKey(f);
+        const state = computeGapState(key, nhs, existingCodes);
+        if (state.kind === "coding_gap") codingGaps++;
+        else if (state.kind === "already_coded") alreadyCoded++;
+      }
     }
-    return { analysed: analysed.length, trackA, trackB, noFindings };
-  }, [queue]);
+    return { analysed: analysed.length, trackA, trackB, noFindings, codingGaps, alreadyCoded };
+  }, [queue, existingCodes]);
+
 
   const toggleReviewed = (docId: string, idx: number) => {
     setQueue((q) =>
