@@ -25,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { Header } from "@/components/Header";
+
 
 type DocKind = "text" | "pdf" | "image";
 
