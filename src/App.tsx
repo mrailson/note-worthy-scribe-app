@@ -291,6 +291,7 @@ const App = () => {
                 <Route path="/admin/pipeline-tests" element={<PipelineTestRunner />} />
                 <Route path="/admin/pipeline-compare" element={<PipelineCompare />} />
                 <Route path="/admin/transcription-pilot" element={<TranscriptionPilot />} />
+                <Route path="/admin/findings-miner-poc" element={<AdminFindingsMinerPoc />} />
                 <Route path="/practice-admin" element={<PracticeAdmin />} />
                 <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
                 <Route path="/attendees" element={<Attendees />} />
