@@ -774,7 +774,14 @@ const NRESPopulationRiskInner = () => {
               <TabsTrigger value="cohorts" className="gap-2"><Target className="w-4 h-4" />NRES Cohorts</TabsTrigger>
               <TabsTrigger value="toprisk" className="gap-2"><AlertTriangle className="w-4 h-4" />Top 25 Risk</TabsTrigger>
               <TabsTrigger value="worklists" className="gap-2"><ListChecks className="w-4 h-4" />Worklists</TabsTrigger>
+              {isSystemAdmin && (
+                <TabsTrigger value="findings-miner" className="gap-2">
+                  <FileSearch className="w-4 h-4" />Coded Findings (PoC)
+                </TabsTrigger>
+              )}
             </TabsList>
+
+
 
             {/* OVERVIEW */}
             <TabsContent value="overview" className="space-y-6">
