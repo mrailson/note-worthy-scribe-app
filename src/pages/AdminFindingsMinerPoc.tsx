@@ -8,6 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertTriangle,
   FileText,
   Image as ImageIcon,
@@ -17,6 +23,8 @@ import {
   Upload,
   CheckCircle2,
   XCircle,
+  Eye,
+  User,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,6 +51,14 @@ interface QueuedDoc {
 interface EchoResult {
   document_type: string;
   contains_echo_findings: boolean;
+  patient?: {
+    name: string | null;
+    date_of_birth: string | null;
+    nhs_number: string | null;
+    hospital_number: string | null;
+    address: string | null;
+    gender: string | null;
+  } | null;
   echo_date: string | null;
   reporting_site: string | null;
   lvef: { value: string | null; category: string };
@@ -424,6 +440,8 @@ function DocResultCard({
   doc: QueuedDoc;
   onToggleReviewed: (idx: number) => void;
 }) {
+  const [viewerOpen, setViewerOpen] = useState(false);
+
   if (doc.status === "error") {
     return (
       <Card>
@@ -447,6 +465,16 @@ function DocResultCard({
     !r.contains_echo_findings ||
     ((r.track_a_findings?.length || 0) === 0 && (r.track_b_flags?.length || 0) === 0);
 
+  const p = r.patient;
+  const hasPatient =
+    p && (p.name || p.date_of_birth || p.nhs_number || p.hospital_number || p.address || p.gender);
+
+  const canView = doc.kind !== "text" && !!doc.base64;
+  const dataUrl =
+    canView && doc.base64
+      ? `data:${doc.mediaType || (doc.kind === "pdf" ? "application/pdf" : "image/png")};base64,${doc.base64}`
+      : null;
+
   return (
     <Card>
       <CardHeader className="space-y-2">
@@ -467,10 +495,45 @@ function DocResultCard({
           <Badge className={`border ${lvefChipClasses(r.lvef?.category || "not stated")}`}>
             LVEF: {r.lvef?.value || "—"} ({r.lvef?.category || "not stated"})
           </Badge>
-          <span className="text-xs text-muted-foreground ml-auto truncate max-w-[40%]">
-            {doc.name}
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {canView && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="no-print h-7"
+                onClick={() => setViewerOpen(true)}
+              >
+                <Eye className="h-3.5 w-3.5 mr-1.5" />
+                View document
+              </Button>
+            )}
+            <span className="text-xs text-muted-foreground truncate max-w-[240px]">
+              {doc.name}
+            </span>
+          </div>
         </div>
+
+        {hasPatient && (
+          <div className="rounded-md border bg-muted/30 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Patient details (as printed on document — verify before coding)
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-sm">
+              {p?.name && <PatientField label="Name" value={p.name} />}
+              {p?.date_of_birth && <PatientField label="Date of birth" value={p.date_of_birth} />}
+              {p?.nhs_number && <PatientField label="NHS number" value={p.nhs_number} mono />}
+              {p?.hospital_number && (
+                <PatientField label="Hospital no." value={p.hospital_number} mono />
+              )}
+              {p?.gender && <PatientField label="Gender" value={p.gender} />}
+              {p?.address && <PatientField label="Address" value={p.address} />}
+            </div>
+          </div>
+        )}
+
         {r.summary && <p className="text-sm text-muted-foreground">{r.summary}</p>}
       </CardHeader>
 
@@ -565,13 +628,45 @@ function DocResultCard({
           </>
         )}
 
-        {r.uncertainty_notes && (
-          <p className="text-xs text-muted-foreground border-t pt-3">
-            <span className="font-medium">Caveats: </span>
-            {r.uncertainty_notes}
-          </p>
-        )}
       </CardContent>
+
+      {canView && dataUrl && (
+        <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+          <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 flex flex-col">
+            <DialogHeader className="px-4 py-3 border-b">
+              <DialogTitle className="text-sm font-medium truncate pr-8">
+                {doc.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto bg-muted/40">
+              {doc.kind === "pdf" ? (
+                <iframe
+                  src={dataUrl}
+                  title={doc.name}
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <div className="flex items-center justify-center p-4 min-h-full">
+                  <img
+                    src={dataUrl}
+                    alt={doc.name}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
+  );
+}
+
+function PatientField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className={`text-sm ${mono ? "font-mono" : ""}`}>{value}</span>
+    </div>
   );
 }

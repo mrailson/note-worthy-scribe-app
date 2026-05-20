@@ -28,6 +28,14 @@ Return ONLY valid JSON, no preamble, no markdown, in exactly this schema:
 {
   "document_type": "echo report | clinic letter | discharge summary | other",
   "contains_echo_findings": true,
+  "patient": {
+    "name": "string or null",
+    "date_of_birth": "string or null",
+    "nhs_number": "string or null",
+    "hospital_number": "string or null",
+    "address": "string or null",
+    "gender": "string or null"
+  },
   "echo_date": "string or null",
   "reporting_site": "string or null",
   "lvef": {
@@ -54,7 +62,9 @@ Return ONLY valid JSON, no preamble, no markdown, in exactly this schema:
   ],
   "summary": "one-line plain-English summary of what was found",
   "uncertainty_notes": "any caveats, or empty string"
-}`;
+}
+
+For "patient", extract demographic details verbatim from the document header/banner if present. Use null for any field not stated. Format NHS number with spaces (e.g. "123 456 7890") if present. Format date_of_birth as DD/MM/YYYY where possible.`;
 
 function extractJson(raw: string): any {
   let s = raw.trim();
