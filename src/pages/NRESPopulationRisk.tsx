@@ -880,7 +880,15 @@ const NRESPopulationRiskInner = () => {
                 onOpenPatient={drill.openPatient}
               />
             </TabsContent>
+
+            {/* CODED FINDINGS MINER (system admin only) */}
+            {isSystemAdmin && (
+              <TabsContent value="findings-miner" className="space-y-4">
+                <FindingsMinerContent showHeading />
+              </TabsContent>
+            )}
           </Tabs>
+
         )}
         <footer className="border-t border-narp-line pt-3 text-right text-[11px] text-muted-foreground">
           Proof of Concept · v0.4 · {fmtDate(latestExport?.export_date)}
