@@ -634,7 +634,26 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                   Export report
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {existingCodes ? (
+                  <div className="rounded-md border-l-4 border-amber-500 bg-amber-50 p-4">
+                    <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+                      <div>
+                        <div className="text-3xl font-bold text-amber-700">{stats.codingGaps}</div>
+                        <div className="text-xs uppercase tracking-wide text-amber-900 mt-1">Coding gaps</div>
+                      </div>
+                      <div className="text-sm text-amber-900/80">
+                        · Already coded: <span className="font-semibold">{stats.alreadyCoded}</span>
+                        {"  ·  "}
+                        For evaluation (Track B): <span className="font-semibold">{stats.trackB}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+                    Import the existing coded record (CSV) above to highlight coding gaps.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <SummaryStat label="Documents analysed" value={stats.analysed} />
                   <SummaryStat label="Track A findings" value={stats.trackA} accent="primary" />
@@ -652,10 +671,12 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                     key={d.id}
                     doc={d}
                     codebook={codebook}
+                    existingCodes={existingCodes}
                     onToggleReviewed={(i) => toggleReviewed(d.id, i)}
                   />
                 ))}
             </div>
+
           </>
       )}
     </div>
