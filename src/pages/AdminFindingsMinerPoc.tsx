@@ -20,23 +20,20 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import * as pdfjsLib from "pdfjs-dist";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+type DocKind = "text" | "pdf" | "image";
 
-type DocKind = "text" | "pdf-text" | "image";
+const MAX_BYTES = 5 * 1024 * 1024;
 
 interface QueuedDoc {
   id: string;
   name: string;
   kind: DocKind;
   text?: string;
-  images?: string[];
+  base64?: string;
+  mediaType?: string;
   status: "queued" | "analysing" | "done" | "error";
   error?: string;
   result?: EchoResult;
@@ -86,40 +83,14 @@ function confidenceClasses(c: string) {
   return "bg-muted text-muted-foreground border-border";
 }
 
-async function extractPdfText(file: File): Promise<string> {
-  const ab = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-  let out = "";
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const tc = await page.getTextContent();
-    const text = tc.items.map((i: any) => i.str).join(" ");
-    out += text + "\n\n";
-  }
-  return out.trim();
-}
-
-async function pdfPagesToImages(file: File): Promise<string[]> {
-  const ab = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-  const images: string[] = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({ scale: 1.6 });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext("2d")!;
-    await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-    images.push(canvas.toDataURL("image/jpeg", 0.85));
-  }
-  return images;
-}
-
-function fileToDataUrl(file: File): Promise<string> {
+function fileToBase64(file: File): Promise<string> {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res(r.result as string);
+    r.onload = () => {
+      const result = r.result as string;
+      const idx = result.indexOf("base64,");
+      res(idx >= 0 ? result.slice(idx + 7) : result);
+    };
     r.onerror = () => rej(new Error("read failed"));
     r.readAsDataURL(file);
   });
@@ -156,26 +127,37 @@ export default function AdminFindingsMinerPoc() {
     for (const file of Array.from(files)) {
       const ext = file.name.toLowerCase().split(".").pop() || "";
       try {
+        if (file.size > MAX_BYTES) {
+          toast.error(`${file.name}: exceeds 5 MB limit.`);
+          continue;
+        }
         if (ext === "pdf") {
-          const text = await extractPdfText(file);
-          if (text && text.replace(/\s/g, "").length > 200) {
-            setQueue((q) => [
-              ...q,
-              { id: uid(), name: file.name, kind: "pdf-text", text, status: "queued" },
-            ]);
-          } else {
-            toast.info(`${file.name}: appears scanned — using vision model.`);
-            const images = await pdfPagesToImages(file);
-            setQueue((q) => [
-              ...q,
-              { id: uid(), name: file.name, kind: "image", images, status: "queued" },
-            ]);
-          }
-        } else if (["jpg", "jpeg", "png", "webp"].includes(ext)) {
-          const dataUrl = await fileToDataUrl(file);
+          const base64 = await fileToBase64(file);
           setQueue((q) => [
             ...q,
-            { id: uid(), name: file.name, kind: "image", images: [dataUrl], status: "queued" },
+            {
+              id: uid(),
+              name: file.name,
+              kind: "pdf",
+              base64,
+              mediaType: "application/pdf",
+              status: "queued",
+            },
+          ]);
+        } else if (["jpg", "jpeg", "png", "webp"].includes(ext)) {
+          const base64 = await fileToBase64(file);
+          const mediaType =
+            ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+          setQueue((q) => [
+            ...q,
+            {
+              id: uid(),
+              name: file.name,
+              kind: "image",
+              base64,
+              mediaType,
+              status: "queued",
+            },
           ]);
         } else {
           toast.error(`Unsupported file type: ${file.name}`);
@@ -191,10 +173,10 @@ export default function AdminFindingsMinerPoc() {
 
   const analyseDoc = async (doc: QueuedDoc): Promise<QueuedDoc> => {
     try {
-      let payload: { kind: "text" | "image"; content: string };
-      if (doc.kind === "image") {
-        if (!doc.images?.length) throw new Error("No image data");
-        payload = { kind: "image", content: doc.images[0] };
+      let payload: { kind: DocKind; content: string; mediaType?: string };
+      if (doc.kind === "image" || doc.kind === "pdf") {
+        if (!doc.base64) throw new Error("No file data");
+        payload = { kind: doc.kind, content: doc.base64, mediaType: doc.mediaType };
       } else {
         if (!doc.text) throw new Error("No text content");
         payload = { kind: "text", content: doc.text };
@@ -323,8 +305,7 @@ export default function AdminFindingsMinerPoc() {
                 Upload PDFs or images
               </Button>
               <p className="text-xs text-muted-foreground">
-                Text PDFs are extracted locally with pdf.js. Scanned PDFs and images are read by
-                the configured multimodal AI model.
+                PDFs and images are sent directly to Claude Opus 4.7 (vision). Max ~5 MB per file.
               </p>
             </div>
           </CardContent>
@@ -355,7 +336,7 @@ export default function AdminFindingsMinerPoc() {
                     )}
                     <span className="flex-1 truncate text-sm">{d.name}</span>
                     <Badge variant="outline" className="text-xs">
-                      {d.kind === "image" ? "image / scanned" : d.kind === "pdf-text" ? "PDF text" : "text"}
+                      {d.kind === "image" ? "image" : d.kind === "pdf" ? "PDF" : "text"}
                     </Badge>
                     {d.status === "analysing" && <Loader2 className="h-4 w-4 animate-spin" />}
                     {d.status === "done" && <CheckCircle2 className="h-4 w-4 text-green-600" />}

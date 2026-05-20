@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 const SYSTEM_PROMPT = `You are a clinical document analyst supporting a UK general practice. You are given the text or image of a SINGLE clinical document. It may be an echocardiogram report, a cardiology clinic letter, a hospital discharge summary, or something unrelated. Your job is to identify echocardiogram ("echo") findings that may need coding in the patient's record, and to separate them into two tracks.
 
@@ -58,29 +58,36 @@ Return ONLY valid JSON, no preamble, no markdown, in exactly this schema:
 
 function extractJson(raw: string): any {
   let s = raw.trim();
-  // strip ```json fences
   s = s.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
-  // find first { and last }
   const first = s.indexOf("{");
   const last = s.lastIndexOf("}");
   if (first !== -1 && last !== -1) s = s.slice(first, last + 1);
   return JSON.parse(s);
 }
 
+function tryParse(raw: string): any {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return extractJson(raw);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const body = await req.json();
-    const kind: "text" | "image" = body?.kind;
+    const kind: "text" | "pdf" | "image" = body?.kind;
     const content: string = body?.content;
+    const mediaType: string | undefined = body?.mediaType;
 
     if (!kind || !content) {
       return new Response(JSON.stringify({ error: "Missing kind or content" }), {
@@ -89,22 +96,34 @@ serve(async (req) => {
       });
     }
 
-    const userContent: any[] = [];
+    // Strip any data URL prefix defensively
+    const rawBase64 = content.replace(/^data:[^;]+;base64,/, "");
+
+    let contentBlocks: any[];
     if (kind === "text") {
-      userContent.push({
-        type: "text",
-        text: `Analyse the following clinical document and return JSON per the schema.\n\n---\n${content.slice(0, 60000)}\n---`,
-      });
+      contentBlocks = [
+        {
+          type: "text",
+          text: `${content.slice(0, 60000)}\n\nAnalyse this document and return the JSON.`,
+        },
+      ];
+    } else if (kind === "pdf") {
+      contentBlocks = [
+        {
+          type: "document",
+          source: { type: "base64", media_type: "application/pdf", data: rawBase64 },
+        },
+        { type: "text", text: "Analyse this document and return the JSON." },
+      ];
     } else if (kind === "image") {
-      // content must be a data URL (data:image/...;base64,xxx)
-      userContent.push({
-        type: "text",
-        text: "Analyse this clinical document page and return JSON per the schema.",
-      });
-      userContent.push({
-        type: "image_url",
-        image_url: { url: content },
-      });
+      const mt = mediaType || "image/png";
+      contentBlocks = [
+        {
+          type: "image",
+          source: { type: "base64", media_type: mt, data: rawBase64 },
+        },
+        { type: "text", text: "Analyse this document and return the JSON." },
+      ];
     } else {
       return new Response(JSON.stringify({ error: "Invalid kind" }), {
         status: 400,
@@ -112,41 +131,48 @@ serve(async (req) => {
       });
     }
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-        ],
+        model: "claude-opus-4-7",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: contentBlocks }],
       }),
     });
 
     if (!resp.ok) {
       const errText = await resp.text();
-      console.error("AI gateway error:", resp.status, errText);
+      console.error("Anthropic error:", resp.status, errText);
       return new Response(
-        JSON.stringify({ error: `AI gateway returned ${resp.status}`, detail: errText.slice(0, 500) }),
+        JSON.stringify({ error: `Anthropic returned ${resp.status}`, detail: errText.slice(0, 1000) }),
         { status: resp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const data = await resp.json();
-    const raw = data?.choices?.[0]?.message?.content ?? "";
+    const text: string = (data?.content ?? [])
+      .filter((b: any) => b?.type === "text")
+      .map((b: any) => b.text)
+      .join("\n");
 
     let parsed: any;
     try {
-      parsed = extractJson(raw);
-    } catch (e) {
-      return new Response(
-        JSON.stringify({ error: "Model returned invalid JSON", raw: raw.slice(0, 1000) }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      parsed = tryParse(text);
+    } catch {
+      try {
+        parsed = extractJson(text);
+      } catch (e) {
+        return new Response(
+          JSON.stringify({ error: "Model returned invalid JSON", raw: text.slice(0, 1000) }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     return new Response(JSON.stringify({ result: parsed }), {
