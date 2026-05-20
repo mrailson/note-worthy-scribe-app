@@ -156,6 +156,111 @@ function aliasKeyForFindingName(finding?: string | null) {
   return FINDING_NAME_ALIASES.find(([alias]) => name.includes(alias))?.[1];
 }
 
+export const ECHO_FINDING_CODE_CLUSTERS: Record<string, string[]> = {
+  lvsd: ["134401001"],
+  lvh: ["55827005"],
+  mitral_regurg: ["48724000", "G5401", "XE0Ux"],
+  aortic_stenosis: ["60573004"],
+  aortic_regurg: ["60234000"],
+  tricuspid_regurg: ["111287006"],
+  pulm_htn: ["70995007"],
+  lv_dilatation: [],
+  rwma: [],
+  la_dilatation: [],
+  aortic_sclerosis: [],
+  pericardial_effusion: [],
+};
+
+export interface ExistingCodeRow {
+  nhs_number: string; // normalised (no spaces)
+  patient_name: string;
+  code: string;
+  code_system: string;
+  code_term: string;
+  date_recorded: string;
+}
+
+export function normaliseNhs(value?: string | null) {
+  return (value || "").replace(/\s+/g, "").trim();
+}
+
+function parseCsv(text: string): ExistingCodeRow[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return [];
+  // Simple CSV parser supporting quoted fields
+  const parseLine = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = "";
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQ = false; }
+        else cur += ch;
+      } else {
+        if (ch === ',') { out.push(cur); cur = ""; }
+        else if (ch === '"') inQ = true;
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+  };
+  const headers = parseLine(lines[0]).map((h) => h.toLowerCase().replace(/^"|"$/g, ""));
+  const idx = (name: string) => headers.indexOf(name);
+  const iNhs = idx("nhs_number");
+  const iName = idx("patient_name");
+  const iCode = idx("code");
+  const iSys = idx("code_system");
+  const iTerm = idx("code_term");
+  const iDate = idx("date_recorded");
+  if (iNhs < 0 || iCode < 0) {
+    throw new Error("CSV must include at least nhs_number and code columns");
+  }
+  const rows: ExistingCodeRow[] = [];
+  for (let li = 1; li < lines.length; li++) {
+    const cells = parseLine(lines[li]);
+    rows.push({
+      nhs_number: normaliseNhs(cells[iNhs]),
+      patient_name: iName >= 0 ? cells[iName] || "" : "",
+      code: (cells[iCode] || "").trim(),
+      code_system: iSys >= 0 ? cells[iSys] || "" : "",
+      code_term: iTerm >= 0 ? cells[iTerm] || "" : "",
+      date_recorded: iDate >= 0 ? cells[iDate] || "" : "",
+    });
+  }
+  return rows;
+}
+
+export type GapState =
+  | { kind: "coded_status_unknown" }
+  | { kind: "already_coded"; code: string; code_term: string; date_recorded: string }
+  | { kind: "coding_gap" };
+
+export function computeGapState(
+  findingKey: string | undefined,
+  patientNhs: string | null | undefined,
+  existing: ExistingCodeRow[] | null,
+): GapState {
+  if (!existing) return { kind: "coded_status_unknown" };
+  const cluster = (findingKey && ECHO_FINDING_CODE_CLUSTERS[findingKey]) || [];
+  const nhs = normaliseNhs(patientNhs);
+  if (!nhs) return { kind: "coding_gap" };
+  const patientRows = existing.filter((r) => r.nhs_number === nhs);
+  for (const row of patientRows) {
+    if (cluster.includes(row.code)) {
+      return {
+        kind: "already_coded",
+        code: row.code,
+        code_term: row.code_term,
+        date_recorded: row.date_recorded,
+      };
+    }
+  }
+  return { kind: "coding_gap" };
+}
+
 function useCodebook(): Codebook {
   const [book, setBook] = useState<Codebook>({});
   useEffect(() => {
@@ -288,11 +393,43 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
     setAnalysing(false);
   };
 
+  const [existingCodes, setExistingCodes] = useState<ExistingCodeRow[] | null>(null);
+  const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const csvRef = useRef<HTMLInputElement>(null);
+
+  const onCsvImport = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      setExistingCodes(rows);
+      setCsvFileName(file.name);
+      const patientCount = new Set(rows.map((r) => r.nhs_number)).size;
+      toast.success(`Imported ${rows.length} coded entries across ${patientCount} patient(s) (session only).`);
+    } catch (e) {
+      toast.error(`CSV import failed: ${e instanceof Error ? e.message : "parse error"}`);
+    }
+    if (csvRef.current) csvRef.current.value = "";
+  };
+
+  const clearExistingCodes = () => {
+    setExistingCodes(null);
+    setCsvFileName(null);
+  };
+
+  const resolveFindingLookupKey = (f: { finding_key?: string; finding?: string }) => {
+    const rawKey = normaliseFindingKey(f.finding_key);
+    const aliasKey = !rawKey || rawKey === "other" ? aliasKeyForFindingName(f.finding) : undefined;
+    return aliasKey || rawKey;
+  };
+
   const stats = useMemo(() => {
     const analysed = queue.filter((d) => d.status === "done");
     let trackA = 0;
     let trackB = 0;
     let noFindings = 0;
+    let codingGaps = 0;
+    let alreadyCoded = 0;
     for (const d of analysed) {
       trackA += d.result?.track_a_findings?.length || 0;
       trackB += d.result?.track_b_flags?.length || 0;
@@ -303,9 +440,17 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
       ) {
         noFindings++;
       }
+      const nhs = d.result?.patient?.nhs_number;
+      for (const f of d.result?.track_a_findings || []) {
+        const key = resolveFindingLookupKey(f);
+        const state = computeGapState(key, nhs, existingCodes);
+        if (state.kind === "coding_gap") codingGaps++;
+        else if (state.kind === "already_coded") alreadyCoded++;
+      }
     }
-    return { analysed: analysed.length, trackA, trackB, noFindings };
-  }, [queue]);
+    return { analysed: analysed.length, trackA, trackB, noFindings, codingGaps, alreadyCoded };
+  }, [queue, existingCodes]);
+
 
   const toggleReviewed = (docId: string, idx: number) => {
     setQueue((q) =>
@@ -387,8 +532,52 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                 PDFs and images are sent directly to Claude Opus 4.7 (vision). Max ~5 MB per file.
               </p>
             </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-sm font-medium">Import existing coded record (CSV)</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Columns: nhs_number, patient_name, code, code_system, code_term, date_recorded.
+                    Held in session memory only — never stored.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    ref={csvRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={(e) => onCsvImport(e.target.files?.[0] || null)}
+                  />
+                  <Button variant="outline" size="sm" onClick={() => csvRef.current?.click()}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import CSV
+                  </Button>
+                  {existingCodes && (
+                    <Button variant="ghost" size="sm" onClick={clearExistingCodes}>
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {existingCodes ? (
+                <p className="text-xs text-green-700">
+                  Loaded {existingCodes.length} entries from {csvFileName}
+                  {" · "}
+                  {new Set(existingCodes.map((r) => r.nhs_number)).size} patient(s).
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">
+                  No coded record imported — findings will show as "Coded status unknown".
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
+
 
         {queue.length > 0 && (
           <Card className="no-print">
@@ -445,7 +634,26 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                   Export report
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {existingCodes ? (
+                  <div className="rounded-md border-l-4 border-amber-500 bg-amber-50 p-4">
+                    <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+                      <div>
+                        <div className="text-3xl font-bold text-amber-700">{stats.codingGaps}</div>
+                        <div className="text-xs uppercase tracking-wide text-amber-900 mt-1">Coding gaps</div>
+                      </div>
+                      <div className="text-sm text-amber-900/80">
+                        · Already coded: <span className="font-semibold">{stats.alreadyCoded}</span>
+                        {"  ·  "}
+                        For evaluation (Track B): <span className="font-semibold">{stats.trackB}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+                    Import the existing coded record (CSV) above to highlight coding gaps.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <SummaryStat label="Documents analysed" value={stats.analysed} />
                   <SummaryStat label="Track A findings" value={stats.trackA} accent="primary" />
@@ -463,10 +671,12 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
                     key={d.id}
                     doc={d}
                     codebook={codebook}
+                    existingCodes={existingCodes}
                     onToggleReviewed={(i) => toggleReviewed(d.id, i)}
                   />
                 ))}
             </div>
+
           </>
       )}
     </div>
@@ -499,12 +709,15 @@ function SummaryStat({
 function DocResultCard({
   doc,
   codebook,
+  existingCodes,
   onToggleReviewed,
 }: {
   doc: QueuedDoc;
   codebook: Codebook;
+  existingCodes: ExistingCodeRow[] | null;
   onToggleReviewed: (idx: number) => void;
 }) {
+
   const [viewerOpen, setViewerOpen] = useState(false);
 
   if (doc.status === "error") {
@@ -626,26 +839,30 @@ function DocResultCard({
                     const entry = lookupKey && lookupKey !== "other" ? codebook[lookupKey] : undefined;
                     const pendingVerification = !!entry && !entry.snomed_code;
                     const uncategorised = !entry;
+                    const gapState = !uncategorised
+                      ? computeGapState(lookupKey, r.patient?.nhs_number, existingCodes)
+                      : null;
                     console.info("[FindingsMiner] finding_key lookup", {
                       finding_key: f.finding_key || null,
                       normalised_key: rawKey || null,
                       alias_key: aliasKey || null,
                       lookup_key: lookupKey || null,
                       matched: !!entry,
+                      gap_state: gapState?.kind || null,
                     });
                     const displayName =
                       entry?.display_name ||
                       f.finding ||
                       (lookupKey && lookupKey !== "other" ? lookupKey : "Uncategorised finding");
+                    const borderClass = uncategorised
+                      ? "border-amber-500 bg-amber-50"
+                      : gapState?.kind === "already_coded"
+                      ? "border-green-500 bg-green-50"
+                      : gapState?.kind === "coding_gap"
+                      ? "border-amber-500 bg-amber-50"
+                      : "border-primary bg-primary/5";
                     return (
-                      <div
-                        key={i}
-                        className={`rounded-md border-l-4 p-3 ${
-                          uncategorised
-                            ? "border-amber-500 bg-amber-50"
-                            : "border-primary bg-primary/5"
-                        }`}
-                      >
+                      <div key={i} className={`rounded-md border-l-4 p-3 ${borderClass}`}>
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="font-medium">{displayName}</span>
                           {f.severity && f.severity !== "none" && (
@@ -653,7 +870,25 @@ function DocResultCard({
                               Severity: {f.severity}
                             </Badge>
                           )}
-                          {pendingVerification && (
+                          {gapState?.kind === "already_coded" && (
+                            <Badge className="text-xs border bg-green-100 text-green-800 border-green-300">
+                              Already coded — {gapState.code} {gapState.code_term}
+                              {gapState.date_recorded ? ` (${gapState.date_recorded})` : ""}
+                            </Badge>
+                          )}
+                          {gapState?.kind === "coding_gap" && entry && (
+                            <Badge className="text-xs border bg-amber-100 text-amber-900 border-amber-300">
+                              {entry.snomed_code
+                                ? `Coding gap — propose ${entry.snomed_code} ${entry.snomed_term}`
+                                : "Coding gap — code pending verification"}
+                            </Badge>
+                          )}
+                          {gapState?.kind === "coded_status_unknown" && entry && (
+                            <Badge className="text-xs border bg-muted text-muted-foreground border-border">
+                              Coded status unknown — import the coded record to check
+                            </Badge>
+                          )}
+                          {pendingVerification && gapState?.kind !== "coding_gap" && gapState?.kind !== "already_coded" && (
                             <Badge className="text-xs border bg-amber-100 text-amber-800 border-amber-300">
                               Code pending verification
                             </Badge>
@@ -666,6 +901,7 @@ function DocResultCard({
                           <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
                             {f.confidence} confidence
                           </Badge>
+
                           <div className="ml-auto flex items-center gap-2 no-print">
                             <Switch
                               id={`rev-${doc.id}-${i}`}
