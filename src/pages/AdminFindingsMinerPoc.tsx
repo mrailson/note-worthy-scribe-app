@@ -467,6 +467,7 @@ export function FindingsMinerContent({ showHeading = false }: { showHeading?: bo
       const nhs = d.result?.patient?.nhs_number;
       for (const f of d.result?.track_a_findings || []) {
         const key = resolveFindingLookupKey(f);
+        if (!key || !PRIMARY_CODEABLE.has(key)) continue;
         const state = computeGapState(key, nhs, existingCodes);
         if (state.kind === "coding_gap") codingGaps++;
         else if (state.kind === "already_coded") alreadyCoded++;
