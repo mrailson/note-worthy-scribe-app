@@ -1,0 +1,1 @@
+UPDATE public.echo_finding_codes SET snomed_code = '373945007', snomed_term = 'Pericardial effusion' WHERE finding_key = 'pericardial_effusion';
