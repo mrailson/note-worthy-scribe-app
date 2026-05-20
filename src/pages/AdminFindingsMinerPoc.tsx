@@ -156,6 +156,111 @@ function aliasKeyForFindingName(finding?: string | null) {
   return FINDING_NAME_ALIASES.find(([alias]) => name.includes(alias))?.[1];
 }
 
+export const ECHO_FINDING_CODE_CLUSTERS: Record<string, string[]> = {
+  lvsd: ["134401001"],
+  lvh: ["55827005"],
+  mitral_regurg: ["48724000", "G5401", "XE0Ux"],
+  aortic_stenosis: ["60573004"],
+  aortic_regurg: ["60234000"],
+  tricuspid_regurg: ["111287006"],
+  pulm_htn: ["70995007"],
+  lv_dilatation: [],
+  rwma: [],
+  la_dilatation: [],
+  aortic_sclerosis: [],
+  pericardial_effusion: [],
+};
+
+export interface ExistingCodeRow {
+  nhs_number: string; // normalised (no spaces)
+  patient_name: string;
+  code: string;
+  code_system: string;
+  code_term: string;
+  date_recorded: string;
+}
+
+export function normaliseNhs(value?: string | null) {
+  return (value || "").replace(/\s+/g, "").trim();
+}
+
+function parseCsv(text: string): ExistingCodeRow[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return [];
+  // Simple CSV parser supporting quoted fields
+  const parseLine = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = "";
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQ = false; }
+        else cur += ch;
+      } else {
+        if (ch === ',') { out.push(cur); cur = ""; }
+        else if (ch === '"') inQ = true;
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+  };
+  const headers = parseLine(lines[0]).map((h) => h.toLowerCase().replace(/^"|"$/g, ""));
+  const idx = (name: string) => headers.indexOf(name);
+  const iNhs = idx("nhs_number");
+  const iName = idx("patient_name");
+  const iCode = idx("code");
+  const iSys = idx("code_system");
+  const iTerm = idx("code_term");
+  const iDate = idx("date_recorded");
+  if (iNhs < 0 || iCode < 0) {
+    throw new Error("CSV must include at least nhs_number and code columns");
+  }
+  const rows: ExistingCodeRow[] = [];
+  for (let li = 1; li < lines.length; li++) {
+    const cells = parseLine(lines[li]);
+    rows.push({
+      nhs_number: normaliseNhs(cells[iNhs]),
+      patient_name: iName >= 0 ? cells[iName] || "" : "",
+      code: (cells[iCode] || "").trim(),
+      code_system: iSys >= 0 ? cells[iSys] || "" : "",
+      code_term: iTerm >= 0 ? cells[iTerm] || "" : "",
+      date_recorded: iDate >= 0 ? cells[iDate] || "" : "",
+    });
+  }
+  return rows;
+}
+
+export type GapState =
+  | { kind: "coded_status_unknown" }
+  | { kind: "already_coded"; code: string; code_term: string; date_recorded: string }
+  | { kind: "coding_gap" };
+
+export function computeGapState(
+  findingKey: string | undefined,
+  patientNhs: string | null | undefined,
+  existing: ExistingCodeRow[] | null,
+): GapState {
+  if (!existing) return { kind: "coded_status_unknown" };
+  const cluster = (findingKey && ECHO_FINDING_CODE_CLUSTERS[findingKey]) || [];
+  const nhs = normaliseNhs(patientNhs);
+  if (!nhs) return { kind: "coding_gap" };
+  const patientRows = existing.filter((r) => r.nhs_number === nhs);
+  for (const row of patientRows) {
+    if (cluster.includes(row.code)) {
+      return {
+        kind: "already_coded",
+        code: row.code,
+        code_term: row.code_term,
+        date_recorded: row.date_recorded,
+      };
+    }
+  }
+  return { kind: "coding_gap" };
+}
+
 function useCodebook(): Codebook {
   const [book, setBook] = useState<Codebook>({});
   useEffect(() => {
