@@ -8,6 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertTriangle,
   FileText,
   Image as ImageIcon,
@@ -17,6 +23,8 @@ import {
   Upload,
   CheckCircle2,
   XCircle,
+  Eye,
+  User,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
