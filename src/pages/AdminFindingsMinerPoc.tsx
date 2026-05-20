@@ -109,14 +109,24 @@ function fileToBase64(file: File): Promise<string> {
 
 export default function AdminFindingsMinerPoc() {
   const { isSystemAdmin, loading, user } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isSystemAdmin) return <Navigate to="/" replace />;
+
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-6xl mx-auto">
+        <FindingsMinerContent showHeading />
+      </div>
+    </div>
+  );
+}
+
+export function FindingsMinerContent({ showHeading = false }: { showHeading?: boolean }) {
   const [pasteText, setPasteText] = useState("");
   const [queue, setQueue] = useState<QueuedDoc[]>([]);
   const [analysing, setAnalysing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  if (loading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
-  if (!isSystemAdmin) return <Navigate to="/" replace />;
 
   const addPasted = () => {
     if (!pasteText.trim()) return;
@@ -253,7 +263,7 @@ export default function AdminFindingsMinerPoc() {
   const handlePrint = () => window.print();
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="space-y-6">
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -261,7 +271,7 @@ export default function AdminFindingsMinerPoc() {
         }
       `}</style>
 
-      <div className="max-w-6xl mx-auto space-y-6">
+      {showHeading && (
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Coded Findings Miner — Echo POC</h1>
           <p className="text-muted-foreground mt-1">
@@ -269,6 +279,7 @@ export default function AdminFindingsMinerPoc() {
             from a patient's coded record.
           </p>
         </div>
+      )}
 
         <Alert className="border-amber-400 bg-amber-50 text-amber-900">
           <AlertTriangle className="h-4 w-4 !text-amber-700" />
@@ -399,8 +410,7 @@ export default function AdminFindingsMinerPoc() {
                 ))}
             </div>
           </>
-        )}
-      </div>
+      )}
     </div>
   );
 }

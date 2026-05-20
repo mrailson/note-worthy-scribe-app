@@ -7,8 +7,9 @@ import {
 } from "recharts";
 import {
   Users, AlertTriangle, TrendingUp, Heart, Layers, Target,
-  Upload, FileDown, ListChecks, Loader2, CalendarIcon, FileCheck2,
+  Upload, FileDown, ListChecks, Loader2, CalendarIcon, FileCheck2, FileSearch,
 } from "lucide-react";
+import { FindingsMinerContent } from "@/pages/AdminFindingsMinerPoc";
 import { NRESHeader } from "@/components/nres/NRESHeader";
 import { EditorialHeader } from "@/components/dashboard/EditorialHeader";
 import { Kpi } from "@/components/dashboard/Kpi";
@@ -266,7 +267,7 @@ const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<NarpRow, "
 const NRESPopulationRiskInner = () => {
   const drill = useDrillThrough();
   const isIPhone = useIsIPhone();
-  const { user } = useAuth();
+  const { user, isSystemAdmin } = useAuth();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
@@ -773,7 +774,14 @@ const NRESPopulationRiskInner = () => {
               <TabsTrigger value="cohorts" className="gap-2"><Target className="w-4 h-4" />NRES Cohorts</TabsTrigger>
               <TabsTrigger value="toprisk" className="gap-2"><AlertTriangle className="w-4 h-4" />Top 25 Risk</TabsTrigger>
               <TabsTrigger value="worklists" className="gap-2"><ListChecks className="w-4 h-4" />Worklists</TabsTrigger>
+              {isSystemAdmin && (
+                <TabsTrigger value="findings-miner" className="gap-2">
+                  <FileSearch className="w-4 h-4" />Coded Findings (PoC)
+                </TabsTrigger>
+              )}
             </TabsList>
+
+
 
             {/* OVERVIEW */}
             <TabsContent value="overview" className="space-y-6">
@@ -872,7 +880,15 @@ const NRESPopulationRiskInner = () => {
                 onOpenPatient={drill.openPatient}
               />
             </TabsContent>
+
+            {/* CODED FINDINGS MINER (system admin only) */}
+            {isSystemAdmin && (
+              <TabsContent value="findings-miner" className="space-y-4">
+                <FindingsMinerContent showHeading />
+              </TabsContent>
+            )}
           </Tabs>
+
         )}
         <footer className="border-t border-narp-line pt-3 text-right text-[11px] text-muted-foreground">
           Proof of Concept · v0.4 · {fmtDate(latestExport?.export_date)}
