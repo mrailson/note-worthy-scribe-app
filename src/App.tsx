@@ -83,6 +83,7 @@ const PipelineTest = lazy(() => import("./pages/PipelineTest"));
 const PipelineTestRunner = lazy(() => import("./pages/PipelineTestRunner"));
 const PipelineCompare = lazy(() => import("./pages/PipelineCompare"));
 const TranscriptionPilot = lazy(() => import("./pages/admin/TranscriptionPilot"));
+const AdminFindingsMinerPoc = lazy(() => import("./pages/AdminFindingsMinerPoc"));
 const ExecutiveOverview = lazy(() => import("./pages/ExecutiveOverview"));
 const LoadDemoTeamData = lazy(() => import("./pages/LoadDemoTeamData"));
 const DemoVideosPage = lazy(() => import("./pages/DemoVideosPage"));
@@ -291,6 +292,7 @@ const App = () => {
                 <Route path="/admin/pipeline-tests" element={<PipelineTestRunner />} />
                 <Route path="/admin/pipeline-compare" element={<PipelineCompare />} />
                 <Route path="/admin/transcription-pilot" element={<TranscriptionPilot />} />
+                <Route path="/admin/findings-miner-poc" element={<AdminFindingsMinerPoc />} />
                 <Route path="/practice-admin" element={<PracticeAdmin />} />
                 <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
                 <Route path="/attendees" element={<Attendees />} />
