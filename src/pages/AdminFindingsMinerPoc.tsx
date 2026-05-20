@@ -124,11 +124,42 @@ export default function AdminFindingsMinerPoc() {
   );
 }
 
+export interface CodebookEntry {
+  finding_key: string;
+  display_name: string;
+  track: "A" | "B";
+  snomed_term: string;
+  snomed_code: string | null;
+}
+
+export type Codebook = Record<string, CodebookEntry>;
+
+function useCodebook(): Codebook {
+  const [book, setBook] = useState<Codebook>({});
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("echo_finding_codes")
+        .select("finding_key, display_name, track, snomed_term, snomed_code")
+        .eq("status", "active");
+      if (error) {
+        console.error("Failed to load echo_finding_codes:", error);
+        return;
+      }
+      const map: Codebook = {};
+      for (const row of (data || []) as CodebookEntry[]) map[row.finding_key] = row;
+      setBook(map);
+    })();
+  }, []);
+  return book;
+}
+
 export function FindingsMinerContent({ showHeading = false }: { showHeading?: boolean }) {
   const [pasteText, setPasteText] = useState("");
   const [queue, setQueue] = useState<QueuedDoc[]>([]);
   const [analysing, setAnalysing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const codebook = useCodebook();
 
   const addPasted = () => {
     if (!pasteText.trim()) return;
