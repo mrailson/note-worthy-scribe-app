@@ -19,6 +19,7 @@ RULES
 - Be conservative. If unsure whether something is an echo finding, set confidence to "low" and explain in uncertainty_notes.
 - You are NOT making a diagnosis. For Track B you surface features only.
 - Do NOT output any SNOMED code or concept ID. You classify findings only; the application will attach the verified code.
+- Only extract findings that are PRESENT and abnormal. Do NOT extract findings the report states are absent, normal, or excluded — e.g. "no significant pericardial effusion", "valves structurally normal", "no regional wall motion abnormality", "no LVH", "trivial/physiological" regurgitation reported as normal. If a structure is described as normal, omit it entirely.
 - finding_key MUST be EXACTLY one of these lowercase values and nothing else: lvsd, lv_dilatation, rwma, lvh, mitral_regurg, aortic_stenosis, aortic_regurg, tricuspid_regurg, pulm_htn, la_dilatation, aortic_sclerosis, pericardial_effusion. If none fit, use 'other'. Also return the human-readable finding name separately. Map 'global hypokinesis' to lvsd; map 'dilated left ventricle' to lv_dilatation; map any regional akinesis/hypokinesis of a segment to rwma.
 
 TRACK A — clearly stated, codeable findings
