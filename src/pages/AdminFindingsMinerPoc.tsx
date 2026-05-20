@@ -628,13 +628,45 @@ function DocResultCard({
           </>
         )}
 
-        {r.uncertainty_notes && (
-          <p className="text-xs text-muted-foreground border-t pt-3">
-            <span className="font-medium">Caveats: </span>
-            {r.uncertainty_notes}
-          </p>
-        )}
       </CardContent>
+
+      {canView && dataUrl && (
+        <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+          <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 flex flex-col">
+            <DialogHeader className="px-4 py-3 border-b">
+              <DialogTitle className="text-sm font-medium truncate pr-8">
+                {doc.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto bg-muted/40">
+              {doc.kind === "pdf" ? (
+                <iframe
+                  src={dataUrl}
+                  title={doc.name}
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <div className="flex items-center justify-center p-4 min-h-full">
+                  <img
+                    src={dataUrl}
+                    alt={doc.name}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
+  );
+}
+
+function PatientField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className={`text-sm ${mono ? "font-mono" : ""}`}>{value}</span>
+    </div>
   );
 }
