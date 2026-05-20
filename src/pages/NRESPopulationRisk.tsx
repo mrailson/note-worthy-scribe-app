@@ -266,7 +266,7 @@ const patientDisplayName = (details?: IdentifiableDetails, row?: Pick<NarpRow, "
 const NRESPopulationRiskInner = () => {
   const drill = useDrillThrough();
   const isIPhone = useIsIPhone();
-  const { user } = useAuth();
+  const { user, isSystemAdmin } = useAuth();
   const [rows, setRows] = useState<NarpRow[]>([]);
   const [selectedPractice, setSelectedPractice] = useState<string>(BUGBROOKE_KEY);
   const [tab, setTab] = useState("overview");
