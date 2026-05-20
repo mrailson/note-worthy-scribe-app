@@ -509,3 +509,6 @@ verify_jwt = true
 
 [functions.letter-lab-pii-check]
 verify_jwt = true
+
+[functions.findings-miner-poc]
+verify_jwt = true
