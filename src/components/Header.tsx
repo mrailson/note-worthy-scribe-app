@@ -590,12 +590,20 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              Admin Dashboard
                            </DropdownMenuItem>
                            <DropdownMenuItem
+                             onClick={() => navigate('/admin/findings-miner-poc')}
+                             className="cursor-pointer py-3"
+                           >
+                             <Wrench className="h-4 w-4 mr-2" />
+                             Coded Findings Miner (POC)
+                           </DropdownMenuItem>
+                           <DropdownMenuItem
                              onClick={() => navigate('/admin/nres-responses')}
                              className="cursor-pointer py-3"
                            >
                              <ClipboardList className="h-4 w-4 mr-2" />
                              PPG Patient Survey Results
                            </DropdownMenuItem>
+
                           </DropdownMenuSubContent>
                       </DropdownMenuSub>
                     )}
