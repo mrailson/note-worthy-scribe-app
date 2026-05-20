@@ -1,6 +1,6 @@
 // Coded Findings Miner — Echo POC
 // Read-and-report only. Does not persist documents or results.
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +8,8 @@ const corsHeaders = {
 };
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const SYSTEM_PROMPT = `You are a clinical document analyst supporting a UK general practice. You are given the text or image of a SINGLE clinical document. It may be an echocardiogram report, a cardiology clinic letter, a hospital discharge summary, or something unrelated. Your job is to identify echocardiogram ("echo") findings that may need coding in the patient's record, and to separate them into two tracks.
 
@@ -16,11 +18,12 @@ RULES
 - For every finding, quote the supporting text VERBATIM as the evidence snippet.
 - Be conservative. If unsure whether something is an echo finding, set confidence to "low" and explain in uncertainty_notes.
 - You are NOT making a diagnosis. For Track B you surface features only.
-- Do NOT output any SNOMED code or concept ID. You classify findings only; the application will attach the verified code. If a finding does not fit any finding_key in the list, return finding_key: "other" with a short description in the "finding" field.
+- Do NOT output any SNOMED code or concept ID. You classify findings only; the application will attach the verified code.
+- finding_key MUST be EXACTLY one of these lowercase values and nothing else: lvsd, lv_dilatation, rwma, lvh, mitral_regurg, aortic_stenosis, aortic_regurg, tricuspid_regurg, pulm_htn, la_dilatation, aortic_sclerosis, pericardial_effusion. If none fit, use 'other'. Also return the human-readable finding name separately. Map 'global hypokinesis' to lvsd; map 'dilated left ventricle' to lv_dilatation; map any regional akinesis/hypokinesis of a segment to rwma.
 
 TRACK A — clearly stated, codeable findings
 Structural or functional abnormalities the document states plainly. For each, return finding_key from this FIXED list ONLY:
-  lvsd, lv_dilatation, rwma, lvh, mitral_regurg, aortic_stenosis, aortic_regurg, tricuspid_regurg
+  lvsd, lv_dilatation, rwma, lvh, mitral_regurg, aortic_stenosis, aortic_regurg, tricuspid_regurg, pulm_htn, la_dilatation, aortic_sclerosis, pericardial_effusion, other
 Also return severity as one of: none, mild, moderate, severe.
 
 TRACK B — HFpEF pattern (evaluate, do NOT code)
@@ -47,8 +50,8 @@ Return ONLY valid JSON, no preamble, no markdown, in exactly this schema:
   },
   "track_a_findings": [
     {
-      "finding_key": "lvsd | lv_dilatation | rwma | lvh | mitral_regurg | aortic_stenosis | aortic_regurg | tricuspid_regurg | other",
-      "finding": "short description (required if finding_key is 'other')",
+      "finding_key": "lvsd | lv_dilatation | rwma | lvh | mitral_regurg | aortic_stenosis | aortic_regurg | tricuspid_regurg | pulm_htn | la_dilatation | aortic_sclerosis | pericardial_effusion | other",
+      "finding": "human-readable finding name",
       "severity": "none | mild | moderate | severe",
       "evidence_snippet": "verbatim text from the document",
       "confidence": "high | medium | low"
@@ -87,7 +90,7 @@ function tryParse(raw: string): any {
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
@@ -96,6 +99,21 @@ serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { count, error } = await supabase
+        .from("echo_finding_codes")
+        .select("finding_key", { count: "exact", head: true })
+        .eq("status", "active");
+      if (error) {
+        console.error("[findings-miner-poc] echo_finding_codes read failed:", error.message);
+      } else {
+        console.log("[findings-miner-poc] echo_finding_codes active row count:", count ?? 0);
+      }
+    } else {
+      console.warn("[findings-miner-poc] Supabase service role env vars missing; codebook row count not checked");
     }
 
     const body = await req.json();

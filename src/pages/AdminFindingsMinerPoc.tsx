@@ -134,6 +134,28 @@ export interface CodebookEntry {
 
 export type Codebook = Record<string, CodebookEntry>;
 
+const FINDING_NAME_ALIASES: Array<[string, string]> = [
+  ["left ventricular systolic dysfunction", "lvsd"],
+  ["global hypokinesis", "lvsd"],
+  ["dilated left ventricle", "lv_dilatation"],
+  ["left ventricular dilatation", "lv_dilatation"],
+  ["regional wall motion", "rwma"],
+  ["akinesis", "rwma"],
+  ["mitral regurg", "mitral_regurg"],
+  ["hypertrophy", "lvh"],
+  ["aortic stenosis", "aortic_stenosis"],
+];
+
+function normaliseFindingKey(value?: string | null) {
+  return (value || "").trim().toLowerCase();
+}
+
+function aliasKeyForFindingName(finding?: string | null) {
+  const name = (finding || "").trim().toLowerCase();
+  if (!name) return undefined;
+  return FINDING_NAME_ALIASES.find(([alias]) => name.includes(alias))?.[1];
+}
+
 function useCodebook(): Codebook {
   const [book, setBook] = useState<Codebook>({});
   useEffect(() => {
@@ -147,7 +169,9 @@ function useCodebook(): Codebook {
         return;
       }
       const map: Codebook = {};
-      for (const row of (data || []) as CodebookEntry[]) map[row.finding_key] = row;
+      for (const row of (data || []) as CodebookEntry[]) {
+        map[normaliseFindingKey(row.finding_key)] = row;
+      }
       setBook(map);
     })();
   }, []);
@@ -596,13 +620,23 @@ function DocResultCard({
                 </div>
                 <div className="space-y-3">
                   {r.track_a_findings.map((f, i) => {
-                    const key = (f.finding_key || "").toLowerCase();
-                    const entry = key && key !== "other" ? codebook[key] : undefined;
+                    const rawKey = normaliseFindingKey(f.finding_key);
+                    const aliasKey = !rawKey || rawKey === "other" ? aliasKeyForFindingName(f.finding) : undefined;
+                    const lookupKey = aliasKey || rawKey;
+                    const entry = lookupKey && lookupKey !== "other" ? codebook[lookupKey] : undefined;
+                    const pendingVerification = !!entry && !entry.snomed_code;
                     const uncategorised = !entry;
+                    console.info("[FindingsMiner] finding_key lookup", {
+                      finding_key: f.finding_key || null,
+                      normalised_key: rawKey || null,
+                      alias_key: aliasKey || null,
+                      lookup_key: lookupKey || null,
+                      matched: !!entry,
+                    });
                     const displayName =
                       entry?.display_name ||
                       f.finding ||
-                      (key && key !== "other" ? key : "Uncategorised finding");
+                      (lookupKey && lookupKey !== "other" ? lookupKey : "Uncategorised finding");
                     return (
                       <div
                         key={i}
@@ -617,6 +651,11 @@ function DocResultCard({
                           {f.severity && f.severity !== "none" && (
                             <Badge variant="outline" className="text-xs capitalize">
                               Severity: {f.severity}
+                            </Badge>
+                          )}
+                          {pendingVerification && (
+                            <Badge className="text-xs border bg-amber-100 text-amber-800 border-amber-300">
+                              Code pending verification
                             </Badge>
                           )}
                           {uncategorised && (
@@ -645,10 +684,15 @@ function DocResultCard({
                           <div className="text-xs">
                             <span className="text-muted-foreground">SNOMED CT: </span>
                             <span>{entry.snomed_term}</span>
-                            {entry.snomed_code && (
+                            {entry.snomed_code ? (
                               <>
                                 <span className="text-muted-foreground"> · </span>
                                 <span className="font-mono">{entry.snomed_code}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-muted-foreground"> · </span>
+                                <span className="font-medium text-amber-800">Code pending verification</span>
                               </>
                             )}
                           </div>
