@@ -839,26 +839,30 @@ function DocResultCard({
                     const entry = lookupKey && lookupKey !== "other" ? codebook[lookupKey] : undefined;
                     const pendingVerification = !!entry && !entry.snomed_code;
                     const uncategorised = !entry;
+                    const gapState = !uncategorised
+                      ? computeGapState(lookupKey, r.patient?.nhs_number, existingCodes)
+                      : null;
                     console.info("[FindingsMiner] finding_key lookup", {
                       finding_key: f.finding_key || null,
                       normalised_key: rawKey || null,
                       alias_key: aliasKey || null,
                       lookup_key: lookupKey || null,
                       matched: !!entry,
+                      gap_state: gapState?.kind || null,
                     });
                     const displayName =
                       entry?.display_name ||
                       f.finding ||
                       (lookupKey && lookupKey !== "other" ? lookupKey : "Uncategorised finding");
+                    const borderClass = uncategorised
+                      ? "border-amber-500 bg-amber-50"
+                      : gapState?.kind === "already_coded"
+                      ? "border-green-500 bg-green-50"
+                      : gapState?.kind === "coding_gap"
+                      ? "border-amber-500 bg-amber-50"
+                      : "border-primary bg-primary/5";
                     return (
-                      <div
-                        key={i}
-                        className={`rounded-md border-l-4 p-3 ${
-                          uncategorised
-                            ? "border-amber-500 bg-amber-50"
-                            : "border-primary bg-primary/5"
-                        }`}
-                      >
+                      <div key={i} className={`rounded-md border-l-4 p-3 ${borderClass}`}>
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="font-medium">{displayName}</span>
                           {f.severity && f.severity !== "none" && (
@@ -866,7 +870,25 @@ function DocResultCard({
                               Severity: {f.severity}
                             </Badge>
                           )}
-                          {pendingVerification && (
+                          {gapState?.kind === "already_coded" && (
+                            <Badge className="text-xs border bg-green-100 text-green-800 border-green-300">
+                              Already coded — {gapState.code} {gapState.code_term}
+                              {gapState.date_recorded ? ` (${gapState.date_recorded})` : ""}
+                            </Badge>
+                          )}
+                          {gapState?.kind === "coding_gap" && entry && (
+                            <Badge className="text-xs border bg-amber-100 text-amber-900 border-amber-300">
+                              {entry.snomed_code
+                                ? `Coding gap — propose ${entry.snomed_code} ${entry.snomed_term}`
+                                : "Coding gap — code pending verification"}
+                            </Badge>
+                          )}
+                          {gapState?.kind === "coded_status_unknown" && entry && (
+                            <Badge className="text-xs border bg-muted text-muted-foreground border-border">
+                              Coded status unknown — import the coded record to check
+                            </Badge>
+                          )}
+                          {pendingVerification && gapState?.kind !== "coding_gap" && gapState?.kind !== "already_coded" && (
                             <Badge className="text-xs border bg-amber-100 text-amber-800 border-amber-300">
                               Code pending verification
                             </Badge>
@@ -879,6 +901,7 @@ function DocResultCard({
                           <Badge className={`text-xs border ${confidenceClasses(f.confidence)}`}>
                             {f.confidence} confidence
                           </Badge>
+
                           <div className="ml-auto flex items-center gap-2 no-print">
                             <Switch
                               id={`rev-${doc.id}-${i}`}
