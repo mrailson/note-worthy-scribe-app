@@ -32,7 +32,8 @@ interface QueuedDoc {
   name: string;
   kind: DocKind;
   text?: string;
-  images?: string[];
+  base64?: string;
+  mediaType?: string;
   status: "queued" | "analysing" | "done" | "error";
   error?: string;
   result?: EchoResult;
