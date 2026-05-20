@@ -51,6 +51,14 @@ interface QueuedDoc {
 interface EchoResult {
   document_type: string;
   contains_echo_findings: boolean;
+  patient?: {
+    name: string | null;
+    date_of_birth: string | null;
+    nhs_number: string | null;
+    hospital_number: string | null;
+    address: string | null;
+    gender: string | null;
+  } | null;
   echo_date: string | null;
   reporting_site: string | null;
   lvef: { value: string | null; category: string };
